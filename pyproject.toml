@@ -24,7 +24,7 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "<4.0, >=3.11"
 importlib-metadata = ">=8.6.1"
-click = "8.1.8"
+click = "8.3.1"
 construct = "2.10.70"
 jinja2 = "*"
 rich = "*"
