@@ -1721,23 +1721,23 @@ semver = ["semver (>=3.0.2)"]
 
 [[package]]
 name = "pydantic-yaml"
-version = "1.4.0"
-description = "Adds some YAML functionality to the excellent `pydantic` library."
+version = "1.6.0"
+description = "YAML reading/writing for Pydantic models"
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.10"
 files = [
-    {file = "pydantic_yaml-1.4.0-py3-none-any.whl", hash = "sha256:f9ad82d8c0548e779e00d6ec639f6efa8f8c7e14d12d0bf9fdc400a37300d7ba"},
-    {file = "pydantic_yaml-1.4.0.tar.gz", hash = "sha256:09f6b9ec9d80550dd3a58596a6a0948a1830fae94b73329b95c2b9dbfc35ae00"},
+    {file = "pydantic_yaml-1.6.0-py3-none-any.whl", hash = "sha256:02cb800b455b68daeeb74ad736c252a94a0b203da5fbbeef02539d468e1d98f8"},
+    {file = "pydantic_yaml-1.6.0.tar.gz", hash = "sha256:ce5f10b65d95ca45846a36ea8dae54e550fa3058e7d6218e0179184d9bf6f660"},
 ]
 
 [package.dependencies]
 pydantic = ">=1.8"
-"ruamel.yaml" = ">=0.16.0,<0.19.0"
+"ruamel.yaml" = ">=0.17.0,<0.19.0"
 typing-extensions = ">=4.5.0"
 
 [package.extras]
-dev = ["black (==24.8.0)", "mypy (==1.13.0)", "pre-commit (==3.5.0)", "pytest (==8.3.3)", "ruff (==0.7.3)", "setuptools (>=61.0.0)", "setuptools-scm[toml] (>=6.2)"]
-docs = ["mkdocs", "mkdocs-material", "mkdocstrings[python]", "pygments", "pymdown-extensions"]
+dev = ["mypy (==1.17.1)", "pre-commit (==4.2.0)", "pytest (==8.4.1)", "ruff (==0.12.8)", "setuptools (>=61.0.0)", "setuptools-scm[toml] (>=6.2)"]
+docs = ["mkdocs", "mkdocs-material", "mkdocstrings[python]", "pygments", "pymdown-extensions", "types-setuptools"]
 
 [[package]]
 name = "pyflakes"
@@ -3084,4 +3084,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "<4.0, >=3.11"
-content-hash = "1db55535e2f4dca70d2075d8212a4cb16a0da4ab0abff1824024b2326a44e10c"
+content-hash = "6a5334fd54a1a496834d53a033d65087a9839aa79d7852d2813b4a3fa2b9a4a4"
