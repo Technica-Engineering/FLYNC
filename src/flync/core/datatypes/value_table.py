@@ -1,9 +1,9 @@
 from pydantic import Field
 
-from .base import ComplexDatatype
+from flync.core.base_models.base_model import FLYNCBaseModel
 
 
-class ValueTable(ComplexDatatype):
+class ValueTable(FLYNCBaseModel):
     """
     Represents a table of values with an associated description.
 
