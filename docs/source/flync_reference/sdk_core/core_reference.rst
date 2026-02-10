@@ -33,30 +33,7 @@ unique_names
 flync.core.datatypes
 ====================
 
-
 .. autoclass:: flync.core.datatypes.Datatype()
-.. autoclass:: flync.core.datatypes.PrimitiveDatatype()
-.. autoclass:: flync.core.datatypes.ComplexDatatype()
-.. autoclass:: flync.core.datatypes.BaseInt()
-.. autoclass:: flync.core.datatypes.BaseFloat()
-.. autoclass:: flync.core.datatypes.Typedef()
-
-----
-
-.. autoclass:: flync.core.datatypes.ArrayType()
-.. autoclass:: flync.core.datatypes.ArrayDimension()
-
-----
-
-.. autoclass:: flync.core.datatypes.BitfieldEntryValue()
-.. autoclass:: flync.core.datatypes.BitfieldEntry()
-.. autoclass:: flync.core.datatypes.Bitfield()
-.. autoclass:: flync.core.datatypes.BitRange()
-
-----
-
-.. autoclass:: flync.core.datatypes.EnumEntry()
-.. autoclass:: flync.core.datatypes.Enum()
 
 ----
 
@@ -71,51 +48,12 @@ flync.core.datatypes
 
 ----
 
-.. autoclass:: flync.core.datatypes.Boolean()
-
-----
-
-.. autoclass:: flync.core.datatypes.UInt8()
-.. autoclass:: flync.core.datatypes.UInt16()
-.. autoclass:: flync.core.datatypes.UInt32()
-.. autoclass:: flync.core.datatypes.UInt64()
-
-----
-
-.. autoclass:: flync.core.datatypes.SInt8()
-.. autoclass:: flync.core.datatypes.SInt16()
-.. autoclass:: flync.core.datatypes.SInt32()
-.. autoclass:: flync.core.datatypes.SInt64()
-
-----
-
-.. autoclass:: flync.core.datatypes.Float32()
-.. autoclass:: flync.core.datatypes.Float64()
-
-----
-
-.. autoclass:: flync.core.datatypes.BaseString()
-.. autoclass:: flync.core.datatypes.FixedLengthString()
-.. autoclass:: flync.core.datatypes.DynamicLengthString()
-
-----
-
-.. autoclass:: flync.core.datatypes.Struct()
-
-----
-
-.. autoclass:: flync.core.datatypes.UnionMember()
-.. autoclass:: flync.core.datatypes.Union()
+.. autoclass:: flync.core.datatypes.BitRange()
 
 ----
 
 .. autoclass:: flync.core.datatypes.ValueRange()
 .. autoclass:: flync.core.datatypes.ValueTable()
-
-----
-
-.. autoattribute:: flync.core.datatypes.AllTypes()
-
 
 
 flync.core.utils

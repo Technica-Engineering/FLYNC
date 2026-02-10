@@ -1,17 +1,24 @@
 import pytest
 import pydantic_yaml
 from pydantic import ValidationError
+
 from flync.model.flync_4_someip import (
+    ArrayType,
+    SInt16,
+    SInt32,
+    SInt8,
+    SOMEIPFireAndForgetMethod,
     SOMEIPMethod,
     SOMEIPRequestResponseMethod,
-    SOMEIPFireAndForgetMethod,
+    Struct,
+    UInt16,
+    UInt32,
+    UInt8,
 )
-
-from flync.core.datatypes import *
 
 
 def test_simple_method():
-    # Method is a abstractclass, so we should not be able to instantiate it
+    # Method is an abstractclass, so we should not be able to instantiate it
     with pytest.raises(
         TypeError, match="Can't instantiate abstract class SOMEIPMethod.*"
     ):
