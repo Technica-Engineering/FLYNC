@@ -24,7 +24,7 @@ class BaseString(Datatype):
     encoding: Literal["UTF-8", "UTF-16BE", "UTF-16LE"] = Field(
         description="the encoding of the string\n\n"
         ".. needextract::\n"
-        '\t:filter: id in ["SIP_RPC_234","SIP_RPC_235"]\n\n',
+        '\t:filter: id in ["feat_req_someip_234","feat_req_someip_235"]\n\n',
         default="UTF-8",
     )
 
@@ -56,7 +56,7 @@ class FixedLengthString(BaseString):
         description="the length of the string (including zero-termination!)\n"
         "\n"
         ".. needextract::\n"
-        '\t:filter: id in ["SIP_RPC_234"]\n\n'
+        '\t:filter: id in ["feat_req_someip_234"]\n\n'
     )
     length_of_length_field: Literal[0, 8, 16, 32] = Field(
         default=0,
@@ -94,8 +94,8 @@ class DynamicLengthString(BaseString):
     length_of_length_field: Literal[8, 16, 32] = Field(
         description="the length of the length field of the string\n\n"
         ".. needextract::\n"
-        '\t:filter: id in ["SIP_RPC_237", "SIP_RPC_582", '
-        '"SIP_RPC_581"]\n\n',
+        '\t:filter: id in ["feat_req_someip_237", "feat_req_someip_582", '
+        '"feat_req_someip_581"]\n\n',
         default=32,
     )
     bit_alignment: Literal[8, 16, 32, 64, 128, 256] = Field(
