@@ -30,9 +30,9 @@ from pydantic import (
 import flync.core.utils.common_validators as common_validators
 from flync.core.annotations.external import External, OutputStrategy
 from flync.core.base_models import DictInstances, FLYNCBaseModel
-from flync.core.datatypes import AllTypes
 from flync.core.utils.exceptions import err_major, err_minor
 from flync.model.flync_4_metadata import SOMEIPServiceMetadata
+from flync.model.flync_4_someip.someip_datatypes import AllTypes
 
 
 class SOMEIPField(FLYNCBaseModel):

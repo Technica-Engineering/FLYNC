@@ -1,28 +1,5 @@
 """Top-level package for flync-4-someip."""
 
-from flync.core.datatypes import (
-    AllTypes,
-    ArrayType,
-    Bitfield,
-    Boolean,
-    DynamicLengthString,
-    Enum,
-    FixedLengthString,
-    Float32,
-    Float64,
-    Floats,
-    Ints,
-    SInt8,
-    SInt16,
-    SInt32,
-    SInt64,
-    Struct,
-    UInt8,
-    UInt16,
-    UInt32,
-    UInt64,
-    Union,
-)
 from flync.model.flync_4_someip.deployment import (
     BaseUDPDeployment,
     Layer4Endpoint,
@@ -49,11 +26,35 @@ from flync.model.flync_4_someip.service_interface import (
     SOMEIPRequestResponseMethod,
     SOMEIPServiceInterface,
 )
+from flync.model.flync_4_someip.someip_datatypes import (
+    AllTypes,
+    ArrayType,
+    Bitfield,
+    Boolean,
+    DynamicLengthString,
+    Enum,
+    FixedLengthString,
+    Float32,
+    Float64,
+    Floats,
+    Ints,
+    SInt8,
+    SInt16,
+    SInt32,
+    SInt64,
+    Struct,
+    UInt8,
+    UInt16,
+    UInt32,
+    UInt64,
+    Union,
+)
 
 SOMEIPMethod.model_rebuild()
 SOMEIPConfig.model_rebuild()
 
 __all__ = [
+    "AllTypes",
     "Boolean",
     "SInt8",
     "SInt16",
@@ -96,5 +97,4 @@ __all__ = [
     "SDConfig",
     "SDTimings",
     "SOMEIPTP",
-    "AllTypes",
 ]
