@@ -2677,12 +2677,12 @@ test = ["defusedxml", "myst-parser", "pytest", "ruff", "sphinx"]
 
 [[package]]
 name = "sphinxcontrib-plantuml"
-version = "0.30"
+version = "0.31"
 description = "Sphinx \"plantuml\" extension"
 optional = false
 python-versions = "*"
 files = [
-    {file = "sphinxcontrib-plantuml-0.30.tar.gz", hash = "sha256:2a1266ca43bddf44640ae44107003df4490de2b3c3154a0d627cfb63e9a169bf"},
+    {file = "sphinxcontrib_plantuml-0.31.tar.gz", hash = "sha256:fd74752f8ea070e641c3f8a402fccfa1d4a4056e0967b56033d2a76282d9f956"},
 ]
 
 [package.dependencies]
@@ -3084,4 +3084,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "<4.0, >=3.11"
-content-hash = "987a537544851b9f283f36725b86958d596e67fe86aa55dd3d25746f3e928def"
+content-hash = "bff11989d8a5f9256376d0b6bae101ee8d9e62d681888ffb5e57c5c34e254b23"
