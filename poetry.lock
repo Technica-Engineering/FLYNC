@@ -2104,28 +2104,28 @@ jupyter = ["ipywidgets (>=7.5.1,<9)"]
 
 [[package]]
 name = "roman-numerals"
-version = "4.0.0"
+version = "4.1.0"
 description = "Manipulate well-formed Roman numerals"
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "roman_numerals-4.0.0-py3-none-any.whl", hash = "sha256:4131feb23ba1a542494873e4cee7844ec8d226a750134efc65ceb20939ed33c9"},
-    {file = "roman_numerals-4.0.0.tar.gz", hash = "sha256:231287018a8788bf8c0718482a08c15b90458523ea1d840a18a791a86d4583b3"},
+    {file = "roman_numerals-4.1.0-py3-none-any.whl", hash = "sha256:647ba99caddc2cc1e55a51e4360689115551bf4476d90e8162cf8c345fe233c7"},
+    {file = "roman_numerals-4.1.0.tar.gz", hash = "sha256:1af8b147eb1405d5839e78aeb93131690495fe9da5c91856cb33ad55a7f1e5b2"},
 ]
 
 [[package]]
 name = "roman-numerals-py"
-version = "4.0.0"
+version = "4.1.0"
 description = "This package is deprecated, switch to roman-numerals."
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "roman_numerals_py-4.0.0-py3-none-any.whl", hash = "sha256:dfcecf6e0cddbf2ee1112e7e2ebf58ba771984f075cb57a30e1811cee4f06332"},
-    {file = "roman_numerals_py-4.0.0.tar.gz", hash = "sha256:f7fa8dff5b7b7251d3a7586b97c57a0698e2e28898fa42c23bcc0cf51b02aee9"},
+    {file = "roman_numerals_py-4.1.0-py3-none-any.whl", hash = "sha256:553114c1167141c1283a51743759723ecd05604a1b6b507225e91dc1a6df0780"},
+    {file = "roman_numerals_py-4.1.0.tar.gz", hash = "sha256:f5d7b2b4ca52dd855ef7ab8eb3590f428c0b1ea480736ce32b01fef2a5f8daf9"},
 ]
 
 [package.dependencies]
-roman-numerals = "4.0.0"
+roman-numerals = "4.1.0"
 
 [[package]]
 name = "rpds-py"
@@ -3085,4 +3085,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "<4.0, >=3.11"
-content-hash = "4fa6da8ef7ddaafb7dc57a62246a53b92e562206be984ec4f689d635c4b90916"
+content-hash = "8235ea331078cda3771748e2c5c5ef2bd23612f0e02bef2cd8406ff8c8fd0f00"
