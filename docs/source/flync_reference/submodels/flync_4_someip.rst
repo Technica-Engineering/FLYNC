@@ -14,80 +14,9 @@ SOME/IP Configuration
 .. autoclass:: flync.model.flync_4_someip.SOMEIPConfig()
 
 
-SOME/IP Datatypes
-#################
-
-.. note::
-   SOME/IP Datatypes are used to describe the parameters of messages that are transported in the payload.
-
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.PrimitiveDatatype()
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.ComplexDatatype()
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.BaseInt()
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.BaseFloat()
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.Typedef()
-
-----
-
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.ArrayType()
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.ArrayDimension()
-
-----
-
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.BitfieldEntryValue()
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.BitfieldEntry()
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.Bitfield()
-
-----
-
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.EnumEntry()
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.Enum()
-
-----
-
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.Boolean()
-
-----
-
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.UInt8()
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.UInt16()
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.UInt32()
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.UInt64()
-
-----
-
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.SInt8()
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.SInt16()
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.SInt32()
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.SInt64()
-
-----
-
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.Float32()
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.Float64()
-
-----
-
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.BaseString()
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.FixedLengthString()
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.DynamicLengthString()
-
-----
-
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.Struct()
-
-----
-
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.UnionMember()
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.Union()
-
-----
-
-.. autoattribute:: flync.model.flync_4_someip.someip_datatypes.AllTypes()
-
-
 
 Service Discovery
-=================
+##################
 
 .. admonition:: Expand for a YAML example - 📄 ``sd_config.flync.yaml``
    :collapsible: closed
@@ -186,3 +115,75 @@ Service Deployment
 .. autoclass:: flync.model.flync_4_someip.BaseUDPDeployment()
 .. autoclass:: flync.model.flync_4_someip.UDPDeployment()
 .. autoclass:: flync.model.flync_4_someip.TCPDeployment()
+
+
+
+SOME/IP Datatypes
+#################
+
+.. note::
+   SOME/IP Datatypes are used to describe the parameters of messages that are transported in the payload.
+
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.PrimitiveDatatype()
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.ComplexDatatype()
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.BaseInt()
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.BaseFloat()
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.Typedef()
+
+----
+
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.ArrayType()
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.ArrayDimension()
+
+----
+
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.BitfieldEntryValue()
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.BitfieldEntry()
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.Bitfield()
+
+----
+
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.EnumEntry()
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.Enum()
+
+----
+
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.Boolean()
+
+----
+
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.UInt8()
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.UInt16()
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.UInt32()
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.UInt64()
+
+----
+
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.SInt8()
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.SInt16()
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.SInt32()
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.SInt64()
+
+----
+
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.Float32()
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.Float64()
+
+----
+
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.BaseString()
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.FixedLengthString()
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.DynamicLengthString()
+
+----
+
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.Struct()
+
+----
+
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.UnionMember()
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.Union()
+
+----
+
+.. autoattribute:: flync.model.flync_4_someip.someip_datatypes.AllTypes()
