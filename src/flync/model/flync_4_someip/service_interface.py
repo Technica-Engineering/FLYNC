@@ -44,7 +44,8 @@ class SOMEIPField(FLYNCBaseModel):
     name : str
         Name of the Field.
 
-    parameters : list[ :class:`~flync.core.datatypes.AllTypes` ]
+    parameters : list[ \
+        :class:`~flync.model.flync_4_someip.someip_datatypes.AllTypes` ]
         List of Parameters of the Field.
 
     description : str, optional
@@ -109,7 +110,7 @@ class Parameters(FLYNCBaseModel):
     name : str
         Identifies the parameter.
 
-    type :  :class:`~flync.core.datatypes.AllTypes`
+    type :  :class:`~flync.model.flync_4_someip.someip_datatypes.AllTypes`
         Datatype of the Parameter.
     """
 
@@ -352,7 +353,8 @@ class SOMEIPMethod(FLYNCBaseModel):
     someip_tp : :class:`~SOMEIPTP`
         SOME/IP Transport Protocol configuration for this method.
 
-    input_parameters : list[ :class:`~flync.core.datatypes.AllTypes` ]
+    input_parameters : list[\
+        :class:`~flync.model.flync_4_someip.someip_datatypes.AllTypes` ]
         List of input parameters.
 
     """
@@ -391,7 +393,8 @@ class SOMEIPRequestResponseMethod(SOMEIPMethod):
     Parameters
     ----------
 
-    output_parameters : list[ :class:`~flync.core.datatypes.AllTypes` ]
+    output_parameters : list[ \
+        :class:`~flync.model.flync_4_someip.someip_datatypes.AllTypes` ]
         List of output parameters of the response.
     """
 
