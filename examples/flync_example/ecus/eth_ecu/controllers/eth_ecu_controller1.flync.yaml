@@ -92,7 +92,7 @@ interfaces:
                 address: 10.0.40.0
                 ipv4netmask: 255.255.255.0
               protocol: udp
-          child_classes: 
+          child_classes: []
     macsec_config: 
       vlan_bypass: []
       mka_enabled: true

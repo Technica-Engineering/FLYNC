@@ -6,6 +6,7 @@ from pydantic import (
     RootModel,
     StrictBool,
     ValidationError,
+    field_serializer,
     field_validator,
     model_validator,
 )
@@ -155,6 +156,11 @@ class Socket(FLYNCBaseModel):
                 )
             idx = idx + 1
         return valid_deployment
+
+    @field_serializer("endpoint_address")
+    def serialize_endpoint_address(self, endpoint):
+        if endpoint is not None:
+            return str(endpoint).upper()
 
 
 class TCPOption(DictInstances):

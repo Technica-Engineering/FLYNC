@@ -107,5 +107,6 @@ Key points
 * Choose the appropriate ``NamingStrategy`` to control file naming.
 * Use ``OutputStrategy.FOLDER`` when a field naturally maps to multiple files (e.g. controllers).
 * ``ImpliedStrategy.FOLDER_NAME`` is handy for identifiers that follow the directory layout.
-* All strategy classes are defined in ``src/flync/helper_models.py`` - keep them imported from that module
+* ``ImpliedStrategy.FILE_NAME`` handy for identifiers that are derived from the field value as a file name.
+* All strategy classes are defined in ``src/flync/core/annotations`` - keep them imported from that module
   to avoid circular imports.

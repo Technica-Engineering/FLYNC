@@ -1,6 +1,6 @@
 from typing import Annotated, List, Literal, Optional
 
-from pydantic import Field, PrivateAttr, model_validator
+from pydantic import Field, PrivateAttr, model_serializer, model_validator
 
 import flync.core.utils.common_validators as common_validators
 from flync.core.annotations.external import External, OutputStrategy
@@ -59,6 +59,15 @@ class ExternalConnection(FLYNCBaseModel):
     @property
     def ecu2_port(self) -> Optional[ECUPort]:
         return self._ecu2_port
+
+    @model_serializer
+    def serialize(self):
+        return {
+            "type": self.type,
+            "id": self.id,
+            "ecu1_port": self.ecu1_port_name,
+            "ecu2_port": self.ecu2_port_name,
+        }
 
     @model_validator(mode="after")
     def validate_external_connection(self):

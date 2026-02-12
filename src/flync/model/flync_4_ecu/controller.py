@@ -5,6 +5,7 @@ from pydantic import (
     BeforeValidator,
     Field,
     PrivateAttr,
+    field_serializer,
     field_validator,
     model_validator,
 )
@@ -63,6 +64,18 @@ class VirtualControllerInterface(FLYNCBaseModel):
         AfterValidator(common_validators.validate_multicast_list),
         BeforeValidator(common_validators.none_to_empty_list),
     ] = Field(default=[])
+
+    @field_serializer("addresses", "multicast")
+    def serialize_addresses(self, value):
+        if value is not None:
+            return [
+                (
+                    v.model_dump()
+                    if isinstance(v, FLYNCBaseModel)
+                    else str(v).upper()
+                )
+                for v in value
+            ]
 
 
 class ControllerInterface(NamedDictInstances):

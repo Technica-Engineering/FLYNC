@@ -17,6 +17,7 @@ from pydantic import (
     Field,
     PrivateAttr,
     StrictInt,
+    field_serializer,
     model_validator,
 )
 from pydantic.networks import IPvAnyAddress
@@ -195,6 +196,10 @@ class MulticastGroup(FLYNCBaseModel):
         AfterValidator(common_validators.validate_any_multicast_address),
     ] = Field()
     ports: List[str] = Field()
+
+    @field_serializer("address")
+    def serialize_address(self, address):
+        return str(address)
 
 
 class VLANEntry(FLYNCBaseModel):

@@ -11,8 +11,12 @@ def get_metadata(meta: Iterable[object], cls: type[T]) -> Optional[T]:
     return None
 
 
-def get_name(named_object: T, fallback_name: str | None = None) -> str:
+def get_name(
+    named_object: T, attr_name: str, fallback_name: str | None = None
+) -> str:
+    """Retrieve a display name for an object."""
+    attr_name = attr_name or "name"
     return (
-        getattr(named_object, "name", fallback_name)
+        getattr(named_object, attr_name, fallback_name)
         or type(named_object).__name__
     )

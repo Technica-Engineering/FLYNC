@@ -1,25 +1,74 @@
-import hashlib
 from pathlib import Path
+from typing import Tuple
+import yaml
+
+from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
+
+def flatten_yaml(data, parent_key="", sep="."):
+    items = {}
+    if isinstance(data, dict):
+        for key, value in data.items():
+            new_key = f"{parent_key}{sep}{key}" if parent_key else key
+            items.update(flatten_yaml(value, new_key, sep))
+    elif isinstance(data, list):
+        for index, value in enumerate(data):
+            new_key = f"{parent_key}{sep}{index}"
+            items.update(flatten_yaml(value, new_key, sep))
+    else:
+        items[parent_key] = data
+    return items
 
 
-def file_hash(path: Path, chunk_size=8192) -> str:
-    h = hashlib.sha256()
-    with path.open("rb") as f:
-        for chunk in iter(lambda: f.read(chunk_size), b""):
-            h.update(chunk)
-    return h.hexdigest()
+def load_yaml_folder(folder_path: Path, sep="."):
+    result = {}
+    sorted_files = sorted(folder_path.rglob("*.*"), key=lambda f: f.name)
+    for yaml_file in sorted_files:
+        if yaml_file.suffix not in (".yml", ".yaml"):
+            continue
 
+        with open(yaml_file, "r") as f:
+            data = yaml.safe_load(f)
 
-def folders_identical(dir1: Path, dir2: Path) -> bool:
-    files1 = {p.relative_to(dir1): p for p in dir1.rglob("*") if p.is_file()}
-    files2 = {p.relative_to(dir2): p for p in dir2.rglob("*") if p.is_file()}
+        if data is None:
+            continue
 
-    if files1.keys() != files2.keys():
+        flat_data = flatten_yaml(data, sep=sep)
+
+        # Build prefix: folder.subfolder.file
+        relative_path = yaml_file.relative_to(folder_path)
+        file_key = sep.join(relative_path.with_suffix("").parts[:-1])
+
+        for key, value in flat_data.items():
+            full_key = f"{file_key}{sep}{key}"
+            result[full_key] = value
+    return result
+
+def compare_yaml_files(base_folder: Path, generated_folder: Path) -> bool:
+    base_files = load_yaml_folder(base_folder)
+    generated_files = load_yaml_folder(generated_folder)
+
+    base_keys = set(base_files.keys())
+    generated_keys = set(generated_files.keys())
+
+    unexpected_added = generated_keys - base_keys
+    if len(list(unexpected_added)) > 0:
         return False
+    
+    if len(list(base_keys - generated_keys)) > 0:
+         return False
 
-    for rel, p1 in files1.items():
-        p2 = files2[rel]
-        if file_hash(p1) != file_hash(p2):
+    for k in base_keys & generated_keys:
+        if base_files[k] != generated_files[k]:
             return False
 
     return True
+
+def model_has_socket(loaded_ws: FLYNCWorkspace):
+    return any(
+        address.sockets
+        for ecu in loaded_ws.flync_model.ecus
+        for controller in ecu.controllers
+        for interface in controller.interfaces
+        for vlan in interface.virtual_interfaces
+        for address in vlan.addresses
+        )

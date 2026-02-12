@@ -1,7 +1,7 @@
 import logging
 from typing import List
 
-from pydantic import Field, PrivateAttr, model_validator
+from pydantic import Field, PrivateAttr, field_serializer, model_validator
 from pydantic.networks import IPvAnyAddress
 from pydantic_extra_types.mac_address import MacAddress
 
@@ -297,6 +297,11 @@ class MulticastPath(FLYNCBaseModel):
             if comp._type == "ecu_port":
                 ecu_port_list.append(comp)
         return ecu_port_list
+
+    @field_serializer("address")
+    def serialize_address(self, address):
+        if address is not None:
+            return str(address).upper()
 
 
 class MulticastConfig(FLYNCBaseModel):

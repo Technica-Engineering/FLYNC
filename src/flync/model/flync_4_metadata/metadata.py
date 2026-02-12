@@ -2,7 +2,7 @@ from typing import Dict, Literal, Optional
 
 from packaging.version import InvalidVersion
 from packaging.version import Version as Pep440Version
-from pydantic import Field, model_validator
+from pydantic import Field, field_serializer, model_validator
 from semver import Version as SemVersion
 
 from flync.core.base_models.base_model import FLYNCBaseModel
@@ -28,6 +28,10 @@ class BaseVersion(FLYNCBaseModel):
         default="semver"
     )
     version: str = Field()
+
+    @field_serializer("version")
+    def serialize_version(self, v: str):
+        return str(v)
 
     @model_validator(mode="after")
     def validate_and_parse_version(self):

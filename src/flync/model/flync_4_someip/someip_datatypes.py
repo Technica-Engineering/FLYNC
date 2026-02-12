@@ -13,6 +13,7 @@ from pydantic import (
     BaseModel,
     Field,
     ValidationInfo,
+    field_serializer,
     field_validator,
     model_validator,
 )
@@ -905,6 +906,11 @@ class UnionMember(Datatype):
         int, Field(description="index of the union member", strict=True, ge=0)
     ]
     name: Annotated[str, Field(description="name of the union member")]
+
+    @field_serializer("type")
+    def serialize_type(self, type):
+        if type is not None:
+            return getattr(type, "type", str(type))
 
     @field_validator("type", mode="before")
     def _wrap_string_type(cls, v):

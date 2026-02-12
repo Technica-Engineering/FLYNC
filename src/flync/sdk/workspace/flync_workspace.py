@@ -24,7 +24,7 @@ from flync.core.utils.exceptions_handling import (
 )
 from flync.model.flync_model import FLYNCModel
 from flync.sdk.context.workspace_config import WorkspaceConfiguration
-from flync.sdk.utils.field_utils import get_metadata
+from flync.sdk.utils.field_utils import get_metadata, get_name
 
 from .document import Document
 
@@ -84,6 +84,32 @@ class FLYNCWorkspace:
 
     # region creator
     @classmethod
+    def load_model(
+        cls,
+        flync_model: FLYNCModel,
+        workspace_name: str | None = "generated_workspace",
+        file_path: Path | str = "",
+    ) -> "FLYNCWorkspace":
+        """loads a workspace object from a FLYNC Object.
+
+        Args:
+            flync_model (str): the FLYNC object from which the workspace will be created.
+
+            workspace_name (str): The name of the workspace.
+
+            file_path (str | Path): The path of the workspace files.
+
+        Returns: FLYNCWorkspace
+        """  # noqa
+        if not workspace_name:
+            workspace_name = "generated_workspace"
+        output = FLYNCWorkspace(name=workspace_name, workspace_path=file_path)
+        # assign this to the workspace if it's the root object
+        output.flync_model = flync_model
+        output.__load_flync_model(flync_model, file_path)
+        return output
+
+    @classmethod
     def load_workspace(
         cls, workspace_name: str, workspace_path: Path | str
     ) -> "FLYNCWorkspace":
@@ -139,6 +165,130 @@ class FLYNCWorkspace:
         """
         doc = self.documents[uri]
         doc.update_text(text)
+
+    def __load_flync_model(
+        self, flync_model: FLYNCBaseModel, file_path: Path | str = ""
+    ):
+        """Load a FLYNCModel into the workspace.
+
+        This is a placeholder implementation that stores the model for later
+        use.
+        """
+        if isinstance(file_path, str):
+            file_path = Path(file_path)
+        content = self.__get_model_content(flync_model, file_path)
+        self.__save_content_to_file(file_path, content)
+
+    def __save_content_to_file(self, file_path: Path, content):
+        if not content:
+            # everything in the object was external,
+            # no need to create a document
+            return
+        if not self.workspace_root:
+            raise ValueError(
+                "Unable to save contents in a workspace, the workspace root is not defined."  # noqa
+            )
+        uri = self.workspace_root / file_path.with_suffix(
+            self.configuration.flync_file_extension
+        )
+        doc = Document(uri, content)
+        self.documents[str(uri)] = doc
+        self.generate_configs(uri)
+
+    def __get_model_content(self, flync_model: FLYNCBaseModel, file_path):
+        exclude = set()
+        for field_name, field_info in flync_model.model_fields.items():
+            external: External | None = get_metadata(
+                field_info.metadata, External
+            )
+            if external is not None:
+                exclude.add(field_name)
+                # field will need to be added to to a new separate document
+                flync_attribute = getattr(flync_model, field_name)
+                self.__handle_load_external_types(
+                    file_path, flync_attribute, external, field_name
+                )
+                continue
+            implied: Implied | None = get_metadata(
+                field_info.metadata, Implied
+            )
+            if (
+                implied is not None
+                and implied.strategy == ImpliedStrategy.FOLDER_NAME
+            ):
+                exclude.add(field_name)
+
+        content = flync_model.model_dump(
+            exclude=exclude, exclude_unset=self.configuration.exclude_unset
+        )
+        return content
+
+    def __handle_load_external_types(
+        self,
+        file_path: Path,
+        flync_attribute,
+        external: External,
+        field_name: str,
+    ):
+
+        if (
+            external.naming_strategy == NamingStrategy.FIXED_PATH
+            and external.path is not None
+        ):
+            external_path = external.path
+        elif external.naming_strategy == NamingStrategy.FIELD_NAME:
+            external_path = field_name
+        else:
+            raise ValueError(
+                "Unable to find an external path for {}", field_name
+            )
+        next_path = file_path / external_path
+        if isinstance(flync_attribute, list):
+            self.__handle_load_external_types_list(
+                flync_attribute, external, next_path, field_name
+            )
+        elif isinstance(flync_attribute, dict):
+            self.__handle_load_external_types_dict(
+                flync_attribute, external, next_path
+            )
+        elif isinstance(flync_attribute, FLYNCBaseModel):
+            self.__load_flync_model(flync_attribute, next_path)
+        else:
+            raise ValueError(
+                "Unable to load object {} from flync object", field_name
+            )
+
+    def __handle_load_external_types_list(
+        self,
+        flync_attribute: list,
+        external: External,
+        next_path: Path,
+        field_name: str,
+    ):
+        list_content = []
+        for attr in flync_attribute:
+            if external.output_structure == OutputStrategy.SINGLE_FILE:
+                list_content.append(self.__get_model_content(attr, next_path))
+            else:
+                self.__load_flync_model(
+                    attr,
+                    next_path
+                    / get_name(attr, self.__get_field_filename(attr)),
+                )
+        if len(list_content) != 0:
+            self.__save_content_to_file(next_path, {field_name: list_content})
+
+    def __handle_load_external_types_dict(
+        self, flync_attribute: dict, external: External, next_path: Path
+    ):
+        dict_content = {}
+        for attr_name, attr_value in flync_attribute.items():
+            if external.output_structure == OutputStrategy.SINGLE_FILE:
+                dict_content[attr_name] = self.__get_model_content(
+                    attr_value, next_path
+                )
+            else:
+                self.__load_flync_model(attr_value, next_path / attr_name)
 
     def __handle_generic_types_list(
         self,
@@ -363,7 +513,6 @@ class FLYNCWorkspace:
             if implied is not None:
                 if implied.strategy == ImpliedStrategy.FOLDER_NAME:
                     module_load_info[field_name] = path.name
-                continue
 
         # then group all the fields into the same object and return it
         self.__append_to_info_dict(path, module_load_info)
@@ -399,6 +548,15 @@ class FLYNCWorkspace:
                         modle_load_info[field_name] = content[fixed_name]
                         return
                 modle_load_info.update(content)
+
+    @staticmethod
+    def __get_field_filename(model: FLYNCBaseModel):
+        for field, info in model.model_fields.items():
+            implied: Implied | None = get_metadata(info.metadata, Implied)
+            if implied and implied.strategy == ImpliedStrategy.FILE_NAME:
+                return field
+
+        return None
 
     def generate_configs(self, uri: Path | str | None = None):
         """Save the workspace to the given path.

@@ -1,8 +1,9 @@
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
 import pydantic
 from pydantic import Field
 
+from flync.core.annotations.implied import Implied, ImpliedStrategy
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import err_minor
 
@@ -25,7 +26,12 @@ class SocketContainer(FLYNCBaseModel):
         Assigned TCP and UDP socket endpoints.
     """
 
-    vlan_name: str
+    vlan_name: Annotated[
+        str,
+        Implied(
+            strategy=ImpliedStrategy.FILE_NAME,
+        ),
+    ]
     sockets: Optional[List[SocketTCP | SocketUDP]] = Field(
         default_factory=list
     )
