@@ -10,6 +10,7 @@ permissions:
   pull-requests: write
   checks: write
   statuses: write
+  actions: read
 
 jobs:
   publish-reports:
@@ -23,6 +24,8 @@ jobs:
         uses: actions/download-artifact@v7
         with:
           name: pytest-artifacts
+          repository: ${{ github.repository }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.workflow_run.id }}
 
       - name: Publish coverage report
