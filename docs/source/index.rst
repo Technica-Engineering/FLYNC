@@ -2,7 +2,7 @@
    sphinx-quickstart on Tue May 20 13:50:10 2025.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
-   
+
 FLYNC — Configuration Platform for SDV
 =======================================
 
@@ -69,11 +69,11 @@ Target Users
 
 FLYNC is designed for:
 
-- E/E architecture teams.  
+- E/E architecture teams.
 - Network and platform engineers.
-- SDV DevOps and integration teams.  
-- Validation and test engineers.  
-- Toolchain and automation specialists.  
+- SDV DevOps and integration teams.
+- Validation and test engineers.
+- Toolchain and automation specialists.
 
 ---------
 
@@ -90,7 +90,7 @@ Read the quickstart guide (:doc:`quickstart`) and start exploring!
 About the Project
 -----------------
 
-FLYNC is open source under the **Apache-2.0** license, and thrives on community input! 
+FLYNC is open source under the **Apache-2.0** license, and thrives on community input!
 
 We welcome:
 
@@ -111,11 +111,11 @@ Resources
 
 .. toctree::
    :maxdepth: 2
-   
+
    quickstart
    installation
    flync_reference
    flync_example
    license
+   release_notes
    contact
-
