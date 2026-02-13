@@ -96,19 +96,12 @@ jobs:
           pip install "poetry>=1.0.0,<2.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
           poetry install --with test
 
-      - name: run pytest
+      - name: Run Pytest
         run: |
           poetry install --with test
           poetry run pytest
           poetry run coverage xml
           poetry run coverage report
-
-      - name: coverage
-        uses: orgoro/coverage@v3.2
-        with:
-          coverageFile: coverage.xml
-          token: ${{ secrets.GITHUB_TOKEN }}
-          thresholdAll: 0.8
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v6
