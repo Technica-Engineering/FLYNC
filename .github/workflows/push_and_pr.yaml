@@ -108,6 +108,7 @@ jobs:
         with:
           name: pytest-artifacts
           path: |
+            .coverage
             report.xml
             coverage.xml
             tests/sdk/fuzzed
