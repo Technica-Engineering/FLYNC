@@ -38,11 +38,24 @@ Follow these steps to contribute to the FLYNC project:
 
 2. **Create a Feature Branch**:
 
-   - Clone your forked of FLYNC, if not done already.
+   - Clone your fork of FLYNC, if not done already.
 
-   - Create a new branch for your contribution:
+   - Create a new branch for your contribution with a meaningful name and structure using this format:
+    ```bash
+    <type>/<description>
+    ```
+    - `main`: The main development branch (e.g., main, master, or develop)
+    - `feature/` (or `feat/`): For new features (e.g., `feature/add-login-page`, `feat/add-login-page`)
+    - `bugfix/` (or `fix/`): For bug fixes (e.g., `bugfix/fix-header-bug`, `fix/header-bug`)
+    - `hotfix/`: For urgent fixes (e.g., `hotfix/security-patch`)
+    - `release/`: For branches preparing a release (e.g., `release/v1.2.0`)
+    - `chore/`: For non-code tasks like dependency, docs updates (e.g., `chore/update-dependencies`)
+
+    *See the full [guideline for conventional branch naming](https://conventional-branch.github.io/).*
+
+    To create a branch use this command:
      ```bash
-     git checkout -b your-branch-name
+     git checkout -b <type>/<description>
      ```
 
 3. **Make Changes**:
