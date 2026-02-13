@@ -130,18 +130,6 @@ jobs:
         run: |
           poetry run python src/flync/sdk/helpers/validate_examples.py
 
-  sonarqube:
-    name: SonarQube
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v7
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
   build-documentation:
     runs-on: ubuntu-latest
     steps:
