@@ -38,6 +38,21 @@ Install Poetry (if not already installed) and verify installation:
 
 .. code-block:: bash
 
+   # Create a new virtual environment or use an existing one.
+   # You can do this also in the source directoy after git clone.
+   # In this example we use the directory .venv
+   python -m venv .venv
+
+   # activate virtual environment:
+   source .venv/bin/activate
+
+   # Update PIP just in case:
+   pip install --upgrade pip
+
+   # Install Poetry:
+   pip install poetry
+
+   # Check Poetry install:
    poetry --version
 
 --------------
