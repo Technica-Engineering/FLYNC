@@ -2,6 +2,9 @@ name: Workflow Push and Pull Request
 
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
 jobs:
   format-check:
     runs-on: ubuntu-latest
