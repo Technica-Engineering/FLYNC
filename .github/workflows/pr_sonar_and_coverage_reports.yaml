@@ -33,6 +33,13 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@v7
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: >
+            -Dsonar.pullrequest.key=${{ github.event.workflow_run.pull_requests[0].number }}
+            -Dsonar.pullrequest.branch=${{ github.event.workflow_run.pull_requests[0].head.ref }}
+            -Dsonar.pullrequest.base=${{ github.event.workflow_run.pull_requests[0].base.ref }}
+            -Dsonar.python.coverage.reportPaths=coverage.xml
 
   publish-coverage-comment:
     runs-on: ubuntu-latest
