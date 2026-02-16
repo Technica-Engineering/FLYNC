@@ -13,7 +13,7 @@ permissions:
   actions: read
 
 jobs:
-  publish-reports:
+  sonarqube-check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -29,14 +29,17 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.workflow_run.id }}
 
-      - name: Publish coverage report
-        uses: orgoro/coverage@v3.2
-        with:
-          coverageFile: coverage.xml
-          token: ${{ secrets.GITHUB_TOKEN }}
-          thresholdAll: 0.8
-
       - name: Run SonarQube analysis
         uses: SonarSource/sonarqube-scan-action@v7
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  publish-coverage-comment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post comment
+        uses: py-cov-action/python-coverage-comment-action@v3
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_PR_RUN_ID: ${{ github.event.workflow_run.id }}
+
