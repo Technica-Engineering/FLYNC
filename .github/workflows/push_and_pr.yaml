@@ -111,7 +111,7 @@ jobs:
 
       - name: Store Pull Request comment to be posted
         uses: actions/upload-artifact@v6
-        if: steps.coverage_comment.outputs.COMMENT_FILE_WRITTEN == 'true'
+        if: steps.coverage_comment.outputs.comment_file_written == 'true'
         with:
           name: python-coverage-comment-action
           path: python-coverage-comment-action.txt
