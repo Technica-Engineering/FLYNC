@@ -23,6 +23,7 @@ from pydantic import (
     Field,
     IPvAnyAddress,
     conset,
+    field_serializer,
     field_validator,
     model_validator,
 )
@@ -116,6 +117,11 @@ class Parameters(FLYNCBaseModel):
 
     name: str = Field(description="identifies the parameter")
     type: Annotated["AllTypes", Field(description="datatype of the parameter")]
+
+    @field_serializer("type")
+    def serialize_type(self, type):
+        if type is not None:
+            return getattr(type, "type", str(type))
 
     @field_validator("type", mode="before")
     def wrap_type(cls, v):
@@ -747,6 +753,11 @@ class SDConfig(FLYNCBaseModel):
         description="port which the service discovery operates on",
     )
     sd_timings: List[SDTimings] = Field()
+
+    @field_serializer("ip_address")
+    def serialize_addresses(self, ip_address):
+        if ip_address is not None:
+            return str(ip_address).upper()
 
 
 class SOMEIPConfig(FLYNCBaseModel):

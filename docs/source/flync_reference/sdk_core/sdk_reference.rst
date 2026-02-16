@@ -22,3 +22,11 @@ Document
 .. autoclass:: flync.sdk.workspace.document.Document
    :members:
 
+
+Utils & Helpers
+================
+.. automodule:: flync.sdk.utils.field_utils
+   :members:
+
+.. automodule:: flync.sdk.helpers.generation_helpers
+   :members:

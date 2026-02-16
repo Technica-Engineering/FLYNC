@@ -14,3 +14,4 @@ class WorkspaceConfiguration:
     """
 
     flync_file_extension: str = ".flync.yaml"
+    exclude_unset: bool = True

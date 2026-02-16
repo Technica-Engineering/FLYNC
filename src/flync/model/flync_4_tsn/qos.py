@@ -1,7 +1,13 @@
 from ipaddress import IPv4Address, IPv6Address
 from typing import Annotated, List, Literal, Optional, Self
 
-from pydantic import BeforeValidator, Field, field_validator, model_validator
+from pydantic import (
+    BeforeValidator,
+    Field,
+    field_serializer,
+    field_validator,
+    model_validator,
+)
 from pydantic_extra_types.mac_address import MacAddress
 
 import flync.core.utils.common_validators as common_validators
@@ -361,6 +367,8 @@ class FrameFilter(FLYNCBaseModel):
                     cls.vlan_validator(v.from_value)
                     cls.vlan_validator(v.to_value)
 
+        return value
+
     @field_validator("pcp", mode="after")
     @classmethod
     def validate_pcps(cls, value):
@@ -369,6 +377,7 @@ class FrameFilter(FLYNCBaseModel):
         if isinstance(value, list):
             for v in value:
                 cls.pcp_validator(v)
+        return value
 
     @field_validator("src_mac", "dst_mac", mode="after")
     @classmethod
@@ -391,6 +400,32 @@ class FrameFilter(FLYNCBaseModel):
                 raise err_minor(msg)
         if isinstance(value, int) and value <= 0:
             raise err_minor(msg)
+        return value
+
+    @field_serializer("src_ipv4", "dst_ipv4", "src_ipv6", "dst_ipv6")
+    def serialize_ip_address(self, value):
+        serialized = value
+        if isinstance(value, list):
+            serialized = [self.serialize_ip_address(v) for v in value]
+
+        if isinstance(value, IPv4AddressEntry) or isinstance(
+            value, IPv6AddressEntry
+        ):
+            serialized = value.model_dump()
+
+        if isinstance(value, IPv4Address) or isinstance(value, IPv6Address):
+            serialized = str(value).upper()
+
+        return serialized
+
+    @field_serializer("vlanid", "src_port", "dst_port")
+    def serialize_value_range(self, value):
+        if isinstance(value, list):
+            return [self.serialize_value_range(v) for v in value]
+
+        if isinstance(value, ValueRange):
+            return value.model_dump()
+
         return value
 
 

@@ -58,6 +58,11 @@ class MulticastEndpoint(BaseUDPDeployment):
 
     ip_address: Annotated[IPvAnyAddress, is_ip_multicast] = Field()
 
+    @field_serializer("ip_address")
+    def serialize_addresses(self, ip_address):
+        if ip_address is not None:
+            return str(ip_address).upper()
+
 
 class MulticastSDEndpoint(MulticastEndpoint):
     """MulticastSDEndpoint

@@ -9,6 +9,7 @@ class ImpliedStrategy(IntEnum):
 
     AUTO = 0
     FOLDER_NAME = AUTO
+    FILE_NAME = 1
 
 
 @dataclass(frozen=True)
