@@ -107,7 +107,7 @@ class MII(FLYNCBaseModel):
         Operating mode, either MAC or PHY.
     """
 
-    type: Literal["MII"] = Field(default="MII")
+    type: Literal["mii"] = Field(default="mii")
     speed: Optional[Literal[10, 100]] = Field(default=100)
     mode: Literal["mac", "phy"] = Field()
 
