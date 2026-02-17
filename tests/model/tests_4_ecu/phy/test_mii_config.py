@@ -8,8 +8,8 @@ from flync.model.flync_4_ecu.port import ECUPort
 
 
 def test_positive_mii_config_ecu_port():
-    mii_config1 = {"type": "MII", "mode": "mac", "speed": 100}
-    mii_config2 = {"type": "MII", "mode": "phy", "speed": 100}
+    mii_config1 = {"type": "mii", "mode": "mac", "speed": 100}
+    mii_config2 = {"type": "mii", "mode": "phy", "speed": 100}
 
     ecu_port1 = ECUPort.model_validate(
         {
@@ -128,8 +128,8 @@ def test_positive_xfi_config_ecu_port(virtual_controller_interface):
 
 
 def test_negative_speed_for_mii_ecu_port():
-    mii_config1 = {"type": "MII", "mode": "mac", "speed": 1000}
-    mii_config2 = {"type": "MII", "mode": "phy", "speed": 1000}
+    mii_config1 = {"type": "mii", "mode": "mac", "speed": 1000}
+    mii_config2 = {"type": "mii", "mode": "phy", "speed": 1000}
 
     with pytest.raises(ValidationError) as val_error_port1:
         ecu_port1 = ECUPort.model_validate(
@@ -246,8 +246,8 @@ def test_negative_speed_for_xfi_ecu_port():
 
 
 def test_positive_mii_config_switch_port():
-    mii_config1 = {"type": "MII", "mode": "mac", "speed": 100}
-    mii_config2 = {"type": "MII", "mode": "phy", "speed": 100}
+    mii_config1 = {"type": "mii", "mode": "mac", "speed": 100}
+    mii_config2 = {"type": "mii", "mode": "phy", "speed": 100}
 
     switch_port1 = SwitchPort.model_validate(
         {

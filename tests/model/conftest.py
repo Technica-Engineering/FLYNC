@@ -172,7 +172,7 @@ def integrity_with_confidentiality_entry():
 
 @pytest.fixture
 def MII_entry():
-    MII_entry = MII(type="MII", speed=100, mode="mac")
+    MII_entry = MII(type="mii", speed=100, mode="mac")
     yield MII_entry
 
 
