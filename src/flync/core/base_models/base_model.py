@@ -7,6 +7,8 @@ from pydantic import BaseModel, ConfigDict
 
 
 class FLYNCBaseModel(BaseModel):
+    """Base Model that is used by FLYNC Model classes."""
+
     _logger: Optional[logging.Logger] = pydantic.PrivateAttr(default=None)
     model_config = ConfigDict(extra="forbid")
 
@@ -19,6 +21,8 @@ class FLYNCBaseModel(BaseModel):
         return super().model_post_init(__context)
 
     def model_dump(self, **kwargs):
+        """Override pydantics model_dump to dump with defaults."""
+
         kwargs.setdefault("exclude_none", True)
         kwargs.setdefault("by_alias", True)
         return super().model_dump(**kwargs)
