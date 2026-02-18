@@ -1,7 +1,6 @@
 import json
 import os
 import sys
-import urllib.error
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
@@ -47,9 +46,7 @@ def main() -> int:
     found = None
 
     while True:
-        params = urllib.parse.urlencode(
-            {"state": "open", "per_page": 100, "page": page}
-        )
+        params = urlencode({"state": "open", "per_page": 100, "page": page})
         url = f"https://api.github.com/repos/{repo}/pulls?{params}"
 
         prs = gh_get_json(url, token)
@@ -92,4 +89,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise sys.exit(main())
+    sys.exit(main())
