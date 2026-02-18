@@ -30,8 +30,11 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.workflow_run.id }}
 
-      - name: Install Linux dependencies
-        run: sudo apt-get update && sudo apt-get install -y jq
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: "pip"
 
       - name: Resolve PR info
         id: pr
@@ -39,23 +42,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           SHA: ${{ github.event.workflow_run.head_sha }}
-        run: |
-          set -euo pipefail
-          pr_json=$(gh api -H "Accept: application/vnd.github+json" "/repos/$REPO/commits/$SHA/pulls")
-
-          pr_number=$(echo "$pr_json" | jq -r '.[0].number // empty')
-          head_ref=$(echo "$pr_json" | jq -r '.[0].head.ref // empty')
-          base_ref=$(echo "$pr_json" | jq -r '.[0].base.ref // empty')
-
-          if [ -z "$pr_number" ] || [ -z "$head_ref" ] || [ -z "$base_ref" ]; then
-            echo "Could not resolve PR for SHA=$SHA" >&2
-            echo "$pr_json" >&2
-            exit 1
-          fi
-
-          echo "number=$pr_number" >> "$GITHUB_OUTPUT"
-          echo "head_ref=$head_ref" >> "$GITHUB_OUTPUT"
-          echo "base_ref=$base_ref" >> "$GITHUB_OUTPUT"
+        run: python3 scripts/ci/fetch_pr_data.py
 
       - name: Fetch PRs base branch
         run: |
