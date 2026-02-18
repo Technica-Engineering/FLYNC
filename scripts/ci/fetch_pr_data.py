@@ -43,9 +43,10 @@ def main() -> int:
         return 2
 
     page = 1
+    max_pages = 20
     found = None
 
-    while True:
+    for _ in range(max_pages):
         params = urlencode({"state": "open", "per_page": 100, "page": page})
         url = f"https://api.github.com/repos/{repo}/pulls?{params}"
 
@@ -76,9 +77,13 @@ def main() -> int:
         print(f"No open PR found with head.sha={sha}", file=sys.stderr)
         return 1
 
-    number = found.get("number", "")
-    head_ref = found.get("head", {}).get("ref", "")
-    base_ref = found.get("base", {}).get("ref", "")
+    number = found["number"]
+    head_ref = found["head"]["ref"]
+    base_ref = found["base"]["ref"]
+
+    if not number or not head_ref or not base_ref:
+        print(f"Could not parse the PR data")
+        return 1
 
     with open(out_path, "a", encoding="utf-8") as f:
         f.write(f"number={number}\n")
