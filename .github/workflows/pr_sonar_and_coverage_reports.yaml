@@ -13,7 +13,7 @@ jobs:
       checks: write
       statuses: write
       actions: read
-    if: github.event.workflow_run.event == 'pull_request'
+    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -97,7 +97,7 @@ jobs:
       pull-requests: write
       actions: read
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.event == 'pull_request'
+    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
     steps:
       - name: Post comment
         uses: py-cov-action/python-coverage-comment-action@v3
