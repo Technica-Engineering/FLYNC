@@ -16,7 +16,7 @@ Before installing FLYNC, ensure your system meets the following requirements.
 System Requirements
 ''''''''''''''''''''''
 
-- **Python** – 3.11 or newer
+- **Python** – 3.12 or newer
 
 Check your Python version:
 
@@ -24,7 +24,7 @@ Check your Python version:
 
    python --version
 
-.. hint:: If Python 3.11+ is not installed, download it from the official Python website or use your system package manager.
+.. hint:: If Python 3.12+ is not installed, download it from the official Python website or use your system package manager.
 
 Recommended Tools
 ''''''''''''''''''''
@@ -183,15 +183,15 @@ Python Compatibility
 
 .. important::
 
-   ``flync`` requires **Python 3.11+** due to newer typing features and package requirements.
+   ``flync`` requires **Python 3.12+** due to newer typing features and package requirements.
 
-If you have multiple Python versions, use ``python3.11`` or create a virtual environment with:
+If you have multiple Python versions, use ``python3.12`` or create a virtual environment with:
 
 **For Linux and macOSx**
 
 .. code-block:: bash
 
-   python3.11 -m venv .venv
+   python3.12 -m venv .venv
    source .venv/bin/activate
 
 **For Windows**

@@ -90,10 +90,6 @@ args = parser.parse_args()
 path = Path(args.path)
 flync_name = args.name
 
-if not path.is_absolute():
-    print("Error: Path must be absolute.", file=sys.stderr)
-    sys.exit(1)
-
 if not path.exists():
     print(f"Error: Path does not exist: {path}", file=sys.stderr)
     sys.exit(1)

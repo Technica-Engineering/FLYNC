@@ -464,6 +464,7 @@ class FLYNCWorkspace:
             current_type = FLYNCModel
         if isinstance(path, str):
             path = Path(path)
+        path = path.absolute()
         module_load_info: dict = {}
         # start by loading each field
         for field_name, field_info in current_type.model_fields.items():
