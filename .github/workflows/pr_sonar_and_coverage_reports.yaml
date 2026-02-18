@@ -75,6 +75,7 @@ jobs:
 
       - name: Download artifacts
         uses: actions/download-artifact@v7
+        continue-on-error: true
         with:
           name: pytest-artifacts
           repository: ${{ github.repository }}
