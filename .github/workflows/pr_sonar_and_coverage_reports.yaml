@@ -5,16 +5,15 @@ on:
     workflows: ["Workflow Push and Pull Request"]
     types: [completed]
 
-permissions:
-  contents: read
-  pull-requests: write
-  checks: write
-  statuses: write
-  actions: read
-
 jobs:
   sonarqube-check-pr:
-    if: github.event.workflow_run.event == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
+      statuses: write
+      actions: read
+    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -30,32 +29,18 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.workflow_run.id }}
 
-      - name: Install Linux dependencies
-        run: sudo apt-get update && sudo apt-get install -y jq
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
 
       - name: Resolve PR info
         id: pr
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           SHA: ${{ github.event.workflow_run.head_sha }}
-        run: |
-          set -euo pipefail
-          pr_json=$(gh api -H "Accept: application/vnd.github+json" "/repos/$REPO/commits/$SHA/pulls")
-
-          pr_number=$(echo "$pr_json" | jq -r '.[0].number // empty')
-          head_ref=$(echo "$pr_json" | jq -r '.[0].head.ref // empty')
-          base_ref=$(echo "$pr_json" | jq -r '.[0].base.ref // empty')
-
-          if [ -z "$pr_number" ] || [ -z "$head_ref" ] || [ -z "$base_ref" ]; then
-            echo "Could not resolve PR for SHA=$SHA" >&2
-            echo "$pr_json" >&2
-            exit 1
-          fi
-
-          echo "number=$pr_number" >> "$GITHUB_OUTPUT"
-          echo "head_ref=$head_ref" >> "$GITHUB_OUTPUT"
-          echo "base_ref=$base_ref" >> "$GITHUB_OUTPUT"
+        run: python3 scripts/ci/fetch_pr_data.py
 
       - name: Fetch PRs base branch
         run: |
@@ -75,7 +60,12 @@ jobs:
             -Dsonar.python.coverage.reportPaths=coverage.xml
 
   sonarqube-check-main:
-    if: github.event.workflow_run.event == 'push'
+    permissions:
+      contents: read
+      checks: write
+      statuses: write
+      actions: read
+    if: github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -85,6 +75,7 @@ jobs:
 
       - name: Download artifacts
         uses: actions/download-artifact@v7
+        continue-on-error: true
         with:
           name: pytest-artifacts
           repository: ${{ github.repository }}
@@ -102,8 +93,12 @@ jobs:
             -Dsonar.python.coverage.reportPaths=coverage.xml
 
   publish-coverage-comment:
+    permissions:
+      contents: read
+      pull-requests: write
+      actions: read
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.event == 'pull_request'
+    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
     steps:
       - name: Post comment
         uses: py-cov-action/python-coverage-comment-action@v3
