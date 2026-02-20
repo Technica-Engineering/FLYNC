@@ -186,7 +186,7 @@ class SOMEIPServiceDeployment(abc.ABC, FLYNCBaseModel):
 
         profile_id = value
         profile_found = SDTimings.INSTANCES.get((profile_id))
-        assert profile_found, f'did not find a Some/IP SD timings profile \
+        assert profile_found, f'did not find a SOME/IP SD timings profile \
             with the provided key "{value}"'
         return value
 

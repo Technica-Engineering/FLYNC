@@ -2,13 +2,14 @@ import pydantic
 import pytest
 
 from flync.model.flync_4_someip import (
-    Parameters,
     SOMEIPEvent,
     SOMEIPEventgroup,
+    SOMEIPParameter,
     SOMEIPServiceInterface,
     SOMEIPServiceDeployment,
     SOMEIPServiceProvider,
     SOMEIPServiceConsumer,
+    UInt8,
 )
 
 
@@ -69,12 +70,12 @@ def test_someip_service_consumer_deployment_with_eventgroups(metadata_entry):
     e1 = SOMEIPEvent(
         name="a",
         id=1,
-        parameters=[Parameters(name="p1", type="uint8")],
+        parameters=[SOMEIPParameter(name="p1", datatype=UInt8())],
     )
     e2 = SOMEIPEvent(
         name="b",
         id=2,
-        parameters=[Parameters(name="p1", type="uint8")],
+        parameters=[SOMEIPParameter(name="p1", datatype=UInt8())],
     )
     eg1 = SOMEIPEventgroup(name="eg_e1", id=1, events=[e1])
     eg2 = SOMEIPEventgroup(name="eg_e2", id=2, events=[e2])

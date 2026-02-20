@@ -13,7 +13,8 @@ fields:
   name: InterfaceVersion
   parameters:
   - name: InterfaceVersion_Param
-    type: uint8
+    datatype:
+      type: uint8
   notifier_id: 32773
   getter_id: 37
 - &field_0x8006
@@ -23,7 +24,8 @@ fields:
   getter_id: 38
   parameters:
   - name: TestFieldUINT8_Param
-    type: uint8
+    datatype:
+      type: uint8
 - &field_0x8007
   name: TestFieldUINT8Array
   notifier_id: 32775
@@ -31,7 +33,8 @@ fields:
   getter_id: 40
   parameters:
   - name: TestFieldUINT8Array_Param
-    type: uint8
+    datatype:
+      type: uint8
 - &field_0x8008
   name: TestFieldUINT8Reliable
   notifier_id: 32776
@@ -39,7 +42,8 @@ fields:
   getter_id: 42
   parameters:
   - name: TestFieldUINT8Reliable_Param
-    type: uint8
+    datatype:
+      type: uint8
 events:
 - &event_0x8001
   name: TestEventUINT8
@@ -47,35 +51,40 @@ events:
   reliable: false
   parameters:
   - name: clientServiceGetLastValueOfEventUDPUnicast_ResArg1
-    type: uint8
+    datatype:
+      type: uint8
 - &event_0x8002
   name: TestEventUINT8Array
   id: 32770
   reliable: false
   parameters:
   - name: TestEventUINT8Array_ResArg1
-    type: uint8
+    datatype:
+      type: uint8
 - &event_0x8004
   name: TestEventUINT8E2E
   id: 32772
   reliable: false
   parameters:
   - name: TestEventUINT8E2E_ResArg1
-    type: uint8
+    datatype:
+      type: uint8
 - &event_0x8003
   name: TestEventUINT8Reliable
   id: 32771
   reliable: false
   parameters:
   - name: clientServiceGetLastValueOfEventTCP_ResArg1
-    type: uint8
+    datatype:
+      type: uint8
 - &event_0x800b
   name: TestEventUINT8Multicast
   id: 32779
   reliable: false
   parameters:
   - name: clientServiceGetLastValueOfEventUDPMulticast_ResArg1
-    type: uint8
+    datatype:
+      type: uint8
 eventgroups:
 - name: eventgroup_2
   id: 2
@@ -113,19 +122,23 @@ methods:
   reliable: true
   input_parameters:
   - name: checkByteOrder_ReqArg1
-    type: uint8
+    datatype:
+      type: uint8
   - name: checkByteOrder_ReqArg2
-    type: uint16
+    datatype:
+      type: uint16
   output_parameters:
   - name: checkByteOrder_ResArg1
-    type: uint32
+    datatype:
+      type: uint32
 - name: clientServiceActivate
   type: fire_and_forget
   reliable: false
   id: 47
   input_parameters:
   - name: clientServiceActivate_ReqArg1
-    type: uint8
+    datatype:
+      type: uint8
     description: delay
 - name: clientServiceDeactivate
   type: fire_and_forget
@@ -133,7 +146,8 @@ methods:
   reliable: false
   input_parameters:
   - name: clientServiceDeactivate_ReqArg1
-    type: uint8
+    datatype:
+      type: uint8
     description: delay
 - name: clientServiceSubscribeEventgroup
   type: fire_and_forget
@@ -141,10 +155,12 @@ methods:
   reliable: false
   input_parameters:
   - name: clientServiceSubscribeEventgroup_ReqArg1
-    type: uint32
+    datatype:
+      type: uint32
     description: delay
   - name: clientServiceSubscribeEventgroup_ReqArg2
-    type: uint32
+    datatype:
+      type: uint32
     description: duration
 - name: echoCommonDatatypes
   type: request_response
@@ -152,303 +168,327 @@ methods:
   reliable: true
   input_parameters:
   - name: EchoCommonDatatypes_ReqArg1
-    type: boolean
+    datatype:
+      type: boolean
   - name: EchoCommonDatatypes_ReqArg2
-    type: uint8
+    datatype:
+      type: uint8
   - name: EchoCommonDatatypes_ReqArg3
-    type: uint16
+    datatype:
+      type: uint16
   - name: EchoCommonDatatypes_ReqArg4
-    type: uint32
+    datatype:
+      type: uint32
   - name: EchoCommonDatatypes_ReqArg5
-    type: sint8
+    datatype:
+      type: sint8
   - name: EchoCommonDatatypes_ReqArg6
-    type: sint16
+    datatype:
+      type: sint16
   - name: EchoCommonDatatypes_ReqArg7
-    type: sint32
+    datatype:
+      type: sint32
   - name: EchoCommonDatatypes_ReqArg8
-    type: float32
+    datatype:
+      type: float32
   - name: EchoCommonDatatypes_ReqArg9
-    type: float64
+    datatype:
+      type: float64
   output_parameters:
   - name: EchoCommonDatatypes_ResArg1
-    type: float64
+    datatype:
+      type: float64
   - name: EchoCommonDatatypes_ResArg2
-    type: float32
+    datatype:
+      type: float32
   - name: EchoCommonDatatypes_ResArg3
-    type: sint32
+    datatype:
+      type: sint32
   - name: EchoCommonDatatypes_ResArg4
-    type: sint16
+    datatype:
+      type: sint16
   - name: EchoCommonDatatypes_ResArg5
-    type: sint8
+    datatype:
+      type: sint8
   - name: EchoCommonDatatypes_ResArg6
-    type: uint32
+    datatype:
+      type: uint32
   - name: EchoCommonDatatypes_ResArg7
-    type: uint16
+    datatype:
+      type: uint16
   - name: EchoCommonDatatypes_ResArg8
-    type: uint8
+    datatype:
+      type: uint8
   - name: EchoCommonDatatypes_ResArg9
-    type: boolean
+    datatype:
+      type: boolean
 - name: echoENUM
   type: request_response
   id: 23
   reliable: true
   input_parameters:
   - name: echoENUM_ReqArg
-    type: enum
-    base_type:
-      type: uint8
-    entries:
-    - value: 0
-      name: echoENUM_ReqArg1
-      description: This is the first request of echoENUM
+    datatype:
+      type: enum
+      base_type:
+        type: uint8
+      entries:
+      - value: 0
+        name: echoENUM_ReqArg1
+        description: This is the first request of echoENUM
   output_parameters:
   - name: echoENUM_ResArg
-    type: enum
-    base_type:
-      type: uint8
-    entries:
-    - value: 0
-      name: echoENUM_ResArg1
-      description: This is the first response of echoENUM
+    datatype:
+      type: enum
+      base_type:
+        type: uint8
+      entries:
+      - value: 0
+        name: echoENUM_ResArg1
+        description: This is the first response of echoENUM
 - name: echoFLOAT64
   type: request_response
   reliable: true
   id: 18
   input_parameters:
   - name: echoFLOAT64_ReqArg1
-    type: float64
+    datatype:
+      type: float64
   output_parameters:
   - name: echoFLOAT64_ResArg1
-    type: float64
+    datatype:
+      type: float64
 - name: echoInt64
   type: request_response
   id: 52
   reliable: true
   input_parameters:
   - name: echoInt64_ReqArg1
-    type: sint64
+    datatype:
+      type: sint64
   output_parameters:
   - name: echoInt64_ResArg1
-    type: sint64
+    datatype:
+      type: sint64
 - name: echoINT8
   type: request_response
   id: 14
   reliable: true
   input_parameters:
   - name: echoINT8_ReqArg1
-    type: sint8
+    datatype:
+      type: sint8
   output_parameters:
   - name: echoINT8_ResArg1
-    type: sint8
+    datatype:
+      type: sint8
 - name: echoStaticUINT8Array
   type: request_response
   id: 54
   reliable: true
   input_parameters:
   - name: echoStaticUINT8Array_ReqArg1
-    type: array
-    dimensions:
-    - kind: fixed
-      length: 5
-    element_type:
-      type: uint8
+    datatype:
+      type: array
+      dimensions:
+      - kind: fixed
+        length: 5
+      element_type:
+        type: uint8
   output_parameters:
   - name: echoStaticUINT8Array_ResArg1
-    type: array
-    dimensions:
-    - kind: fixed
-      length: 5
-    element_type:
-      type: uint8
+    datatype:
+      type: array
+      dimensions:
+      - kind: fixed
+        length: 5
+      element_type:
+        type: uint8
 - name: echoUINT8
   type: request_response
   id: 8
   reliable: true
   input_parameters:
   - name: echoUINT8_ReqArg1
-    type: uint8
+    datatype:
+      type: uint8
   output_parameters:
   - name: echoUINT8_ResArg1
-    type: uint8
+    datatype:
+      type: uint8
 - name: echoUINT8Array
   type: request_response
   id: 9
   reliable: true
   input_parameters:
-  - name: echoUINT8Array_ReqArg1
-    type: uint32
-    description: array len
   - name: echoUINT8Array_ReqArg2
-    type: array
+    datatype:
+      type: array
+      dimensions:
+      - kind: dynamic
+        length_of_length_field: 32
+      element_type:
+        type: uint8
     description: array
-    dimensions:
-    - kind: dynamic
-      length_of_length_field: 32
-    element_type:
-      type: uint8
   output_parameters:
-  - name: echoUINT8Array_ResArg1
-    type: uint32
-    description: array len
   - name: echoUINT8Array_ResArg2
-    type: array
+    datatype:
+      type: array
+      dimensions:
+      - kind: dynamic
+        length_of_length_field: 32
+      element_type:
+        type: uint8
     description: array
-    dimensions:
-    - kind: dynamic
-      length_of_length_field: 32
-    element_type:
-      type: uint8
 - name: echoUINT8Array8BitLength
   type: request_response
   id: 62
   reliable: true
   input_parameters:
-  - name: echoUINT8Array8BitLength_ReqArg1
-    type: uint8
-    description: array len
   - name: echoUINT8Array8BitLength_ReqArg2
-    type: array
+    datatype:
+      type: array
+      dimensions:
+      - kind: dynamic
+        length_of_length_field: 8
+      element_type:
+        type: uint8
     description: array
-    dimensions:
-    - kind: dynamic
-      length_of_length_field: 8
-    element_type:
-      type: uint8
   output_parameters:
-  - name: echoUINT8Array8BitLength_ResArg1
-    type: uint8
-    description: array len
   - name: echoUINT8Array8BitLength_ResArg2
-    type: array
+    datatype:
+      type: array
+      element_type:
+        type: uint8
+      dimensions:
+      - kind: dynamic
+        length_of_length_field: 8
     description: array
-    element_type:
-      type: uint8
-    dimensions:
-    - kind: dynamic
-      length_of_length_field: 8
 - name: echoUINT8Array16BitLength
   type: request_response
   id: 63
   reliable: true
   input_parameters:
-  - name: echoUINT8Array16BitLength_ReqArg1
-    type: uint16
-    description: array len
   - name: echoUINT8Array16BitLength_ReqArg2
-    type:   array
+    datatype:
+      type: array
+      dimensions:
+      - kind: dynamic
+        length_of_length_field: 16
+      element_type:
+        type: uint8
     description: array
-    dimensions:
-    - kind: dynamic
-      length_of_length_field: 16
-    element_type:
-      type: uint8
   output_parameters:
-  - name: echoUINT8Array16BitLength_ResArg1
-    type: uint16
-    description: array len
   - name: echoUINT8Array16BitLength_ResArg2
-    type: array
+    datatype:
+      type: array
+      dimensions:
+      - kind: dynamic
+        length_of_length_field: 16
+      element_type:
+        type: uint8
     description: array
-    dimensions:
-    - kind: dynamic
-      length_of_length_field: 16
-    element_type:
-      type: uint8
 - name: echoUINT8Array2Dim
   type: request_response
   id: 53
   reliable: true
   input_parameters:
-  - name: echoUINT8Array2Dim_ReqArg1
-    type: uint32
-    description: array len
   - name: echoUINT8Array2Dim_ReqArg2
-    type: array
+    datatype:
+      type: array
+      dimensions:
+      - kind: dynamic
+        length_of_length_field: 32
+      - kind: dynamic
+        length_of_length_field: 32
+      element_type:
+        type: uint8
     description: array
-    dimensions:
-    - kind: dynamic
-      length_of_length_field: 32
-    element_type:
-      type: uint8
   output_parameters:
-  - name: echoUINT8Array2Dim_ResArg1
-    type: uint32
-    description: array len
   - name: echoUINT8Array2Dim_ResArg2
-    type: array
+    datatype:
+      type: array
+      dimensions:
+      - kind: dynamic
+        length_of_length_field: 32
+      - kind: dynamic
+        length_of_length_field: 32
+      element_type:
+        type: uint8
     description: array
-    dimensions:
-    - kind: dynamic
-      length_of_length_field: 32
-    element_type:
-      type: uint8
 - name: echoUINT8ArrayMinSize
   type: request_response
   id: 55
   reliable: true
   input_parameters:
-  - name: echoUINT8ArrayMinSize_ReqArg1
-    type: uint32
-    description: array len
   - name: echoUINT8ArrayMinSize_ReqArg2
-    type: array
+    datatype:
+      type: array
+      dimensions:
+      - kind: dynamic
+        length_of_length_field: 32
+        lower_limit: 3
+        upper_limit: 5
+      element_type:
+        type: uint8
     description: array
-    dimensions:
-    - kind: dynamic
-      length_of_length_field: 32
-      lower_limit: 3
-      upper_limit: 5
-    element_type:
-      type: uint8
   output_parameters:
-  - name: echoUINT8ArrayMinSize_ResArg1
-    type: uint32
-    description: array len
   - name: echoUINT8ArrayMinSize_ResArg2
-    type: array
+    datatype:
+      type: array
+      dimensions:
+      - kind: dynamic
+        length_of_length_field: 32
+        lower_limit: 3
+        upper_limit: 5
+      element_type:
+        type: uint8
     description: array
-    dimensions:
-    - kind: dynamic
-      length_of_length_field: 32
-      lower_limit: 3
-      upper_limit: 5
-    element_type:
-      type: uint8
 - name: echoUINT8E2E
   type: request_response
   id: 11
   reliable: true
   input_parameters:
   - name: echoUINT8E2E_ReqArg1
-    type: uint32
+    datatype:
+      type: uint32
     description: len
   - name: echoUINT8E2E_ReqArg2
-    type: uint32
+    datatype:
+      type: uint32
     description: counter
   - name: echoUINT8E2E_ReqArg3
-    type: uint32
+    datatype:
+      type: uint32
     description: dataID
   - name: echoUINT8E2E_ReqArg4
-    type: uint32
+    datatype:
+      type: uint32
     description: crc
   - name: echoUINT8E2E_ReqArg5
-    type: uint8
+    datatype:
+      type: uint8
     description: value
   output_parameters:
   - name: echoUINT8E2E_ResArg1
-    type: uint32
+    datatype:
+      type: uint32
     description: len
   - name: echoUINT8E2E_ResArg2
-    type: uint32
+    datatype:
+      type: uint32
     description: counter
   - name: echoUINT8E2E_ResArg3
-    type: uint32
+    datatype:
+      type: uint32
     description: dataID
   - name: echoUINT8E2E_ResArg4
-    type: uint32
+    datatype:
+      type: uint32
     description: crc
   - name: echoUINT8E2E_ResArg5
-    type: uint8
+    datatype:
+      type: uint8
     description: value
 - name: echoUINT8RELIABLE
   type: request_response
@@ -456,156 +496,172 @@ methods:
   reliable: true
   input_parameters:
   - name: echoUINT8RELIABLE_ReqArg1
-    type: uint8
+    datatype:
+      type: uint8
   output_parameters:
   - name: echoUINT8RELIABLE_ResArg1
-    type: uint8
+    datatype:
+      type: uint8
 - name: echoUNION
   type: request_response
   id: 25
   reliable: true
   input_parameters:
   - name: echoUNION_ReqArg1
-    type: uint32
+    datatype:
+      type: uint32
     description: len
   - name: echoUNION_ReqArg2
-    type: uint32
+    datatype:
+      type: uint32
     description: type
   - name: echoUNION_ReqArg3
-    type: union
+    datatype:
+      type: union
+      members:
+      - type: boolean
+        index: 0
+        name: Boolean
+      - type: uint8
+        index: 1
+        name: UInt8
+      - type: uint16
+        index: 2
+        name: UInt16
+      - type: uint32
+        index: 3
+        name: UInt32
+      - type: sint8
+        index: 4
+        name: SInt8
+      - type: sint16
+        index: 5
+        name: SInt16
+      - type: sint32
+        index: 6
+        name: SInt32
+      - type: float32
+        index: 7
+        name: Float32
     description: value
-    members:
-    - type: boolean
-      index: 0
-      name: Boolean
-    - type: uint8
-      index: 1
-      name: UInt8
-    - type: uint16
-      index: 2
-      name: UInt16
-    - type: uint32
-      index: 3
-      name: UInt32
-    - type: sint8
-      index: 4
-      name: SInt8
-    - type: sint16
-      index: 5
-      name: SInt16
-    - type: sint32
-      index: 6
-      name: SInt32
-    - type: float32
-      index: 7
-      name: Float32
   output_parameters:
   - name: echoUNION_ResArg1
-    type: uint32
+    datatype:
+      type: uint32
     description: len
   - name: echoUNION_ResArg2
-    type: uint32
+    datatype:
+      type: uint32
     description: type
   - name: echoUNION_ResArg3
-    type: union
+    datatype:
+      type: union
+      members:
+      - type: boolean
+        index: 0
+        name: Boolean
+      - type: uint8
+        index: 1
+        name: UInt8
+      - type: uint16
+        index: 2
+        name: UInt16
+      - type: uint32
+        index: 3
+        name: UInt32
+      - type: sint8
+        index: 4
+        name: SInt8
+      - type: sint16
+        index: 5
+        name: SInt16
+      - type: sint32
+        index: 6
+        name: SInt32
+      - type: float32
+        index: 7
+        name: Float32
     description: value
-    members:
-    - type: boolean
-      index: 0
-      name: Boolean
-    - type: uint8
-      index: 1
-      name: UInt8
-    - type: uint16
-      index: 2
-      name: UInt16
-    - type: uint32
-      index: 3
-      name: UInt32
-    - type: sint8
-      index: 4
-      name: SInt8
-    - type: sint16
-      index: 5
-      name: SInt16
-    - type: sint32
-      index: 6
-      name: SInt32
-    - type: float32
-      index: 7
-      name: Float32
 - name: echoUTF16DYNAMIC
   type: request_response
   id: 22
   reliable: true
   input_parameters:
   - name: echoUTF16DYNAMIC_ReqArg1
-    type: uint32
+    datatype:
+      type: uint32
     description: len
   - name: echoUTF16DYNAMIC_ReqArg2
-    type: dynamic_length_string
+    datatype:
+      type: dynamic_length_string
+      encoding: UTF-16BE
     description: string
-    encoding: UTF-16BE
   output_parameters:
   - name: echoUTF16DYNAMIC_ResArg1
-    type: uint32
+    datatype:
+      type: uint32
     description: len
   - name: echoUTF16DYNAMIC_ResArg2
-    type: dynamic_length_string
+    datatype:
+      type: dynamic_length_string
+      encoding: UTF-16BE
     description: string
-    encoding: UTF-16BE
 - name: echoUTF16FIXED
   type: request_response
   id: 20
   reliable: true
   input_parameters:
   - name: echoUTF16FIXED_ReqArg1
-    type: fixed_length_string
+    datatype:
+      type: fixed_length_string
+      encoding: UTF-16BE
+      length: 64
     description: string
-    encoding: UTF-16BE
-    length: 64
   output_parameters:
   - name: echoUTF16FIXED_ResArg1
-    type: fixed_length_string
+    datatype:
+      type: fixed_length_string
+      encoding: UTF-16BE
+      length: 64
     description: string
-    encoding: UTF-16BE
-    length: 64
 - name: echoUTF8DYNAMIC
   type: request_response
   id: 21
   reliable: true
   input_parameters:
-  - name: echoUTF8DYNAMIC_ReqArg1
-    type: uint32
-    description: len
   - name: echoUTF8DYNAMIC_ReqArg2
-    type: dynamic_length_string
+    datatype:
+      type: dynamic_length_string
+      encoding: UTF-8
     description: string
-    encoding: UTF-8
   output_parameters:
   - name: echoUTF8DYNAMIC_ResArg1
-    type: uint32
+    datatype:
+      type: uint32
     description: len
   - name: echoUTF8DYNAMIC_ResArg2
-    type: dynamic_length_string
+    datatype:
+      type: dynamic_length_string
+      encoding: UTF-8
     description: string
-    encoding: UTF-8
 - name: echoUTF8FIXED
   type: request_response
   id: 19
   reliable: true
   input_parameters:
   - name: echoUTF8FIXED_ReqArg1
-    type: fixed_length_string
+    datatype:
+      type: fixed_length_string
+      encoding: UTF-8
+      length: 64
     description: string
-    encoding: UTF-8
-    length: 64
   output_parameters:
   - name: echoUTF8FIXED_ResArg1
-    type: fixed_length_string
+    datatype:
+      type: fixed_length_string
+      encoding: UTF-8
+      length: 64
     description: string
-    encoding: UTF-8
-    length: 64
 - name: resetInterface
   type: fire_and_forget
   id: 1
@@ -616,10 +672,12 @@ methods:
   reliable: false
   input_parameters:
   - name: suspendInterface_ReqArg1
-    type: uint32
+    datatype:
+      type: uint32
     description: delay
   - name: suspendInterface_ReqArg2
-    type: uint32
+    datatype:
+      type: uint32
     description: duration
 - name: triggerEventUINT8
   type: fire_and_forget
@@ -627,13 +685,16 @@ methods:
   reliable: false
   input_parameters:
   - name: triggerEventUINT8_ReqArg1
-    type: uint32
+    datatype:
+      type: uint32
     description: delay
   - name: triggerEventUINT8_ReqArg2
-    type: uint32
+    datatype:
+      type: uint32
     description: duration
   - name: triggerEventUINT8_ReqArg3
-    type: uint32
+    datatype:
+      type: uint32
     description: debounceTime
 - name: triggerEventUINT8Array
   type: fire_and_forget
@@ -641,13 +702,16 @@ methods:
   reliable: false
   input_parameters:
   - name: triggerEventUINT8Array_ReqArg1
-    type: uint32
+    datatype:
+      type: uint32
     description: delay
   - name: triggerEventUINT8Array_ReqArg2
-    type: uint32
+    datatype:
+      type: uint32
     description: duration
   - name: triggerEventUINT8Array_ReqArg3
-    type: uint32
+    datatype:
+      type: uint32
     description: debounceTime
 - name: triggerEventUINT8E2E
   type: fire_and_forget
@@ -655,13 +719,16 @@ methods:
   reliable: false
   input_parameters:
   - name: triggerEventUINT8E2E_ReqArg1
-    type: uint32
+    datatype:
+      type: uint32
     description: delay
   - name: triggerEventUINT8E2E_ReqArg2
-    type: uint32
+    datatype:
+      type: uint32
     description: duration
   - name: triggerEventUINT8E2E_ReqArg3
-    type: uint32
+    datatype:
+      type: uint32
     description: debounceTime
 - name: triggerEventUINT8Reliable
   type: fire_and_forget
@@ -669,13 +736,16 @@ methods:
   reliable: false
   input_parameters:
   - name: triggerEventUINT8Reliable_ReqArg1
-    type: uint32
+    datatype:
+      type: uint32
     description: delay
   - name: triggerEventUINT8Reliable_ReqArg2
-    type: uint32
+    datatype:
+      type: uint32
     description: duration
   - name: triggerEventUINT8Reliable_ReqArg3
-    type: uint32
+    datatype:
+      type: uint32
     description: debounceTime
 - name: triggerEventUINT8Multicast
   type: fire_and_forget
@@ -683,13 +753,16 @@ methods:
   reliable: false
   input_parameters:
   - name: triggerEventUINT8Multicast_ReqArg1
-    type: uint32
+    datatype:
+      type: uint32
     description: delay
   - name: triggerEventUINT8Multicast_ReqArg2
-    type: uint32
+    datatype:
+      type: uint32
     description: duration
   - name: triggerEventUINT8Multicast_ReqArg3
-    type: uint32
+    datatype:
+      type: uint32
     description: debounceTime
 - name: clientServiceGetLastValueOfEventTCP
   type: request_response
@@ -697,42 +770,51 @@ methods:
   reliable: true
   output_parameters:
   - name: clientServiceGetLastValueOfEventTCP_ResArg1
-    type: uint8
+    datatype:
+      type: uint8
 - name: clientServiceGetLastValueOfEventUDPUnicast
   type: request_response
   id: 60
   reliable: true
   output_parameters:
   - name: clientServiceGetLastValueOfEventUDPUnicast_ResArg1
-    type: uint8
+    datatype:
+      type: uint8
 - name: clientServiceGetLastValueOfEventUDPMulticast
   type: request_response
   id: 61
   reliable: true
   output_parameters:
   - name: clientServiceGetLastValueOfEventUDPMulticast_ResArg1
-    type: uint8
+    datatype:
+      type: uint8
 - name: echoBitfields
   type: request_response
   id: 65
   reliable: true
   input_parameters:
   - name: echoBitfields_ReqArg1
-    type: bitfield
-    length: 8
+    datatype:
+      type: bitfield
+      length: 8
   - name: echoBitfields_ReqArg2
-    type: bitfield
-    length: 16
+    datatype:
+      type: bitfield
+      length: 16
   - name: echoBitfields_ReqArg3
-    type: bitfield
-    length: 32
+    datatype:
+      type: bitfield
+      length: 32
   output_parameters:
   - name: echoBitfields_ResArg1
-    type: bitfield
-    length: 8
+    datatype:
+      type: bitfield
+      length: 8
   - name: echoBitfields_ResArg2
-    type: bitfield
-    length: 16
+    datatype:
+      type: bitfield
+      length: 16
   - name: echoBitfields_ResArg3
-    type: bitfield
-    length: 32
+    datatype:
+      type: bitfield
+      length: 32

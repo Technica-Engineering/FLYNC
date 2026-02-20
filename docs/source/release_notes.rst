@@ -3,18 +3,10 @@
 Release Notes
 =============
 
-Release 0.9
+Release 0.10
 -----------
 
-**Initial FLYNC Release**
+Bugfixes
+''''''''
 
-New Features
-''''''''''''
-
-- Mode: Base structure
-- Model: Topology
-- Model: Ethernet, QoS/TSN, Switch
-- Model: Sockets, TCP/IP
-- Model: SOME/IP Services, Instantiation, and SOME/IP-SD
-- Model: MACsec, Firewalling
-- SDK: Initial SDK
+- Model: SOME/IP Datatypes follow specification more closely

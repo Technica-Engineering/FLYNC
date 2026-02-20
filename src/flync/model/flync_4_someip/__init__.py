@@ -14,7 +14,6 @@ from flync.model.flync_4_someip.deployment import (
 )
 from flync.model.flync_4_someip.service_interface import (
     SOMEIPTP,
-    Parameters,
     SDConfig,
     SDTimings,
     SOMEIPConfig,
@@ -23,6 +22,7 @@ from flync.model.flync_4_someip.service_interface import (
     SOMEIPField,
     SOMEIPFireAndForgetMethod,
     SOMEIPMethod,
+    SOMEIPParameter,
     SOMEIPRequestResponseMethod,
     SOMEIPServiceInterface,
 )
@@ -91,7 +91,7 @@ __all__ = [
     "SOMEIPMethod",
     "SOMEIPFireAndForgetMethod",
     "SOMEIPRequestResponseMethod",
-    "Parameters",
+    "SOMEIPParameter",
     "SOMEIPServiceInterface",
     "SOMEIPConfig",
     "SDConfig",

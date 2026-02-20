@@ -42,6 +42,9 @@ class PrimitiveDatatype(Datatype):
     endianness : Literal["BE", "LE"], optional
         Byte order used for encoding multi-byte values. Defaults to
         big-endian ("BE").
+
+    bit_size : int
+        Size in bits of the primitive datatype.
     """
 
 
@@ -77,10 +80,23 @@ class Boolean(PrimitiveDatatype):
 
     type : Literal["boolean"]
         Discriminator identifying the primitive boolean datatype.
+
+    signed : Literal[False]
+        Indicates that the boolean is unsigned.
+
+    endianness : Literal["BE"]
+        Byte order used for encoding. Big-Endian ("BE").
+
+    bit_size : int
+        Storage size in bits: 8.
+
     """
 
     name: str = Field(default="BOOLEAN")
-    type: Literal["boolean"] = Field("boolean")
+    type: Literal["boolean"] = Field("boolean")  # type: ignore
+    signed: Literal[False] = Field(False)
+    endianness: Literal["BE"] = "BE"
+    bit_size: Annotated[int, Field(ge=8, le=8, default=8)]
 
 
 class BaseInt(PrimitiveDatatype):
@@ -92,10 +108,6 @@ class BaseInt(PrimitiveDatatype):
 
     """
 
-    MAX_APPLICATIVE_VALUE_DESC: ClassVar[str] = (
-        "the maximum value to define by application"
-    )
-
 
 class BaseFloat(PrimitiveDatatype):
     """
@@ -106,10 +118,6 @@ class BaseFloat(PrimitiveDatatype):
 
     """
 
-    MAX_APPLICATIVE_VALUE_DESC: ClassVar[str] = (
-        "the maximum value to define by application"
-    )
-
 
 class UInt8(BaseInt):
     """
@@ -118,7 +126,7 @@ class UInt8(BaseInt):
     Parameters
     ----------
     name : str
-        Datatype name. Defaults to ``"UINT_8"``.
+        Datatype name. Defaults to ``"UINT8"``.
 
     type : Literal["uint8"]
         Discriminator identifying this datatype.
@@ -126,20 +134,18 @@ class UInt8(BaseInt):
     signed : Literal[False]
         Indicates that the integer is unsigned.
 
-    bit_size : int
-        Storage size in bits. Defaults to 8.
+    endianness : Literal["BE"]
+        Byte order used for encoding. Big-Endian ("BE").
 
-    max_applicative_value : int
-        Maximum application-level value allowed for this datatype.
+    bit_size : int
+        Storage size in bits: 8.
     """
 
-    name: str = Field(default="UINT_8")
+    name: str = Field(default="UINT8")
     type: Literal["uint8"] = Field("uint8")  # type: ignore
     signed: Literal[False] = Field(False)
-    bit_size: Annotated[int, Field(gt=0, le=8, default=8)]
-    max_applicative_value: Annotated[int, Field(ge=0, le=255)] = Field(
-        description=BaseInt.MAX_APPLICATIVE_VALUE_DESC, default=255
-    )  # type: ignore
+    endianness: Literal["BE"] = Field("BE")
+    bit_size: Annotated[int, Field(8)]
 
 
 class UInt16(BaseInt):
@@ -149,7 +155,7 @@ class UInt16(BaseInt):
     Parameters
     ----------
     name : str
-        Datatype name. Defaults to ``"UINT_16"``.
+        Datatype name. Defaults to ``"UINT16"``.
 
     type : Literal["uint16"]
         Discriminator identifying this datatype.
@@ -157,21 +163,19 @@ class UInt16(BaseInt):
     signed : Literal[False]
         Indicates that the integer is unsigned.
 
-    bit_size : int
-        Storage size in bits. Defaults to 16.
+    endianness : Literal["BE", "LE"], optional
+        Byte order used for encoding multi-byte values. Defaults to
+        big-endian ("BE").
 
-    max_applicative_value : int
-        Maximum application-level value allowed for this datatype.
+    bit_size : int
+        Storage size in bits: 16.
     """
 
-    name: str = Field(default="UINT_16")
-
+    name: str = Field(default="UINT16")
     type: Literal["uint16"] = Field("uint16")  # type: ignore
     signed: Literal[False] = Field(False)
-    bit_size: Annotated[int, Field(gt=8, le=16, default=16)]
-    max_applicative_value: Annotated[int, Field(ge=0, le=65535)] = Field(
-        description=BaseInt.MAX_APPLICATIVE_VALUE_DESC, default=65535
-    )
+    endianness: Literal["BE", "LE"] = "BE"
+    bit_size: Annotated[int, Field(ge=16, le=16, default=16)]
 
 
 class UInt32(BaseInt):
@@ -181,7 +185,7 @@ class UInt32(BaseInt):
     Parameters
     ----------
     name : str
-        Datatype name. Defaults to ``"UINT_32"``.
+        Datatype name. Defaults to ``"UINT32"``.
 
     type : Literal["uint32"]
         Discriminator identifying this datatype.
@@ -189,20 +193,19 @@ class UInt32(BaseInt):
     signed : Literal[False]
         Indicates that the integer is unsigned.
 
-    bit_size : int
-        Storage size in bits. Defaults to 32.
+    endianness : Literal["BE", "LE"], optional
+        Byte order used for encoding multi-byte values. Defaults to
+        big-endian ("BE").
 
-    max_applicative_value : int
-        Maximum application-level value allowed for this datatype.
+    bit_size : int
+        Storage size in bits: 32.
     """
 
-    name: str = Field(default="UINT_32")
+    name: str = Field(default="UINT32")
     type: Literal["uint32"] = Field("uint32")  # type: ignore
     signed: Literal[False] = Field(False)
-    bit_size: Annotated[int, Field(gt=16, le=32, default=32)]
-    max_applicative_value: Annotated[int, Field(ge=0, le=4294967295)] = Field(
-        description=BaseInt.MAX_APPLICATIVE_VALUE_DESC, default=4294967295
-    )
+    endianness: Literal["BE", "LE"] = "BE"
+    bit_size: Annotated[int, Field(ge=32, le=32, default=32)]
 
 
 class UInt64(BaseInt):
@@ -212,7 +215,7 @@ class UInt64(BaseInt):
     Parameters
     ----------
     name : str
-        Datatype name. Defaults to ``"UINT_64"``.
+        Datatype name. Defaults to ``"UINT64"``.
 
     type : Literal["uint64"]
         Discriminator identifying this datatype.
@@ -220,20 +223,19 @@ class UInt64(BaseInt):
     signed : Literal[False]
         Indicates that the integer is unsigned.
 
-    bit_size : int
-        Storage size in bits. Defaults to 64.
+    endianness : Literal["BE", "LE"], optional
+        Byte order used for encoding multi-byte values. Defaults to
+        big-endian ("BE").
 
-    max_applicative_value : int
-        Maximum application-level value allowed for this datatype.
+    bit_size : int
+        Storage size in bits: 64.
     """
 
-    name: str = Field(default="UINT_64")
+    name: str = Field(default="UINT64")
     type: Literal["uint64"] = Field("uint64")  # type: ignore
     signed: Literal[False] = Field(False)
-    bit_size: Annotated[int, Field(gt=32, le=64, default=64)]
-    max_applicative_value: Annotated[int, Field(ge=0, le=2**64)] = Field(
-        description=BaseInt.MAX_APPLICATIVE_VALUE_DESC, default=2**64
-    )
+    endianness: Literal["BE", "LE"] = "BE"
+    bit_size: Annotated[int, Field(ge=64, le=64, default=64)]
 
 
 class SInt8(BaseInt):
@@ -243,7 +245,7 @@ class SInt8(BaseInt):
     Parameters
     ----------
     name : str
-        Datatype name. Defaults to ``"SINT_8"``.
+        Datatype name. Defaults to ``"SINT8"``.
 
     type : Literal["sint8"]
         Discriminator identifying this datatype.
@@ -251,20 +253,18 @@ class SInt8(BaseInt):
     signed : Literal[True]
         Indicates that the integer is signed.
 
-    bit_size : int
-        Storage size in bits. Defaults to 8.
+    endianness : Literal["BE"]
+        Byte order used for encoding. Big-Endian ("BE").
 
-    max_applicative_value : int
-        Maximum application-level value allowed for this datatype.
+    bit_size : int
+        Storage size in bits: 8.
     """
 
-    name: str = Field(default="SINT_8")
+    name: str = Field(default="SINT8")
     type: Literal["sint8"] = Field("sint8")  # type: ignore
     signed: Literal[True] = Field(True)
-    bit_size: Annotated[int, Field(gt=0, le=8, default=8)]
-    max_applicative_value: Annotated[int, Field(ge=-128, le=127)] = Field(
-        description=BaseInt.MAX_APPLICATIVE_VALUE_DESC, default=127
-    )
+    endianness: Literal["BE"] = "BE"
+    bit_size: Annotated[int, Field(ge=8, le=8, default=8)]
 
 
 class SInt16(BaseInt):
@@ -274,7 +274,7 @@ class SInt16(BaseInt):
     Parameters
     ----------
     name : str
-        Datatype name. Defaults to ``"SINT_16"``.
+        Datatype name. Defaults to ``"SINT16"``.
 
     type : Literal["sint16"]
         Discriminator identifying this datatype.
@@ -282,20 +282,19 @@ class SInt16(BaseInt):
     signed : Literal[True]
         Indicates that the integer is signed.
 
-    bit_size : int
-        Storage size in bits. Defaults to 16.
+    endianness : Literal["BE", "LE"], optional
+        Byte order used for encoding multi-byte values. Defaults to
+        big-endian ("BE").
 
-    max_applicative_value : int
-        Maximum application-level value allowed for this datatype.
+    bit_size : int
+        Storage size in bits: 16.
     """
 
-    name: str = Field(default="SINT_16")
+    name: str = Field(default="SINT16")
     type: Literal["sint16"] = Field("sint16")  # type: ignore
     signed: Literal[True] = Field(True)
-    bit_size: Annotated[int, Field(gt=8, le=16, default=16)]
-    max_applicative_value: Annotated[int, Field(ge=-32768, le=32767)] = Field(
-        description=BaseInt.MAX_APPLICATIVE_VALUE_DESC, default=32767
-    )
+    endianness: Literal["BE", "LE"] = "BE"
+    bit_size: Annotated[int, Field(ge=16, le=16, default=16)]
 
 
 class SInt32(BaseInt):
@@ -305,7 +304,7 @@ class SInt32(BaseInt):
     Parameters
     ----------
     name : str
-        Datatype name. Defaults to ``"SINT_32"``.
+        Datatype name. Defaults to ``"SINT32"``.
 
     type : Literal["sint32"]
         Discriminator identifying this datatype.
@@ -313,22 +312,19 @@ class SInt32(BaseInt):
     signed : Literal[True]
         Indicates that the integer is signed.
 
-    bit_size : int
-        Storage size in bits. Defaults to 32.
+    endianness : Literal["BE", "LE"], optional
+        Byte order used for encoding multi-byte values. Defaults to
+        big-endian ("BE").
 
-    max_applicative_value : int
-        Maximum application-level value allowed for this datatype.
+    bit_size : int
+        Storage size in bits: 32.
     """
 
-    name: str = Field(default="SINT_32")
+    name: str = Field(default="SINT32")
     type: Literal["sint32"] = Field("sint32")  # type: ignore
     signed: Literal[True] = Field(True)
-    bit_size: Annotated[int, Field(gt=16, le=32, default=32)]
-    max_applicative_value: Annotated[
-        int, Field(ge=-2147483648, le=2147483647)
-    ] = Field(
-        description=BaseInt.MAX_APPLICATIVE_VALUE_DESC, default=2147483647
-    )
+    endianness: Literal["BE", "LE"] = "BE"
+    bit_size: Annotated[int, Field(ge=32, le=32, default=32)]
 
 
 class SInt64(BaseInt):
@@ -338,7 +334,7 @@ class SInt64(BaseInt):
     Parameters
     ----------
     name : str
-        Datatype name. Defaults to ``"SINT_64"``.
+        Datatype name. Defaults to ``"SINT64"``.
 
     type : Literal["sint64"]
         Discriminator identifying this datatype.
@@ -346,23 +342,19 @@ class SInt64(BaseInt):
     signed : Literal[True]
         Indicates that the integer is signed.
 
-    bit_size : int
-        Storage size in bits. Defaults to 64.
+    endianness : Literal["BE", "LE"], optional
+        Byte order used for encoding multi-byte values. Defaults to
+        big-endian ("BE").
 
-    max_applicative_value : int
-        Maximum application-level value allowed for this datatype.
+    bit_size : int
+        Storage size in bits: 64.
     """
 
-    name: str = Field(default="SINT_64")
+    name: str = Field(default="SINT64")
     type: Literal["sint64"] = Field("sint64")  # type: ignore
     signed: Literal[True] = Field(True)
-    bit_size: Annotated[int, Field(gt=32, le=64, default=64)]
-    max_applicative_value: Annotated[
-        int, Field(ge=-9223372036854775808, le=9223372036854775807)
-    ] = Field(
-        description=BaseInt.MAX_APPLICATIVE_VALUE_DESC,
-        default=9223372036854775807,
-    )
+    endianness: Literal["BE", "LE"] = "BE"
+    bit_size: Annotated[int, Field(ge=64, le=64, default=64)]
 
 
 class Float32(PrimitiveDatatype):
@@ -372,20 +364,27 @@ class Float32(PrimitiveDatatype):
     Parameters
     ----------
     name : str
-        Datatype name. Defaults to ``"FLOAT_32"``.
+        Datatype name. Defaults to ``"FLOAT32"``.
 
     type : Literal["float32"]
         Discriminator identifying this datatype.
 
-    max_applicative_value : float
-        Maximum application-level absolute value allowed.
+    signed : Literal[True]
+        Indicates that the float is signed.
+
+    endianness : Literal["BE", "LE"], optional
+        Byte order used for encoding multi-byte values. Defaults to
+        big-endian ("BE").
+
+    bit_size : int
+        Storage size in bits: 32.
     """
 
-    name: str = Field(default="FLOAT_32")
+    name: str = Field(default="FLOAT32")
     type: Literal["float32"] = Field("float32")  # type: ignore
-    max_applicative_value: Annotated[
-        float, Field(ge=-3.4028235e38, le=3.4028235e38)
-    ] = Field(description=BaseFloat.MAX_APPLICATIVE_VALUE_DESC, default=3.4e38)
+    signed: Literal[True] = Field(True)
+    endianness: Literal["BE", "LE"] = "BE"
+    bit_size: Annotated[int, Field(ge=32, le=32, default=32)]
 
 
 class Float64(BaseFloat):
@@ -395,28 +394,27 @@ class Float64(BaseFloat):
     Parameters
     ----------
     name : str
-        Datatype name. Defaults to ``"FLOAT_64"``.
+        Datatype name. Defaults to ``"FLOAT64"``.
 
     type : Literal["float64"]
         Discriminator identifying this datatype.
 
-    bit_size : int
-        Storage size in bits. Defaults to 64.
+    signed : Literal[True]
+        Indicates that the float is signed.
 
-    max_applicative_value : float
-        Maximum application-level absolute value allowed.
+    endianness : Literal["BE", "LE"], optional
+        Byte order used for encoding multi-byte values. Defaults to
+        big-endian ("BE").
+
+    bit_size : int
+        Storage size in bits: 64.
     """
 
-    name: str = Field(default="FLOAT_64")
+    name: str = Field(default="FLOAT64")
     type: Literal["float64"] = Field("float64")  # type: ignore
-    bit_size: Annotated[int, Field(ge=33, le=64, default=64)]
-    max_applicative_value: Annotated[
-        float,
-        Field(ge=-1.7976931348623157e308, le=1.7976931348623157e308),
-    ] = Field(
-        description=BaseFloat.MAX_APPLICATIVE_VALUE_DESC,
-        default=1.7976931348623157e308,
-    )
+    signed: Literal[True] = Field(True)
+    endianness: Literal["BE", "LE"] = "BE"
+    bit_size: Annotated[int, Field(ge=64, le=64, default=64)]
 
 
 class BitfieldEntryValue(BaseModel):
@@ -499,6 +497,8 @@ class Bitfield(Datatype):
     fields : list of :class:`BitfieldEntry`
         List of bitfield entries that define the individual bit ranges.
     """
+
+    name: str = Field(default="Bitfield")
 
     type: Literal["bitfield"] = Field("bitfield")
 
@@ -583,6 +583,7 @@ class Enum(Datatype):
         values and symbolic names.
     """
 
+    name: str = Field(default="Enum")
     type: Literal["enum"] = Field("enum")
     base_type: Union["Ints"] = Field(
         default_factory=lambda: Enum.default_base_type()
@@ -640,6 +641,7 @@ class BaseString(Datatype):
         Character encoding used for the string payload.
     """
 
+    name: str = Field(default="BaseString")
     type: str = Field()
     encoding: Literal["UTF-8", "UTF-16BE", "UTF-16LE"] = Field(
         description="the encoding of the string\n\n"
@@ -659,6 +661,9 @@ class FixedLengthString(BaseString):
 
     Parameters
     ----------
+    name : str
+        Name of the String.
+
     type : Literal["fixed_length_string"]
         Discriminator used to identify this datatype.
 
@@ -671,6 +676,7 @@ class FixedLengthString(BaseString):
         that no length field is present.
     """
 
+    name: str = Field(default="FixedLengthString")
     type: Literal["fixed_length_string"] = Field("fixed_length_string")
     length: Annotated[int, Field(ge=1)] = Field(
         description="the length of the string (including zero-termination!)\n"
@@ -695,6 +701,9 @@ class DynamicLengthString(BaseString):
 
     Parameters
     ----------
+    name : str
+        Name of the String.
+
     type : Literal["dynamic_length_string"]
         Discriminator used to identify this datatype.
 
@@ -706,6 +715,7 @@ class DynamicLengthString(BaseString):
         next parameter starts at the specified bit boundary.
     """
 
+    name: str = Field(default="DynamicLengthString")
     type: Literal["dynamic_length_string"] = Field(
         default="dynamic_length_string",
         description="used internally by flync to efficiently determine the "
@@ -732,6 +742,9 @@ class ArrayType(ComplexDatatype):
 
     Parameters
     ----------
+    name : str
+        Name of Array.
+
     type : Literal["array"]
         Discriminator identifying this datatype as an array.
 
@@ -744,6 +757,7 @@ class ArrayType(ComplexDatatype):
         primitive, struct, union, or another array type.
     """
 
+    name: str = Field(default="Array")
     type: Literal["array"] = Field("array")
     dimensions: List["ArrayDimension"] = Field(
         min_length=1,
@@ -858,6 +872,9 @@ class Typedef(ComplexDatatype):
 
     Parameters
     ----------
+    name : str
+        Name of Typedef.
+
     type : Literal["typedef"]
         Discriminator used to identify this datatype.
 
@@ -930,6 +947,9 @@ class Union(Datatype):
 
     Parameters
     ----------
+    name : str
+        Name of the Union.
+
     type : Literal["union"]
         Discriminator used to identify this datatype.
 
@@ -948,6 +968,7 @@ class Union(Datatype):
         Defines the length of the type-selector field in bits for the union.
     """
 
+    name: str = Field(default="Union")
     type: Literal["union"] = Field("union")
     members: List[UnionMember] = Field(
         description="list of the allowed datatypes a union can have"
