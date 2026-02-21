@@ -306,21 +306,28 @@ class FLYNCWorkspace:
             base_type = get_origin(list_element_type)
             base_type_args = get_args(list_element_type)
             for sub_item_path in item_dir.iterdir():
-                item_info: dict = {}
-                if base_type is Union:
-                    self.__handle_generic_types_union(
-                        base_type_args,
-                        external,
-                        sub_item_path.name,
-                        field_name,
-                        item_info,
-                        item_dir,
-                    )
-                    list_item_value.append(item_info[field_name])
-                else:
-                    list_item_value.append(
-                        self.__load_from_path(sub_item_path, list_element_type)
-                    )
+                if (
+                    sub_item_path.suffix in [".yaml", ".yml"]
+                    or sub_item_path.is_dir()
+                ):
+                    item_info: dict = {}
+                    if base_type is Union:
+                        self.__handle_generic_types_union(
+                            base_type_args,
+                            external,
+                            sub_item_path.name,
+                            field_name,
+                            item_info,
+                            item_dir,
+                        )
+                        list_item_value.append(item_info[field_name])
+                    else:
+                        list_item_value.append(
+                            self.__load_from_path(
+                                sub_item_path, list_element_type
+                            )
+                        )
+
             module_load_info[field_name] = list_item_value
             return True
 
@@ -532,7 +539,7 @@ class FLYNCWorkspace:
     def __append_to_info_dict(
         self,
         path: Path,
-        modle_load_info: dict,
+        model_load_info: dict,
         output_strategy: Optional[OutputStrategy] = None,
         field_name: Optional[str] = None,
         fixed_name: Optional[str] = None,
@@ -543,12 +550,12 @@ class FLYNCWorkspace:
                 self._open_document(path, direct_data.read())
                 if output_strategy:
                     if OutputStrategy.OMMIT_ROOT in output_strategy:
-                        modle_load_info[field_name] = content
+                        model_load_info[field_name] = content
                         return
                     elif OutputStrategy.FIXED_ROOT in output_strategy:
-                        modle_load_info[field_name] = content[fixed_name]
+                        model_load_info[field_name] = content[fixed_name]
                         return
-                modle_load_info.update(content)
+                model_load_info.update(content)
 
     @staticmethod
     def __get_field_filename(model: FLYNCBaseModel):
