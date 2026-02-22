@@ -45,8 +45,7 @@ class SOMEIPField(FLYNCBaseModel):
     name : str
         Name of the Field.
 
-    parameters : list[ \
-        :class:`~flync.model.flync_4_someip.someip_datatypes.AllTypes` ]
+    parameters list[:class:`~SOMEIPParameters`]
         List of Parameters of the Field.
 
     description : str, optional
@@ -64,11 +63,17 @@ class SOMEIPField(FLYNCBaseModel):
     getter_id : int, optional
         Identifies the Field Getter.
         Must be greater than 0 and lower or equal than 0xFFFF.
+
+    reliable : bool
+        Indicates whether the event is transmitted reliably.
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True)
     name: str = Field(description="name of the field")
-    parameters: list["AllTypes"]  # type: ignore
+    parameters: Annotated[
+        Optional[List["SOMEIPParameter"]],
+        Field(description="name of the parameter"),
+    ] = Field(default=[])
     description: Optional[str] = Field(default="")
 
     notifier_id: Optional[
@@ -80,6 +85,8 @@ class SOMEIPField(FLYNCBaseModel):
     getter_id: Optional[
         Annotated[int, Field(gt=0, le=0xFFFF, strict=True)]
     ] = Field(description="identifies the field getter", default=None)
+
+    reliable: bool = Field(default=False)
 
     @property
     def id(self):
@@ -102,8 +109,8 @@ class SOMEIPField(FLYNCBaseModel):
         return self
 
 
-class Parameters(FLYNCBaseModel):
-    """Definition of Parameters for SOME-IP Events.
+class SOMEIPParameter(FLYNCBaseModel):
+    """Definition of Parameters for SOME/IP.
 
     Parameters
     ----------
@@ -111,23 +118,27 @@ class Parameters(FLYNCBaseModel):
     name : str
         Identifies the parameter.
 
-    type :  :class:`~flync.model.flync_4_someip.someip_datatypes.AllTypes`
+    description : str, optional
+        Human-readable description of the datatype.
+
+    type : :class:`~flync.model.flync_4_someip.someip_datatypes.AllTypes`
         Datatype of the Parameter.
     """
 
     name: str = Field(description="identifies the parameter")
-    type: Annotated["AllTypes", Field(description="datatype of the parameter")]
+    description: Optional[str] = Field("", description="Optional description")
+    datatype: "AllTypes"
 
-    @field_serializer("type")
-    def serialize_type(self, type):
-        if type is not None:
-            return getattr(type, "type", str(type))
+    # @field_serializer("type")
+    # def serialize_type(self, type):
+    #    if type is not None:
+    #        return getattr(type, "type", str(type))
 
-    @field_validator("type", mode="before")
-    def wrap_type(cls, v):
-        if isinstance(v, str):
-            return {"type": v}
-        return v
+    # @field_validator("type", mode="before")
+    # def wrap_type(cls, v):
+    #    if isinstance(v, str):
+    #        return {"type": v}
+    #    return v
 
 
 class SOMEIPEvent(FLYNCBaseModel):
@@ -153,8 +164,8 @@ class SOMEIPEvent(FLYNCBaseModel):
     reliable : bool
         Indicates whether the event is transmitted reliably.
 
-    parameters list[:class:`~Parameters`]
-        List of parameters.
+    parameters list[:class:`~SOMEIPParameters`]
+        Parameters of the Event
     """
 
     INSTANCES_BY_NAME: ClassVar[Dict[str, "SOMEIPEvent"]] = {}
@@ -167,8 +178,9 @@ class SOMEIPEvent(FLYNCBaseModel):
     reliable: bool = Field(default=False)
     # e2e: Optional[E2EConfig]
     parameters: Annotated[
-        List["Parameters"], Field(description="name of the event")
-    ]
+        Optional[List["SOMEIPParameter"]],
+        Field(description="name of the parameter"),
+    ] = Field(default=[])
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -359,9 +371,8 @@ class SOMEIPMethod(FLYNCBaseModel):
     someip_tp : :class:`~SOMEIPTP`
         SOME/IP Transport Protocol configuration for this method.
 
-    input_parameters : list[\
-        :class:`~flync.model.flync_4_someip.someip_datatypes.AllTypes` ]
-        List of input parameters.
+    input_parameters : list[:class:`~SOMEIPParameters`]
+        The parameters of the Request
 
     """
 
@@ -381,9 +392,8 @@ class SOMEIPMethod(FLYNCBaseModel):
         description="SOME/IP Transport Protocol configuration for this method",
         default=None,
     )
-
     input_parameters: Annotated[
-        Optional[List["AllTypes"]],
+        Optional[List["SOMEIPParameter"]],
         BeforeValidator(common_validators.none_to_empty_list),
     ] = Field(default=[])
 
@@ -399,16 +409,16 @@ class SOMEIPRequestResponseMethod(SOMEIPMethod):
     Parameters
     ----------
 
-    output_parameters : list[ \
-        :class:`~flync.model.flync_4_someip.someip_datatypes.AllTypes` ]
-        List of output parameters of the response.
+    output_parameters : list[:class:`~SOMEIPParameters`], optional
+        The parameters of the Response
+
     """
 
     type: Literal["request_response"] = "request_response"
     output_parameters: Annotated[
-        Optional[List["AllTypes"]],
+        Optional[List["SOMEIPParameter"]],
         BeforeValidator(common_validators.none_to_empty_list),
-    ] = Field(description="Describe the datatype of the response", default=[])
+    ] = Field(default=[])
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

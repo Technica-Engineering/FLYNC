@@ -131,15 +131,11 @@ class SOMEIPServiceDeployment(abc.ABC, FLYNCBaseModel):
 
     service : int
         Identifies the service.
-        Must be greater than 0.
-
-    major_version : int
-        The major version of this service interface.
-        Must be greater than 0.
+        Must be greater than 0 and less than 0xFFFF.
 
     instance_id: int
         Id of the Service Instance.
-        Must be greater than 0.
+        Must be greater than 0 and less than 0xFFFF.
 
     find_service_multicast: :class:`~MulticastEndpoint`, optional
         A multicast endpoint.
@@ -150,10 +146,7 @@ class SOMEIPServiceDeployment(abc.ABC, FLYNCBaseModel):
 
     deployment_type: DeploymentTypes
     service: int = Field(
-        description="identifies the service", gt=0, strict=True
-    )
-    major_version: Annotated[int, Field(ge=0, strict=True)] = Field(
-        description="the major version of this service interface", default=0
+        description="identifies the service", gt=0, lt=0xFFFF, strict=True
     )
     instance_id: Annotated[int, Field(gt=0, lt=0xFFFF)] = Field(
         description="The id of the service instance"
@@ -186,7 +179,7 @@ class SOMEIPServiceDeployment(abc.ABC, FLYNCBaseModel):
 
         profile_id = value
         profile_found = SDTimings.INSTANCES.get((profile_id))
-        assert profile_found, f'did not find a Some/IP SD timings profile \
+        assert profile_found, f'did not find a SOME/IP SD timings profile \
             with the provided key "{value}"'
         return value
 
@@ -204,12 +197,21 @@ class SOMEIPServiceConsumer(SOMEIPServiceDeployment):
 
     deployment_type : Literal["someip_consumer"]
 
+    major_version : int
+        The major version of this service interface.
+        Must be greater than 0 and less or equal 255.
+
     consumed_eventgroups : List[str], optional
     """
 
     deployment_type: Literal["someip_consumer"] = Field(
         default="someip_consumer"
     )
+
+    major_version: Annotated[int, Field(gt=0, le=255, strict=True)] = Field(
+        description="the major version of this service interface", default=0
+    )
+
     consumed_eventgroups: Optional[List[str]] = Field(default=None)
 
     def model_post_init(self, __context):
@@ -243,10 +245,29 @@ class SOMEIPServiceProvider(SOMEIPServiceDeployment):
     ----------
 
     deployment_type : Literal["someip_provider"]
+
+    major_version : int
+        The major version of this service interface.
+        Must be greater than 0 and less than 255.
+
+    minor_version : int
+        The minor version of this service interface.
+        Must be greater than 0 and less than 0xFFFFFFFF.
     """
 
     deployment_type: Literal["someip_provider"] = Field(
         default="someip_provider"
+    )
+
+    major_version: Annotated[int, Field(gt=0, lt=255, strict=True)] = Field(
+        description="the major version of this service interface"
+    )
+
+    minor_version: Annotated[int, Field(ge=0, lt=0xFFFFFFFF, strict=True)] = (
+        Field(
+            description="the major version of this service interface",
+            default=0,
+        )
     )
 
     def model_post_init(self, __context):

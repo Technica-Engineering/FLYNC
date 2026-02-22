@@ -1,25 +1,36 @@
 vlan_name: hpc_c1_i1_viface1
 sockets:
-  - name: sd_multicast_socket
-    endpoint_address: 10.0.10.5
-    port_no: 30490
-    protocol: udp
-    deployments:
-      - deployment_type: someip_sd
-        multicast:
-            ip_address: 224.244.224.245
-            port: 30490
-            ip_ttl: 1
-  - name: someip_udp_socket_2
-    endpoint_address: 10.0.10.5
-    port_no: 30501
-    protocol: udp
-    deployments:
-      - deployment_type: someip_consumer
-        service: 0x101
-        instance_id: 1
-        major_version: 1
-        consumed_eventgroups:
-          - eventgroup_2
-          - eventgroup_5
-        someip_sd_timings_profile: client_default
+- name: sd_multicast_socket
+  endpoint_address: 10.0.10.5
+  port_no: 30490
+  protocol: udp
+  deployments:
+    - deployment_type: someip_sd
+      multicast:
+          ip_address: 224.244.224.245
+          port: 30490
+          ip_ttl: 1
+- name: someip_server_socket_udp1
+  endpoint_address: 10.0.10.5
+  port_no: 30501
+  protocol: udp
+  deployments:
+    - deployment_type: someip_provider
+      service: 0x101
+      instance_id: 1
+      major_version: 1
+      minor_version: 0
+      someip_sd_timings_profile: server_default
+- name: someip_udp_client_socket_udp1
+  endpoint_address: 10.0.10.5
+  port_no: 30491
+  protocol: udp
+  deployments:
+    - deployment_type: someip_consumer
+      service: 0x101
+      instance_id: 0xf4
+      major_version: 1
+      consumed_eventgroups:
+        - eventgroup_2_all
+        - eventgroup_5_unreliable
+      someip_sd_timings_profile: client_default

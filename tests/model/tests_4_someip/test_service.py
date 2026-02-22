@@ -3,23 +3,27 @@
 import pytest
 import ipaddress
 from flync.model.flync_4_someip import (
-    SOMEIPServiceInterface,
     SOMEIPEventgroup,
     SOMEIPEvent,
     SOMEIPField,
+    SOMEIPParameter,
+    SOMEIPServiceInterface,
     UInt8,
-    Parameters,
 )
 from flync.core.utils.base_utils import is_ip_multicast
 
 
 def test_service_check_for_events_without_eg(metadata_entry):
     with pytest.warns(UserWarning, match="not assigned to an eventgroup") as w:
-        f = SOMEIPField(name="a", parameters=[UInt8()], notifier_id=1)
+        f = SOMEIPField(
+            name="a",
+            parameters=[SOMEIPParameter(name="p1", datatype=UInt8())],
+            notifier_id=1,
+        )
         e = SOMEIPEvent(
             name="t",
             id=2,
-            parameters=[Parameters(name="p1", type="uint8")],
+            parameters=[SOMEIPParameter(name="p1", datatype=UInt8())],
         )
         s = SOMEIPServiceInterface(
             meta=metadata_entry,
