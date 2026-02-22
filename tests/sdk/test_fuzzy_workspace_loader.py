@@ -131,7 +131,7 @@ def __run_script(
     )
 
     output_file.write_text(
-        "fuzzed fies:\n"
+        "fuzzed files:\n"
         + "\n".join(str(p.relative_to(workspace)) for p in fuzzed_fies)
         + "\nSTDOUT:\n"
         + result.stdout
