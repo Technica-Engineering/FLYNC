@@ -1,6 +1,7 @@
 import os
 import shutil
 import re
+from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 
 def extract_example_from_rst(rst_file, output_root, title):
     os.makedirs(output_root, exist_ok=True)
@@ -70,3 +71,13 @@ def update_yaml_content(yaml_file,old_text,new_text):
 def append_yaml_content(yaml_file,new_text):
     with open(yaml_file, 'a') as file:
         file.write(new_text)
+
+def model_has_socket(loaded_ws: FLYNCWorkspace):
+    return any(
+        address.sockets
+        for ecu in loaded_ws.flync_model.ecus
+        for controller in ecu.controllers
+        for interface in controller.interfaces
+        for vlan in interface.virtual_interfaces
+        for address in vlan.addresses
+        )

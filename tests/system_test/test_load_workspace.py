@@ -10,12 +10,30 @@ absolute_path = Path(__file__).parents[2] /'examples'/'flync_example'
 def test_load_workspace_valid_absolute_path():
     workspace = FLYNCWorkspace.load_workspace("flync_example",absolute_path)
     assert workspace is not None
+    assert workspace.flync_model is not None
+    assert workspace.flync_model.ecus
+    assert workspace.flync_model.topology
+    assert workspace.flync_model.topology.system_topology
+    assert workspace.flync_model.general
+    assert workspace.flync_model.general.someip_config
+    assert workspace.flync_model.general.tcp_profiles
+    assert workspace.flync_model.metadata
+    assert model_has_socket(workspace)
 
 # Verify workspace loads with valid relative path
 relative_path = Path(Path(__file__).parent, '..', '..', 'examples','flync_example')
 def test_load_workspace_valid_relative_path():
     workspace = FLYNCWorkspace.load_workspace("flync_example",relative_path)
     assert workspace is not None
+    assert workspace.flync_model is not None
+    assert workspace.flync_model.ecus
+    assert workspace.flync_model.topology
+    assert workspace.flync_model.topology.system_topology
+    assert workspace.flync_model.general
+    assert workspace.flync_model.general.someip_config
+    assert workspace.flync_model.general.tcp_profiles
+    assert workspace.flync_model.metadata
+    assert model_has_socket(workspace)
 
 # Verify workspace loads with valid str path
 def test_load_workspace_valid_str_path():
