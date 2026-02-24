@@ -3,7 +3,7 @@ from pathlib import Path
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 import shutil
 from pydantic import ValidationError
-from tests.system_test.helper import *
+from .helper import *
 
 # Verify workspace loads with valid absolute path
 absolute_path = Path(__file__).parents[2] /'examples'/'flync_example'
