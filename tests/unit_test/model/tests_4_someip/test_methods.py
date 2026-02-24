@@ -4,12 +4,13 @@ from pydantic import ValidationError
 
 from flync.model.flync_4_someip import (
     ArrayType,
-    SInt16,
-    SInt32,
-    SInt8,
+    Int16,
+    Int32,
+    Int8,
     SOMEIPFireAndForgetMethod,
     SOMEIPMethod,
     SOMEIPRequestResponseMethod,
+    SOMEIPParameter,
     Struct,
     UInt16,
     UInt32,
@@ -31,38 +32,52 @@ def test_simple_method():
     "input_params",
     [
         pytest.param([], id="None"),  # No input type
-        pytest.param([UInt8()], id="UInt8"),
-        pytest.param([UInt8(bit_size=7)], id="UInt8[7bit]"),
-        pytest.param([UInt16(name="UINT16")], id="UInt16"),
-        pytest.param([UInt16(name="UINT16", bit_size=12)], id="UInt16[12bit]"),
-        pytest.param([UInt32(name="UINT_32")], id="UInt32"),
         pytest.param(
-            [UInt32(name="UINT_32", bit_size=31)], id="UInt32[31bit]"
+            [SOMEIPParameter(name="p1", datatype=UInt8())], id="UInt8"
         ),
-        pytest.param([SInt8(name="SINT8")], id="SInt8"),
-        pytest.param([SInt8(name="SINT8", bit_size=7)], id="SInt8"),
-        pytest.param([SInt16(name="SINT_16")], id="SInt16"),
-        pytest.param([SInt16(name="SINT16", bit_size=12)], id="SInt16"),
-        pytest.param([SInt32(name="SINT_32")], id="SInt32"),
-        pytest.param([SInt32(name="SINT_32", bit_size=31)], id="SInt32"),
         pytest.param(
-            [Struct(name="STRUCT", members=[UInt8(name="UINT8")])], id="Struct"
+            [SOMEIPParameter(name="p1", datatype=UInt16())], id="UInt16"
+        ),
+        pytest.param(
+            [SOMEIPParameter(name="p1", datatype=UInt32())], id="UInt32"
+        ),
+        pytest.param([SOMEIPParameter(name="p1", datatype=Int8())], id="Int8"),
+        pytest.param(
+            [SOMEIPParameter(name="p1", datatype=Int16())], id="Int16"
+        ),
+        pytest.param(
+            [SOMEIPParameter(name="p1", datatype=Int32())], id="Int32"
         ),
         pytest.param(
             [
-                ArrayType(
-                    name="ARRAY",
-                    type="array",
-                    dimensions=[
-                        {"kind": "dynamic", "length_of_length_field": 32}
-                    ],
-                    element_type=UInt32(name="UINT32"),
+                SOMEIPParameter(
+                    name="p1",
+                    datatype=Struct(name="STRUCT", members=[UInt8()]),
+                )
+            ],
+            id="Struct",
+        ),
+        pytest.param(
+            [
+                SOMEIPParameter(
+                    name="p1",
+                    datatype=ArrayType(
+                        name="ARRAY",
+                        type="array",
+                        dimensions=[
+                            {"kind": "dynamic", "length_of_length_field": 32}
+                        ],
+                        element_type=UInt32(name="UINT32"),
+                    ),
                 ),
-                ArrayType(
-                    name="ARRAY",
-                    type="array",
-                    dimensions=[{"kind": "fixed", "length": 8}],
-                    element_type=UInt8(name="UINT8"),
+                SOMEIPParameter(
+                    name="p2",
+                    datatype=ArrayType(
+                        name="ARRAY",
+                        type="array",
+                        dimensions=[{"kind": "fixed", "length": 8}],
+                        element_type=UInt8(name="UINT8"),
+                    ),
                 ),
             ],
             id="Array",
@@ -116,72 +131,78 @@ class TestFireForgetMethod:
         pytest.param(
             [], [], id="None", marks=pytest.mark.xfail
         ),  # No return value, forbidden
-        pytest.param([UInt8(name="UINT8")], [UInt8(name="UINT8")], id="UInt8"),
         pytest.param(
-            [UInt8(name="UINT8", bit_size=7)],
-            [UInt8(name="UINT8")],
-            id="UInt8[7bit]",
+            [SOMEIPParameter(name="p1", datatype=UInt8())],
+            [SOMEIPParameter(name="p1", datatype=UInt8())],
+            id="UInt8",
         ),
         pytest.param(
-            [UInt16(name="UINT16")], [UInt16(name="UINT16")], id="UInt16"
+            [SOMEIPParameter(name="p1", datatype=UInt16(endianness="BE"))],
+            [SOMEIPParameter(name="p1", datatype=UInt16(endianness="LE"))],
+            id="UInt16",
         ),
         pytest.param(
-            [UInt16(name="UINT16", bit_size=12)],
-            [UInt16(name="UINT16")],
-            id="UInt16[12bit]",
+            [SOMEIPParameter(name="p1", datatype=UInt32())],
+            [SOMEIPParameter(name="p1", datatype=UInt32())],
+            id="UInt32",
         ),
         pytest.param(
-            [UInt32(name="UINT32")], [UInt32(name="UINT32")], id="UInt32"
+            [SOMEIPParameter(name="p1", datatype=Int8())],
+            [SOMEIPParameter(name="p1", datatype=Int8())],
+            id="Int8",
         ),
         pytest.param(
-            [UInt32(name="UINT32", bit_size=31)],
-            [UInt32(name="UINT32")],
-            id="UInt32[31bit]",
-        ),
-        pytest.param([SInt8(name="SINT8")], [SInt8(name="SINT8")], id="SInt8"),
-        pytest.param(
-            [SInt8(name="SINT8", bit_size=7)],
-            [SInt8(name="SINT8")],
-            id="SInt8",
+            [SOMEIPParameter(name="p1", datatype=Int16())],
+            [SOMEIPParameter(name="p1", datatype=Int16())],
+            id="Int16",
         ),
         pytest.param(
-            [SInt16(name="SINT16")], [SInt16(name="SINT16")], id="SInt16"
+            [SOMEIPParameter(name="p1", datatype=Int32())],
+            [SOMEIPParameter(name="p1", datatype=Int32())],
+            id="Int32",
         ),
         pytest.param(
-            [SInt16(name="SINT16", bit_size=12)],
-            [SInt16(name="SINT16")],
-            id="SInt16",
-        ),
-        pytest.param(
-            [SInt32(name="SINT32")], [SInt32(name="SINT32")], id="SInt32"
-        ),
-        pytest.param(
-            [SInt32(name="SINT32", bit_size=31)],
-            [SInt32(name="SINT32")],
-            id="SInt32",
-        ),
-        pytest.param(
-            [Struct(name="STRUCT", members=[UInt8(name="UINT8")])],
-            [Struct(name="STRUCT", members=[UInt8(name="UINT8")])],
+            [
+                SOMEIPParameter(
+                    name="p1",
+                    datatype=Struct(
+                        name="STRUCT", members=[UInt8(name="UINT8")]
+                    ),
+                )
+            ],
+            [
+                SOMEIPParameter(
+                    name="p1",
+                    datatype=Struct(
+                        name="STRUCT", members=[UInt8(name="UINT8")]
+                    ),
+                )
+            ],
             id="Struct",
         ),
         pytest.param(
             [
-                ArrayType(
-                    name="ARRAY",
-                    type="array",
-                    dimensions=[
-                        {"kind": "dynamic", "length_of_length_field": 32}
-                    ],
-                    element_type=UInt8(name="UINT8"),
+                SOMEIPParameter(
+                    name="p1",
+                    datatype=ArrayType(
+                        name="ARRAY",
+                        # type="array",
+                        dimensions=[
+                            {"kind": "dynamic", "length_of_length_field": 32}
+                        ],
+                        element_type=UInt8(name="UINT8"),
+                    ),
                 )
             ],
             [
-                ArrayType(
-                    name="ARRAY",
-                    type="array",
-                    dimensions=[{"kind": "fixed", "length": 32}],
-                    element_type=UInt8(name="UINT8"),
+                SOMEIPParameter(
+                    name="p1",
+                    datatype=ArrayType(
+                        name="ARRAY",
+                        type="array",
+                        dimensions=[{"kind": "fixed", "length": 32}],
+                        element_type=UInt8(name="UINT8"),
+                    ),
                 )
             ],
             id="Array",

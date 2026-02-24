@@ -1,7 +1,14 @@
 import pytest
 from pydantic import ValidationError
 
-from flync.model.flync_4_ecu.sockets import *
+from flync.model.flync_4_ecu.sockets import (
+    IPv4AddressEndpoint,
+    IPv6AddressEndpoint,
+    Socket,
+    SocketTCP,
+    SocketUDP,
+    TCPOption,
+)
 from flync.model.flync_4_someip.deployment import (
     MulticastEndpoint,
     SOMEIPServiceConsumer,
@@ -101,7 +108,7 @@ def test_negative_udp_socket_parameters(udp_socket):
 
     print(udp_socket)
     with pytest.raises(ValidationError) as e:
-        udp_example = SocketUDP.model_validate(udp_socket)
+        SocketUDP.model_validate(udp_socket)
 
 
 def test_positive_tcp_socket():
@@ -196,7 +203,7 @@ def test_negative_tcp_socket_parameters(tcp_socket):
     tcp_options = TCPOption(tcp_profile_id=1)
     print(tcp_socket)
     with pytest.raises(ValidationError) as e:
-        tcp_example = SocketTCP.model_validate(tcp_socket)
+        SocketTCP.model_validate(tcp_socket)
 
 
 @pytest.mark.parametrize(
@@ -369,7 +376,7 @@ def test_positive_tcp_options(tcp_options):
 def test_negative_tcp_options(tcp_options):
 
     with pytest.raises(ValidationError) as e:
-        tcp_option_example = TCPOption.model_validate(tcp_options)
+        TCPOption.model_validate(tcp_options)
 
 
 def test_tcp_socket_is_instance_of_socket(tcp_socket_entry_ipv4):
@@ -447,6 +454,7 @@ def test_negative_ipv6_address_endpoint_with_tcp_and_udp_sockets(
                     service=1,
                     someip_sd_timings_profile="server_default",
                     instance_id=1,
+                    major_version=1,
                 )
             ],
             id="SOME/IP provider deployment on socket",
