@@ -16,5 +16,7 @@ class WorkspaceConfiguration:
     """
 
     flync_file_extension: str = DEFAULT_EXTENSION
-    allowed_extensions: set[str] = field(default_factory=lambda: {DEFAULT_EXTENSION, ".flync.yml"})
+    allowed_extensions: set[str] = field(
+        default_factory=lambda: {DEFAULT_EXTENSION, ".flync.yml"}
+    )
     exclude_unset: bool = True

@@ -4,6 +4,7 @@ Workspace module for FLYNC SDK.
 Provides classes and functions to manage workspace operations.
 """
 
+import logging
 from pathlib import Path
 from typing import Dict, Optional, Union, get_args, get_origin
 
@@ -27,7 +28,6 @@ from flync.sdk.context.workspace_config import WorkspaceConfiguration
 from flync.sdk.utils.field_utils import get_metadata, get_name
 
 from .document import Document
-import logging
 
 logger = logging.getLogger(__name__)
 
