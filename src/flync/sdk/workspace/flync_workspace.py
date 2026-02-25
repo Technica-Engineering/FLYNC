@@ -26,6 +26,7 @@ from flync.core.utils.exceptions_handling import (
 from flync.model.flync_model import FLYNCModel
 from flync.sdk.context.workspace_config import WorkspaceConfiguration
 from flync.sdk.utils.field_utils import get_metadata, get_name
+from flync.sdk.utils.sdk_types import PathType
 
 from .document import Document
 
@@ -60,7 +61,7 @@ class FLYNCWorkspace:
     def __init__(
         self,
         name: str,
-        workspace_path: Path | str = "",
+        workspace_path: PathType = "",
         configuration: WorkspaceConfiguration | None = None,
     ):
         """Initialize the workspace with the given name.
@@ -91,7 +92,7 @@ class FLYNCWorkspace:
         cls,
         flync_model: FLYNCModel,
         workspace_name: str | None = "generated_workspace",
-        file_path: Path | str = "",
+        file_path: PathType = "",
     ) -> "FLYNCWorkspace":
         """loads a workspace object from a FLYNC Object.
 
@@ -114,7 +115,7 @@ class FLYNCWorkspace:
 
     @classmethod
     def load_workspace(
-        cls, workspace_name: str, workspace_path: Path | str
+        cls, workspace_name: str, workspace_path: PathType
     ) -> "FLYNCWorkspace":
         """loads a workspace object from a location of the Yaml Configuration.
 
@@ -140,7 +141,7 @@ class FLYNCWorkspace:
 
     # endregion
     # region ingestion
-    def _open_document(self, uri: Path | str, text: str):
+    def _open_document(self, uri: PathType, text: str):
         """Open a document, parse it, and add it to the workspace.
 
         Args:
@@ -170,7 +171,7 @@ class FLYNCWorkspace:
         doc.update_text(text)
 
     def __load_flync_model(
-        self, flync_model: FLYNCBaseModel, file_path: Path | str = ""
+        self, flync_model: FLYNCBaseModel, file_path: PathType = ""
     ):
         """Load a FLYNCModel into the workspace.
 
@@ -472,7 +473,7 @@ class FLYNCWorkspace:
 
     def __load_from_path(
         self,
-        path: Path | str,
+        path: PathType,
         current_type: Optional[type[FLYNCBaseModel]] = None,
     ) -> FLYNCBaseModel | None:
         # if no type is passed, then this is the starting point
@@ -580,7 +581,7 @@ class FLYNCWorkspace:
 
         return None
 
-    def generate_configs(self, uri: Path | str | None = None):
+    def generate_configs(self, uri: PathType | None = None):
         """Save the workspace to the given path.
 
         Creates the output directory (if it does not exist) and writes a simple
@@ -618,12 +619,12 @@ class FLYNCWorkspace:
 
     # endregion
     # region helpers
-    def is_path_supported(self, path: Union[Path, str]):
+    def is_path_supported(self, path: PathType):
         if not isinstance(path, Path):
             path = Path(path)
         return path.is_dir() or self.is_flync_file(path)
 
-    def is_flync_file(self, path: Union[Path, str]):
+    def is_flync_file(self, path: PathType):
         if not isinstance(path, Path):
             path = Path(path)
         return "".join(path.suffixes) in self.configuration.allowed_extensions
