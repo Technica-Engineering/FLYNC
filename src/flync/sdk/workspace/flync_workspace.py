@@ -27,6 +27,9 @@ from flync.sdk.context.workspace_config import WorkspaceConfiguration
 from flync.sdk.utils.field_utils import get_metadata, get_name
 
 from .document import Document
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class FLYNCWorkspace:
@@ -306,27 +309,27 @@ class FLYNCWorkspace:
             base_type = get_origin(list_element_type)
             base_type_args = get_args(list_element_type)
             for sub_item_path in item_dir.iterdir():
-                if (
-                    sub_item_path.suffix in [".yaml", ".yml"]
-                    or sub_item_path.is_dir()
-                ):
-                    item_info: dict = {}
-                    if base_type is Union:
-                        self.__handle_generic_types_union(
-                            base_type_args,
-                            external,
-                            sub_item_path.name,
-                            field_name,
-                            item_info,
-                            item_dir,
-                        )
-                        list_item_value.append(item_info[field_name])
-                    else:
-                        list_item_value.append(
-                            self.__load_from_path(
-                                sub_item_path, list_element_type
-                            )
-                        )
+                if not self.is_path_supported(sub_item_path):
+                    logger.warning(
+                        "Unrecognized file found in FLYNC workspace: %s",
+                        str(sub_item_path),
+                    )
+                    continue
+                item_info: dict = {}
+                if base_type is Union:
+                    self.__handle_generic_types_union(
+                        base_type_args,
+                        external,
+                        sub_item_path.name,
+                        field_name,
+                        item_info,
+                        item_dir,
+                    )
+                    list_item_value.append(item_info[field_name])
+                else:
+                    list_item_value.append(
+                        self.__load_from_path(sub_item_path, list_element_type)
+                    )
 
             module_load_info[field_name] = list_item_value
             return True
@@ -347,6 +350,12 @@ class FLYNCWorkspace:
         if external.output_structure == OutputStrategy.FOLDER:
             item_dir = path / external_path
             for sub_item_path in item_dir.iterdir():
+                if not self.is_path_supported(sub_item_path):
+                    logger.warning(
+                        "Unrecognized file found in FLYNC workspace: %s",
+                        str(sub_item_path),
+                    )
+                    continue
                 dict_item_value[sub_item_path.name] = self.__load_from_path(
                     sub_item_path, dict_element_type
                 )
@@ -545,6 +554,11 @@ class FLYNCWorkspace:
         fixed_name: Optional[str] = None,
     ):
         if path.is_file():
+            if not self.is_flync_file(path):
+                logger.error(
+                    "trying to load an unsupported file: %s", str(path)
+                )
+                return
             with open(path, "r", encoding="utf-8") as direct_data:
                 content = yaml.safe_load(direct_data)
                 self._open_document(path, direct_data.read())
@@ -601,5 +615,17 @@ class FLYNCWorkspace:
                         default_flow_style=False,
                         allow_unicode=True,
                     )
+
+    # endregion
+    # region helpers
+    def is_path_supported(self, path: Union[Path, str]):
+        if not isinstance(path, Path):
+            path = Path(path)
+        return path.is_dir() or self.is_flync_file(path)
+
+    def is_flync_file(self, path: Union[Path, str]):
+        if not isinstance(path, Path):
+            path = Path(path)
+        return "".join(path.suffixes) in self.configuration.allowed_extensions
 
     # endregion
