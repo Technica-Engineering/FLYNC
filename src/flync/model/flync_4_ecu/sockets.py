@@ -256,28 +256,28 @@ class SocketTCP(Socket):
     protocol: Literal["tcp"] = Field(default="tcp")
     tcp_profile: int = Field()
 
-    @model_validator(mode="after")
-    def check_multicast_endpoint(self):
-        """
-        Ensure that a socket of type *someip* does not
-        specify a multicast endpoint.
-
-        Raises:
-            err_minor: If a deployment of type ``someip``
-            has ``find_service_multicast``set (TCP sockets
-            cannot use multicast endpoints).
-        """
-        for deployment in self.deployments:
-
-            if (
-                deployment.root.deployment_type == "someip_consumer"
-                or deployment.root.deployment_type == "someip_provider"
-            ) and deployment.root.find_service_multicast is not None:
-                raise err_minor(
-                    f"TCP Socket cannot have a multicast endpoint. "
-                    f"Socket {self.name} "
-                )
-        return self
+    #    @model_validator(mode="after")
+    #    def check_multicast_endpoint(self):
+    #        """
+    #        Ensure that a socket of type *someip* does not
+    #        specify a multicast endpoint.
+    #
+    #        Raises:
+    #            err_minor: If a deployment of type ``someip``
+    #            has ``find_service_multicast``set (TCP sockets
+    #            cannot use multicast endpoints).
+    #        """
+    #        for deployment in self.deployments:
+    #
+    #            if (
+    #                deployment.root.deployment_type == "someip_consumer"
+    #                or deployment.root.deployment_type == "someip_provider"
+    #            ) and deployment.root.find_service_multicast is not None:
+    #                raise err_minor(
+    #                    f"TCP Socket cannot have a multicast endpoint. "
+    #                    f"Socket {self.name} "
+    #                )
+    #        return self
 
     @field_validator("tcp_profile", mode="after")
     @classmethod

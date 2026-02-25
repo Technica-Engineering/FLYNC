@@ -4,6 +4,7 @@ Workspace module for FLYNC SDK.
 Provides classes and functions to manage workspace operations.
 """
 
+import logging
 from pathlib import Path
 from typing import Dict, Optional, Union, get_args, get_origin
 
@@ -25,8 +26,11 @@ from flync.core.utils.exceptions_handling import (
 from flync.model.flync_model import FLYNCModel
 from flync.sdk.context.workspace_config import WorkspaceConfiguration
 from flync.sdk.utils.field_utils import get_metadata, get_name
+from flync.sdk.utils.sdk_types import PathType
 
 from .document import Document
+
+logger = logging.getLogger(__name__)
 
 
 class FLYNCWorkspace:
@@ -57,7 +61,7 @@ class FLYNCWorkspace:
     def __init__(
         self,
         name: str,
-        workspace_path: Path | str = "",
+        workspace_path: PathType = "",
         configuration: WorkspaceConfiguration | None = None,
     ):
         """Initialize the workspace with the given name.
@@ -88,7 +92,7 @@ class FLYNCWorkspace:
         cls,
         flync_model: FLYNCModel,
         workspace_name: str | None = "generated_workspace",
-        file_path: Path | str = "",
+        file_path: PathType = "",
     ) -> "FLYNCWorkspace":
         """loads a workspace object from a FLYNC Object.
 
@@ -111,7 +115,7 @@ class FLYNCWorkspace:
 
     @classmethod
     def load_workspace(
-        cls, workspace_name: str, workspace_path: Path | str
+        cls, workspace_name: str, workspace_path: PathType
     ) -> "FLYNCWorkspace":
         """loads a workspace object from a location of the Yaml Configuration.
 
@@ -137,7 +141,7 @@ class FLYNCWorkspace:
 
     # endregion
     # region ingestion
-    def _open_document(self, uri: Path | str, text: str):
+    def _open_document(self, uri: PathType, text: str):
         """Open a document, parse it, and add it to the workspace.
 
         Args:
@@ -167,7 +171,7 @@ class FLYNCWorkspace:
         doc.update_text(text)
 
     def __load_flync_model(
-        self, flync_model: FLYNCBaseModel, file_path: Path | str = ""
+        self, flync_model: FLYNCBaseModel, file_path: PathType = ""
     ):
         """Load a FLYNCModel into the workspace.
 
@@ -306,6 +310,12 @@ class FLYNCWorkspace:
             base_type = get_origin(list_element_type)
             base_type_args = get_args(list_element_type)
             for sub_item_path in item_dir.iterdir():
+                if not self.is_path_supported(sub_item_path):
+                    logger.warning(
+                        "Unrecognized file found in FLYNC workspace: %s",
+                        str(sub_item_path),
+                    )
+                    continue
                 item_info: dict = {}
                 if base_type is Union:
                     self.__handle_generic_types_union(
@@ -321,6 +331,7 @@ class FLYNCWorkspace:
                     list_item_value.append(
                         self.__load_from_path(sub_item_path, list_element_type)
                     )
+
             module_load_info[field_name] = list_item_value
             return True
 
@@ -340,6 +351,12 @@ class FLYNCWorkspace:
         if external.output_structure == OutputStrategy.FOLDER:
             item_dir = path / external_path
             for sub_item_path in item_dir.iterdir():
+                if not self.is_path_supported(sub_item_path):
+                    logger.warning(
+                        "Unrecognized file found in FLYNC workspace: %s",
+                        str(sub_item_path),
+                    )
+                    continue
                 dict_item_value[sub_item_path.name] = self.__load_from_path(
                     sub_item_path, dict_element_type
                 )
@@ -456,7 +473,7 @@ class FLYNCWorkspace:
 
     def __load_from_path(
         self,
-        path: Path | str,
+        path: PathType,
         current_type: Optional[type[FLYNCBaseModel]] = None,
     ) -> FLYNCBaseModel | None:
         # if no type is passed, then this is the starting point
@@ -532,23 +549,28 @@ class FLYNCWorkspace:
     def __append_to_info_dict(
         self,
         path: Path,
-        modle_load_info: dict,
+        model_load_info: dict,
         output_strategy: Optional[OutputStrategy] = None,
         field_name: Optional[str] = None,
         fixed_name: Optional[str] = None,
     ):
         if path.is_file():
+            if not self.is_flync_file(path):
+                logger.error(
+                    "trying to load an unsupported file: %s", str(path)
+                )
+                return
             with open(path, "r", encoding="utf-8") as direct_data:
                 content = yaml.safe_load(direct_data)
                 self._open_document(path, direct_data.read())
                 if output_strategy:
                     if OutputStrategy.OMMIT_ROOT in output_strategy:
-                        modle_load_info[field_name] = content
+                        model_load_info[field_name] = content
                         return
                     elif OutputStrategy.FIXED_ROOT in output_strategy:
-                        modle_load_info[field_name] = content[fixed_name]
+                        model_load_info[field_name] = content[fixed_name]
                         return
-                modle_load_info.update(content)
+                model_load_info.update(content)
 
     @staticmethod
     def __get_field_filename(model: FLYNCBaseModel):
@@ -559,7 +581,7 @@ class FLYNCWorkspace:
 
         return None
 
-    def generate_configs(self, uri: Path | str | None = None):
+    def generate_configs(self, uri: PathType | None = None):
         """Save the workspace to the given path.
 
         Creates the output directory (if it does not exist) and writes a simple
@@ -594,5 +616,17 @@ class FLYNCWorkspace:
                         default_flow_style=False,
                         allow_unicode=True,
                     )
+
+    # endregion
+    # region helpers
+    def is_path_supported(self, path: PathType):
+        if not isinstance(path, Path):
+            path = Path(path)
+        return path.is_dir() or self.is_flync_file(path)
+
+    def is_flync_file(self, path: PathType):
+        if not isinstance(path, Path):
+            path = Path(path)
+        return "".join(path.suffixes) in self.configuration.allowed_extensions
 
     # endregion

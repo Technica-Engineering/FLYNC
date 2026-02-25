@@ -61,7 +61,7 @@ class SocketContainer(FLYNCBaseModel):
                                     raise err_minor(
                                         f"The endpoint address for the "
                                         f"socket is not a part of the "
-                                        f"virtual_interace "
+                                        f"virtual_interface "
                                         f"{self.vlan_name}"
                                     )
                                 ip_addr.sockets.append(socket)
