@@ -1,7 +1,8 @@
-from pathlib import Path
 from typing import Any
 
 from ruamel.yaml import YAML
+
+from flync.sdk.utils.sdk_types import PathType
 
 yaml = YAML()
 
@@ -18,7 +19,7 @@ class Document:
         None if not parsed.
     """
 
-    def __init__(self, uri: Path | str, text: str):
+    def __init__(self, uri: PathType, text: str):
         """Initialize a Document instance.
 
         Args:
