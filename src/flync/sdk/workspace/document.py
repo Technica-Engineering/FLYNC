@@ -4,7 +4,8 @@ from ruamel.yaml import YAML
 
 from flync.sdk.utils.sdk_types import PathType
 
-yaml = YAML()
+yaml = YAML(typ="rt")
+yaml.preserve_quotes = True
 
 
 class Document:
