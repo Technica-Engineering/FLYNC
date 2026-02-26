@@ -128,8 +128,8 @@ jobs:
             .coverage
             report.xml
             coverage.xml
-            tests/sdk/fuzzed
-            tests/sdk/generated
+            tests/unit_test/sdk/fuzzed
+            tests/unit_test/sdk/generated
 
   example-validation:
     runs-on: ubuntu-latest

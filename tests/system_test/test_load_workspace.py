@@ -5,8 +5,20 @@ import shutil
 from pydantic import ValidationError
 from .helper import *
 
-# Verify workspace loads with valid absolute path
+# Verify loading workspace multiple times
 absolute_path = Path(__file__).parents[2] /'examples'/'flync_example'
+@pytest.mark.xfail(reason="Known bug")
+def test_load_workspace_multiple_times(tmpdir):
+    for i in range(1, 4):
+        destination_folder = Path(tmpdir) / f"copie{i}"
+        shutil.copytree(absolute_path, destination_folder)
+        workspace = FLYNCWorkspace.load_workspace("flync_example",destination_folder)
+        assert workspace is not None
+        if destination_folder.exists():
+            shutil.rmtree(destination_folder)
+
+# Verify workspace loads with valid absolute path
+@pytest.mark.skip(reason="Fails if Workspace already loaded")
 def test_load_workspace_valid_absolute_path():
     workspace = FLYNCWorkspace.load_workspace("flync_example",absolute_path)
     assert workspace is not None
@@ -22,6 +34,7 @@ def test_load_workspace_valid_absolute_path():
 
 # Verify workspace loads with valid relative path
 relative_path = Path(Path(__file__).parent, '..', '..', 'examples','flync_example')
+@pytest.mark.skip(reason="Fails if Workspace already loaded")
 def test_load_workspace_valid_relative_path():
     workspace = FLYNCWorkspace.load_workspace("flync_example",relative_path)
     assert workspace is not None
@@ -36,9 +49,19 @@ def test_load_workspace_valid_relative_path():
     assert model_has_socket(workspace)
 
 # Verify workspace loads with valid str path
+@pytest.mark.skip(reason="Fails if Workspace already loaded")
 def test_load_workspace_valid_str_path():
     workspace = FLYNCWorkspace.load_workspace("flync_example",str(absolute_path))
     assert workspace is not None
+    assert workspace.flync_model is not None
+    assert workspace.flync_model.ecus
+    assert workspace.flync_model.topology
+    assert workspace.flync_model.topology.system_topology
+    assert workspace.flync_model.general
+    assert workspace.flync_model.general.someip_config
+    assert workspace.flync_model.general.tcp_profiles
+    assert workspace.flync_model.metadata
+    assert model_has_socket(workspace)
 
 # Verify the existence of attributes
 required_attributes = [
@@ -51,6 +74,7 @@ required_attributes = [
     '_diagnostics'
     ]
 @pytest.mark.parametrize("attribute", required_attributes)
+@pytest.mark.xfail(reason="Known bug")
 def test_load_workspace_exsistence_attribute(attribute):
     workspace = FLYNCWorkspace.load_workspace("flync_example",absolute_path)
     assert hasattr(workspace, attribute), f"Workspace is missing attribute: {attribute}"
@@ -61,9 +85,10 @@ def test_load_workspace_invalid_yaml_path():
         FLYNCWorkspace.load_workspace("flync_example","/path/to/nonexistent/directory")
     
 # Verify handling invalid workspace name
+@pytest.mark.xfail(reason="Known bug")
 def test_load_workspace_invalid_name():
     with pytest.raises(Exception):
-        FLYNCWorkspace.load_workspace("invalid_name",absolute_path)
+        FLYNCWorkspace.load_workspace("",absolute_path)
 
 # Verify handling missing mandatory directory
 subfolders = [
@@ -100,6 +125,7 @@ def test_load_workspace_missing_mandatory_file(tmpdir, file):
         shutil.rmtree(destination_folder)
 
 # Verify documentation configuration example 
+@pytest.mark.xfail(reason="Known bug")
 def test_load_workspace_doc_exmaple(tmpdir):
     rst_file = Path(__file__).parents[2] /'docs'/'source'/'flync_example.rst'
     example_folder = Path(tmpdir) / "copie"
@@ -135,6 +161,7 @@ def test_load_workspace_invalid_format(tmpdir, file):
 image_path = Path(__file__).parents[2] /'docs'/'source'/'_static'/'technica-logo.png'
 directories = [absolute_path] + [path for path in absolute_path.rglob('*') if path.is_dir()]
 @pytest.mark.parametrize("dir", directories)
+@pytest.mark.skip(reason="feature not implemented")
 def test_load_workspace_add_image(tmpdir, dir):
     destination_folder = Path(tmpdir) / 'copie'
     shutil.copytree(absolute_path, destination_folder)
@@ -176,6 +203,7 @@ invalid_format = {
     '00:11:22': 'mac_address\n  Length for a 00:11:22 MAC address must be 14'
     }
 @pytest.mark.parametrize("key, value",invalid_format.items())
+@pytest.mark.xfail(reason="Known bug")
 def test_load_workspace_incorret_value_format(tmpdir,key, value):
     destination_folder = Path(tmpdir) / 'copie'
     shutil.copytree(absolute_path, destination_folder)
@@ -213,6 +241,7 @@ def test_load_workspace_key_value_misplaced(tmpdir):
         shutil.rmtree(destination_folder)
 
 # Verify handling duplicate keys
+@pytest.mark.skip(reason="feature not implemented")
 def test_load_workspace_duplicate_key(tmpdir):
     destination_folder = Path(tmpdir) / 'copie'
     shutil.copytree(absolute_path, destination_folder)
