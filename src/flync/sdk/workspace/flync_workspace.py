@@ -545,10 +545,11 @@ class FLYNCWorkspace:
                 if OutputStrategy.SINGLE_FILE in external.output_structure:
                     external_path += self.configuration.flync_file_extension
                     if (
-                        not OutputStrategy.OMMIT_ROOT
-                        in external.output_structure
+                        OutputStrategy.OMMIT_ROOT
+                        not in external.output_structure
                     ):
-                        # the output file is a dictionary that contains our field, so we need to load it accordingly
+                        # the output file is a dictionary that contains our field
+                        # we need to load it accordingly
                         attribute_type = dict[str, attribute_type]
                         base_type: type | None = get_origin(attribute_type)
                         base_type_args = get_args(attribute_type)
@@ -574,7 +575,8 @@ class FLYNCWorkspace:
 
         # collected_errors can be reused/reraised further
         try:
-            # might need to recalculate the model type based on expected file structure
+            # might need to recalculate the model type
+            # based on expected file structure
             original_type = current_type
             if current_type_name:  # part of a parent
                 current_type = self.model_graph.rebuild_type_from_parent(
