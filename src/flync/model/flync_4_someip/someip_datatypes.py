@@ -6,8 +6,8 @@ from typing import (
     List,
     Literal,
     Optional,
-    Union,
 )
+from typing import Union as TypingUnion
 
 from pydantic import (
     BaseModel,
@@ -585,7 +585,7 @@ class Enum(Datatype):
 
     name: str = Field(default="Enum")
     type: Literal["enum"] = Field("enum")
-    base_type: Union["Ints"] = Field(
+    base_type: TypingUnion["Ints"] = Field(
         default_factory=lambda: Enum.default_base_type()
     )
     entries: List[EnumEntry] = Field(default_factory=list)
@@ -625,7 +625,7 @@ class Enum(Datatype):
 
     @staticmethod
     def default_base_type() -> UInt8:
-        return UInt8(type="uint8", endianness="LE", signed=False, bit_size=8)
+        return UInt8(type="uint8", endianness="BE", signed=False, bit_size=8)
 
 
 class BaseString(Datatype):
