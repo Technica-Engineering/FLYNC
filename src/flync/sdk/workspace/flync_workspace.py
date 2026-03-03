@@ -28,10 +28,10 @@ from flync.sdk.context.workspace_config import WorkspaceConfiguration
 from flync.sdk.utils.field_utils import (
     get_metadata,
     get_name,
-    build_model_dependencies,
 )
-from flync.sdk.utils.sdk_types import PathType
 from flync.sdk.utils.model_dependencies import ModelDependencyGraph
+from flync.sdk.utils.sdk_types import PathType
+
 from .document import Document
 
 logger = logging.getLogger(__name__)
