@@ -238,7 +238,7 @@ class ModelDependencyGraph:
         )
         # in case of ommit root, we need to include a dictionary
         external = get_metadata(attribute.metadata, External)
-        if OutputStrategy.SINGLE_FILE not in external.output_structure:
+        if OutputStrategy.SINGLE_FILE in external.output_structure:
             real_type = attribute.annotation
             if OutputStrategy.OMMIT_ROOT not in external.output_structure:
                 real_type = dict[str, real_type]
