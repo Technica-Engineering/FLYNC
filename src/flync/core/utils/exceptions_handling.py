@@ -1,6 +1,7 @@
 from typing import Any, List, Optional, Set, Tuple, Type
 
 from pydantic import ValidationError
+from pydantic import TypeAdapter
 from pydantic_core import ErrorDetails, InitErrorDetails, PydanticCustomError
 
 from flync.core.base_models.base_model import FLYNCBaseModel
@@ -156,7 +157,8 @@ def validate_with_policy(
     working = data
     collected_errors: List[ErrorDetails] = []
     try:
-        return model.model_validate(working), get_unique_errors(
+        pydantic_adapter = TypeAdapter(model)
+        return pydantic_adapter.validate_python(working), get_unique_errors(
             collected_errors
         )
     except ValidationError as ve2:

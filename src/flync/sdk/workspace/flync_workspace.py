@@ -25,9 +25,13 @@ from flync.core.utils.exceptions_handling import (
 )
 from flync.model.flync_model import FLYNCModel
 from flync.sdk.context.workspace_config import WorkspaceConfiguration
-from flync.sdk.utils.field_utils import get_metadata, get_name
+from flync.sdk.utils.field_utils import (
+    get_metadata,
+    get_name,
+    build_model_dependencies,
+)
 from flync.sdk.utils.sdk_types import PathType
-
+from flync.sdk.utils.model_dependencies import ModelDependencyGraph
 from .document import Document
 
 logger = logging.getLogger(__name__)
@@ -71,6 +75,7 @@ class FLYNCWorkspace:
         """
         self.name = name
         self.configuration = configuration or WorkspaceConfiguration()
+        self.model_graph = ModelDependencyGraph(FLYNCModel)
         # documents
         self.documents: Dict[str, Document] = {}
         # root information (if any)
@@ -305,7 +310,7 @@ class FLYNCWorkspace:
     ) -> bool:
         list_item_value = []
         list_element_type = base_type_args[0]
-        if external.output_structure == OutputStrategy.FOLDER:
+        if OutputStrategy.FOLDER in external.output_structure:
             item_dir = path / external_path
             base_type = get_origin(list_element_type)
             base_type_args = get_args(list_element_type)
@@ -329,18 +334,34 @@ class FLYNCWorkspace:
                     list_item_value.append(item_info[field_name])
                 else:
                     list_item_value.append(
-                        self.__load_from_path(sub_item_path, list_element_type)
+                        self.__load_from_path(
+                            sub_item_path, list_element_type, field_name
+                        )
                     )
 
             module_load_info[field_name] = list_item_value
             return True
-
+        if OutputStrategy.SINGLE_FILE in external.output_structure:
+            new_base_type = base_type_args[0]
+            single_info = {}
+            self.__handle_generic_types(
+                attribute_type=new_base_type,
+                base_type=get_origin(new_base_type),
+                base_type_args=get_args(new_base_type),
+                external=external,
+                path=path,
+                external_path=external_path,
+                module_load_info=single_info,
+                field_name=field_name,
+            )
+            module_load_info.update(single_info)
+            return True
         return False
 
     def __handle_generic_types_dict(
         self,
         base_type_args: tuple,
-        external,
+        external: External,
         external_path: str,
         field_name: str,
         module_load_info: dict,
@@ -348,7 +369,7 @@ class FLYNCWorkspace:
     ) -> bool:
         dict_item_value = {}
         dict_element_type = base_type_args[1]
-        if external.output_structure == OutputStrategy.FOLDER:
+        if OutputStrategy.FOLDER in external.output_structure:
             item_dir = path / external_path
             for sub_item_path in item_dir.iterdir():
                 if not self.is_path_supported(sub_item_path):
@@ -358,9 +379,24 @@ class FLYNCWorkspace:
                     )
                     continue
                 dict_item_value[sub_item_path.name] = self.__load_from_path(
-                    sub_item_path, dict_element_type
+                    sub_item_path, dict_element_type, field_name
                 )
             module_load_info[field_name] = dict_item_value
+            return True
+        if OutputStrategy.SINGLE_FILE in external.output_structure:
+            new_base_type = base_type_args[1]
+            dict_info = {}
+            self.__handle_generic_types(
+                attribute_type=new_base_type,
+                base_type=get_origin(new_base_type),
+                base_type_args=get_args(new_base_type),
+                external=external,
+                path=path,
+                external_path=external_path,
+                module_load_info=dict_info,
+                field_name=field_name,
+            )
+            module_load_info.update(dict_info)
             return True
         return False
 
@@ -384,7 +420,7 @@ class FLYNCWorkspace:
                     possible_base_type or possible_type, FLYNCBaseModel
                 ):
                     module_load_info[field_name] = self.__load_from_path(
-                        path / external_path, possible_type
+                        path / external_path, possible_type, field_name
                     )
                 else:
                     self.__handle_generic_types(
@@ -468,13 +504,14 @@ class FLYNCWorkspace:
                 "externally annotated field {} cannot be loaded", field_name
             )
         module_load_info[field_name] = self.__load_from_path(
-            path / external_path, attribute_type
+            path / external_path, attribute_type, field_name
         )
 
     def __load_from_path(
         self,
         path: PathType,
         current_type: Optional[type[FLYNCBaseModel]] = None,
+        current_type_name: str = None,
     ) -> FLYNCBaseModel | None:
         # if no type is passed, then this is the starting point
         if current_type is None:
@@ -507,14 +544,14 @@ class FLYNCWorkspace:
                 )
                 if OutputStrategy.SINGLE_FILE in external.output_structure:
                     external_path += self.configuration.flync_file_extension
-                    self.__append_to_info_dict(
-                        path / external_path,
-                        module_load_info,
-                        external.output_structure,
-                        field_name,
-                        external.root,
-                    )
-                    continue
+                    if (
+                        not OutputStrategy.OMMIT_ROOT
+                        in external.output_structure
+                    ):
+                        # the output file is a dictionary that contains our field, so we need to load it accordingly
+                        attribute_type = dict[str, attribute_type]
+                        base_type: type | None = get_origin(attribute_type)
+                        base_type_args = get_args(attribute_type)
                 self.__handle_generic_types(
                     attribute_type,
                     base_type,
@@ -537,10 +574,20 @@ class FLYNCWorkspace:
 
         # collected_errors can be reused/reraised further
         try:
+            # might need to recalculate the model type based on expected file structure
+            original_type = current_type
+            if current_type_name:  # part of a parent
+                current_type = self.model_graph.rebuild_type_from_parent(
+                    current_type, current_type_name
+                )
             model, errors = validate_with_policy(
                 current_type, module_load_info
             )
             self.load_errors.extend(errors)
+            if current_type_name:
+                model = self.model_graph.normalize_child_to_parent(
+                    original_type, current_type_name, model
+                )
             return model
         except ValidationError as e:
             self.load_errors.extend(e.errors())
