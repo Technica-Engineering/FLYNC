@@ -2,6 +2,7 @@ import types
 from collections import defaultdict
 from functools import lru_cache
 from typing import Annotated, Union, get_args, get_origin
+from types import NoneType
 
 from pydantic import BaseModel
 
@@ -239,7 +240,8 @@ class ModelDependencyGraph:
         # in case of ommit root, we need to include a dictionary
         external = get_metadata(attribute.metadata, External)
         if OutputStrategy.SINGLE_FILE in external.output_structure:
-            real_type = attribute.annotation
+            if NoneType not in get_args(attribute.annotation):
+                real_type = attribute.annotation
             if OutputStrategy.OMMIT_ROOT not in external.output_structure:
                 real_type = dict[str, real_type]
         return real_type
@@ -250,6 +252,8 @@ class ModelDependencyGraph:
         parent_attribute_name: str,
         model_data,
     ):
+        if not model_data:
+            return None
         attribute = self.field_info_from_child(
             field_type, parent_attribute_name
         )

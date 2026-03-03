@@ -572,7 +572,8 @@ class FLYNCWorkspace:
 
         # then group all the fields into the same object and return it
         self.__append_to_info_dict(path, module_load_info)
-
+        if not module_load_info:
+            return None
         # collected_errors can be reused/reraised further
         try:
             # might need to recalculate the model type

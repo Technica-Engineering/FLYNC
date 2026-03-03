@@ -527,4 +527,4 @@ class InternalTopology(FLYNCBaseModel):
         Defaults to an empty list.
     """
 
-    connections: List[InternalConnectionUnion] = Field([])
+    connections: List[InternalConnectionUnion] = Field(default_factory=list)
