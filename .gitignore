@@ -133,3 +133,6 @@ public/
 tests/sdk/generated
 tests/sdk/fuzzed
 flake8-report/
+
+fuzzed/
+generated/
