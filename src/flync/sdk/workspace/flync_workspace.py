@@ -548,7 +548,7 @@ class FLYNCWorkspace:
                         OutputStrategy.OMMIT_ROOT
                         not in external.output_structure
                     ):
-                        # the output file is a dictionary that contains our field
+                        # the output file is a dictionary
                         # we need to load it accordingly
                         attribute_type = dict[str, attribute_type]
                         base_type: type | None = get_origin(attribute_type)
