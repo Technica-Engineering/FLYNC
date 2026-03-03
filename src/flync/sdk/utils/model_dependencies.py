@@ -1,8 +1,8 @@
 import types
 from collections import defaultdict
 from functools import lru_cache
-from typing import Annotated, Union, get_args, get_origin
 from types import NoneType
+from typing import Annotated, Union, get_args, get_origin
 
 from pydantic import BaseModel
 
