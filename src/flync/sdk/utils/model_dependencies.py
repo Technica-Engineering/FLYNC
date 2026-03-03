@@ -11,7 +11,7 @@ from flync.core.annotations import External, OutputStrategy
 from .field_utils import get_metadata
 
 
-def extract_container_model(annotation):
+def extract_container_model(annotation):  # noqa
     """
     Recursively extract BaseModel types from nested containers
     like list[Model], dict[str, Model], list[dict[str, Model]], etc.
