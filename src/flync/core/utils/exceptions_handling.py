@@ -1,7 +1,6 @@
 from typing import Any, List, Optional, Set, Tuple, Type
 
-from pydantic import ValidationError
-from pydantic import TypeAdapter
+from pydantic import TypeAdapter, ValidationError
 from pydantic_core import ErrorDetails, InitErrorDetails, PydanticCustomError
 
 from flync.core.base_models.base_model import FLYNCBaseModel
