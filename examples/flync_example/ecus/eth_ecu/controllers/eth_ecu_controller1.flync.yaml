@@ -73,20 +73,22 @@ interfaces:
       default_class: 12
       child_classes: 
         - classid: 11
+          priority: 1
           rate: 5
           ceil: 10
           filter:
-            - prio: 1
+            - filter_priority: 1
               vlanid: 40
               dst_ipv4:
                 address: 10.0.40.0
                 ipv4netmask: 255.255.255.0
               protocol: tcp
         - classid: 12
+          priority: 2
           rate: 5
           ceil: 10
           filter:
-            - prio: 2
+            - filter_priority: 2
               vlanid: 40
               dst_ipv4:
                 address: 10.0.40.0

@@ -559,11 +559,11 @@ class HTBFilter(FrameFilter):
 
     Parameters
     ----------
-    prio : int
+    filter_priority : int
         Priority of the filter.
     """
 
-    prio: int = Field()
+    filter_priority: int = Field()
 
 
 class ChildClass(FLYNCBaseModel):
@@ -582,6 +582,9 @@ class ChildClass(FLYNCBaseModel):
         Maximum bandwidth this class can consume if leftover \
         capacity is available (in Mbps).
 
+    priority : int
+        Priority of the child class.
+
     filter : list of :class:`HTBFilter`, optional
         List of filters applied to identify traffic belonging to this
         class.
@@ -593,6 +596,7 @@ class ChildClass(FLYNCBaseModel):
     classid: int = Field()
     rate: int = Field()
     ceil: int = Field()
+    priority: int = Field()
     filter: Annotated[
         Optional[List[HTBFilter]],
         BeforeValidator(common_validators.none_to_empty_list),
@@ -665,6 +669,9 @@ class HTBInstance(FLYNCBaseModel):
                     f"Default class {default} should exist in"
                     f" the HTB config."
                 )
+
+        # Prio of child classes are unique
+        self.check_all_class_priority_unique(self.child_classes, [])
 
         # Ceil must be greater than rate for every child class.
 
@@ -766,6 +773,45 @@ class HTBInstance(FLYNCBaseModel):
             if child.child_classes:
                 for child_class in child.child_classes:
                     self.check_ceil_greater_than_rate(child_class)
+
+    def check_all_class_priority_unique(self, child_classes, class_priority):
+        """
+        Walk the HTB tree and verify that every ``prio``
+        appears only once.
+
+        Parameters
+        ----------
+        self : :class:`HTBInstance` The model instance being validated.
+        child_classes : list[:class:`HTBClass`]
+            The current collection of HTB classes to inspect.
+        class_priority : list[int]
+            Accumulator of class priorities that have already been seen during
+            the walk.
+
+        Returns
+        -------
+        None
+            The function returns silently when all class priorities are unique.
+
+        Raises
+        ------
+        err_minor
+            If a duplicate ``prio`` is encountered. The error message
+            identifies the offending prio.
+        """
+        for child in child_classes:
+            if child.priority in class_priority:
+                raise err_minor(
+                    f"Validation Error in HTB Config. Removing config"
+                    f"from the interface. "
+                    f"All priorities must be unique, prio {child.priority}."
+                )
+            else:
+                class_priority.append(child.priority)
+                if child.child_classes:
+                    self.check_all_class_priority_unique(
+                        child.child_classes, class_priority
+                    )
 
     def check_all_classes_unique(self, child_classes, names):
         """
