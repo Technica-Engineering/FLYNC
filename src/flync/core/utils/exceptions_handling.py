@@ -5,7 +5,7 @@ from pydantic_core import ErrorDetails, InitErrorDetails, PydanticCustomError
 
 from flync.core.base_models.base_model import FLYNCBaseModel
 
-FATAL_ERROR_TYPES = {"extra_forbid", "fatal", "missing"}
+FATAL_ERROR_TYPES = {"extra_forbidden", "fatal", "missing"}
 
 from pydantic import BaseModel
 
@@ -137,15 +137,18 @@ def errors_to_init_errors(
             ctx["yaml_path"] = str(yaml_path)
         if model is not None and yaml_data and "yaml_location" not in ctx:
             line, col = safe_yaml_position(yaml_data, e["loc"], model=model)
-            ctx["yaml_location"] = f"line: {line}, col: {col}"
-        enriched.append(
-            InitErrorDetails(
-                type=PydanticCustomError(e.get("type", ""), e.get("msg", "")),
-                loc=e.get("loc", tuple()),
-                input=e.get("input"),
-                ctx=ctx,
-            )
+            if line:
+                ctx["line"] = line
+            if col:
+                ctx["col"] = col
+        error_detail = InitErrorDetails(
+            type=PydanticCustomError(e.get("type", ""), e.get("msg", ""), ctx),
+            loc=e.get("loc", tuple()),
+            input=e.get("input"),
+            ctx=ctx,
         )
+        error_detail["metadata"] = ctx
+        enriched.append(error_detail)
     return enriched
 
 
@@ -276,11 +279,10 @@ def validate_with_policy(
         )
     except ValidationError as ve2:
         errs2 = ve2.errors()
-        collected_errors.extend(errs2)
         # enrich errors
         try:
             errs2 = errors_to_init_errors(
-                get_unique_errors(collected_errors),
+                get_unique_errors(errs2),
                 model=model,
                 yaml_data=working,
                 yaml_path=path,
@@ -289,17 +291,19 @@ def validate_with_policy(
                 title=ve2.title,
                 line_errors=errs2,
             )
-        except ValidationError as ve2:
-            errs2 = ve2.errors()
+        except ValidationError as ve3:
+            errs2 = ve3.errors()
             if any(e.get("type") in FATAL_ERROR_TYPES for e in errs2):
                 # CASE: Fatal
                 # Re-raise original ValidationError
-                raise ve2
+                raise ve3
+        collected_errors.extend(errs2)
         # return caught errors for logging
         return None, get_unique_errors(collected_errors)
     except Exception as e:
         # caught a random excpetion
         # should be added to the list of caught errors and reraised as fatal.
+        fatal_ctx = {"ex": e.with_traceback(None)}
         raise ValidationError.from_exception_data(
             title="Unhandled exception",
             line_errors=errors_to_init_errors(
@@ -313,10 +317,10 @@ def validate_with_policy(
                     type=PydanticCustomError(
                         "fatal",
                         "unhandled exception caught: {ex}",
-                        {"ex": e.with_traceback(None)},
+                        fatal_ctx,
                     ),
-                    ctx=e.__dict__,
-                    input="",
+                    ctx=fatal_ctx,
+                    input=model,
                 )
             ],
         )

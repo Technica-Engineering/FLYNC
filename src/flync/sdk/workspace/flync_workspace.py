@@ -25,10 +25,7 @@ from flync.core.utils.exceptions_handling import (
 )
 from flync.model.flync_model import FLYNCModel
 from flync.sdk.context.workspace_config import WorkspaceConfiguration
-from flync.sdk.utils.field_utils import (
-    get_metadata,
-    get_name,
-)
+from flync.sdk.utils.field_utils import get_metadata, get_name
 from flync.sdk.utils.model_dependencies import ModelDependencyGraph
 from flync.sdk.utils.sdk_types import PathType
 
@@ -597,8 +594,9 @@ class FLYNCWorkspace:
                 current_type = self.model_graph.rebuild_type_from_parent(
                     current_type, current_type_name
                 )
+            relative_path = path.relative_to(self.workspace_root)
             model, errors = validate_with_policy(
-                current_type, module_load_info, path
+                current_type, module_load_info, relative_path
             )
             # errors should be path specific
             self.documents_diags[str(path)].extend(errors)

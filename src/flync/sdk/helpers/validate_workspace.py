@@ -64,10 +64,10 @@ def render_validation_errors() -> None:
             show_lines=True,
         )
         table.add_column("Num.", justify="right")
-        table.add_column("Error Type", style="red")
-        table.add_column("Message", style="yellow")
-        table.add_column("Location", style="cyan")
-        table.add_column("Context", style="green")
+        table.add_column("Error Type", style="red", overflow="fold")
+        table.add_column("Message", style="yellow", overflow="fold")
+        table.add_column("Location", style="cyan", overflow="fold")
+        table.add_column("Context", style="green", overflow="fold")
 
         for idx, error_row in enumerate(errs, 1):
             table.add_row(str(idx), *error_row)
