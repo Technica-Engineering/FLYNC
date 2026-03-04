@@ -594,7 +594,7 @@ class FLYNCWorkspace:
                 current_type = self.model_graph.rebuild_type_from_parent(
                     current_type, current_type_name
                 )
-            relative_path = path.relative_to(self.workspace_root)
+            relative_path = path.relative_to(self.workspace_root.absolute())
             model, errors = validate_with_policy(
                 current_type, module_load_info, relative_path
             )
