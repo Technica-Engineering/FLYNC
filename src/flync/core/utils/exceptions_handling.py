@@ -1,13 +1,11 @@
 from typing import Any, List, Optional, Set, Tuple, Type
 
-from pydantic import TypeAdapter, ValidationError
+from pydantic import BaseModel, TypeAdapter, ValidationError
 from pydantic_core import ErrorDetails, InitErrorDetails, PydanticCustomError
 
 from flync.core.base_models.base_model import FLYNCBaseModel
 
 FATAL_ERROR_TYPES = {"extra_forbidden", "fatal", "missing"}
-
-from pydantic import BaseModel
 
 
 def resolve_alias(model: type[BaseModel], field_name: str) -> str:
