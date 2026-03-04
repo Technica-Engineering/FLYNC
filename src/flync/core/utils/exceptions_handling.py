@@ -18,9 +18,9 @@ def resolve_alias(model: type[BaseModel], field_name: str) -> str:
     return field.alias or field_name if field else field_name
 
 
-def safe_yaml_position(
+def safe_yaml_position(  # noqa
     node: Any, loc: tuple, model: type[BaseModel] | None = None
-) -> Tuple[int | None, int | None]:  # noqa
+) -> Tuple[int | None, int | None]:
     """
     Given a ruamel.yaml node and a Pydantic `loc` tuple, return
     (line, column). Falls back gracefully if key/item is missing.
