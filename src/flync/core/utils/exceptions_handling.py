@@ -5,7 +5,7 @@ from pydantic_core import ErrorDetails, InitErrorDetails, PydanticCustomError
 
 from flync.core.base_models.base_model import FLYNCBaseModel
 
-FATAL_ERROR_TYPES = {"extra_forbidden", "fatal", "missing"}
+FATAL_ERROR_TYPES = {"extra_forbid", "extra_forbidden", "fatal", "missing"}
 
 
 def resolve_alias(model: type[BaseModel], field_name: str) -> str:
@@ -19,7 +19,7 @@ def resolve_alias(model: type[BaseModel], field_name: str) -> str:
 
 
 def safe_yaml_position(
-    node: Any, loc: tuple, model: type[BaseModel] | None = None
+    node: Any, loc: tuple, model: type[BaseModel] | None = None  # noqa
 ) -> Tuple[int | None, int | None]:
     """
     Given a ruamel.yaml node and a Pydantic `loc` tuple, return
@@ -130,7 +130,7 @@ def errors_to_init_errors(
     """  # noqa
     enriched = []
     for e in errors:
-        ctx = e.get("ctx", dict())
+        ctx = e.get("ctx", {})
         if yaml_path and "yaml_path" not in ctx:
             ctx["yaml_path"] = str(yaml_path)
         if model is not None and yaml_data and "yaml_location" not in ctx:
