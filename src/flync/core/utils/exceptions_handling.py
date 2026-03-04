@@ -7,9 +7,115 @@ from flync.core.base_models.base_model import FLYNCBaseModel
 
 FATAL_ERROR_TYPES = {"extra_forbid", "fatal", "missing"}
 
+from pydantic import BaseModel
+
+
+def resolve_alias(model: type[BaseModel], field_name: str) -> str:
+    """
+    Return the YAML key used for a Pydantic field, considering alias.
+    """
+    if not model or not hasattr(model, "model_fields"):
+        return field_name
+    field = model.model_fields.get(field_name)
+    return field.alias or field_name if field else field_name
+
+
+def safe_yaml_position(
+    node: Any, loc: tuple, model: type[BaseModel] | None = None
+) -> Tuple[int | None, int | None]:
+    """
+    Given a ruamel.yaml node and a Pydantic `loc` tuple, return
+    (line, column). Falls back gracefully if key/item is missing.
+    """
+    current = node
+    current_model = model
+    parent = None
+    last_key = None
+
+    for part in loc:
+        parent = current
+        last_key = part
+
+        # Handle list indices
+        if isinstance(part, int):
+            try:
+                current = current[part]
+            except (IndexError, TypeError):
+                return _fallback_position(parent)
+            current_model = None
+        else:
+            # Map field name to YAML key if alias exists
+            yaml_key = (
+                resolve_alias(current_model, part) if current_model else part
+            )
+
+            try:
+                current = current[yaml_key]
+            except (KeyError, TypeError):
+                return _fallback_position(parent)
+
+            # Descend model if available
+            if current_model:
+                field = current_model.model_fields.get(part)
+                if field:
+                    annotation = field.annotation
+                    # For List[Model], extract inner type
+                    origin = getattr(annotation, "__origin__", None)
+                    if origin in (list, tuple):
+                        current_model = getattr(
+                            annotation, "__args__", [None]
+                        )[0]
+                    else:
+                        current_model = annotation
+                else:
+                    current_model = None
+
+    # Get line/column for final key or index
+    return _extract_position(parent, last_key)
+
+
+def _extract_position(parent: Any, key: Any) -> Tuple[int | None, int | None]:
+    """
+    Safely extract line/col from ruamel.yaml node.
+    Returns (line, column) or (None, None)
+    """
+    try:
+        line = parent.lc.line
+        col = parent.lc.col
+        if isinstance(key, int):
+            line, col = getattr(parent.lc, "item", lambda k: None)(key)
+        else:
+            line, col = getattr(parent.lc, "value", lambda k: None)(key)
+    except AttributeError:
+        return None, None
+
+    return (
+        line + 1 if line is not None else None,
+        col + 1 if col is not None else None,
+    )
+
+
+def _fallback_position(node: Any) -> Tuple[int | None, int | None]:
+    """
+    Return the best-effort parent position if key/item is missing.
+    """
+    try:
+        line = getattr(node.lc, "line", None)
+        col = getattr(node.lc, "col", None)
+    except AttributeError:
+        return None, None
+
+    return (
+        line + 1 if line is not None else None,
+        col + 1 if col is not None else None,
+    )
+
 
 def errors_to_init_errors(
     errors: List[ErrorDetails],
+    model: Optional[BaseModel] = None,
+    yaml_data: Optional[object] = None,
+    yaml_path: Optional[str] = None,
 ) -> List[InitErrorDetails]:
     """
     Function to convert Pydantic validation errors into init Errors to be reraised.
@@ -24,15 +130,23 @@ def errors_to_init_errors(
     List[InitErrorDetails]
         The converted errors to be reraised.
     """  # noqa
-    return [
-        InitErrorDetails(
-            type=PydanticCustomError(e.get("type", ""), e.get("msg", "")),
-            loc=e.get("loc", tuple()),
-            input=e.get("input"),
-            ctx=e.get("ctx", dict()),
+    enriched = []
+    for e in errors:
+        ctx = e.get("ctx", dict())
+        if yaml_path and "yaml_path" not in ctx:
+            ctx["yaml_path"] = str(yaml_path)
+        if model is not None and yaml_data and "yaml_location" not in ctx:
+            line, col = safe_yaml_position(yaml_data, e["loc"], model=model)
+            ctx["yaml_location"] = f"line: {line}, col: {col}"
+        enriched.append(
+            InitErrorDetails(
+                type=PydanticCustomError(e.get("type", ""), e.get("msg", "")),
+                loc=e.get("loc", tuple()),
+                input=e.get("input"),
+                ctx=ctx,
+            )
         )
-        for e in errors
-    ]
+    return enriched
 
 
 def delete_at_loc(data: Any, loc: Tuple):
@@ -128,7 +242,7 @@ def get_unique_errors(
 
 
 def validate_with_policy(
-    model: Type[FLYNCBaseModel], data: Any
+    model: Type[FLYNCBaseModel], data: Any, path
 ) -> Tuple[Optional[FLYNCBaseModel], List[ErrorDetails]]:
     """
     Helper function to perform model validation from the given data,
@@ -163,16 +277,24 @@ def validate_with_policy(
     except ValidationError as ve2:
         errs2 = ve2.errors()
         collected_errors.extend(errs2)
-
-        if any(e.get("type") in FATAL_ERROR_TYPES for e in errs2):
-            # CASE: Fatal
-            # Re-raise original ValidationError
+        # enrich errors
+        try:
+            errs2 = errors_to_init_errors(
+                get_unique_errors(collected_errors),
+                model=model,
+                yaml_data=working,
+                yaml_path=path,
+            )
             raise ValidationError.from_exception_data(
                 title=ve2.title,
-                line_errors=errors_to_init_errors(
-                    get_unique_errors(collected_errors)
-                ),
+                line_errors=errs2,
             )
+        except ValidationError as ve2:
+            errs2 = ve2.errors()
+            if any(e.get("type") in FATAL_ERROR_TYPES for e in errs2):
+                # CASE: Fatal
+                # Re-raise original ValidationError
+                raise ve2
         # return caught errors for logging
         return None, get_unique_errors(collected_errors)
     except Exception as e:
@@ -181,7 +303,10 @@ def validate_with_policy(
         raise ValidationError.from_exception_data(
             title="Unhandled exception",
             line_errors=errors_to_init_errors(
-                get_unique_errors(collected_errors)
+                get_unique_errors(collected_errors),
+                model=model,
+                yaml_data=working,
+                yaml_path=path,
             )
             + [
                 InitErrorDetails(

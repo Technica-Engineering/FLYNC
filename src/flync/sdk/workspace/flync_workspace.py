@@ -78,6 +78,7 @@ class FLYNCWorkspace:
         self.model_graph = ModelDependencyGraph(FLYNCModel)
         # documents
         self.documents: Dict[str, Document] = {}
+        self.documents_diags: Dict[str, list[ErrorDetails]] = {}
         # root information (if any)
         self.flync_model: Optional[FLYNCModel] = None
         self.workspace_root: Optional[Path] = None
@@ -89,7 +90,14 @@ class FLYNCWorkspace:
                 )
             workspace_path = Path(workspace_path)
         self.workspace_root = workspace_path
-        self.load_errors: list[ErrorDetails] = []
+
+    @property
+    def load_errors(self):
+        return [
+            error
+            for doc_errors in self.documents_diags.values()
+            for error in doc_errors
+        ]
 
     # region creator
     @classmethod
@@ -157,7 +165,7 @@ class FLYNCWorkspace:
         Returns: None
         """
         if isinstance(uri, Path):
-            uri = uri.as_uri()
+            uri = str(uri)
         doc = Document(uri, text)
         doc.parse()
         self.documents[uri] = doc
@@ -572,6 +580,12 @@ class FLYNCWorkspace:
 
         # then group all the fields into the same object and return it
         self.__append_to_info_dict(path, module_load_info)
+
+        doc_id = str(path)
+        if doc_id not in self.documents_diags:
+            self.documents_diags[doc_id] = []
+        else:
+            logger.error("File %s was already loaded.", doc_id)
         if not module_load_info:
             return None
         # collected_errors can be reused/reraised further
@@ -584,16 +598,17 @@ class FLYNCWorkspace:
                     current_type, current_type_name
                 )
             model, errors = validate_with_policy(
-                current_type, module_load_info
+                current_type, module_load_info, path
             )
-            self.load_errors.extend(errors)
+            # errors should be path specific
+            self.documents_diags[str(path)].extend(errors)
             if current_type_name:
                 model = self.model_graph.normalize_child_to_parent(
                     original_type, current_type_name, model
                 )
             return model
         except ValidationError as e:
-            self.load_errors.extend(e.errors())
+            self.documents_diags[str(path)].extend(e.errors())
             return None
 
     def __append_to_info_dict(
@@ -611,8 +626,8 @@ class FLYNCWorkspace:
                 )
                 return
             with open(path, "r", encoding="utf-8") as direct_data:
-                content = yaml.safe_load(direct_data)
                 self._open_document(path, direct_data.read())
+                content = self.documents[str(path)].ast
                 if output_strategy:
                     if OutputStrategy.OMMIT_ROOT in output_strategy:
                         model_load_info[field_name] = content
