@@ -1,4 +1,4 @@
-vlan_name: eth_ecu_c1_i1_viface1
+vlan_id: 40
 
 sockets:
   - name: sd_multicast_socket
