@@ -44,7 +44,7 @@ semver = "^3.0"
 furo = ">=2024.0.0"
 sphinx = ">=7.0"
 roman-numerals = "4.1.0"
-sphinx-needs = "6.3.0"
+sphinx-needs = "7.0.0"
 sphinx-autobuild = "2025.8.25"
 sphinx-autodoc-typehints = "*"
 pydantic-2-mermaid = {git = "https://github.com/LarsVoelker/pydantic-2-mermaid.git", rev = "f704b8a2eb3d483ec23ab6b3a7e248511bd23321"}
