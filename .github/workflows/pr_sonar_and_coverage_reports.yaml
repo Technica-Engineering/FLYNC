@@ -22,7 +22,7 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Download artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: pytest-artifacts
           repository: ${{ github.repository }}
@@ -74,7 +74,7 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Download artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         continue-on-error: true
         with:
           name: pytest-artifacts
