@@ -1,3 +1,4 @@
+from itertools import product
 from typing import Annotated, List, Optional
 
 from pydantic import Field, model_validator
@@ -10,10 +11,17 @@ from flync.core.annotations import (
     OutputStrategy,
 )
 from flync.core.base_models import UniqueName
-from flync.model.flync_4_ecu.controller import Controller, ControllerInterface
+from flync.core.utils.base_utils import find_all
+from flync.core.utils.exceptions import err_minor
+from flync.model.flync_4_ecu.controller import (
+    Controller,
+    ControllerInterface,
+    VirtualControllerInterface,
+)
 from flync.model.flync_4_ecu.internal_topology import InternalTopology
 from flync.model.flync_4_ecu.port import ECUPort
 from flync.model.flync_4_ecu.socket_container import SocketContainer
+from flync.model.flync_4_ecu.sockets import Socket
 from flync.model.flync_4_ecu.switch import Switch, SwitchPort
 from flync.model.flync_4_metadata import ECUMetadata
 
@@ -111,13 +119,74 @@ class ECU(UniqueName):
     ] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def post_validation(self):
+    def reference_ecu_in_children(self):
         """
         allows the children attributes to access ._ecu
         """
         RESET_unique_name_cache()
         [setattr(p, "_ecu", self) for p in self.ports]  # noqa
         [setattr(c, "_ecu", self) for c in self.topology.connections]  # noqa
+        return self
+
+    @model_validator(mode="after")
+    def validate_vlans_in_sockets(self):
+        """
+        Validate that the VLAN IDs specified in the socket containers
+        are configured in at least one virtual interface of the ECU."""
+
+        if self.sockets is not None:
+            vlan_ids_in_sockets = {socket.vlan_id for socket in self.sockets}
+            vlan_ids_in_interfaces = {
+                vi.vlanid
+                for vi in find_all(
+                    self.controllers, VirtualControllerInterface
+                )
+            }
+            missing_vlans = vlan_ids_in_sockets - vlan_ids_in_interfaces
+            if missing_vlans:
+                raise err_minor(
+                    f"Error in socket configuration:\n"
+                    f"The following VLAN IDs are specified in the socket "
+                    f"containers but not configured in any virtual interface "
+                    f"of the ECU {self.name}: {missing_vlans}."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def bind_sockets_to_ip(self):
+        """
+        Associate the given sockets with the matching ECU IP address.
+
+        Raises:
+            err_minor: If a socket's endpoint address does not belong
+                to any virtual interface in the ECU, or if the address is
+                found on a virtual interface whose VLAN name differs from
+                the one supplied.
+        """
+        controllers = self.controllers
+        sockets_per_vlan = self.get_all_sockets()
+        all_virtual_interfaces = [
+            vi for vi in find_all(controllers, VirtualControllerInterface)
+        ]
+        ips = self.get_all_ips()
+
+        for interface, (_, sockets) in product(
+            all_virtual_interfaces, sockets_per_vlan.items()
+        ):
+            if not sockets:
+                continue
+            for socket in sockets:
+                if socket.endpoint_address not in ips:
+                    raise err_minor(
+                        f"Error in socket {socket.name}:\n"
+                        f"The IP {socket.endpoint_address} is not configured "
+                        f"in any virtual interface of the ECU {self.name}."
+                    )
+
+                for ip in interface.addresses:
+                    if ip.address == socket.endpoint_address:
+                        ip.sockets.append(socket)
+
         return self
 
     def get_all_controllers(self):
@@ -171,3 +240,20 @@ class ECU(UniqueName):
         for ctrl in self.get_all_controllers():
             ip_lists.extend(ctrl.get_all_ips())
         return ip_lists
+
+    def get_all_sockets(self) -> dict[int, List[Socket]]:
+        """
+        Get all sockets in a ECU, grouped by VLAN ID.
+        """
+        return {
+            vlan_id: [
+                socket
+                for socket_container in self.sockets or []
+                if socket_container.vlan_id == vlan_id
+                for socket in socket_container.sockets or []
+            ]
+            for vlan_id in set(
+                socket_container.vlan_id
+                for socket_container in self.sockets or []
+            )
+        }
