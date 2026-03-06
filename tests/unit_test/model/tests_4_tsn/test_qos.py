@@ -859,17 +859,19 @@ def test_htb():
                 "classid": 11,
                 "rate": 5,
                 "ceil": 10,
-                "filter": [{"src_ipv4": "19.2.2.2", "prio": 0}],
+                "priority": 1,
+                "filter": [{"src_ipv4": "19.2.2.2", "filter_priority": 0}],
                 "child_classes": [
-                    {"classid": 13, "rate": 2, "ceil": 5},
-                    {"classid": 2, "rate": 2, "ceil": 5},
+                    {"classid": 13, "rate": 2, "ceil": 5, "priority": 3},
+                    {"classid": 2, "rate": 2, "ceil": 5, "priority": 4},
                 ],
             },
             {
                 "classid": 12,
                 "rate": 5,
                 "ceil": 10,
-                "filter": [{"src_ipv4": "19.2.2.1", "prio": 1}],
+                "priority": 2,
+                "filter": [{"src_ipv4": "19.2.2.1", "filter_priority": 1}],
                 # No child classes for this entry – keep an empty list
                 "child_classes": [],
             },

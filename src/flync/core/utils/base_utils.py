@@ -4,12 +4,13 @@ toolchain."""
 import os
 from ipaddress import IPv4Address, IPv6Address, ip_address
 from pathlib import Path
-from typing import Tuple
+from typing import Tuple, Type, TypeVar
 
 import yaml
 from pydantic_extra_types.mac_address import MacAddress
 from rich import print as rprint
 
+from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import err_fatal
 
 
@@ -241,3 +242,63 @@ def check_obj_in_list(obj, list):
         if c.name == obj.name:
             return True
     return False
+
+
+def deep_iter(obj, stop_class):
+    """
+    Helper function: To deeply iterate through an object and its children.
+    The iteration will stop if an object of type stop_class is reached.
+
+    Args:
+        obj: The object to iterate through.
+        stop_class: The class type at which the iteration should stop.
+    Returns:
+        Generator: A generator that yields objects of the specified type.
+    """
+    seen = set()
+    stack = [obj]
+    while stack:
+        current = stack.pop()
+        oid = id(current)
+        if oid in seen:
+            continue
+        seen.add(oid)
+
+        # single yield site
+        yield current
+
+        # do not traverse children of stop_class
+        if isinstance(current, stop_class):
+            continue
+
+        if isinstance(current, dict):
+            # push children (LIFO); order not guaranteed
+            stack.extend(current.values())
+        elif isinstance(current, (list, tuple)):
+            stack.extend(current)
+        else:
+            try:
+                stack.extend(vars(current).values())
+            except TypeError:
+                # cur has no __dict__
+                pass
+
+
+T = TypeVar("T", bound=FLYNCBaseModel)
+
+
+def find_all(base, target_class: Type[T]) -> list[T]:
+    """
+    Helper to get all fields of certain type in nested data.
+
+    Args:
+        base: The base object to start searching from.
+        target_class: The class to search for.
+
+    Returns:
+        list: A list of all instances of the target class found within the
+        base object.
+    """
+    return [
+        o for o in deep_iter(base, target_class) if isinstance(o, target_class)
+    ]

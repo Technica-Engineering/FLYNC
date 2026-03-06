@@ -1,4 +1,4 @@
-vlan_name: hpc_c1_i1_viface1
+vlan_id: 10
 sockets:
 - name: sd_multicast_socket
   endpoint_address: 10.0.10.5
