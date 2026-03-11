@@ -1,44 +1,46 @@
-[tool.poetry]
+[project]
 name = "flync"
-version = "0.0.0"
-packages = [
-    { include = "flync", from = "src" }
-]
+dynamic = ["version"]
 description = "FLYNC language is a declarative, modular format for describing the configuration of automotive networks and applications. It captures key elements of the vehicle's E/E architecture—such as ECUs, SOME/IP interfaces, and system topology—in a structured and human-readable way."
 authors = [
-    "Iago Alvarez <iago.alvarez@technica-engineering.de>",
-    "Dr. Lars Völker <lars.voelker@technica-engineering.de>"
+    {name = "Iago Alvarez", email = "iago.alvarez@technica-engineering.de"},
+    {name = "Dr. Lars Völker", email = "lars.voelker@technica-engineering.de"}
 ]
 readme = "README.md"
 license = "Apache-2.0"
-homepage = "https://flync-language.com"
-repository = "https://github.com/Technica-Engineering/FLYNC"
-documentation = "https://github.com/Technica-Engineering/FLYNC"
+license-files = ["LICENSE"]
 keywords = ["automotive", "network", "someip", "topology", "flync"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent"
 ]
-[project]
-license-files = [
-    "LICENSE"
+requires-python = ">=3.12,<4.0"
+dependencies = [
+    "importlib-metadata>=8.6.1",
+    "click==8.3.1",
+    "construct==2.10.70",
+    "jinja2",
+    "rich",
+    "typer",
+    "prettytable",
+    "pydantic==2.12.5",
+    "pydantic-yaml==1.6.0",
+    "pyyaml==6.0.3",
+    "myst-parser>=5.0.0,<6.0.0",
+    "pydantic-extra-types>=2.11.0,<3.0.0",
+    "semver>=3.0,<4.0",
 ]
 
-[tool.poetry.dependencies]
-python = "<4.0, >=3.12"
-importlib-metadata = ">=8.6.1"
-click = "8.3.1"
-construct = "2.10.70"
-jinja2 = "*"
-rich = "*"
-typer = "*"
-prettytable = "*"
-pydantic = "2.12.5"
-pydantic_yaml = "1.6.0"
-pyyaml = "6.0.3"
-myst-parser = "^5.0.0"
-pydantic-extra-types = "^2.11.0"
-semver = "^3.0"
+[project.urls]
+Homepage = "https://flync-language.com"
+Repository = "https://github.com/Technica-Engineering/FLYNC"
+Documentation = "https://github.com/Technica-Engineering/FLYNC"
+
+[tool.poetry]
+packages = [
+    { include = "flync", from = "src" }
+]
+version = "0.0.0"
 
 [tool.poetry.group.docs.dependencies]
 furo = ">=2024.0.0"

@@ -26,7 +26,7 @@ jobs:
       - name: Prepare
         run: |
           pip install --upgrade pip
-          pip install "poetry>=1.0.0,<2.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
+          pip install "poetry>=2.0.0,<3.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
           poetry install --with docs
 
       - name: Build the docs

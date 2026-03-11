@@ -27,7 +27,7 @@ jobs:
       - name: Prepare
         run: |
           pip install --upgrade pip
-          pip install "poetry>=1.0.0,<2.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
+          pip install "poetry>=2.0.0,<3.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
           poetry install --no-root --only static-analysis
 
       - name: Run isort
@@ -50,7 +50,7 @@ jobs:
       - name: Prepare
         run: |
           pip install --upgrade pip
-          pip install "poetry>=1.0.0,<2.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
+          pip install "poetry>=2.0.0,<3.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
           poetry install --no-root --only static-analysis
 
       - name: Run flake8
@@ -73,7 +73,7 @@ jobs:
       - name: Prepare
         run: |
           pip install --upgrade pip
-          pip install "poetry>=1.0.0,<2.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
+          pip install "poetry>=2.0.0,<3.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
           poetry install --with static-analysis
           mkdir type-check-reports
 
@@ -96,7 +96,7 @@ jobs:
       - name: Prepare
         run: |
           pip install --upgrade pip
-          pip install "poetry>=1.0.0,<2.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
+          pip install "poetry>=2.0.0,<3.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
           poetry install --with test
 
       - name: Run Pytest
@@ -141,7 +141,7 @@ jobs:
       - name: Prepare
         run: |
           pip install --upgrade pip
-          pip install "poetry>=1.0.0,<2.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
+          pip install "poetry>=2.0.0,<3.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
           poetry install
 
       - name: Run validate_examples.py
@@ -157,7 +157,7 @@ jobs:
       - name: Prepare
         run: |
           pip install --upgrade pip
-          pip install "poetry>=1.0.0,<2.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
+          pip install "poetry>=2.0.0,<3.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
           cd docs
           pwd
           poetry install --with docs
