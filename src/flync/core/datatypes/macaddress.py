@@ -8,6 +8,7 @@ from flync.core.utils.common_validators import (
     validate_mac_multicast,
     validate_mac_unicast,
 )
+from flync.core.annotations.hint import Hint, HintStrategy
 
 
 class MACAddressEntry(FLYNCBaseModel):
@@ -23,7 +24,9 @@ class MACAddressEntry(FLYNCBaseModel):
 
     model_config = ConfigDict(extra="forbid")
     address: MacAddress = Field()
-    macmask: str = Field()
+    macmask: Annotated[
+        str, Hint(value="FF:FF:FF:FF:FF:FF", hint_strategy=HintStrategy.FIXED)
+    ] = Field()
 
 
 class UnicastMACAddressEntry(MACAddressEntry):
@@ -34,6 +37,7 @@ class UnicastMACAddressEntry(MACAddressEntry):
     address: Annotated[
         MacAddress,
         AfterValidator(validate_mac_unicast),
+        Hint(value="AA:AA:AA:AA:AA:AA", hint_strategy=HintStrategy.FIXED),
     ] = Field()
 
 
