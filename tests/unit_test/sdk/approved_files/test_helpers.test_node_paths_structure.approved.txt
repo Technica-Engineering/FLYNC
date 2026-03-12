@@ -1,0 +1,7 @@
+{
+  "DummyRoot": "{\"name\":\"DummyRoot\",\"python_type\":\"<class 'tests.unit_test.sdk.dummy_model.DummyRoot'>\",\"flync_paths\":[]}",
+  "DummyChild": "{\"name\":\"DummyChild\",\"python_type\":\"<class 'tests.unit_test.sdk.dummy_model.DummyChild'>\",\"flync_paths\":[\"normal_child\"]}",
+  "DummyDictChild": "{\"name\":\"DummyDictChild\",\"python_type\":\"<class 'tests.unit_test.sdk.dummy_model.DummyDictChild'>\",\"flync_paths\":[\"child_dict.{}\"]}",
+  "DummyNestedChild": "{\"name\":\"DummyNestedChild\",\"python_type\":\"<class 'tests.unit_test.sdk.dummy_model.DummyNestedChild'>\",\"flync_paths\":[\"nested_child\"]}",
+  "DummyOptionalChild": "{\"name\":\"DummyOptionalChild\",\"python_type\":\"<class 'tests.unit_test.sdk.dummy_model.DummyOptionalChild'>\",\"flync_paths\":[\"optional_child\"]}"
+}

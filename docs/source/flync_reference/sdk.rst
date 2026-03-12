@@ -20,6 +20,8 @@ SDK
 .. toctree::
 
    sdk_core/sdk_reference
+   sdk_core/validation_api
+   sdk_core/object_mapping
 
 
 .. toctree::

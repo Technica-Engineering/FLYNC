@@ -1,8 +1,24 @@
+import json
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Tuple
-import yaml
+from types import MappingProxyType
 
+import yaml
+from pydantic import BaseModel, TypeAdapter
+from pydantic._internal._model_construction import ModelMetaclass
+from ruamel.yaml.nodes import MappingNode, ScalarNode, SequenceNode
+
+from flync.core.base_models import (
+    BaseRegistry,
+    DictInstances,
+    ListInstances,
+    NamedDictInstances,
+    NamedListInstances,
+    UniqueName,
+)
+from flync.model import FLYNCModel
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
+
 
 def flatten_yaml(data, parent_key="", sep="."):
     items = {}
@@ -43,6 +59,7 @@ def load_yaml_folder(folder_path: Path, sep="."):
             result[full_key] = value
     return result
 
+
 def compare_yaml_files(base_folder: Path, generated_folder: Path) -> bool:
     base_files = load_yaml_folder(base_folder)
     generated_files = load_yaml_folder(generated_folder)
@@ -52,7 +69,9 @@ def compare_yaml_files(base_folder: Path, generated_folder: Path) -> bool:
 
     unexpected_keys = generated_keys ^ base_keys
     if unexpected_keys:
-        raise ValueError(f"Found unexpected keys ({unexpected_keys}) during the roundtrip conversion")
+        raise ValueError(
+            f"Found unexpected keys ({unexpected_keys}) during the roundtrip conversion"
+        )
 
     for k in base_keys & generated_keys:
         if base_files[k] != generated_files[k]:
@@ -60,12 +79,159 @@ def compare_yaml_files(base_folder: Path, generated_folder: Path) -> bool:
 
     return True
 
-def model_has_socket(loaded_ws: FLYNCWorkspace):
+
+def model_has_socket(loaded_model: FLYNCModel):
     return any(
         address.sockets
-        for ecu in loaded_ws.flync_model.ecus
+        for ecu in loaded_model.ecus
         for controller in ecu.controllers
         for interface in controller.interfaces
         for vlan in interface.virtual_interfaces
         for address in vlan.addresses
+    )
+
+
+def dataclass_dict_to_json(obj_dict: dict):
+    return json.dumps(
+        {
+            k: TypeAdapter(type(v)).dump_json(v).decode("utf-8")
+            for k, v in obj_dict.items()
+        },
+        indent=2,
+    )
+
+
+def to_jsonable(obj, relative_path, seen=None):
+    if seen is None:
+        seen = set()
+
+    obj_id = id(obj)
+    if isinstance(obj, BaseModel) and obj_id in seen:
+        return "<circular>"
+    if not obj_id in seen:
+        seen.add(obj_id)
+    # special case since the workspace is too complex
+    if isinstance(obj, FLYNCWorkspace):
+        out_workspace = {
+            "workspace_obj": {
+                "workspace_name": obj.name,
+                "workspace_path": to_jsonable(
+                    obj.workspace_root, relative_path, seen
+                ),
+                "workspace_model": to_jsonable(
+                    obj.flync_model, relative_path, seen
+                ),
+                "workspace_errors": to_jsonable(
+                    obj.documents_diags, relative_path, seen
+                ),
+            }
+        }
+        seen.remove(obj_id)
+        return out_workspace
+    # relative paths
+    if isinstance(obj, Path):
+        path_obj = obj.relative_to(relative_path).as_posix()
+        seen.remove(obj_id)
+        return path_obj
+    # mappingproxy or dict-like
+    if isinstance(obj, Mapping) or isinstance(obj, MappingProxyType):
+        out_map = {
+            k: to_jsonable(v, relative_path, seen) for k, v in obj.items()
+        }
+        seen.remove(obj_id)
+        return out_map
+
+    if isinstance(obj, dict):
+        out_dict = {
+            k: to_jsonable(v, relative_path, seen) for k, v in obj.items()
+        }
+        seen.remove(obj_id)
+        return out_dict
+    if isinstance(obj, list) or isinstance(obj, set):
+        out_list = [to_jsonable(v, relative_path, seen) for v in obj]
+        seen.remove(obj_id)
+        try:
+            out_list = sorted(
+                out_list,
+                key=lambda x: json.dumps(x, sort_keys=True, default=str),
+            )
+        except Exception:
+            pass
+        return out_list
+
+    if isinstance(obj, BaseModel):
+        out_obj_model = to_jsonable(
+            obj.model_dump(exclude_unset=True), relative_path, seen
         )
+        seen.remove(obj_id)
+        return out_obj_model
+
+    if (
+        isinstance(obj, MappingNode)
+        or isinstance(obj, ScalarNode)
+        or isinstance(obj, SequenceNode)
+    ):
+        seen.remove(obj_id)
+        return yaml_node_to_python(obj)
+    # ignore classes / metaclasses
+    if isinstance(obj, type) or isinstance(obj, type(ModelMetaclass)):
+        return obj.__name__
+    if hasattr(obj, "__dict__"):
+        result = {}
+        for k, v in obj.__dict__.items():
+            # skip descriptors and non-data attributes
+            if callable(v):
+                continue
+            if type(v).__name__ in ("getset_descriptor", "member_descriptor"):
+                continue
+            result[k] = to_jsonable(v, relative_path, seen)
+        seen.remove(obj_id)
+        return result
+    return str(obj)
+
+
+def yaml_node_to_python(node):
+    if isinstance(node, ScalarNode):
+        return node.value
+    elif isinstance(node, SequenceNode):
+        items = [yaml_node_to_python(item) for item in node.value]
+        try:
+            items = sorted(
+                items, key=lambda x: json.dumps(x, sort_keys=True, default=str)
+            )
+        except Exception:
+            pass
+        return items
+    elif isinstance(node, MappingNode):
+        return {
+            yaml_node_to_python(k): yaml_node_to_python(v)
+            for k, v in node.value
+        }
+    else:
+        return str(node)  # fallback
+
+
+# region copied from conftest
+
+CENTRAL_REGISTRIES = [
+    UniqueName,
+    ListInstances,
+    NamedListInstances,
+    NamedDictInstances,
+    DictInstances,
+]
+
+
+def reset_all_registries(base_cls: BaseRegistry):
+    for subclass in base_cls.__subclasses__():
+        subclass.reset()
+        # recursively reset subclasses of subclasses
+        reset_all_registries(subclass)
+
+
+def reset_global_registery_function():
+    for cls in CENTRAL_REGISTRIES:
+        reset_all_registries(cls)
+
+
+# endregion

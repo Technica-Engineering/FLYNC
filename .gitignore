@@ -136,3 +136,4 @@ flake8-report/
 
 fuzzed/
 generated/
+tests/unit_test/sdk/approved_files/*.received.txt
