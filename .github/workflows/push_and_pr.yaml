@@ -13,7 +13,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Run black
-        uses: psf/black@26.1.0
+        uses: psf/black@26.3.1
         with:
           options: "--check --verbose --line-length 79 --diff"
           src: "./src"
