@@ -6,10 +6,8 @@ import warnings
 from typing import (
     Annotated,
     Any,
-    Callable,
     ClassVar,
     Dict,
-    Iterable,
     List,
     Literal,
     Optional,
@@ -31,7 +29,7 @@ from pydantic import (
 import flync.core.utils.common_validators as common_validators
 from flync.core.annotations.external import External, OutputStrategy
 from flync.core.base_models import DictInstances, FLYNCBaseModel
-from flync.core.utils.exceptions import err_major, err_minor
+from flync.core.utils.exceptions import err_minor
 from flync.model.flync_4_metadata import SOMEIPServiceMetadata
 from flync.model.flync_4_someip.someip_datatypes import AllTypes
 
@@ -187,70 +185,6 @@ class SOMEIPEvent(FLYNCBaseModel):
         self.INSTANCES_BY_NAME[self.name] = self
 
 
-def validate_unique_id(
-    events: list[SOMEIPEvent | SOMEIPField],
-) -> list[SOMEIPEvent | SOMEIPField]:
-    """Validate that events/fields are included in an eventgroup only once."""
-    ensure_unique(
-        events, key=lambda e: e.id, label="id", fmt=lambda x: f"0x{x:04X}"
-    )
-    return events
-
-
-def validate_unique_e2e_data_id(
-    events: list[SOMEIPEvent | SOMEIPField],
-) -> list[SOMEIPEvent | SOMEIPField]:
-    """Validate that E2E Events in one Service are uniquely identified."""
-    only_events = [
-        e for e in events if hasattr(e, "e2e") and e.e2e is not None
-    ]
-    ensure_unique(
-        only_events,
-        key=lambda e: int(e.e2e.data_id),
-        label="e2e.data_id",
-        fmt=lambda x: f"0x{x:08X}",
-    )
-    return events
-
-
-def ensure_unique(
-    items: Iterable[Any],
-    key: Callable[[Any], Any],
-    label: str = "key",
-    fmt: Callable[[Any], str] | None = None,
-) -> None:
-    """
-    Check, if key(item) is unique for all items.
-    - label: Name of the field in error messages (e.g. 'data_id' or 'id').
-    - fmt: optional formatter (e.g. hex format for numbers).
-    Raises err_major on duplicates.
-    """
-    from collections import defaultdict
-
-    buckets = defaultdict(list)
-    for it in items:
-        k = key(it)
-        buckets[k].append(it)
-
-    dups = {k: v for k, v in buckets.items() if len(v) > 1}
-    if dups:
-        lines = []
-        for k, vs in dups.items():
-            k_str = fmt(k) if fmt else str(k)
-            names = []
-            for it in vs:
-                nm = (
-                    getattr(it, "name", None)
-                    if hasattr(it, "name")
-                    else (it.get("name") if isinstance(it, dict) else None)
-                )
-                names.append(nm or "<unnamed>")
-            lines.append(
-                f"{label}={k_str} appears {len(vs)} times: {', '.join(names)}"
-            )
-        raise err_major("Duplicates found:\n  " + "\n  ".join(lines))
-
-
 class SOMEIPEventgroup(FLYNCBaseModel):
     """
     Main datastructure to model a SOME/IP Eventgroup.
@@ -290,8 +224,6 @@ class SOMEIPEventgroup(FLYNCBaseModel):
     events: Annotated[
         List[SOMEIPEvent | SOMEIPField],
         conset(item_type=SOMEIPEvent | SOMEIPField, min_length=1),
-        AfterValidator(validate_unique_id),
-        AfterValidator(validate_unique_e2e_data_id),
     ] = Field(description="the events this eventgroup contains")
 
     @classmethod
