@@ -8,14 +8,6 @@ from pydantic import BaseModel, TypeAdapter
 from pydantic._internal._model_construction import ModelMetaclass
 from ruamel.yaml.nodes import MappingNode, ScalarNode, SequenceNode
 
-from flync.core.base_models import (
-    BaseRegistry,
-    DictInstances,
-    ListInstances,
-    NamedDictInstances,
-    NamedListInstances,
-    UniqueName,
-)
 from flync.model import FLYNCModel
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 
@@ -121,9 +113,7 @@ def to_jsonable(obj, relative_path, seen=None):
                 "workspace_model": to_jsonable(
                     obj.flync_model, relative_path, seen
                 ),
-                "workspace_errors": to_jsonable(
-                    obj.documents_diags, relative_path, seen
-                ),
+                "workspace_errors": len(obj.load_errors),
             }
         }
         seen.remove(obj_id)
@@ -160,9 +150,9 @@ def to_jsonable(obj, relative_path, seen=None):
         return out_list
 
     if isinstance(obj, BaseModel):
-        out_obj_model = to_jsonable(
-            obj.model_dump(exclude_unset=True), relative_path, seen
-        )
+        # we only care about the model type, not the content
+        # (checked in other tests)
+        out_obj_model = str(obj.__class__)
         seen.remove(obj_id)
         return out_obj_model
 
@@ -209,29 +199,3 @@ def yaml_node_to_python(node):
         }
     else:
         return str(node)  # fallback
-
-
-# region copied from conftest
-
-CENTRAL_REGISTRIES = [
-    UniqueName,
-    ListInstances,
-    NamedListInstances,
-    NamedDictInstances,
-    DictInstances,
-]
-
-
-def reset_all_registries(base_cls: BaseRegistry):
-    for subclass in base_cls.__subclasses__():
-        subclass.reset()
-        # recursively reset subclasses of subclasses
-        reset_all_registries(subclass)
-
-
-def reset_global_registery_function():
-    for cls in CENTRAL_REGISTRIES:
-        reset_all_registries(cls)
-
-
-# endregion

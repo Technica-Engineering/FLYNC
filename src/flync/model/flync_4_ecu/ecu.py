@@ -27,8 +27,8 @@ from flync.model.flync_4_metadata import ECUMetadata
 
 
 def RESET_unique_name_cache():
-    ControllerInterface.NAMES = set()
-    SwitchPort.NAMES = set()
+    ControllerInterface.NAMES.clear()
+    SwitchPort.NAMES.clear()
 
 
 class ECU(UniqueName):

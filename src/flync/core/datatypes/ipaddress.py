@@ -45,4 +45,4 @@ class IPv6AddressEntry(FLYNCBaseModel):
     @field_serializer("address")
     def serialize_ipv6(self, address: IPv6Address):
         if address is not None:
-            return str(address).upper()
+            return str(address).lower()

@@ -1,3 +1,5 @@
+import importlib
+
 import pytest
 
 from flync.core.base_models import (
@@ -19,8 +21,8 @@ CENTRAL_REGISTRIES = [
 
 
 def reset_all_registries(base_cls: BaseRegistry):
+    base_cls.reset()
     for subclass in base_cls.__subclasses__():
-        subclass.reset()
         # recursively reset subclasses of subclasses
         reset_all_registries(subclass)
 

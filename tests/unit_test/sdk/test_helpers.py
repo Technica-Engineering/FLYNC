@@ -1,4 +1,5 @@
 import json
+import logging
 from os import sep
 from pathlib import Path
 
@@ -18,16 +19,17 @@ from flync.sdk.helpers.validation_helpers import (
 )
 from flync.sdk.utils.model_dependencies import get_model_dependency_graph
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
+from tests.conftest import reset_global_registery_function
 
 from .dummy_model import DummyRoot
 from .helper import (
     compare_yaml_files,
     dataclass_dict_to_json,
     model_has_socket,
-    reset_global_registery_function,
     to_jsonable,
 )
 
+logger = logging.getLogger(__name__)
 current_dir = Path(__file__).resolve().parent
 
 TEST_MODEL_TYPES = [FLYNCModel, ECU, Controller]
@@ -152,7 +154,6 @@ def test_validate_partial_external_node(
     )
 
 
-@pytest.mark.skip("Unstable on pipeline")
 @pytest.mark.parametrize(
     "node_type,node_paths",
     partial_params,
@@ -160,6 +161,7 @@ def test_validate_partial_external_node(
 def test_validate_partial_node(get_flync_example_path, node_type, node_paths):
     output = {}
     for path in node_paths:
+        reset_global_registery_function()
         validation_result = validate_node(get_flync_example_path, path)
         assert isinstance(validation_result.model, node_type)
         output[f"path_type_usage_path_{path}"] = to_jsonable(
@@ -170,6 +172,7 @@ def test_validate_partial_node(get_flync_example_path, node_type, node_paths):
             },
             get_flync_example_path,
         )
+        logger.info("will be outputting {}", output)
         reset_global_registery_function()
     verify(
         json.dumps(
