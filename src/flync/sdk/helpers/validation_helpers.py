@@ -10,7 +10,6 @@ objects that capture the validation state, errors, and loaded model.
 import faulthandler
 import logging
 from pathlib import Path
-from typing import Optional
 
 from pydantic_core import (
     InitErrorDetails,
@@ -23,74 +22,41 @@ from flync.sdk.context.diagnostics_result import (
     DiagnosticsResult,
     WorkspaceState,
 )
-from flync.sdk.context.node_info import NodeInfo
-from flync.sdk.utils.model_dependencies import get_model_dependency_graph
 from flync.sdk.workspace.flync_workspace import (
     FLYNCWorkspace,
     WorkspaceConfiguration,
 )
 from flync.sdk.workspace.ids import ObjectId
 
+from .nodes_helpers import type_from_input
+
 logger = logging.getLogger(__name__)
 
 faulthandler.enable()
 
 
-def validate_workspace(workspace_path: str | Path) -> DiagnosticsResult:
+def validate_workspace(
+    workspace_path: str | Path,
+    workspace_config: WorkspaceConfiguration | None = None,
+) -> DiagnosticsResult:
     """Validate an entire FLYNC workspace rooted at the default ``FLYNCModel``.
 
     Args:
-        workspace_path (str): Path to the workspace directory.
+        workspace_path (str | Path): Path to the workspace directory.
+        workspace_config (WorkspaceConfiguration | None): Optional workspace
+            configuration. Uses defaults if ``None``.
 
     Returns:
         DiagnosticsResult: The validation outcome including state, errors, and
         the loaded model.
     """
-    return validate_external_node(FLYNCModel, workspace_path)
-
-
-def type_from_input(node: str | type[FLYNCBaseModel]) -> type[FLYNCBaseModel]:
-    """Resolve a node identifier to its Python type.
-
-    Accepts either a string class name (looked up in the global dependency
-    graph) or a type directly.
-
-    Args:
-        node (str | type[FLYNCBaseModel]): A model class or its string name.
-
-    Returns:
-        type[FLYNCBaseModel]: The resolved model class.
-    """
-    if isinstance(node, str):
-        node = (
-            get_model_dependency_graph(root=FLYNCModel)
-            .fields_info[node]
-            .python_type
-        )
-    return node  # type: ignore[return-value]
-
-
-def available_flync_nodes(
-    root_node: Optional[str | type[FLYNCBaseModel]] = FLYNCModel,
-) -> dict[str, NodeInfo]:
-    """Return metadata for all nodes reachable from a root model.
-
-    Args:
-        root_node (str | type[FLYNCBaseModel]): The root model class or its
-            name. Defaults to :class:`~flync.model.flync_model.FLYNCModel`.
-
-    Returns:
-        dict[str, NodeInfo]: Mapping of class names to :class:`NodeInfo`
-        objects describing each node in the dependency graph.
-    """
-    if root_node is None:
-        root_node = FLYNCModel
-    root_node = type_from_input(root_node)
-    return get_model_dependency_graph(root_node).fields_info
+    return validate_external_node(FLYNCModel, workspace_path, workspace_config)
 
 
 def validate_external_node(
-    node: str | type[FLYNCBaseModel], node_path: Path | str
+    node: str | type[FLYNCBaseModel],
+    node_path: Path | str,
+    workspace_config: WorkspaceConfiguration | None = None,
 ) -> DiagnosticsResult:
     """Validate a specific FLYNC node type at a given filesystem path.
 
@@ -103,6 +69,9 @@ def validate_external_node(
             its string name.
         node_path (Path | str): Path to the directory containing the node's
             FLYNC configuration files.
+        workspace_config (WorkspaceConfiguration | None): Optional workspace
+            configuration. Uses defaults if ``None``. The ``root_model``
+            field is always overwritten with ``node``.
 
     Returns:
         DiagnosticsResult: Validation outcome with state, per-document errors,
@@ -113,11 +82,17 @@ def validate_external_node(
     errors = {}
     model = None
     ws = None
+    if workspace_config:
+        workspace_config = WorkspaceConfiguration.create_from_config(
+            workspace_config, root_model=node
+        )
+    else:
+        workspace_config = WorkspaceConfiguration(root_model=node)
     try:
         ws = FLYNCWorkspace.safe_load_workspace(
             "validation_workspace",
             node_path,
-            workspace_config=WorkspaceConfiguration(root_model=node),
+            workspace_config=workspace_config,
         )
         model = ws.flync_model
         state = WorkspaceState.VALID
@@ -140,7 +115,9 @@ def validate_external_node(
 
 
 def validate_node(
-    ws_path: Path | str, node_path: str = ""
+    ws_path: Path | str,
+    node_path: str = "",
+    workspace_config: WorkspaceConfiguration | None = None,
 ) -> DiagnosticsResult:
     """Validate a single node within an already-loaded workspace.
 
@@ -152,12 +129,16 @@ def validate_node(
         ws_path (Path | str): Path to the workspace root directory.
         node_path (str): Dot-separated path to the target node within the
             workspace object graph.
+        workspace_config (WorkspaceConfiguration | None): Optional workspace
+            configuration forwarded to :func:`validate_workspace`.
 
     Returns:
         DiagnosticsResult: Validation outcome for the specified node.
     """
     # load entire workspace
-    workspace_results = validate_workspace(ws_path)
+    workspace_results = validate_workspace(
+        ws_path, workspace_config=workspace_config
+    )
     # validate node in workspace
     if (
         not workspace_results.workspace

@@ -1,10 +1,12 @@
 """
 Configuration module for FLYNC SDK.
 
-Provides a simple configuration object.
+Provides :class:`WorkspaceConfiguration` and :class:`ListObjectsMode`, which
+control how a :class:`~flync.sdk.workspace.flync_workspace.FLYNCWorkspace` is
+loaded, validated, and serialized.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from enum import IntFlag
 from typing import Type
 
@@ -14,11 +16,16 @@ DEFAULT_EXTENSION = ".flync.yaml"
 
 
 class ListObjectsMode(IntFlag):
-    """Flags controlling how objects are listed in the workspace.
+    """Flags controlling how list items are keyed in the workspace object map.
+
+    Flags can be combined with ``|``. The default is ``INDEX | NAME``.
 
     Attributes:
-    INDEX: List objects by their positional index.
-    NAME: List objects by their name.
+        INDEX: Register each list item under its zero-based integer index
+            (e.g. ``controllers.0``).
+        NAME: Register each list item under its name — the file/directory stem
+            for folder-based lists, or the model's ``name`` attribute for
+            inline YAML lists. Items without a name are skipped.
     """
 
     INDEX = 1
@@ -49,3 +56,24 @@ class WorkspaceConfiguration:
     exclude_unset: bool = True
     root_model: Type[FLYNCBaseModel] = FLYNCModel
     list_objects_mode = ListObjectsMode.INDEX | ListObjectsMode.NAME
+
+    @classmethod
+    def create_from_config(
+        cls, existing_config: "WorkspaceConfiguration", **configs
+    ) -> "WorkspaceConfiguration":
+        """Create a new configuration by overriding fields on an existing one.
+
+        Converts ``existing_config`` to a dict, applies ``configs`` on top,
+        then constructs and returns a new :class:`WorkspaceConfiguration`.
+
+        Args:
+            existing_config (WorkspaceConfiguration): The base configuration
+                to copy from.
+            **configs: Field names and new values to override.
+
+        Returns:
+            WorkspaceConfiguration: A new instance with the overrides applied.
+        """
+        existing_config_values = asdict(existing_config)
+        existing_config_values.update(**configs)
+        return WorkspaceConfiguration(**existing_config_values)

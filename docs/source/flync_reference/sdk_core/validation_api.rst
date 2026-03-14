@@ -28,7 +28,10 @@ Imports
        validate_workspace,
        validate_external_node,
        validate_node,
+   )
+   from flync.sdk.helpers.nodes_helpers import (
        available_flync_nodes,
+       type_from_input,
    )
    from flync.sdk.context.diagnostics_result import DiagnosticsResult, WorkspaceState
 
@@ -81,14 +84,14 @@ hierarchy. Use :func:`~flync.sdk.helpers.validation_helpers.available_flync_node
 to list every node reachable from a root model together with the dot-separated
 paths through which they can be accessed.
 
-.. autofunction:: flync.sdk.helpers.validation_helpers.available_flync_nodes
+.. autofunction:: flync.sdk.helpers.nodes_helpers.available_flync_nodes
 
 Example
 -------
 
 .. code-block:: python
 
-   from flync.sdk.helpers.validation_helpers import available_flync_nodes
+   from flync.sdk.helpers.nodes_helpers import available_flync_nodes
 
    nodes = available_flync_nodes()   # defaults to FLYNCModel as root
 
@@ -274,6 +277,6 @@ Function reference
 
 .. autofunction:: flync.sdk.helpers.validation_helpers.validate_node
 
-.. autofunction:: flync.sdk.helpers.validation_helpers.available_flync_nodes
+.. autofunction:: flync.sdk.helpers.nodes_helpers.available_flync_nodes
 
-.. autofunction:: flync.sdk.helpers.validation_helpers.type_from_input
+.. autofunction:: flync.sdk.helpers.nodes_helpers.type_from_input

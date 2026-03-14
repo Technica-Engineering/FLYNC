@@ -1384,9 +1384,11 @@ class FLYNCWorkspace(object):
             uri (str):
                 Document URI.
             line (int):
-                Line number (0-based).
+                1-based line number, consistent with the
+                :class:`~flync.sdk.workspace.source.Position` values stored
+                during YAML parsing.
             character (int):
-                Character offset within the line (0-based).
+                1-based character offset within the line.
 
         Returns:
             list[ObjectId]:

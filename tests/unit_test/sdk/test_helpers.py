@@ -10,9 +10,9 @@ from approvaltests.namer import NamerFactory
 from flync.model import FLYNCModel
 from flync.model.flync_4_ecu import ECU, Controller
 from flync.sdk.helpers.generation_helpers import dump_flync_workspace
+from flync.sdk.helpers.nodes_helpers import available_flync_nodes
 from flync.sdk.helpers.validation_helpers import (
     WorkspaceState,
-    available_flync_nodes,
     validate_external_node,
     validate_node,
     validate_workspace,

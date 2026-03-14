@@ -232,8 +232,15 @@ Retrieve the source location
 
    src = ws.get_source("ecus.gateway")
    print(src.uri)              # "ecus/gateway/ecu_metadata.flync.yaml"
-   print(src.range.start)      # Position(line=1, character=1)
+   print(src.range.start)      # Position(line=1, character=1)  ← 1-based (YAML-backed)
    print(src.range.end)        # Position(line=42, character=1)
+
+.. note::
+
+   :class:`~flync.sdk.workspace.source.Position` values are **1-based** for
+   objects loaded from a YAML file (ruamel.yaml marks are shifted by +1).
+   Objects that have no YAML source (implied or externally loaded without a
+   resolved file) carry ``Position(line=0, character=0)`` as a sentinel.
 
 Look up objects by file position
 ---------------------------------
@@ -258,9 +265,9 @@ position.
 
 .. note::
 
-   ``objects_at`` uses 1-based line numbers, consistent with the
-   ruamel.yaml ``start_mark`` / ``end_mark`` offsets stored in
-   :class:`~flync.sdk.workspace.source.Position`.
+   ``objects_at`` uses **1-based** line and character numbers, matching the
+   :class:`~flync.sdk.workspace.source.Position` values stored during YAML
+   parsing. Pass ``line=0, character=0`` to query objects with no YAML source.
 
 ----
 
@@ -300,8 +307,8 @@ Data structure summary
    └── sources: Dict[ObjectId, SourceRef]
                   │               │
                   │               └── .uri    (workspace-relative file path)
-                  │               └── .range  ─┬─ .start  Position(line, character)
-                  │                            └─ .end    Position(line, character)
+                  │               └── .range  ─┬─ .start  Position(line, character)  ← 1-based for YAML; (0,0) if no source
+                  │                            └─ .end    Position(line, character)  ← 1-based for YAML; (0,0) if no source
                   │
                   └── key: same ObjectId used in objects
                        (one entry per ID, so index and name both have a SourceRef)
