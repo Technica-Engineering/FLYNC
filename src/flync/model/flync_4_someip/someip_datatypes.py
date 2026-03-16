@@ -808,7 +808,7 @@ class ArrayDimension(FLYNCBaseModel):
     length_of_length_field: Optional[Literal[0, 8, 16, 32]] = Field(
         default=None,
         description="Length of length-field in bits for dynamic dimension",
-    )  # TODO: Validator for dynamic array > 0 and fixed array can be 0
+    )
     upper_limit: Optional[int] = Field(
         default=None, gt=0, description="Upper bound of elements"
     )
@@ -819,6 +819,17 @@ class ArrayDimension(FLYNCBaseModel):
         default=None,
         description="Optional padding alignment after this dimension",
     )
+
+    @field_validator("length_of_length_field", mode="after")
+    @classmethod
+    def validate(cls, value, info):
+        kind = info.data["kind"]
+        if kind == "dynamic":
+            assert (
+                value > 0
+            ), "Length of length-field must be > 0 for dynamic arrays"
+
+        return value
 
 
 class Struct(ComplexDatatype):
