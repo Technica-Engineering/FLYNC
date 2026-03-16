@@ -3,6 +3,7 @@
 import abc
 import logging
 import warnings
+from collections import defaultdict
 from typing import (
     Annotated,
     Any,
@@ -31,6 +32,7 @@ from flync.core.annotations.external import External, OutputStrategy
 from flync.core.base_models import DictInstances, FLYNCBaseModel
 from flync.core.utils.exceptions import err_minor
 from flync.model.flync_4_metadata import SOMEIPServiceMetadata
+from flync.model.flync_4_safety.e2e import E2EConfig
 from flync.model.flync_4_someip.someip_datatypes import AllTypes
 
 
@@ -174,7 +176,7 @@ class SOMEIPEvent(FLYNCBaseModel):
         description="identifies the event"
     )
     reliable: bool = Field(default=False)
-    # e2e: Optional[E2EConfig]
+    e2e: Optional[E2EConfig] = Field(default=None)
     parameters: Annotated[
         Optional[List["SOMEIPParameter"]],
         Field(description="name of the parameter"),
@@ -732,3 +734,38 @@ class SOMEIPConfig(FLYNCBaseModel):
             | OutputStrategy.OMMIT_ROOT
         ),
     ] = Field(description="configuration of the service discovery")
+
+    @model_validator(mode="after")
+    def validate_all_e2e_identifiers_to_be_unique(self):
+        """
+        Validates that for each E2E profile all e2e.data_id values are unique.
+        """
+        # Mapping: profile -> data_id -> List[(service, event)]
+        per_profile: dict[Any, dict[Any, list[tuple[Any, Any]]]] = defaultdict(
+            lambda: defaultdict(list)
+        )
+
+        for service in self.services:
+            for event in service.events:
+                if event.e2e is not None:
+                    per_profile[event.e2e.profile][event.e2e.data_id].append(
+                        (service, event)
+                    )
+
+        errors = []
+        for profile, by_id in per_profile.items():
+            for data_id, entries in by_id.items():
+                if len(entries) > 1:
+                    entity_list = ", ".join(
+                        f"{type(service).__name__}.{type(event).__name__}"
+                        for service, event in entries
+                    )
+                    errors.append(
+                        f"Duplicate e2e.data_id '{data_id}' "
+                        f"in Profil '{profile}': {entity_list}"
+                    )
+
+        if errors:
+            raise ValueError(" | ".join(errors))
+
+        return self

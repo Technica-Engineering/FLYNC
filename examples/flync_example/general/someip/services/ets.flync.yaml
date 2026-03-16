@@ -59,6 +59,9 @@ events:
 - &event_0x8001
   name: TestEventUINT8
   id: 0x8001
+  e2e:
+    profile: AUTOSAR_Profile_4
+    data_id: 0x12345670
   parameters:
   - name: uint8_value
     datatype:
@@ -66,6 +69,9 @@ events:
 - &event_0x8002
   name: TestEventUINT8Array
   id: 0x8002
+  e2e:
+    profile: AUTOSAR_Profile_4
+    data_id: 0x12345678
   parameters:
   - name: uint8_array_value
     datatype:
@@ -80,6 +86,9 @@ events:
 - &event_0x8004
   name: TestEventUINT8E2E
   id: 0x8004
+  e2e:
+    profile: AUTOSAR_Profile_7
+    data_id: 0x12345679
   parameters:
   - name: length
     datatype:
@@ -100,6 +109,9 @@ events:
   name: TestEventUINT8Reliable
   id: 0x8003
   reliable: true
+  e2e:
+    profile: AUTOSAR_Profile_4
+    data_id: 0x12345671
   parameters:
   - name: uint8_value
     datatype:
