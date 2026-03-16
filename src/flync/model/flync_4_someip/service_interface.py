@@ -36,6 +36,218 @@ from flync.model.flync_4_safety.e2e import E2EConfig
 from flync.model.flync_4_someip.someip_datatypes import AllTypes
 
 
+class SOMEIPFieldTimings(DictInstances):
+    """
+    Timings for field.
+
+    Parameters
+    ----------
+
+    profile_id : str
+        Name of the timing profile.
+
+    type : Literal["field"]
+        Type of this timing.
+
+    getter_req_debounce : float
+        Minimum time in milliseconds between 2 request messages for \
+        same getter method/service.
+
+    getter_req_max_retention : float
+        Maximum time in milliseconds indicating how long a getter \
+        request may be withheld.
+
+    getter_res_max_retention: float
+        Maximum time in milliseconds indicating how long a getter \
+        response may be withheld.
+
+    setter_req_debounce: float
+        Minimum time in milliseconds between 2 request messages for \
+        same setter method/service.
+
+    setter_req_max_retention: float
+        Maximum time in milliseconds indicating how long a setter \
+        request may be withheld.
+
+    setter_res_max_retention: float
+        Maximum time in milliseconds indicating how long a setter \
+        response may be withheld.
+
+    notifier_debounce: float
+        Minimum time in milliseconds between 2 notification messages \
+        for same service.
+
+    notifier_max_retention: float
+        Maximum time in milliseconds indicating how long a \
+        notification may be withheld.
+    """
+
+    INSTANCES: ClassVar[Dict[Any, "SOMEIPFieldTimings"]] = {}
+    profile_id: str = Field(description="Timing profile for fields.")
+    type: Literal["field"]
+    getter_req_debounce: float = Field(
+        description="Minimum time in milliseconds between 2 request messages \
+        for same getter method/service.",
+        default=0,
+    )
+    getter_req_max_retention: float = Field(
+        description="Maximum time in milliseconds indicating how long a \
+        getter request may be withheld.",
+        default=0,
+    )
+    getter_res_max_retention: float = Field(
+        description="Maximum time in milliseconds indicating how long a \
+        getter response may be withheld.",
+        default=0,
+    )
+
+    setter_req_debounce: float = Field(
+        description="Minimum time in milliseconds between 2 request messages \
+        for same setter method/service.",
+        default=0,
+    )
+    setter_req_max_retention: float = Field(
+        description="Maximum time in milliseconds indicating how long a \
+        setter request may be withheld.",
+        default=0,
+    )
+    setter_res_max_retention: float = Field(
+        description="Maximum time in milliseconds indicating how long a \
+        setter response may be withheld.",
+        default=0,
+    )
+
+    notifier_debounce: float = Field(
+        description="Minimum time in milliseconds between 2 notification \
+        messages for same service.",
+        default=0,
+    )
+    notifier_max_retention: float = Field(
+        description="Maximum time in milliseconds indicating how long a \
+        notification may be withheld.",
+        default=0,
+    )
+
+    def get_dict_key(self):
+        return self.profile_id
+
+
+class SOMEIPEventTimings(DictInstances):
+    """
+    Timings for event.
+
+    Parameters
+    ----------
+
+    profile_id : str
+        Name of the timing profile.
+
+    type : Literal["event"]
+        Type of this timing.
+
+    debounce: float
+        Minimum time in milliseconds between 2 event messages \
+        for same service.
+
+    max_retention: float
+        Maximum time in milliseconds indicating how long an \
+        event may be withheld.
+    """
+
+    INSTANCES: ClassVar[Dict[Any, "SOMEIPEventTimings"]] = {}
+    profile_id: str = Field(description="Timing profile for events.")
+    type: Literal["event"]
+    debounce: float = Field(
+        description="Minimum time in milliseconds between 2 event messages \
+        for same service.",
+        default=0,
+    )
+    max_retention: float = Field(
+        description="Maximum time in milliseconds indicating how long an \
+        event may be withheld.",
+        default=0,
+    )
+
+    def get_dict_key(self):
+        return self.profile_id
+
+
+class SOMEIPMethodTimings(DictInstances):
+    """
+    Timings for method invocation.
+
+    Parameters
+    ----------
+
+    profile_id : str
+        Name of the timing profile.
+
+    type : Literal["method"]
+        Type of this timing.
+
+    req_debounce : float
+        Minimum time in milliseconds between 2 request messages for \
+        same method/service.
+
+    req_max_retention : float
+        Maximum time in milliseconds indicating how long a \
+        request may be withheld.
+
+    res_max_retention: float
+        Maximum time in milliseconds indicating how long a \
+        response may be withheld.
+    """
+
+    INSTANCES: ClassVar[Dict[Any, "SOMEIPMethodTimings"]] = {}
+    profile_id: str = Field(description="Timing profile for methods.")
+    type: Literal["method"] = "method"
+    req_debounce: float = Field(
+        description="Minimum time in milliseconds between 2 request messages \
+        for same method/service.",
+        default=0,
+    )
+    req_max_retention: float = Field(
+        description="Maximum time in milliseconds indicating how long a \
+        request may be withheld.",
+        default=0,
+    )
+    res_max_retention: float = Field(
+        description="Maximum time in milliseconds indicating how long a \
+        response may be withheld.",
+        default=0,
+    )
+
+    def get_dict_key(self):
+        return self.profile_id
+
+
+class SOMEIPTimingProfile(FLYNCBaseModel):
+    """
+    Timings for field.
+
+    Parameters
+    ----------
+
+    profiles : List[ :class:`~SOMEIPEventTimings` | \
+    :class:`~SOMEIPFieldTimings` | :class:`~SOMEIPMethodTimings` ]
+        List of timing profiles for SOME/IP.
+
+    defaults : List[ :class:`~SOMEIPEventTimings` | \
+    :class:`~SOMEIPFieldTimings` | :class:`~SOMEIPMethodTimings` ]
+        List of default timing profiles for SOME/IP.
+    """
+
+    profiles: Annotated[
+        List[SOMEIPEventTimings | SOMEIPFieldTimings | SOMEIPMethodTimings],
+        Field(description="List of timing profiles for SOME/IP"),
+    ] = Field(default_factory=list)
+
+    defaults: Annotated[
+        List[SOMEIPEventTimings | SOMEIPFieldTimings | SOMEIPMethodTimings],
+        Field(description="List of default timing profiles for SOME/IP"),
+    ] = Field(default_factory=list)
+
+
 class SOMEIPField(FLYNCBaseModel):
     """
     Base datastructure to design a SOME/IP Field
@@ -87,6 +299,9 @@ class SOMEIPField(FLYNCBaseModel):
     ] = Field(description="identifies the field getter", default=None)
 
     reliable: bool = Field(default=False)
+    someip_timing: Optional[str] = Field(
+        description="SOME/IP timings for the field", default="field_default"
+    )
 
     @property
     def id(self):
@@ -181,6 +396,7 @@ class SOMEIPEvent(FLYNCBaseModel):
         Optional[List["SOMEIPParameter"]],
         Field(description="name of the parameter"),
     ] = Field(default=[])
+    someip_timing: Optional[str] = Field(default="event_default")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -330,6 +546,8 @@ class SOMEIPMethod(FLYNCBaseModel):
         Optional[List["SOMEIPParameter"]],
         BeforeValidator(common_validators.none_to_empty_list),
     ] = Field(default=[])
+
+    someip_timing: Optional[str] = Field(default="method_default")
 
     @abc.abstractmethod
     def __init__(self, *args, **kwargs):
@@ -724,9 +942,7 @@ class SOMEIPConfig(FLYNCBaseModel):
     version: Literal["1.0"] = Field(
         default="1.0", description="the version of this config"
     )
-    services: Annotated[List[SOMEIPServiceInterface], External()] = Field(
-        description="list of services"
-    )
+
     sd_config: Annotated[
         SDConfig,
         External(
@@ -734,6 +950,16 @@ class SOMEIPConfig(FLYNCBaseModel):
             | OutputStrategy.OMMIT_ROOT
         ),
     ] = Field(description="configuration of the service discovery")
+    services: Annotated[List[SOMEIPServiceInterface], External()] = Field(
+        description="list of services"
+    )
+    someip_timings: Annotated[
+        SOMEIPTimingProfile,
+        External(
+            output_structure=OutputStrategy.SINGLE_FILE
+            | OutputStrategy.OMMIT_ROOT
+        ),
+    ] = Field(description="configuration of the SOME/IP timings")
 
     @model_validator(mode="after")
     def validate_all_e2e_identifiers_to_be_unique(self):
@@ -768,4 +994,48 @@ class SOMEIPConfig(FLYNCBaseModel):
         if errors:
             raise ValueError(" | ".join(errors))
 
+        return self
+
+    @model_validator(mode="after")
+    def validate_timing_exist(self):
+        for service_inst in self.services:
+            for service_element in (
+                service_inst.events
+                + service_inst.fields
+                + service_inst.methods
+            ):
+                if service_element.someip_timing is not None:
+                    if (
+                        service_element.someip_timing
+                        not in SOMEIPFieldTimings.INSTANCES
+                        and isinstance(service_element, SOMEIPField)
+                    ):
+                        raise ValueError(
+                            f"{service_element.id} - "
+                            f"{service_element.name}.someip_timing "
+                            f'"{service_element.someip_timing}" '
+                            "dont exist in SOMEIPFieldTimings"
+                        )
+                    elif (
+                        service_element.someip_timing
+                        not in SOMEIPEventTimings.INSTANCES
+                        and isinstance(service_element, SOMEIPEvent)
+                    ):
+                        raise ValueError(
+                            f"{service_element.id} - "
+                            f"{service_element.name}.someip_timing "
+                            f'"{service_element.someip_timing}" '
+                            "dont exist in SOMEIPEventTimings"
+                        )
+                    elif (
+                        service_element.someip_timing
+                        not in SOMEIPMethodTimings.INSTANCES
+                        and isinstance(service_element, SOMEIPMethod)
+                    ):
+                        raise ValueError(
+                            f"{service_element.id} - "
+                            f"{service_element.name}.someip_timing "
+                            f'"{service_element.someip_timing}" '
+                            "dont exist in SOMEIPMethodTimings"
+                        )
         return self

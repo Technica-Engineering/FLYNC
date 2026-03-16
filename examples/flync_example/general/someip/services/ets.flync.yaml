@@ -11,6 +11,7 @@ minor_version: 1
 fields:
 - &field_0x8005
   name: InterfaceVersion
+  someip_timing: field_default
   parameters:
   - name: MajorVersion
     datatype:
@@ -62,6 +63,7 @@ events:
   e2e:
     profile: AUTOSAR_Profile_4
     data_id: 0x12345670
+  someip_timing: event_default
   parameters:
   - name: uint8_value
     datatype:
@@ -157,6 +159,7 @@ methods:
 - name: checkByteOrder
   type: request_response
   id: 0x1F
+  someip_timing: method_default
   input_parameters:
   - name: arg1
     datatype:

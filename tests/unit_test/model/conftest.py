@@ -7,7 +7,7 @@ from flync.model.flync_4_ecu.controller import (
 )
 
 from flync.model.flync_4_someip.service_interface import (
-    SDTimings,
+    SDTimings, SOMEIPEventTimings, SOMEIPFieldTimings, SOMEIPMethodTimings, SOMEIPTimingProfile,SDConfig
 )
 from flync.model.flync_4_ecu.switch import (
     MulticastGroup,
@@ -354,3 +354,105 @@ def someip_sd_client_timings_profile_entry():
         subscribe_ttl=3,
     )
     yield someip_sd_timings_profile_entry
+
+
+@pytest.fixture
+def someip_event_default_timings_profile():
+    someip_event_default_timings_profile = SOMEIPEventTimings(
+        profile_id="event_default",
+        type="event",
+        debounce=0.1,
+        max_retention=10
+    )
+    yield someip_event_default_timings_profile
+
+
+@pytest.fixture
+def someip_method_default_timings_profile():
+    someip_method_default_timings_profile = SOMEIPMethodTimings(
+        profile_id="method_default",
+        type="method",
+        req_debounce=0.1,
+        req_max_retention=10,
+        res_max_retention=10
+    )
+    yield someip_method_default_timings_profile
+
+
+@pytest.fixture
+def someip_field_default_timings_profile():
+    someip_field_default_timings_profile = SOMEIPFieldTimings(
+        profile_id="field_default",
+        type="field",
+        getter_req_debounce=0.1,
+        getter_req_max_retention=10,
+        getter_res_max_retention=10,
+        setter_req_debounce=0.1,
+        setter_req_max_retention=10,
+        setter_res_max_retention=10,
+        notifier_debounce=0.1,
+        notifier_max_retention=10
+    )
+    yield someip_field_default_timings_profile
+
+
+@pytest.fixture
+def someip_event_custom_timings_profile():
+    someip_event_custom_timings_profile = SOMEIPEventTimings(
+        profile_id="event_custom",
+        type="event",
+        debounce=0.1,
+        max_retention=10
+    )
+    yield someip_event_custom_timings_profile
+
+
+@pytest.fixture
+def someip_method_custom_timings_profile():
+    someip_method_custom_timings_profile = SOMEIPMethodTimings(
+        profile_id="method_custom",
+        type="method",
+        req_debounce=0.1,
+        req_max_retention=10,
+        res_max_retention=10
+    )
+    yield someip_method_custom_timings_profile
+
+
+@pytest.fixture
+def someip_field_custom_timings_profile():
+    someip_field_custom_timings_profile = SOMEIPFieldTimings(
+        profile_id="field_custom",
+        type="field",
+        getter_req_debounce=0.1,
+        getter_req_max_retention=10,
+        getter_res_max_retention=10,
+        setter_req_debounce=0.1,
+        setter_req_max_retention=10,
+        setter_res_max_retention=10,
+        notifier_debounce=0.1,
+        notifier_max_retention=10
+    )
+    yield someip_field_custom_timings_profile
+
+
+@pytest.fixture
+def someip_sdconfig():
+    someip_sdconfig =  SDConfig(
+        ip_address="224.224.224.255",
+        port=30490,
+        sd_timings=[SDTimings(
+            profile_id="default",
+            initial_delay_min=10,
+            initial_delay_max=10,
+            repetitions_base_delay=30,
+            repetitions_max=3,
+            request_response_delay_min=10,
+            request_response_delay_max=10,
+            offer_cyclic_delay=1000,
+            offer_ttl=3,
+            find_ttl=1000,
+            subscribe_ttl=3
+        )]
+    )
+    yield someip_sdconfig

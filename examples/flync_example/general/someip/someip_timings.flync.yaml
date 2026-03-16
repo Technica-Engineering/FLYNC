@@ -1,0 +1,34 @@
+profiles:
+  - profile_id: "event_01"
+    type: "event"
+    debounce: 0.1
+    max_retention: 10
+
+  - profile_id: "method_fast"
+    type: "method"
+    req_debounce: 0.1
+    req_max_retention: 10
+    res_max_retention: 10
+
+defaults:
+  - profile_id: "event_default"
+    type: "event"
+    debounce: 0.1
+    max_retention: 10
+
+  - profile_id: "method_default"
+    type: "method"
+    req_debounce: 0.1
+    req_max_retention: 10
+    res_max_retention: 10
+
+  - profile_id: "field_default"
+    type: "field"
+    getter_req_debounce: 0.1
+    getter_req_max_retention: 10
+    getter_res_max_retention: 10
+    setter_req_debounce: 0.1
+    setter_req_max_retention: 10
+    setter_res_max_retention: 10
+    notifier_debounce: 0.1
+    notifier_max_retention: 10
