@@ -242,7 +242,7 @@ class ControllerInterface(NamedDictInstances):
                 if interface.name == self.name:
                     return ctrl
         raise err_fatal(
-            "Fatal Error: " "The interface is not a part of any controller"
+            "Fatal Error: The interface is not a part of any controller"
         )
 
     def get_other_interfaces(self):

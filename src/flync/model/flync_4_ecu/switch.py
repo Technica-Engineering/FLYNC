@@ -167,9 +167,8 @@ class SwitchPort(NamedDictInstances):
         """
         for vlan in self.get_switch().vlans:
             for addr in vlan.multicast:
-                if addr.address == address:
-                    if self.name in addr.ports:
-                        return addr.ports
+                if addr.address == address and self.name in addr.ports:
+                    return addr.ports
         return []
 
 
