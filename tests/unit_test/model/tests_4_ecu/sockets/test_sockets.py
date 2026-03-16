@@ -467,7 +467,7 @@ def test_sockets_deployments(
     someip_sd_server_timings_profile_entry,
     someip_sd_client_timings_profile_entry,
 ):
-    s = SOMEIPServiceInterface(meta=metadata_entry, name="s", id=1)
+    s = SOMEIPServiceInterface(meta=metadata_entry, name="s", id=1, major_version=1)
     deploy = deployments()
     udp_socket = {
         "endpoint_address": "10.0.0.1",

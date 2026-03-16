@@ -16,7 +16,7 @@ from flync.model.flync_4_someip import (
 def test_someip_service_deployment(
     metadata_entry, someip_sd_server_timings_profile_entry
 ):
-    s = SOMEIPServiceInterface(meta=metadata_entry, name="s", id=1)
+    s = SOMEIPServiceInterface(meta=metadata_entry, name="s", id=1, major_version=1)
     sd = SOMEIPServiceProvider(
         service=1,
         instance_id=1,
@@ -26,18 +26,23 @@ def test_someip_service_deployment(
     sd._serialize_field_as_service(s)
 
 
-def test_someip_service_deployment_lookup_service_from_id(metadata_entry):
-    s = SOMEIPServiceInterface(meta=metadata_entry, name="s", id=1)
-    lookup = SOMEIPServiceDeployment._lookup_service_from_id(1)
-    assert lookup == s
-    lookup_by_name = SOMEIPServiceDeployment._lookup_service_from_id(1)
-    assert lookup_by_name == s
+def test_someip_service_deployment_lookup_service_from_id_and_major(
+        metadata_entry,  someip_sd_server_timings_profile_entry
+):
+    si = SOMEIPServiceInterface(meta=metadata_entry, name="s", id=1, major_version=1)
+    sp = SOMEIPServiceProvider(
+        service=1,
+        instance_id=1,
+        major_version=1,
+        someip_sd_timings_profile="server_default",
+    )
+    assert sp.service == si
 
 
 def test_someip_service_deployment_serialize_field_as_service(
     metadata_entry, someip_sd_server_timings_profile_entry
 ):
-    s = SOMEIPServiceInterface(meta=metadata_entry, name="s", id=1)
+    s = SOMEIPServiceInterface(meta=metadata_entry, name="s", id=1, major_version=1)
     sd = SOMEIPServiceProvider(
         service=1,
         instance_id=1,
@@ -51,7 +56,7 @@ def test_someip_service_deployment_serialize_field_as_service(
 def test_someip_service_deployment_profile_serialize(
     metadata_entry, someip_sd_server_timings_profile_entry
 ):
-    s = SOMEIPServiceInterface(meta=metadata_entry, name="s", id=1)
+    s = SOMEIPServiceInterface(meta=metadata_entry, name="s", id=1, major_version=1)
     sd = SOMEIPServiceProvider(
         service=1,
         instance_id=1,

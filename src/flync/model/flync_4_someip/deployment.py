@@ -163,16 +163,23 @@ class SOMEIPServiceDeployment(abc.ABC, FLYNCBaseModel):
     def model_post_init(self, __context):
         return super().model_post_init(__context)
 
-    @field_validator("service", mode="after")
+    @field_validator("service", "major_version", mode="after")
     @classmethod
-    def _lookup_service_from_id(cls, value):
+    def _lookup_service_from_id(cls, value, info):
+        if info.field_name == "service":
+            assert isinstance(value, int), "service must be int"
+            return value
+        elif info.field_name == "major_version":
+            sid = info.data["service"]
+            major = value
 
-        id = value
-
-        service = SOMEIPServiceInterface.INSTANCES.get((id))
-        assert service, "did not find a service definition matching"
-        f"the provided key {value}"
-        return service
+            service = SOMEIPServiceInterface.INSTANCES.get((sid, major))
+            assert service, (
+                "did not find a service definition matching "
+                f"the provided key (id = {sid:#06x}, major_version = {value})"
+            )
+            info.data["service"] = service
+            return value
 
     @field_validator("someip_sd_timings_profile", mode="after")
     @classmethod
@@ -220,12 +227,14 @@ class SOMEIPServiceConsumer(SOMEIPServiceDeployment):
 
     @field_validator("consumed_eventgroups", mode="after")
     @classmethod
-    def _check_consumed_eventgroups_are_provided(cls, value, values):
-
+    def _check_consumed_eventgroups_are_provided(cls, value, info):
         consumed_eventgroups = value
-        if "service" not in values.data:
-            return
-        service = values.data["service"]
+
+        service = info.data["service"]
+        if isinstance(service, int):
+            sid = service
+            major = info.data["major_version"]
+            service = SOMEIPServiceInterface.INSTANCES.get((sid, major))
 
         if consumed_eventgroups is not None:
             consumed = set(consumed_eventgroups)

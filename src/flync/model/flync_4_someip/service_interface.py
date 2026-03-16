@@ -446,7 +446,7 @@ class SOMEIPServiceInterface(DictInstances):
     meta: SOMEIPServiceMetadata = Field()
 
     def get_dict_key(self):
-        return self.id
+        return (self.id, self.major_version)
 
     @model_validator(mode="after")
     def validate_for_notifiers_without_eventgroup(self):
