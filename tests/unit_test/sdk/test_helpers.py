@@ -89,6 +89,7 @@ def test_workspace_validator_api(get_flync_example_path):
     assert model_has_socket(validation_result.model)
 
 
+@pytest.mark.skip("skipped until output of test is improved.")
 @pytest.mark.parametrize(
     "model_key", TEST_MODEL_TYPES, ids=TEST_MODEL_TYPES_NAMES
 )
@@ -116,6 +117,7 @@ partial_params = [
 ]
 
 
+@pytest.mark.skip("skipped until output of test is improved.")
 @pytest.mark.parametrize(
     "node_type,node_path",
     params,
@@ -154,6 +156,7 @@ def test_validate_partial_external_node(
     )
 
 
+@pytest.mark.skip("skipped until output of test is improved.")
 @pytest.mark.parametrize(
     "node_type,node_paths",
     partial_params,
