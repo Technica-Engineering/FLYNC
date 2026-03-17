@@ -160,16 +160,22 @@ class SwitchPort(NamedDictInstances):
                     return switch
         raise err_minor("The switch port is not a part of any switch")
 
-    def get_multicast_connected_ports(self, address):
+    def get_vlan_connected_ports(self, vlan):
         """
         Helper function. Returns the switch ports that are part of
-        the multicast address as thaat port
+        the same VLAN as that port
         """
-        for vlan in self.get_switch().vlans:
-            for addr in vlan.multicast:
-                if addr.address == address and self.name in addr.ports:
-                    return addr.ports
+        for vlan_entry in self.get_switch().vlans:
+            if vlan_entry.id == vlan:
+                return vlan_entry.ports
         return []
+
+    def is_part_of_vlan(self, vlan):
+
+        for vlan_entry in self.get_switch().vlans:
+            if vlan_entry.id == vlan and self.name in vlan_entry.ports:
+                return True
+        return False
 
 
 class MulticastGroup(FLYNCBaseModel):

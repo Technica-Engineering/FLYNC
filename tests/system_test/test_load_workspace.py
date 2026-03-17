@@ -372,8 +372,8 @@ def test_load_workspace_missing_dashe(tmpdir):
     )
     update_yaml_content(
         file_to_update,
-        "multicast:\n          - 224.0.0.23",
-        "multicast:\n           224.0.0.23",
+        "multicast:\n          - 224.0.0.1",
+        "multicast:\n           224.0.0.1",
     )
     with pytest.raises(ValidationError) as exc_info:
         FLYNCWorkspace.load_workspace("flync_example", destination_folder)

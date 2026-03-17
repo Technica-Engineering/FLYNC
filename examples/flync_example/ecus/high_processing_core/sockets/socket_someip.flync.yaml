@@ -1,9 +1,12 @@
-vlan_id: 10
+vlan_id: 20
 sockets:
 - name: sd_multicast_socket
-  endpoint_address: 10.0.10.5
+  endpoint_address: 10.0.20.5
+  endpoint_type: multicast
   port_no: 30490
   protocol: udp
+  multicast_tx:
+  - 224.244.224.245
   deployments:
   - deployment_type: someip_sd
     multicast:
@@ -11,7 +14,8 @@ sockets:
       port: 30490
       ip_ttl: 1
 - name: someip_client_socket_udp1
-  endpoint_address: 10.0.10.5
+  endpoint_address: 10.0.20.5
+  endpoint_type: unicast
   port_no: 30491
   protocol: udp
   deployments:
@@ -24,7 +28,8 @@ sockets:
     - eg5_events_and_fields_unreliable
     someip_sd_timings_profile: client_default
 - name: someip_client_socket_tcp1
-  endpoint_address: 10.0.10.5
+  endpoint_address: 10.0.20.5
+  endpoint_type: unicast
   port_no: 30491
   protocol: tcp
   tcp_profile: 1
@@ -37,9 +42,12 @@ sockets:
     - eg2_all
     someip_sd_timings_profile: client_default
 - name: someip_server_socket_udp1
-  endpoint_address: 10.0.10.5
+  endpoint_address: 10.0.20.5
+  endpoint_type: unicast
   port_no: 30501
   protocol: udp
+  multicast_tx:
+  - 224.0.0.15
   deployments:
   - deployment_type: someip_provider
     service: 0x0101
@@ -48,10 +56,13 @@ sockets:
     minor_version: 0
     someip_sd_timings_profile: server_default
 - name: someip_server_socket_tcp1
-  endpoint_address: 10.0.10.5
+  endpoint_address: 10.0.20.5
+  endpoint_type: unicast
   port_no: 30501
   protocol: tcp
   tcp_profile: 1
+  multicast_tx:
+  - 224.0.0.15
   deployments:
   - deployment_type: someip_provider
     service: 0x0101

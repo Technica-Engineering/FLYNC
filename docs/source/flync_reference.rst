@@ -71,12 +71,11 @@ This directory describes the interconnections between nodes of the system.
 
    📂 topology
    │
-   ├── 📄 multicast_paths.flync.yaml
    └── 📄(❗) system_topology.flync.yaml
 
 .. important::
 
-   ✔ The file names **system_topology** and **multicast_paths** must be respected.
+   ✔ The file names **system_topology** must be respected.
 
    ✔ The files are placed in a directory named **topology** .
 

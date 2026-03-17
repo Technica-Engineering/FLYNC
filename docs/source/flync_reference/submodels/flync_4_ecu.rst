@@ -285,3 +285,37 @@ Deployments
 ===========
 
 .. autoclass:: flync.model.flync_4_ecu.sockets.DeploymentUnion()
+
+.. _ecu_multicast:
+
+Multicast Group Memberships
+############################
+
+.. hint::
+   Multicast group memberships of an ECU are computed from several locations of a FLYNC Config.
+   They are stored as a list in the field `multicast_groups` of an ECU.
+   Mind that these multicast groups are not part of any YAML config, but are accessible fields in a FLYNC workspace.
+
+.. grid::
+
+   .. grid-item-card:: Receiving Nodes
+
+      **Receiving nodes** are listed in the multicast group membership with the mode "rx".
+
+      These entries are computed from:
+
+      - the field `multicast` in a :class:`~flync.model.flync_4_ecu.controller.VirtualControllerInterface`,
+      - IPv6 addresses in a :class:`~flync.model.flync_4_ecu.controller.VirtualControllerInterface`
+        as solicited-node multicast addresses.
+
+   .. grid-item-card:: Sending Nodes
+
+      **Sender nodes** are listed in the multicast group membership with the mode "tx".
+
+      These entries are computed from:
+
+      - the field `multicast_tx` in a :class:`~flync.model.flync_4_ecu.sockets.Socket`,
+      - IPv6 solicited-node multicast addresses per VLAN.
+
+
+.. autoclass:: flync.model.flync_4_ecu.multicast_groups.MulticastGroupMembership()

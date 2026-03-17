@@ -319,6 +319,8 @@ vlans:
     - hpc_s1_p2
     - hpc_s1_p3
     - hpc_s1_p4
+    - hpc_s1_p1
+    - hpc_s1_p0
 
 - name: VLAN50
   id: 50
@@ -335,5 +337,4 @@ host_controller:
       vlanid: 50
       addresses:
         - address: 10.0.50.101
-          ipv4netmask: 255.255.255.0    
-      multicast: []  
+          ipv4netmask: 255.255.255.0 

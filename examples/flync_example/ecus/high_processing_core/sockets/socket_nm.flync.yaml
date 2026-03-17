@@ -1,0 +1,9 @@
+vlan_id: 40
+sockets:
+- name: network_management_socket
+  endpoint_address: 10.0.40.6
+  endpoint_type: multicast
+  port_no: 1200
+  protocol: udp
+  multicast_tx:
+  - 224.0.0.1

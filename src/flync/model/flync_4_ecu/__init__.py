@@ -5,6 +5,7 @@ from .controller import (
 )
 from .ecu import ECU
 from .internal_topology import InternalTopology
+from .multicast_groups import MulticastGroupMembership
 from .phy import BASET, BASET1, BASET1S, MII, RGMII, RMII, SGMII, XFI
 from .port import ECUPort
 from .socket_container import SocketContainer
@@ -55,4 +56,5 @@ __all__ = [
     "MulticastGroup",
     "TCAMRule",
     "TrafficClass",
+    "MulticastGroupMembership",
 ]

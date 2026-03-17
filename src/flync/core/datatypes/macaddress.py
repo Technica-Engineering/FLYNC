@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Optional
 
 from pydantic import AfterValidator, ConfigDict, Field
 from pydantic_extra_types.mac_address import MacAddress
@@ -23,10 +23,10 @@ class MACAddressEntry(FLYNCBaseModel):
 
     model_config = ConfigDict(extra="forbid")
     address: MacAddress = Field()
-    macmask: str = Field()
+    macmask: Optional[str] = Field(default="xx:xx:xx:xx:xx:xx")
 
 
-class UnicastMACAddressEntry(MACAddressEntry):
+class MACAddressUnicast(MACAddressEntry):
     """
     Represents a Unicast MAC address entry for a network interface.
     """
@@ -37,7 +37,7 @@ class UnicastMACAddressEntry(MACAddressEntry):
     ] = Field()
 
 
-class MulticastMACAddressEntry(MACAddressEntry):
+class MACAddressMulticast(MACAddressEntry):
     """
     Represents a Multicast MAC address entry for a network interface.
     """

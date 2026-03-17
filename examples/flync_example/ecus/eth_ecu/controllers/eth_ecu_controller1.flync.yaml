@@ -1,6 +1,6 @@
 meta:
   author: Dev
-  compatible_flync_version: 
+  compatible_flync_version:
     version_schema: semver
     version: 0.9.0
   target_system: flync_os
@@ -16,11 +16,13 @@ interfaces:
     virtual_interfaces:
       - name: eth_ecu_c1_i1_viface1
         vlanid: 40
-        addresses: 
+        addresses:
           - address: 10.0.40.7
             ipv4netmask: 255.255.255.0
+          - address: 2001:db8:85a3::8a2e:370:7334
+            ipv6prefix: 64
         multicast:
-          - 224.0.0.23
+          - 224.0.0.1
     ptp_config:
       cmlds_linkport_enabled: false
       ptp_ports:
@@ -30,17 +32,17 @@ interfaces:
             type: time_receiver
             sync_timeout: 3
             sync_followup_timeout: 10
-          pdelay_config: 
+          pdelay_config:
             log_tx_period: 1
     ingress_streams:
       - name: stream_0
-        stream_identification: 
+        stream_identification:
           - vlanid: [10, 20, 30, 40]
-            dst_ipv4: 
+            dst_ipv4:
               address: 10.0.0.0
               ipv4netmask: 255.255.0.0
             protocol: udp
-            dst_port: 
+            dst_port:
               from_value: 32000
               to_value: 33000
         drop_at_ingress: false
@@ -51,11 +53,11 @@ interfaces:
           cbs: 10000
           eir: 0
           ebs: 5000
-          coupling: false  
+          coupling: false
       - name: stream_1
-        stream_identification: 
+        stream_identification:
           - vlanid: 10
-            dst_ipv4: 
+            dst_ipv4:
               address: 224.0.0.0
               ipv4netmask: 255.0.0.0
             protocol: tcp
@@ -68,10 +70,10 @@ interfaces:
           eir: 20000
           ebs: 2000
           coupling: true
-    htb: 
+    htb:
       root_id: "1:"
       default_class: 12
-      child_classes: 
+      child_classes:
         - classid: 11
           priority: 1
           rate: 5
@@ -95,7 +97,7 @@ interfaces:
                 ipv4netmask: 255.255.255.0
               protocol: udp
           child_classes: []
-    macsec_config: 
+    macsec_config:
       vlan_bypass: []
       mka_enabled: true
       hello_time: 1000

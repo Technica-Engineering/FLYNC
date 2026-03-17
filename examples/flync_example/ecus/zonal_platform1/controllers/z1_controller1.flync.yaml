@@ -1,6 +1,6 @@
 meta:
   author: Dev
-  compatible_flync_version: 
+  compatible_flync_version:
     version_schema: semver
     version: 0.9.0
   target_system: flync_os
@@ -15,17 +15,21 @@ interfaces:
     virtual_interfaces:
       - name: z1_c1_i1_viface1
         vlanid: 10
-        addresses: 
+        addresses:
           - address: 10.0.10.1
             ipv4netmask: 255.255.255.0
-        multicast:
-          - 224.0.0.14
       - name: z1_c1_i1_viface2
         vlanid: 50
-        addresses: 
+        addresses:
           - address: 10.0.50.1
             ipv4netmask: 255.255.255.0
-        multicast: []
+      - name: z1_c1_i1_viface3
+        vlanid: 40
+        addresses:
+          - address: 10.0.40.1
+            ipv4netmask: 255.255.255.0
+        multicast:
+        - 224.0.0.1
     ptp_config:
       cmlds_linkport_enabled: false
       ptp_ports:
@@ -36,7 +40,7 @@ interfaces:
             log_tx_period: -3
             two_step: true
             tlv: []
-    macsec_config: 
+    macsec_config:
       vlan_bypass: []
       mka_enabled: true
       hello_time: 1000

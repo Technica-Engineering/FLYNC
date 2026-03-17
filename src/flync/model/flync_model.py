@@ -4,10 +4,18 @@ from pydantic import Field, model_validator
 
 from flync.core.annotations import External, NamingStrategy, OutputStrategy
 from flync.core.base_models.base_model import FLYNCBaseModel
+from flync.core.utils.base_utils import check_obj_in_list
 from flync.core.utils.exceptions import err_major
+from flync.core.utils.multicast import (
+    collect_ipv6_solicited_node_rx,
+    collect_ipv6_solicited_node_tx,
+    compute_path,
+    serialize_components,
+)
 from flync.model.flync_4_ecu import (
     ECU,
     ECUPort,
+    MulticastGroup,
     VirtualControllerInterface,
     VLANEntry,
 )
@@ -78,6 +86,21 @@ class FLYNCModel(FLYNCBaseModel):
         VLANEntry,
     )
 
+    def model_post_init(self, context):
+        """
+        Perform post-initialization processing after the model is created.
+
+        Following steps are performed:
+
+        1. Populate the solicited-node RX multicast group memberships for each
+           IPv6 address configured in any ECU.
+
+        2. Populate the solicited-node TX multicast group memberships for each
+           ECU based on the RX entries for the same multicast group and VLAN.
+        """
+        self.__populate_ipv6_solicited_node_multicasts_rx()
+        self.__populate_ipv6_solicited_node_multicasts_tx()
+
     @model_validator(mode="after")
     def validate_unique_ips(self):
         """
@@ -94,6 +117,139 @@ class FLYNCModel(FLYNCBaseModel):
                         f"The IP {ip} is repeated in ECU {ecu.name}"
                     )
         return self
+
+    @model_validator(mode="after")
+    def check_tx_rx_multicast_group(self):
+        tx_list = []
+        rx_list = []
+        separ = "/VLAN"
+        for ecu in self.ecus:
+            for mcast in ecu.multicast_groups:
+                key = str(mcast.group) + separ + str(mcast.vlan)
+                if mcast.mode == "tx" or mcast.mode == "bidir":
+                    tx_list.append(key)
+                if mcast.mode == "rx" or mcast.mode == "bidir":
+                    rx_list.append(key)
+
+        for rx in rx_list:
+            if rx not in tx_list:
+                raise err_major(
+                    "Invalid Multicast Configuration. There "
+                    "is a multicast rx configured for the address "
+                    f"{rx} but no tx."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def validate_multicast_paths(self):
+        paths = dict()
+        vlans_dict = dict()
+        separ = "/VLAN"
+        for ecu in self.ecus:
+            for mcast in ecu.multicast_groups:
+                key = str(mcast.group) + separ + str(mcast.vlan)
+                vlans_dict[key] = mcast.vlan
+                if (
+                    mcast.mode == "tx" or mcast.mode == "bidir"
+                ) and key not in paths:
+
+                    paths[key] = compute_path(mcast.vlan, mcast._interface)
+                if (
+                    (mcast.mode == "tx" or mcast.mode == "bidir")
+                    and key in paths
+                    and not check_obj_in_list(mcast._interface, paths[key])
+                ):
+                    raise err_major(
+                        "Invalid Multicast Address Configuration. There"
+                        " are several RX that the TX or BiDir Endpoint at "
+                        f"{mcast._interface.name} cannot reach."
+                        f"{serialize_components(paths[
+                            key])}"
+                    )
+        self.check_rx_are_reached(separ, paths, vlans_dict)
+        return self
+
+    def check_rx_are_reached(self, separ, paths, vlans_dict):
+        for ecu in self.ecus:
+            for mcast in ecu.multicast_groups:
+                key = str(mcast.group) + separ + str(mcast.vlan)
+                if (
+                    mcast.mode == "rx" or mcast.mode == "bidir"
+                ) and key not in paths:
+
+                    raise err_major(
+                        "Invalid Multicast Address Configuration. There"
+                        " are no TX endpoints for this address "
+                        f"{key} "
+                    )
+                if (
+                    (mcast.mode == "rx" or mcast.mode == "bidir")
+                    and key in paths
+                    and not check_obj_in_list(mcast._interface, paths[key])
+                ):
+                    raise err_major(
+                        "Invalid Multicast Address Configuration."
+                        f"The RX interface for address {key} "
+                        f"- {mcast._interface.name} cannot be reached "
+                        f"by the TX ports."
+                    )
+
+        self.load_switch_multicast(vlans_dict, paths)
+
+        return self
+
+    def __populate_ipv6_solicited_node_multicasts_rx(self):
+        """
+        Populate the solicited-node multicast group memberships for each
+        IPv6 address configured in any ECU.
+        """
+        for ecu in self.ecus:
+            update_ecu_multicast = collect_ipv6_solicited_node_rx(ecu)
+            if ecu.name in update_ecu_multicast:
+                ecu.multicast_groups.append(update_ecu_multicast[ecu.name])
+        return self
+
+    def __populate_ipv6_solicited_node_multicasts_tx(self):
+        """
+        Populate the solicited-node multicast group memberships for each
+        IPv6 address configured in any ECU as TX if there is a RX for the
+        same multicast group and VLAN.
+        """
+        multicasts = [
+            mc
+            for ecu in self.ecus
+            for mc in ecu.multicast_groups
+            if mc.solicited_node_multicast
+        ]
+
+        for ecu in self.ecus:
+            update_ecu_multicast = collect_ipv6_solicited_node_tx(
+                ecu, multicasts
+            )
+            if ecu.name in update_ecu_multicast:
+                ecu.multicast_groups.append(update_ecu_multicast[ecu.name])
+        return self
+
+    def append_mcast(self, vlan, comp, mcast_addr):
+        for v_entry in comp.get_switch().vlans:
+            if v_entry.id == vlan:
+                found_mcast = False
+                for addr in v_entry.multicast:
+                    if str(addr.address) == mcast_addr:
+                        found_mcast = True
+                        addr.ports.append(comp.name)
+                if not found_mcast:
+                    new_mcast_group = MulticastGroup(
+                        address=mcast_addr, ports=[comp.name]
+                    )
+                    v_entry.multicast.append(new_mcast_group)
+
+    def load_switch_multicast(self, vlans_dict, paths):
+        for key, value in paths.items():
+            for comp in value:
+                if comp.type == "switch_port":
+                    ip = key.split("/")[0]
+                    self.append_mcast(vlans_dict[key], comp, ip)
 
     def get_all_ecus(self):
         """Return a list of all ECU names."""

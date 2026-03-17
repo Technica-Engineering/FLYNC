@@ -455,15 +455,14 @@ class ControllerInterfaceToControllerInterface(InternalConnection):
             )
         self._iface = ControllerInterface.INSTANCES[self.iface_name]
 
-        # Add connected component to each other
-        self.iface._connected_component = self.iface2
-
         if self.iface2_name not in ControllerInterface.INSTANCES.keys():
             raise err_major(
                 f"Controller Interface name {self.iface2_name} in connection "
                 f"{self.id} does not exist"
             )
         self._iface2 = ControllerInterface.INSTANCES[self.iface2_name]
+        # Add connected component to each other
+        self.iface._connected_component = self.iface2
         self.iface2._connected_component = self.iface
         common_validators.validate_compulsory_mii_config_compatibility(
             self.iface, self.iface2, self.id

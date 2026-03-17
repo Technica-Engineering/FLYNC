@@ -53,7 +53,6 @@ targets = {
     "someip_service_iface.mmd": base_model.flync_4_someip.service_interface,
     "someip_deployment.mmd": base_model.flync_4_someip.deployment,
     "system_topology.mmd": base_model.flync_4_topology.system_topology,
-    "multicast_path.mmd": base_model.flync_4_topology.multicast_paths,
     "qos.mmd": base_model.flync_4_tsn.qos,
     "timesync.mmd": base_model.flync_4_tsn.timesync,
 }

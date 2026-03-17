@@ -19,6 +19,7 @@ from flync.model.flync_4_ecu.controller import (
     VirtualControllerInterface,
 )
 from flync.model.flync_4_ecu.internal_topology import InternalTopology
+from flync.model.flync_4_ecu.multicast_groups import MulticastGroupMembership
 from flync.model.flync_4_ecu.port import ECUPort
 from flync.model.flync_4_ecu.socket_container import SocketContainer
 from flync.model.flync_4_ecu.sockets import Socket
@@ -63,6 +64,12 @@ class ECU(UniqueName):
     :class:`~flync.model.flync_4_ecu.internal_topology.InternalTopology`
         Internal topology defining the connectivity between
         ECU components.
+
+    multicast_groups : list of \
+    :class:`~flync.model.flync_4_ecu.multicast_groups.\
+        MulticastGroupMembership`, optional
+        Multicast group memberships of the ECU. This field is populated
+        automatically internally.
 
     ecu_metadata : :class:`~flync.model.flync_4_metadata.metadata.ECUMetadata`
         Metadata information describing the ECU.
@@ -116,17 +123,30 @@ class ECU(UniqueName):
             output_structure=OutputStrategy.FOLDER,
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
-    ] = Field(default_factory=list)
+    ] = Field(default_factory=list, exclude=True)
+    multicast_groups: Optional[List[MulticastGroupMembership]] = Field(
+        default_factory=list, exclude=True
+    )
 
-    @model_validator(mode="after")
-    def reference_ecu_in_children(self):
+    def model_post_init(self, context):
         """
-        allows the children attributes to access ._ecu
+        Perform post-initialization processing after the model is created.
+
+        Following steps are performed:
+        1. Reference the ECU in child components to allow access to ECU-level
+           information.
+
+        2. Bind sockets to their corresponding IP addresses in the ECU's
+           virtual interfaces, ensuring that each socket is associated with
+           the correct ECU IP.
+
+        3. Populate multicast group memberships based on socket configurations
+           and virtual interface settings.
         """
-        RESET_unique_name_cache()
-        [setattr(p, "_ecu", self) for p in self.ports]  # noqa
-        [setattr(c, "_ecu", self) for c in self.topology.connections]  # noqa
-        return self
+        self.__reference_ecu_in_children()
+        self.__bind_sockets_to_ip()
+        self.__populate_multicast_tx_groups_from_socket()
+        self.__populate_multicast_rx_groups_from_interfaces()
 
     @model_validator(mode="after")
     def validate_vlans_in_sockets(self):
@@ -152,8 +172,7 @@ class ECU(UniqueName):
                 )
         return self
 
-    @model_validator(mode="after")
-    def bind_sockets_to_ip(self):
+    def __bind_sockets_to_ip(self):
         """
         Associate the given sockets with the matching ECU IP address.
 
@@ -176,7 +195,7 @@ class ECU(UniqueName):
             if not sockets:
                 continue
             for socket in sockets:
-                if socket.endpoint_address not in ips:
+                if str(socket.endpoint_address) not in ips:
                     raise err_minor(
                         f"Error in socket {socket.name}:\n"
                         f"The IP {socket.endpoint_address} is not configured "
@@ -187,6 +206,59 @@ class ECU(UniqueName):
                     if ip.address == socket.endpoint_address:
                         ip.sockets.append(socket)
 
+        return self
+
+    def __reference_ecu_in_children(self):
+        """
+        allows the children attributes to access ._ecu
+        """
+        RESET_unique_name_cache()
+        [setattr(p, "_ecu", self) for p in self.ports]  # noqa
+        [setattr(c, "_ecu", self) for c in self.topology.connections]  # noqa
+        return self
+
+    def __populate_multicast_tx_groups_from_socket(self):
+        """
+        Add Multicast TX entries from sockets
+        to multicast group memberships.
+        """
+
+        for socket_container in self.sockets:
+            for socket in socket_container.sockets:
+                if socket.endpoint_type == "multicast":
+                    for multicast_addr in socket.multicast_tx:
+                        group = MulticastGroupMembership(
+                            group=multicast_addr,
+                            description=socket.name,
+                            mode="tx",
+                            vlan=socket_container.vlan_id,
+                            src_ip=socket.endpoint_address,
+                        )
+                        interface = self.get_interface_for_ip(
+                            str(socket.endpoint_address)
+                        )
+                        group._interface = interface
+                        self.multicast_groups.append(group)
+        return self
+
+    def __populate_multicast_rx_groups_from_interfaces(self):
+        """
+        Add Multicast RX entries from virtual interfaces
+        to multicast group memberships.
+        """
+
+        for interface in find_all(self.controllers, ControllerInterface):
+            for viface in interface.virtual_interfaces:
+                for multicast_addr in viface.multicast:
+                    group = MulticastGroupMembership(
+                        group=multicast_addr,
+                        description="",
+                        mode="rx",
+                        vlan=viface.vlanid,
+                        src_ip=None,
+                    )
+                    group._interface = interface
+                    self.multicast_groups.append(group)
         return self
 
     def get_all_controllers(self):
@@ -237,7 +309,7 @@ class ECU(UniqueName):
         Get all IPs in a ECU
         """
         ip_lists = []
-        for ctrl in self.get_all_controllers():
+        for ctrl in self.controllers:
             ip_lists.extend(ctrl.get_all_ips())
         return ip_lists
 
@@ -257,3 +329,9 @@ class ECU(UniqueName):
                 for socket_container in self.sockets or []
             )
         }
+
+    def get_interface_for_ip(self, ip):
+        for iface in self.get_all_interfaces():
+
+            if ip in iface.get_all_ips():
+                return iface

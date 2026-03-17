@@ -245,6 +245,12 @@ class ControllerInterface(NamedDictInstances):
             "Fatal Error: The interface is not a part of any controller"
         )
 
+    def is_part_of_vlan(self, vlan):
+        for vint in self.virtual_interfaces:
+            if vint.vlanid == vlan:
+                return True
+        return False
+
     def get_other_interfaces(self):
         """
         Helper function. Returns all the controller interfaces
@@ -262,6 +268,14 @@ class ControllerInterface(NamedDictInstances):
 
         """
         return self._connected_component
+
+    def get_all_ips(self):
+        ips = []
+        for viface in self.virtual_interfaces:
+            for address in viface.addresses:
+                ips.append(str(address.address))
+
+        return ips
 
 
 class Controller(NamedListInstances["Controller"]):
@@ -301,7 +315,5 @@ class Controller(NamedListInstances["Controller"]):
         """
         all_ips = []
         for i in self.interfaces:
-            for vi in i.virtual_interfaces:
-                for address in vi.addresses:
-                    all_ips.append(address.address)
+            all_ips.extend(i.get_all_ips())
         return all_ips

@@ -181,6 +181,8 @@ vlans:
   ports:
     - z2_s1_p0
     - z2_s1_p2
+    - z2_s1_p1
+    
 
 
 host_controller:
@@ -191,5 +193,4 @@ host_controller:
       vlanid: 0
       addresses:
         - address: 10.0.0.102
-          ipv4netmask: 255.255.255.0    
-      multicast: []  
+          ipv4netmask: 255.255.255.0  

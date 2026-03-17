@@ -32,24 +32,3 @@ System Topology
 .. autoclass:: flync.model.flync_4_topology.SystemTopology()
 .. autoclass:: flync.model.flync_4_topology.ExternalConnection()
 
-Multicast Paths
-################
-
-
-.. admonition:: Expand for Schematic
-   :collapsible: closed
-
-   .. mermaid:: ../../_static/mermaid/multicast_path.mmd
-
-
-.. admonition:: Expand for a YAML example - 📄 ``multicast_paths.flync.yaml``
-   :collapsible: closed
-
-   .. note::
-      In multicast_paths as the name suggests, any mulitcast addresses of the system are specified, including the source and sink controllers, respectively.
-
-   .. literalinclude:: ../../_static/flync_example/topology/multicast_paths.flync.yaml
-      :language: yaml
-
-.. autoclass:: flync.model.flync_4_topology.MulticastConfig()
-.. autoclass:: flync.model.flync_4_topology.MulticastPath()

@@ -1,4 +1,3 @@
-from ipaddress import IPv4Address, IPv6Address
 from typing import Any, ClassVar, Dict, List, Literal, Optional, Union
 
 from pydantic import (
@@ -10,9 +9,13 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+from pydantic.networks import IPvAnyAddress
 
 from flync.core.base_models import DictInstances, FLYNCBaseModel
-from flync.core.datatypes.ipaddress import IPv4AddressEntry, IPv6AddressEntry
+from flync.core.datatypes.ipaddress import (
+    IPv4AddressEntry,
+    IPv6AddressEntry,
+)
 from flync.core.utils.exceptions import err_minor
 from flync.model.flync_4_someip import (
     SOMEIPSDDeployment,
@@ -112,6 +115,20 @@ class DeploymentUnion(RootModel):
     ) = Field(discriminator="deployment_type")
 
 
+def get_endpoint_type_from_address(
+    address: IPvAnyAddress,
+) -> Literal["multicast", "unicast"]:
+    """
+    Determine the endpoint type (multicast or unicast)
+    based on the given IP address.
+    """
+
+    if address.is_multicast:
+        return "multicast"
+    else:
+        return "unicast"
+
+
 class Socket(FLYNCBaseModel):
     """
     Defines a virtual-interface socket that is bound to a specific IP
@@ -131,12 +148,28 @@ class Socket(FLYNCBaseModel):
     deployments : list of :class:`DeploymentUnion`, optional
         Deployments of the socket.
 
+    endpoint_type : Literal["multicast", "unicast"], optional
+        The type of the socket endpoint, which can be either "multicast"
+        or "unicast". This field is per default automatically determined
+        based on the value of ``endpoint_address``, but can be overridden
+        by explicitly providing a value.
+
+    multicast_tx : list of :class:`IPv4Multicast` or :class:`IPv6Multicast`, \
+        optional
+        Multicast addresses that the socket is allowed to transmit to
+        (only applicable for sockets with a multicast endpoint_type).
     """
 
     name: str = Field()
-    endpoint_address: IPv4Address | IPv6Address = Field()
+    endpoint_address: IPvAnyAddress = Field()
     port_no: int = Field()
     deployments: Optional[List[DeploymentUnion]] = Field(default_factory=list)
+    endpoint_type: Optional[Literal["multicast", "unicast"]] = Field(
+        default_factory=lambda x: get_endpoint_type_from_address(
+            x["endpoint_address"]
+        )
+    )
+    multicast_tx: Optional[List[IPvAnyAddress]] = Field(default_factory=list)
 
     @field_validator("deployments", mode="before")
     def drop_invalid_deployment(cls, deployment):
@@ -161,6 +194,11 @@ class Socket(FLYNCBaseModel):
     def serialize_endpoint_address(self, endpoint):
         if endpoint is not None:
             return str(endpoint).upper()
+
+    @field_serializer("multicast_tx")
+    def serialize_multicast_tx(self, multicast_tx):
+        if multicast_tx is not None:
+            return [str(endpoint).upper() for endpoint in multicast_tx]
 
 
 class TCPOption(DictInstances):

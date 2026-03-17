@@ -1,6 +1,0 @@
-paths:
- - vlan: 40
-   address: 239.0.0.1
-   src_interface: eth_ecu_c1_iface1
-   dst_interface:
-   - hpc_c1_iface1

@@ -42,21 +42,15 @@ def read_yaml(path: str | os.PathLike | Path):
         rprint(f"[red]{e}[/red]")
 
 
-def write_to_file(data, outfile: str = "exports/generated.yaml"):
-    """Simply write some data to a file.
+def write_to_file(obj, file_to_update):
+    """Read a YAML file.
 
     Args:
-        data (Any): Data to write to the file.
-
-        outfile (str, optional): Path to the file. Defaults to \
-        "exports/generated.yaml".
+        obj : FLYNC object to write
+        file_to_update : Path of the file for output
     """
-
-    try:
-        with open(outfile, "w", encoding="utf-8") as f:
-            f.write(data)
-    except Exception as e:
-        rprint(f"[red]{e}[/red]")
+    with open(file_to_update, "w") as f:
+        yaml.safe_dump(obj.model_dump(), f, sort_keys=False)
 
 
 def get_yaml_paths(base_path: str | os.PathLike) -> list:
@@ -238,10 +232,24 @@ def check_obj_in_list(obj, list):
     Helper function: To check if the object is in the
     list or not
     """
+    flag = False
     for c in list:
-        if c.name == obj.name:
-            return True
-    return False
+        if (c.type == obj.type) and (
+            (
+                c.type == "switch_port"
+                and obj.name == c.name
+                and obj.get_switch().name == c.get_switch().name
+            )
+            or (
+                c.type == "controller_interface"
+                and obj.name == c.name
+                and obj.get_controller().name == c.get_controller().name
+            )
+            or (c.type == "ecu_port" and obj.name == c.name)
+        ):
+            flag = True
+
+    return flag
 
 
 def deep_iter(obj, stop_class):

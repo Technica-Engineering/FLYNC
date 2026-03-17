@@ -7,7 +7,6 @@ from flync.core.annotations.external import External, OutputStrategy
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.exceptions import err_major
 from flync.model.flync_4_ecu.port import ECUPort
-from flync.model.flync_4_topology.multicast_paths import MulticastConfig
 
 
 class ExternalConnection(FLYNCBaseModel):
@@ -195,12 +194,6 @@ class FLYNCTopology(FLYNCBaseModel):
     ----------
     system_topology : :class:`SystemTopology`
         The system-wide external connection topology between ECUs.
-
-    multicast_paths : \
-    :class:`~flync.model.flync_4_topology.multicast_paths.MulticastConfig`, \
-    optional
-        Optional collection of system-wide multicast paths, defining source
-        and destination host pairs for each multicast route.
     """
 
     system_topology: Annotated[
@@ -210,10 +203,3 @@ class FLYNCTopology(FLYNCBaseModel):
             | OutputStrategy.OMMIT_ROOT
         ),
     ]
-    multicast_paths: Annotated[
-        Optional[MulticastConfig],
-        External(
-            output_structure=OutputStrategy.SINGLE_FILE
-            | OutputStrategy.OMMIT_ROOT
-        ),
-    ] = Field(default=None)

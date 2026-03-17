@@ -1,6 +1,6 @@
 meta:
   author: Dev
-  compatible_flync_version: 
+  compatible_flync_version:
     version_schema: semver
     version: 0.9.0
   target_system: flync_os
@@ -16,19 +16,15 @@ interfaces:
     virtual_interfaces:
       - name: hpc_c2_i1_viface1
         vlanid: 40
-        addresses: 
+        addresses:
           - address: 10.0.40.6
             ipv4netmask: 255.255.255.0
-        multicast:
-          - 224.0.0.21
-          - 224.0.0.23
       - name: hpc_c1_i1_viface2
         vlanid: 30
-        addresses: 
+        addresses:
           - address: 10.0.30.6
             ipv4netmask: 255.255.255.0
-        multicast: []
-    macsec_config: 
+    macsec_config:
       vlan_bypass: []
       mka_enabled: true
       hello_time: 1000

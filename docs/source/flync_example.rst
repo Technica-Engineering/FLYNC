@@ -28,167 +28,7 @@ The configuration includes the following key components:
 Example Configuration
 """""""""""""""""""""""
 
-   .. dropdown:: 📁 ``ecus/`` - ``Contains the configuration files of all the ECUs within the example``
-
-      .. dropdown:: 📁 ``eth_ecu/`` - ``Contains all the configuration files of eth_ecu``
-
-         .. dropdown:: 📁 ``controllers/`` - ``Contains all the configuration files for the controllers within eth_ecu``
-
-            .. dropdown:: 📄 ``eth_ecu_controller1.flync.yaml``
-
-               .. literalinclude:: ../../examples/flync_example/ecus/eth_ecu/controllers/eth_ecu_controller1.flync.yaml
-                  :language: yaml
-
-         .. dropdown:: 📁 ``internal_topology/`` - ``Contains the internal connections within eth_ecu``
-
-            .. dropdown:: 📄 ``eth_ecu_topology.flync.yaml``
-
-               .. literalinclude:: ../../examples/flync_example/ecus/eth_ecu/topology.flync.yaml
-                  :language: yaml
-
-         .. dropdown:: 📁 ``ports/`` - ``Contains the configuration file for all the ports of eth_ecu``
-
-            .. dropdown:: 📄 ``eth_ecu_ports.flync.yaml``
-
-               .. literalinclude:: ../../examples/flync_example/ecus/eth_ecu/ports.flync.yaml
-                  :language: yaml
-
-         .. dropdown:: 📄 ``ecu_metadata.flync.yaml`` - ``Contains the metadata for eth_ecu``
-
-            .. literalinclude:: ../../examples/flync_example/ecus/eth_ecu/ecu_metadata.flync.yaml
-               :language: yaml
-
-      .. dropdown:: 📁 ``high_processing_core/`` - ``Contains all the configuration files of the high_processing_core``
-
-         .. dropdown:: 📁 ``controllers/`` - ``Contains all the configuration files for the controllers within the high_processing_core``
-
-            .. dropdown:: 📄 ``hpc_controller1.flync.yaml``
-
-               .. literalinclude:: ../../examples/flync_example/ecus/high_processing_core/controllers/hpc_controller1.flync.yaml
-                  :language: yaml
-
-            .. dropdown:: 📄 ``hpc_controller2.flync.yaml``
-
-               .. literalinclude:: ../../examples/flync_example/ecus/high_processing_core/controllers/hpc_controller2.flync.yaml
-                  :language: yaml
-
-         .. dropdown:: 📁 ``internal_topology/`` - ``Contains the internal connections within the high_processing_core``
-
-            .. dropdown:: 📄 ``hpc_topology.flync.yaml``
-
-               .. literalinclude:: ../../examples/flync_example/ecus/high_processing_core/topology.flync.yaml
-                  :language: yaml
-
-         .. dropdown:: 📁 ``ports/`` - ``Contains the configuration file for all the ports of the high_processing_core``
-
-            .. dropdown:: 📄 ``hpc_ports.flync.yaml``
-
-               .. literalinclude:: ../../examples/flync_example/ecus/high_processing_core/ports.flync.yaml
-                  :language: yaml
-
-         .. dropdown:: 📁 ``switches/`` - ``Contains the configuration file for all the switches of the high_processing_core``
-
-            .. dropdown:: 📄 ``hpc_switch1.flync.yaml``
-
-               .. literalinclude:: ../../examples/flync_example/ecus/high_processing_core/switches/hpc_switch1.flync.yaml
-                  :language: yaml
-
-         .. dropdown:: 📄 ``ecu_metadata.flync.yaml`` - ``Contains the metadata for the high_processing_core``
-
-            .. literalinclude:: ../../examples/flync_example/ecus/high_processing_core/ecu_metadata.flync.yaml
-               :language: yaml
-
-      .. dropdown:: 📁 ``zonal_platform1/`` - ``Contains all the configuration files of the zonal_platform1``
-
-         .. dropdown:: 📁 ``controllers/`` - ``Contains all the configuration files for the controllers within the zonal_platform1``
-
-            .. dropdown:: 📄 ``z1_controller1.flync.yaml``
-
-               .. literalinclude:: ../../examples/flync_example/ecus/zonal_platform1/controllers/z1_controller1.flync.yaml
-                  :language: yaml
-
-            .. dropdown:: 📄 ``z1_controller2.flync.yaml``
-
-               .. literalinclude:: ../../examples/flync_example/ecus/zonal_platform1/controllers/z1_controller2.flync.yaml
-                  :language: yaml
-
-         .. dropdown:: 📁 ``internal_topology/`` - ``Contains the internal connections within the zonal_platform1``
-
-            .. dropdown:: 📄 ``z1_topology.flync.yaml``
-
-               .. literalinclude:: ../../examples/flync_example/ecus/zonal_platform1/topology.flync.yaml
-                  :language: yaml
-
-         .. dropdown:: 📁 ``ports/`` - ``Contains the configuration file for all the ports of the zonal_platform1``
-
-            .. dropdown:: 📄 ``z1_ports.flync.yaml``
-
-               .. literalinclude:: ../../examples/flync_example/ecus/zonal_platform1/ports.flync.yaml
-                  :language: yaml
-
-         .. dropdown:: 📁 ``switches/`` - ``Contains the configuration file for all the switches of the zonal_platform1``
-
-            .. dropdown:: 📄 ``z1_switch1.flync.yaml``
-
-               .. literalinclude:: ../../examples/flync_example/ecus/zonal_platform1/switches/z1_switch1.flync.yaml
-                  :language: yaml
-
-         .. dropdown:: 📄 ``ecu_metadata.flync.yaml`` - ``Contains the metadata for the zonal_platform1``
-
-            .. literalinclude:: ../../examples/flync_example/ecus/zonal_platform1/ecu_metadata.flync.yaml
-               :language: yaml
-
-      .. dropdown:: 📁 ``zonal_platform2/`` - ``Contains all the configuration files of the zonal_platform2``
-
-         .. dropdown:: 📁 ``controllers/`` - ``Contains all the configuration files for the controllers within the zonal_platform2``
-
-            .. dropdown:: 📄 ``z2_controller1.flync.yaml``
-
-               .. literalinclude:: ../../examples/flync_example/ecus/zonal_platform2/controllers/z2_controller1.flync.yaml
-                  :language: yaml
-
-            .. dropdown:: 📄 ``z2_controller2.flync.yaml``
-
-               .. literalinclude:: ../../examples/flync_example/ecus/zonal_platform2/controllers/z2_controller2.flync.yaml
-                  :language: yaml
-
-         .. dropdown:: 📁 ``internal_topology/`` - ``Contains the internal connections within the zonal_platform2``
-
-            .. dropdown:: 📄 ``z2_topology.flync.yaml``
-
-               .. literalinclude:: ../../examples/flync_example/ecus/zonal_platform2/topology.flync.yaml
-                  :language: yaml
-
-         .. dropdown:: 📁 ``ports/`` - ``Contains the configuration file for all the ports of the zonal_platform2``
-
-            .. dropdown:: 📄 ``z2_ports.flync.yaml``
-
-               .. literalinclude:: ../../examples/flync_example/ecus/zonal_platform2/ports.flync.yaml
-                  :language: yaml
-
-         .. dropdown:: 📁 ``switches/`` - ``Contains the configuration file for all the switches of the zonal_platform2``
-
-            .. dropdown:: 📄 ``z2_switch1.flync.yaml``
-
-               .. literalinclude:: ../../examples/flync_example/ecus/zonal_platform2/switches/z2_switch1.flync.yaml
-                  :language: yaml
-
-         .. dropdown:: 📄 ``ecu_metadata.flync.yaml`` - ``Contains the metadata for the zonal_platform2``
-
-            .. literalinclude:: ../../examples/flync_example/ecus/zonal_platform2/ecu_metadata.flync.yaml
-               :language: yaml
-
-   .. dropdown:: 📁 ``topology/`` - ``Contains the configuration file for ECU interconnections within the example``
-
-      .. dropdown:: 📄 ``system_topology.flync.yaml``
-
-         .. literalinclude:: ../../examples/flync_example/topology/system_topology.flync.yaml
-            :language: yaml
-
-   .. dropdown:: 📄 ``system_metadata.flync.yaml``
-
-      .. literalinclude:: ../../examples/flync_example/system_metadata.flync.yaml
-         :language: yaml
+Find an example configuration directly in `github <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/flync_example>`_.
 
 ------
 
@@ -198,6 +38,7 @@ Ethernet Network Topology
 The **Ethernet Network Topology** diagram provides a comprehensive visual representation of all components included in the configuration.
 
 The diagram identifies the VLANs, IP addresses, and multicast groups assigned to each controller and switch, giving a complete view of the logical network segmentation and addressing scheme.
+
 
 Each of the four ECUs is shown as an individual block. The diagram also illustrates the internal connectivity between components within each ECU, as well as the external connections between ECUs, making both intra-ECU and inter-ECU communication paths easy to understand.
 
@@ -314,9 +155,6 @@ Single controller, single (virtual) interface, external PHY
                   addresses:
                      -  address: 10.0.10.1
                         ipv4_netmask: 255.255.255.0
-                  multicast:
-                     -  239.0.0.1
-                     -  239.0.0.2
 
 .. dropdown:: 📄 ``ecu1_internal_topology.flync.yaml``
 
@@ -377,9 +215,6 @@ Single controller, single (virtual) interface, integrated PHY
                   addresses:
                      -  address: 10.0.10.1
                         ipv4_netmask: 255.255.255.0
-                  multicast:
-                     - 239.0.0.1
-                     - 239.0.0.2
 
 .. dropdown:: 📄 ``ecu1_internal_topology.flync.yaml``
 
@@ -442,16 +277,11 @@ Single controller, multiple (virtual) interfaces, external PHY
                   addresses:
                      -  address: 10.0.10.1
                         ipv4_netmask: 255.255.255.0
-                  multicast:
-                     - 239.0.0.1
-                     - 239.0.0.2
                -  name: ecu1_controller1_iface1_viface2
                   vlanid: 20
                   addresses:
                      -  address: 10.0.20.1
                         ipv4_netmask: 255.255.255.0
-                  multicast:
-                     - 239.0.0.3
 
 .. dropdown:: 📄 ``ecu1_internal_topology.flync.yaml``
 
@@ -508,16 +338,11 @@ Single controller, multiple (virtual) interfaces, integrated PHY
                   addresses:
                      -  address: 10.0.10.1
                         ipv4_netmask: 255.255.255.0
-                  multicast:
-                     - 239.0.0.1
-                     - 239.0.0.2
                -  name: ecu1_controller1_iface1_viface2
                   vlanid: 20
                   addresses:
                      -  address: 10.0.20.1
                         ipv4_netmask: 255.255.255.0
-                  multicast:
-                        - 239.0.0.3
 
 .. dropdown:: 📄 ``ecu1_internal_topology.flync.yaml``
 
@@ -593,15 +418,11 @@ Switch ECU, multiple (virtual) interfaces, external PHY
                   addresses:
                      -  address: 10.0.10.1
                         ipv4_netmask: 255.255.255.0
-                  multicast:
-                     - 224.0.0.11
-                     - 224.0.0.13
                -  name: ecu1_controller1_iface1_viface2
                   vlanid: 20
                   addresses:
                      -  address: 10.0.20.1
                         ipv4_netmask: 255.255.255.0
-                  multicast: null
 
 .. dropdown:: 📄 ``ecu1_switch1.flync.yaml``
 
@@ -644,26 +465,12 @@ Switch ECU, multiple (virtual) interfaces, external PHY
                - switch1_port0
                - switch1_port1
                - switch1_port2
-            multicast:
-               -  address: 224.0.0.11
-                  ports:
-                     - switch1_port0
-                     - switch1_port1
-               -  address: 224.0.0.13
-                  ports:
-                        - switch1_port0
-                        - switch1_port2
          -  name: vlan20
             id: 20
             default_priority: 0
             ports:
                - switch1_port1
                - switch1_port2
-            multicast:
-               -  address: 224.0.0.12
-                  ports:
-                     - switch1_port1
-                     - switch1_port2
 
 .. note:: The MII ``mode`` of the ``switch1_port0`` must oppose the one of the ``ecu1_controller1_iface1``.
 
@@ -747,9 +554,6 @@ Switch ECU with Host controller, multiple (virtual) interfaces, external PHY
                      addresses:
                         -  address: 10.0.10.1
                            ipv4_netmask: 255.255.255.0
-                     multicast:
-                        - 224.0.0.11
-                        - 224.0.0.13
                   -  name: ecu1_controller1_iface1_viface2
                      vlanid: 20
                      addresses:
@@ -760,7 +564,7 @@ Switch ECU with Host controller, multiple (virtual) interfaces, external PHY
                      addresses:
                         -  address: 10.0.30.1
                            ipv4_netmask: 255.255.255.0
-                     
+
 
 
 .. dropdown:: 📄 ``ecu1_switch1.flync.yaml``
@@ -803,26 +607,12 @@ Switch ECU with Host controller, multiple (virtual) interfaces, external PHY
                   - switch1_port0
                   - switch1_port1
                   - switch1_port2
-               multicast:
-                  -  address: 224.0.0.11
-                     ports:
-                        - switch1_port0
-                        - switch1_port1
-                  -  address: 224.0.0.13
-                     ports:
-                           - switch1_port0
-                           - switch1_port2
             -  name: vlan20
                id: 20
                default_priority: 0
                ports:
                   - switch1_port1
                   - switch1_port2
-               multicast:
-                  -  address: 224.0.0.12
-                     ports:
-                        - switch1_port1
-                        - switch1_port2
             -  name: vlan30
                id: 30
                default_priority: 0
@@ -837,7 +627,6 @@ Switch ECU with Host controller, multiple (virtual) interfaces, external PHY
                addresses:
                   -  address: 10.0.30.100
                      ipv4_netmask: 255.255.255.0
-               multicast: null
 
 .. note:: The MII ``mode`` of the ``switch1_port0`` must oppose the one of the ``ecu1_controller1_iface1``.
 
