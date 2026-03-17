@@ -5,12 +5,13 @@ Provides functions and classes to build, traverse, and query the dependency
 graph between Pydantic models that make up a FLYNC workspace.
 """
 
+import hashlib
+import importlib
 import shelve
 import types
 from functools import lru_cache
-from importlib.metadata import version
-from os import listdir, makedirs, remove
-from os.path import join
+from os import listdir, makedirs, remove, stat, walk
+from os.path import abspath, dirname, join
 from types import NoneType
 from typing import Annotated, Union, get_args, get_origin
 
@@ -598,6 +599,47 @@ class ModelDependencyGraph:
 
 
 _cache_cleaned = False
+_cache_name = ""
+
+
+def hash_directory_fast(directory: str, ext=".py") -> str:
+    """Calculates an md5 hash from a directory.
+
+    Args:
+        directory (str): The location of the cache files.
+        ext (str): which files to include (default python).
+    """
+    # only used for file name selection
+    h = hashlib.md5()  # NOSONAR python:S4790
+    for root, _, files in walk(directory):
+        for fname in sorted(files):
+            if fname.endswith(ext):
+                fpath = join(root, fname)
+                file_stat = stat(fpath)
+                # Hash metadata only, not file contents
+                h.update(
+                    f"{fpath}{file_stat.st_mtime}{file_stat.st_size}".encode()
+                )
+    return h.hexdigest()
+
+
+def get_package_root(package_name: str | None = None) -> str:
+    """Gets the location of a package, will default to current package.
+
+    Args:
+        package_name (str): The location of the cache files.
+            None or default means FLYNC package.
+    """
+    if not package_name:
+        package_name = __package__.split(".")[0]
+    package = importlib.import_module(package_name)
+    package_path = package.__file__
+    if not package_path or not isinstance(package_path, str):
+        raise ValueError(
+            "Unable to figure out the package location %s", package_name
+        )
+    package_path = abspath(package_path)
+    return dirname(package_path)
 
 
 def delete_unwanted_cache_files(cache_location: str, cache_file_name: str):
@@ -614,16 +656,18 @@ def delete_unwanted_cache_files(cache_location: str, cache_file_name: str):
 
 def cleanup_old_caches():
     """Resets the cache of the library if the current version is different."""
-    global _cache_cleaned
-    current_flync_version = version("flync")
+    global _cache_cleaned, _cache_name
     shelv_location = platformdirs.user_cache_dir("FLYNC")
-    makedirs(shelv_location, exist_ok=True)
-    shelv_file_prefix = "dependency_graph_cache"
-    shelv_file_name = "_".join([shelv_file_prefix, current_flync_version])
-    if not _cache_cleaned:
-        delete_unwanted_cache_files(shelv_location, shelv_file_name)
-        _cache_cleaned = True
-    return shelv_location, shelv_file_name
+    if not _cache_name:
+        # only keep official version cache
+        makedirs(shelv_location, exist_ok=True)
+        shelv_file_name = "dependency_graph_cache"
+        shelv_file_name += "_" + hash_directory_fast(get_package_root())
+        if not _cache_cleaned:
+            delete_unwanted_cache_files(shelv_location, shelv_file_name)
+            _cache_cleaned = True
+            _cache_name = shelv_file_name
+    return shelv_location, _cache_name
 
 
 def get_model_dependency_graph(root: type[BaseModel]) -> ModelDependencyGraph:
