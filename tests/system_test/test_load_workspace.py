@@ -44,7 +44,6 @@ relative_path = Path(
 )
 
 
-@pytest.mark.skip(reason="Fails if Workspace already loaded")
 def test_load_workspace_valid_relative_path():
     workspace = FLYNCWorkspace.load_workspace("flync_example", relative_path)
     assert workspace is not None
@@ -59,8 +58,6 @@ def test_load_workspace_valid_relative_path():
     assert model_has_socket(workspace)
 
 
-# Verify workspace loads with valid str path
-@pytest.mark.skip(reason="Fails if Workspace already loaded")
 def test_load_workspace_valid_str_path():
     workspace = FLYNCWorkspace.load_workspace(
         "flync_example", str(absolute_path)
@@ -106,11 +103,14 @@ def test_load_workspace_invalid_yaml_path():
         )
 
 
-# Verify handling invalid workspace name
-@pytest.mark.xfail(reason="Known bug")
-def test_load_workspace_invalid_name():
+def test_load_workspace_empty_name():
     with pytest.raises(Exception):
         FLYNCWorkspace.load_workspace("", absolute_path)
+
+
+def test_load_workspace_empty_path():
+    with pytest.raises(Exception):
+        FLYNCWorkspace.load_workspace("flync_example", "")
 
 
 # Verify handling missing mandatory directory

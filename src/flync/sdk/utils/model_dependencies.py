@@ -5,11 +5,15 @@ Provides functions and classes to build, traverse, and query the dependency
 graph between Pydantic models that make up a FLYNC workspace.
 """
 
+import shelve
 import types
 from functools import lru_cache
+from os import makedirs
+from os.path import join
 from types import NoneType
 from typing import Annotated, Union, get_args, get_origin
 
+import platformdirs
 from pydantic import BaseModel
 
 from flync.core.annotations import External, Implied, OutputStrategy, Reference
@@ -592,10 +596,6 @@ class ModelDependencyGraph:
         return ".".join(parts)
 
 
-# since graphs are expensive to create, always use the factory
-__cached_instances: dict[type[BaseModel], ModelDependencyGraph] = {}
-
-
 def get_model_dependency_graph(root: type[BaseModel]) -> ModelDependencyGraph:
     """Return a cached :class:`ModelDependencyGraph` for the given root model.
 
@@ -609,6 +609,10 @@ def get_model_dependency_graph(root: type[BaseModel]) -> ModelDependencyGraph:
     Returns:
         ModelDependencyGraph: The (possibly cached) dependency graph.
     """
-    if root not in __cached_instances:
-        __cached_instances[root] = ModelDependencyGraph(root)
-    return __cached_instances[root]
+    key = str(root)
+    shelv_location = platformdirs.user_cache_dir("FLYNC")
+    makedirs(shelv_location, exist_ok=True)
+    with shelve.open(join(shelv_location, "dependency_graph_cache")) as cache:
+        if key not in cache:
+            cache[key] = ModelDependencyGraph(root)
+        return cache[key]

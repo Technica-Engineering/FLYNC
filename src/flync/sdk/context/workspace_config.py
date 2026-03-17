@@ -45,6 +45,8 @@ class WorkspaceConfiguration:
             set on a model are omitted from serialized output.
         root_model (Type[FLYNCBaseModel]): The root Pydantic model class used
             to validate workspace contents.
+        map_objects (bool): tells the workspace if it should map all objects
+            in the workspace (reduces performance).
         list_objects_mode (ListObjectsMode): Controls how objects are keyed
             when listed. Defaults to ``INDEX | NAME``.
     """
@@ -55,6 +57,7 @@ class WorkspaceConfiguration:
     )
     exclude_unset: bool = True
     root_model: Type[FLYNCBaseModel] = FLYNCModel
+    map_objects: bool = False
     list_objects_mode = ListObjectsMode.INDEX | ListObjectsMode.NAME
 
     @classmethod

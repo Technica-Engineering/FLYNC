@@ -53,24 +53,6 @@ TEST_MODEL_FLLYNC_PATHS = [
 ]
 
 
-def test_load_workspace_from_flync_object(get_flync_example_path):
-    workspace_name_object = "flync_workspace_from_folder"
-    loaded_ws = FLYNCWorkspace.load_workspace(
-        workspace_name_object, get_flync_example_path
-    )
-    assert loaded_ws is not None
-    # To be improved.
-    assert loaded_ws.flync_model is not None
-    assert loaded_ws.flync_model.ecus
-    assert loaded_ws.flync_model.topology
-    assert loaded_ws.flync_model.topology.system_topology
-    assert loaded_ws.flync_model.general
-    assert loaded_ws.flync_model.general.someip_config
-    assert loaded_ws.flync_model.general.tcp_profiles
-    assert loaded_ws.flync_model.metadata
-    assert model_has_socket(loaded_ws.flync_model)
-
-
 def test_workspace_validator_api(get_flync_example_path):
     validation_result = validate_workspace(get_flync_example_path)
     assert validation_result.state == WorkspaceState.VALID

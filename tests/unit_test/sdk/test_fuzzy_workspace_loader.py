@@ -143,7 +143,6 @@ def __run_script(
     return result.returncode
 
 
-@pytest.mark.skip("skipped until output of test is improved.")
 @pytest.mark.parametrize(
     "seed",
     range(ITERATIONS),

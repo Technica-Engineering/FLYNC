@@ -23,7 +23,7 @@ class Document(object):
         source-position tracking, or None if not parsed.
     """
 
-    def __init__(self, uri: PathType, text: str):
+    def __init__(self, uri: PathType, text: str, needs_compose: bool):
         """Initialize a Document instance.
 
         Args:
@@ -32,7 +32,9 @@ class Document(object):
         """
         self.uri: PathType = uri
         self.text = text
+        self.needs_compose = needs_compose
         self.ast: Any | None = None
+        self.compose_ast = None
 
     def parse(self):
         """Parse the YAML text into an abstract syntax tree.
@@ -43,7 +45,9 @@ class Document(object):
         Returns: None
         """
         self.ast = yaml.load(self.text)
-        self.compose_ast = yaml.compose(self.text)
+        # only needed for object maps, so can be ignored otherwise
+        if self.needs_compose:
+            self.compose_ast = yaml.compose(self.text)
 
     def update_text(self, text: str):
         """Update the document's text and re-parse it.
