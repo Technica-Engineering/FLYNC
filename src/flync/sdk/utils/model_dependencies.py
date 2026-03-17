@@ -8,7 +8,8 @@ graph between Pydantic models that make up a FLYNC workspace.
 import shelve
 import types
 from functools import lru_cache
-from os import makedirs
+from importlib.metadata import version
+from os import listdir, makedirs, remove
 from os.path import join
 from types import NoneType
 from typing import Annotated, Union, get_args, get_origin
@@ -596,6 +597,35 @@ class ModelDependencyGraph:
         return ".".join(parts)
 
 
+_cache_cleaned = False
+
+
+def delete_unwanted_cache_files(cache_location: str, cache_file_name: str):
+    """deletes the cache files of the library when different.
+
+    Args:
+        cache_location (str): The location of the cache files.
+        cache_file_name (str): The name of the cache file to keep.
+    """
+    for f in listdir(cache_location):
+        if cache_file_name not in f:
+            remove(join(cache_location, f))
+
+
+def cleanup_old_caches():
+    """Resets the cache of the library if the current version is different."""
+    global _cache_cleaned
+    current_flync_version = version("flync")
+    shelv_location = platformdirs.user_cache_dir("FLYNC")
+    makedirs(shelv_location, exist_ok=True)
+    shelv_file_prefix = "dependency_graph_cache"
+    shelv_file_name = "_".join([shelv_file_prefix, current_flync_version])
+    if not _cache_cleaned:
+        delete_unwanted_cache_files(shelv_location, shelv_file_name)
+        _cache_cleaned = True
+    return shelv_location, shelv_file_name
+
+
 def get_model_dependency_graph(root: type[BaseModel]) -> ModelDependencyGraph:
     """Return a cached :class:`ModelDependencyGraph` for the given root model.
 
@@ -610,9 +640,8 @@ def get_model_dependency_graph(root: type[BaseModel]) -> ModelDependencyGraph:
         ModelDependencyGraph: The (possibly cached) dependency graph.
     """
     key = str(root)
-    shelv_location = platformdirs.user_cache_dir("FLYNC")
-    makedirs(shelv_location, exist_ok=True)
-    with shelve.open(join(shelv_location, "dependency_graph_cache")) as cache:
+    shelv_location, shelv_file_name = cleanup_old_caches()
+    with shelve.open(join(shelv_location, shelv_file_name)) as cache:
         if key not in cache:
             cache[key] = ModelDependencyGraph(root)
         return cache[key]

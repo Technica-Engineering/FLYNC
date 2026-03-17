@@ -1,5 +1,3 @@
-import importlib
-
 import pytest
 
 from flync.core.base_models import (
@@ -19,6 +17,8 @@ CENTRAL_REGISTRIES = [
     DictInstances,
 ]
 
+from flync.sdk.utils.model_dependencies import cleanup_old_caches
+
 
 def reset_all_registries(base_cls: BaseRegistry):
     base_cls.reset()
@@ -35,3 +35,4 @@ def reset_global_registery_function():
 @pytest.fixture(autouse=True)
 def reset_global_registery():
     reset_global_registery_function()
+    cleanup_old_caches()
