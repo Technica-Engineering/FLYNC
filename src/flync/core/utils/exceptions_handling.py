@@ -86,7 +86,8 @@ def safe_yaml_position(  # noqa # nosonar
                 field = current_model.model_fields.get(part)
                 annotation = field.annotation if field else None
             else:
-                # current_model is already a container generic (e.g. dict[str, Model])
+                # current_model is already a container generic
+                # (e.g. dict[str, Model])
                 annotation = current_model
 
             if annotation is None:
@@ -98,7 +99,7 @@ def safe_yaml_position(  # noqa # nosonar
             if origin in (list, tuple) and isinstance(part, int):
                 current_model = args[0] if args else None
             elif origin is dict and not isinstance(part, int):
-                current_model = args[1] if len(args) > 1 else None
+                current_model = args[1] if len(args) > 1 else None  # type: ignore[misc]
             elif origin is None:
                 current_model = annotation
             else:
