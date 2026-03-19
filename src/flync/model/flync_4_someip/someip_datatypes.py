@@ -1,13 +1,7 @@
 """defines the base class each datatype shares"""
 
-from typing import (
-    Annotated,
-    ClassVar,
-    List,
-    Literal,
-    Optional,
-    Union as TypingUnion,
-)
+from typing import Annotated, ClassVar, List, Literal, Optional
+from typing import Union as TypingUnion
 
 from pydantic import (
     BaseModel,
