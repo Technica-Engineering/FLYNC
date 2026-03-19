@@ -79,20 +79,32 @@ def safe_yaml_position(  # noqa # nosonar
                 return _fallback_position(parent)
 
             # Descend model if available
-            if current_model:
+            if not current_model:
+                continue
+
+            if hasattr(current_model, "model_fields"):
                 field = current_model.model_fields.get(part)
-                if field:
-                    annotation = field.annotation
-                    # For List[Model], extract inner type
-                    origin = getattr(annotation, "__origin__", None)
-                    if origin in (list, tuple):
-                        current_model = getattr(
-                            annotation, "__args__", [None]
-                        )[0]
-                    else:
-                        current_model = annotation
-                else:
-                    current_model = None
+                annotation = field.annotation if field else None
+            else:
+                # current_model is already a container generic (e.g. dict[str, Model])
+                annotation = current_model
+
+            if annotation is None:
+                current_model = None
+                continue
+
+            origin = getattr(annotation, "__origin__", None)
+            args = getattr(annotation, "__args__", None) or ()
+            if origin in (list, tuple) and isinstance(part, int):
+                current_model = args[0] if args else None
+            elif origin is dict and not isinstance(part, int):
+                current_model = args[1] if len(args) > 1 else None
+            elif origin is None:
+                current_model = annotation
+            else:
+                current_model = None
+            if not hasattr(current_model, "model_fields"):
+                current_model = None
 
     # Get line/column for final key or index
     return _extract_position(parent, last_key)
