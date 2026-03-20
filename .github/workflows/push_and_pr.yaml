@@ -78,7 +78,9 @@ jobs:
           mkdir type-check-reports
 
       - name: Run mypy
-        run: poetry run mypy src --show-error-codes --pretty --install-types --non-interactive | tee type-check-reports/mypy-report.txt
+        run: |
+          set -o pipefail
+          poetry run mypy src --show-error-codes --pretty --install-types --non-interactive | tee type-check-reports/mypy-report.txt
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v7
