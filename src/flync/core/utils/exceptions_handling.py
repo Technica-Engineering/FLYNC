@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Set, Tuple, Type
+from typing import Any, List, Optional, Set, Tuple, Type, get_args, get_origin
 
 from pydantic import BaseModel, TypeAdapter, ValidationError
 from pydantic_core import ErrorDetails, InitErrorDetails, PydanticCustomError
@@ -94,8 +94,8 @@ def safe_yaml_position(  # noqa # nosonar
                 current_model = None
                 continue
 
-            origin = getattr(annotation, "__origin__", None)
-            args: tuple[Any, ...] = getattr(annotation, "__args__", ())
+            origin = get_origin(annotation)
+            args: tuple[Any, ...] = get_args(annotation)
             if origin in (list, tuple) and isinstance(part, int):
                 current_model = args[0] if args else None
             elif origin is dict and not isinstance(part, int):
