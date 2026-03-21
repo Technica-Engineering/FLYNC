@@ -1,4 +1,13 @@
-from typing import Any, ClassVar, Dict, List, Literal, Optional, Union
+from typing import (
+    Any,
+    ClassVar,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Union,
+    Annotated,
+)
 
 from pydantic import (
     Field,
@@ -9,6 +18,7 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+from flync.core.annotations import Implied, ImpliedStrategy
 from pydantic.networks import IPvAnyAddress
 
 from flync.core.base_models import DictInstances, FLYNCBaseModel
@@ -160,7 +170,10 @@ class Socket(FLYNCBaseModel):
         (only applicable for sockets with a multicast endpoint_type).
     """
 
-    name: str = Field()
+    name: Annotated[
+        str,
+        Implied(strategy=ImpliedStrategy.FILE_NAME | ImpliedStrategy.OPTIONAL),
+    ] = Field()
     endpoint_address: IPvAnyAddress = Field()
     port_no: int = Field()
     deployments: Optional[List[DeploymentUnion]] = Field(default_factory=list)
