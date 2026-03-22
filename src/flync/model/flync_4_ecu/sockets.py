@@ -170,10 +170,7 @@ class Socket(FLYNCBaseModel):
         (only applicable for sockets with a multicast endpoint_type).
     """
 
-    name: Annotated[
-        str,
-        Implied(strategy=ImpliedStrategy.FILE_NAME | ImpliedStrategy.OPTIONAL),
-    ] = Field()
+    name: str = Field()
     endpoint_address: IPvAnyAddress = Field()
     port_no: int = Field()
     deployments: Optional[List[DeploymentUnion]] = Field(default_factory=list)

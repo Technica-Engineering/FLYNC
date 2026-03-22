@@ -323,9 +323,9 @@ class FLYNCWorkspace(object):
             implied: Implied | None = get_metadata(
                 field_info.metadata, Implied
             )
-            if (
-                implied is not None
-                and ImpliedStrategy.OPTIONAL not in implied.strategy
+            if implied is not None and (
+                ImpliedStrategy.FILE_NAME in implied.strategy
+                or ImpliedStrategy.FOLDER_NAME in implied.strategy
             ):
                 exclude.add(field_name)
 
@@ -883,8 +883,8 @@ class FLYNCWorkspace(object):
             )
             return None
 
-    @staticmethod
     def __handle_implied_field_load(
+        self,
         path: Path,
         module_load_info: dict,
         field_name: str,
@@ -893,6 +893,8 @@ class FLYNCWorkspace(object):
         if implied is not None:
             if ImpliedStrategy.FOLDER_NAME in implied.strategy:
                 module_load_info[field_name] = path.name
+            elif ImpliedStrategy.FILE_NAME in implied.strategy:
+                module_load_info[field_name] = self.name_form_file(path.name)
 
     def __handle_external_field_load(
         self,
