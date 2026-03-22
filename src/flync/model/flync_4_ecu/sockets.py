@@ -44,7 +44,7 @@ class IPv4AddressEndpoint(IPv4AddressEntry):
     """
 
     sockets: Optional[List[Union["SocketTCP", "SocketUDP"]]] = Field(
-        default_factory=list, exclude=True
+        default_factory=list
     )
 
     @model_validator(mode="after")
@@ -79,7 +79,7 @@ class IPv6AddressEndpoint(IPv6AddressEntry):
     """
 
     sockets: Optional[List[Union["SocketTCP", "SocketUDP"]]] = Field(
-        default_factory=list, exclude=True
+        default_factory=list
     )
 
     @model_validator(mode="after")
