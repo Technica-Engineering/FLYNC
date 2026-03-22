@@ -6,6 +6,7 @@ from typing import (
     Literal,
     Optional,
     Union,
+    Annotated,
 )
 
 from pydantic import (
@@ -17,6 +18,7 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+from flync.core.annotations import Implied, ImpliedStrategy
 from pydantic.networks import IPvAnyAddress
 
 from flync.core.base_models import DictInstances, FLYNCBaseModel
@@ -44,7 +46,7 @@ class IPv4AddressEndpoint(IPv4AddressEntry):
     """
 
     sockets: Optional[List[Union["SocketTCP", "SocketUDP"]]] = Field(
-        default_factory=list
+        default_factory=list, exclude=True
     )
 
     @model_validator(mode="after")
@@ -79,7 +81,7 @@ class IPv6AddressEndpoint(IPv6AddressEntry):
     """
 
     sockets: Optional[List[Union["SocketTCP", "SocketUDP"]]] = Field(
-        default_factory=list
+        default_factory=list, exclude=True
     )
 
     @model_validator(mode="after")
