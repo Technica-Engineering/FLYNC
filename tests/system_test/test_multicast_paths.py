@@ -48,7 +48,8 @@ def test_multicast_paths_no_tx(tmpdir):
     update_yaml_content(file_to_update, "multicast_tx:", "")
     update_yaml_content(file_to_update, "- 224.0.0.1", "")
 
-    data = read_yaml(file_to_update)
+    data: dict = read_yaml(file_to_update)
+    data["name"] = "tested socket"
     SocketContainer.model_validate(data)
 
     with pytest.raises(ValidationError) as exc_info:

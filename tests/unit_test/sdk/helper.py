@@ -1,4 +1,5 @@
 import json
+import os
 from collections.abc import Mapping
 from pathlib import Path
 from types import MappingProxyType
@@ -29,26 +30,27 @@ def flatten_yaml(data, parent_key="", sep="."):
 
 def load_yaml_folder(folder_path: Path, sep="."):
     result = {}
-    sorted_files = sorted(folder_path.rglob("*.*"), key=lambda f: f.name)
-    for yaml_file in sorted_files:
-        if yaml_file.suffix not in (".yml", ".yaml"):
-            continue
+    for dirpath, dirnames, filenames in os.walk(folder_path):
+        dirnames.sort()
+        dir_path = Path(dirpath)
+        relative_dir = dir_path.relative_to(folder_path)
+        folder_key = sep.join(relative_dir.parts)
 
-        with open(yaml_file, "r") as f:
-            data = yaml.safe_load(f)
+        for index, filename in enumerate(sorted(filenames)):
+            if Path(filename).suffix not in (".yml", ".yaml"):
+                continue
 
-        if data is None:
-            continue
+            with open(dir_path / filename, "r") as f:
+                data = yaml.safe_load(f)
 
-        flat_data = flatten_yaml(data, sep=sep)
+            if data is None:
+                continue
 
-        # Build prefix: folder.subfolder.file
-        relative_path = yaml_file.relative_to(folder_path)
-        file_key = sep.join(relative_path.with_suffix("").parts[:-1])
+            flat_data = flatten_yaml(data, sep=sep)
+            file_key = f"{folder_key}{sep}{index}"
 
-        for key, value in flat_data.items():
-            full_key = f"{file_key}{sep}{key}"
-            result[full_key] = value
+            for key, value in flat_data.items():
+                result[f"{file_key}{sep}{key}"] = value
     return result
 
 
