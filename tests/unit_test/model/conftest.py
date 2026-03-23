@@ -328,12 +328,12 @@ def udp_socket_entry_ipv6():
 def someip_sd_server_timings_profile_entry():
     someip_sd_timings_profile_entry = SDTimings(
         profile_id="server_default",
-        initial_delay_min=0.050,
-        initial_delay_max=0.100,
-        repetitions_base_delay=0.300,
+        initial_delay_min=50,
+        initial_delay_max=100,
+        repetitions_base_delay=300,
         repetitions_max=3,
-        request_response_delay_min=0.050,
-        request_response_delay_max=0.100,
+        request_response_delay_min=50,
+        request_response_delay_max=100,
         offer_cyclic_delay=1,
         offer_ttl=3,
     )
@@ -344,12 +344,12 @@ def someip_sd_server_timings_profile_entry():
 def someip_sd_client_timings_profile_entry():
     someip_sd_timings_profile_entry = SDTimings(
         profile_id="client_default",
-        initial_delay_min=0.050,
-        initial_delay_max=0.100,
-        repetitions_base_delay=0.300,
+        initial_delay_min=50,
+        initial_delay_max=100,
+        repetitions_base_delay=300,
         repetitions_max=3,
-        request_response_delay_min=0.050,
-        request_response_delay_max=0.100,
+        request_response_delay_min=50,
+        request_response_delay_max=100,
         find_ttl=3,
         subscribe_ttl=3,
     )
@@ -361,7 +361,7 @@ def someip_event_default_timings_profile():
     someip_event_default_timings_profile = SOMEIPEventTimings(
         profile_id="event_default",
         type="event",
-        debounce=0.1,
+        debounce=100,
         max_retention=10
     )
     yield someip_event_default_timings_profile
@@ -372,7 +372,7 @@ def someip_method_default_timings_profile():
     someip_method_default_timings_profile = SOMEIPMethodTimings(
         profile_id="method_default",
         type="method",
-        req_debounce=0.1,
+        req_debounce=100,
         req_max_retention=10,
         res_max_retention=10
     )
@@ -384,13 +384,13 @@ def someip_field_default_timings_profile():
     someip_field_default_timings_profile = SOMEIPFieldTimings(
         profile_id="field_default",
         type="field",
-        getter_req_debounce=0.1,
+        getter_req_debounce=100,
         getter_req_max_retention=10,
         getter_res_max_retention=10,
-        setter_req_debounce=0.1,
+        setter_req_debounce=100,
         setter_req_max_retention=10,
         setter_res_max_retention=10,
-        notifier_debounce=0.1,
+        notifier_debounce=100,
         notifier_max_retention=10
     )
     yield someip_field_default_timings_profile
@@ -401,7 +401,7 @@ def someip_event_custom_timings_profile():
     someip_event_custom_timings_profile = SOMEIPEventTimings(
         profile_id="event_custom",
         type="event",
-        debounce=0.1,
+        debounce=100,
         max_retention=10
     )
     yield someip_event_custom_timings_profile
@@ -412,7 +412,7 @@ def someip_method_custom_timings_profile():
     someip_method_custom_timings_profile = SOMEIPMethodTimings(
         profile_id="method_custom",
         type="method",
-        req_debounce=0.1,
+        req_debounce=100,
         req_max_retention=10,
         res_max_retention=10
     )
@@ -424,13 +424,13 @@ def someip_field_custom_timings_profile():
     someip_field_custom_timings_profile = SOMEIPFieldTimings(
         profile_id="field_custom",
         type="field",
-        getter_req_debounce=0.1,
+        getter_req_debounce=100,
         getter_req_max_retention=10,
         getter_res_max_retention=10,
-        setter_req_debounce=0.1,
+        setter_req_debounce=100,
         setter_req_max_retention=10,
         setter_res_max_retention=10,
-        notifier_debounce=0.1,
+        notifier_debounce=100,
         notifier_max_retention=10
     )
     yield someip_field_custom_timings_profile
