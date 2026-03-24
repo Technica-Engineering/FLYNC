@@ -278,6 +278,13 @@ class SOMEIPField(FLYNCBaseModel):
 
     reliable : bool
         Indicates whether the event is transmitted reliably.
+
+    notifier_e2e : :class:`~E2EConfig`, optional
+        E2E configuration for the field notifier.
+
+    someip_timing : str, optional
+        Name of the timings definition.
+        Defaults to "field_default".
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True)
@@ -299,6 +306,7 @@ class SOMEIPField(FLYNCBaseModel):
     ] = Field(description="identifies the field getter", default=None)
 
     reliable: bool = Field(default=False)
+    notifier_e2e: Optional[E2EConfig] = Field(default=None)
     someip_timing: Optional[str] = Field(
         description="SOME/IP timings for the field", default="field_default"
     )
@@ -379,8 +387,15 @@ class SOMEIPEvent(FLYNCBaseModel):
     reliable : bool
         Indicates whether the event is transmitted reliably.
 
+    e2e : :class:`~E2EConfig`, optional
+        E2E configuration for the event.
+
     parameters list[:class:`~SOMEIPParameters`]
-        Parameters of the Event
+        Parameters of the event
+
+    someip_timing : str, optional
+        Name of the timings definition.
+        Defaults to "event_default".
     """
 
     INSTANCES_BY_NAME: ClassVar[Dict[str, "SOMEIPEvent"]] = {}
@@ -524,6 +539,9 @@ class SOMEIPMethod(FLYNCBaseModel):
     input_parameters : list[:class:`~SOMEIPParameters`]
         The parameters of the Request
 
+    someip_timing : str, optional
+        Name of the timings definition.
+        Defaults to "method_default".
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True)
@@ -962,10 +980,17 @@ class SOMEIPConfig(FLYNCBaseModel):
         )
 
         for service in self.services:
+            for field in service.fields:
+                if field.notifier_e2e is not None:
+                    profile, data_id = field.notifier_e2e
+                    per_profile[profile][data_id].append(
+                        (service, field, field.notifier_e2e)
+                    )
             for event in service.events:
                 if event.e2e is not None:
-                    per_profile[event.e2e.profile][event.e2e.data_id].append(
-                        (service, event)
+                    profile, data_id = event.e2e
+                    per_profile[profile][data_id].append(
+                        (service, event, event.e2e)
                     )
 
         errors = []
@@ -973,8 +998,8 @@ class SOMEIPConfig(FLYNCBaseModel):
             for data_id, entries in by_id.items():
                 if len(entries) > 1:
                     entity_list = ", ".join(
-                        f"{type(service).__name__}.{type(event).__name__}"
-                        for service, event in entries
+                        f"{type(service).__name__}.{type(element).__name__}"
+                        for service, element, e2e in entries
                     )
                     errors.append(
                         f"Duplicate e2e.data_id '{data_id}' "
