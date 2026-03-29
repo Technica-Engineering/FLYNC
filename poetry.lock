@@ -91,31 +91,31 @@ trio = ["trio (>=0.31.0) ; python_version < \"3.10\"", "trio (>=0.32.0) ; python
 
 [[package]]
 name = "approval-utilities"
-version = "17.4.0"
+version = "17.4.1"
 description = "Utilities for your production code that work well with approvaltests"
 optional = false
 python-versions = ">=3.8"
 groups = ["test"]
 files = [
-    {file = "approval_utilities-17.4.0-py3-none-any.whl", hash = "sha256:af3d59f7671c81e8f980f5cc1ea240b2ba06b63ef1f327dde13861eef344a31a"},
-    {file = "approval_utilities-17.4.0.tar.gz", hash = "sha256:ae3b42c463ac043fc9d370c913667ba53f8b8fdabc0048b41a9bbfcdcf4de07b"},
+    {file = "approval_utilities-17.4.1-py3-none-any.whl", hash = "sha256:85e9e887b00fed008c577c8ef351b7e1cbbe4a6f8538721dd19772ee7f53dd29"},
+    {file = "approval_utilities-17.4.1.tar.gz", hash = "sha256:9e824b8cfd10b48fb2d72419ba79d4906aad181bfbd2a4c21b3a1d0e1085e595"},
 ]
 
 [[package]]
 name = "approvaltests"
-version = "17.4.0"
+version = "17.4.1"
 description = "Assertion/verification library to aid testing"
 optional = false
 python-versions = ">=3.8"
 groups = ["test"]
 files = [
-    {file = "approvaltests-17.4.0-py3-none-any.whl", hash = "sha256:2d84d598ccadce136501e1a5e742b6e2167878566b5634958dfadb36bdd6a256"},
-    {file = "approvaltests-17.4.0.tar.gz", hash = "sha256:e3ddb8db5906764fba9660766acb710f4240d9b3e6adc510667bfef07ea930da"},
+    {file = "approvaltests-17.4.1-py3-none-any.whl", hash = "sha256:f20487dc04ac0e2fdc06e86217f6dfa802245e46cd32a1a4d1127e25a69cc5fb"},
+    {file = "approvaltests-17.4.1.tar.gz", hash = "sha256:ac0cfc07770b7f325d00941d8a97259b6da8ad0cf99ccfc33bdfa9eb0da044c2"},
 ]
 
 [package.dependencies]
 allpairspy = ">=2.1.0"
-approval_utilities = "17.4.0"
+approval_utilities = "17.4.1"
 beautifulsoup4 = ">=4.4.0"
 empty-files = ">=0.0.3"
 mock = ">=5.1.0"
