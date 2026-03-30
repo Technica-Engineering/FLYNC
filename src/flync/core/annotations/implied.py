@@ -1,15 +1,15 @@
 from dataclasses import dataclass
-from enum import IntEnum
+from enum import IntFlag
 
 
-class ImpliedStrategy(IntEnum):
+class ImpliedStrategy(IntFlag):
     """
     The strategy on how an implied field will be calculated.
     """
 
-    AUTO = 0
-    FOLDER_NAME = AUTO
-    FILE_NAME = 1
+    FOLDER_NAME = 0b1
+    FILE_NAME = 0b10
+    AUTO = FOLDER_NAME
 
 
 @dataclass(frozen=True)

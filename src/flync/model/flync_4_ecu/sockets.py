@@ -12,10 +12,7 @@ from pydantic import (
 from pydantic.networks import IPvAnyAddress
 
 from flync.core.base_models import DictInstances, FLYNCBaseModel
-from flync.core.datatypes.ipaddress import (
-    IPv4AddressEntry,
-    IPv6AddressEntry,
-)
+from flync.core.datatypes.ipaddress import IPv4AddressEntry, IPv6AddressEntry
 from flync.core.utils.exceptions import err_minor
 from flync.model.flync_4_someip import (
     SOMEIPSDDeployment,

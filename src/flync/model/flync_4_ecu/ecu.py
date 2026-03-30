@@ -123,9 +123,9 @@ class ECU(UniqueName):
             output_structure=OutputStrategy.FOLDER,
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
-    ] = Field(default_factory=list, exclude=True)
+    ] = Field(default_factory=list)
     multicast_groups: Optional[List[MulticastGroupMembership]] = Field(
-        default_factory=list, exclude=True
+        default_factory=list
     )
 
     def model_post_init(self, context):
