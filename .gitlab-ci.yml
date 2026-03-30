@@ -1,0 +1,180 @@
+.base:
+  image: python:3.12
+  tags:
+    - docker-linux
+  before_script:
+    - pip install --upgrade pip
+    - pip install "poetry>=2.0.0,<3.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
+
+stages:
+  - static-analysis
+  - tests
+  - sonar
+  - code_review
+  - deploy
+
+lint:
+  extends: .base
+  stage: static-analysis
+  allow_failure: false
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
+    - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
+  script:
+    - poetry install --no-root --only static-analysis
+    - poetry run flake8 src
+    - poetry run flake8 src --format=html --htmldir=flake8-report
+  artifacts:
+    expire_in: 2 days
+    paths:
+      - flake8-report
+    when: on_failure
+
+format:
+  extends: .base
+  stage: static-analysis
+  allow_failure: false
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
+    - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
+  script:
+    - poetry install --no-root --only static-analysis
+    - mkdir format-reports
+    - poetry run black --check --diff --color src > format-reports/black-report.diff
+  artifacts:
+    expire_in: 2 days
+    paths:
+      - format-reports
+    when: on_failure
+
+isort:
+  extends: .base
+  stage: static-analysis
+  allow_failure: false
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
+    - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
+  script:
+    - poetry install --no-root --only static-analysis
+    - mkdir format-reports
+    - poetry run isort --check --diff --color --line-length 79 src > format-reports/isort-report.diff
+  artifacts:
+    expire_in: 2 days
+    paths:
+      - format-reports
+    when: on_failure
+
+type_check:
+  extends: .base
+  stage: static-analysis
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
+    - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
+  script:
+    - poetry install --with static-analysis
+    - mkdir type-check-reports
+    - poetry run mypy src --show-error-codes --pretty --install-types --non-interactive | tee type-check-reports/mypy-report.txt
+  artifacts:
+    expire_in: 2 days
+    paths:
+      - type-check-reports/
+    when: on_failure
+
+examples_validation:
+  extends: .base
+  stage: tests
+  allow_failure: true
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
+    - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
+  script:
+    - poetry install
+    - poetry run python src/flync/sdk/helpers/validate_examples.py
+
+pytest:
+  extends: .base
+  stage: tests
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
+    - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
+    - if: '$CI_COMMIT_TAG'
+  script:
+    - poetry install --with test
+    - poetry run pytest
+    - poetry run coverage xml
+    - poetry run coverage report
+  coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
+  artifacts:
+    when: always
+    expire_in: "30 days"
+    paths:
+      - report.xml
+      - coverage.xml
+      - tests/unit_test/sdk/approved_files/*
+      - tests/unit_test/sdk/fuzzed/*
+      - tests/unit_test/sdk/generated/*
+    reports:
+      junit: report.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+
+sonar:scan:
+  stage: sonar
+  image:
+    name: sonarsource/sonar-scanner-cli:latest
+    entrypoint: [""]
+  variables:
+    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
+    GIT_DEPTH: "0"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"
+    - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
+  needs:
+    - job: pytest
+      artifacts: true
+  script:
+    - sonar-scanner
+  allow_failure: false
+  interruptible: true
+  tags:
+    - docker-linux
+
+pages:
+  extends: .base
+  stage: deploy
+  needs: [pytest]
+  script:
+    - cd ./docs
+    - poetry install --with docs
+    - make html
+    - cd .. && mv ./docs/build/html public
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"
+    - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
+  artifacts:
+    paths:
+      - public
+
+build:
+  extends: .base
+  stage: deploy
+  needs: [pytest]
+  script:
+    - poetry build
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
+    - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
+    - if: '$CI_COMMIT_TAG'
+  artifacts:
+    expire_in: 30 days
+    paths:
+      - dist
