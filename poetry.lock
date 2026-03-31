@@ -2560,14 +2560,14 @@ test = ["httpx", "pytest (>=6)"]
 
 [[package]]
 name = "sphinx-autodoc-typehints"
-version = "3.9.8"
+version = "3.9.11"
 description = "Type hints (PEP 484) support for the Sphinx autodoc extension"
 optional = false
 python-versions = ">=3.12"
 groups = ["docs"]
 files = [
-    {file = "sphinx_autodoc_typehints-3.9.8-py3-none-any.whl", hash = "sha256:df123ec82479934fed27e31d4ccdcf382901c5d9481450fc224054496e574466"},
-    {file = "sphinx_autodoc_typehints-3.9.8.tar.gz", hash = "sha256:1e36b31ee593b7e838988045918b7fa965f5062abbd6800af96d5e2c3f17130e"},
+    {file = "sphinx_autodoc_typehints-3.9.11-py3-none-any.whl", hash = "sha256:b5cbc7a56a9338021ab7a4e6aa132aa7829fa2f8b64eca927faab64cd3971b80"},
+    {file = "sphinx_autodoc_typehints-3.9.11.tar.gz", hash = "sha256:28516c916b41fa83271ee2ab9191b73807e4113d3bfb94222ac87d8d9795b6e7"},
 ]
 
 [package.dependencies]
