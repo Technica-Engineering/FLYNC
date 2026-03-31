@@ -1,3 +1,5 @@
+"""Base classes that automatically collect model instances in a list."""
+
 from typing import ClassVar, Generic, List, TypeVar
 
 import pydantic
@@ -11,6 +13,11 @@ T = TypeVar("T", bound="FLYNCBaseModel")
 
 
 class ListInstances(FLYNCBaseModel, Generic[T], BaseRegistry):
+    """
+    Base class that collects all validated
+    instances into a class-level list.
+    """
+
     INSTANCES: ClassVar[List[T]] = []
     _added_to_instances: bool = PrivateAttr(False)
 
@@ -29,6 +36,8 @@ class ListInstances(FLYNCBaseModel, Generic[T], BaseRegistry):
 
 
 class NamedListInstances(UniqueName, Generic[T]):
+    """Base class that registers named instances in a class-level list."""
+
     INSTANCES: ClassVar[List[T]] = []
     _added_to_instances: bool = PrivateAttr(False)
 

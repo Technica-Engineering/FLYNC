@@ -1,3 +1,8 @@
+"""
+Defines the supported physical layer (PHY) interface
+configurations used in the FLYNC model
+"""
+
 from typing import Literal, Optional
 
 from pydantic import Field

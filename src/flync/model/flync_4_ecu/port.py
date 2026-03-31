@@ -1,3 +1,5 @@
+"""Defines the ECU Port model for FLYNC"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar, Dict, List, Literal, Optional

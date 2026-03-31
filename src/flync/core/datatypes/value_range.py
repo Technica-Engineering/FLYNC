@@ -1,3 +1,5 @@
+"""Defines an inclusive integer range model."""
+
 from pydantic import Field
 
 from flync.core.base_models.base_model import FLYNCBaseModel

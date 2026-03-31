@@ -6,7 +6,6 @@ from rich.text import Text
 from rich.tree import Tree
 from rich.console import Console
 
-
 EXAMPLE_PATH = r"examples/flync_example"
 OUTFILE = r"docs/source/_scripts/generated/flync_tree.rst"
 

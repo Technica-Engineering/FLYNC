@@ -1,3 +1,7 @@
+"""
+Define QoS models in FLYNC.
+"""
+
 from ipaddress import IPv4Address, IPv6Address
 from typing import Annotated, List, Literal, Optional, Self
 

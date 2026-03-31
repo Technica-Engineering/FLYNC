@@ -1,3 +1,5 @@
+"""Defines the ECU model for FLYNC."""
+
 from itertools import product
 from typing import Annotated, List, Optional
 
@@ -27,7 +29,8 @@ from flync.model.flync_4_ecu.switch import Switch, SwitchPort
 from flync.model.flync_4_metadata import ECUMetadata
 
 
-def RESET_unique_name_cache():
+def reset_unique_name_cache():
+    """Reset cached unique names for controller interfaces and switch ports."""
     ControllerInterface.NAMES.clear()
     SwitchPort.NAMES.clear()
 
@@ -212,7 +215,7 @@ class ECU(UniqueName):
         """
         allows the children attributes to access ._ecu
         """
-        RESET_unique_name_cache()
+        reset_unique_name_cache()
         [setattr(p, "_ecu", self) for p in self.ports]  # noqa
         [setattr(c, "_ecu", self) for c in self.topology.connections]  # noqa
         return self

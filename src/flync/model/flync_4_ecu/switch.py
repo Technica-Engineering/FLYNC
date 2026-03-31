@@ -1,3 +1,5 @@
+"""Defines the automotive Ethernet Switch and its components for FLYNC"""
+
 from __future__ import annotations
 
 from typing import (

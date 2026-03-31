@@ -1,3 +1,9 @@
+"""
+This package provides models for representing an ECU
+in the FLYNC architecture, including controllers, ports,
+switches, sockets, and internal topology definitions.
+"""
+
 from .controller import (
     Controller,
     ControllerInterface,

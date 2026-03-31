@@ -1,3 +1,7 @@
+"""
+This package provides security models for FLYNC.
+"""
+
 from .firewall import Firewall, FirewallRule
 from .macsec import (
     IntegrityWithConfidentiality,

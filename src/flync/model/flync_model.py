@@ -1,3 +1,8 @@
+"""
+Top-level system model aggregating ECUs, topology,
+metadata, and general configuration in FLYNC.
+"""
+
 from typing import Annotated, Dict, List, Optional, Tuple
 
 from pydantic import Field, model_validator

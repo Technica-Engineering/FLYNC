@@ -1,3 +1,7 @@
+"""
+Defines PTP configuration models in FLYNC.
+"""
+
 from typing import Annotated, List, Literal, Optional
 
 from pydantic import BeforeValidator, Field

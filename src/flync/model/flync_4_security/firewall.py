@@ -1,3 +1,5 @@
+"""Defines firewall configuration models for FLYNC."""
+
 from typing import Annotated, List, Literal, Optional
 
 from pydantic import BeforeValidator, Field, field_validator, model_validator

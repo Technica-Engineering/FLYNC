@@ -1,5 +1,7 @@
-"""Base Utils that can be useful throughout the whole FLYNC Library and
-toolchain."""
+"""
+Base Utils that can be useful throughout the whole FLYNC Library and
+toolchain.
+"""
 
 import os
 from ipaddress import IPv4Address, IPv6Address, ip_address

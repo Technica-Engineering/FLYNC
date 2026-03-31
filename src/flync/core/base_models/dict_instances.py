@@ -1,3 +1,5 @@
+"""Base classes that automatically store created model instances."""
+
 from abc import abstractmethod
 from typing import Any, ClassVar, Dict, Generic, TypeVar
 
@@ -12,6 +14,9 @@ T = TypeVar("T", bound="FLYNCBaseModel")
 
 
 class DictInstances(FLYNCBaseModel, Generic[T], BaseRegistry):
+    """Base class that registers validated instances in a
+    class-level dictionary."""
+
     INSTANCES: ClassVar[Dict[Any, T]] = {}
     _added_to_instances: bool = PrivateAttr(False)
 
@@ -34,6 +39,8 @@ class DictInstances(FLYNCBaseModel, Generic[T], BaseRegistry):
 
 
 class NamedDictInstances(UniqueName, Generic[T]):
+    """Base class for named models registered in a class-level dictionary."""
+
     INSTANCES: ClassVar[Dict[str, T]] = {}
     _added_to_instances: bool = PrivateAttr(False)
 

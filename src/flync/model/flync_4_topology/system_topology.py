@@ -1,3 +1,8 @@
+"""
+Define and validate ECU connections
+within the system.
+"""
+
 from typing import Annotated, List, Literal, Optional
 
 from pydantic import Field, PrivateAttr, model_serializer, model_validator

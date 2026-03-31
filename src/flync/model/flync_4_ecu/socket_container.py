@@ -1,3 +1,5 @@
+"""Defines the socket container model in an ECU."""
+
 from typing import List, Optional
 
 from pydantic import Field

@@ -1,3 +1,8 @@
+"""
+Defines the internal connection types between ECU components
+such as ECU ports, switch ports, and controller interfaces.
+"""
+
 from typing import TYPE_CHECKING, List, Literal, Optional
 
 from pydantic import Field, PrivateAttr, RootModel, model_validator

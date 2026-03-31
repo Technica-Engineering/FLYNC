@@ -1,3 +1,5 @@
+"""External field annotations and output strategies."""
+
 from dataclasses import dataclass
 from enum import IntEnum, IntFlag
 

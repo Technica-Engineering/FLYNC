@@ -1,4 +1,4 @@
-"""this module contains classes to model datatypes"""
+"""This module contains classes to model datatypes"""
 
 from .base import Datatype
 from .bitrange import BitRange

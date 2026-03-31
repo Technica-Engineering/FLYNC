@@ -1,3 +1,5 @@
+"""Provides utilities for validating models and handling errors."""
+
 from typing import Any, List, Optional, Set, Tuple, Type, get_args, get_origin
 
 from pydantic import BaseModel, TypeAdapter, ValidationError
