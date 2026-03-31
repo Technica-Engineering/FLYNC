@@ -1,3 +1,5 @@
+"""Defines the BitRange datatype for bit-level mapping."""
+
 from pydantic import Field
 
 from .base import Datatype

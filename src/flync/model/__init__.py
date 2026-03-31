@@ -1,3 +1,9 @@
+"""
+This package provides the main FLYNC model definitions and
+aggregates all domain-specific model packages, including ECU,
+topology, security, SOME/IP, TSN, metadata, and general configuration.
+"""
+
 from ..core.base_models.base_model import FLYNCBaseModel
 from . import (
     flync_4_ecu,

@@ -1,3 +1,8 @@
+"""
+Provides annotations for fields that are
+automatically derived rather than manually set.
+"""
+
 from dataclasses import dataclass
 from enum import IntEnum
 

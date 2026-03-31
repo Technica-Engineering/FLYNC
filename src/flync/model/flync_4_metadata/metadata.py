@@ -1,3 +1,5 @@
+"""Defines metadata models for FLYNC"""
+
 from typing import Dict, Literal, Optional
 
 from packaging.version import InvalidVersion

@@ -1,3 +1,5 @@
+"""Defines MAC address model."""
+
 from typing import Annotated, Optional
 
 from pydantic import AfterValidator, ConfigDict, Field

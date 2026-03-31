@@ -1,3 +1,5 @@
+"""Defines the general system-wide configuration in FLYNC"""
+
 from typing import Annotated, List, Optional
 
 from pydantic import BeforeValidator, Field

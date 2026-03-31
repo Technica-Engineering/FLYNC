@@ -1,3 +1,5 @@
+"""Defines MACsec configuration for FLYNC."""
+
 from typing import Annotated, List, Literal, Optional, Union
 
 from pydantic import Field, model_validator

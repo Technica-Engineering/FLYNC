@@ -1,3 +1,5 @@
+"""Defines custom pydantic errors."""
+
 from pydantic_core import PydanticCustomError
 
 

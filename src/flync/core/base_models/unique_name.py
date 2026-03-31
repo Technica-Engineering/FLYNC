@@ -1,3 +1,5 @@
+"""Base class that ensures instance names are unique."""
+
 import typing
 
 import pydantic
@@ -8,6 +10,8 @@ from .resettable_model import BaseRegistry
 
 
 class UniqueName(FLYNCBaseModel, BaseRegistry):
+    """Base class that ensures instance names are unique."""
+
     NAMES: typing.ClassVar[typing.Set[str]] = set()
     name: str
     _unique_name_validated: bool = PrivateAttr(False)

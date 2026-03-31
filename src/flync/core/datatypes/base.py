@@ -1,4 +1,4 @@
-"""defines the base class each datatype shares"""
+"""Defines the base class each datatype shares"""
 
 from typing import Literal, Optional
 

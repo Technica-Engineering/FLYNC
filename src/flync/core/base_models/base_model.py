@@ -1,3 +1,5 @@
+"""Base Model that is used by FLYNC Model classes."""
+
 import logging
 from typing import Optional
 

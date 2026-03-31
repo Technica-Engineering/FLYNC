@@ -1,3 +1,8 @@
+"""
+This package provides TSN and time synchronization models
+for FLYNC.
+"""
+
 from .qos import (
     ATSInstance,
     ATSShaper,

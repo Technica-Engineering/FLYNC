@@ -1,3 +1,5 @@
+"""Defines a model mapping numeric values to descriptions."""
+
 from pydantic import Field
 
 from flync.core.base_models.base_model import FLYNCBaseModel

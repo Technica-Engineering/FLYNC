@@ -1,3 +1,9 @@
+"""
+This package provides metadata models for FLYNC,
+including system, ECU, hardware, software, and service-related
+metadata definitions.
+"""
+
 from .metadata import (
     BaseMetadata,
     BaseVersion,

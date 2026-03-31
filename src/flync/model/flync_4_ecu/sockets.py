@@ -1,3 +1,5 @@
+"""Defines sockets, IP address endpoints, and TCP/UDP models in FLYNC"""
+
 from typing import Any, ClassVar, Dict, List, Literal, Optional, Union
 
 from pydantic import (

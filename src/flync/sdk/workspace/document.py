@@ -1,3 +1,5 @@
+"""Helper for working with YAML documents."""
+
 from typing import Any
 
 from ruamel.yaml import YAML

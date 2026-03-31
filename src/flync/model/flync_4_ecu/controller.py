@@ -1,3 +1,5 @@
+"""Defines the Controller and ControllerInterface models for FLYNC."""
+
 from typing import Annotated, ClassVar, Dict, List, Literal, Optional
 
 from pydantic import (

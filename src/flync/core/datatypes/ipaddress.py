@@ -1,3 +1,5 @@
+"""Defines IPv4 and IPv6 address models."""
+
 from ipaddress import IPv4Address, IPv6Address
 from typing import Annotated
 
