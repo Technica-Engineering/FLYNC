@@ -42,7 +42,7 @@ Metadata
       The system-level identification of an ECU with optional hardware and software descriptions is defined in the metadata file.
       This is a **mandatory** file for the ECU configuration.
 
-   .. literalinclude:: ../../_static/flync_example/ecus/eth_ecu/ecu_metadata.flync.yaml
+   .. literalinclude:: ../../_static/flync_example/ecus/high_processing_core/ecu_metadata.flync.yaml
 
 .. autoclass:: flync.model.flync_4_metadata.ECUMetadata()
 

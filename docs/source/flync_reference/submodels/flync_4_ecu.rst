@@ -35,7 +35,7 @@ ECU Ports Config
       The external physical ports (and PHYs) of the ECUs of the system are configured in one dedicated file.
       For an ECU config, this file is **mandatory** since all ECUs need to define (at least) one port.
 
-   .. literalinclude:: ../../_static/flync_example/ecus/eth_ecu/ports.flync.yaml
+   .. literalinclude:: ../../_static/flync_example/ecus/high_processing_core/ports.flync.yaml
       :language: yaml
 
 
@@ -67,7 +67,7 @@ Controller Config
       This is a **mandatory** dir for the ECU configuration, since all ECUs need to define (at least) one controller.
 
 
-   .. literalinclude:: ../../_static/flync_example/ecus/eth_ecu/controllers/eth_ecu_controller1.flync.yaml
+   .. literalinclude:: ../../_static/flync_example/ecus/high_processing_core/controllers/hpc_controller1.flync.yaml
       :language: yaml
 
 
@@ -183,7 +183,7 @@ ECU Internal Topology
       This file contains all the different internal connections between entities of an ECU (ports, switch ports, controller interfaces, ...) to resolve the internal topology of the component and run validation checks on the model.
       This is a **mandatory** file for the ECU configuration, since all ECUs present (at least) one ECU port and one Controller Interface.
 
-   .. literalinclude:: ../../_static/flync_example/ecus/eth_ecu/topology.flync.yaml
+   .. literalinclude:: ../../_static/flync_example/ecus/high_processing_core/topology.flync.yaml
 
 
 Internal Connection
@@ -247,7 +247,7 @@ Socket Config
       It is advisable to keep sockets that provide similar functionality together
       (e.g. all SOME/IP sockets in the same file).
 
-   .. literalinclude:: ../../_static/flync_example/ecus/eth_ecu/sockets/socket_someip.flync.yaml
+   .. literalinclude:: ../../_static/flync_example/ecus/high_processing_core/sockets/socket_someip.flync.yaml
 
 
 .. autoclass:: flync.model.flync_4_ecu.socket_container.SocketContainer()
@@ -267,7 +267,7 @@ Options
       This file contains a list of TCP profiles that describes a bunch of TCP options that can be set in a socket.
       These profiles can be imported in a TCP socket.
 
-   .. literalinclude:: ../../_static/flync_example/ecus/eth_ecu/sockets/socket_someip.flync.yaml
+   .. literalinclude:: ../../_static/flync_example/ecus/high_processing_core/sockets/socket_someip.flync.yaml
 
 
 .. autoclass:: flync.model.flync_4_ecu.sockets.TCPOption()

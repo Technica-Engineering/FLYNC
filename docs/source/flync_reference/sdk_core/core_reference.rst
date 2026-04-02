@@ -43,8 +43,8 @@ flync.core.datatypes
 ----
 
 .. autoclass:: flync.core.datatypes.MACAddressEntry()
-.. autoclass:: flync.core.datatypes.UnicastMACAddressEntry()
-.. autoclass:: flync.core.datatypes.MulticastMACAddressEntry()
+.. autoclass:: flync.core.datatypes.MACAddressUnicast()
+.. autoclass:: flync.core.datatypes.MACAddressMulticast()
 
 ----
 
