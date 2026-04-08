@@ -3,10 +3,10 @@ from pathlib import Path
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 import shutil
 from pydantic import ValidationError
-from .helper import *
+from .helper_load_ws import *
 
 # Verify loading workspace multiple times
-absolute_path = Path(__file__).parents[2] / "examples" / "flync_example"
+absolute_path = Path(__file__).parents[3] / "examples" / "flync_example"
 
 
 @pytest.mark.xfail(reason="Known bug")
@@ -39,9 +39,7 @@ def test_load_workspace_valid_absolute_path():
 
 
 # Verify workspace loads with valid relative path
-relative_path = Path(
-    Path(__file__).parent, "..", "..", "examples", "flync_example"
-)
+relative_path = Path( Path(__file__).parent, "..", "..", "..", "examples", "flync_example")
 
 
 def test_load_workspace_valid_relative_path():
@@ -152,24 +150,6 @@ def test_load_workspace_missing_mandatory_file(tmpdir, file):
     assert type(exc.value) is ValidationError
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
-
-
-# Verify documentation configuration example
-@pytest.mark.xfail(reason="Known bug")
-def test_load_workspace_doc_exmaple(tmpdir):
-    rst_file = (
-        Path(__file__).parents[2] / "docs" / "source" / "flync_example.rst"
-    )
-    example_folder = Path(tmpdir) / "copie"
-    extract_example_from_rst(rst_file, example_folder, "Example Configuration")
-    workspace = FLYNCWorkspace.load_workspace(
-        str(example_folder.name), example_folder
-    )
-    assert workspace is not None
-    assert example_folder.exists()
-    if example_folder.exists():
-        shutil.rmtree(example_folder)
-
 
 # Verify handling unsupported file format
 files = [

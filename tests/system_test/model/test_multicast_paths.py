@@ -14,10 +14,9 @@ from flync.model.flync_4_ecu import (
 from flync.core.utils.base_utils import read_yaml, write_to_file
 import shutil
 from pydantic import ValidationError
-from .helper import *
+from tests.system_test.sdk.helper_load_ws import *
 
-absolute_path = Path(__file__).parents[2] / "examples" / "flync_example"
-
+absolute_path = Path(__file__).parents[3] / "examples" / "flync_example"
 
 def reset(class_name):
 
