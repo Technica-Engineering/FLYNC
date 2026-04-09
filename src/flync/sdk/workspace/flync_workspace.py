@@ -1396,6 +1396,26 @@ class FLYNCWorkspace(object):
         """
         return list(self.objects.keys())
 
+    def get_semantic_object_from_model(
+        self, model: FLYNCBaseModel
+    ) -> SemanticObject | None:
+        """Find and return the semantic object that corresponds
+        to a validated Flync object.
+
+        Args:
+            model (FLYNCBaseModel):
+                Validated Flync model.
+
+        Returns:
+            SemanticObject | None:
+                Optional semantic object that corresponds to Flync object.
+        """
+        for semantic_object in self.objects.values():
+            if model == semantic_object.model:
+                return semantic_object
+
+        return None
+
     # endregion
 
     # region source APIs (LSP)
