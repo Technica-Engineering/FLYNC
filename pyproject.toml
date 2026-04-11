@@ -85,7 +85,7 @@ types-pyyaml = "^6.0.12.20250915"
 twine = "^6.2.0"
 
 [tool.pytest.ini_options]
-addopts = "-n 0 --cov=flync --cov-report=term --cov-report=xml --junitxml=report.xml"
+addopts = "-n auto --cov=flync --cov-report=term --cov-report=xml --junitxml=report.xml"
 testpaths = ["tests"]
 
 [tool.poetry-dynamic-versioning]
