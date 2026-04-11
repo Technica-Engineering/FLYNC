@@ -62,13 +62,15 @@ Service Interface
 
 .. autoclass:: flync.model.flync_4_someip.SOMEIPServiceInterface()
 
+.. autoclass:: flync.model.flync_4_someip.SOMEIPParameter()
+.. autoclass:: flync.model.flync_4_someip.SOMEIPTP()
+
 Method
 ======
 
 .. autoclass:: flync.model.flync_4_someip.SOMEIPMethod()
 .. autoclass:: flync.model.flync_4_someip.SOMEIPFireAndForgetMethod()
 .. autoclass:: flync.model.flync_4_someip.SOMEIPRequestResponseMethod()
-.. autoclass:: flync.model.flync_4_someip.SOMEIPTP()
 
 Eventgroup
 ==========
@@ -79,7 +81,6 @@ Event
 =====
 
 .. autoclass:: flync.model.flync_4_someip.SOMEIPEvent()
-.. autoclass:: flync.model.flync_4_someip.Parameters()
 
 
 Field
@@ -159,10 +160,10 @@ SOME/IP Datatypes
 
 ----
 
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.SInt8()
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.SInt16()
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.SInt32()
-.. autoclass:: flync.model.flync_4_someip.someip_datatypes.SInt64()
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.Int8()
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.Int16()
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.Int32()
+.. autoclass:: flync.model.flync_4_someip.someip_datatypes.Int64()
 
 ----
 

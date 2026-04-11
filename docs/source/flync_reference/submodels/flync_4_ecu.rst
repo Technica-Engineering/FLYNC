@@ -247,7 +247,7 @@ Socket Config
       It is advisable to keep sockets that provide similar functionality together
       (e.g. all SOME/IP sockets in the same file).
 
-   .. literalinclude:: ../../_static/flync_example/ecus/eth_ecu/sockets/socket_someip.flync.yaml
+   .. literalinclude:: ../../_static/flync_example/ecus/high_processing_core/sockets/socket_someip.flync.yaml
 
 
 .. autoclass:: flync.model.flync_4_ecu.socket_container.SocketContainer()
@@ -267,7 +267,7 @@ Options
       This file contains a list of TCP profiles that describes a bunch of TCP options that can be set in a socket.
       These profiles can be imported in a TCP socket.
 
-   .. literalinclude:: ../../_static/flync_example/ecus/eth_ecu/sockets/socket_someip.flync.yaml
+   .. literalinclude:: ../../_static/flync_example/ecus/high_processing_core/sockets/socket_someip.flync.yaml
 
 
 .. autoclass:: flync.model.flync_4_ecu.sockets.TCPOption()
