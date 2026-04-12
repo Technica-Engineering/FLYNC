@@ -202,7 +202,7 @@ methods:
     description: "Duration in s for sending Subscribe Eventgroups."
 - name: echoCommonDatatypes
   type: request_response
-  id: 0x32
+  id: 0x23
   input_parameters:
   - name: boolean_in
     datatype:
