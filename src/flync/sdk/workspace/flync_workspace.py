@@ -20,6 +20,7 @@ from flync.core.annotations import (
     NamingStrategy,
     OutputStrategy,
 )
+from flync.core.annotations.reference import Reference, ReferenceStrategy
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.exceptions_handling import (
     errors_to_init_errors,
@@ -31,7 +32,11 @@ from flync.sdk.context.workspace_config import (
     ListObjectsMode,
     WorkspaceConfiguration,
 )
-from flync.sdk.utils.field_utils import get_metadata, get_name
+from flync.sdk.utils.field_utils import (
+    get_field_name_from_alias,
+    get_metadata,
+    get_name,
+)
 from flync.sdk.utils.model_dependencies import (
     ModelDependencyGraph,
     get_model_dependency_graph,
@@ -1413,6 +1418,40 @@ class FLYNCWorkspace(object):
                 List of object identifiers.
         """
         return list(self.objects.keys())
+
+    def get_definition(
+        self, object_id: ObjectId, field_name: str
+    ) -> Optional[ObjectId]:
+        """
+        Resolve and return definition identifiers for a given field reference.
+        Args:
+            object_id (ObjectId):
+                Identifier of the semantic object.
+            field_name (str)
+                The field name of referencing object
+        Returns
+
+            ObjectId
+                A list of object identifiers that match the resolved reference
+                criteria. The list may be empty if no definitions are found
+                or if the field has no valid reference metadata.
+        """
+
+        def_id: Optional[ObjectId] = None
+        sematic_obj: SemanticObject = self.get_object(object_id)
+        model_type = type(sematic_obj.model)
+        if not hasattr(model_type, "model_fields"):
+            return def_id
+
+        field_name = get_field_name_from_alias(model_type, field_name)
+        fields = model_type.model_fields
+        field_info = fields[field_name]
+        ref: Reference | None = get_metadata(field_info.metadata, Reference)
+        if ref and ReferenceStrategy.PRIVATE_ATTR in ref.reference_strategy:
+            if def_obj := getattr(sematic_obj.model, ref.source, None):
+                if so := self.get_semantic_object_from_model(def_obj):
+                    def_id = so.id
+        return def_id
 
     def get_semantic_object_from_model(
         self, model: FLYNCBaseModel

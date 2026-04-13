@@ -7,6 +7,8 @@ model fields.
 
 from typing import Iterable, Optional, TypeVar
 
+from pydantic import BaseModel
+
 T = TypeVar("T")
 
 
@@ -49,3 +51,21 @@ def get_name(
         getattr(named_object, attr_name, fallback_name)
         or type(named_object).__name__
     )
+
+
+def get_field_name_from_alias(model: type[BaseModel], alias: str):
+    """
+    Resolve a field name from its alias in a Pydantic model.
+
+    Args:
+        model (type[BaseModel]): The Pydantic model class to inspect.
+        alias (str): The alias of the field to look up.
+
+    Returns:
+        str: The actual field name corresponding to the given alias.
+            If no field with the alias exists, the alias itself is returned.
+    """
+    for name, field in model.model_fields.items():
+        if field.alias == alias:
+            return name
+    return alias

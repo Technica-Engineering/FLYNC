@@ -12,7 +12,7 @@ import yaml
 
 from flync.model import FLYNCModel
 from flync.model.flync_4_ecu import ECU, Controller
-from flync.sdk.context.workspace_config import WorkspaceConfiguration
+from flync.sdk.context.workspace_config import ListObjectsMode, WorkspaceConfiguration
 from flync.sdk.helpers.generation_helpers import dump_flync_workspace
 from flync.sdk.helpers.nodes_helpers import available_flync_nodes
 from flync.sdk.helpers.validation_helpers import (
@@ -27,6 +27,7 @@ from flync.sdk.helpers.generation_helpers import (
 )
 from flync.sdk.utils.model_dependencies import get_model_dependency_graph
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
+from flync.sdk.workspace.ids import ObjectId
 from tests.conftest import reset_global_registery_function
 
 from .dummy_model import DummyRoot
@@ -60,6 +61,16 @@ TEST_MODEL_FLYNC_PATHS = [
         ".".join(["ecus", "eth_ecu", "controllers", "eth_ecu_controller1"]),
     ),
 ]
+TEST_REFERENCES_PATHS = {
+    "ecus.eth_ecu.topology.connections.0": ["ecu_port"],
+    "ecus.high_processing_core.topology.connections.2": ["ecu_port"],
+    "ecus.high_processing_core.topology.connections.3": ["controller_interface"],
+    "ecus.high_processing_core.topology.connections.4": ["switch_port"],
+    "ecus.zonal_platform2.topology.connections.3": [
+        "controller_interface1",
+        "controller_interface2",
+    ],
+}
 
 
 def test_workspace_validator_api(get_flync_example_path):
@@ -309,3 +320,27 @@ def test_flync_extension(get_flync_example_path):
     assert output.state == WorkspaceState.VALID
     created_model: ExtendedFLYNC = output.model
     assert created_model.extra.extra_name == "value"
+
+
+
+def test_object_referencing(
+    get_relative_flync_example_path,
+):
+    workspace_name_object = (
+        "flync_workspace_for_test_object_referencing_from_folder"
+    )
+    config = WorkspaceConfiguration(
+        map_objects=True, list_objects_mode=ListObjectsMode.NAME,
+    )
+    loaded_ws = FLYNCWorkspace.load_workspace(
+        workspace_name=workspace_name_object,
+        workspace_path=get_relative_flync_example_path,
+        workspace_config=config,
+    )
+    received = {}
+    for object_id, field_names in TEST_REFERENCES_PATHS.items():
+        for field_name in field_names:
+            def_id = loaded_ws.get_definition(ObjectId(object_id), field_name)
+            received[f"{object_id}.{field_name}"] = def_id
+
+    verify(json.dumps(received, indent=4, sort_keys=True))

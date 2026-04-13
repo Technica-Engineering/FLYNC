@@ -9,6 +9,7 @@ from pydantic import Field, PrivateAttr, model_serializer, model_validator
 
 import flync.core.utils.common_validators as common_validators
 from flync.core.annotations.external import External, OutputStrategy
+from flync.core.annotations.reference import Reference
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.exceptions import err_major
 from flync.model.flync_4_ecu.port import ECUPort
@@ -50,8 +51,12 @@ class ExternalConnection(FLYNCBaseModel):
         default="ecu_port_to_ecu_port"
     )
     id: str = Field()
-    ecu1_port_name: str = Field(alias="ecu1_port")
-    ecu2_port_name: str = Field(alias="ecu2_port")
+    ecu1_port_name: Annotated[str, Reference(source="_ecu1_port")] = Field(
+        alias="ecu1_port"
+    )
+    ecu2_port_name: Annotated[str, Reference(source="_ecu2_port")] = Field(
+        alias="ecu2_port"
+    )
 
     _ecu1_port: Optional[ECUPort] = PrivateAttr(default=None)
     _ecu2_port: Optional[ECUPort] = PrivateAttr(default=None)

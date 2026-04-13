@@ -3,11 +3,12 @@ Defines the internal connection types between ECU components
 such as ECU ports, switch ports, and controller interfaces.
 """
 
-from typing import TYPE_CHECKING, List, Literal, Optional
+from typing import TYPE_CHECKING, Annotated, List, Literal, Optional
 
 from pydantic import Field, PrivateAttr, RootModel, model_validator
 
 import flync.core.utils.common_validators as common_validators
+from flync.core.annotations.reference import Reference
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.exceptions import err_major
 from flync.model.flync_4_ecu.controller import ControllerInterface
@@ -70,7 +71,9 @@ class ECUPortToXConnection(InternalConnection):
         Managed privately.
     """
 
-    ecu_port_name: str = Field(alias="ecu_port")
+    ecu_port_name: Annotated[str, Reference(source="_ecu_port")] = Field(
+        alias="ecu_port"
+    )
     _ecu_port: Optional["ECUPort"] = PrivateAttr(default=None)
 
     @property
@@ -109,7 +112,9 @@ class SwitchPortToXConnection(InternalConnection):
         Managed privately.
     """
 
-    switch_port_name: str = Field(alias="switch_port")
+    switch_port_name: Annotated[str, Reference(source="_switch_port")] = Field(
+        alias="switch_port"
+    )
     _switch_port: "SwitchPort" = PrivateAttr()
 
     @property
@@ -153,7 +158,9 @@ class ECUPortToSwitchPort(ECUPortToXConnection):
 
     type: Literal["ecu_port_to_switch_port"] = Field("ecu_port_to_switch_port")
 
-    switch_port_name: str = Field(alias="switch_port")
+    switch_port_name: Annotated[str, Reference(source="_switch_port")] = Field(
+        alias="switch_port"
+    )
 
     _switch_port: Optional["SwitchPort"] = PrivateAttr(default=None)
 
@@ -221,7 +228,9 @@ class ECUPortToControllerInterface(ECUPortToXConnection):
     )
 
     _iface: Optional["ControllerInterface"] = PrivateAttr(default=None)
-    iface_name: str = Field(alias="controller_interface")
+    iface_name: Annotated[str, Reference(source="_iface")] = Field(
+        alias="controller_interface"
+    )
 
     @property
     def iface(self) -> Optional["ControllerInterface"]:
@@ -282,7 +291,9 @@ class SwitchPortToControllerInterface(SwitchPortToXConnection):
     )
 
     _iface: Optional["ControllerInterface"] = PrivateAttr(default=None)
-    iface_name: str = Field(alias="controller_interface")
+    iface_name: Annotated[str, Reference(source="_iface")] = Field(
+        alias="controller_interface"
+    )
 
     @property
     def iface(self) -> Optional["ControllerInterface"]:
@@ -351,7 +362,9 @@ class SwitchPortToSwitchPort(SwitchPortToXConnection):
     )
 
     _switch2_port: Optional["SwitchPort"] = PrivateAttr(default=None)
-    switch2_port_name: str = Field(alias="switch2_port")
+    switch2_port_name: Annotated[str, Reference(source="_switch2_port")] = (
+        Field(alias="switch2_port")
+    )
 
     @property
     def switch2_port(self) -> Optional["SwitchPort"]:
@@ -427,10 +440,14 @@ class ControllerInterfaceToControllerInterface(InternalConnection):
     type: Literal["controller_interface_to_controller_interface"] = Field(
         "controller_interface_to_controller_interface"
     )
-    iface_name: str = Field(alias="controller_interface1")
+    iface_name: Annotated[str, Reference(source="_iface")] = Field(
+        alias="controller_interface1"
+    )
     _iface: Optional["ControllerInterface"] = PrivateAttr(default=None)
 
-    iface2_name: str = Field(alias="controller_interface2")
+    iface2_name: Annotated[str, Reference(source="_iface2")] = Field(
+        alias="controller_interface2"
+    )
     _iface2: Optional["ControllerInterface"] = PrivateAttr(default=None)
 
     @property
