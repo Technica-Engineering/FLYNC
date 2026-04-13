@@ -159,7 +159,7 @@ class FLYNCWorkspace(object):
         )
         # assign this to the workspace if it's the root object
         output.flync_model = flync_model
-        output.__load_flync_model(flync_model, file_path)
+        output.load_flync_model(flync_model, file_path)
         return output
 
     @classmethod
@@ -242,7 +242,7 @@ class FLYNCWorkspace(object):
         doc.parse()
         self.documents[uri] = doc
 
-    def __load_flync_model(  # noqa # nosonar
+    def load_flync_model(  # noqa # nosonar
         self, flync_model: FLYNCBaseModel, file_path: PathType = ""
     ):  # noqa # nosonar
         """Load a FLYNCModel into the workspace.
@@ -360,6 +360,9 @@ class FLYNCWorkspace(object):
             ValueError: If no valid external path can be determined or the
                 attribute type is not supported.
         """
+        if flync_attribute is None or not flync_attribute:
+            # none field, do nothing
+            return
         if (
             external.naming_strategy == NamingStrategy.FIXED_PATH
             and external.path is not None
@@ -381,7 +384,7 @@ class FLYNCWorkspace(object):
                 flync_attribute, external, next_path
             )
         elif isinstance(flync_attribute, FLYNCBaseModel):
-            self.__load_flync_model(flync_attribute, next_path)
+            self.load_flync_model(flync_attribute, next_path)
         else:
             raise ValueError(
                 "Unable to load object {} from flync object", field_name
@@ -413,7 +416,7 @@ class FLYNCWorkspace(object):
             if external.output_structure == OutputStrategy.SINGLE_FILE:
                 list_content.append(self.__get_model_content(attr, next_path))
             else:
-                self.__load_flync_model(
+                self.load_flync_model(
                     attr,
                     next_path
                     / get_name(attr, self.__get_field_filename(attr)),
@@ -442,7 +445,7 @@ class FLYNCWorkspace(object):
                     attr_value, next_path
                 )
             else:
-                self.__load_flync_model(attr_value, next_path / attr_name)
+                self.load_flync_model(attr_value, next_path / attr_name)
 
     def __handle_generic_types_list(  # noqa # nosonar
         self,
@@ -1386,6 +1389,19 @@ class FLYNCWorkspace(object):
                 The requested semantic object.
         """
         return self.objects[id]
+
+    def has_object(self, id: ObjectId) -> bool:
+        """Checks if a specific key exists within a dictionary of objects.
+
+        Args:
+            id (ObjectId):
+                Identifier of the semantic object.
+
+        Returns:
+            bool:
+                True if the key is found, False otherwise.
+        """
+        return id in self.objects.keys()
 
     def list_objects(self) -> list[ObjectId]:
         """Return a list of all ObjectIds present in the workspace.

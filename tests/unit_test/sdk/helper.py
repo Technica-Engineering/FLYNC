@@ -9,6 +9,7 @@ from pydantic._internal._model_construction import ModelMetaclass
 from ruamel.yaml.nodes import MappingNode, ScalarNode, SequenceNode
 
 from flync.model import FLYNCModel
+from flync.sdk.context.workspace_config import WorkspaceConfiguration
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 
 
@@ -199,3 +200,21 @@ def yaml_node_to_python(node):
         }
     else:
         return str(node)  # fallback
+
+def try_load_workspace(
+        ws_name: str,
+        output_path: Path,
+        ws_config: WorkspaceConfiguration
+        ) -> FLYNCWorkspace:
+    if output_path.is_dir():
+        return FLYNCWorkspace.safe_load_workspace(
+                ws_name,
+                workspace_path=output_path,
+                workspace_config=ws_config,
+            )
+    return FLYNCWorkspace(
+            name=ws_name,
+            workspace_path=output_path,
+            configuration=ws_config,
+        )
+    

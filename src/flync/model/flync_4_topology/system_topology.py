@@ -187,7 +187,7 @@ class SystemTopology(FLYNCBaseModel):
         Managed internally and not part of the public API.
     """
 
-    connections: List[ExternalConnection] = Field()
+    connections: List[ExternalConnection] = Field(examples=[[]])
 
 
 class FLYNCTopology(FLYNCBaseModel):

@@ -29,7 +29,7 @@ class BaseVersion(FLYNCBaseModel):
     version_schema: Optional[Literal["semver", "pep440"]] = Field(
         default="semver"
     )
-    version: str = Field()
+    version: str = Field(examples=["0.0.1"])
 
     @field_serializer("version")
     def serialize_version(self, v: str):
@@ -126,7 +126,7 @@ class BaseMetadata(FLYNCBaseModel):
     """
 
     type: str = Field()
-    author: str = Field()
+    author: str = Field(examples=["N/A"])
     compatible_flync_version: BaseVersion = Field()
     extensions: Optional[Dict[str, str]] = Field(default=None)
 
@@ -225,7 +225,7 @@ class EmbeddedMetadata(BaseMetadata):
     hardware: Optional[HardwareBaseMetadata] = Field(default=None)
     app: Optional[SoftwareBaseMetadata] = Field(default=None)
     bootloader: Optional[SoftwareBaseMetadata] = Field(default=None)
-    target_system: str = Field()
+    target_system: str = Field(examples=["AARCH"])
 
 
 class SocketsPerVLANMetadata(BaseMetadata):

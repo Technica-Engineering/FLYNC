@@ -1,14 +1,18 @@
 import json
 import logging
 from os import sep
+import os
 from pathlib import Path
 
 import pytest
+import shutil
 from approvaltests import verify
 from approvaltests.namer import NamerFactory
+import yaml
 
 from flync.model import FLYNCModel
 from flync.model.flync_4_ecu import ECU, Controller
+from flync.sdk.context.workspace_config import WorkspaceConfiguration
 from flync.sdk.helpers.generation_helpers import dump_flync_workspace
 from flync.sdk.helpers.nodes_helpers import available_flync_nodes
 from flync.sdk.helpers.validation_helpers import (
@@ -16,6 +20,10 @@ from flync.sdk.helpers.validation_helpers import (
     validate_external_node,
     validate_node,
     validate_workspace,
+)
+from flync.sdk.helpers.generation_helpers import (
+    generate_external_node,
+    generate_node,
 )
 from flync.sdk.utils.model_dependencies import get_model_dependency_graph
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
@@ -27,6 +35,7 @@ from .helper import (
     dataclass_dict_to_json,
     model_has_socket,
     to_jsonable,
+    try_load_workspace,
 )
 
 logger = logging.getLogger(__name__)
@@ -41,7 +50,7 @@ TEST_MODEL_PATHS = [
         ["ecus", "eth_ecu", "controllers", "eth_ecu_controller1.flync.yaml"]
     ),
 ]
-TEST_MODEL_FLLYNC_PATHS = [
+TEST_MODEL_FLYNC_PATHS = [
     ("",),
     (".".join(["ecus", "0"]), ".".join(["ecus", "eth_ecu"])),
     (
@@ -94,7 +103,7 @@ params = [
 partial_params = [
     pytest.param(cls, path, id=name)
     for cls, path, name in zip(
-        TEST_MODEL_TYPES, TEST_MODEL_FLLYNC_PATHS, TEST_MODEL_TYPES_NAMES
+        TEST_MODEL_TYPES, TEST_MODEL_FLYNC_PATHS, TEST_MODEL_TYPES_NAMES
     )
 ]
 
@@ -157,7 +166,7 @@ def test_validate_partial_node(get_flync_example_path, node_type, node_paths):
             },
             get_flync_example_path,
         )
-        logger.info("will be outputting {}", output)
+        logger.info(f"will be outputting {output}")
         reset_global_registery_function()
     verify(
         json.dumps(
@@ -207,3 +216,96 @@ def test_roundtrip_conversion(get_flync_example_path):
         workspace_name=workspace_name_object,
     )
     assert compare_yaml_files(Path(get_flync_example_path), Path(output_path))
+
+
+@pytest.mark.parametrize(
+    "node_type,node_path",
+    params,
+)
+def test_generate_partial_external_node(node_type, node_path):
+    if node_type is Controller:
+        pytest.skip("Skipped until the generation of external controller is fixed")
+
+    output_path = (
+        current_dir
+        / "generated"
+        / (node_type.__name__ + "_external_partial_generator")
+    )
+    generate_external_node(node_type, output_path)
+    to_check_output_file = Path(str(output_path) + "_checker")
+    to_check_output_file.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(output_path, to_check_output_file, dirs_exist_ok=True)
+    ws_validation = validate_external_node(node_type, to_check_output_file)
+    assert ws_validation.state == WorkspaceState.VALID
+    assert len(ws_validation.errors) == 0
+    assert isinstance(ws_validation.model, node_type)
+
+
+@pytest.mark.parametrize(
+    "node_type,node_path",
+    partial_params,
+)
+@pytest.mark.no_xdist
+def test_generate_partial_node(get_flync_example_path, node_type, node_path):
+    if isinstance(node_path, FLYNCModel):
+        pytest.skip(
+            "No need to generate a full FLYNC Model with the partial generator"
+        )
+    output_path = (
+        current_dir
+        / "generated"
+        / (Path(get_flync_example_path).name + "_partial_generator")
+    )
+    if node_type == FLYNCModel and output_path.is_dir():
+        shutil.rmtree(output_path)
+    reset_global_registery_function()
+    generated_workspace = try_load_workspace(ws_name="generated_workspace",
+                                             output_path=output_path,
+                                             ws_config=WorkspaceConfiguration(map_objects=True))
+    generate_node(generated_workspace, list(node_path))
+    to_check_output_file = Path(str(output_path) + "_checker")
+    to_check_output_file.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(output_path, to_check_output_file, dirs_exist_ok=True)
+    reset_global_registery_function()
+    ws_validation = validate_workspace(to_check_output_file, generated_workspace.configuration)
+    assert ws_validation.state == WorkspaceState.VALID
+    assert len(ws_validation.errors) == 0
+    assert any(p in ws_validation.workspace.objects for p in node_path)
+    assert isinstance(ws_validation.workspace.get_object(node_path[0]).model, node_type)
+
+from flync.model import FLYNCBaseModel
+from flync.core.annotations import External, OutputStrategy
+from typing import Annotated
+
+
+class ExtraInfo(FLYNCBaseModel):
+    extra_name: str
+
+
+class ExtendedFLYNC(FLYNCModel):
+    extra: Annotated[
+        ExtraInfo,
+        External(
+            output_structure=OutputStrategy.SINGLE_FILE
+            | OutputStrategy.OMMIT_ROOT
+        ),
+    ]
+
+
+def test_flync_extension(get_flync_example_path):
+    output_extra_path = (
+        current_dir
+        / "generated"
+        / (Path(get_flync_example_path).name + "_extended_model")
+    )
+    shutil.copytree(get_flync_example_path, output_extra_path, dirs_exist_ok=True)    
+    extra_file = f"extra{WorkspaceConfiguration.flync_file_extension}"
+    extra_data = {"extra_name": "value"}
+
+    with open(output_extra_path / extra_file, "w") as f:
+        yaml.dump(extra_data, f, default_flow_style=False)
+
+    output = validate_external_node(ExtendedFLYNC, output_extra_path)
+    assert output.state == WorkspaceState.VALID
+    created_model: ExtendedFLYNC = output.model
+    assert created_model.extra.extra_name == "value"
