@@ -24,7 +24,7 @@ def get_relative_flync_example_path():
 
 
 def configure_approvaltests():
-    set_default_reporter(DiffReporter)
+    set_default_reporter(DiffReporter())
 
 
 @pytest.fixture(scope="session", autouse=True)

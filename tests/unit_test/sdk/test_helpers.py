@@ -71,6 +71,14 @@ TEST_REFERENCES_PATHS = {
         "controller_interface2",
     ],
 }
+TEST_OBJECTS_PATHS = [
+    "ecus.eth_ecu.ports.ports.eth_ecu_p1",
+    "ecus.high_processing_core.ports.ports.hpc1_p3",
+    "ecus.high_processing_core.controllers.hpc_controller1.interfaces.hpc_c1_iface1",
+    "ecus.high_processing_core.switches.hpc_switch1.ports.hpc_s1_p2",
+    "ecus.zonal_platform2.controllers.z2_controller1.interfaces.z2_c1_iface1",
+    "ecus.zonal_platform2.controllers.z2_controller2.interfaces.z2_c2_iface1",
+]
 
 
 def test_workspace_validator_api(get_flync_example_path):
@@ -343,4 +351,23 @@ def test_object_referencing(
             def_id = loaded_ws.get_definition(ObjectId(object_id), field_name)
             received[f"{object_id}.{field_name}"] = def_id
 
+    verify(json.dumps(received, indent=4, sort_keys=True))
+
+def test_references_object(
+    get_relative_flync_example_path,
+):
+    workspace_name_object = "flync_workspace_from_folder"
+    config = WorkspaceConfiguration(
+        map_objects=True, list_objects_mode=ListObjectsMode.NAME,
+    )
+    loaded_ws = FLYNCWorkspace.load_workspace(
+        workspace_name=workspace_name_object,
+        workspace_path=get_relative_flync_example_path,
+        workspace_config=config,
+    )
+    received = {}
+    for path in TEST_OBJECTS_PATHS:
+        received[path] = sorted(loaded_ws.get_references_of(path))
+
+    
     verify(json.dumps(received, indent=4, sort_keys=True))

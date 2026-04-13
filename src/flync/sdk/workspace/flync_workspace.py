@@ -10,6 +10,7 @@ from typing import Dict, Optional, Union, get_args, get_origin
 
 import yaml
 from pydantic import RootModel
+from pydantic.fields import FieldInfo
 from pydantic_core import ErrorDetails, ValidationError
 from ruamel.yaml.nodes import MappingNode, Node, SequenceNode
 
@@ -1452,6 +1453,86 @@ class FLYNCWorkspace(object):
                 if so := self.get_semantic_object_from_model(def_obj):
                     def_id = so.id
         return def_id
+
+    def get_references_of(self, object_id: ObjectId) -> list[ObjectId]:
+        """Return all ObjectIds that reference the given object.
+
+        Iterates over every semantic object in the workspace and checks whether
+        any of its fields are defined by the same model as the target object.
+        For each matching field, the concrete path to that field is collected
+        via `find_path_from_field`.
+
+        Args:
+            object_id (ObjectId):
+                The id of the object whose references should be found.
+
+        Returns:
+            list[ObjectId]:
+                A list of ObjectIds representing all fields across the
+                workspace that reference the given object.
+        """
+        refs: list[ObjectId] = []
+        current_obj = self.get_object(object_id)
+
+        for semantic_obj in self.objects.values():
+            fields: dict | None = getattr(
+                type(semantic_obj.model), "model_fields", None
+            )
+            if fields is None:
+                continue
+
+            for field, info in fields.items():
+                if obj_id_def := self.get_definition(semantic_obj.id, field):
+                    model_def = self.get_object(obj_id_def)
+                    if model_def.model is current_obj.model:
+                        self.find_path_from_field(
+                            object_id, refs, semantic_obj, field, info
+                        )
+        return refs
+
+    def find_path_from_field(
+        self,
+        object_id: ObjectId,
+        refs: list[ObjectId],
+        semantic_obj: SemanticObject,
+        field: str,
+        info: FieldInfo,
+    ):
+        """
+        Resolve the concrete ObjectId path for a field and append it to refs.
+
+        Tries to build the path as `<semantic_obj.id>.<field>`, falling back to
+        `<semantic_obj.id>.<info.alias>` when the first candidate is not
+        present in the workspace. Raises if neither candidate exists.
+
+        Args:
+            object_id (ObjectId):
+                The id of the target object being referenced (used in the
+                error message when the path cannot be resolved).
+            refs (list[ObjectId]):
+                Accumulator list to which the resolved path is appended.
+            semantic_obj (SemanticObject):
+                The semantic object that owns the field being inspected.
+            field (str):
+                The field name on `semantic_obj`'s model.
+            info:
+                The Pydantic `FieldInfo` for the field, used to access the
+                field alias as a fallback path segment.
+
+        Raises:
+            ValueError:
+                If neither the field name nor its alias resolves to a known
+                object in the workspace.
+        """
+        path_candidate = ObjectId(f"{semantic_obj.id}.{field}")
+        if not self.has_object(path_candidate):
+            path_candidate = ObjectId(f"{semantic_obj.id}.{info.alias}")
+        if not self.has_object(path_candidate):
+            raise ValueError(
+                "object with path {} not found in map",
+                object_id,
+            )
+        refs.append(path_candidate)
 
     def get_semantic_object_from_model(
         self, model: FLYNCBaseModel
