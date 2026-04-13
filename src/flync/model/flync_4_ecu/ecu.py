@@ -1,7 +1,7 @@
 """Defines the ECU model for FLYNC."""
 
 from itertools import product
-from typing import Annotated, List, Optional
+from typing import Annotated, List, Optional, TypeVar
 
 from pydantic import Field, model_validator
 
@@ -27,6 +27,13 @@ from flync.model.flync_4_ecu.socket_container import SocketContainer
 from flync.model.flync_4_ecu.sockets import Socket
 from flync.model.flync_4_ecu.switch import Switch, SwitchPort
 from flync.model.flync_4_metadata import ECUMetadata
+from flync.model.flync_4_someip import (  # type: ignore[import-untyped]
+    SOMEIPServiceConsumer,
+    SOMEIPServiceDeployment,
+    SOMEIPServiceProvider,
+)
+
+_T_Service = TypeVar("_T_Service", bound=SOMEIPServiceDeployment)
 
 
 def reset_unique_name_cache():
@@ -338,3 +345,55 @@ class ECU(UniqueName):
 
             if ip in iface.get_all_ips():
                 return iface
+
+    def __get_services_of_type(
+        self, service_type: type[_T_Service]
+    ) -> list[_T_Service]:
+        """Return all SOME/IP service deployments of a given type.
+
+        Iterates over all socket containers and their sockets, collecting
+        deployments whose root matches ``service_type``.
+
+        Parameters
+        ----------
+        service_type : type[SOMEIPServiceDeployment]
+            The concrete deployment type to filter by (e.g.
+            :class:`~flync.model.flync_4_someip.SOMEIPServiceConsumer` or
+            :class:`~flync.model.flync_4_someip.SOMEIPServiceProvider`).
+
+        Returns
+        -------
+        list[SOMEIPServiceDeployment]
+            All matching service deployment instances found across the ECU's
+            socket containers.
+        """
+        service_instances = []
+        for ecu_sockets in self.sockets or []:
+            for socket in ecu_sockets.sockets or []:
+                for deployment in socket.deployments or []:
+                    if isinstance(deployment.root, service_type):
+                        someip_deployment = deployment.root
+                        service_instances.append(someip_deployment)
+        return service_instances
+
+    def get_consumed_services(self) -> list[SOMEIPServiceConsumer]:
+        """Return all SOME/IP service consumer deployments of the ECU.
+
+        Returns
+        -------
+        list[SOMEIPServiceConsumer]
+            All :class:`~flync.model.flync_4_someip.SOMEIPServiceConsumer`
+            instances found across the ECU's socket containers.
+        """
+        return self.__get_services_of_type(SOMEIPServiceConsumer)
+
+    def get_provided_services(self) -> list[SOMEIPServiceProvider]:
+        """Return all SOME/IP service provider deployments of the ECU.
+
+        Returns
+        -------
+        list[SOMEIPServiceProvider]
+            All :class:`~flync.model.flync_4_someip.SOMEIPServiceProvider`
+            instances found across the ECU's socket containers.
+        """
+        return self.__get_services_of_type(SOMEIPServiceProvider)
