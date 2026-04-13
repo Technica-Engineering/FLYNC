@@ -1411,7 +1411,7 @@ class FLYNCWorkspace(object):
                 Optional semantic object that corresponds to Flync object.
         """
         for semantic_object in self.objects.values():
-            if model == semantic_object.model:
+            if model is semantic_object.model:
                 return semantic_object
 
         return None
