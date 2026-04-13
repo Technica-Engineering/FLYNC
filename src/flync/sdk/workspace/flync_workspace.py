@@ -1328,7 +1328,9 @@ class FLYNCWorkspace(object):
             list[str]: New list of object paths for this item.
         """
         list_paths = []
-        if ListObjectsMode.INDEX in self.configuration.list_objects_mode:
+        if (
+            ListObjectsMode.INDEX in self.configuration.list_objects_mode
+        ) or not item_name:
             list_paths += self.update_objects_path(current_object_paths, idx)
         if (
             ListObjectsMode.NAME in self.configuration.list_objects_mode

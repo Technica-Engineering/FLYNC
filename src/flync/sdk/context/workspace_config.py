@@ -58,7 +58,9 @@ class WorkspaceConfiguration:
     exclude_unset: bool = True
     root_model: Type[FLYNCBaseModel] = FLYNCModel
     map_objects: bool = False
-    list_objects_mode = ListObjectsMode.INDEX | ListObjectsMode.NAME
+    list_objects_mode: ListObjectsMode = (
+        ListObjectsMode.INDEX | ListObjectsMode.NAME
+    )
 
     @classmethod
     def create_from_config(
