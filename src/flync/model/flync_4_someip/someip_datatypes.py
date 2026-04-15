@@ -1026,6 +1026,7 @@ AllTypes = Annotated[
     | Enum
     | Boolean
     | Struct
+    | Typedef
     | Union
     | ArrayType
     | DynamicLengthString

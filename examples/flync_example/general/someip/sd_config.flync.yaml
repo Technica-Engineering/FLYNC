@@ -1,20 +1,20 @@
 ip_address: "224.224.224.255"
 sd_timings:
 - profile_id: server_default
-  initial_delay_min: 0.050
-  initial_delay_max: 0.100
-  repetitions_base_delay: 0.300
+  initial_delay_min: 50
+  initial_delay_max: 100
+  repetitions_base_delay: 300
   repetitions_max: 3
-  request_response_delay_min: 0.050
-  request_response_delay_max: 0.100
+  request_response_delay_min: 50
+  request_response_delay_max: 100
   offer_cyclic_delay: 1
   offer_ttl: 3
 - profile_id: client_default
-  initial_delay_min: 0.050
-  initial_delay_max: 0.100
-  repetitions_base_delay: 0.300
+  initial_delay_min: 50
+  initial_delay_max: 100
+  repetitions_base_delay: 300
   repetitions_max: 3
-  request_response_delay_min: 0.050
-  request_response_delay_max: 0.100
+  request_response_delay_min: 50
+  request_response_delay_max: 100
   find_ttl: 3
   subscribe_ttl: 3

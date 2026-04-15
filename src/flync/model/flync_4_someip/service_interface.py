@@ -49,35 +49,35 @@ class SOMEIPFieldTimings(DictInstances):
     type : Literal["field"]
         Type of this timing.
 
-    getter_req_debounce : float
+    getter_req_debounce : int
         Minimum time in milliseconds between 2 request messages for \
         same getter method/service.
 
-    getter_req_max_retention : float
+    getter_req_max_retention : int
         Maximum time in milliseconds indicating how long a getter \
         request may be withheld.
 
-    getter_res_max_retention: float
+    getter_res_max_retention: int
         Maximum time in milliseconds indicating how long a getter \
         response may be withheld.
 
-    setter_req_debounce: float
+    setter_req_debounce: int
         Minimum time in milliseconds between 2 request messages for \
         same setter method/service.
 
-    setter_req_max_retention: float
+    setter_req_max_retention: int
         Maximum time in milliseconds indicating how long a setter \
         request may be withheld.
 
-    setter_res_max_retention: float
+    setter_res_max_retention: int
         Maximum time in milliseconds indicating how long a setter \
         response may be withheld.
 
-    notifier_debounce: float
+    notifier_debounce: int
         Minimum time in milliseconds between 2 notification messages \
         for same service.
 
-    notifier_max_retention: float
+    notifier_max_retention: int
         Maximum time in milliseconds indicating how long a \
         notification may be withheld.
     """
@@ -85,44 +85,44 @@ class SOMEIPFieldTimings(DictInstances):
     INSTANCES: ClassVar[Dict[Any, "SOMEIPFieldTimings"]] = {}
     profile_id: str = Field(description="Timing profile for fields.")
     type: Literal["field"]
-    getter_req_debounce: float = Field(
+    getter_req_debounce: int = Field(
         description="Minimum time in milliseconds between 2 request messages \
         for same getter method/service.",
         default=0,
     )
-    getter_req_max_retention: float = Field(
+    getter_req_max_retention: int = Field(
         description="Maximum time in milliseconds indicating how long a \
         getter request may be withheld.",
         default=0,
     )
-    getter_res_max_retention: float = Field(
+    getter_res_max_retention: int = Field(
         description="Maximum time in milliseconds indicating how long a \
         getter response may be withheld.",
         default=0,
     )
 
-    setter_req_debounce: float = Field(
+    setter_req_debounce: int = Field(
         description="Minimum time in milliseconds between 2 request messages \
         for same setter method/service.",
         default=0,
     )
-    setter_req_max_retention: float = Field(
+    setter_req_max_retention: int = Field(
         description="Maximum time in milliseconds indicating how long a \
         setter request may be withheld.",
         default=0,
     )
-    setter_res_max_retention: float = Field(
+    setter_res_max_retention: int = Field(
         description="Maximum time in milliseconds indicating how long a \
         setter response may be withheld.",
         default=0,
     )
 
-    notifier_debounce: float = Field(
+    notifier_debounce: int = Field(
         description="Minimum time in milliseconds between 2 notification \
         messages for same service.",
         default=0,
     )
-    notifier_max_retention: float = Field(
+    notifier_max_retention: int = Field(
         description="Maximum time in milliseconds indicating how long a \
         notification may be withheld.",
         default=0,
@@ -145,11 +145,11 @@ class SOMEIPEventTimings(DictInstances):
     type : Literal["event"]
         Type of this timing.
 
-    debounce: float
+    debounce: int
         Minimum time in milliseconds between 2 event messages \
         for same service.
 
-    max_retention: float
+    max_retention: int
         Maximum time in milliseconds indicating how long an \
         event may be withheld.
     """
@@ -157,12 +157,12 @@ class SOMEIPEventTimings(DictInstances):
     INSTANCES: ClassVar[Dict[Any, "SOMEIPEventTimings"]] = {}
     profile_id: str = Field(description="Timing profile for events.")
     type: Literal["event"]
-    debounce: float = Field(
+    debounce: int = Field(
         description="Minimum time in milliseconds between 2 event messages \
         for same service.",
         default=0,
     )
-    max_retention: float = Field(
+    max_retention: int = Field(
         description="Maximum time in milliseconds indicating how long an \
         event may be withheld.",
         default=0,
@@ -185,15 +185,15 @@ class SOMEIPMethodTimings(DictInstances):
     type : Literal["method"]
         Type of this timing.
 
-    req_debounce : float
+    req_debounce : int
         Minimum time in milliseconds between 2 request messages for \
         same method/service.
 
-    req_max_retention : float
+    req_max_retention : int
         Maximum time in milliseconds indicating how long a \
         request may be withheld.
 
-    res_max_retention: float
+    res_max_retention: int
         Maximum time in milliseconds indicating how long a \
         response may be withheld.
     """
@@ -201,17 +201,17 @@ class SOMEIPMethodTimings(DictInstances):
     INSTANCES: ClassVar[Dict[Any, "SOMEIPMethodTimings"]] = {}
     profile_id: str = Field(description="Timing profile for methods.")
     type: Literal["method"] = "method"
-    req_debounce: float = Field(
+    req_debounce: int = Field(
         description="Minimum time in milliseconds between 2 request messages \
         for same method/service.",
         default=0,
     )
-    req_max_retention: float = Field(
+    req_max_retention: int = Field(
         description="Maximum time in milliseconds indicating how long a \
         request may be withheld.",
         default=0,
     )
-    res_max_retention: float = Field(
+    res_max_retention: int = Field(
         description="Maximum time in milliseconds indicating how long a \
         response may be withheld.",
         default=0,
@@ -278,6 +278,13 @@ class SOMEIPField(FLYNCBaseModel):
 
     reliable : bool
         Indicates whether the event is transmitted reliably.
+
+    notifier_e2e : :class:`~E2EConfig`, optional
+        E2E configuration for the field notifier.
+
+    someip_timing : str, optional
+        Name of the timings definition.
+        Defaults to "field_default".
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True)
@@ -299,6 +306,7 @@ class SOMEIPField(FLYNCBaseModel):
     ] = Field(description="identifies the field getter", default=None)
 
     reliable: bool = Field(default=False)
+    notifier_e2e: Optional[E2EConfig] = Field(default=None)
     someip_timing: Optional[str] = Field(
         description="SOME/IP timings for the field", default="field_default"
     )
@@ -379,8 +387,15 @@ class SOMEIPEvent(FLYNCBaseModel):
     reliable : bool
         Indicates whether the event is transmitted reliably.
 
+    e2e : :class:`~E2EConfig`, optional
+        E2E configuration for the event.
+
     parameters list[:class:`~SOMEIPParameters`]
-        Parameters of the Event
+        Parameters of the event
+
+    someip_timing : str, optional
+        Name of the timings definition.
+        Defaults to "event_default".
     """
 
     INSTANCES_BY_NAME: ClassVar[Dict[str, "SOMEIPEvent"]] = {}
@@ -524,6 +539,9 @@ class SOMEIPMethod(FLYNCBaseModel):
     input_parameters : list[:class:`~SOMEIPParameters`]
         The parameters of the Request
 
+    someip_timing : str, optional
+        Name of the timings definition.
+        Defaults to "method_default".
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True)
@@ -740,64 +758,64 @@ class SDTimings(DictInstances):
     profile_id : str
         A unique ID for the SOME/IP-SD timings profile.
 
-    initial_delay_min : float
+    initial_delay_min : int
         Initial delay in milliseconds: This parameter keeps \
         back service offers to pack more entries together.
-        Must be greater or equal to 0 and lower or equal to 10.
+        Must be greater or equal to 0.
         Defaults to 10.
 
-    initial_delay_max : float
+    initial_delay_max : int
         Initial delay in milliseconds: This parameter keeps \
         back service offers to pack more entries together.
-        Must be greater or equal to 0 and lower or equal to 10.
+        Must be greater or equal to 0.
         Defaults to 10.
 
-    repetitions_base_delay : float
+    repetitions_base_delay : int
         Repetitions Base delay in milliseconds: This \
         parameter helps in fast startup and to make startup more \
         robust.Loss of the first offer results in this delay.
-        Must be greater or equal to 0 and lower or equal to 30.
+        Must be greater or equal to 0.
         Defaults to 30.
 
-    repetitions_max : float
+    repetitions_max : int
         Number of repetitions while doubling delay.
-        Must be greater or equal to 0 and lower or equal to 3.
+        Must be greater or equal to 0.
         Defaults to 3.
 
-    request_response_delay_min : float
+    request_response_delay_min : int
         Request response delay in milliseconds: This \
         parameter keeps back subscribes to pack more entries together.
-        Must be greater or equal to 0 and lower or equal to 10.
+        Must be greater or equal to 0.
         Defaults to 10.
 
-    request_response_delay_max : float = Field(
+    request_response_delay_max : int
         Request response delay in milliseconds: This \
         parameter keeps back subscribes to pack more entries together.",
-        Must be greater or equal to 0 and lower or equal to 10.
+        Must be greater or equal to 0.
         Defaults to 10.
 
-    offer_cyclic_delay: float, optional
+    offer_cyclic_delay: int, optional
         Offer cyclic delay in milliseconds: This parameter \
         keeps system alive with cyclic offer.
-        Must be greater or equal to 0 and lower or equal to 1000.
+        Must be greater or equal to 0.
         Defaults to 1000.
 
-    offer_ttl : float, optional
+    offer_ttl : int, optional
         Time to live in milliseconds: This parameter \
         determines how fast to age out state.
-        Must be greater or equal to 0 and lower or equal to 3000.
+        Must be greater or equal to 0.
         Defaults to 3000.
 
-    find_ttl : float, optional
+    find_ttl : int, optional
         Offer cyclic delay in milliseconds: This parameter \
         keeps system alive with cyclic offer.
-        Must be greater or equal to 0 and lower or equal to 1000.
+        Must be greater or equal to 0.
         Defaults to 1000.
 
-    subscribe_ttl: float, optional
+    subscribe_ttl: int, optional
         Time to live in milliseconds: This parameter \
         determines how fast to age out state.
-        Must be greater or equal to 0 and lower or equal to 3000.
+        Must be greater or equal to 0.
         Defaults to 3.
     """
 
@@ -806,83 +824,73 @@ class SDTimings(DictInstances):
         description="A unique ID for the SOME/IP-SD timings profile"
     )
 
-    initial_delay_min: float = Field(
+    initial_delay_min: int = Field(
         ge=0,
-        le=10,
         description="Initial delay in milliseconds: This parameter keeps \
             back service offers to pack more entries together.",
         default=10,
     )
 
-    initial_delay_max: float = Field(
+    initial_delay_max: int = Field(
         ge=0,
-        le=10,
         description="Initial delay in milliseconds: This parameter keeps \
             back service offers to pack more entries together.",
         default=10,
     )
 
-    repetitions_base_delay: float = Field(
+    repetitions_base_delay: int = Field(
         ge=0,
-        le=30,
         description="Repetitions Base delay in milliseconds: This \
             parameter helps in fast startup and to make startup more \
                 robust.Loss of the first offer results in this delay.",
         default=30,
     )
-    repetitions_max: float = Field(
+    repetitions_max: int = Field(
         ge=0,
-        le=3,
         description="Number of repetitions while doubling delay",
         default=3,
     )
 
-    request_response_delay_min: float = Field(
+    request_response_delay_min: int = Field(
         ge=0,
-        le=10,
-        description="Request response delay in milliseconds: This \
-            parameter keeps back subscribes to pack more entries together.",
-        default=10.0,
-    )
-
-    request_response_delay_max: float = Field(
-        ge=0,
-        le=10,
         description="Request response delay in milliseconds: This \
             parameter keeps back subscribes to pack more entries together.",
         default=10,
     )
 
-    offer_cyclic_delay: Optional[float] = Field(
+    request_response_delay_max: int = Field(
         ge=0,
-        le=1000,
+        description="Request response delay in milliseconds: This \
+            parameter keeps back subscribes to pack more entries together.",
+        default=10,
+    )
+
+    offer_cyclic_delay: Optional[int] = Field(
+        ge=0,
         description="Offer cyclic delay in milliseconds: This parameter \
             keeps system alive with cyclic offer.",
         default=1000,
     )
 
-    offer_ttl: Optional[float] = Field(
+    offer_ttl: Optional[int] = Field(
         ge=0,
-        le=3000,
         description="Time to live in milliseconds: This parameter \
             determines how fast to age out state.",
-        default=3,
+        default=3000,
     )
 
-    find_ttl: Optional[float] = Field(
+    find_ttl: Optional[int] = Field(
         ge=0,
-        le=1000,
         description="Offer cyclic delay in milliseconds: This parameter \
             keeps system alive with cyclic offer.",
         default=1000,
     )
 
-    subscribe_ttl: Optional[float] = Field(
+    subscribe_ttl: Optional[int] = Field(
         ge=0,
-        le=3000,
         description="Time to live in milliseconds: This parameter \
             determines how fast to age out state.",
-        default=3,
+        default=3000,
     )
 
     def get_dict_key(self):
@@ -972,10 +980,17 @@ class SOMEIPConfig(FLYNCBaseModel):
         )
 
         for service in self.services:
+            for field in service.fields:
+                if field.notifier_e2e is not None:
+                    profile, data_id = field.notifier_e2e
+                    per_profile[profile][data_id].append(
+                        (service, field, field.notifier_e2e)
+                    )
             for event in service.events:
                 if event.e2e is not None:
-                    per_profile[event.e2e.profile][event.e2e.data_id].append(
-                        (service, event)
+                    profile, data_id = event.e2e
+                    per_profile[profile][data_id].append(
+                        (service, event, event.e2e)
                     )
 
         errors = []
@@ -983,8 +998,8 @@ class SOMEIPConfig(FLYNCBaseModel):
             for data_id, entries in by_id.items():
                 if len(entries) > 1:
                     entity_list = ", ".join(
-                        f"{type(service).__name__}.{type(event).__name__}"
-                        for service, event in entries
+                        f"{type(service).__name__}.{type(element).__name__}"
+                        for service, element, e2e in entries
                     )
                     errors.append(
                         f"Duplicate e2e.data_id '{data_id}' "
