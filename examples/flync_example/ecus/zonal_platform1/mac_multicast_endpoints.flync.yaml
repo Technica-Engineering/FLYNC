@@ -1,0 +1,8 @@
+endpoints:
+- name: avb_endpoint
+  protocol: AVTP
+  mac_address: 00:11:22:33:44:66
+  vlan_id: 10
+  multicast_tx:
+  - 91:E0:F0:00:00:AA
+  - 91:E0:F0:00:00:BB

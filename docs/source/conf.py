@@ -75,6 +75,7 @@ autodoc_default_options = {
     "member-order": "bysource",
 }
 autodoc_pydantic_field_doc_policy = "description"
+autodoc_templates = "_templates/autodoc"
 
 
 mermaid_params = [

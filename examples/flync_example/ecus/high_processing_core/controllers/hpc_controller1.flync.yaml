@@ -19,6 +19,9 @@ interfaces:
         addresses:
           - address: 10.0.10.5
             ipv4netmask: 255.255.255.0
+        multicast:
+        - 91:E0:F0:00:00:AA
+        - 91:E0:F0:00:00:BB
       - name: hpc_c1_i1_viface2
         vlanid: 20
         addresses:

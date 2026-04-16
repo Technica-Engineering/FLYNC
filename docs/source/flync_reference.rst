@@ -102,6 +102,7 @@ All components inside the ECU are then described in an internal_topology where t
    │   ├── 📄❗ ports.flync.yaml
    │   ├── 📄❗ topology.flync.yaml
    │   ├── 📄❗ ecu_metadata.flync.yaml
+   │   ├── 📄   mac_multicast_endpoints.flync.yaml
    │   |
    │   ├── 📂❗ controllers
    │   │   ├── 📄❗ ecu_1_controller_1.flync.yaml
@@ -123,7 +124,7 @@ All components inside the ECU are then described in an internal_topology where t
 
    ✔ The directory names ``ecus/``, ``controllers/``, ``sockets/``, and ``switches/`` must be respected.
 
-   ✔ The file names ``ports``, ``topology``, and ``ecu_metadata`` must be respected.
+   ✔ The file names ``ports``, ``topology``, ``mac_multicast_endpoints`` and ``ecu_metadata`` must be respected.
    All others are suggested.
 
 
@@ -135,6 +136,8 @@ All components inside the ECU are then described in an internal_topology where t
    - :ref:`ECU Ports Config <ecu_ports>`
    - :ref:`Controller Config <controller>`
    - :ref:`Switch Config <switch>`
+   - :ref:`Sockets <socket>`
+   - :ref:`MAC Multicast Endpoints <mac_multicast_endpoints>`
    - :ref:`internal_topology`
    - :ref:`ECU Metadata <ecu_meta>`
 

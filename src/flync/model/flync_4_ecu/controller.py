@@ -319,3 +319,12 @@ class Controller(NamedListInstances["Controller"]):
         for i in self.interfaces:
             all_ips.extend(i.get_all_ips())
         return all_ips
+
+    def get_all_macs(self):
+        """Helper function.
+        Return all the MAC addresses in the Controller
+        """
+        mac_lists = []
+        for i in self.interfaces:
+            mac_lists.append(i.mac_address)
+        return mac_lists

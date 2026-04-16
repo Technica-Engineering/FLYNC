@@ -11,6 +11,11 @@ from .controller import (
 )
 from .ecu import ECU
 from .internal_topology import InternalTopology
+from .mac_multicast_endpoint import (
+    AVTPMulticastEndpoint,
+    MACMulticastEndpoint,
+    MACMulticastEndpoints,
+)
 from .multicast_groups import MulticastGroupMembership
 from .phy import BASET, BASET1, BASET1S, MII, RGMII, RMII, SGMII, XFI
 from .port import ECUPort
@@ -63,4 +68,7 @@ __all__ = [
     "TCAMRule",
     "TrafficClass",
     "MulticastGroupMembership",
+    "AVTPMulticastEndpoint",
+    "MACMulticastEndpoint",
+    "MACMulticastEndpoints",
 ]
