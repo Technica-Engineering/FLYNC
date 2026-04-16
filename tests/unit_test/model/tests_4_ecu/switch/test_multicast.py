@@ -25,7 +25,11 @@ def test_mac_unicast_helper(input_value, expected_test_result):
 
 @pytest.mark.parametrize(
     "input_value,expected_test_result",
-    [("01:00:5E:00:00:00", True), ("00:11:22:33:44:55", False)],
+    [
+        ("01:00:5E:00:00:00", True),
+        ("00:11:22:33:44:55", False),
+        ("91:E0:F0:00:00:AA", True),
+    ],
 )
 def test_mac_multicast_helper(input_value, expected_test_result):
     is_mcast, _ = utils.is_mac_multicast(input_value)

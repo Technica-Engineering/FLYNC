@@ -286,6 +286,35 @@ Deployments
 
 .. autoclass:: flync.model.flync_4_ecu.sockets.DeploymentUnion()
 
+
+.. _mac_multicast_endpoints:
+
+MAC Multicast Endpoints
+#######################
+
+.. admonition:: Expand for Schematic
+   :collapsible: closed
+
+   .. mermaid:: ../../_static/mermaid/mac_multicast_endpoint.mmd
+
+
+.. admonition:: Expand for a YAML example - 📄 ``mac_multicast_endpoints.flync.yaml``
+   :collapsible: closed
+
+   .. note::
+      This file contains defines Endpoints of the ECU for transmitted MAC multicast addresses.
+
+   .. literalinclude:: ../../_static/flync_example/ecus/zonal_platform1/mac_multicast_endpoints.flync.yaml
+
+
+
+.. autoclass:: flync.model.flync_4_ecu.mac_multicast_endpoint.MACMulticastEndpoints()
+.. autoclass:: flync.model.flync_4_ecu.mac_multicast_endpoint.MACEndpointUnion()
+.. autoclass:: flync.model.flync_4_ecu.mac_multicast_endpoint.MACMulticastEndpoint()
+.. autoclass:: flync.model.flync_4_ecu.mac_multicast_endpoint.AVTPMulticastEndpoint()
+
+
+
 .. _ecu_multicast:
 
 Multicast Group Memberships
@@ -304,8 +333,8 @@ Multicast Group Memberships
 
       These entries are computed from:
 
-      - the field `multicast` in a :class:`~flync.model.flync_4_ecu.controller.VirtualControllerInterface`,
-      - IPv6 addresses in a :class:`~flync.model.flync_4_ecu.controller.VirtualControllerInterface`
+      - MAC, IPv4 or IPv6 addresses in the field `multicast` of a :class:`~flync.model.flync_4_ecu.controller.VirtualControllerInterface`,
+      - IPv6 addresses of a :class:`~flync.model.flync_4_ecu.controller.VirtualControllerInterface`
         as solicited-node multicast addresses.
 
    .. grid-item-card:: Sending Nodes
@@ -314,7 +343,8 @@ Multicast Group Memberships
 
       These entries are computed from:
 
-      - the field `multicast_tx` in a :class:`~flync.model.flync_4_ecu.sockets.Socket`,
+      - IPv4 or IPv6 addresses in the field `multicast_tx` of a :class:`~flync.model.flync_4_ecu.sockets.Socket`,
+      - MAC addresses in the field `multicast_tx` of a :class:`~flync.model.flync_4_ecu.mac_multicast_endpoint.MACMulticastEndpoint`,
       - IPv6 solicited-node multicast addresses per VLAN.
 
 

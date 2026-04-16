@@ -21,6 +21,9 @@ from flync.model.flync_4_ecu.controller import (
     VirtualControllerInterface,
 )
 from flync.model.flync_4_ecu.internal_topology import InternalTopology
+from flync.model.flync_4_ecu.mac_multicast_endpoint import (
+    MACMulticastEndpoints,
+)
 from flync.model.flync_4_ecu.multicast_groups import MulticastGroupMembership
 from flync.model.flync_4_ecu.port import ECUPort
 from flync.model.flync_4_ecu.socket_container import SocketContainer
@@ -134,6 +137,13 @@ class ECU(UniqueName):
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
     ] = Field(default_factory=list, exclude=True)
+    mac_multicast_endpoints: Annotated[
+        Optional["MACMulticastEndpoints"],
+        External(
+            output_structure=OutputStrategy.SINGLE_FILE
+            | OutputStrategy.OMMIT_ROOT
+        ),
+    ] = Field(exclude=True, default=None)
     multicast_groups: Optional[List[MulticastGroupMembership]] = Field(
         default_factory=list, exclude=True
     )
@@ -157,6 +167,7 @@ class ECU(UniqueName):
         self.__bind_sockets_to_ip()
         self.__populate_multicast_tx_groups_from_socket()
         self.__populate_multicast_rx_groups_from_interfaces()
+        self._populate_multicast_tx_groups_from_mac_multicast_endpoints()
 
     @model_validator(mode="after")
     def validate_vlans_in_sockets(self):
@@ -271,6 +282,30 @@ class ECU(UniqueName):
                     self.multicast_groups.append(group)
         return self
 
+    def _populate_multicast_tx_groups_from_mac_multicast_endpoints(self):
+        """
+        Add Multicast TX entries from MAC multicast endpoints
+        to multicast group memberships.
+        """
+
+        if self.mac_multicast_endpoints is not None:
+            for endpoint_union in self.mac_multicast_endpoints.endpoints:
+                endpoint = endpoint_union.root
+                for multicast_addr in endpoint.multicast_tx:
+                    group = MulticastGroupMembership(
+                        group=multicast_addr,
+                        description=endpoint.name,
+                        mode="tx",
+                        vlan=endpoint.vlan_id or None,
+                        src_ip=None,
+                    )
+                    interface = self.get_interface_for_mac(
+                        str(endpoint.mac_address)
+                    )
+                    group._interface = interface
+                    self.multicast_groups.append(group)
+        return self
+
     def get_all_controllers(self):
         """Return a list of all controllers of the ECU."""
         return self.controllers
@@ -323,6 +358,15 @@ class ECU(UniqueName):
             ip_lists.extend(ctrl.get_all_ips())
         return ip_lists
 
+    def get_all_macs(self):
+        """
+        Get all MAC addresses in a ECU
+        """
+        mac_lists = []
+        for ctrl in self.controllers:
+            mac_lists.extend(ctrl.get_all_macs())
+        return mac_lists
+
     def get_all_sockets(self) -> dict[int, List[Socket]]:
         """
         Get all sockets in a ECU, grouped by VLAN ID.
@@ -342,8 +386,12 @@ class ECU(UniqueName):
 
     def get_interface_for_ip(self, ip):
         for iface in self.get_all_interfaces():
-
             if ip in iface.get_all_ips():
+                return iface
+
+    def get_interface_for_mac(self, mac):
+        for iface in self.get_all_interfaces():
+            if mac == iface.mac_address:
                 return iface
 
     def __get_services_of_type(

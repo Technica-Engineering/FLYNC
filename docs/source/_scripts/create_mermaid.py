@@ -2,11 +2,6 @@ from pathlib import Path
 from pydantic_mermaid import MermaidGenerator
 import flync.model as base_model
 from pydantic_mermaid.models import Relations
-from flync.model.flync_4_ecu import *
-from flync.model.flync_4_someip import *
-from flync.model.flync_4_security import *
-from flync.model.flync_4_topology import *
-from flync.model.flync_4_tsn import *
 
 EXPORT_DIR = Path(__file__).resolve().parent / ".." / "_static" / "mermaid"
 EXPORT_DIR.mkdir(parents=True, exist_ok=True)
@@ -43,6 +38,7 @@ targets = {
     "ecu_port.mmd": base_model.flync_4_ecu.port,
     "controller.mmd": base_model.flync_4_ecu.controller,
     "socket.mmd": base_model.flync_4_ecu.sockets,
+    "mac_multicast_endpoint.mmd": base_model.flync_4_ecu.mac_multicast_endpoint,
     "switch.mmd": base_model.flync_4_ecu.switch,
     "ecu_topology.mmd": base_model.flync_4_ecu.internal_topology,
     "general_configs.mmd": base_model.flync_4_general_configuration.flync_general,

@@ -12,6 +12,24 @@ from flync.core.utils.common_validators import (
 )
 
 
+def mac_to_int(mac: MacAddress) -> int:
+    """Convert a MAC address to an integer."""
+    hex_str = mac.replace(":", "")
+    return int(hex_str, 16)
+
+
+def is_mac_in_range(
+    mac: MacAddress | str, start: MacAddress, end: MacAddress
+) -> bool:
+    """Check if a MAC address is within a specified range."""
+    if isinstance(mac, str):
+        mac = MacAddress(mac)
+    mac_int = mac_to_int(mac)
+    start_int = mac_to_int(start)
+    end_int = mac_to_int(end)
+    return start_int <= mac_int <= end_int
+
+
 class MACAddressEntry(FLYNCBaseModel):
     """
     Represents an MAC address entry for a network interface.
