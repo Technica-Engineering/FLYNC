@@ -22,3 +22,5 @@ Bugfixes
 - Model: SOME/IP Datatypes follow specification more closely
 - Model: bind sockets by vlan id instead of virtual controller interface name
 - Model: Typedef was missing in AllTypes
+- Example: Fixing a Method-ID in ETS Service
+- Model: Adding Limits to Dynamic Length String
