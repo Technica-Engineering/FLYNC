@@ -701,6 +701,12 @@ class DynamicLengthString(BaseString):
     type : Literal["dynamic_length_string"]
         Discriminator used to identify this datatype.
 
+    max_length: Optional[int]
+        Maximum string length in bytes. None means no limit.
+
+    min_length: Optional[int]
+        Minimum string length in bytes. None means 0.
+
     length_of_length_field : Literal[8, 16, 32]
         Size of the length field in bits that precedes the string data.
 
@@ -714,6 +720,17 @@ class DynamicLengthString(BaseString):
         default="dynamic_length_string",
         description="used internally by flync to efficiently determine the "
         "constructor to use from yaml",
+    )
+    max_length: Optional[int] = Field(
+        default=None,
+        ge=0,
+        description="Maximum string length in bytes."
+        "None means no upper limit.",
+    )
+    min_length: Optional[int] = Field(
+        default=None,
+        ge=0,
+        description="Minimum string length in bytes. None means 0.",
     )
     length_of_length_field: Literal[8, 16, 32] = Field(
         description="the length of the length field of the string\n\n"
