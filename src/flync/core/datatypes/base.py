@@ -25,6 +25,12 @@ class Datatype(FLYNCBaseModel):
     endianness : Literal["BE", "LE"], optional
         Byte order used for encoding multi-byte values. Defaults to
         big-endian ("BE").
+
+    member_name : str, optional
+        When this datatype is stored as a struct member, this field holds
+        the member's name within the struct (which may differ from the
+        type's own ``name``). None when the datatype is not a struct member
+        or when member name equals the type name.
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True)
@@ -32,3 +38,4 @@ class Datatype(FLYNCBaseModel):
     description: Optional[str] = Field(default="")
     type: str | object = Field()
     endianness: Literal["BE", "LE"] = Field("BE")
+    member_name: Optional[str] = Field(default=None)
