@@ -7,7 +7,6 @@ from pydantic import (
     BaseModel,
     Field,
     ValidationInfo,
-    field_serializer,
     field_validator,
     model_validator,
 )
@@ -933,6 +932,9 @@ class UnionMember(Datatype):
 
     name : str
         Name of the union member.
+
+    mandatory : bool
+        Whether the union member is mandatory.
     """
 
     type: Annotated[
@@ -946,10 +948,12 @@ class UnionMember(Datatype):
     ]
     name: Annotated[str, Field(description="name of the union member")]
 
-    @field_serializer("type")
-    def serialize_type(self, type):
-        if type is not None:
-            return getattr(type, "type", str(type))
+    mandatory: Annotated[
+        Optional[bool],
+        Field(
+            description="whether the union member is mandatory", default=None
+        ),
+    ] = None
 
     @field_validator("type", mode="before")
     def _wrap_string_type(cls, v):
