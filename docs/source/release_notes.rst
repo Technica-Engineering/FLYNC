@@ -24,3 +24,4 @@ Bugfixes
 - Model: Typedef was missing in AllTypes
 - Example: Fixing a Method-ID in ETS Service
 - Model: Adding Limits to Dynamic Length String
+- Model: Improve Union Members and others
