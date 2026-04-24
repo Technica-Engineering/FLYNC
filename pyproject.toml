@@ -23,7 +23,7 @@ dependencies = [
     "rich",
     "typer",
     "prettytable",
-    "pydantic==2.13.2",
+    "pydantic==2.13.3",
     "pydantic-yaml==1.6.0",
     "pyyaml==6.0.3",
     "myst-parser>=5.0.0,<6.0.0",
