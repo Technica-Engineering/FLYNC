@@ -70,7 +70,7 @@ python-dotenv = "*"
 black = "^26.1.0"
 mypy = "^1.18.2"
 pytest-xdist = "^3.8.0"
-approvaltests = "^17.2.1"
+approvaltests = "^18.0.0"
 
 [tool.poetry.group.static-analysis.dependencies]
 black = "^26.1.0"

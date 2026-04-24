@@ -91,31 +91,31 @@ trio = ["trio (>=0.31.0) ; python_version < \"3.10\"", "trio (>=0.32.0) ; python
 
 [[package]]
 name = "approval-utilities"
-version = "17.4.3"
+version = "18.0.0"
 description = "Utilities for your production code that work well with approvaltests"
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.10"
 groups = ["test"]
 files = [
-    {file = "approval_utilities-17.4.3-py3-none-any.whl", hash = "sha256:9768fdbfb0e8780d677851072d62879633243ec6f78a73a9557ba0721618534e"},
-    {file = "approval_utilities-17.4.3.tar.gz", hash = "sha256:b06ec3b6822c6cca33516b3a9011e00d00acdbd27d9ecfa43a5102e2158ccd57"},
+    {file = "approval_utilities-18.0.0-py3-none-any.whl", hash = "sha256:7837ff40e61e8e1eede78b4713c79834ba6dcb7cdf0c95a5ab5ff6d43734eea3"},
+    {file = "approval_utilities-18.0.0.tar.gz", hash = "sha256:ed03f53fed6875dacaaf83f94bcd64a7ff287b52cf083e7dca93925231b1996e"},
 ]
 
 [[package]]
 name = "approvaltests"
-version = "17.4.3"
+version = "18.0.0"
 description = "Assertion/verification library to aid testing"
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.10"
 groups = ["test"]
 files = [
-    {file = "approvaltests-17.4.3-py3-none-any.whl", hash = "sha256:d0550fb5292f8bcf80664dd7d400c3fef38e35d909cf49eede280ca907958f55"},
-    {file = "approvaltests-17.4.3.tar.gz", hash = "sha256:fb7028ef5311b76680051df2aa2dd2e743b28c2b974c8a5ad59a528c21de94b0"},
+    {file = "approvaltests-18.0.0-py3-none-any.whl", hash = "sha256:e829a453a2de225fde997e79138f6750196c63c85a7771f7b2dc3018f9e0467c"},
+    {file = "approvaltests-18.0.0.tar.gz", hash = "sha256:651ad7cca8a430793b537ef714641cb875dbc5588e1bc36e19ab6b8a8321f892"},
 ]
 
 [package.dependencies]
 allpairspy = ">=2.1.0"
-approval_utilities = "17.4.3"
+approval_utilities = "18.0.0"
 beautifulsoup4 = ">=4.4.0"
 empty-files = ">=0.0.3"
 mock = ">=5.1.0"
@@ -3311,4 +3311,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<4.0"
-content-hash = "f1d10ac7c75d2f17c6d61d414b1acf2a6e35fb264c3e7899b7a6604e9f43502b"
+content-hash = "9e0e5cc406ae44e3222612e55186d73a0742cee98f5ff89de46d8697efc495fe"
