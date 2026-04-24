@@ -168,8 +168,7 @@ class FLYNCModel(FLYNCBaseModel):
                         "Invalid Multicast Address Configuration. There"
                         " are several RX that the TX or BiDir Endpoint at "
                         f"{mcast._interface.name} cannot reach."
-                        f"{serialize_components(paths[
-                            key])}"
+                        f"{serialize_components(paths[key])}"
                     )
         self.check_rx_are_reached(separ, paths, vlans_dict)
         return self
