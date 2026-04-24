@@ -7,7 +7,7 @@ meta:
 name: z1_controller1
 interfaces:
   - name: z1_c1_iface1
-    mac_address: 00:11:22:33:44:66
+    mac_address: 00:11:03:01:01:01
     mii_config:
       type: rmii
       speed: 100

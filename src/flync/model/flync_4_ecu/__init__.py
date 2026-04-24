@@ -5,8 +5,11 @@ switches, sockets, and internal topology definitions.
 """
 
 from .controller import (
+    ComputeNodes,
     Controller,
     ControllerInterface,
+    L2Bridge,
+    L2BridgePort,
     VirtualControllerInterface,
 )
 from .ecu import ECU
@@ -30,17 +33,19 @@ from .sockets import (
     UDPOption,
 )
 from .switch import (
-    MulticastGroup,
     Switch,
     SwitchPort,
     TCAMRule,
     TrafficClass,
-    VLANEntry,
 )
+from .vlan_entry import MulticastGroup, VLANEntry
 
 __all__ = [
+    "ComputeNodes",
     "Controller",
     "ControllerInterface",
+    "L2Bridge",
+    "L2BridgePort",
     "VirtualControllerInterface",
     "IPv4AddressEndpoint",
     "IPv6AddressEndpoint",

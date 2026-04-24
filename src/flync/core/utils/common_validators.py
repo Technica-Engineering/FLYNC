@@ -306,11 +306,13 @@ def validate_htb(comp, speed):
         err_major: The sum of the ``rate`` values of all child classes exceeds
         the provided ``speed``.
     """
-    if not comp or not speed or not comp.htb:
+    if not comp or not speed:
         return
     sum_child_rates = 0
-    for child in comp.htb.child_classes:
-        sum_child_rates = sum_child_rates + child.rate
+    for nodes in comp.compute_nodes:
+        if nodes.htb:
+            for child in nodes.htb.child_classes:
+                sum_child_rates = sum_child_rates + child.rate
     if sum_child_rates > speed:
         raise err_major(
             f"Incompatible HTB config for {comp.name}"

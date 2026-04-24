@@ -30,7 +30,7 @@ from flync.model.flync_4_ecu.socket_container import SocketContainer
 from flync.model.flync_4_ecu.sockets import Socket
 from flync.model.flync_4_ecu.switch import Switch, SwitchPort
 from flync.model.flync_4_metadata import ECUMetadata
-from flync.model.flync_4_someip import (  # type: ignore[import-untyped]
+from flync.model.flync_4_someip import (  # type: ignore  # noqa: F401
     SOMEIPServiceConsumer,
     SOMEIPServiceDeployment,
     SOMEIPServiceProvider,
@@ -209,7 +209,6 @@ class ECU(UniqueName):
             vi for vi in find_all(controllers, VirtualControllerInterface)
         ]
         ips = self.get_all_ips()
-
         for interface, (_, sockets) in product(
             all_virtual_interfaces, sockets_per_vlan.items()
         ):
@@ -280,6 +279,18 @@ class ECU(UniqueName):
                     )
                     group._interface = interface
                     self.multicast_groups.append(group)
+            for node in interface.compute_nodes:
+                for viface in node.virtual_interfaces:
+                    for multicast_addr in viface.multicast:
+                        group = MulticastGroupMembership(
+                            group=multicast_addr,
+                            description="",
+                            mode="rx",
+                            vlan=viface.vlanid,
+                            src_ip=None,
+                        )
+                        group._interface = interface
+                        self.multicast_groups.append(group)
         return self
 
     def _populate_multicast_tx_groups_from_mac_multicast_endpoints(self):
@@ -302,6 +313,12 @@ class ECU(UniqueName):
                     interface = self.get_interface_for_mac(
                         str(endpoint.mac_address)
                     )
+                    if not interface:
+                        raise err_minor(
+                            f"Error in MAC multicast:\n"
+                            f"endpoints. Could not find an interface for "
+                            f"address {endpoint.mac_address}. ECU {self.name}"
+                        )
                     group._interface = interface
                     self.multicast_groups.append(group)
         return self
@@ -356,6 +373,9 @@ class ECU(UniqueName):
         ip_lists = []
         for ctrl in self.controllers:
             ip_lists.extend(ctrl.get_all_ips())
+        for switch in self.switches:
+            if switch.host_controller:
+                ip_lists.extend(switch.host_controller.get_all_ips())
         return ip_lists
 
     def get_all_macs(self):
@@ -365,6 +385,8 @@ class ECU(UniqueName):
         mac_lists = []
         for ctrl in self.controllers:
             mac_lists.extend(ctrl.get_all_macs())
+        for switch in self.switches:
+            mac_lists.extend(switch.host_controller.get_all_macs())
         return mac_lists
 
     def get_all_sockets(self) -> dict[int, List[Socket]]:
@@ -391,7 +413,10 @@ class ECU(UniqueName):
 
     def get_interface_for_mac(self, mac):
         for iface in self.get_all_interfaces():
-            if mac == iface.mac_address:
+            macs = [iface.mac_address] + [
+                node.mac_address for node in iface.compute_nodes
+            ]
+            if mac in macs:
                 return iface
 
     def __get_services_of_type(

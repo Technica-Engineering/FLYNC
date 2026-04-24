@@ -8,95 +8,22 @@ meta:
 name: eth_ecu_controller1
 interfaces:
   - name: eth_ecu_c1_iface1
-    mac_address: 00:11:22:33:44:55
+    mac_address: 00:11:01:01:01:01
     mii_config:
       type: sgmii
       speed: 1000
       mode: mac
-    virtual_interfaces:
-      - name: eth_ecu_c1_i1_viface1
-        vlanid: 40
-        addresses:
-          - address: 10.0.40.7
-            ipv4netmask: 255.255.255.0
-          - address: 2001:db8:85a3::8a2e:370:7334
-            ipv6prefix: 64
-        multicast:
-          - 224.0.0.1
     ptp_config:
-      cmlds_linkport_enabled: false
-      ptp_ports:
-        - domain_id: 0
-          src_port_identity: 0
-          sync_config:
-            type: time_receiver
-            sync_timeout: 3
-            sync_followup_timeout: 10
-          pdelay_config:
-            log_tx_period: 1
-    ingress_streams:
-      - name: stream_0
-        stream_identification:
-          - vlanid: [10, 20, 30, 40]
-            dst_ipv4:
-              address: 10.0.0.0
-              ipv4netmask: 255.255.0.0
-            protocol: udp
-            dst_port:
-              from_value: 32000
-              to_value: 33000
-        drop_at_ingress: false
-        max_sdu_size: 1522
-        policer:
-          type: single_rate_two_color
-          cir: 10000
-          cbs: 10000
-          eir: 0
-          ebs: 5000
-          coupling: false
-      - name: stream_1
-        stream_identification:
-          - vlanid: 10
-            dst_ipv4:
-              address: 224.0.0.0
-              ipv4netmask: 255.0.0.0
-            protocol: tcp
-        drop_at_ingress: false
-        max_sdu_size: 1522
-        policer:
-          type: double_rate_three_color
-          cir: 10000
-          cbs: 10000
-          eir: 20000
-          ebs: 2000
-          coupling: true
-    htb:
-      root_id: "1:"
-      default_class: 12
-      child_classes:
-        - classid: 11
-          priority: 1
-          rate: 5
-          ceil: 10
-          filter:
-            - filter_priority: 1
-              vlanid: 40
-              dst_ipv4:
-                address: 10.0.40.0
-                ipv4netmask: 255.255.255.0
-              protocol: tcp
-        - classid: 12
-          priority: 2
-          rate: 5
-          ceil: 10
-          filter:
-            - filter_priority: 2
-              vlanid: 40
-              dst_ipv4:
-                address: 10.0.40.0
-                ipv4netmask: 255.255.255.0
-              protocol: udp
-          child_classes: []
+        cmlds_linkport_enabled: false
+        ptp_ports:
+          - domain_id: 0
+            src_port_identity: 0
+            sync_config:
+              type: time_receiver
+              sync_timeout: 3
+              sync_followup_timeout: 10
+            pdelay_config:
+              log_tx_period: 1
     macsec_config:
       vlan_bypass: []
       mka_enabled: true
@@ -109,3 +36,110 @@ interfaces:
       key_role: key_server_always
       delay_protect: false
       participant_activation: always
+    compute_nodes:
+    - name: eth_ecu_vm1
+      mac_address: 00:11:01:01:01:02
+      virtual_interfaces:
+        - name: eth_ecu_vm1_viface1
+          vlanid: 40
+          addresses:
+            - address: 10.0.40.7
+              ipv4netmask: 255.255.255.0
+            - address: 2001:db8:85a3::8a2e:370:7334
+              ipv6prefix: 64
+          multicast:
+            - 224.0.0.1
+      ingress_streams:
+        - name: stream_0
+          stream_identification:
+            - vlanid: [10, 20, 30, 40]
+              dst_ipv4:
+                address: 10.0.0.0
+                ipv4netmask: 255.255.0.0
+              protocol: udp
+              dst_port:
+                from_value: 32000
+                to_value: 33000
+          drop_at_ingress: false
+          max_sdu_size: 1522
+          policer:
+            type: single_rate_two_color
+            cir: 10000
+            cbs: 10000
+            eir: 0
+            ebs: 5000
+            coupling: false
+        - name: stream_1
+          stream_identification:
+            - vlanid: 10
+              dst_ipv4:
+                address: 224.0.0.0
+                ipv4netmask: 255.0.0.0
+              protocol: tcp
+          drop_at_ingress: false
+          max_sdu_size: 1522
+          policer:
+            type: double_rate_three_color
+            cir: 10000
+            cbs: 10000
+            eir: 20000
+            ebs: 2000
+            coupling: true
+      htb:
+        root_id: "1:"
+        default_class: 12
+        child_classes:
+          - classid: 11
+            priority: 1
+            rate: 5
+            ceil: 10
+            filter:
+              - filter_priority: 1
+                vlanid: 40
+                dst_ipv4:
+                  address: 10.0.40.0
+                  ipv4netmask: 255.255.255.0
+                protocol: tcp
+          - classid: 12
+            priority: 2
+            rate: 5
+            ceil: 10
+            filter:
+              - filter_priority: 2
+                vlanid: 40
+                dst_ipv4:
+                  address: 10.0.40.0
+                  ipv4netmask: 255.255.255.0
+                protocol: udp
+            child_classes: []    
+    - name: eth_ecu_vm2
+      mac_address: 00:11:01:01:01:03
+      virtual_interfaces:
+        - name: eth_ecu_vm2_viface1
+          vlanid: 50
+          addresses:
+            - address: 10.0.50.7
+              ipv4netmask: 255.255.255.0
+l2_bridge:
+  name: br0
+  ports:
+    - name: br0_p1
+      node_connected: eth_ecu_vm1
+    - name: br0_p2
+      node_connected: eth_ecu_vm2
+    - name: br0_p3
+      node_connected: eth_ecu_c1_iface1
+  vlans:
+    - name: VLAN40
+      id: 40
+      default_priority: 0
+      ports:
+        - br0_p1
+        - br0_p3          
+    - name: VLAN50
+      id: 50
+      default_priority: 0
+      ports:
+        - br0_p2
+        - br0_p3         
+    

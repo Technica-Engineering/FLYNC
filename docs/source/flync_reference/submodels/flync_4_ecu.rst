@@ -84,7 +84,9 @@ Controller Config
 .. autoclass:: flync.model.flync_4_ecu.Controller()
 .. autoclass:: flync.model.flync_4_ecu.ControllerInterface()
 .. autoclass:: flync.model.flync_4_ecu.VirtualControllerInterface()
-
+.. autoclass:: flync.model.flync_4_ecu.ComputeNodes()
+.. autoclass:: flync.model.flync_4_ecu.L2Bridge()
+.. autoclass:: flync.model.flync_4_ecu.L2BridgePort()
 
 .. _switch:
 

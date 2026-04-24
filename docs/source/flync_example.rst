@@ -357,6 +357,218 @@ Single controller, multiple (virtual) interfaces, integrated PHY
 
 --------------
 
+Single controller, single (physical) interface, external PHY, Multiple VMs
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. image:: ./_static/images/ecu_variants/single_controller_single_iface_multiple_vms.svg
+   :align: center
+   :width: 500px
+
+
+.. note:: You always need to add a L2Bridge to tie your VMs to the interface
+
+.. dropdown:: 📄 ``ecu1_ports.flync.yaml``
+
+   .. code-block:: yaml
+
+      ports:
+         -  name: ecu1_port1
+            mdi_config:
+               mode: base_t1
+               speed: 100
+               duplex: full
+               role: master
+               autonegotiation: false
+            mii_config:
+               type: rmii
+               speed: 100
+               mode: phy
+
+.. dropdown:: 📄 ``ecu1_controller1.flync.yaml``
+
+   .. code-block:: yaml
+
+      meta:
+         author: Developer1
+         compatible_flync_version:
+            version_schema: semver
+            version: 0.9.0
+         target_system: flync_os
+      name: ecu1_controller1
+      interfaces:
+         -  name: ecu1_controller1_iface1
+            mac_address: 00:11:22:33:44:55
+            mii_config:
+               type: rmii
+               speed: 100
+               mode: mac
+            virtual_interfaces:
+               -  name: ecu1_controller1_iface1_viface1
+                  vlanid: 10
+                  addresses:
+                     -  address: 10.0.10.1
+                        ipv4_netmask: 255.255.255.0
+            compute_nodes: 
+            -  name: ecu1_c1_vm1
+               mac_address: 00:11:22:33:44:56
+               virtual_interfaces:
+               -  name: ecu1_c1_vm1_viface1
+                  vlanid: 20
+                  addresses:
+                     -  address: 10.0.20.1
+                        ipv4_netmask: 255.255.255.0
+            -  name: ecu1_c1_vm2
+               mac_address: 00:11:22:33:44:57
+               virtual_interfaces:
+               -  name: ecu1_c1_vm2_viface1
+                  vlanid: 20
+                  addresses:
+                     -  address: 10.0.20.2
+                        ipv4_netmask: 255.255.255.0
+      l2_bridge:
+         name: br0
+         ports:
+            -  name: br0_p1
+               node_connected: ecu1_c1_vm1
+            -  name: br0_p2
+               node_connected: ecu1_c1_vm2
+            -  name: br0_p3
+               node_connected: ecu1_controller1_iface1
+         vlans:          
+            -  name: VLAN20
+               id: 50
+               default_priority: 0
+               ports:
+               - br0_p0
+               - br0_p1
+               - br0_p2   
+
+.. dropdown:: 📄 ``ecu1_internal_topology.flync.yaml``
+
+   .. code-block:: yaml
+
+      connections:
+         - type: ecu_port_to_controller_interface
+           id: conn1
+           ecu_port: ecu1_port1
+           controller_interface: ecu1_controller1_iface1
+
+--------------
+
+
+Single controller, multiple (physical) interface, external PHY no VMs, L2 bridge
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. image:: ./_static/images/ecu_variants/single_controller_multiple_iface_physical_ext_phy.svg
+   :align: center
+   :width: 500px
+
+
+.. note:: You always need to add a L2Bridge to tie one or more interface
+
+.. dropdown:: 📄 ``ecu1_ports.flync.yaml``
+
+   .. code-block:: yaml
+
+      ports:
+         -  name: ecu1_port1
+            mdi_config:
+               mode: base_t1
+               speed: 100
+               duplex: full
+               role: master
+               autonegotiation: false
+            mii_config:
+               type: rmii
+               speed: 100
+               mode: phy
+         -  name: ecu1_port2
+            mdi_config:
+               mode: base_t1
+               speed: 100
+               duplex: full
+               role: master
+               autonegotiation: false
+            mii_config:
+               type: rmii
+               speed: 100
+               mode: phy
+
+.. dropdown:: 📄 ``ecu1_controller1.flync.yaml``
+
+   .. code-block:: yaml
+
+      meta:
+         author: Developer1
+         compatible_flync_version:
+            version_schema: semver
+            version: 0.9.0
+         target_system: flync_os
+      name: ecu1_controller1
+      interfaces:
+         -  name: ecu1_controller1_iface1
+            mac_address: 00:11:22:33:44:55
+            mii_config:
+               type: rmii
+               speed: 100
+               mode: mac
+            virtual_interfaces:
+               -  name: ecu1_controller1_iface1_viface1
+                  vlanid: 10
+                  addresses:
+                     -  address: 10.0.10.1
+                        ipv4_netmask: 255.255.255.0
+         -  name: ecu1_controller1_iface2
+            mac_address: 00:11:22:33:44:55
+            mii_config:
+               type: rmii
+               speed: 100
+               mode: mac
+            virtual_interfaces:
+               -  name: ecu1_controller1_iface2_viface1
+                  vlanid: 20
+                  addresses:
+                     -  address: 10.0.20.1
+                        ipv4_netmask: 255.255.255.0
+      
+      l2_bridge:
+         name: br0
+         ports:
+            -  name: br0_p1
+               node_connected: ecu1_controller1_iface1
+            -  name: br0_p2
+               node_connected: ecu1_controller1_iface2
+         vlans:          
+            -  name: VLAN20
+               id: 20
+               default_priority: 0
+               ports:
+               - br0_p1
+               - br0_p2
+              
+            -  name: VLAN10
+               id: 10
+               default_priority: 0
+               ports:
+               - br0_p1
+               - br0_p2   
+
+.. dropdown:: 📄 ``ecu1_internal_topology.flync.yaml``
+
+   .. code-block:: yaml
+
+      connections:
+         - type: ecu_port_to_controller_interface
+           id: conn1
+           ecu_port: ecu1_port1
+           controller_interface: ecu1_controller1_iface1
+         - type: ecu_port_to_controller_interface
+           id: conn1
+           ecu_port: ecu1_port2
+           controller_interface: ecu1_controller1_iface2
+
+--------------
+
 
 Switch ECU, multiple (virtual) interfaces, external PHY
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

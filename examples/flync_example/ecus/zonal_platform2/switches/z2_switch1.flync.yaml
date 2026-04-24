@@ -187,7 +187,7 @@ vlans:
 
 host_controller:
   name: z2_sw_host_iface
-  mac_address: 00:11:22:33:44:56
+  mac_address: 00:11:04:03:01:01
   virtual_interfaces:
     - name: z2_sw_host_viface
       vlanid: 0

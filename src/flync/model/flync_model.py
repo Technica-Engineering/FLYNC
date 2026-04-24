@@ -173,6 +173,23 @@ class FLYNCModel(FLYNCBaseModel):
         self.check_rx_are_reached(separ, paths, vlans_dict)
         return self
 
+    @model_validator(mode="after")
+    def validate_unique_macs(self):
+        """
+        Validate all MACs are unique system wide
+        """
+        all_macs = []
+        for ecu in self.ecus:
+            new_macs = ecu.get_all_macs()
+            for mac in new_macs:
+                if mac not in all_macs:
+                    all_macs.append(mac)
+                else:
+                    raise err_major(
+                        f"The MAC {mac} is repeated in ECU {ecu.name}"
+                    )
+        return self
+
     def check_rx_are_reached(self, separ, paths, vlans_dict):
         for ecu in self.ecus:
             for mcast in ecu.multicast_groups:

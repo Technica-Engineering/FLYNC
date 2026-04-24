@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from flync.model.flync_4_ecu.controller import ControllerInterface
+from flync.model.flync_4_ecu import ControllerInterface
 from flync.model.flync_4_ecu import Switch, SwitchPort
 
 

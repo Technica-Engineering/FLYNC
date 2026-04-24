@@ -1,7 +1,7 @@
 import pytest
 
 from pydantic import ValidationError
-from flync.model.flync_4_ecu.switch import MulticastGroup
+from flync.model.flync_4_ecu import MulticastGroup
 import flync.core.utils.base_utils as utils
 
 

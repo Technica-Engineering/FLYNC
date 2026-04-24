@@ -7,7 +7,7 @@ meta:
 name: z2_controller1
 interfaces:
   - name: z2_c1_iface1
-    mac_address: 00:11:22:33:44:55
+    mac_address: 00:11:04:01:01:01
     mii_config:
       type: rmii
       speed: 100
@@ -20,7 +20,7 @@ interfaces:
             ipv4netmask: 255.255.255.0
 
   - name: z2_c1_iface2
-    mac_address: 00:11:22:33:44:55
+    mac_address: 00:11:04:01:02:01
     mii_config:
       type: sgmii
       speed: 1000

@@ -255,11 +255,10 @@ class ECUPortToControllerInterface(ECUPortToXConnection):
         # Add connected component to each other
         self.ecu_port._connected_components.append(self.iface)
         self.iface._connected_component = self.ecu_port
-
         common_validators.validate_optional_mii_config_compatibility(
             self.ecu_port, self.iface, self.id
         )
-        if self.iface.htb is not None:
+        if self.iface is not None:
             common_validators.validate_htb(
                 self.iface, self.ecu_port.mdi_config.speed
             )
@@ -324,7 +323,7 @@ class SwitchPortToControllerInterface(SwitchPortToXConnection):
         common_validators.validate_compulsory_mii_config_compatibility(
             self.switch_port, self.iface, self.id
         )
-        if self.iface.htb is not None:
+        if self.iface is not None:
             common_validators.validate_htb(
                 self.iface, self.iface.mii_config.speed
             )
@@ -391,7 +390,6 @@ class SwitchPortToSwitchPort(SwitchPortToXConnection):
         # Add connected component to each other
         self.switch_port._connected_component = self.switch2_port
         self.switch2_port._connected_component = self.switch_port
-
         common_validators.validate_compulsory_mii_config_compatibility(
             self.switch_port, self.switch2_port, self.id
         )
@@ -489,11 +487,11 @@ class ControllerInterfaceToControllerInterface(InternalConnection):
         common_validators.validate_compulsory_mii_config_compatibility(
             self.iface, self.iface2, self.id
         )
-        if self.iface.htb is not None:
+        if self.iface is not None:
             common_validators.validate_htb(
                 self.iface, self.iface.mii_config.speed
             )
-        if self.iface2.htb is not None:
+        if self.iface2 is not None:
             common_validators.validate_htb(
                 self.iface2, self.iface2.mii_config.speed
             )

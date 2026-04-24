@@ -19,11 +19,8 @@ from pydantic import (
     Field,
     PrivateAttr,
     StrictInt,
-    field_serializer,
     model_validator,
 )
-from pydantic.networks import IPvAnyAddress
-from pydantic_extra_types.mac_address import MacAddress
 
 import flync.core.utils.common_validators as common_validators
 from flync.core.base_models import NamedDictInstances, NamedListInstances
@@ -40,6 +37,7 @@ from flync.model.flync_4_ecu.phy import (
     SGMII,
     XFI,
 )
+from flync.model.flync_4_ecu.vlan_entry import VLANEntry
 from flync.model.flync_4_metadata import EmbeddedMetadata
 from flync.model.flync_4_security import MACsecConfig
 from flync.model.flync_4_tsn import (
@@ -157,20 +155,25 @@ class SwitchPort(NamedDictInstances):
         """
 
         for switch in Switch.INSTANCES:
+
             for port in switch.ports:
                 if port.name == self.name:
                     return switch
-        raise err_minor("The switch port is not a part of any switch")
+        raise err_minor(
+            f"The switch port {self.name} is not a part of any switch"
+        )
 
     def get_vlan_connected_ports(self, vlan):
         """
         Helper function. Returns the switch ports that are part of
         the same VLAN as that port
         """
+        ports = []
         for vlan_entry in self.get_switch().vlans:
             if vlan_entry.id == vlan:
-                return vlan_entry.ports
-        return []
+                ports.extend(vlan_entry.ports)
+        ports_obj = [SwitchPort.INSTANCES[sport] for sport in ports]
+        return ports_obj
 
     def is_part_of_vlan(self, vlan):
 
@@ -178,67 +181,6 @@ class SwitchPort(NamedDictInstances):
             if vlan_entry.id == vlan and self.name in vlan_entry.ports:
                 return True
         return False
-
-
-class MulticastGroup(FLYNCBaseModel):
-    """
-    Represents a multicast group configuration.
-
-    This class defines a multicast group by associating a multicast
-    destination address with a set of switch ports that participate
-    in the group.
-
-    Parameters
-    ----------
-    address : :class:`IPv4Address` or :class:`IPv6Address` or \
-    :class:`MacAddress`
-        The multicast address. Must be a valid MAC or IP multicast address.
-
-    ports : list of str
-        A list of switch port names that are part of the multicast group.
-    """
-
-    address: Annotated[
-        IPvAnyAddress | MacAddress,
-        AfterValidator(common_validators.validate_any_multicast_address),
-    ] = Field()
-    ports: List[str] = Field()
-
-    @field_serializer("address")
-    def serialize_address(self, address):
-        return str(address)
-
-
-class VLANEntry(FLYNCBaseModel):
-    """
-    Represents a VLAN entry for a switch.
-
-    Parameters
-    ----------
-    name : str
-        Human-readable name for the VLAN.
-
-    id : int
-        VLAN ID (0-4095).
-
-    default_priority : int
-        Default frame priority for the VLAN (0-7).
-
-    ports : list of str
-        List of switch port names members of this VLAN.
-
-    multicast : list of :class:`MulticastGroup`, optional
-        List of multicast group configurations associated with this VLAN.
-    """
-
-    name: str = Field()
-    id: int = Field(..., ge=0, le=4095)
-    default_priority: int = Field(..., ge=0, le=7)
-    ports: List[str] = Field()
-    multicast: Annotated[
-        Optional[List[MulticastGroup]],
-        BeforeValidator(common_validators.none_to_empty_list),
-    ] = Field(default=[])
 
 
 class Drop(FLYNCBaseModel):
@@ -439,7 +381,7 @@ class Switch(NamedListInstances):
         List of external (connected to ECU ports) or internal
         (connected to internal ECU interfaces) switch ports.
 
-    vlans : list of :class:`VLANEntry`
+    vlans : list of :class:`~flync.model.flync_4_ecu.vlan_entry.VLANEntry`
         List of VLAN entries configured on the switch.
 
     host_controller : \
@@ -590,3 +532,6 @@ class Switch(NamedListInstances):
         )
 
         return self
+
+    def get_mac(self):
+        return self.host_controller.mac_address

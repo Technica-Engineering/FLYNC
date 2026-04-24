@@ -8,7 +8,7 @@ meta:
 name: hpc_controller1
 interfaces:
   - name: hpc_c1_iface1
-    mac_address: 00:11:22:33:44:55
+    mac_address: 00:11:02:01:01:01
     mii_config:
       type: rmii
       speed: 100

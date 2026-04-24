@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from flync.model.flync_4_ecu.switch import MulticastGroup, VLANEntry
+from flync.model.flync_4_ecu import MulticastGroup, VLANEntry
 
 
 def test_positive_multicast_ipv4_group():

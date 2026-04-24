@@ -1,28 +1,25 @@
 import pytest
 from flync.core.datatypes.ipaddress import IPv4AddressEntry, IPv6AddressEntry
-from flync.model.flync_4_ecu.controller import (
-    VirtualControllerInterface,
-    Controller,
-    ControllerInterface,
-)
 
 from flync.model.flync_4_someip.service_interface import (
-    SDTimings, SOMEIPEventTimings, SOMEIPFieldTimings, SOMEIPMethodTimings, SOMEIPTimingProfile,SDConfig
+    SDTimings, SOMEIPEventTimings, SOMEIPFieldTimings, SOMEIPMethodTimings,SDConfig
 )
-from flync.model.flync_4_ecu.switch import (
+from flync.model.flync_4_ecu import (
+    MII,
+    BASET1,
     MulticastGroup,
+    ECUPort,
     SwitchPort,
     VLANEntry,
-)
-from flync.model.flync_4_ecu.port import ECUPort
-from flync.model.flync_4_ecu.phy import MII, BASET1
-from flync.model.flync_4_ecu.sockets import (
     IPv4AddressEndpoint,
     IPv6AddressEndpoint,
     SocketTCP,
     SocketUDP,
     TCPOption,
     UDPOption,
+    Controller,
+    ControllerInterface,
+    VirtualControllerInterface
 )
 from flync.model.flync_4_tsn.qos import (
     CBSShaper,

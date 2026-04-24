@@ -20,11 +20,8 @@ def get_switch_port_connected_component(
     ):
         new_list.append(conn)
     mcast_ports = comp.get_vlan_connected_ports(vlan)
-    for sport in mcast_ports:
+    for sport_obj in mcast_ports:
 
-        from flync.model.flync_4_ecu import SwitchPort
-
-        sport_obj = SwitchPort.INSTANCES[sport]
         if (
             not check_obj_in_list(sport_obj, connected_components)
             and not check_obj_in_list(sport_obj, new_connected_components)

@@ -179,7 +179,7 @@ vlans:
     - z1_s1_p2
 host_controller:
   name: z1_sw_host_iface
-  mac_address: 00:11:22:33:44:56
+  mac_address: 00:11:03:03:01:01
   virtual_interfaces:
     - name: z1_sw_host_viface
       vlanid: 50
