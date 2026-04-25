@@ -893,9 +893,6 @@ class Typedef(ComplexDatatype):
 
     Parameters
     ----------
-    name : str
-        Name of Typedef.
-
     type : Literal["typedef"]
         Discriminator used to identify this datatype.
 
