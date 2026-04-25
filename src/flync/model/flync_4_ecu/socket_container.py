@@ -1,7 +1,10 @@
-from typing import List, Optional
+"""Defines the socket container model in an ECU."""
+
+from typing import Annotated, List, Optional
 
 from pydantic import Field
 
+from flync.core.annotations import Implied, ImpliedStrategy
 from flync.core.base_models import FLYNCBaseModel
 
 from .sockets import SocketTCP, SocketUDP
@@ -13,6 +16,9 @@ class SocketContainer(FLYNCBaseModel):
 
     Parameters
     ----------
+    name : str
+        Name of the socket container, implied from the filename on disk.
+
     vlan_id : int
         ID of the virtual interface.
 
@@ -22,6 +28,7 @@ class SocketContainer(FLYNCBaseModel):
         Assigned TCP and UDP socket endpoints.
     """
 
+    name: Annotated[str, Implied(strategy=ImpliedStrategy.FILE_NAME)] = Field()
     vlan_id: int = Field(ge=0, le=4095, default=0)
     sockets: Optional[List[SocketTCP | SocketUDP]] = Field(
         default_factory=list

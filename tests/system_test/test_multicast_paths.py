@@ -1,4 +1,4 @@
-import pytest, yaml
+import pytest
 from pathlib import Path
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 from flync.model.flync_4_ecu import (
@@ -9,12 +9,11 @@ from flync.model.flync_4_ecu import (
     ControllerInterface,
     ECUPort,
     ECU,
-    InternalTopology,
 )
-from flync.core.utils.base_utils import read_yaml, write_to_file
+from flync.core.utils.base_utils import read_yaml
 import shutil
 from pydantic import ValidationError
-from .helper import *
+from .helper import update_yaml_content
 
 absolute_path = Path(__file__).parents[2] / "examples" / "flync_example"
 
@@ -49,6 +48,7 @@ def test_multicast_paths_no_tx(tmpdir):
     update_yaml_content(file_to_update, "- 224.0.0.1", "")
 
     data = read_yaml(file_to_update)
+    data["name"] = "socket_nm"
     SocketContainer.model_validate(data)
 
     with pytest.raises(ValidationError) as exc_info:

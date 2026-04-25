@@ -25,3 +25,4 @@ Bugfixes
 - Example: Fixing a Method-ID in ETS Service
 - Model: Adding Limits to Dynamic Length String
 - Model: Improve Union Members and others
+- Core: Fixing bug that prevented loading and saving of sockets correctly
