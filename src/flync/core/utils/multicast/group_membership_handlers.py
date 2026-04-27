@@ -8,6 +8,18 @@ from flync.model.flync_4_ecu import (
 )
 
 
+def _mgm_data_key(g: "MulticastGroupMembership"):
+    """Return a tuple of data fields used for deduplication.
+
+    Pydantic's default __eq__ compares __pydantic_private__ as well, which
+    causes infinite recursion when ControllerInterface._connected_component
+    forms a cycle (e.g. via ECUPortToControllerInterface or
+    SwitchPortToControllerInterface).  Comparing only the data fields is
+    sufficient for uniqueness checks.
+    """
+    return (str(g.group), g.vlan, g.mode, str(g.src_ip) if g.src_ip else None)
+
+
 def collect_ipv6_solicited_node_rx(
     ecu: ECU,
 ) -> dict[str, MulticastGroupMembership]:
@@ -15,6 +27,7 @@ def collect_ipv6_solicited_node_rx(
     Collects all the MulticastGroupMembership instances for the
     solicited-node multicast group in the given ECU.
     """
+    rx_group_keys = set()
     rx_groups = []
     update_ecu_multicast = {}
 
@@ -32,7 +45,9 @@ def collect_ipv6_solicited_node_rx(
                 solicited_node_multicast=True,
             )
             group._interface = ecu.get_interface_for_ip(str(ip.address))
-            if group not in rx_groups:
+            key = _mgm_data_key(group)
+            if key not in rx_group_keys:
+                rx_group_keys.add(key)
                 rx_groups.append(group)
             update_ecu_multicast.update({ecu.name: group})
     return update_ecu_multicast
@@ -46,6 +61,7 @@ def collect_ipv6_solicited_node_tx(
     Collects all the MulticastGroupMembership instances for the
     solicited-node multicast group in the given ECU.
     """
+    tx_group_keys = set()
     tx_groups = []
     update_ecu_multicast = {}
     vi_controller_interfaces = find_all(
@@ -69,7 +85,9 @@ def collect_ipv6_solicited_node_tx(
                 solicited_node_multicast=True,
             )
             group._interface = ecu.get_interface_for_ip(str(addr))
-            if group not in tx_groups:
+            key = _mgm_data_key(group)
+            if key not in tx_group_keys:
+                tx_group_keys.add(key)
                 tx_groups.append(group)
             update_ecu_multicast.update({ecu.name: group})
     return update_ecu_multicast

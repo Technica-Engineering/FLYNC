@@ -26,3 +26,4 @@ Bugfixes
 - Model: Adding Limits to Dynamic Length String
 - Model: Improve Union Members and others
 - Core: Fixing bug that prevented loading and saving of sockets correctly
+- Core: Fixing MulticastGroupMembership endless loop bug
