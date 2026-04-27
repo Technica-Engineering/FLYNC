@@ -36,6 +36,11 @@ class FLYNCGeneralConfig(FLYNCBaseModel):
     tcp_profiles: Annotated[
         List[TCPOption],
         External(output_structure=OutputStrategy.SINGLE_FILE),
+        BeforeValidator(
+            common_validators.validate_or_remove(
+                "TCP profiles", List[TCPOption]
+            )
+        ),
         BeforeValidator(common_validators.none_to_empty_list),
     ] = Field(default=[])
     someip_config: Annotated[
@@ -44,6 +49,11 @@ class FLYNCGeneralConfig(FLYNCBaseModel):
             output_structure=OutputStrategy.FOLDER,
             naming_strategy=NamingStrategy.FIXED_PATH,
             path="someip",
+        ),
+        BeforeValidator(
+            common_validators.validate_or_remove(
+                "SOME/IP config", SOMEIPConfig
+            )
         ),
     ] = Field(
         default=None,

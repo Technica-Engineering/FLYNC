@@ -20,7 +20,7 @@ from flync.core.base_models import (
     NamedDictInstances,
     NamedListInstances,
 )
-from flync.core.utils.exceptions import err_fatal, err_minor
+from flync.core.utils.exceptions import err_fatal, err_major, err_minor
 from flync.model.flync_4_ecu.phy import MII, RGMII, RMII, SGMII, XFI
 from flync.model.flync_4_ecu.sockets import (
     IPv4AddressEndpoint,
@@ -35,6 +35,48 @@ from flync.model.flync_4_tsn import (
     Stream,
     TrafficClass,
 )
+
+_PTPConfigField = Annotated[
+    Optional[PTPConfig],
+    BeforeValidator(
+        common_validators.validate_or_remove("PTP config", PTPConfig)
+    ),
+]
+_MACsecConfigField = Annotated[
+    Optional[MACsecConfig],
+    BeforeValidator(
+        common_validators.validate_or_remove("MACsec config", MACsecConfig)
+    ),
+]
+_FirewallField = Annotated[
+    Optional[Firewall],
+    BeforeValidator(
+        common_validators.validate_or_remove("firewall", Firewall)
+    ),
+]
+_HTBField = Annotated[
+    Optional[HTBInstance],
+    BeforeValidator(
+        common_validators.validate_or_remove("HTB config", HTBInstance)
+    ),
+]
+_IngressStreamsField = Annotated[
+    Optional[List[Stream]],
+    BeforeValidator(
+        common_validators.validate_or_remove("ingress streams", List[Stream])
+    ),
+    BeforeValidator(common_validators.none_to_empty_list),
+]
+_TrafficClassesField = Annotated[
+    Optional[List[TrafficClass]],
+    AfterValidator(common_validators.validate_traffic_classes),
+    BeforeValidator(
+        common_validators.validate_or_remove(
+            "traffic classes", List[TrafficClass]
+        )
+    ),
+    BeforeValidator(common_validators.none_to_empty_list),
+]
 
 
 class VirtualControllerInterface(FLYNCBaseModel):
@@ -138,64 +180,36 @@ class ComputeNodes(FLYNCBaseModel):
 
     name: str = Field()
     mac_address: MacAddress = Field()
-    virtual_interfaces: List[VirtualControllerInterface] = Field(
-        ..., min_length=1
-    )
-    firewall: Optional[Firewall] = Field(default=None)
-    htb: Optional[HTBInstance] = Field(default=None)
-    ptp_config: Optional[PTPConfig] = Field(default=None)
-    macsec_config: Optional[MACsecConfig] = Field(default=None)
-    ingress_streams: Annotated[
-        Optional[List[Stream]],
-        BeforeValidator(common_validators.none_to_empty_list),
-    ] = Field(default=[])
-    traffic_classes: Annotated[
-        Optional[List[TrafficClass]],
-        AfterValidator(common_validators.validate_traffic_classes),
-        BeforeValidator(common_validators.none_to_empty_list),
-    ] = Field(default_factory=list)
+    virtual_interfaces: Annotated[
+        List[VirtualControllerInterface],
+        BeforeValidator(
+            common_validators.validate_list_items_and_remove(
+                "virtual interface",
+                VirtualControllerInterface,
+                severity="minor",
+            )
+        ),
+    ] = Field(...)
+    ptp_config: _PTPConfigField = Field(default=None)
+    macsec_config: _MACsecConfigField = Field(default=None)
+    firewall: _FirewallField = Field(default=None)
+    htb: _HTBField = Field(default=None)
+    ingress_streams: _IngressStreamsField = Field(default=[])
+    traffic_classes: _TrafficClassesField = Field(default_factory=list)
 
     @field_validator("ingress_streams", mode="after")
     def validate_ingress_streams(cls, value):
-        """
-        Validate the ``ingress_streams`` field of a Compute Node.
-
-        Ensures that no IPv or ATS values are present, as these are
-        not valid at the compute node level.
-        """
-        for ingress_stream in value:
-            if ingress_stream.ipv is not None:
-                raise err_minor(
-                    f"Validation Error in Ingress Streams. "
-                    f"Removing config from the interface. "
-                    f"Ingress stream {ingress_stream.name} "
-                    f"at the compute node "
-                    f"should not have "
-                    f"an ipv value."
-                )
-            if ingress_stream.ats is not None:
-                raise err_minor(
-                    f"Validation Error in Ingress Streams. "
-                    f"Removing config from the interface. "
-                    f"Ingress stream {ingress_stream.name} at the "
-                    f"compute node "
-                    f"should not have an ats value"
-                )
-        return value
+        """Ensure no ingress stream carries an ipv or ats value."""
+        return common_validators.validate_ingress_streams_fields(
+            value, "compute node"
+        )
 
     @model_validator(mode="after")
     def validate_vlans(self):
-        """Validate the VLAN configuration of Compute Node
-
-        Raises:
-            Validation error if the VLAN ID is repeated.
-        """
-        all_vlans = [vi.vlanid for vi in self.virtual_interfaces]
-        list_label = (
-            f"VLAN IDs of virtual Controller Interface in"
-            f"interface {self.name}"
+        """Raise if any VLAN ID is repeated across virtual interfaces."""
+        common_validators.validate_vlan_ids_unique(
+            self.virtual_interfaces, self.name
         )
-        common_validators.validate_list_items_unique(all_vlans, list_label)
         return self
 
 
@@ -333,22 +347,22 @@ class ControllerInterface(NamedDictInstances):
         default=None, discriminator="type"
     )
     compute_nodes: Optional[List[ComputeNodes]] = Field(default_factory=list)
-    virtual_interfaces: Optional[List[VirtualControllerInterface]] = Field(
-        default_factory=list
-    )
-    ptp_config: Optional[PTPConfig] = Field(default=None)
-    macsec_config: Optional[MACsecConfig] = Field(default=None)
-    ingress_streams: Annotated[
-        Optional[List[Stream]],
-        BeforeValidator(common_validators.none_to_empty_list),
-    ] = Field(default=[])
-    traffic_classes: Annotated[
-        Optional[List[TrafficClass]],
-        AfterValidator(common_validators.validate_traffic_classes),
-        BeforeValidator(common_validators.none_to_empty_list),
+    virtual_interfaces: Annotated[
+        Optional[List[VirtualControllerInterface]],
+        BeforeValidator(
+            common_validators.validate_list_items_and_remove(
+                "virtual interface",
+                VirtualControllerInterface,
+                severity="minor",
+            )
+        ),
     ] = Field(default_factory=list)
-    firewall: Optional[Firewall] = Field(default=None)
-    htb: Optional[HTBInstance] = Field(default=None)
+    ptp_config: _PTPConfigField = Field(default=None)
+    macsec_config: _MACsecConfigField = Field(default=None)
+    firewall: _FirewallField = Field(default=None)
+    htb: _HTBField = Field(default=None)
+    ingress_streams: _IngressStreamsField = Field(default=[])
+    traffic_classes: _TrafficClassesField = Field(default_factory=list)
     _connected_component = PrivateAttr(default=None)
     _type: Literal["controller_interface"] = PrivateAttr(
         default="controller_interface"
@@ -364,62 +378,31 @@ class ControllerInterface(NamedDictInstances):
 
     @field_validator("ingress_streams", mode="after")
     def validate_ingress_streams(cls, value):
-        """
-        Validate the ``ingress_streams`` field of an Interface model.
+        """Ensure no ingress stream carries an ipv or ats value."""
+        return common_validators.validate_ingress_streams_fields(
+            value, "controller interface"
+        )
 
-        The validator checks each ``IngressStream`` object attached to an
-        interface and ensures that no IPv or ATS values are present
-
-        Parameters
-        ----------
-        cls : type
-            The model class on which the validator is defined (automatically
-            supplied by *pydantic*).
-
-        value : list of class:`~flync.flync_4_ecu.IngressStream`
-
-        Returns
-        -------
-        list
-            A list containing the validated ``IngressStream`` objects.  If an
-            invalid IPv or ATS attribute is detected the function raises a
-            value error.
-        """
-        ingress_streams = value
-        for ingress_stream in ingress_streams:
-            if ingress_stream.ipv is not None:
-
-                raise err_minor(
-                    f"Validation Error in Ingress Streams. "
-                    f"Removing config from the interface. "
-                    f"Ingress stream {ingress_stream.name} "
-                    f"at the controller interface "
-                    f"should not have "
-                    f"an ipv value."
-                )
-            if ingress_stream.ats is not None:
-                raise err_minor(
-                    f"Validation Error in Ingress Streams. "
-                    f"Removing config from the interface. "
-                    f"Ingress stream {ingress_stream.name} at the "
-                    f"controller interface "
-                    f"should not have an ats value"
-                )
-        return value
+    @model_validator(mode="after")
+    def require_valid_virtual_interface(self):
+        """Raise a major error if all virtual interfaces were removed."""
+        has_direct = bool(self.virtual_interfaces)
+        has_via_nodes = any(
+            bool(node.virtual_interfaces)
+            for node in (self.compute_nodes or [])
+        )
+        if not has_direct and not has_via_nodes:
+            raise err_major(
+                "Interface should have at least 1 valid virtual interface."
+            )
+        return self
 
     @model_validator(mode="after")
     def validate_vlans(self):
-        """Validate the VLAN configuration of Controller Interface
-
-        Raises:
-            Validation error if the VLAN ID is repeated.
-        """
-        all_vlans = [vi.vlanid for vi in self.virtual_interfaces]
-        list_label = (
-            f"VLAN IDs of virtual Controller Interface in"
-            f"interface {self.name}"
+        """Raise if any VLAN ID is repeated across virtual interfaces."""
+        common_validators.validate_vlan_ids_unique(
+            self.virtual_interfaces, self.name
         )
-        common_validators.validate_list_items_unique(all_vlans, list_label)
         return self
 
     @model_validator(mode="after")
@@ -498,6 +481,7 @@ class ControllerInterface(NamedDictInstances):
             for interface in controller.interfaces:
                 if interface.name == self.name:
                     return controller.interfaces
+        return []
 
     def get_connected_components(self):
         """
@@ -508,11 +492,11 @@ class ControllerInterface(NamedDictInstances):
 
     def get_all_ips(self):
         ips = []
-        for node in self.compute_nodes:
-            for viface in node.virtual_interfaces:
+        for node in self.compute_nodes or []:
+            for viface in node.virtual_interfaces or []:
                 for address in viface.addresses:
                     ips.append(str(address.address))
-        for viface in self.virtual_interfaces:
+        for viface in self.virtual_interfaces or []:
             for address in viface.addresses:
                 ips.append(str(address.address))
 

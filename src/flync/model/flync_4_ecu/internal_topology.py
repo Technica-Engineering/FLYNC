@@ -89,8 +89,8 @@ class ECUPortToXConnection(InternalConnection):
         """
         if self.ecu_port_name not in ECUPort.INSTANCES.keys():
             raise err_major(
-                f"ECU port name {self.ecu_port_name} in connection"
-                f" {self.id} does not exist"
+                f"ECU port '{self.ecu_port_name}' referenced in connection"
+                f" '{self.id}' was not found or was not validated"
             )
         self._ecu_port = ECUPort.INSTANCES[self.ecu_port_name]
         return self
@@ -130,8 +130,9 @@ class SwitchPortToXConnection(InternalConnection):
         """
         if self.switch_port_name not in SwitchPort.INSTANCES.keys():
             raise err_major(
-                f"Switch port name {self.switch_port_name} in connection "
-                f" {self.id} does not exist"
+                f"Switch port '{self.switch_port_name}'"
+                " referenced in connection"
+                f" '{self.id}' was not found or was not validated"
             )
         self._switch_port = SwitchPort.INSTANCES[self.switch_port_name]
         return self
@@ -181,8 +182,9 @@ class ECUPortToSwitchPort(ECUPortToXConnection):
         """
         if self.switch_port_name not in SwitchPort.INSTANCES.keys():
             raise err_major(
-                f"Switch port name {self.switch_port_name} in connection "
-                f"{self.id} does not exist"
+                f"Switch port '{self.switch_port_name}'"
+                " referenced in connection"
+                f" '{self.id}' was not found or was not validated"
             )
         self._switch_port = SwitchPort.INSTANCES[self.switch_port_name]
         # Add connected component to each other
@@ -248,8 +250,8 @@ class ECUPortToControllerInterface(ECUPortToXConnection):
         """
         if self.iface_name not in ControllerInterface.INSTANCES.keys():
             raise err_major(
-                f"Controller Interface name {self.iface_name} in connection"
-                f"{self.id} does not exist"
+                f"Controller interface '{self.iface_name}' referenced in"
+                f" connection '{self.id}' was not found or was not validated"
             )
         self._iface = ControllerInterface.INSTANCES[self.iface_name]
         # Add connected component to each other
@@ -312,8 +314,8 @@ class SwitchPortToControllerInterface(SwitchPortToXConnection):
         """
         if self.iface_name not in ControllerInterface.INSTANCES.keys():
             raise err_major(
-                f"Controller Interface name {self.iface_name} in connection "
-                f"{self.id} does not exist"
+                f"Controller interface '{self.iface_name}' referenced in"
+                f" connection '{self.id}' was not found or was not validated"
             )
         self._iface = ControllerInterface.INSTANCES[self.iface_name]
         # Add connected component to each other
@@ -382,8 +384,8 @@ class SwitchPortToSwitchPort(SwitchPortToXConnection):
         """
         if self.switch2_port_name not in SwitchPort.INSTANCES.keys():
             raise err_major(
-                f"Switch port name {self.switch2_port_name} in connection "
-                f"{self.id} does not exist"
+                f"Switch port '{self.switch2_port_name}' referenced in"
+                f" connection '{self.id}' was not found or was not validated"
             )
         self._switch2_port = SwitchPort.INSTANCES[self.switch2_port_name]
 
@@ -470,15 +472,15 @@ class ControllerInterfaceToControllerInterface(InternalConnection):
         """
         if self.iface_name not in ControllerInterface.INSTANCES.keys():
             raise err_major(
-                f"Controller Interface name {self.iface_name} in connection "
-                f"{self.id} does not exist"
+                f"Controller interface '{self.iface_name}' referenced in"
+                f" connection '{self.id}' was not found or was not validated"
             )
         self._iface = ControllerInterface.INSTANCES[self.iface_name]
 
         if self.iface2_name not in ControllerInterface.INSTANCES.keys():
             raise err_major(
-                f"Controller Interface name {self.iface2_name} in connection "
-                f"{self.id} does not exist"
+                f"Controller interface '{self.iface2_name}' referenced in"
+                f" connection '{self.id}' was not found or was not validated"
             )
         self._iface2 = ControllerInterface.INSTANCES[self.iface2_name]
         # Add connected component to each other

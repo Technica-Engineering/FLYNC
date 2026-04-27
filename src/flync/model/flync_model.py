@@ -6,11 +6,12 @@ metadata, and general configuration in FLYNC.
 from typing import Annotated, Dict, List, Optional, Tuple
 
 from pydantic import Field, model_validator
+from pydantic_core import PydanticCustomError
 
 from flync.core.annotations import External, NamingStrategy, OutputStrategy
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.base_utils import check_obj_in_list
-from flync.core.utils.exceptions import err_major
+from flync.core.utils.exceptions import err_major, warn
 from flync.core.utils.multicast import (
     collect_ipv6_solicited_node_rx,
     collect_ipv6_solicited_node_tx,
@@ -91,6 +92,22 @@ class FLYNCModel(FLYNCBaseModel):
         VLANEntry,
     )
 
+    @model_validator(mode="before")
+    @classmethod
+    def skip_broken_ecus(cls, data):
+        """Remove None ECUs from the list before validation.
+
+        When an ECU file fails to load the workspace inserts None into the
+        ecus list.  Errors are already reported at the ECU level, so the
+        None entries are silently dropped here to prevent a cascade of
+        FLYNCModel-level errors for the same root cause.
+        """
+        if isinstance(data, dict):
+            ecus = data.get("ecus") or []
+            if isinstance(ecus, list) and any(e is None for e in ecus):
+                data["ecus"] = [e for e in ecus if e is not None]
+        return data
+
     def model_post_init(self, context):
         """
         Perform post-initialization processing after the model is created.
@@ -111,66 +128,73 @@ class FLYNCModel(FLYNCBaseModel):
         """
         Validate all IPs are unique system wide
         """
-        all_ips = []
-        for ecu in self.ecus:
-            new_ips = ecu.get_all_ips()
-            for ip in new_ips:
-                if ip not in all_ips:
-                    all_ips.append(ip)
-                else:
-                    raise err_major(
-                        f"The IP {ip} is repeated in ECU {ecu.name}"
-                    )
+        try:
+            all_ips = []
+            for ecu in self.ecus:
+                new_ips = ecu.get_all_ips()
+                for ip in new_ips:
+                    if ip not in all_ips:
+                        all_ips.append(ip)
+                    else:
+                        warn(f"The IP {ip} is repeated in ECU {ecu.name}")
+        except PydanticCustomError as e:
+            warn(str(e))
         return self
 
     @model_validator(mode="after")
     def check_tx_rx_multicast_group(self):
-        tx_list = []
-        rx_list = []
-        separ = "/VLAN"
-        for ecu in self.ecus:
-            for mcast in ecu.multicast_groups:
-                key = str(mcast.group) + separ + str(mcast.vlan)
-                if mcast.mode == "tx" or mcast.mode == "bidir":
-                    tx_list.append(key)
-                if mcast.mode == "rx" or mcast.mode == "bidir":
-                    rx_list.append(key)
+        try:
+            tx_list = []
+            rx_list = []
+            separ = "/VLAN"
+            for ecu in self.ecus:
+                for mcast in ecu.multicast_groups:
+                    key = str(mcast.group) + separ + str(mcast.vlan)
+                    if mcast.mode == "tx" or mcast.mode == "bidir":
+                        tx_list.append(key)
+                    if mcast.mode == "rx" or mcast.mode == "bidir":
+                        rx_list.append(key)
 
-        for rx in rx_list:
-            if rx not in tx_list:
-                raise err_major(
-                    "Invalid Multicast Configuration. There "
-                    "is a multicast rx configured for the address "
-                    f"{rx} but no tx."
-                )
+            for rx in rx_list:
+                if rx not in tx_list:
+                    warn(
+                        "Invalid Multicast Configuration. There "
+                        "is a multicast rx configured for the address "
+                        f"{rx} but no tx."
+                    )
+        except PydanticCustomError as e:
+            warn(str(e))
         return self
 
     @model_validator(mode="after")
     def validate_multicast_paths(self):
-        paths = dict()
-        vlans_dict = dict()
-        separ = "/VLAN"
-        for ecu in self.ecus:
-            for mcast in ecu.multicast_groups:
-                key = str(mcast.group) + separ + str(mcast.vlan)
-                vlans_dict[key] = mcast.vlan
-                if (
-                    mcast.mode == "tx" or mcast.mode == "bidir"
-                ) and key not in paths:
+        try:
+            paths = dict()
+            vlans_dict = dict()
+            separ = "/VLAN"
+            for ecu in self.ecus:
+                for mcast in ecu.multicast_groups:
+                    key = str(mcast.group) + separ + str(mcast.vlan)
+                    vlans_dict[key] = mcast.vlan
+                    if (
+                        mcast.mode == "tx" or mcast.mode == "bidir"
+                    ) and key not in paths:
 
-                    paths[key] = compute_path(mcast.vlan, mcast._interface)
-                if (
-                    (mcast.mode == "tx" or mcast.mode == "bidir")
-                    and key in paths
-                    and not check_obj_in_list(mcast._interface, paths[key])
-                ):
-                    raise err_major(
-                        "Invalid Multicast Address Configuration. There"
-                        " are several RX that the TX or BiDir Endpoint at "
-                        f"{mcast._interface.name} cannot reach."
-                        f"{serialize_components(paths[key])}"
-                    )
-        self.check_rx_are_reached(separ, paths, vlans_dict)
+                        paths[key] = compute_path(mcast.vlan, mcast._interface)
+                    if (
+                        (mcast.mode == "tx" or mcast.mode == "bidir")
+                        and key in paths
+                        and not check_obj_in_list(mcast._interface, paths[key])
+                    ):
+                        warn(
+                            "Invalid Multicast Address Configuration. There"
+                            " are several RX that the TX or BiDir Endpoint at "
+                            f"{mcast._interface.name} cannot reach."
+                            f"{serialize_components(paths[key])}"
+                        )
+            self.check_rx_are_reached(separ, paths, vlans_dict)
+        except PydanticCustomError as e:
+            warn(str(e))
         return self
 
     @model_validator(mode="after")
@@ -198,7 +222,7 @@ class FLYNCModel(FLYNCBaseModel):
                     mcast.mode == "rx" or mcast.mode == "bidir"
                 ) and key not in paths:
 
-                    raise err_major(
+                    warn(
                         "Invalid Multicast Address Configuration. There"
                         " are no TX endpoints for this address "
                         f"{key} "
@@ -208,7 +232,7 @@ class FLYNCModel(FLYNCBaseModel):
                     and key in paths
                     and not check_obj_in_list(mcast._interface, paths[key])
                 ):
-                    raise err_major(
+                    warn(
                         "Invalid Multicast Address Configuration."
                         f"The RX interface for address {key} "
                         f"- {mcast._interface.name} cannot be reached "

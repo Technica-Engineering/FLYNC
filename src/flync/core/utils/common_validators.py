@@ -8,8 +8,179 @@ pydantic usage proposes.
 from ipaddress import IPv4Address, IPv6Address
 from typing import Any, Iterable, Optional
 
+from pydantic import TypeAdapter, ValidationError, ValidationInfo
+
 import flync.core.utils.base_utils as utils
-from flync.core.utils.exceptions import err_major, err_minor
+from flync.core.utils.exceptions import (
+    _validation_warnings,
+    err_major,
+    err_minor,
+)
+
+_LOCATION_SYSTEM = "in system"
+
+
+def _resolve_location(info: ValidationInfo) -> str:
+    """Return a human-readable location string from validation context."""
+    data = info.data if hasattr(info, "data") and info.data else {}
+    parent_name = data.get("name")
+    if parent_name:
+        return f"in {parent_name}"
+    if "vlan_id" in data:
+        return f"for VLAN Id {data['vlan_id']}"
+    return _LOCATION_SYSTEM
+
+
+def validate_or_remove(label: str, field_type: Any, severity: str = "minor"):
+    """Factory that returns a BeforeValidator for sub-model fields.
+
+    Use inside ``Annotated`` to pre-validate a field before Pydantic processes
+    it.  If the raw data fails validation all sub-errors are packed into a
+    single error.
+
+    - ``"minor"`` severity: the field is removed and the parent model still
+      loads without it.  The message says "Removing {label}…".
+    - ``"major"`` severity: the parent model will fail regardless (the field
+      is required).  The message reports the validation failure without
+      implying graceful removal.
+
+    The parent object's ``name`` field is included in the error message when
+    available via ``info.data``.
+
+    Parameters
+    ----------
+    label : str
+        Human-readable field label used in the error message.
+    field_type : Any
+        Pydantic-compatible type to validate the data against.
+    severity : str, optional
+        Error severity — ``"minor"`` (default) or ``"major"``.
+
+    Returns
+    -------
+    Callable
+        A two-argument validator ``(data, info)`` ready for use with
+        ``BeforeValidator``.
+    """
+
+    err_fn = err_major if severity == "major" else err_minor
+
+    def _validator(data, info: ValidationInfo):
+        """Validate ``data`` against ``field_type`` and raise on failure.
+
+        Returns ``None`` unchanged.  On validation failure, packs all
+        sub-errors into a single ``err_fn`` error whose message includes
+        the parent object's name (read from ``info.data``) when available.
+        """
+        if data is None:
+            return None
+        try:
+            TypeAdapter(field_type).validate_python(data)
+        except ValidationError as ve:
+            parent_name = (
+                info.data.get("name")
+                if hasattr(info, "data") and info.data
+                else None
+            )
+            location = f"in {parent_name}" if parent_name else _LOCATION_SYSTEM
+            sub_errors = "\n".join(
+                "{loc}: {msg}".format(
+                    loc=".".join(str(x) for x in e.get("loc", ())),
+                    msg=e.get("msg", ""),
+                )
+                for e in ve.errors()
+            )
+            if severity == "major":
+                raise err_fn(
+                    f"Validation failed for {label} {location}.",
+                    sub_errors=sub_errors,
+                )
+            raise err_fn(
+                f"1 or more errors found while validating {label}. "
+                f"Removing {label} {location}.",
+                sub_errors=sub_errors,
+            )
+        return data
+
+    return _validator
+
+
+def validate_list_items_and_remove(
+    label: str, item_type: Any, severity: str = "minor"
+):
+    """Validate each item in a list individually,
+    removing only invalid entries.
+
+    Unlike :func:`validate_or_remove`, which discards the entire list when any
+    item fails, this validator keeps valid items and removes only those that
+    fail validation.  Per-item errors are forwarded to the
+    ``_validation_warnings`` channel so they appear in the final error report
+    even though the model continues building with the remaining valid items.
+
+    Use inside ``Annotated`` as a ``BeforeValidator``.
+
+    Parameters
+    ----------
+    label : str
+        Human-readable field label used in error messages.
+    item_type : Any
+        Pydantic-compatible type for each individual list item.
+    severity : str, optional
+        Error severity for removed items — ``"minor"`` (default) or
+        ``"major"``.
+
+    Returns
+    -------
+    Callable
+        A two-argument validator ``(data, info)`` ready for use with
+        ``BeforeValidator``.
+    """
+
+    def _validator(data, info: ValidationInfo):
+        """Validate each item in ``data`` individually, dropping invalid ones.
+
+        Non-list values are returned unchanged.  For each item that fails
+        validation an error is raised via ``err_fn``; valid items are
+        collected and returned so the parent model loads with a partial list.
+        The parent object's name or VLAN ID is included in the message when
+        available via ``info.data``.
+        """
+        if not isinstance(data, list):
+            return data
+        location = _resolve_location(info)
+        field_name = getattr(info, "field_name", None) or label
+        adapter = TypeAdapter(item_type)
+        valid_items = []
+        for idx, item in enumerate(data):
+            try:
+                adapter.validate_python(item)
+                valid_items.append(item)
+            except ValidationError as ve:
+                sub_errors = "\n".join(
+                    "{loc}: {msg}".format(
+                        loc=".".join(str(x) for x in e.get("loc", ())),
+                        msg=e.get("msg", ""),
+                    )
+                    for e in ve.errors()
+                )
+                accumulated = _validation_warnings.get()
+                if accumulated is not None:
+                    accumulated.append(
+                        {
+                            "type": severity,
+                            "msg": (
+                                f"1 or more errors found while validating"
+                                f" {label}. Removing {label} {location}."
+                            ),
+                            "loc": (field_name, idx),
+                            "input": item,
+                            "ctx": {"sub_errors": sub_errors},
+                            "url": "",
+                        }
+                    )
+        return valid_items
+
+    return _validator
 
 
 def validate_mac_unicast(input: str) -> str:
@@ -123,6 +294,39 @@ def validate_multicast_list(input_list: list):
     for value in input_list:
         validate_any_multicast_address(value)
     return input_list
+
+
+def validate_ingress_streams_fields(streams, location: str):
+    """Raise err_minor if any stream carries an ipv or ats value.
+
+    ``location`` is a human-readable label such as ``"compute node"`` or
+    ``"controller interface"`` used in the error message.
+    """
+    for ingress_stream in streams:
+        if ingress_stream.ipv is not None:
+            raise err_minor(
+                f"Validation Error in Ingress Streams. "
+                f"Removing config from the interface. "
+                f"Ingress stream {ingress_stream.name} "
+                f"at the {location} should not have an ipv value."
+            )
+        if ingress_stream.ats is not None:
+            raise err_minor(
+                f"Validation Error in Ingress Streams. "
+                f"Removing config from the interface. "
+                f"Ingress stream {ingress_stream.name} at the "
+                f"{location} should not have an ats value"
+            )
+    return streams
+
+
+def validate_vlan_ids_unique(virtual_interfaces, name: str):
+    """Raise err_major if any VLAN ID appears more than once."""
+    all_vlans = [vi.vlanid for vi in virtual_interfaces]
+    list_label = (
+        f"VLAN IDs of virtual Controller Interface in interface {name}"
+    )
+    validate_list_items_unique(all_vlans, list_label)
 
 
 def validate_list_items_unique(

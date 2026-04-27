@@ -23,5 +23,7 @@ for example_dir in list(EXAMPLES_DIR.iterdir()):
             executable,
             VALIDATE_WORKSPACE_SCRIPT,
             example_dir,
+            "--name",
+            example_dir.name,
         ]
     )

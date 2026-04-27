@@ -145,9 +145,13 @@ def test_load_workspace_missing_mandatory_file(tmpdir, file):
     shutil.copytree(absolute_path, destination_folder)
     path_to_remove = destination_folder / file.relative_to(absolute_path)
     path_to_remove.unlink()
-    with pytest.raises(ValidationError) as exc:
-        FLYNCWorkspace.load_workspace("flync_example", destination_folder)
-    assert type(exc.value) is ValidationError
+    try:
+        loaded_ws = FLYNCWorkspace.load_workspace(
+            "flync_example", destination_folder
+        )
+        assert loaded_ws.load_errors != []
+    except ValidationError:
+        pass
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
 
@@ -169,8 +173,13 @@ def test_load_workspace_invalid_format(tmpdir, file):
     new_file_name = file_to_rename.name[: -len(".flync.yaml")] + "yaml"
     new_file_path = file_to_rename.with_name(new_file_name)
     file_to_rename.rename(new_file_path)
-    with pytest.raises(ValidationError):
-        FLYNCWorkspace.load_workspace("flync_example", destination_folder)
+    try:
+        loaded_ws = FLYNCWorkspace.load_workspace(
+            "flync_example", destination_folder
+        )
+        assert loaded_ws.load_errors != []
+    except ValidationError:
+        pass
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
 
@@ -215,9 +224,8 @@ def test_load_workspace_upper_key(tmpdir):
         / "eth_ecu_controller1.flync.yaml"
     )
     update_yaml_content(file_to_update, "name", "NAME")
-    with pytest.raises(ValidationError) as exc_info:
-        FLYNCWorkspace.load_workspace("flync_example", destination_folder)
-    assert "name\n  Field required" in str(exc_info.value)
+    workspace = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
+    assert "Field required" in str(workspace.load_errors)
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
 
@@ -236,9 +244,8 @@ def test_load_workspace_incorret_value_type(tmpdir):
     update_yaml_content(
         file_to_update, "name: eth_ecu_controller1", "name: 123"
     )
-    with pytest.raises(ValidationError) as exc_info:
-        FLYNCWorkspace.load_workspace("flync_example", destination_folder)
-    assert "name\n  Input should be a valid string" in str(exc_info.value)
+    workspace = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
+    assert ("Input should be a valid string" in str(workspace.load_errors) )
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
 
@@ -285,9 +292,13 @@ def test_load_workspace_extra_key_value(tmpdir):
         / "eth_ecu_controller1.flync.yaml"
     )
     append_yaml_content(file_to_update, "\nnew_value: something\n")
-    with pytest.raises(ValidationError) as exc_info:
-        FLYNCWorkspace.load_workspace("flync_example", destination_folder)
-    assert "new_value\n  Extra inputs are not permitted" in str(exc_info.value)
+    try:
+        loaded_ws = FLYNCWorkspace.load_workspace(
+            "flync_example", destination_folder
+        )
+        assert loaded_ws.load_errors != []
+    except ValidationError as exc_info:
+        assert "new_value\n  Extra inputs are not permitted" in str(exc_info)
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
 
@@ -304,14 +315,18 @@ def test_load_workspace_key_value_misplaced(tmpdir):
         / "eth_ecu_controller1.flync.yaml"
     )
     update_yaml_content(file_to_update, "  mode: mac", "mode: mac")
-    with pytest.raises(ValidationError) as exc_info:
-        FLYNCWorkspace.load_workspace("flync_example", destination_folder)
-    assert "interfaces.0.mii_config.sgmii.mode\n  Field required" in str(
-        exc_info.value
-    )
-    assert "interfaces.0.mode\n  Extra inputs are not permitted" in str(
-        exc_info.value
-    )
+    try:
+        loaded_ws = FLYNCWorkspace.load_workspace(
+            "flync_example", destination_folder
+        )
+        assert loaded_ws.load_errors != []
+    except ValidationError as exc_info:
+        assert "interfaces.0.mii_config.sgmii.mode\n  Field required" in str(
+            exc_info
+        )
+        assert "interfaces.0.mode\n  Extra inputs are not permitted" in str(
+            exc_info
+        )
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
 
@@ -356,9 +371,13 @@ def test_load_workspace_missing_dashe(tmpdir):
         "multicast:\n            - 224.0.0.1",
         "multicast:\n            224.0.0.1",
     )
-    with pytest.raises(ValidationError) as exc_info:
-        FLYNCWorkspace.load_workspace("flync_example", destination_folder)
-    assert "multicast\n  Input should be a valid list" in str(exc_info.value)
+    try:
+        loaded_ws = FLYNCWorkspace.load_workspace(
+            "flync_example", destination_folder
+        )
+        assert loaded_ws.load_errors != []
+    except ValidationError as exc_info:
+        assert "multicast\n  Input should be a valid list" in str(exc_info)
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
 
@@ -375,8 +394,12 @@ def test_load_workspace_missing_key_value(tmpdir):
         / "eth_ecu_controller1.flync.yaml"
     )
     update_yaml_content(file_to_update, "name: eth_ecu_controller1", "")
-    with pytest.raises(ValidationError) as exc_info:
-        FLYNCWorkspace.load_workspace("flync_example", destination_folder)
-    assert "name\n  Field required" in str(exc_info.value)
+    try:
+        loaded_ws = FLYNCWorkspace.load_workspace(
+            "flync_example", destination_folder
+        )
+        assert loaded_ws.load_errors != []
+    except ValidationError as exc_info:
+        assert "name\n  Field required" in str(exc_info)
     if destination_folder.exists():
         shutil.rmtree(destination_folder)

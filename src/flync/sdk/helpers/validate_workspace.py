@@ -21,7 +21,32 @@ from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 PROJECT_BASE = Path(__file__).resolve().parent.parent
 VALIDATION_ERRORS: dict = {}
 ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;]*m")
-console = Console(force_terminal=True)
+console = Console(force_terminal=True, legacy_windows=False)
+
+
+def _make_details_cell(sub_errors: str) -> Table | str:
+    """Build a nested table for the Details column.
+
+    Each newline-separated sub-error gets its own row, separated by a
+    horizontal rule, matching the visual pattern:
+
+        Error 1: abc not good
+        ─────────────────────
+        Error 2: DEF not good
+    """
+    if not sub_errors:
+        return ""
+    lines = [ln for ln in sub_errors.split("\n") if ln]
+    nested = Table(
+        show_header=False,
+        show_edge=False,
+        show_lines=True,
+        padding=(0, 1),
+    )
+    nested.add_column("detail", style="magenta", overflow="fold")
+    for i, line in enumerate(lines):
+        nested.add_row(f"Error {i + 1}: {line}")
+    return nested
 
 
 def sanitize_error_message(error_msg: str) -> str:
@@ -55,8 +80,12 @@ def __add_pydantic_errors_to_report(
         location = ".".join(str(p) for p in err.get("loc", []))
         err_type = err.get("type", "")
         msg = err.get("msg", "")
-        ctx = ", ".join(f"{k}={v}" for k, v in err.get("ctx", {}).items())
-        error_list.append([err_type, msg, location, ctx])
+        raw_ctx = err.get("ctx", {})
+        sub_errors = raw_ctx.get("sub_errors", "")
+        ctx = ", ".join(
+            f"{k}={v}" for k, v in raw_ctx.items() if k != "sub_errors"
+        )
+        error_list.append([err_type, msg, location, ctx, sub_errors])
 
 
 def add_errors_to_report(
@@ -89,30 +118,26 @@ def add_errors_to_report(
         err_type = type(exc).__name__
         msg = sanitize_error_message(str(exc))
         ctx = ""
-        errs.append([err_type, msg, location, ctx])
+        errs.append([err_type, msg, location, ctx, ""])
 
     errors_report[config_name] = errs
     return errors_report
 
 
-def render_validation_errors() -> None:
-    """
-    Display FLYNC project validation errors as a table.
-    """
-
-    for _, errs in VALIDATION_ERRORS.items():
-        table = Table(
-            show_lines=True,
-        )
+def render_validation_errors(errors: dict) -> None:
+    """Display FLYNC project validation errors as a Rich table."""
+    for config_name, errs in errors.items():
+        console.print(f"\n[bold red]Errors for {config_name}:[/bold red]")
+        table = Table(show_lines=True)
         table.add_column("Num.", justify="right")
         table.add_column("Error Type", style="red", overflow="fold")
         table.add_column("Message", style="yellow", overflow="fold")
         table.add_column("Location", style="cyan", overflow="fold")
         table.add_column("Context", style="green", overflow="fold")
-
+        table.add_column("Details", style="magenta", overflow="fold")
         for idx, error_row in enumerate(errs, 1):
-            table.add_row(str(idx), *error_row)
-
+            *main_cols, sub = error_row
+            table.add_row(str(idx), *main_cols, _make_details_cell(sub))
         console.print(table)
 
 
@@ -138,24 +163,65 @@ if not path.exists():
 
 console.print(f"Validating {flync_name} ...")
 loaded_ws = None
+VALIDATION_WARNINGS: dict = {}
+VALIDATION_SOFT_ERRORS: dict = {}
 try:
     loaded_ws = FLYNCWorkspace.load_workspace(flync_name, path.resolve())
 except Exception as e:
     console.print(
-        f"⚠️ [bold red] Validation of {flync_name} failed![/bold red]"
+        "[bold red]VALIDATION FAILED:"
+        f" Validation of {flync_name} failed![/bold red]"
     )
-    VALIDATION_ERRORS = add_errors_to_report(VALIDATION_ERRORS, flync_name, e)
+    if isinstance(e, ValidationError):
+        all_errs = e.errors()
+        warn_rows = [x for x in all_errs if x.get("type") == "warning"]
+        err_rows = [x for x in all_errs if x.get("type") != "warning"]
+        if warn_rows:
+            VALIDATION_WARNINGS[flync_name] = []
+            __add_pydantic_errors_to_report(
+                warn_rows, VALIDATION_WARNINGS[flync_name]
+            )
+        if err_rows:
+            err_list: list = []
+            __add_pydantic_errors_to_report(err_rows, err_list)
+            VALIDATION_ERRORS[flync_name] = err_list
+    else:
+        VALIDATION_ERRORS = add_errors_to_report(
+            VALIDATION_ERRORS, flync_name, e
+        )
 if loaded_ws and loaded_ws.load_errors:
-    if flync_name not in VALIDATION_ERRORS:
-        VALIDATION_ERRORS[flync_name] = []
-    __add_pydantic_errors_to_report(
-        loaded_ws.load_errors, VALIDATION_ERRORS[flync_name]
-    )
-render_validation_errors()
+    actual_warnings = [
+        e for e in loaded_ws.load_errors if e.get("type") == "warning"
+    ]
+    soft_errors = [
+        e for e in loaded_ws.load_errors if e.get("type") != "warning"
+    ]
+    if actual_warnings:
+        VALIDATION_WARNINGS[flync_name] = []
+        __add_pydantic_errors_to_report(
+            actual_warnings, VALIDATION_WARNINGS[flync_name]
+        )
+    if soft_errors:
+        VALIDATION_SOFT_ERRORS[flync_name] = []
+        __add_pydantic_errors_to_report(
+            soft_errors, VALIDATION_SOFT_ERRORS[flync_name]
+        )
 
+for config_name, warnings in VALIDATION_WARNINGS.items():
+    console.print(f"\n[bold yellow]Warnings for {config_name}:[/bold yellow]")
+    table = Table(show_lines=True)
+    table.add_column("Num.", justify="right")
+    table.add_column("Warning Type", style="yellow", overflow="fold")
+    table.add_column("Message", style="white", overflow="fold")
+    for idx, warning_row in enumerate(warnings, 1):
+        table.add_row(str(idx), warning_row[0], warning_row[1])
+    console.print(table)
+
+render_validation_errors(VALIDATION_SOFT_ERRORS)
+render_validation_errors(VALIDATION_ERRORS)
 if len(VALIDATION_ERRORS) == 0:
     console.print(
-        f"✅ [bold green]{flync_name} is properly configured! [bold green]"
+        f"[bold green]>> {flync_name} is properly configured! <<[/bold green]"
     )
     sys.exit(0)
 else:

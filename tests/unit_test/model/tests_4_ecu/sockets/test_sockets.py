@@ -162,16 +162,6 @@ def test_positive_tcp_socket():
                 "endpoint_address": "10.0.0.1",
                 "name": "my_socket",
                 "port_no": 123,
-                "tcp_profile": 3,
-                "protocol": "tcp",
-            },
-            id="Invalid TCP profile",
-        ),
-        pytest.param(
-            {
-                "endpoint_address": "10.0.0.1",
-                "name": "my_socket",
-                "port_no": 123,
                 "tcp_profile": 1,
                 "protocol": "udp",
             },
@@ -199,9 +189,10 @@ def test_positive_tcp_socket():
         ),
     ],
 )
+
+
 def test_negative_tcp_socket_parameters(tcp_socket):
     tcp_options = TCPOption(tcp_profile_id=1)
-    print(tcp_socket)
     with pytest.raises(ValidationError) as e:
         SocketTCP.model_validate(tcp_socket)
 
@@ -286,6 +277,18 @@ def test_positive_tcp_options(tcp_options):
     tcp_options_example = TCPOption.model_validate(tcp_options)
     assert isinstance(tcp_options_example, TCPOption)
 
+def test_positive_tcp_profile_invalid():
+    
+    tcp_socket = {
+        "endpoint_address": "10.0.0.1",
+        "name": "my_socket",
+        "port_no": 123,
+        "tcp_profile": 3,
+        "protocol": "tcp",
+    }
+    tcp_example = SocketTCP.model_validate(tcp_socket)
+    assert isinstance(tcp_example, SocketTCP)
+    
 
 @pytest.mark.parametrize(
     "tcp_options",

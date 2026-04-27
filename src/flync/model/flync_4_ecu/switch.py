@@ -110,14 +110,37 @@ class SwitchPort(NamedDictInstances):
     mii_config: Optional[MII | RMII | SGMII | RGMII | XFI] = Field(
         default=None, discriminator="type"
     )
-    ptp_config: Optional[PTPConfig] = Field(default=None)
-    ingress_streams: Optional[List[Stream]] = Field(default=[])
+    ptp_config: Annotated[
+        Optional[PTPConfig],
+        BeforeValidator(
+            common_validators.validate_or_remove("PTP config", PTPConfig)
+        ),
+    ] = Field(default=None)
+    ingress_streams: Annotated[
+        Optional[List[Stream]],
+        BeforeValidator(
+            common_validators.validate_or_remove(
+                "ingress streams", List[Stream]
+            )
+        ),
+        BeforeValidator(common_validators.none_to_empty_list),
+    ] = Field(default=[])
     traffic_classes: Annotated[
         Optional[List[TrafficClass]],
         AfterValidator(common_validators.validate_traffic_classes),
+        BeforeValidator(
+            common_validators.validate_or_remove(
+                "traffic classes", List[TrafficClass]
+            )
+        ),
         BeforeValidator(common_validators.none_to_empty_list),
     ] = Field(default=[])
-    macsec_config: Optional[MACsecConfig] = Field(default=None)
+    macsec_config: Annotated[
+        Optional[MACsecConfig],
+        BeforeValidator(
+            common_validators.validate_or_remove("MACsec config", MACsecConfig)
+        ),
+    ] = Field(default=None)
     _mdi_config: BASET1 | BASET1S | BASET | None = PrivateAttr(default=None)
     _connected_component = PrivateAttr(default=None)
     _type: Literal["switch_port"] = PrivateAttr(default="switch_port")

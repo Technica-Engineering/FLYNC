@@ -51,12 +51,11 @@ def test_multicast_paths_no_tx(tmpdir):
     data["name"] = "socket_nm"
     SocketContainer.model_validate(data)
 
-    with pytest.raises(ValidationError) as exc_info:
-        FLYNCWorkspace.load_workspace("flync_example", destination_folder)
+    loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
     assert (
         "Invalid Multicast Configuration"
         and "224.0.0.1"
-        and "no tx" in str(exc_info.value)
+        and "no tx" in str(loaded_ws.load_errors)
     )
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
@@ -77,13 +76,12 @@ def test_multicast_paths_no_path_from_rx_to_tx(tmpdir):
     data = read_yaml(file_to_update)
     Switch.model_validate(data)
     reset_unique_name_cache()
-    with pytest.raises(ValidationError) as exc_info:
-        FLYNCWorkspace.load_workspace("flync_example", destination_folder)
+    loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
     assert (
         "Invalid Multicast Configuration"
         and "224.0.0.1"
         and "eth_ecu_c1_iface1"
-        and "cannot be reached by the TX" in str(exc_info.value)
+        and "cannot be reached by the TX" in str(loaded_ws.load_errors)
     )
     if destination_folder.exists():
         shutil.rmtree(destination_folder)

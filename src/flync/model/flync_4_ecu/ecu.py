@@ -3,8 +3,9 @@
 from itertools import product
 from typing import Annotated, List, Optional, TypeVar
 
-from pydantic import Field, model_validator
+from pydantic import BeforeValidator, Field, model_validator
 
+import flync.core.utils.common_validators as common_validators
 from flync.core.annotations import (
     External,
     Implied,
@@ -14,7 +15,7 @@ from flync.core.annotations import (
 )
 from flync.core.base_models import UniqueName
 from flync.core.utils.base_utils import find_all
-from flync.core.utils.exceptions import err_minor
+from flync.core.utils.exceptions import err_major, err_minor
 from flync.model.flync_4_ecu.controller import (
     Controller,
     ControllerInterface,
@@ -27,7 +28,7 @@ from flync.model.flync_4_ecu.mac_multicast_endpoint import (
 from flync.model.flync_4_ecu.multicast_groups import MulticastGroupMembership
 from flync.model.flync_4_ecu.port import ECUPort
 from flync.model.flync_4_ecu.socket_container import SocketContainer
-from flync.model.flync_4_ecu.sockets import Socket
+from flync.model.flync_4_ecu.sockets import SocketUnion
 from flync.model.flync_4_ecu.switch import Switch, SwitchPort
 from flync.model.flync_4_metadata import ECUMetadata
 from flync.model.flync_4_someip import (  # type: ignore  # noqa: F401
@@ -122,6 +123,11 @@ class ECU(UniqueName):
             | OutputStrategy.OMMIT_ROOT,
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
+        BeforeValidator(
+            common_validators.validate_or_remove(
+                "internal topology", InternalTopology, severity="major"
+            )
+        ),
     ] = Field()
     ecu_metadata: Annotated[
         "ECUMetadata",
@@ -169,6 +175,32 @@ class ECU(UniqueName):
         self.__populate_multicast_rx_groups_from_interfaces()
         self._populate_multicast_tx_groups_from_mac_multicast_endpoints()
 
+    @model_validator(mode="before")
+    @classmethod
+    def skip_on_broken_controllers(cls, data):
+        """Skip ECU validation when controllers or switches failed to load.
+
+        When a controller or switch cannot be parsed, the workspace places
+        None in the respective list.  Attempting to validate the ECU in that
+        state produces a cascade of unhelpful errors.  Instead report a
+        single major error so that per-component errors remain the focus.
+        """
+        if isinstance(data, dict):
+            controllers = data.get("controllers") or []
+            switches = data.get("switches") or []
+            broken_controllers = isinstance(controllers, list) and any(
+                c is None for c in controllers
+            )
+            broken_switches = isinstance(switches, list) and any(
+                s is None for s in switches
+            )
+            if broken_controllers or broken_switches:
+                raise err_major(
+                    "ECU has invalid components. "
+                    "Check controller and switch errors for details."
+                )
+        return data
+
     @model_validator(mode="after")
     def validate_vlans_in_sockets(self):
         """
@@ -215,15 +247,17 @@ class ECU(UniqueName):
             if not sockets:
                 continue
             for socket in sockets:
-                if str(socket.endpoint_address) not in ips:
+                if str(socket.root.endpoint_address) not in ips:
+                    ip = socket.root.endpoint_address
                     raise err_minor(
-                        f"Error in socket {socket.name}:\n"
-                        f"The IP {socket.endpoint_address} is not configured "
-                        f"in any virtual interface of the ECU {self.name}."
+                        f"Error in socket {socket.root.name}:\n"
+                        f"The IP {ip} is not configured "
+                        "in any virtual interface"
+                        f" of the ECU {self.name}."
                     )
 
                 for ip in interface.addresses:
-                    if ip.address == socket.endpoint_address:
+                    if ip.address == socket.root.endpoint_address:
                         ip.sockets.append(socket)
 
         return self
@@ -245,17 +279,17 @@ class ECU(UniqueName):
 
         for socket_container in self.sockets:
             for socket in socket_container.sockets:
-                if socket.endpoint_type == "multicast":
-                    for multicast_addr in socket.multicast_tx:
+                if socket.root.endpoint_type == "multicast":
+                    for multicast_addr in socket.root.multicast_tx:
                         group = MulticastGroupMembership(
                             group=multicast_addr,
-                            description=socket.name,
+                            description=socket.root.name,
                             mode="tx",
                             vlan=socket_container.vlan_id,
-                            src_ip=socket.endpoint_address,
+                            src_ip=socket.root.endpoint_address,
                         )
                         interface = self.get_interface_for_ip(
-                            str(socket.endpoint_address)
+                            str(socket.root.endpoint_address)
                         )
                         group._interface = interface
                         self.multicast_groups.append(group)
@@ -371,7 +405,7 @@ class ECU(UniqueName):
         Get all IPs in a ECU
         """
         ip_lists = []
-        for ctrl in self.controllers:
+        for ctrl in self.controllers or []:
             ip_lists.extend(ctrl.get_all_ips())
         for switch in self.switches:
             if switch.host_controller:
@@ -385,11 +419,12 @@ class ECU(UniqueName):
         mac_lists = []
         for ctrl in self.controllers:
             mac_lists.extend(ctrl.get_all_macs())
-        for switch in self.switches:
-            mac_lists.extend(switch.host_controller.get_all_macs())
+        for switch in self.switches or []:
+            if switch.host_controller is not None:
+                mac_lists.extend(switch.host_controller.get_all_macs())
         return mac_lists
 
-    def get_all_sockets(self) -> dict[int, List[Socket]]:
+    def get_all_sockets(self) -> dict[int, List[SocketUnion]]:
         """
         Get all sockets in a ECU, grouped by VLAN ID.
         """
@@ -443,7 +478,7 @@ class ECU(UniqueName):
         service_instances = []
         for ecu_sockets in self.sockets or []:
             for socket in ecu_sockets.sockets or []:
-                for deployment in socket.deployments or []:
+                for deployment in socket.root.deployments or []:
                     if isinstance(deployment.root, service_type):
                         someip_deployment = deployment.root
                         service_instances.append(someip_deployment)

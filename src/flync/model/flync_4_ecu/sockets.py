@@ -1,6 +1,6 @@
 """Defines sockets, IP address endpoints, and TCP/UDP models in FLYNC"""
 
-from typing import Any, ClassVar, Dict, List, Literal, Optional, Union
+from typing import Any, ClassVar, Dict, List, Literal, Optional
 
 from pydantic import (
     Field,
@@ -18,7 +18,7 @@ from flync.core.datatypes.ipaddress import (
     IPv4AddressEntry,
     IPv6AddressEntry,
 )
-from flync.core.utils.exceptions import err_minor
+from flync.core.utils.exceptions import err_minor, warn
 from flync.model.flync_4_someip import (
     SOMEIPSDDeployment,
     SOMEIPServiceConsumer,
@@ -32,12 +32,11 @@ class IPv4AddressEndpoint(IPv4AddressEntry):
 
     Parameters
     ----------
-    sockets : list of :class:`~flync.model.flync_4_ecu.sockets.SocketTCP` or \
-    :class:`~flync.model.flync_4_ecu.sockets.SocketUDP`
+    sockets : list of :class:`~flync.model.flync_4_ecu.sockets.SocketUnion`
         TCP and UDP sockets that are part of this IPv4 address endpoint.
     """
 
-    sockets: Optional[List[Union["SocketTCP", "SocketUDP"]]] = Field(
+    sockets: Optional[List["SocketUnion"]] = Field(
         default_factory=list, exclude=True
     )
 
@@ -52,7 +51,7 @@ class IPv4AddressEndpoint(IPv4AddressEntry):
             differs from ``self.address``.
         """
         for socket in self.sockets:
-            if str(socket.endpoint_address) != str(self.address):
+            if str(socket.root.endpoint_address) != str(self.address):
                 raise err_minor(
                     "Sockets must be tied to the same address "
                     "as the IPv4 endpoint."
@@ -67,12 +66,11 @@ class IPv6AddressEndpoint(IPv6AddressEntry):
 
     Parameters
     ----------
-    sockets : list of :class:`~flync.model.flync_4_ecu.sockets.SocketTCP` or \
-    :class:`~flync.model.flync_4_ecu.sockets.SocketUDP`
+    sockets : list of :class:`~flync.model.flync_4_ecu.sockets.SocketUnion`
         TCP and UDP sockets that are part of this IPv6 address endpoint.
     """
 
-    sockets: Optional[List[Union["SocketTCP", "SocketUDP"]]] = Field(
+    sockets: Optional[List["SocketUnion"]] = Field(
         default_factory=list, exclude=True
     )
 
@@ -87,7 +85,7 @@ class IPv6AddressEndpoint(IPv6AddressEntry):
             differs from ``self.address``.
         """
         for socket in self.sockets:
-            if str(socket.endpoint_address) != str(self.address):
+            if str(socket.root.endpoint_address) != str(self.address):
                 raise err_minor(
                     "Sockets must be tied to the same address "
                     "as the IPv6 endpoint."
@@ -185,9 +183,17 @@ class Socket(FLYNCBaseModel):
                 DeploymentUnion.model_validate(dep)
                 valid_deployment.append(dep)
             except ValidationError as e:
+                detail = "; ".join(
+                    "{loc}: {msg}".format(
+                        loc=".".join(str(x) for x in err.get("loc", ())),
+                        msg=err.get("msg", ""),
+                    )
+                    for err in e.errors()
+                )
                 raise err_minor(
-                    f"Validation error in deployment {idx} of socket "
-                    f"Skipping to the next deployment - {e}"
+                    f"Validation error in deployment {idx}"
+                    f" of socket - {detail}."
+                    " Skipping to the next deployment."
                 )
             idx = idx + 1
         return valid_deployment
@@ -241,7 +247,7 @@ class TCPOption(DictInstances):
         Maximum segment size for outgoing TCP packets.
 
     tcp_quickack : bool
-        Enable or disable the “quick-ack” feature.
+        Enable or disable the "quick-ack" feature.
 
     tcp_syncnt : int
         Number of SYN retransmissions TCP may perform before aborting
@@ -296,48 +302,25 @@ class SocketTCP(Socket):
     protocol: Literal["tcp"] = Field(default="tcp")
     tcp_profile: int = Field()
 
-    #    @model_validator(mode="after")
-    #    def check_multicast_endpoint(self):
-    #        """
-    #        Ensure that a socket of type *someip* does not
-    #        specify a multicast endpoint.
-    #
-    #        Raises:
-    #            err_minor: If a deployment of type ``someip``
-    #            has ``find_service_multicast``set (TCP sockets
-    #            cannot use multicast endpoints).
-    #        """
-    #        for deployment in self.deployments:
-    #
-    #            if (
-    #                deployment.root.deployment_type == "someip_consumer"
-    #                or deployment.root.deployment_type == "someip_provider"
-    #            ) and deployment.root.find_service_multicast is not None:
-    #                raise err_minor(
-    #                    f"TCP Socket cannot have a multicast endpoint. "
-    #                    f"Socket {self.name} "
-    #                )
-    #        return self
-
     @field_validator("tcp_profile", mode="after")
     @classmethod
     def _lookup_tcp_profile_from_id(cls, value):
         """
         Resolve the integer ``tcp_profile`` identifier to a
-        registered ``TcpOption`` instance.
+        registered ``TCPOption`` instance.
 
-        Raises:
-            AssertionError: If the supplied ``value`` does not
-            correspond to any existing``TcpOption`` (i.e., the
-            profile cannot be found in ``TcpOption.INSTANCES``).
+        If no profile with the given ID exists, a default
+        ``TCPOption`` is created and registered using only the
+        provided ID — all other fields use their defaults, and a
+        warning is emitted.
         """
-        tcp_profile_no = value
-
-        tcp = TCPOption.INSTANCES.get((tcp_profile_no))
-        assert tcp, (
-            f"did not find a TCP profile matching the provided "
-            f'key "{value}"'
-        )
+        if value not in TCPOption.INSTANCES:
+            TCPOption(tcp_profile_id=value)
+            warn(
+                f"TCP Socket with TCP Option profile ID {value}"
+                " does not exist. "
+                "Creating a profile with default options."
+            )
         return value
 
 
@@ -355,3 +338,24 @@ class SocketUDP(Socket):
 
     protocol: Literal["udp"] = Field(default="udp")
     udp_options: Optional[UDPOption] = Field(default=UDPOption(udp_cork=False))
+
+
+class SocketUnion(RootModel):
+    """
+    Union type representing a socket configuration.
+    This model wraps a union of different socket models and uses the
+    ``protocol`` field as a discriminator to determine which specific
+    socket model is present.
+
+    Possible types
+    --------------
+    :class:`~flync.model.flync_4_ecu.sockets.SocketTCP`
+    or
+    :class:`~flync.model.flync_4_ecu.sockets.SocketUDP`
+    """
+
+    root: SocketTCP | SocketUDP = Field(discriminator="protocol")
+
+
+IPv4AddressEndpoint.model_rebuild()
+IPv6AddressEndpoint.model_rebuild()

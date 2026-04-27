@@ -6,8 +6,16 @@ from pydantic import BaseModel, TypeAdapter, ValidationError
 from pydantic_core import ErrorDetails, InitErrorDetails, PydanticCustomError
 
 from flync.core.base_models.base_model import FLYNCBaseModel
+from flync.core.base_models.unique_name import UniqueName
+from flync.core.utils.exceptions import _validation_warnings
 
 FATAL_ERROR_TYPES = {"extra_forbid", "extra_forbidden", "fatal", "missing"}
+
+# All error types that originate from FLYNC's own error factories or Pydantic's
+# structural checks.  Any error type NOT in this set is a native Pydantic
+# constraint error (e.g. less_than_equal, int_type) that will be re-wrapped as
+# a major error so it follows the standard FLYNC display format.
+FLYNC_ERROR_TYPES = FATAL_ERROR_TYPES | {"minor", "major", "warning"}
 
 
 def resolve_alias(model: type[BaseModel], field_name: str) -> str:
@@ -301,6 +309,160 @@ def get_unique_errors(
     return unique_errors
 
 
+def _wrap_native_error(err: ErrorDetails) -> ErrorDetails:
+    """Re-wrap a native Pydantic constraint error as a FLYNC major error.
+
+    Native Pydantic errors (e.g. ``less_than_equal``, ``int_type``) do not
+    carry ``sub_errors`` and appear with their raw Pydantic type in the error
+    table.  This wraps them as ``major`` so they follow the standard format:
+    the original type and message appear in the Details column and the message
+    mirrors the ``validate_or_remove`` pattern.
+
+    Cascade behaviour is unchanged — the original error type is still used to
+    decide whether to populate ``major_removed_locs``.
+
+    Parameters
+    ----------
+    err : ErrorDetails
+        A Pydantic error dict whose ``type`` is not in
+        :data:`FLYNC_ERROR_TYPES`.
+
+    Returns
+    -------
+    ErrorDetails
+        A new error dict with ``type="major"``, a human-readable message, and
+        the original error packed into ``ctx["sub_errors"]``.
+    """
+    original_type = err.get("type", "")
+    original_msg = err.get("msg", "")
+    loc = err.get("loc", ())
+    field_name = loc[-1] if loc else "field"
+    sub_errors = f"{original_type}: {original_msg}"
+    return {
+        "type": "major",
+        "msg": (
+            f"1 or more errors found while validating {field_name}. "
+            f"Removing {field_name}."
+        ),
+        "loc": loc,
+        "input": err.get("input"),
+        "ctx": {"sub_errors": sub_errors},
+        "url": "",
+    }  # type: ignore[return-value]
+
+
+def _tag_warnings_with_path(warnings: list, path) -> None:
+    """Stamp each warning that lacks a yaml_path with the given path."""
+    if not path:
+        return
+    for w in warnings:
+        w_ctx = w.get("ctx") or {}
+        if "yaml_path" not in w_ctx:
+            w_ctx["yaml_path"] = str(path)
+            w["ctx"] = w_ctx
+
+
+def _enrich_validation_error(
+    ve: ValidationError,
+    model: type,
+    working: Any,
+    path,
+) -> ValidationError:
+    """Return ``ve`` re-raised with YAML source locations injected."""
+    try:
+        enriched = errors_to_init_errors(
+            get_unique_errors(ve.errors()),
+            model=model,
+            yaml_data=working,
+            yaml_path=path,
+        )
+        raise ValidationError.from_exception_data(
+            title=ve.title,
+            line_errors=enriched,  # type: ignore[arg-type]
+        )
+    except ValidationError as ve_enriched:
+        return ve_enriched
+
+
+def _has_top_level_fatal(
+    errs: List[ErrorDetails], removed_locs: Set[Tuple]
+) -> bool:
+    """Return True when an unrecovered fatal error sits at depth ≤ 1."""
+    return any(
+        e.get("type") in FATAL_ERROR_TYPES
+        and len(e.get("loc", ())) <= 1
+        and e.get("loc", ()) not in removed_locs
+        for e in errs
+    )
+
+
+def _collect_original_error(
+    err: ErrorDetails,
+    remove_loc: Tuple,
+    collected_errors: List[ErrorDetails],
+    working: Any,
+    removed_locs: Set[Tuple],
+    major_removed_locs: Set[Tuple],
+) -> None:
+    """Record ``err`` and excise its location from ``working``."""
+    err_to_collect = (
+        err
+        if err.get("type") in FLYNC_ERROR_TYPES
+        else _wrap_native_error(err)
+    )
+    collected_errors.append(err_to_collect)
+    delete_at_loc(working, remove_loc)
+    removed_locs.add(remove_loc)
+    if err.get("type") == "major":
+        major_removed_locs.add(remove_loc)
+
+
+def _process_error_list(
+    errs: List[ErrorDetails],
+    removed_locs: Set[Tuple],
+    major_removed_locs: Set[Tuple],
+    collected_errors: List[ErrorDetails],
+    working: Any,
+) -> bool:
+    """Remove offending locations from ``working`` and collect errors.
+
+    For each error:
+    - fatal nested (depth > 1): remove the parent so the whole sub-object
+      is dropped cleanly.
+    - minor/major: remove the exact offending field.
+    - cascade from an earlier removal: escalate to parent silently.
+    - cascade from a major-removed field: stop the chain, do not escalate.
+
+    Returns True if at least one location was removed (progress made).
+    """
+    made_progress = False
+    for err in errs:
+        loc = err.get("loc", ())
+        is_fatal = err.get("type") in FATAL_ERROR_TYPES
+        remove_loc = loc[:-1] if is_fatal and len(loc) > 1 else loc
+        if remove_loc in removed_locs:
+            continue
+        is_cascade = loc in removed_locs
+        if is_cascade:
+            # Cascade from an earlier removal → escalate to parent silently,
+            # unless it originates from a major-removed field.
+            if not (is_fatal and loc in major_removed_locs):
+                delete_at_loc(working, remove_loc)
+                removed_locs.add(remove_loc)
+                made_progress = True
+        else:
+            _collect_original_error(
+                err,
+                remove_loc,
+                collected_errors,
+                working,
+                removed_locs,
+                major_removed_locs,
+            )
+            made_progress = True
+    return made_progress
+
+
 def validate_with_policy(
     model: Type[FLYNCBaseModel], data: Any, path
 ) -> Tuple[Optional[FLYNCBaseModel], List[ErrorDetails]]:
@@ -308,6 +470,12 @@ def validate_with_policy(
     Helper function to perform model validation from the given data,
     collect errors with different severity and perform action
     based on severity.
+
+    For minor/major errors the offending field is removed from the working
+    data via :func:`delete_at_loc` and validation is retried, so that the
+    model can still be constructed without the invalid field.  The loop
+    continues until either validation succeeds, a fatal error is encountered,
+    or no further progress can be made (all error locations already removed).
 
     Parameters
     ----------
@@ -326,58 +494,69 @@ def validate_with_policy(
     ------
     ValidationError
     """
-
     working = data
     collected_errors: List[ErrorDetails] = []
+    removed_locs: Set[Tuple] = set()
+    major_removed_locs: Set[Tuple] = set()
+    warnings_token = _validation_warnings.set([])
     try:
-        pydantic_adapter = TypeAdapter(model)
-        return pydantic_adapter.validate_python(working), get_unique_errors(
-            collected_errors
-        )
-    except ValidationError as ve2:
-        errs2: List[InitErrorDetails] | List[ErrorDetails] = ve2.errors()
-        # enrich errors
-        try:
-            errs2 = errors_to_init_errors(
-                get_unique_errors(ve2.errors()),
-                model=model,
-                yaml_data=working,
-                yaml_path=path,
-            )
-            raise ValidationError.from_exception_data(
-                title=ve2.title,
-                line_errors=errs2,  # type: ignore[arg-type]
-            )
-        except ValidationError as ve3:
-            errs2 = ve3.errors()
-            if any(e.get("type") in FATAL_ERROR_TYPES for e in errs2):
-                # CASE: Fatal
-                # Re-raise original ValidationError
-                raise ve3
-        collected_errors.extend(errs2)
-        # return caught errors for logging
-        return None, get_unique_errors(collected_errors)
-    except Exception as e:
-        # caught a random excpetion
-        # should be added to the list of caught errors and reraised as fatal.
-        fatal_ctx = {"ex": e.with_traceback(None)}
-        raise ValidationError.from_exception_data(
-            title="Unhandled exception",
-            line_errors=errors_to_init_errors(
-                get_unique_errors(collected_errors),
-                model=model,
-                yaml_data=working,
-                yaml_path=path,
-            )
-            + [
-                InitErrorDetails(
-                    type=PydanticCustomError(
-                        "fatal",
-                        "unhandled exception caught: {ex}",
-                        fatal_ctx,
-                    ),
-                    ctx=fatal_ctx,
-                    input=model,
+        while True:
+            # Snapshot UniqueName.NAMES before each attempt so that names
+            # registered during a failed pass can be rolled back before
+            # retrying. Without this, class-level name registrations from the
+            # failed pass cause AssertionError on every subsequent
+            # port/interface in the retry.
+            names_snapshot = frozenset(UniqueName.NAMES)
+            try:
+                result = TypeAdapter(model).validate_python(working)
+                accumulated = _validation_warnings.get() or []
+                _tag_warnings_with_path(accumulated, path)
+                return result, get_unique_errors(
+                    collected_errors + accumulated
                 )
-            ],
-        )
+            except ValidationError as ve:
+                ve_enriched = _enrich_validation_error(
+                    ve, model, working, path
+                )
+                errs = ve_enriched.errors()
+                if _has_top_level_fatal(errs, removed_locs):
+                    raise ve_enriched
+                if not _process_error_list(
+                    errs,
+                    removed_locs,
+                    major_removed_locs,
+                    collected_errors,
+                    working,
+                ):
+                    break
+                # Restore the names registry to the pre-attempt snapshot so
+                # that re-validated objects can register their names cleanly.
+                UniqueName.NAMES.clear()
+                UniqueName.NAMES.update(names_snapshot)
+            except Exception as e:
+                fatal_ctx = {"ex": e.with_traceback(None)}
+                raise ValidationError.from_exception_data(
+                    title="Unhandled exception",
+                    line_errors=errors_to_init_errors(
+                        get_unique_errors(collected_errors),
+                        model=model,
+                        yaml_data=working,
+                        yaml_path=path,
+                    )
+                    + [
+                        InitErrorDetails(
+                            type=PydanticCustomError(
+                                "fatal",
+                                "unhandled exception caught: {ex}",
+                                fatal_ctx,
+                            ),
+                            ctx=fatal_ctx,
+                            input=model,
+                        )
+                    ],
+                )
+        accumulated = _validation_warnings.get() or []
+        _tag_warnings_with_path(accumulated, path)
+        return None, get_unique_errors(collected_errors + accumulated)
+    finally:
+        _validation_warnings.reset(warnings_token)

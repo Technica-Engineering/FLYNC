@@ -2,12 +2,13 @@
 
 from typing import Annotated, List, Optional
 
-from pydantic import Field
+from pydantic import BeforeValidator, Field
 
 from flync.core.annotations import Implied, ImpliedStrategy
+import flync.core.utils.common_validators as common_validators
 from flync.core.base_models import FLYNCBaseModel
 
-from .sockets import SocketTCP, SocketUDP
+from .sockets import SocketUnion
 
 
 class SocketContainer(FLYNCBaseModel):
@@ -30,6 +31,11 @@ class SocketContainer(FLYNCBaseModel):
 
     name: Annotated[str, Implied(strategy=ImpliedStrategy.FILE_NAME)] = Field()
     vlan_id: int = Field(ge=0, le=4095, default=0)
-    sockets: Optional[List[SocketTCP | SocketUDP]] = Field(
-        default_factory=list
-    )
+    sockets: Annotated[
+        Optional[List[SocketUnion]],
+        BeforeValidator(
+            common_validators.validate_list_items_and_remove(
+                "socket", SocketUnion, severity="minor"
+            )
+        ),
+    ] = Field(default_factory=list)

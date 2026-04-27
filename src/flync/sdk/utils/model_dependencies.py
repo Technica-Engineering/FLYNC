@@ -504,6 +504,19 @@ class ModelDependencyGraph:
         ):
             if NoneType not in get_args(attribute.annotation):
                 real_type = attribute.annotation
+                # Re-attach any pydantic validators (BeforeValidator, etc.)
+                # that live in the field metadata so they run on the raw file
+                # data during validate_with_policy. The External annotation
+                # itself is not a pydantic validator and must be excluded.
+                validator_metadata = [
+                    m
+                    for m in attribute.metadata
+                    if not isinstance(m, External)
+                ]
+                if validator_metadata:
+                    real_type = Annotated[  # type: ignore[assignment]
+                        real_type, *validator_metadata
+                    ]
             if OutputStrategy.OMMIT_ROOT not in external.output_structure:
                 real_type = dict[
                     str, real_type  # type: ignore[valid-type, assignment]
