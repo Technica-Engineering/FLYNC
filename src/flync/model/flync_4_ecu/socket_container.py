@@ -4,8 +4,8 @@ from typing import Annotated, List, Optional
 
 from pydantic import BeforeValidator, Field
 
-from flync.core.annotations import Implied, ImpliedStrategy
 import flync.core.utils.common_validators as common_validators
+from flync.core.annotations import Implied, ImpliedStrategy
 from flync.core.base_models import FLYNCBaseModel
 
 from .sockets import SocketUnion
