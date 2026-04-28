@@ -247,6 +247,8 @@ class ECU(UniqueName):
             if not sockets:
                 continue
             for socket in sockets:
+                if socket.root.endpoint_type == "multicast":
+                    continue
                 if str(socket.root.endpoint_address) not in ips:
                     ip = socket.root.endpoint_address
                     raise err_minor(
