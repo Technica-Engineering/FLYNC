@@ -158,7 +158,6 @@ pages:
     - cd .. && mv ./docs/build/html public
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"
-    - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
   artifacts:
     paths:
       - public
