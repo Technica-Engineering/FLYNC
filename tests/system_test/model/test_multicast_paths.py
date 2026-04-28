@@ -35,7 +35,7 @@ def reset_unique_name_cache():
 
 
 def test_multicast_paths_no_tx(tmpdir):
-    destination_folder = Path(tmpdir) / "copie"
+    destination_folder = Path(tmpdir) / "copy"
     shutil.copytree(absolute_path, destination_folder)
     file_to_update = (
         destination_folder

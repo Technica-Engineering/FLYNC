@@ -61,7 +61,7 @@ The :ref:`flync_workspace` provides a loader that uses following validation poli
    * - **Error Level**
      - Error Handling
    * - **minor**
-     - Minor errors are usually realted to an indivdual field value and are easy to fix.
+     - Minor errors are usually related to an individual field value and are easy to fix.
        in the current version of FLYNC, the component with the minor error will not be created.
        But the validation continues and in case there are only minor issues, the FLYNC model might be created with the list of all collected errors.
    * - **major**

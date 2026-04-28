@@ -39,7 +39,7 @@ Install Poetry (if not already installed) and verify installation:
 .. code-block:: bash
 
    # Create a new virtual environment or use an existing one.
-   # You can do this also in the source directoy after git clone.
+   # You can do this also in the source directory after git clone.
    # In this example we use the directory .venv
    python -m venv .venv
 

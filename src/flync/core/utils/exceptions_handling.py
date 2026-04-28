@@ -276,9 +276,9 @@ def _get_error_signature(error_details: ErrorDetails) -> Tuple:
 
     loc: Tuple[int | str, ...] = error_details.get("loc", tuple())
     msg = error_details.get("msg")
-    eror_type = error_details.get("type")
+    error_type = error_details.get("type")
 
-    return loc, str(msg), str(eror_type)
+    return loc, str(msg), str(error_type)
 
 
 def get_unique_errors(

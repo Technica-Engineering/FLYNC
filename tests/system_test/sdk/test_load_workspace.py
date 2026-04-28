@@ -12,7 +12,7 @@ absolute_path = Path(__file__).parents[3] / "examples" / "flync_example"
 @pytest.mark.xfail(reason="Known bug")
 def test_load_workspace_multiple_times(tmpdir):
     for i in range(1, 4):
-        destination_folder = Path(tmpdir) / f"copie{i}"
+        destination_folder = Path(tmpdir) / f"copy{i}"
         shutil.copytree(absolute_path, destination_folder)
         workspace = FLYNCWorkspace.load_workspace(
             "flync_example", destination_folder
@@ -120,7 +120,7 @@ subfolders = [
 
 @pytest.mark.parametrize("subfolder", subfolders)
 def test_load_workspace_missing_mandatory_folder(tmpdir, subfolder):
-    destination_folder = Path(tmpdir) / "copie"
+    destination_folder = Path(tmpdir) / "copy"
     shutil.copytree(absolute_path, destination_folder)
     shutil.rmtree(destination_folder / subfolder.relative_to(absolute_path))
     with pytest.raises(FileNotFoundError):
@@ -141,7 +141,7 @@ files = [
 
 @pytest.mark.parametrize("file", files)
 def test_load_workspace_missing_mandatory_file(tmpdir, file):
-    destination_folder = Path(tmpdir) / "copie"
+    destination_folder = Path(tmpdir) / "copy"
     shutil.copytree(absolute_path, destination_folder)
     path_to_remove = destination_folder / file.relative_to(absolute_path)
     path_to_remove.unlink()
@@ -167,7 +167,7 @@ files = [
 
 @pytest.mark.parametrize("file", files)
 def test_load_workspace_invalid_format(tmpdir, file):
-    destination_folder = Path(tmpdir) / "copie"
+    destination_folder = Path(tmpdir) / "copy"
     shutil.copytree(absolute_path, destination_folder)
     file_to_rename = destination_folder / file.relative_to(absolute_path)
     new_file_name = file_to_rename.name[: -len(".flync.yaml")] + "yaml"
@@ -200,7 +200,7 @@ directories = [absolute_path] + [
 @pytest.mark.parametrize("dir", directories)
 @pytest.mark.skip(reason="feature not implemented")
 def test_load_workspace_add_image(tmpdir, dir):
-    destination_folder = Path(tmpdir) / "copie"
+    destination_folder = Path(tmpdir) / "copy"
     shutil.copytree(absolute_path, destination_folder)
     path_to_add = destination_folder / dir.relative_to(absolute_path)
     shutil.copy(image_path, path_to_add)
@@ -214,7 +214,7 @@ def test_load_workspace_add_image(tmpdir, dir):
 
 # Verify handling case sensitivity for keys
 def test_load_workspace_upper_key(tmpdir):
-    destination_folder = Path(tmpdir) / "copie"
+    destination_folder = Path(tmpdir) / "copy"
     shutil.copytree(absolute_path, destination_folder)
     file_to_update = (
         destination_folder
@@ -232,7 +232,7 @@ def test_load_workspace_upper_key(tmpdir):
 
 # Verify handling incorrect type for value
 def test_load_workspace_incorret_value_type(tmpdir):
-    destination_folder = Path(tmpdir) / "copie"
+    destination_folder = Path(tmpdir) / "copy"
     shutil.copytree(absolute_path, destination_folder)
     file_to_update = (
         destination_folder
@@ -261,7 +261,7 @@ invalid_format = {
 @pytest.mark.parametrize("key, value", invalid_format.items())
 @pytest.mark.xfail(reason="Known bug")
 def test_load_workspace_incorret_value_format(tmpdir, key, value):
-    destination_folder = Path(tmpdir) / "copie"
+    destination_folder = Path(tmpdir) / "copy"
     shutil.copytree(absolute_path, destination_folder)
     file_to_update = (
         destination_folder
@@ -282,7 +282,7 @@ def test_load_workspace_incorret_value_format(tmpdir, key, value):
 
 # Validate handling of extra key/value
 def test_load_workspace_extra_key_value(tmpdir):
-    destination_folder = Path(tmpdir) / "copie"
+    destination_folder = Path(tmpdir) / "copy"
     shutil.copytree(absolute_path, destination_folder)
     file_to_update = (
         destination_folder
@@ -305,7 +305,7 @@ def test_load_workspace_extra_key_value(tmpdir):
 
 # Verify handling indentation fault
 def test_load_workspace_key_value_misplaced(tmpdir):
-    destination_folder = Path(tmpdir) / "copie"
+    destination_folder = Path(tmpdir) / "copy"
     shutil.copytree(absolute_path, destination_folder)
     file_to_update = (
         destination_folder
@@ -334,7 +334,7 @@ def test_load_workspace_key_value_misplaced(tmpdir):
 # Verify handling duplicate keys
 @pytest.mark.skip(reason="feature not implemented")
 def test_load_workspace_duplicate_key(tmpdir):
-    destination_folder = Path(tmpdir) / "copie"
+    destination_folder = Path(tmpdir) / "copy"
     shutil.copytree(absolute_path, destination_folder)
     file_to_update = (
         destination_folder
@@ -357,7 +357,7 @@ def test_load_workspace_duplicate_key(tmpdir):
 # Verify handling missing dashe in list items
 @pytest.mark.skip(reason = "Test should not depend on number of spaces")
 def test_load_workspace_missing_dashe(tmpdir):
-    destination_folder = Path(tmpdir) / "copie"
+    destination_folder = Path(tmpdir) / "copy"
     shutil.copytree(absolute_path, destination_folder)
     file_to_update = (
         destination_folder
@@ -384,7 +384,7 @@ def test_load_workspace_missing_dashe(tmpdir):
 
 # Verify handling missing key/value
 def test_load_workspace_missing_key_value(tmpdir):
-    destination_folder = Path(tmpdir) / "copie"
+    destination_folder = Path(tmpdir) / "copy"
     shutil.copytree(absolute_path, destination_folder)
     file_to_update = (
         destination_folder

@@ -408,7 +408,7 @@ Single controller, single (physical) interface, external PHY, Multiple VMs
                   addresses:
                      -  address: 10.0.10.1
                         ipv4_netmask: 255.255.255.0
-            compute_nodes: 
+            compute_nodes:
             -  name: ecu1_c1_vm1
                mac_address: 00:11:22:33:44:56
                virtual_interfaces:
@@ -434,14 +434,14 @@ Single controller, single (physical) interface, external PHY, Multiple VMs
                node_connected: ecu1_c1_vm2
             -  name: br0_p3
                node_connected: ecu1_controller1_iface1
-         vlans:          
+         vlans:
             -  name: VLAN20
                id: 50
                default_priority: 0
                ports:
                - br0_p0
                - br0_p1
-               - br0_p2   
+               - br0_p2
 
 .. dropdown:: 📄 ``ecu1_internal_topology.flync.yaml``
 
@@ -530,7 +530,7 @@ Single controller, multiple (physical) interface, external PHY no VMs, L2 bridge
                   addresses:
                      -  address: 10.0.20.1
                         ipv4_netmask: 255.255.255.0
-      
+
       l2_bridge:
          name: br0
          ports:
@@ -538,20 +538,20 @@ Single controller, multiple (physical) interface, external PHY no VMs, L2 bridge
                node_connected: ecu1_controller1_iface1
             -  name: br0_p2
                node_connected: ecu1_controller1_iface2
-         vlans:          
+         vlans:
             -  name: VLAN20
                id: 20
                default_priority: 0
                ports:
                - br0_p1
                - br0_p2
-              
+
             -  name: VLAN10
                id: 10
                default_priority: 0
                ports:
                - br0_p1
-               - br0_p2   
+               - br0_p2
 
 .. dropdown:: 📄 ``ecu1_internal_topology.flync.yaml``
 
@@ -930,7 +930,7 @@ Firewall Configuration
 ^^^^^^^^^^^^^^^^^^^^^^
 
 The Firewall model consists of a default action and three lists defining rules for input, output and forward traffic, respectively.
-Each of these rules contains a pattern the packets are matched agaisnt, and an action executed when this check is positive:
+Each of these rules contains a pattern the packets are matched against, and an action executed when this check is positive:
 
 .. dropdown:: 📄 ``ecu1_controller1.flync.yaml``
 

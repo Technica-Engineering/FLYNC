@@ -1,5 +1,5 @@
 """
-this module contains the neccessary datastructures
+this module contains the necessary datastructures
 to model a SOME/IP deployment.
 """
 

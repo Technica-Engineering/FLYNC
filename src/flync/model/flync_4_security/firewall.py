@@ -36,7 +36,7 @@ class FirewallRule(FLYNCBaseModel):
         pattern = self.pattern
         if all(field is None for field in vars(pattern).values()):
             raise err_minor(
-                "At least one of the fields in pattern of firewall rule"
+                "At least one of the fields in pattern of firewall rule "
                 "should be present"
             )
         if pattern.dst_ipv4 is not None and pattern.dst_ipv6 is not None:

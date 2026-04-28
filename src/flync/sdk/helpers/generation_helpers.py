@@ -45,9 +45,9 @@ def __get_valid_path(paths: list[str]) -> list[str]:
     for p in paths:
         if not p:
             continue
-        chuncks = p.split(".")
-        if all(not chunk.isdigit() for chunk in chuncks):
-            return chuncks
+        chunks = p.split(".")
+        if all(not chunk.isdigit() for chunk in chunks):
+            return chunks
     return []
 
 

@@ -463,8 +463,8 @@ class Switch(NamedListInstances):
                             found_stream = False
                             for port_find in self.ports:
                                 if port_find.ingress_streams:
-                                    for str in port_find.ingress_streams:
-                                        if str.ipv == iv:
+                                    for stream in port_find.ingress_streams:
+                                        if stream.ipv == iv:
                                             found_stream = True
                             if not found_stream:
                                 raise err_minor(
@@ -495,8 +495,8 @@ class Switch(NamedListInstances):
                         found_ats = False
                         for port_find in self.ports:
                             if port_find.ingress_streams:
-                                for str in port_find.ingress_streams:
-                                    if str.ats:
+                                for stream in port_find.ingress_streams:
+                                    if stream.ats:
                                         found_ats = True
                         if not found_ats:
                             raise err_minor(

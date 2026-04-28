@@ -195,7 +195,7 @@ methods:
   - name: delay
     datatype:
       type: uint32
-    description: "Delay in s before Eventgroup shall be subcribed."
+    description: "Delay in s before Eventgroup shall be subscribed."
   - name: duration
     datatype:
       type: uint32

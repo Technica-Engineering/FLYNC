@@ -753,7 +753,7 @@ def validate_traffic_classes(traffic_classes):
     """
     Validate the traffic classes in a controller
     interface and switch to find out if a pcp,
-    ipv or traffic class prio is reused or nor
+    ipv or traffic class prio is reused or not
 
     """
     if not traffic_classes:

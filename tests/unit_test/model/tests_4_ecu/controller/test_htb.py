@@ -21,7 +21,7 @@ VALIDATE_WORKSPACE_SCRIPT = (
 
 
 def test_htb(tmpdir):
-    destination_folder = Path(tmpdir) / "copie"
+    destination_folder = Path(tmpdir) / "copy"
     shutil.copytree(absolute_path, destination_folder)
     file_to_update = (
         destination_folder

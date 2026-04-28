@@ -57,7 +57,7 @@ class PTPTimeReceiverConfig(FLYNCBaseModel):
         implementation-specific units.
 
     sync_followup_timeout : int
-        Timeout in miliseconds for receiving Follow_Up messages \
+        Timeout in milliseconds for receiving Follow_Up messages \
         after a Sync message.
     """
 

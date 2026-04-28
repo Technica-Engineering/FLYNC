@@ -359,7 +359,7 @@ class ModelDependencyGraph:
                     ``"list"``, ``"dict"``) that wrap the current field.
             """
             for field_name, info in subtree.items():
-                # add currnet path to dict
+                # add current path to dict
                 if field_name == "__cycle__":  # found a cyclic item
                     continue
                 structure = info["structure"]
@@ -496,7 +496,7 @@ class ModelDependencyGraph:
         attribute = self.field_info_from_child(
             field_type, parent_attribute_name
         )
-        # in case of ommit root, we need to include a dictionary
+        # in case of omit root, we need to include a dictionary
         external = get_metadata(attribute.metadata, External)
         if (
             external is not None
@@ -549,7 +549,7 @@ class ModelDependencyGraph:
         attribute = self.field_info_from_child(
             field_type, parent_attribute_name
         )
-        # in case of ommit root, we need to include a dictionary
+        # in case of omit root, we need to include a dictionary
         external = get_metadata(attribute.metadata, External)
         if (
             external is not None
