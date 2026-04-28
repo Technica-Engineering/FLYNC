@@ -263,6 +263,11 @@ class SOMEIPServiceProvider(SOMEIPServiceDeployment):
     minor_version : int
         The minor version of this service interface.
         Must be greater than 0 and less than 0xFFFFFFFF.
+
+
+    provided_eventgroups : List[str], optional
+        If set, only the named eventgroups are offered/sent on this socket.
+        None means all eventgroups of the service are provided.
     """
 
     deployment_type: Literal["someip_provider"] = Field(
@@ -279,6 +284,8 @@ class SOMEIPServiceProvider(SOMEIPServiceDeployment):
             default=0,
         )
     )
+
+    provided_eventgroups: Optional[List[str]] = Field(default=None)
 
     def model_post_init(self, __context):
         return super().model_post_init(__context)

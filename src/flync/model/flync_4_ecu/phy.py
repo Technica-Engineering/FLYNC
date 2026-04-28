@@ -85,6 +85,9 @@ class BASET(FLYNCBaseModel):
     duplex : Literal["full"]
         Duplex mode. Defaults to ``"full"``.
 
+    role : Literal["master", "slave"]
+        Role of the PHY, either master or slave. Defaults to ``"slave"``.
+
     autonegotiation : bool
         Indicates whether autonegotiation is enabled.
     """
@@ -92,6 +95,7 @@ class BASET(FLYNCBaseModel):
     mode: Literal["base_t"] = Field(default="base_t")
     speed: Literal[100, 1000] = Field()
     duplex: Literal["full"] = Field(default="full")
+    role: Literal["master", "slave"] = Field(default="slave")
     autonegotiation: bool = Field(default=False)
 
 
