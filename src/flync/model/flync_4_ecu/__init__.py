@@ -33,7 +33,9 @@ from .sockets import (
     UDPOption,
 )
 from .switch import (
+    RouteEntry,
     Switch,
+    SwitchHostController,
     SwitchPort,
     TCAMRule,
     TrafficClass,
@@ -66,7 +68,9 @@ __all__ = [
     "BASET1",
     "BASET1S",
     "ECUPort",
+    "RouteEntry",
     "Switch",
+    "SwitchHostController",
     "SwitchPort",
     "VLANEntry",
     "MulticastGroup",

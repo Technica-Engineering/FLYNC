@@ -333,8 +333,24 @@ host_controller:
   name: hpc_sw_host_iface
   mac_address: 00:11:02:03:01:01
   virtual_interfaces:
-    - name: hpc_sw_host_viface
+    - name: hpc_sw_host_viface1
+      vlanid: 30
+      addresses:
+        - address: 10.0.30.101
+          ipv4netmask: 255.255.255.0
+    - name: hpc_sw_host_viface2
+      vlanid: 40
+      addresses:
+        - address: 10.0.40.101
+          ipv4netmask: 255.255.255.0
+    - name: hpc_sw_host_viface3
       vlanid: 50
       addresses:
         - address: 10.0.50.101
-          ipv4netmask: 255.255.255.0 
+          ipv4netmask: 255.255.255.0
+  routing_table:
+    - destination:
+        address: 10.0.30.0
+        ipv4netmask: 255.255.255.0
+      default_gateway: 10.0.30.6
+      egress_interface: hpc_sw_host_viface1

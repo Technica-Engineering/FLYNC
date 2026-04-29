@@ -186,11 +186,27 @@ vlans:
 
 
 host_controller:
-  name: z2_sw_host_iface
+  name: z2_sw_host_iface1
   mac_address: 00:11:04:03:01:01
   virtual_interfaces:
-    - name: z2_sw_host_viface
+    - name: z2_sw_host_viface1
       vlanid: 0
       addresses:
         - address: 10.0.0.102
-          ipv4netmask: 255.255.255.0  
+          ipv4netmask: 255.255.255.0
+    - name: z2_sw_host_viface2
+      vlanid: 20
+      addresses:
+        - address: 10.0.20.102
+          ipv4netmask: 255.255.255.0
+    - name: z2_sw_host_viface3
+      vlanid: 40
+      addresses:
+        - address: 10.0.40.102
+          ipv4netmask: 255.255.255.0
+  routing_table:
+    - destination:
+        address: 10.0.30.0
+        ipv4netmask: 255.255.255.0
+      default_gateway: 10.0.40.101
+      egress_interface: z2_sw_host_viface3

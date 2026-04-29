@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from ipaddress import IPv4Address, IPv4Network, IPv6Address, IPv6Network
 from typing import (
     Annotated,
     ClassVar,
@@ -21,10 +22,12 @@ from pydantic import (
     StrictInt,
     model_validator,
 )
+from pydantic.networks import IPvAnyAddress
 
 import flync.core.utils.common_validators as common_validators
 from flync.core.base_models import NamedDictInstances, NamedListInstances
 from flync.core.base_models.base_model import FLYNCBaseModel
+from flync.core.datatypes.ipaddress import IPv4AddressEntry, IPv6AddressEntry
 from flync.core.utils.common_validators import validate_vlan_id
 from flync.core.utils.exceptions import err_minor
 from flync.model.flync_4_ecu.controller import ControllerInterface
@@ -37,6 +40,10 @@ from flync.model.flync_4_ecu.phy import (
     RMII,
     SGMII,
     XFI,
+)
+from flync.model.flync_4_ecu.sockets import (
+    IPv4AddressEndpoint,
+    IPv6AddressEndpoint,
 )
 from flync.model.flync_4_ecu.vlan_entry import VLANEntry
 from flync.model.flync_4_metadata import EmbeddedMetadata
@@ -391,6 +398,60 @@ class TCAMRule(FLYNCBaseModel):
         return self
 
 
+class RouteEntry(FLYNCBaseModel):
+    """
+    Represents a static routing table entry.
+
+    Parameters
+    ----------
+    destination : \
+    :class:`~flync.core.datatypes.ipaddress.IPv4AddressEntry` or \
+    :class:`~flync.core.datatypes.ipaddress.IPv6AddressEntry`
+        The destination network expressed as address and mask
+        (e.g. ``address="10.0.0.0", ipv4netmask="255.255.255.0"``).
+
+    default_gateway : :class:`~pydantic.networks.IPvAnyAddress`
+        Gateway IP for this route. If the next hop is another switch,
+        this is that switch's VCI address on the shared subnet.
+        If the next hop is a controller interface (directly connected),
+        this is the controller interface's IP address.
+
+    egress_interface : str
+        Name of the host controller's virtual interface (VCI) through
+        which this route is forwarded.
+    """
+
+    destination: IPv4AddressEntry | IPv6AddressEntry = Field()
+    default_gateway: IPvAnyAddress = Field()
+    egress_interface: str = Field()
+
+
+class SwitchHostController(ControllerInterface):
+    """
+    Represents an internal controller that manages a switch.
+
+    Extends :class:`~flync.model.flync_4_ecu.controller.ControllerInterface`
+    with an optional static routing table. All standard controller interface
+    features are supported. When a ``routing_table`` is
+    provided, the host controller additionally acts as an IP router between
+    subnets, with each subnet's gateway IP hosted on the corresponding
+    :class:`~flync.model.flync_4_ecu.controller.VirtualControllerInterface`.
+
+    Parameters
+    ----------
+    routing_table : list of :class:`RouteEntry`, optional
+        Static routing table for L3 forwarding between subnets.
+        Each entry maps a destination network (address + mask) to a
+        ``default_gateway`` IP and an ``egress_interface`` (VCI name) on
+        the host controller through which the traffic is forwarded.
+    """
+
+    routing_table: Annotated[
+        Optional[List[RouteEntry]],
+        BeforeValidator(common_validators.none_to_empty_list),
+    ] = Field(default=[])
+
+
 class Switch(NamedListInstances):
     """
     Represents an automotive Ethernet network switch configuration.
@@ -411,10 +472,10 @@ class Switch(NamedListInstances):
     vlans : list of :class:`~flync.model.flync_4_ecu.vlan_entry.VLANEntry`
         List of VLAN entries configured on the switch.
 
-    host_controller : \
-    :class:`~flync.model.flync_4_ecu.ControllerInterface`, optional
-        Switch host controller configuration, if the switch is managed
-        by an internal controller.
+    host_controller : :class:`SwitchHostController`, optional
+        Internal controller that manages the switch. Supports all the
+        standard controller interface features and optionally L3 IP
+        routing via a routing table.
 
     tcam_rules : list of :class:`TCAMRule`, optional
         List of TCAM rules configured on the switch. These rules define
@@ -431,7 +492,7 @@ class Switch(NamedListInstances):
     ] = Field(default=[])
     ports: List[SwitchPort] = Field()
     vlans: List[VLANEntry] = Field()
-    host_controller: Optional[ControllerInterface] = Field(default=None)
+    host_controller: Optional[SwitchHostController] = Field(default=None)
     meta: EmbeddedMetadata = Field()
 
     @model_validator(mode="after")
@@ -559,6 +620,79 @@ class Switch(NamedListInstances):
         )
 
         return self
+
+    @model_validator(mode="after")
+    def validate_routing_table_egress_interface(self):
+        """Validate that every ``egress_interface`` in the routing table
+        exists as a VCI on the host controller of the switch.
+
+        Raises:
+            err_minor: An ``egress_interface`` is not a VCI of the host
+                controller.
+        """
+        if not self.host_controller or not self.host_controller.routing_table:
+            return self
+        vci_names = [
+            vci.name for vci in self.host_controller.virtual_interfaces
+        ]
+        for route in self.host_controller.routing_table:
+            if route.egress_interface not in vci_names:
+                raise err_minor(
+                    f"RouteEntry egress_interface {route.egress_interface}"
+                    f" is not a virtual interface of the host_controller."
+                )
+        return self
+
+    @model_validator(mode="after")
+    def validate_routing_table_default_gateway(self):
+        """Validate that ``default_gateway`` of each route falls within
+        the subnet of its ``egress_interface`` VCI.
+
+        Raises:
+            err_minor: ``default_gateway`` is not within the subnet of
+                the ``egress_interface`` VCI.
+        """
+        if not self.host_controller or not self.host_controller.routing_table:
+            return self
+        vci_map = {
+            vci.name: vci for vci in self.host_controller.virtual_interfaces
+        }
+        for route in self.host_controller.routing_table:
+            vci = vci_map.get(route.egress_interface)
+            if vci is None:
+                continue
+            if not self.gateway_in_subnet(route, vci):
+                raise err_minor(
+                    f"RouteEntry default_gateway {route.default_gateway}"
+                    f" is not within the subnet of egress_interface"
+                    f" {route.egress_interface}."
+                )
+        return self
+
+    def gateway_in_subnet(self, route, vci) -> bool:
+        """Return ``True`` if ``route.default_gateway`` falls within any
+        address subnet configured on ``vci``."""
+        for addr_entry in vci.addresses:
+            if (
+                isinstance(addr_entry, IPv4AddressEndpoint)
+                and isinstance(route.default_gateway, IPv4Address)
+                and route.default_gateway
+                in IPv4Network(
+                    f"{addr_entry.address}/{addr_entry.ipv4netmask}",
+                    strict=False,
+                )
+                or (
+                    isinstance(addr_entry, IPv6AddressEndpoint)
+                    and isinstance(route.default_gateway, IPv6Address)
+                    and route.default_gateway
+                    in IPv6Network(
+                        f"{addr_entry.address}/{addr_entry.ipv6prefix}",
+                        strict=False,
+                    )
+                )
+            ):
+                return True
+        return False
 
     def get_mac(self):
         return self.host_controller.mac_address
