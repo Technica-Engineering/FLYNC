@@ -128,7 +128,6 @@ Switch Config
 .. autoclass:: flync.model.flync_4_ecu.switch.Switch()
 .. autoclass:: flync.model.flync_4_ecu.switch.SwitchPort()
 .. autoclass:: flync.model.flync_4_ecu.switch.VLANEntry()
-.. autoclass:: flync.model.flync_4_ecu.switch.MulticastGroup()
 
 TCAM
 =====
