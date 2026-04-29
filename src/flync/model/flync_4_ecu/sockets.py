@@ -1,6 +1,15 @@
 """Defines sockets, IP address endpoints, and TCP/UDP models in FLYNC"""
 
-from typing import Any, ClassVar, Dict, List, Literal, Optional
+from typing import (
+    Annotated,
+    Any,
+    ClassVar,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Union,
+)
 
 from pydantic import (
     Field,
@@ -24,73 +33,6 @@ from flync.model.flync_4_someip import (
     SOMEIPServiceConsumer,
     SOMEIPServiceProvider,
 )
-
-
-class IPv4AddressEndpoint(IPv4AddressEntry):
-    """
-    Represents an IPv4 address endpoint for a network interface.
-
-    Parameters
-    ----------
-    sockets : list of :class:`~flync.model.flync_4_ecu.sockets.SocketUnion`
-        TCP and UDP sockets that are part of this IPv4 address endpoint.
-    """
-
-    sockets: Optional[List["SocketUnion"]] = Field(
-        default_factory=list, exclude=True
-    )
-
-    @model_validator(mode="after")
-    def check_if_sockets_have_the_same_ip(self):
-        """
-        Validate that every socket is bound to the same IPv4
-        address as the one defined in the class.
-
-        Raises:
-            err_minor: If any socket's ``endpoint_address``
-            differs from ``self.address``.
-        """
-        for socket in self.sockets:
-            if str(socket.root.endpoint_address) != str(self.address):
-                raise err_minor(
-                    "Sockets must be tied to the same address "
-                    "as the IPv4 endpoint."
-                )
-
-        return self
-
-
-class IPv6AddressEndpoint(IPv6AddressEntry):
-    """
-    Represents an IPv6 address endpoint for a network interface.
-
-    Parameters
-    ----------
-    sockets : list of :class:`~flync.model.flync_4_ecu.sockets.SocketUnion`
-        TCP and UDP sockets that are part of this IPv6 address endpoint.
-    """
-
-    sockets: Optional[List["SocketUnion"]] = Field(
-        default_factory=list, exclude=True
-    )
-
-    @model_validator(mode="after")
-    def check_if_sockets_have_the_same_ip(self):
-        """
-        Validate that every socket is bound to the same IPv6
-        address as the one defined in the class.
-
-        Raises:
-            err_minor: If any socket's ``endpoint_address``
-            differs from ``self.address``.
-        """
-        for socket in self.sockets:
-            if str(socket.root.endpoint_address) != str(self.address):
-                raise err_minor(
-                    "Sockets must be tied to the same address "
-                    "as the IPv6 endpoint."
-                )
-        return self
 
 
 class DeploymentUnion(RootModel):
@@ -340,21 +282,83 @@ class SocketUDP(Socket):
     udp_options: Optional[UDPOption] = Field(default=UDPOption(udp_cork=False))
 
 
-class SocketUnion(RootModel):
+class IPv4AddressEndpoint(IPv4AddressEntry):
     """
-    Union type representing a socket configuration.
-    This model wraps a union of different socket models and uses the
-    ``protocol`` field as a discriminator to determine which specific
-    socket model is present.
+    Represents an IPv4 address endpoint for a network interface.
 
-    Possible types
-    --------------
-    :class:`~flync.model.flync_4_ecu.sockets.SocketTCP`
-    or
+    Parameters
+    ----------
+    sockets : list of \
+    :class:`~flync.model.flync_4_ecu.sockets.SocketTCP` or \
     :class:`~flync.model.flync_4_ecu.sockets.SocketUDP`
+        Assigned TCP and UDP socket endpoints.
     """
 
-    root: SocketTCP | SocketUDP = Field(discriminator="protocol")
+    sockets: Optional[
+        List[
+            Annotated[
+                Union[SocketTCP, SocketUDP], Field(discriminator="protocol")
+            ]
+        ]
+    ] = Field(default_factory=list, exclude=True)
+
+    @model_validator(mode="after")
+    def check_if_sockets_have_the_same_ip(self):
+        """
+        Validate that every socket is bound to the same IPv4
+        address as the one defined in the class.
+
+        Raises:
+            err_minor: If any socket's ``endpoint_address``
+            differs from ``self.address``.
+        """
+        for socket in self.sockets:
+            if str(socket.endpoint_address) != str(self.address):
+                raise err_minor(
+                    "Sockets must be tied to the same address "
+                    "as the IPv4 endpoint."
+                )
+
+        return self
+
+
+class IPv6AddressEndpoint(IPv6AddressEntry):
+    """
+    Represents an IPv6 address endpoint for a network interface.
+
+    Parameters
+    ----------
+    sockets : list of \
+    :class:`~flync.model.flync_4_ecu.sockets.SocketTCP` or \
+    :class:`~flync.model.flync_4_ecu.sockets.SocketUDP`
+        Assigned TCP and UDP socket endpoints.
+    """
+
+    sockets: Optional[
+        List[
+            Annotated[
+                Union[SocketTCP, SocketUDP], Field(discriminator="protocol")
+            ]
+        ]
+    ] = Field(default_factory=list, exclude=True)
+
+    @model_validator(mode="after")
+    def check_if_sockets_have_the_same_ip(self):
+        """
+        Validate that every socket is bound to the same IPv6
+        address as the one defined in the class.
+
+        Raises:
+            err_minor: If any socket's ``endpoint_address``
+            differs from ``self.address``.
+        """
+        for socket in self.sockets:
+            if str(socket.endpoint_address) != str(self.address):
+                raise err_minor(
+                    "Sockets must be tied to the same address "
+                    "as the IPv6 endpoint."
+                )
+        return self
 
 
 IPv4AddressEndpoint.model_rebuild()

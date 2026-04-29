@@ -28,7 +28,7 @@ from flync.model.flync_4_ecu.mac_multicast_endpoint import (
 from flync.model.flync_4_ecu.multicast_groups import MulticastGroupMembership
 from flync.model.flync_4_ecu.port import ECUPort
 from flync.model.flync_4_ecu.socket_container import SocketContainer
-from flync.model.flync_4_ecu.sockets import SocketUnion
+from flync.model.flync_4_ecu.sockets import Socket
 from flync.model.flync_4_ecu.switch import Switch, SwitchPort
 from flync.model.flync_4_metadata import ECUMetadata
 from flync.model.flync_4_someip import (  # type: ignore  # noqa: F401
@@ -247,19 +247,19 @@ class ECU(UniqueName):
             if not sockets:
                 continue
             for socket in sockets:
-                if socket.root.endpoint_type == "multicast":
+                if socket.endpoint_type == "multicast":
                     continue
-                if str(socket.root.endpoint_address) not in ips:
-                    ip = socket.root.endpoint_address
+                if str(socket.endpoint_address) not in ips:
+                    ip = socket.endpoint_address
                     raise err_minor(
-                        f"Error in socket {socket.root.name}:\n"
+                        f"Error in socket {socket.name}:\n"
                         f"The IP {ip} is not configured "
                         "in any virtual interface"
                         f" of the ECU {self.name}."
                     )
 
                 for ip in interface.addresses:
-                    if ip.address == socket.root.endpoint_address:
+                    if ip.address == socket.endpoint_address:
                         ip.sockets.append(socket)
 
         return self
@@ -281,17 +281,17 @@ class ECU(UniqueName):
 
         for socket_container in self.sockets:
             for socket in socket_container.sockets:
-                if socket.root.endpoint_type == "multicast":
-                    for multicast_addr in socket.root.multicast_tx:
+                if socket.endpoint_type == "multicast":
+                    for multicast_addr in socket.multicast_tx:
                         group = MulticastGroupMembership(
                             group=multicast_addr,
-                            description=socket.root.name,
+                            description=socket.name,
                             mode="tx",
                             vlan=socket_container.vlan_id,
-                            src_ip=socket.root.endpoint_address,
+                            src_ip=socket.endpoint_address,
                         )
                         interface = self.get_interface_for_ip(
-                            str(socket.root.endpoint_address)
+                            str(socket.endpoint_address)
                         )
                         group._interface = interface
                         self.multicast_groups.append(group)
@@ -426,7 +426,7 @@ class ECU(UniqueName):
                 mac_lists.extend(switch.host_controller.get_all_macs())
         return mac_lists
 
-    def get_all_sockets(self) -> dict[int, List[SocketUnion]]:
+    def get_all_sockets(self) -> dict[int, List[Socket]]:
         """
         Get all sockets in a ECU, grouped by VLAN ID.
         """
@@ -480,7 +480,7 @@ class ECU(UniqueName):
         service_instances = []
         for ecu_sockets in self.sockets or []:
             for socket in ecu_sockets.sockets or []:
-                for deployment in socket.root.deployments or []:
+                for deployment in socket.deployments or []:
                     if isinstance(deployment.root, service_type):
                         someip_deployment = deployment.root
                         service_instances.append(someip_deployment)

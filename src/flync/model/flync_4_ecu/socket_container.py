@@ -1,6 +1,6 @@
 """Defines the socket container model in an ECU."""
 
-from typing import Annotated, List, Optional
+from typing import Annotated, List, Optional, Union
 
 from pydantic import BeforeValidator, Field
 
@@ -8,7 +8,7 @@ import flync.core.utils.common_validators as common_validators
 from flync.core.annotations import Implied, ImpliedStrategy
 from flync.core.base_models import FLYNCBaseModel
 
-from .sockets import SocketUnion
+from .sockets import SocketTCP, SocketUDP
 
 
 class SocketContainer(FLYNCBaseModel):
@@ -32,10 +32,22 @@ class SocketContainer(FLYNCBaseModel):
     name: Annotated[str, Implied(strategy=ImpliedStrategy.FILE_NAME)] = Field()
     vlan_id: int = Field(ge=0, le=4095, default=0)
     sockets: Annotated[
-        Optional[List[SocketUnion]],
+        Optional[
+            List[
+                Annotated[
+                    Union[SocketTCP, SocketUDP],
+                    Field(discriminator="protocol"),
+                ]
+            ]
+        ],
         BeforeValidator(
             common_validators.validate_list_items_and_remove(
-                "socket", SocketUnion, severity="minor"
+                "socket",
+                Annotated[
+                    Union[SocketTCP, SocketUDP],
+                    Field(discriminator="protocol"),
+                ],
+                severity="minor",
             )
         ),
     ] = Field(default_factory=list)
