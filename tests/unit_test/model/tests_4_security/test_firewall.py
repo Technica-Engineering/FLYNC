@@ -31,9 +31,7 @@ def test_firewall_config_positive_(virtual_controller_interface):
     assert isinstance(controller_iface.firewall, Firewall)
 
 
-def test_firewall_config_positive_multiple_rules(
-    embedded_metadata_entry, virtual_controller_interface
-):
+def test_firewall_config_positive_multiple_rules(virtual_controller_interface,embedded_metadata_entry):
 
     firewall_example = {
         "default_action": "drop",
@@ -62,17 +60,19 @@ def test_firewall_config_positive_multiple_rules(
     )
 
     controller = Controller.model_validate(
-        {
-            "meta": embedded_metadata_entry,
+        {   "controller_metadata": embedded_metadata_entry,
             "name": "controller_example",
-            "interfaces": [controller_iface],
+            "ethernet_interfaces": [{"interface_config": controller_iface}],
         }
     )
-    assert isinstance(controller.interfaces[0].firewall, Firewall)
+    assert isinstance(
+        controller.ethernet_interfaces[0].interface_config.firewall, Firewall
+    )
 
 
 def test_negative_firewall_config_multiple_rules_same_filter(
     virtual_controller_interface,
+    embedded_metadata_entry,
 ):
 
     firewall_example = {
@@ -94,26 +94,29 @@ def test_negative_firewall_config_multiple_rules_same_filter(
     with pytest.raises(ValidationError):
         Controller.model_validate(
             {
+                "controller_metadata": embedded_metadata_entry,
                 "name": "controller_example",
-                "interfaces": [
-                    ControllerInterface.model_validate(
-                        {
-                            "name": "iface1",
-                            "mac_address": "00:11:22:33:44:55",
-                            "mii_config": None,
-                            "virtual_interfaces": [
-                                virtual_controller_interface
-                            ],
-                            "firewall": firewall_example,
-                        }
-                    )
+                "ethernet_interfaces": [
+                    {
+                        "interface_config": ControllerInterface.model_validate(
+                            {
+                                "name": "iface1",
+                                "mac_address": "00:11:22:33:44:55",
+                                "mii_config": None,
+                                "virtual_interfaces": [
+                                    virtual_controller_interface
+                                ],
+                                "firewall": firewall_example,
+                            }
+                        )
+                    }
                 ],
             }
         )
 
 
 def test_positive_only_dst_ipv4_in_frame_filter(
-    embedded_metadata_entry, virtual_controller_interface
+    virtual_controller_interface, embedded_metadata_entry
 ):
 
     firewall_example = {
@@ -144,16 +147,18 @@ def test_positive_only_dst_ipv4_in_frame_filter(
 
     controller = Controller.model_validate(
         {
-            "meta": embedded_metadata_entry,
+            "controller_metadata": embedded_metadata_entry,
             "name": "controller_example",
-            "interfaces": [controller_iface],
+            "ethernet_interfaces": [{"interface_config": controller_iface}],
         }
     )
-    assert isinstance(controller.interfaces[0].firewall, Firewall)
+    assert isinstance(
+        controller.ethernet_interfaces[0].interface_config.firewall, Firewall
+    )
 
 
 def test_positive_only_dst_ipv6_in_frame_filter(
-    embedded_metadata_entry, virtual_controller_interface
+    virtual_controller_interface, embedded_metadata_entry
 ):
 
     firewall_example = {
@@ -186,16 +191,19 @@ def test_positive_only_dst_ipv6_in_frame_filter(
 
     controller = Controller.model_validate(
         {
-            "meta": embedded_metadata_entry,
+            "controller_metadata": embedded_metadata_entry,
             "name": "controller_example",
-            "interfaces": [controller_iface],
+            "ethernet_interfaces": [{"interface_config": controller_iface}],
         }
     )
-    assert isinstance(controller.interfaces[0].firewall, Firewall)
+    assert isinstance(
+        controller.ethernet_interfaces[0].interface_config.firewall, Firewall
+    )
 
 
 def test_negative_both_dst_ipv4_and_dst_ipv6_in_frame_filter(
     virtual_controller_interface,
+    embedded_metadata_entry,
 ):
 
     firewall_example = {
@@ -215,19 +223,22 @@ def test_negative_both_dst_ipv4_and_dst_ipv6_in_frame_filter(
     with pytest.raises(ValidationError):
         Controller.model_validate(
             {
+                "controller_metadata": embedded_metadata_entry,
                 "name": "controller_example",
-                "interfaces": [
-                    ControllerInterface.model_validate(
-                        {
-                            "name": "iface1",
-                            "mac_address": "00:11:22:33:44:55",
-                            "mii_config": None,
-                            "virtual_interfaces": [
-                                virtual_controller_interface
-                            ],
-                            "firewall": firewall_example,
-                        }
-                    )
+                "ethernet_interfaces": [
+                    {
+                        "interface_config": ControllerInterface.model_validate(
+                            {
+                                "name": "iface1",
+                                "mac_address": "00:11:22:33:44:55",
+                                "mii_config": None,
+                                "virtual_interfaces": [
+                                    virtual_controller_interface
+                                ],
+                                "firewall": firewall_example,
+                            }
+                        )
+                    }
                 ],
             }
         )

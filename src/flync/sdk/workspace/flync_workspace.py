@@ -390,7 +390,14 @@ class FLYNCWorkspace(object):
                 flync_attribute, external, next_path
             )
         elif isinstance(flync_attribute, FLYNCBaseModel):
-            self.load_flync_model(flync_attribute, next_path)
+            if (
+                OutputStrategy.SINGLE_FILE in external.output_structure
+                and OutputStrategy.OMMIT_ROOT not in external.output_structure
+            ):
+                content = self.__get_model_content(flync_attribute, next_path)
+                self.__save_content_to_file(next_path, {field_name: content})
+            else:
+                self.load_flync_model(flync_attribute, next_path)
         else:
             raise ValueError(
                 "Unable to load object {} from flync object", field_name

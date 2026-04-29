@@ -1,6 +1,5 @@
 """Defines the ECU model for FLYNC."""
 
-from itertools import product
 from typing import Annotated, List, Optional, TypeVar
 
 from pydantic import BeforeValidator, Field, model_validator
@@ -19,7 +18,6 @@ from flync.core.utils.exceptions import err_major, err_minor
 from flync.model.flync_4_ecu.controller import (
     Controller,
     ControllerInterface,
-    VirtualControllerInterface,
 )
 from flync.model.flync_4_ecu.internal_topology import InternalTopology
 from flync.model.flync_4_ecu.mac_multicast_endpoint import (
@@ -27,7 +25,6 @@ from flync.model.flync_4_ecu.mac_multicast_endpoint import (
 )
 from flync.model.flync_4_ecu.multicast_groups import MulticastGroupMembership
 from flync.model.flync_4_ecu.port import ECUPort
-from flync.model.flync_4_ecu.socket_container import SocketContainer
 from flync.model.flync_4_ecu.sockets import Socket
 from flync.model.flync_4_ecu.switch import Switch, SwitchPort
 from flync.model.flync_4_metadata import ECUMetadata
@@ -67,12 +64,6 @@ class ECU(UniqueName):
     :class:`~flync.model.flync_4_ecu.switch.Switch`, optional
         Switches integrated within the ECU. If not provided, the ECU
         contains no internal switches.
-
-    sockets : list of \
-    :class:`~flync.model.flync_4_ecu.socket_container.SocketContainer`, \
-    optional
-        Socket containers within the ECU. If not provided, the ECU
-        has no socket deployments configured.
 
     topology : \
     :class:`~flync.model.flync_4_ecu.internal_topology.InternalTopology`
@@ -136,13 +127,6 @@ class ECU(UniqueName):
             | OutputStrategy.OMMIT_ROOT
         ),
     ] = Field()
-    sockets: Annotated[
-        Optional[List[SocketContainer]],
-        External(
-            output_structure=OutputStrategy.FOLDER,
-            naming_strategy=NamingStrategy.FIELD_NAME,
-        ),
-    ] = Field(default_factory=list, exclude=True)
     mac_multicast_endpoints: Annotated[
         Optional["MACMulticastEndpoints"],
         External(
@@ -162,9 +146,9 @@ class ECU(UniqueName):
         1. Reference the ECU in child components to allow access to ECU-level
            information.
 
-        2. Bind sockets to their corresponding IP addresses in the ECU's
-           virtual interfaces, ensuring that each socket is associated with
-           the correct ECU IP.
+        2. Bind sockets (defined per ethernet interface) to their corresponding
+           IP addresses in the virtual interfaces, ensuring each socket is
+           associated with the correct ECU IP.
 
         3. Populate multicast group memberships based on socket configurations
            and virtual interface settings.
@@ -204,64 +188,67 @@ class ECU(UniqueName):
     @model_validator(mode="after")
     def validate_vlans_in_sockets(self):
         """
-        Validate that the VLAN IDs specified in the socket containers
-        are configured in at least one virtual interface of the ECU."""
+        Validate that the VLAN IDs specified in the socket containers of each
+        ethernet interface are configured in a virtual interface of that same
+        ethernet interface."""
 
-        if self.sockets is not None:
-            vlan_ids_in_sockets = {socket.vlan_id for socket in self.sockets}
-            vlan_ids_in_interfaces = {
-                vi.vlanid
-                for vi in find_all(
-                    self.controllers, VirtualControllerInterface
-                )
-            }
-            missing_vlans = vlan_ids_in_sockets - vlan_ids_in_interfaces
-            if missing_vlans:
-                raise err_minor(
-                    f"Error in socket configuration:\n"
-                    f"The following VLAN IDs are specified in the socket "
-                    f"containers but not configured in any virtual interface "
-                    f"of the ECU {self.name}: {missing_vlans}."
-                )
+        for controller in self.controllers:
+            for eth_iface in controller.ethernet_interfaces:
+                iface_config = eth_iface.interface_config
+                vlan_ids_in_sockets = {
+                    sc.vlan_id for sc in (eth_iface.sockets or [])
+                }
+                if not vlan_ids_in_sockets:
+                    continue
+                vlan_ids_in_interface = {
+                    vi.vlanid for vi in iface_config.virtual_interfaces or []
+                }
+                missing_vlans = vlan_ids_in_sockets - vlan_ids_in_interface
+                if missing_vlans:
+                    raise err_minor(
+                        f"Error in socket configuration:\n"
+                        f"The following VLAN IDs are specified in the socket "
+                        f"containers but not configured in any virtual "
+                        f"interface of ethernet interface "
+                        f"{iface_config.name}: {missing_vlans}."
+                    )
         return self
 
     def __bind_sockets_to_ip(self):
         """
-        Associate the given sockets with the matching ECU IP address.
+        Associate each socket with the matching IP address on the same
+        ethernet interface where the socket is defined.
+
+        Sockets are scoped to the ethernet interface that owns them, so a
+        socket is only bound to addresses belonging to that interface — not
+        to identically-addressed interfaces elsewhere in the ECU.
 
         Raises:
             err_minor: If a socket's endpoint address does not belong
-                to any virtual interface in the ECU, or if the address is
-                found on a virtual interface whose VLAN name differs from
-                the one supplied.
+                to any virtual interface of the ethernet interface that
+                defines the socket.
         """
-        controllers = self.controllers
-        sockets_per_vlan = self.get_all_sockets()
-        all_virtual_interfaces = [
-            vi for vi in find_all(controllers, VirtualControllerInterface)
-        ]
-        ips = self.get_all_ips()
-        for interface, (_, sockets) in product(
-            all_virtual_interfaces, sockets_per_vlan.items()
-        ):
-            if not sockets:
-                continue
-            for socket in sockets:
-                if socket.endpoint_type == "multicast":
-                    continue
-                if str(socket.endpoint_address) not in ips:
-                    ip = socket.endpoint_address
-                    raise err_minor(
-                        f"Error in socket {socket.name}:\n"
-                        f"The IP {ip} is not configured "
-                        "in any virtual interface"
-                        f" of the ECU {self.name}."
-                    )
-
-                for ip in interface.addresses:
-                    if ip.address == socket.endpoint_address:
-                        ip.sockets.append(socket)
-
+        for controller in self.controllers:
+            for eth_iface in controller.ethernet_interfaces:
+                iface_config = eth_iface.interface_config
+                iface_ips = set(iface_config.get_all_ips())
+                for socket_container in eth_iface.sockets or []:
+                    for socket in socket_container.sockets or []:
+                        if socket.endpoint_type == "multicast":
+                            continue
+                        endpoint_ip = str(socket.endpoint_address)
+                        if endpoint_ip not in iface_ips:
+                            raise err_minor(
+                                f"Error in socket {socket.name}:\n"
+                                f"The IP {endpoint_ip} is not configured "
+                                f"in any virtual interface of ethernet "
+                                f"interface {iface_config.name} in ECU "
+                                f"{self.name}."
+                            )
+                        for vi in iface_config.virtual_interfaces:
+                            for ip in vi.addresses:
+                                if ip.address == socket.endpoint_address:
+                                    ip.sockets.append(socket)
         return self
 
     def __reference_ecu_in_children(self):
@@ -275,26 +262,28 @@ class ECU(UniqueName):
 
     def __populate_multicast_tx_groups_from_socket(self):
         """
-        Add Multicast TX entries from sockets
+        Add Multicast TX entries from sockets (defined per ethernet interface)
         to multicast group memberships.
         """
 
-        for socket_container in self.sockets:
-            for socket in socket_container.sockets:
-                if socket.endpoint_type == "multicast":
-                    for multicast_addr in socket.multicast_tx:
-                        group = MulticastGroupMembership(
-                            group=multicast_addr,
-                            description=socket.name,
-                            mode="tx",
-                            vlan=socket_container.vlan_id,
-                            src_ip=socket.endpoint_address,
-                        )
-                        interface = self.get_interface_for_ip(
-                            str(socket.endpoint_address)
-                        )
-                        group._interface = interface
-                        self.multicast_groups.append(group)
+        for controller in self.controllers:
+            for eth_iface in controller.ethernet_interfaces:
+                for socket_container in eth_iface.sockets or []:
+                    for socket in socket_container.sockets:
+                        if socket.endpoint_type == "multicast":
+                            for multicast_addr in socket.multicast_tx:
+                                group = MulticastGroupMembership(
+                                    group=multicast_addr,
+                                    description=socket.name,
+                                    mode="tx",
+                                    vlan=socket_container.vlan_id,
+                                    src_ip=socket.endpoint_address,
+                                )
+                                interface = self.get_interface_for_ip(
+                                    str(socket.endpoint_address)
+                                )
+                                group._interface = interface
+                                self.multicast_groups.append(group)
         return self
 
     def __populate_multicast_rx_groups_from_interfaces(self):
@@ -379,7 +368,8 @@ class ECU(UniqueName):
         """Return a list of all physical interfaces of the ECU."""
         interfaces = []
         for controller in self.controllers:
-            for iface in controller.interfaces:
+            for eth_iface in controller.ethernet_interfaces:
+                iface = eth_iface.interface_config
                 if iface:
                     interfaces.append(iface)
         return interfaces if interfaces else None
@@ -428,18 +418,25 @@ class ECU(UniqueName):
 
     def get_all_sockets(self) -> dict[int | None, List[Socket]]:
         """
-        Get all sockets in a ECU, grouped by VLAN ID.
+        Get all sockets across all ethernet interfaces of the ECU,
+        grouped by VLAN ID.
         """
+        all_socket_containers = [
+            sc
+            for controller in self.controllers
+            for eth_iface in controller.ethernet_interfaces
+            for sc in (eth_iface.sockets or [])
+        ]
         return {
             vlan_id: [
                 socket
-                for socket_container in self.sockets or []
+                for socket_container in all_socket_containers
                 if socket_container.vlan_id == vlan_id
                 for socket in socket_container.sockets or []
             ]
             for vlan_id in set(
                 socket_container.vlan_id
-                for socket_container in self.sockets or []
+                for socket_container in all_socket_containers
             )
         }
 
@@ -461,8 +458,8 @@ class ECU(UniqueName):
     ) -> list[_T_Service]:
         """Return all SOME/IP service deployments of a given type.
 
-        Iterates over all socket containers and their sockets, collecting
-        deployments whose root matches ``service_type``.
+        Iterates over all ethernet interfaces, their socket containers and
+        sockets, collecting deployments whose root matches ``service_type``.
 
         Parameters
         ----------
@@ -478,12 +475,14 @@ class ECU(UniqueName):
             socket containers.
         """
         service_instances = []
-        for ecu_sockets in self.sockets or []:
-            for socket in ecu_sockets.sockets or []:
-                for deployment in socket.deployments or []:
-                    if isinstance(deployment.root, service_type):
-                        someip_deployment = deployment.root
-                        service_instances.append(someip_deployment)
+        for controller in self.controllers:
+            for eth_iface in controller.ethernet_interfaces:
+                for ecu_sockets in eth_iface.sockets or []:
+                    for socket in ecu_sockets.sockets or []:
+                        for deployment in socket.deployments or []:
+                            if isinstance(deployment.root, service_type):
+                                someip_deployment = deployment.root
+                                service_instances.append(someip_deployment)
         return service_instances
 
     def get_consumed_services(self) -> list[SOMEIPServiceConsumer]:

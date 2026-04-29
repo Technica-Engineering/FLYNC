@@ -135,7 +135,8 @@ files = [
     *Path(absolute_path).glob("ecus/*/ports.flync.yaml"),
     *Path(absolute_path).glob("ecus/*/topology.flync.yaml"),
     *Path(absolute_path).glob("ecus/*/ecu_metadata.flync.yaml"),
-    *Path(absolute_path).glob("ecus/*/controllers/*"),
+    *Path(absolute_path).glob("ecus/*/controllers/*/ethernet_interfaces/*/interface_config.flync.yaml"),
+    *Path(absolute_path).glob("ecus/*/controllers/*/controller_metadata.flync.yaml"),
 ]
 
 
@@ -161,7 +162,8 @@ files = [
     *Path(absolute_path).glob("ecus/*/ports.flync.yaml"),
     *Path(absolute_path).glob("ecus/*/topology.flync.yaml"),
     *Path(absolute_path).glob("ecus/*/ecu_metadata.flync.yaml"),
-    *Path(absolute_path).glob("ecus/*/controllers/*"),
+    *Path(absolute_path).glob("ecus/*/controllers/*/ethernet_interfaces/*/interface_config.flync.yaml"),
+    *Path(absolute_path).glob("ecus/*/controllers/*/controller_metadata.flync.yaml"),
 ]
 
 
@@ -221,7 +223,10 @@ def test_load_workspace_upper_key(tmpdir):
         / "ecus"
         / "eth_ecu"
         / "controllers"
-        / "eth_ecu_controller1.flync.yaml"
+        / "eth_ecu_controller1"
+        / "ethernet_interfaces"
+        / "eth_ecu_c1_iface1"
+        / "interface_config.flync.yaml"
     )
     update_yaml_content(file_to_update, "name", "NAME")
     workspace = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
@@ -239,10 +244,13 @@ def test_load_workspace_incorret_value_type(tmpdir):
         / "ecus"
         / "eth_ecu"
         / "controllers"
-        / "eth_ecu_controller1.flync.yaml"
+        / "eth_ecu_controller1"
+        / "ethernet_interfaces"
+        / "eth_ecu_c1_iface1"
+        / "interface_config.flync.yaml"
     )
     update_yaml_content(
-        file_to_update, "name: eth_ecu_controller1", "name: 123"
+        file_to_update, "name: eth_ecu_c1_iface1", "name: 123"
     )
     workspace = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
     assert ("Input should be a valid string" in str(workspace.load_errors) )
@@ -268,7 +276,10 @@ def test_load_workspace_incorret_value_format(tmpdir, key, value):
         / "ecus"
         / "eth_ecu"
         / "controllers"
-        / "eth_ecu_controller1.flync.yaml"
+        / "eth_ecu_controller1"
+        / "ethernet_interfaces"
+        / "eth_ecu_c1_iface1"
+        / "interface_config.flync.yaml"
     )
     update_yaml_content(
         file_to_update, "mac_address: 00:11:22:33:44:55", f"mac_address: {key}"
@@ -289,7 +300,10 @@ def test_load_workspace_extra_key_value(tmpdir):
         / "ecus"
         / "eth_ecu"
         / "controllers"
-        / "eth_ecu_controller1.flync.yaml"
+        / "eth_ecu_controller1"
+        / "ethernet_interfaces"
+        / "eth_ecu_c1_iface1"
+        / "interface_config.flync.yaml"
     )
     append_yaml_content(file_to_update, "\nnew_value: something\n")
     try:
@@ -312,7 +326,10 @@ def test_load_workspace_key_value_misplaced(tmpdir):
         / "ecus"
         / "eth_ecu"
         / "controllers"
-        / "eth_ecu_controller1.flync.yaml"
+        / "eth_ecu_controller1"
+        / "ethernet_interfaces"
+        / "eth_ecu_c1_iface1"
+        / "interface_config.flync.yaml"
     )
     update_yaml_content(file_to_update, "  mode: mac", "mode: mac")
     try:
@@ -321,12 +338,8 @@ def test_load_workspace_key_value_misplaced(tmpdir):
         )
         assert loaded_ws.load_errors != []
     except ValidationError as exc_info:
-        assert "interfaces.0.mii_config.sgmii.mode\n  Field required" in str(
-            exc_info
-        )
-        assert "interfaces.0.mode\n  Extra inputs are not permitted" in str(
-            exc_info
-        )
+        assert "mii_config.sgmii.mode\n  Field required" in str(exc_info)
+        assert "mode\n  Extra inputs are not permitted" in str(exc_info)
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
 
@@ -341,7 +354,10 @@ def test_load_workspace_duplicate_key(tmpdir):
         / "ecus"
         / "eth_ecu"
         / "controllers"
-        / "eth_ecu_controller1.flync.yaml"
+        / "eth_ecu_controller1"
+        / "ethernet_interfaces"
+        / "eth_ecu_c1_iface1"
+        / "interface_config.flync.yaml"
     )
     update_yaml_content(
         file_to_update,
@@ -364,7 +380,10 @@ def test_load_workspace_missing_dashe(tmpdir):
         / "ecus"
         / "eth_ecu"
         / "controllers"
-        / "eth_ecu_controller1.flync.yaml"
+        / "eth_ecu_controller1"
+        / "ethernet_interfaces"
+        / "eth_ecu_c1_iface1"
+        / "interface_config.flync.yaml"
     )
     update_yaml_content(
         file_to_update,
@@ -391,9 +410,12 @@ def test_load_workspace_missing_key_value(tmpdir):
         / "ecus"
         / "eth_ecu"
         / "controllers"
-        / "eth_ecu_controller1.flync.yaml"
+        / "eth_ecu_controller1"
+        / "ethernet_interfaces"
+        / "eth_ecu_c1_iface1"
+        / "interface_config.flync.yaml"
     )
-    update_yaml_content(file_to_update, "name: eth_ecu_controller1", "")
+    update_yaml_content(file_to_update, "name: eth_ecu_c1_iface1", "")
     try:
         loaded_ws = FLYNCWorkspace.load_workspace(
             "flync_example", destination_folder

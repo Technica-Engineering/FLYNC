@@ -1,0 +1,39 @@
+name: z2_c2_iface2
+mac_address: 00:11:04:02:02:01
+mii_config:
+  type: sgmii
+  speed: 1000
+  mode: phy
+virtual_interfaces:
+  - name: z2_c2_i2_viface1
+    vlanid: 40
+    addresses:
+      - address: 10.0.40.4
+        ipv4netmask: 255.255.255.0
+      - address: 2001:db8:85a3::8a2e:370:7335
+        ipv6prefix: 64
+    multicast:
+    - 224.0.0.1
+ptp_config:
+  cmlds_linkport_enabled: false
+  ptp_ports:
+    - domain_id: 0
+      src_port_identity: 12
+      sync_config:
+        type: time_receiver
+        sync_timeout: 3
+        sync_followup_timeout: 10
+      pdelay_config:
+        log_tx_period: 1
+macsec_config:
+  vlan_bypass: []
+  mka_enabled: true
+  hello_time: 1000
+  bounded_hello_time: 2000
+  life_time: 100000
+  sak_retire_time: 20000
+  macsec_mode: integrity
+  kay_on: true
+  key_role: key_server_never
+  delay_protect: false
+  participant_activation: always

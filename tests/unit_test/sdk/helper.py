@@ -78,8 +78,8 @@ def model_has_socket(loaded_model: FLYNCModel):
         address.sockets
         for ecu in loaded_model.ecus
         for controller in ecu.controllers
-        for interface in controller.interfaces
-        for vlan in interface.virtual_interfaces
+        for eth_iface in controller.ethernet_interfaces
+        for vlan in eth_iface.interface_config.virtual_interfaces
         for address in vlan.addresses
     )
 

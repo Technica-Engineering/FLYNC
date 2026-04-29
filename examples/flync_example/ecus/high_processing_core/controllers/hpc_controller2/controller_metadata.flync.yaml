@@ -1,0 +1,7 @@
+controller_metadata:
+    type: embedded
+    author: Dev
+    compatible_flync_version:
+        version_schema: semver
+        version: 0.9.0
+    target_system: flync_os

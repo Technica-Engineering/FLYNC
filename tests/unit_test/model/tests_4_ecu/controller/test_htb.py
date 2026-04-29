@@ -28,7 +28,10 @@ def test_htb(tmpdir):
         / "ecus"
         / "eth_ecu"
         / "controllers"
-        / "eth_ecu_controller1.flync.yaml"
+        / "eth_ecu_controller1"
+        / "ethernet_interfaces"
+        / "eth_ecu_c1_iface1"
+        / "interface_config.flync.yaml"
     )
     update_yaml_content(file_to_update, "        default_class: 12", "        default_class: 12a")
 
