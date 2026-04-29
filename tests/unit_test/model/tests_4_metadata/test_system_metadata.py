@@ -10,7 +10,7 @@ def test_positive_system_metadata():
             "author": "OEM Corp",
             "compatible_flync_version": {
                 "version_schema": "semver",
-                "version": "0.9.0",
+                "version": "0.11.0",
             },
             "release": {
                 "version_schema": "semver",
@@ -33,7 +33,7 @@ def test_system_metadata_invalid_type_literal():
                 "author": "OEM Corp",
                 "compatible_flync_version": {
                     "version_schema": "semver",
-                    "version": "0.9.0",
+                    "version": "0.11.0",
                 },
                 "release": {
                     "version_schema": "semver",

@@ -4,6 +4,6 @@ release:
 author: System_Architect
 compatible_flync_version:
   version_schema: semver
-  version: 0.9.0
+  version: 0.11.0
 oem: OEM_example
 platform: Arch1

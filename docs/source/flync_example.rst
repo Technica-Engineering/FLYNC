@@ -139,7 +139,7 @@ Single controller, single (virtual) interface, external PHY
          author: Developer1
          compatible_flync_version:
             version_schema: semver
-            version: 0.9.0
+            version: 0.11.0
          target_system: flync_os
       name: ecu1_controller1
       interfaces:
@@ -202,7 +202,7 @@ Single controller, single (virtual) interface, integrated PHY
          author: Developer1
          compatible_flync_version:
             version_schema: semver
-            version: 0.9.0
+            version: 0.11.0
          target_system: flync_os
       name: ecu1_controller1
       interfaces:
@@ -261,7 +261,7 @@ Single controller, multiple (virtual) interfaces, external PHY
          author: Developer1
          compatible_flync_version:
             version_schema: semver
-            version: 0.9.0
+            version: 0.11.0
          target_system: flync_os
       name: ecu1_controller1
       interfaces:
@@ -325,7 +325,7 @@ Single controller, multiple (virtual) interfaces, integrated PHY
          author: Developer1
          compatible_flync_version:
             version_schema: semver
-            version: 0.9.0
+            version: 0.11.0
          target_system: flync_os
       name: ecu1_controller1
       interfaces:
@@ -392,7 +392,7 @@ Single controller, single (physical) interface, external PHY, Multiple VMs
          author: Developer1
          compatible_flync_version:
             version_schema: semver
-            version: 0.9.0
+            version: 0.11.0
          target_system: flync_os
       name: ecu1_controller1
       interfaces:
@@ -502,7 +502,7 @@ Single controller, multiple (physical) interface, external PHY no VMs, L2 bridge
          author: Developer1
          compatible_flync_version:
             version_schema: semver
-            version: 0.9.0
+            version: 0.11.0
          target_system: flync_os
       name: ecu1_controller1
       interfaces:
@@ -614,7 +614,7 @@ Switch ECU, multiple (virtual) interfaces, external PHY
          author: Developer1
          compatible_flync_version:
             version_schema: semver
-            version: 0.9.0
+            version: 0.11.0
          target_system: flync_os
       name: ecu1_controller1
       interfaces:
@@ -644,7 +644,7 @@ Switch ECU, multiple (virtual) interfaces, external PHY
          author: Developer1
          compatible_flync_version:
             version_schema: semver
-            version: 0.9.0
+            version: 0.11.0
          target_system: flync_os
       name: ecu1_switch1
       ports:
@@ -750,7 +750,7 @@ Switch ECU with Host controller, multiple (virtual) interfaces, external PHY
             author: Developer1
             compatible_flync_version:
                version_schema: semver
-               version: 0.9.0
+               version: 0.11.0
          target_system: flync_os
          name: ecu1_controller1
          interfaces:
@@ -787,7 +787,7 @@ Switch ECU with Host controller, multiple (virtual) interfaces, external PHY
             author: Developer1
             compatible_flync_version:
                version_schema: semver
-               version: 0.9.0
+               version: 0.11.0
          name: ecu1_switch1
          ports:
             -  name: switch1_port1
@@ -940,7 +940,7 @@ Each of these rules contains a pattern the packets are matched against, and an a
          author: Developer1
          compatible_flync_version:
             version_schema: semver
-            version: 0.9.0
+            version: 0.11.0
       name: ecu1_controller1
       interfaces:
          -  name: ecu1_controller1_iface1
@@ -1006,7 +1006,7 @@ Switch TCAM Configuration
             author: Developer1
             compatible_flync_version:
                version_schema: semver
-               version: 0.9.0
+               version: 0.11.0
          name: ecu_switch1
          ports:
          -  name: switch_port0
