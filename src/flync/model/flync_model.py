@@ -150,9 +150,9 @@ class FLYNCModel(FLYNCBaseModel):
             for ecu in self.ecus:
                 for mcast in ecu.multicast_groups:
                     key = str(mcast.group) + separ + str(mcast.vlan)
-                    if mcast.mode == "tx" or mcast.mode == "bidir":
+                    if mcast.mode == "tx":
                         tx_list.append(key)
-                    if mcast.mode == "rx" or mcast.mode == "bidir":
+                    if mcast.mode == "rx":
                         rx_list.append(key)
 
             for rx in rx_list:
@@ -176,19 +176,17 @@ class FLYNCModel(FLYNCBaseModel):
                 for mcast in ecu.multicast_groups:
                     key = str(mcast.group) + separ + str(mcast.vlan)
                     vlans_dict[key] = mcast.vlan
-                    if (
-                        mcast.mode == "tx" or mcast.mode == "bidir"
-                    ) and key not in paths:
+                    if (mcast.mode == "tx") and key not in paths:
 
                         paths[key] = compute_path(mcast.vlan, mcast._interface)
                     if (
-                        (mcast.mode == "tx" or mcast.mode == "bidir")
+                        (mcast.mode == "tx")
                         and key in paths
                         and not check_obj_in_list(mcast._interface, paths[key])
                     ):
                         warn(
                             "Invalid Multicast Address Configuration. There"
-                            " are several RX that the TX or BiDir Endpoint at "
+                            " are several RX that the TX Endpoint at "
                             f"{mcast._interface.name} cannot reach."
                             f"{serialize_components(paths[key])}"
                         )
@@ -218,9 +216,7 @@ class FLYNCModel(FLYNCBaseModel):
         for ecu in self.ecus:
             for mcast in ecu.multicast_groups:
                 key = str(mcast.group) + separ + str(mcast.vlan)
-                if (
-                    mcast.mode == "rx" or mcast.mode == "bidir"
-                ) and key not in paths:
+                if (mcast.mode == "rx") and key not in paths:
 
                     warn(
                         "Invalid Multicast Address Configuration. There"
@@ -228,7 +224,7 @@ class FLYNCModel(FLYNCBaseModel):
                         f"{key} "
                     )
                 if (
-                    (mcast.mode == "rx" or mcast.mode == "bidir")
+                    (mcast.mode == "rx")
                     and key in paths
                     and not check_obj_in_list(mcast._interface, paths[key])
                 ):

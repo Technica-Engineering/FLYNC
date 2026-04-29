@@ -25,6 +25,7 @@ from pydantic import (
 import flync.core.utils.common_validators as common_validators
 from flync.core.base_models import NamedDictInstances, NamedListInstances
 from flync.core.base_models.base_model import FLYNCBaseModel
+from flync.core.utils.common_validators import validate_vlan_id
 from flync.core.utils.exceptions import err_minor
 from flync.model.flync_4_ecu.controller import ControllerInterface
 from flync.model.flync_4_ecu.phy import (
@@ -62,6 +63,7 @@ class SwitchPort(NamedDictInstances):
 
     default_vlan_id : int
         VLAN ID to be added to an untagged frame ingressing on the port.
+        Use ``None`` for an untagged port (no default VLAN).
 
     mii_config : :class:`~flync.model.flync_4_ecu.phy.MII` or \
     :class:`~flync.model.flync_4_ecu.phy.RMII` or \
@@ -279,7 +281,9 @@ class VLANOverwrite(FLYNCBaseModel):
     """
 
     type: Literal["vlan_overwrite"] = Field(default="vlan_overwrite")
-    overwrite_vlan_id: Optional[int] = Field(default=None)
+    overwrite_vlan_id: Annotated[
+        Optional[int], AfterValidator(validate_vlan_id)
+    ] = Field(default=None)
     overwrite_vlan_pcp: Optional[int] = Field(default=None)
     ports: List[str] = Field()
 

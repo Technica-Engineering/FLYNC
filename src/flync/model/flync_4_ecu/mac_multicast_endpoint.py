@@ -5,7 +5,10 @@ from pydantic_extra_types.mac_address import MacAddress
 
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.datatypes.macaddress import is_mac_in_range
-from flync.core.utils.common_validators import validate_mac_multicast
+from flync.core.utils.common_validators import (
+    validate_mac_multicast,
+    validate_vlan_id,
+)
 from flync.core.utils.exceptions import err_major
 
 
@@ -46,8 +49,11 @@ class MACMulticastEndpoint(FLYNCBaseModel):
         ge=0x0000,
         le=0xFFFF,
     )
-    vlan_id: Optional[int] = Field(
-        description="VLAN ID that is expected on this endpoint.", ge=0, le=4095
+    vlan_id: Annotated[Optional[int], AfterValidator(validate_vlan_id)] = (
+        Field(
+            description="VLAN ID expected on this endpoint "
+            "(``None`` for untagged).",
+        )
     )
     multicast_tx: Optional[
         List[Annotated[MacAddress, AfterValidator(validate_mac_multicast)]]

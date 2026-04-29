@@ -426,7 +426,7 @@ class ECU(UniqueName):
                 mac_lists.extend(switch.host_controller.get_all_macs())
         return mac_lists
 
-    def get_all_sockets(self) -> dict[int, List[Socket]]:
+    def get_all_sockets(self) -> dict[int | None, List[Socket]]:
         """
         Get all sockets in a ECU, grouped by VLAN ID.
         """

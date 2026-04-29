@@ -2,7 +2,7 @@
 
 from typing import Annotated, List, Optional, Union
 
-from pydantic import BeforeValidator, Field
+from pydantic import AfterValidator, BeforeValidator, Field
 
 import flync.core.utils.common_validators as common_validators
 from flync.core.annotations import Implied, ImpliedStrategy
@@ -20,8 +20,9 @@ class SocketContainer(FLYNCBaseModel):
     name : str
         Name of the socket container, implied from the filename on disk.
 
-    vlan_id : int
-        ID of the virtual interface.
+    vlan_id : int, optional
+        ID of the virtual interface. Use ``None`` for an untagged
+        container.
 
     sockets : list of \
     :class:`~flync.model.flync_4_ecu.sockets.SocketTCP` or \
@@ -30,7 +31,9 @@ class SocketContainer(FLYNCBaseModel):
     """
 
     name: Annotated[str, Implied(strategy=ImpliedStrategy.FILE_NAME)] = Field()
-    vlan_id: int = Field(ge=0, le=4095, default=0)
+    vlan_id: Annotated[
+        Optional[int], AfterValidator(common_validators.validate_vlan_id)
+    ] = Field(default=0)
     sockets: Annotated[
         Optional[
             List[

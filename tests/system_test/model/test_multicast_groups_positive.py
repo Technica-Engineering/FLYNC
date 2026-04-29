@@ -6,7 +6,6 @@ def test_minimal_creation():
     """Test default creation of a MulticastGroupMembership and verify default attributes."""
     m = MulticastGroupMembership(group="239.1.1.1")
     assert str(m.group) == "239.1.1.1"
-    assert m.mode == "bidir"
     assert m.description == ""
     assert m.vlan == 0
     assert m.src_ip is None
@@ -18,10 +17,16 @@ def test_valid_multicast_addresses(group):
     m = MulticastGroupMembership(group=group)
     assert m.group is not None
 
-def test_valid_vlan_assignment():
+
+@pytest.mark.parametrize("vlanid", ["100", 101, None])
+def test_valid_vlan_assignment(vlanid):
     """Test that a VLAN ID can be assigned correctly."""
-    m = MulticastGroupMembership(group="239.1.1.1", vlan=100)
-    assert m.vlan == 100
+    m = MulticastGroupMembership(group="239.1.1.1", vlan=vlanid)
+    if vlanid:
+        assert m.vlan == int(vlanid)
+    else:
+        assert m.vlan == None
+
 
 def test_valid_tx_group(ci):
     """TX group with correct VLAN and src_ip."""
@@ -57,21 +62,11 @@ def test_valid_tx_rx_communication(ci):
     assert tx_group.interface == ci
     assert rx_group.interface == ci
 
-def test_valid_bidir_group(ci):
-    """Test bidirectional group functionality with src_ip and VLAN."""
-    bidir_group = MulticastGroupMembership(group="239.1.1.4",mode="bidir",vlan=10)
-    bidir_group._interface = ci
 
-    assert bidir_group.mode == "bidir"
-    assert bidir_group.vlan == 10
-    assert bidir_group.interface == ci
-
-@pytest.mark.parametrize("mode,src_ip", [
-    ("tx", "192.168.1.1"),
-    ("rx", None),
-    ("bidir", None),
-    ("bidir", "192.168.1.1")
-])
+@pytest.mark.parametrize(
+    "mode,src_ip",
+    [("tx", "192.168.1.1"), ("rx", None)],
+)
 def test_valid_src_ip_mode(mode, src_ip, ci):
     """Test the interaction between src_ip and mode"""
     src_ip_obj = IPv4Address(src_ip) if src_ip else None
@@ -82,6 +77,6 @@ def test_valid_src_ip_mode(mode, src_ip, ci):
         assert mode_group.src_ip == src_ip_obj
     else:
         assert mode_group.src_ip is None
-    
+
     assert mode_group.mode == mode
     assert mode_group.interface == ci

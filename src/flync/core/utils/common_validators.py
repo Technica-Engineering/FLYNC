@@ -15,7 +15,36 @@ from flync.core.utils.exceptions import (
     _validation_warnings,
     err_major,
     err_minor,
+    warn,
 )
+
+VLAN_ID_RESERVED = 4095
+VLAN_ID_MIN = 0
+VLAN_ID_MAX = VLAN_ID_RESERVED
+
+
+def validate_vlan_id(value):
+    """Validate a VLAN identifier.
+
+    ``None`` is treated as untagged and returned unchanged. Values in the
+    range 0-4094 are accepted as-is. The reserved value 4095 is accepted
+    but emits a warning via :func:`warn`. Anything outside 0-4095 raises a
+    minor validation error.
+    """
+    if value is not None:
+        if value < VLAN_ID_MIN or value > VLAN_ID_MAX:
+            raise err_minor(
+                f"VLAN ID must be in the range "
+                f"{VLAN_ID_MIN}-{VLAN_ID_MAX - 1} "
+                f"(use None for untagged); got {value}."
+            )
+        if value == VLAN_ID_RESERVED:
+            warn(
+                f"VLAN ID {VLAN_ID_RESERVED} is reserved by IEEE 802.1Q "
+                "and should not be used."
+            )
+    return value
+
 
 _LOCATION_SYSTEM = "in system"
 

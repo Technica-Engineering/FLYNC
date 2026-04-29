@@ -1,5 +1,6 @@
 import pytest
 from flync.model.flync_4_ecu.multicast_groups import MulticastGroupMembership
+from flync.sdk.workspace.flync_workspace import validate_with_policy
 from pydantic import ValidationError
 
 
@@ -29,19 +30,37 @@ def test_invalid_group(invalid_group):
     with pytest.raises(ValidationError):
         MulticastGroupMembership(group=invalid_group)
 
-@pytest.mark.parametrize("invalid_vlan", [
-    -1,        # negative
-    4095,      # reserved
-    5000,      # above max range
-    "10",      # wrong type (string)
-    3.14,      # wrong type (float)
-    None,      # wrong type
-])
-@pytest.mark.xfail(reason="Known bug")
+
+@pytest.mark.parametrize(
+    "invalid_vlan",
+    [
+        -1,  # negative
+        5000,  # above max range
+        3.14,  # wrong type (float)
+    ],
+)
 def test_invalid_vlan(invalid_vlan):
     """Test that invalid VLAN values raise ValidationError."""
     with pytest.raises(ValidationError):
         MulticastGroupMembership(group="239.1.1.1",vlan=invalid_vlan)
+
+
+def test_reserved_vlan_emits_warning():
+    """VLAN 4095 is reserved by IEEE 802.1Q — model loads but a warning is recorded."""
+    model, errors = validate_with_policy(
+        MulticastGroupMembership,
+        {"group": "239.1.1.1", "vlan": 4095},
+        path=None,
+    )
+
+    assert model is not None
+    assert model.vlan == 4095
+
+    warnings = [e for e in errors if e.get("type") == "warning"]
+    assert len(warnings) == 1
+    assert "4095" in warnings[0]["msg"]
+    assert "reserved" in warnings[0]["msg"].lower()
+
 
 def test_invalid_mode():
     """Test that an invalid mode raises a ValidationError."""

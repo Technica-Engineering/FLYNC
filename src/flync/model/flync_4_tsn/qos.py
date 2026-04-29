@@ -263,8 +263,9 @@ class FrameFilter(FLYNCBaseModel):
     vlanid : int or :class:`~flync.core.datatypes.value_range.ValueRange` or \
     list of \
     (int | :class:`~flync.core.datatypes.value_range.ValueRange`), optional
-        VLAN Identifier(s) to match.
-        Integer values must be in the range 0-4095.
+        VLAN Identifier(s) to match. Integer values must be in the
+        range 0-4094; 4095 is reserved by IEEE 802.1Q and emits a
+        warning when used. ``None`` matches untagged frames.
         ``ValueRange`` can specify an inclusive interval.
 
     pcp : int or list of int, optional
@@ -341,11 +342,8 @@ class FrameFilter(FLYNCBaseModel):
 
     @staticmethod
     def vlan_validator(value):
-        if value < 0 or value > 4095:
-            raise err_minor(
-                "vlan id must be greater than or equal to 0 "
-                "and less than or equal to 4095"
-            )
+        """Validate one VLAN ID via :func:`validate_vlan_id`."""
+        common_validators.validate_vlan_id(value)
 
     @staticmethod
     def pcp_validator(value):

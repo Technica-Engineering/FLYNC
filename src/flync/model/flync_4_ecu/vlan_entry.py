@@ -1,6 +1,14 @@
-from typing import List
+"""VLAN configuration models for switches.
+
+Defines :class:`VLANEntry` (a single VLAN configuration on a switch) and
+:class:`MulticastGroup` (a multicast destination tied to a set of switch
+ports inside that VLAN).
+"""
+
+from typing import Annotated, List
 
 from pydantic import (
+    AfterValidator,
     Field,
     field_serializer,
     field_validator,
@@ -36,10 +44,12 @@ class MulticastGroup(FLYNCBaseModel):
     @field_validator("address", mode="after")
     @classmethod
     def validate_multicast_address(cls, v):
+        """Validate that ``address`` is an IP or MAC multicast address."""
         return common_validators.validate_any_multicast_address(v)
 
     @field_serializer("address")
     def serialize_address(self, address):
+        """Serialize the multicast address as a string."""
         return str(address)
 
 
@@ -53,7 +63,8 @@ class VLANEntry(FLYNCBaseModel):
         Human-readable name for the VLAN.
 
     id : int
-        VLAN ID (0-4095).
+        VLAN ID. Values 0-4094 are accepted; 4095 is reserved by IEEE
+        802.1Q and emits a warning when used.
 
     default_priority : int
         Default frame priority for the VLAN (0-7).
@@ -66,7 +77,9 @@ class VLANEntry(FLYNCBaseModel):
     """
 
     name: str = Field()
-    id: int = Field(..., ge=0, le=4095)
+    id: Annotated[int, AfterValidator(common_validators.validate_vlan_id)] = (
+        Field(...)
+    )
     default_priority: int = Field(..., ge=0, le=7)
     ports: List[str] = Field()
     multicast: List[MulticastGroup] | None = Field(default=[])
@@ -74,4 +87,5 @@ class VLANEntry(FLYNCBaseModel):
     @field_validator("multicast", mode="before")
     @classmethod
     def normalize_multicast(cls, v):
+        """Coerce a ``None`` multicast list to an empty list."""
         return common_validators.none_to_empty_list(v)

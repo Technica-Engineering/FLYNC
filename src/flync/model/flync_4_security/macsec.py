@@ -2,9 +2,10 @@
 
 from typing import Annotated, List, Literal, Optional, Union
 
-from pydantic import Field, model_validator
+from pydantic import AfterValidator, Field, model_validator
 
 from flync.core.base_models.base_model import FLYNCBaseModel
+from flync.core.utils.common_validators import validate_vlan_id
 from flync.core.utils.exceptions import err_minor
 
 
@@ -128,7 +129,9 @@ class MACsecConfig(FLYNCBaseModel):
         Defaults to using integrity-only without confidentiality.
     """
 
-    vlan_bypass: List[Annotated[int, Field(ge=1, le=4095)]] = Field()
+    vlan_bypass: List[
+        Annotated[int, Field(ge=1), AfterValidator(validate_vlan_id)]
+    ] = Field()
     mka_enabled: Optional[bool] = Field(default=True)
     hello_time: int = Field()
     bounded_hello_time: int = Field()

@@ -94,8 +94,10 @@ class VirtualControllerInterface(FLYNCBaseModel):
     name : str
         Name of the virtual interface.
 
-    vlanid : int
-        VLAN identifier in the range 0-4095.
+    vlanid : int, optional
+        VLAN identifier. Values 0-4094 are accepted; 4095 is reserved by
+        IEEE 802.1Q and emits a warning when used. ``None`` denotes an
+        untagged virtual interface.
 
     addresses : list of \
     :class:`~flync.model.flync_4_ecu.sockets.IPv4AddressEndpoint` or \
@@ -108,7 +110,10 @@ class VirtualControllerInterface(FLYNCBaseModel):
     """
 
     name: str = Field()
-    vlanid: int = Field(..., ge=0, le=4095)
+    vlanid: Annotated[
+        Optional[int],
+        AfterValidator(common_validators.validate_vlan_id),
+    ] = Field(...)
     addresses: List[IPv6AddressEndpoint | IPv4AddressEndpoint] = Field()
     multicast: Annotated[
         Optional[List[IPvAnyAddress | MacAddress]],
