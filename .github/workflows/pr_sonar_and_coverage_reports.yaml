@@ -48,7 +48,7 @@ jobs:
             ${{ steps.pr.outputs.base_ref }}:refs/remotes/origin/${{ steps.pr.outputs.base_ref }}
 
       - name: Run SonarQube analysis
-        uses: SonarSource/sonarqube-scan-action@v7
+        uses: SonarSource/sonarqube-scan-action@v8
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -83,7 +83,7 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
 
       - name: Run SonarQube analysis
-        uses: SonarSource/sonarqube-scan-action@v7
+        uses: SonarSource/sonarqube-scan-action@v8
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
