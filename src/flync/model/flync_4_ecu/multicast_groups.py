@@ -1,9 +1,10 @@
-from typing import Literal, Optional
+from typing import Annotated, Literal, Optional
 
-from pydantic import Field, PrivateAttr
+from pydantic import AfterValidator, Field, PrivateAttr
 from pydantic.networks import IPvAnyAddress
 from pydantic_extra_types.mac_address import MacAddress
 
+import flync.core.utils.common_validators as common_validators
 from flync.core.base_models import FLYNCBaseModel
 from flync.model.flync_4_ecu.controller import ControllerInterface
 
@@ -26,7 +27,10 @@ class MulticastGroupMembership(FLYNCBaseModel):
         Source IP address. Only applicable for "tx" mode.
     """
 
-    group: IPvAnyAddress | MacAddress = Field()
+    group: Annotated[
+        IPvAnyAddress | MacAddress,
+        AfterValidator(common_validators.validate_any_multicast_address),
+    ] = Field()
     description: Optional[str] = Field(default="")
     mode: Literal["tx"] | Literal["rx"] | Literal["bidir"] = Field(
         default="bidir"

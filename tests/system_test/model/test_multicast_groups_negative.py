@@ -2,28 +2,28 @@ import pytest
 from flync.model.flync_4_ecu.multicast_groups import MulticastGroupMembership
 from pydantic import ValidationError
 
-@pytest.mark.parametrize("invalid_group", [
-    # IPv4 unicast (private)
-    "192.168.1.1",
-    "10.0.0.1",
-    "172.16.0.1",
 
-    # IPv4 special
-    "127.0.0.1",        # loopback
-    "169.254.1.1",      # link-local
-    "255.255.255.255",  # broadcast
-    "8.8.8.8",          # public unicast
-
-    # IPv6 unicast
-    "2001:db8::1",      # documentation/global
-    "::1",              # loopback
-    "fe80::1",          # link-local
-    "::",               # unspecified
-
-    # Not even IP
-    "not_an_ip",
-])
-@pytest.mark.xfail(reason="Known bug")
+@pytest.mark.parametrize(
+    "invalid_group",
+    [
+        # IPv4 unicast (private)
+        "192.168.1.1",
+        "10.0.0.1",
+        "172.16.0.1",
+        # IPv4 special
+        "127.0.0.1",  # loopback
+        "169.254.1.1",  # link-local
+        "255.255.255.255",  # broadcast
+        "8.8.8.8",  # public unicast
+        # IPv6 unicast
+        "2001:db8::1",  # documentation/global
+        "::1",  # loopback
+        "fe80::1",  # link-local
+        "::",  # unspecified
+        # Not even IP
+        "not_an_ip",
+    ],
+)
 def test_invalid_group(invalid_group):
     """Test that non-multicast addresses raise ValidationError."""
     with pytest.raises(ValidationError):
