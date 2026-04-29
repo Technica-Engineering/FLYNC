@@ -360,7 +360,7 @@ class TCAMRule(FLYNCBaseModel):
 
         if len(all_ports) != len(set(all_ports)):
             raise err_minor(
-                "A TCAM Rule can either drop OR force egress OR ",
+                "A TCAM Rule can either drop OR force egress OR "
                 "mirror on one port.",
             )
         return self
@@ -385,7 +385,7 @@ class TCAMRule(FLYNCBaseModel):
 
         if len(all_ports) != len(set(all_ports)):
             raise err_minor(
-                "A TCAM Rule can either remove OR ",
+                "A TCAM Rule can either remove OR "
                 "overwrite a vlan on one port.",
             )
         return self

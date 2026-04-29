@@ -147,3 +147,13 @@ def two_tcam_rules_same_id(switch_port):
     )
 
     yield [tcam_1, tcam_2]
+
+
+@pytest.fixture
+def tcam_match_filter():
+    yield {
+        "vlanid": 10,
+        "src_ipv4": "10.10.5.5",
+        "src_port": 40,
+        "dst_port": {"from_value": 4, "to_value": 10},
+    }

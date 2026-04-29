@@ -21,8 +21,8 @@ def test_positive_multicast_ipv4_group():
 
 def test_negative_multicast_ipv4_group():
     mcast_group = {"address": "10.0.0.1", "ports": ["port1", "port2"]}
-    with pytest.raises(ValidationError) as err:
-        vlan_entry = VLANEntry.model_validate(
+    with pytest.raises(ValidationError):
+        VLANEntry.model_validate(
             {
                 "name": "vlan_entry1",
                 "id": 10,
@@ -50,11 +50,11 @@ def test_positive_multicast_ipv6_group():
 
 def test_negative_multicast_ipv6_group():
     mcast_group = {
-        "address": '"2001:0db8:85a3:0000:0000:8a2e:0370:7334"',
+        "address": "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
         "ports": ["port1", "port2"],
     }
-    with pytest.raises(ValidationError) as err:
-        vlan_entry = VLANEntry.model_validate(
+    with pytest.raises(ValidationError):
+        VLANEntry.model_validate(
             {
                 "name": "vlan_entry1",
                 "id": 10,
