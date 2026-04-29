@@ -3,10 +3,5 @@
 Release Notes
 =============
 
-Release 0.10
------------
-
-Bugfixes
-''''''''
-
-- Model: SOME/IP Datatypes follow specification more closely
+Release 0.11
+------------

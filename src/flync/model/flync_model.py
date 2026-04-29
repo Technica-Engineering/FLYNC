@@ -332,9 +332,9 @@ class FLYNCModel(FLYNCBaseModel):
 
     def get_all_interfaces(self):
         return [
-            iface
+            eth_iface.interface_config
             for controller in self.get_all_controllers()
-            for iface in controller.interfaces
+            for eth_iface in controller.ethernet_interfaces
         ]
 
     def get_all_interfaces_names(self):
@@ -349,9 +349,9 @@ class FLYNCModel(FLYNCBaseModel):
         ecu = self.get_ecu_by_name(ecu_name)
         if ecu:
             return [
-                iface.name
+                eth_iface.interface_config.name
                 for controller in ecu.controllers
-                for iface in controller.interfaces
+                for eth_iface in controller.ethernet_interfaces
             ]
         return []
 

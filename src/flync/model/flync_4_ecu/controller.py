@@ -15,6 +15,13 @@ from pydantic.networks import IPvAnyAddress
 from pydantic_extra_types.mac_address import MacAddress
 
 import flync.core.utils.common_validators as common_validators
+from flync.core.annotations import (
+    External,
+    Implied,
+    ImpliedStrategy,
+    NamingStrategy,
+    OutputStrategy,
+)
 from flync.core.base_models import (
     FLYNCBaseModel,
     NamedDictInstances,
@@ -22,6 +29,7 @@ from flync.core.base_models import (
 )
 from flync.core.utils.exceptions import err_fatal, err_major, err_minor
 from flync.model.flync_4_ecu.phy import MII, RGMII, RMII, SGMII, XFI
+from flync.model.flync_4_ecu.socket_container import SocketContainer
 from flync.model.flync_4_ecu.sockets import (
     IPv4AddressEndpoint,
     IPv6AddressEndpoint,
@@ -458,8 +466,8 @@ class ControllerInterface(NamedDictInstances):
         """
 
         for ctrl in Controller.INSTANCES:
-            for interface in ctrl.interfaces:
-                if interface.name == self.name:
+            for eth_iface in ctrl.ethernet_interfaces:
+                if eth_iface.interface_config.name == self.name:
                     return ctrl
         raise err_fatal(
             "Fatal Error: The interface is not a part of any controller"
@@ -483,9 +491,12 @@ class ControllerInterface(NamedDictInstances):
 
         """
         for controller in Controller.INSTANCES:
-            for interface in controller.interfaces:
-                if interface.name == self.name:
-                    return controller.interfaces
+            for eth_iface in controller.ethernet_interfaces:
+                if eth_iface.interface_config.name == self.name:
+                    return [
+                        ei.interface_config
+                        for ei in controller.ethernet_interfaces
+                    ]
         return []
 
     def get_connected_components(self):
@@ -516,49 +527,103 @@ class ControllerInterface(NamedDictInstances):
         return macs
 
 
+class EthernetInterface(FLYNCBaseModel):
+    """An Ethernet Interface of a Controller.
+
+    Parameters
+    ==========
+
+    interface_config: :class:`~ControllerInterface`
+        Configuration of the Controller Interface.
+
+    sockets: optional list of \
+        :class:`~flync.model.flync_4_ecu.socket_container.SocketContainer`
+    """
+
+    interface_config: Annotated[
+        ControllerInterface,
+        External(
+            output_structure=OutputStrategy.SINGLE_FILE
+            | OutputStrategy.OMMIT_ROOT,
+            naming_strategy=NamingStrategy.FIELD_NAME,
+        ),
+    ] = Field()
+    sockets: Annotated[
+        Optional[List[SocketContainer]],
+        External(
+            output_structure=OutputStrategy.FOLDER,
+            naming_strategy=NamingStrategy.FIELD_NAME,
+        ),
+    ] = Field(default_factory=list, exclude=True)
+
+
 class Controller(NamedListInstances["Controller"]):
     """
     Represents a controller device that contains multiple interfaces.
 
     Parameters
     ----------
-    meta : :class:`~flync.model.flync_4_metadata.metadata.EmbeddedMetadata`
-        Metadata describing the embedded controller.
-
-    type : Literal["Controller"]
-        Indicates the type of the device. Default is "Controller".
-
     name : str
         Name of the controller.
 
-    interfaces : list of :class:`ControllerInterface`
-        Physical interfaces of the controller.
+    controller_metadata : \
+        :class:`~flync.model.flync_4_metadata.metadata.EmbeddedMetadata`
+        Metadata describing the embedded controller.
 
-    l2_bridge: :class:`L2Bridge` Represents a software switch
-    inside a controller in case there are more than one interface
-    or virtual machines/ compute nodes
+    ethernet_interfaces : list of :class:`~EthernetInterface`
+        Ethernet interfaces of the controller.
+
+    l2_bridge: :class:`L2Bridge`
+        Represents a software switch inside a controller in case there are \
+            more than one interface or virtual machines/ compute nodes.
 
     Private Attributes
     ------------------
     _type:
-        The type of the object generated. Set to Controller.
+        The type of the object generated. Defaults to "Controller".
     """
 
     INSTANCES: ClassVar[List["Controller"]] = []
-    meta: EmbeddedMetadata = Field()
-    name: str = Field()
-    interfaces: List[ControllerInterface] = Field()
-    l2_bridge: Optional[L2Bridge] = Field(default=None)
+    name: Annotated[
+        str,
+        Implied(
+            strategy=ImpliedStrategy.FOLDER_NAME,
+        ),
+    ] = Field()
+    controller_metadata: Annotated[
+        EmbeddedMetadata,
+        External(
+            output_structure=OutputStrategy.SINGLE_FILE,
+            naming_strategy=NamingStrategy.FIELD_NAME,
+        ),
+    ] = Field()
+
+    ethernet_interfaces: Annotated[
+        List[EthernetInterface],
+        External(
+            output_structure=OutputStrategy.FOLDER,
+            naming_strategy=NamingStrategy.FIELD_NAME,
+        ),
+    ] = Field()
+    l2_bridge: Annotated[
+        Optional[L2Bridge],
+        External(
+            output_structure=OutputStrategy.SINGLE_FILE
+            | OutputStrategy.OMMIT_ROOT,
+            naming_strategy=NamingStrategy.FIELD_NAME,
+        ),
+    ] = Field(default=None)
     _type: Literal["controller"] = PrivateAttr(default="controller")
 
     @model_validator(mode="after")
     def check_ports_l2_bridge_are_interfaces_or_compute_nodes(self):
         interface_names = []
         compute_node_names = []
-        for interface in self.interfaces:
-            interface_names.append(interface.name)
-            if interface.compute_nodes != []:
-                for compute_node in interface.compute_nodes:
+        for eth_iface in self.ethernet_interfaces:
+            iface = eth_iface.interface_config
+            interface_names.append(iface.name)
+            if iface.compute_nodes:
+                for compute_node in iface.compute_nodes:
                     compute_node_names.append(compute_node.name)
 
         if self.l2_bridge is not None:
@@ -578,8 +643,8 @@ class Controller(NamedListInstances["Controller"]):
         Return all the IPs in the Controller
         """
         all_ips = []
-        for i in self.interfaces:
-            all_ips.extend(i.get_all_ips())
+        for eth_iface in self.ethernet_interfaces:
+            all_ips.extend(eth_iface.interface_config.get_all_ips())
         return all_ips
 
     def get_all_macs(self):
@@ -587,6 +652,6 @@ class Controller(NamedListInstances["Controller"]):
         Return all the MAC addresses in the Controller
         """
         all_macs = []
-        for i in self.interfaces:
-            all_macs.extend(i.get_all_macs())
+        for eth_iface in self.ethernet_interfaces:
+            all_macs.extend(eth_iface.interface_config.get_all_macs())
         return all_macs

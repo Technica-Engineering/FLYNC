@@ -56,37 +56,99 @@ Controller Config
 
    .. mermaid:: ../../_static/mermaid/controller.mmd
 
-.. _controller_example:
+.. note::
+   All controllers of an ECU are configured in the respective directory inside 📁 ``controllers/``.
+   This is a **mandatory** dir for the ECU configuration, since all ECUs need to define (at least) one controller.
 
-.. admonition:: Expand for a YAML example - 📁 ``controllers/``
+.. autoclass:: flync.model.flync_4_ecu.Controller()
+
+
+
+Ethernet Interfaces
+=====================
+
+.. admonition:: Expand for a YAML example - 📄 ``interface_config.flync.yaml``
    :collapsible: closed
 
    .. note::
-      This directory contains the configuration files that describe each one of the host controllers of the device.
-      Each controller shall have its own YAML file.
-      This is a **mandatory** dir for the ECU configuration, since all ECUs need to define (at least) one controller.
+      The configuration of a controller interface is defined in one file per Controller.
 
-
-   .. literalinclude:: ../../_static/flync_example/ecus/high_processing_core/controllers/hpc_controller1.flync.yaml
+   .. literalinclude:: ../../_static/flync_example/ecus/high_processing_core/controllers/hpc_controller1/ethernet_interfaces/hpc_c1_iface1/interface_config.flync.yaml
       :language: yaml
 
 
 .. hint::
-
    For controller interfaces that have an external PHY, the ``mii_config`` (see :ref:`mii_config`) for that interface must be provided.
    For controller interfaces with integrated PHY, no ``mii_config`` is needed.
 
 .. warning::
-
    In any case, the MDI configuration is **never** configured on the controller interface, but on the ECU Ports. See :ref:`ecu_ports` for more details.
 
 
-.. autoclass:: flync.model.flync_4_ecu.Controller()
-.. autoclass:: flync.model.flync_4_ecu.ControllerInterface()
-.. autoclass:: flync.model.flync_4_ecu.VirtualControllerInterface()
-.. autoclass:: flync.model.flync_4_ecu.ComputeNodes()
+.. autoclass:: flync.model.flync_4_ecu.controller.EthernetInterface()
+.. autoclass:: flync.model.flync_4_ecu.controller.ControllerInterface()
+.. autoclass:: flync.model.flync_4_ecu.controller.VirtualControllerInterface()
+.. autoclass:: flync.model.flync_4_ecu.controller.ComputeNodes()
+
+L2 Bridge
+==========
+
+.. admonition:: Expand for a YAML example - 📄 ``l2_bridge.flync.yaml``
+   :collapsible: closed
+
+   .. note::
+      A Layer2 Bridge is defined in a separate file per Controller.
+
+   .. literalinclude:: ../../_static/flync_example/ecus/eth_ecu/controllers/eth_ecu_controller1/l2_bridge.flync.yaml
+      :language: yaml
+
 .. autoclass:: flync.model.flync_4_ecu.L2Bridge()
 .. autoclass:: flync.model.flync_4_ecu.L2BridgePort()
+
+
+.. _socket:
+
+Socket Config
+=============
+
+.. admonition:: Expand for Schematic
+   :collapsible: closed
+
+   .. mermaid:: ../../_static/mermaid/socket.mmd
+
+
+.. admonition:: Expand for a YAML example - 📁 ``sockets/``
+   :collapsible: closed
+
+   .. note::
+      This directory contains files that define a group of sockets per VLAN for a specific ethernet interface.
+      Each file defines the sockets (VLAN ID, address endpoint and port number) and
+      lists the deployments that use each socket.
+
+      It is advisable to keep sockets that provide similar functionality together
+      (e.g. all SOME/IP sockets in the same file).
+
+   .. literalinclude:: ../../_static/flync_example/ecus/high_processing_core/controllers/hpc_controller1/ethernet_interfaces/hpc_c1_iface1/sockets/socket_someip.flync.yaml
+
+.. autoclass:: flync.model.flync_4_ecu.socket_container.SocketContainer()
+.. autoclass:: flync.model.flync_4_ecu.sockets.Socket()
+.. autoclass:: flync.model.flync_4_ecu.sockets.SocketUDP()
+.. autoclass:: flync.model.flync_4_ecu.sockets.SocketTCP()
+
+
+Endpoints
+---------
+
+.. autoclass:: flync.model.flync_4_ecu.sockets.IPv4AddressEndpoint()
+.. autoclass:: flync.model.flync_4_ecu.sockets.IPv6AddressEndpoint()
+
+
+Deployments
+-------------
+
+.. autoclass:: flync.model.flync_4_ecu.sockets.DeploymentUnion()
+
+
 
 .. _switch:
 
@@ -226,67 +288,6 @@ Types of Internal Connections
 .. autoclass:: flync.model.flync_4_ecu.internal_topology.ControllerInterfaceToControllerInterface()
 
 
-.. _socket:
-
-Socket Config
-##############
-
-.. admonition:: Expand for Schematic
-   :collapsible: closed
-
-   .. mermaid:: ../../_static/mermaid/socket.mmd
-
-
-.. admonition:: Expand for a YAML example - 📁 ``sockets/``
-   :collapsible: closed
-
-   .. note::
-      This directory contains files that define a group of sockets per VLAN.
-      Each file defines the sockets (VLAN ID, address endpoint and port number) and
-      lists the deployments that use each socket.
-
-      It is advisable to keep sockets that provide similar functionality together
-      (e.g. all SOME/IP sockets in the same file).
-
-   .. literalinclude:: ../../_static/flync_example/ecus/high_processing_core/sockets/socket_someip.flync.yaml
-
-
-.. autoclass:: flync.model.flync_4_ecu.socket_container.SocketContainer()
-.. autoclass:: flync.model.flync_4_ecu.sockets.Socket()
-.. autoclass:: flync.model.flync_4_ecu.sockets.SocketUDP()
-.. autoclass:: flync.model.flync_4_ecu.sockets.SocketTCP()
-
-Options
-========
-
-.. _tcp_option:
-
-.. admonition:: Expand for a YAML example - 📄 ``tcp_profiles.flync.yaml``
-   :collapsible: closed
-
-   .. note::
-      This file contains a list of TCP profiles that describes a bunch of TCP options that can be set in a socket.
-      These profiles can be imported in a TCP socket.
-
-   .. literalinclude:: ../../_static/flync_example/ecus/high_processing_core/sockets/socket_someip.flync.yaml
-
-
-.. autoclass:: flync.model.flync_4_ecu.sockets.TCPOption()
-
-.. autoclass:: flync.model.flync_4_ecu.sockets.UDPOption()
-
-Endpoints
-==========
-
-.. autoclass:: flync.model.flync_4_ecu.sockets.IPv4AddressEndpoint()
-.. autoclass:: flync.model.flync_4_ecu.sockets.IPv6AddressEndpoint()
-
-
-Deployments
-===========
-
-.. autoclass:: flync.model.flync_4_ecu.sockets.DeploymentUnion()
-
 
 .. _mac_multicast_endpoints:
 
@@ -306,7 +307,6 @@ MAC Multicast Endpoints
       This file contains defines Endpoints of the ECU for transmitted MAC multicast addresses.
 
    .. literalinclude:: ../../_static/flync_example/ecus/zonal_platform1/mac_multicast_endpoints.flync.yaml
-
 
 
 .. autoclass:: flync.model.flync_4_ecu.mac_multicast_endpoint.MACMulticastEndpoints()

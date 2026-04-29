@@ -79,10 +79,10 @@ TEST_REFERENCES_PATHS = {
 TEST_OBJECTS_PATHS = [
     "ecus.eth_ecu.ports.ports.eth_ecu_p1",
     "ecus.high_processing_core.ports.ports.hpc1_p3",
-    "ecus.high_processing_core.controllers.hpc_controller1.interfaces.hpc_c1_iface1",
+    "ecus.high_processing_core.controllers.hpc_controller1.ethernet_interfaces.hpc_c1_iface1.interface_config",
     "ecus.high_processing_core.switches.hpc_switch1.ports.hpc_s1_p2",
-    "ecus.zonal_platform2.controllers.z2_controller1.interfaces.z2_c1_iface1",
-    "ecus.zonal_platform2.controllers.z2_controller2.interfaces.z2_c2_iface1",
+    "ecus.zonal_platform2.controllers.z2_controller1.ethernet_interfaces.z2_c1_iface1.interface_config",
+    "ecus.zonal_platform2.controllers.z2_controller2.ethernet_interfaces.z2_c2_iface1.interface_config",
 ]
 
 

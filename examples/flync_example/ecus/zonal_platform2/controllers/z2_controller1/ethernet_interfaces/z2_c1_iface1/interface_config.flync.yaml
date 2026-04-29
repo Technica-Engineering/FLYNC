@@ -1,0 +1,12 @@
+name: z2_c1_iface1
+mac_address: 00:11:04:01:01:01
+mii_config:
+  type: rmii
+  speed: 100
+  mode: phy
+virtual_interfaces:
+  - name: z2_c1_i1_viface1
+    vlanid: 0
+    addresses:
+      - address: 10.0.0.3
+        ipv4netmask: 255.255.255.0

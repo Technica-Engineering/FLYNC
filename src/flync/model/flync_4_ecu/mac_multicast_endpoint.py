@@ -108,7 +108,7 @@ class MACEndpointUnion(RootModel):
     Possible types
     --------------
     - :class:`~AVTPMulticastEndpoint`: If ethertype is 0x22F0, the endpoint
-    is treated as an AVTP multicast endpoint.
+        is treated as an AVTP multicast endpoint.
     """
 
     root: AVTPMulticastEndpoint = Field(discriminator="protocol")

@@ -48,6 +48,15 @@ Metadata
 
 .. _embedded_meta:
 
+.. admonition:: Expand for a YAML example - 📄 ``controller_metadata.flync.yaml`` (EmbeddedMetadata)
+   :collapsible: closed
+
+   .. note::
+      Embedded Metadata is for example used for controllers inside the respective directory.
+      Go to :ref:`Controller <controller>` to get more details on the config directory.
+
+   .. literalinclude:: ../../_static/flync_example/ecus/high_processing_core/ecu_metadata.flync.yaml
+
 .. autoclass:: flync.model.flync_4_metadata.EmbeddedMetadata()
 
 .. _socketspervlan_meta:

@@ -90,8 +90,8 @@ ECUs
 ****
 
 The ecus directory contains several sub-directories describing all the ECUs in the system and their configuration.
-This includes controllers of the ECU, Port configuration, switches, and sockets.
-All components inside the ECU are then described in an internal_topology where the structure inside an ECU is described.
+This includes controllers of the ECU, port configuration, switches, and internal topology.
+All components inside the ECU are described in an internal topology where the structure inside an ECU is defined.
 
 .. code-block::
 
@@ -105,13 +105,7 @@ All components inside the ECU are then described in an internal_topology where t
    │   ├── 📄   mac_multicast_endpoints.flync.yaml
    │   |
    │   ├── 📂❗ controllers
-   │   │   ├── 📄❗ ecu_1_controller_1.flync.yaml
-   │   │   ├── 📄❗ ecu_1_controller_n.flync.yaml
-   │   │   └── 📄 ...
-   │   |
-   │   ├── 📂 sockets
-   │   │   ├── 📄 socket_someip.flync.yaml
-   │   │   └── 📄 ...
+   │   │   └── ... (see next section)
    │   |
    │   └── 📂 switches
    │       ├── 📄 switch1.flync.yaml
@@ -122,10 +116,10 @@ All components inside the ECU are then described in an internal_topology where t
 
 .. important::
 
-   ✔ The directory names ``ecus/``, ``controllers/``, ``sockets/``, and ``switches/`` must be respected.
+   ✔ The directory names must be respected: ``ecus/``, ``controllers/``, and ``switches/``
 
-   ✔ The file names ``ports``, ``topology``, ``mac_multicast_endpoints`` and ``ecu_metadata`` must be respected.
-   All others are suggested.
+   ✔ The file names must be respected:  ``ports``, ``topology``, ``ecu_metadata`` and ``mac_multicast_endpoints``
+      All others are suggested.
 
 
 .. seealso::
@@ -134,14 +128,72 @@ All components inside the ECU are then described in an internal_topology where t
 
    - :ref:`ECU Config <ecu>`
    - :ref:`ECU Ports Config <ecu_ports>`
-   - :ref:`Controller Config <controller>`
    - :ref:`Switch Config <switch>`
-   - :ref:`Sockets <socket>`
    - :ref:`MAC Multicast Endpoints <mac_multicast_endpoints>`
    - :ref:`internal_topology`
    - :ref:`ECU Metadata <ecu_meta>`
 
+ECUs - Controllers
+==================
 
+Each controller of an ECU is represented as a **directory**.
+
+Ethernet interfaces are grouped in the sub-directory ``ethernet_interfaces/``, where each interface is its own named directory.
+One interface directory consists of:
+   - an interface configuration
+   - optionally a ``sockets/`` directory for socket deployments.
+
+.. code-block::
+
+   📂❗ ecus
+   │
+   └── 📂 ecu_1_name
+       |
+       ├── 📂❗ controllers
+       │   |
+       │   ├── 📂❗ ecu_1_controller_1
+       |   │   |
+       │   │   ├── 📄❗ controller_metadata.flync.yaml
+       │   │   ├── 📄   l2_bridge.flync.yaml
+       |   │   |
+       │   │   └── 📂❗ ethernet_interfaces
+       |   │       |
+       │   │       ├── 📂 interface_1_name
+       │   │       │   ├── 📄❗ interface_config.flync.yaml
+       |   │       |   |
+       │   │       │   └── 📂   sockets
+       │   │       │       ├── 📄 socket_someip.flync.yaml
+       │   │       │       └── 📄 ...
+       |   │       |
+       │   │       └── 📂 interface_n_name
+       │   │           └── ...
+       |   │
+       │   └── 📂 ecu_1_controller_n
+       │       └── ...
+       |
+       └── ... (see section above for other ECU config)
+
+
+.. important::
+
+   ✔ The directory names must be respected: ``controllers/``, ``ethernet_interfaces/``, ``sockets/``.
+
+   ✔ The file names must be respected: ``controller_metadata`` and ``interface_config``.
+      All others are suggested.
+
+   ✔ Each controller is a **directory**, not a file. The directory name is used as the controller name.
+
+   ✔ Each ethernet interface is a **directory** inside ``ethernet_interfaces/``. The directory name is used as the interface name.
+
+   ✔ Sockets are defined **per ethernet interface** inside the ``sockets/`` sub-directory of that interface.
+
+
+.. seealso::
+
+   Explore the whole Controller config further:
+
+   - :ref:`Controller Config <controller>`
+   - :ref:`Sockets <socket>`
 
 General
 *******
