@@ -59,7 +59,7 @@ def test_system_metadata_invalid_type_literal():
                 "author": "developer1",
                 "compatible_flync_version": {
                     "version_schema": "semver",
-                    "version": "0.9.0",
+                    "version": "0.11.0",
                 },
                 "hardware": {
                     "version_schema": "semver",

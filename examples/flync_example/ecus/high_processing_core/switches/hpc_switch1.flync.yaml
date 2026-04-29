@@ -1,10 +1,10 @@
 meta:
   author: Dev
-  compatible_flync_version: 
+  compatible_flync_version:
     version_schema: semver
-    version: 0.9.0
+    version: 0.11.0
   target_system: flync_os
-name: hpc_switch1  
+name: hpc_switch1
 ports:
 - name: hpc_s1_p0
   silicon_port_no: 0
@@ -22,17 +22,17 @@ ports:
             type: time_receiver
             sync_timeout: 3
             sync_followup_timeout: 10
-          pdelay_config: 
+          pdelay_config:
             log_tx_period: 1
   ingress_streams:
     - name: stream_0
-      stream_identification: 
+      stream_identification:
         - vlanid: [10, 20, 30, 40]
-          dst_ipv4: 
+          dst_ipv4:
             address: 10.0.0.0
             ipv4netmask: 255.255.0.0
           protocol: udp
-          dst_port: 
+          dst_port:
             from_value: 32000
             to_value: 33000
       drop_at_ingress: false
@@ -43,11 +43,11 @@ ports:
         cbs: 10000
         eir: 0
         ebs: 5000
-        coupling: false  
+        coupling: false
     - name: stream_1
-      stream_identification: 
+      stream_identification:
         - vlanid: 10
-          dst_ipv4: 
+          dst_ipv4:
             address: 224.0.0.0
             ipv4netmask: 255.0.0.0
           protocol: tcp
@@ -69,11 +69,11 @@ ports:
         idleslope: 50000
     - name: best_effort
       priority: 1
-      frame_priority_values: [3, 2, 1, 0] 
+      frame_priority_values: [3, 2, 1, 0]
       selection_mechanisms:
         type: cbs
         idleslope: 10000
-  macsec_config: 
+  macsec_config:
     vlan_bypass: []
     mka_enabled: true
     hello_time: 1000
@@ -85,7 +85,7 @@ ports:
     key_role: key_server_never
     delay_protect: false
     participant_activation: always
-      
+
 - name: hpc_s1_p1
   silicon_port_no: 1
   default_vlan_id: 1
@@ -103,7 +103,7 @@ ports:
             log_tx_period: -3
             two_step: true
             tlv: []
-  macsec_config: 
+  macsec_config:
       vlan_bypass: []
       mka_enabled: true
       hello_time: 1000
@@ -115,8 +115,8 @@ ports:
       key_role: key_server_never
       delay_protect: false
       participant_activation: always
-  
-         
+
+
 
 - name: hpc_s1_p2
   silicon_port_no: 2
@@ -125,7 +125,7 @@ ports:
     type: rmii
     speed: 100
     mode: mac
-  macsec_config: 
+  macsec_config:
       vlan_bypass: []
       mka_enabled: true
       hello_time: 1000
@@ -153,13 +153,13 @@ ports:
             tlv: []
   ingress_streams:
     - name: stream_0
-      stream_identification: 
+      stream_identification:
         - vlanid: [10, 20, 30, 40]
-          dst_ipv4: 
+          dst_ipv4:
             address: 10.0.0.0
             ipv4netmask: 255.255.0.0
           protocol: udp
-          dst_port: 
+          dst_port:
             from_value: 32000
             to_value: 33000
       drop_at_ingress: false
@@ -170,11 +170,11 @@ ports:
         cbs: 10000
         eir: 0
         ebs: 5000
-        coupling: false  
+        coupling: false
     - name: stream_1
-      stream_identification: 
+      stream_identification:
         - vlanid: 10
-          dst_ipv4: 
+          dst_ipv4:
             address: 224.0.0.0
             ipv4netmask: 255.0.0.0
           protocol: tcp
@@ -186,7 +186,7 @@ ports:
         cbs: 10000
         eir: 20000
         ebs: 2000
-        coupling: true   
+        coupling: true
   traffic_classes:
     - name: high_prio
       priority: 7
@@ -196,11 +196,11 @@ ports:
         idleslope: 50000
     - name: best_effort
       priority: 1
-      frame_priority_values: [3, 2, 1, 0] 
+      frame_priority_values: [3, 2, 1, 0]
       selection_mechanisms:
         type: cbs
-        idleslope: 10000   
-  macsec_config: 
+        idleslope: 10000
+  macsec_config:
       vlan_bypass: []
       mka_enabled: true
       hello_time: 1000
@@ -228,13 +228,13 @@ ports:
             tlv: []
   ingress_streams:
     - name: stream_0
-      stream_identification: 
+      stream_identification:
         - vlanid: [10, 20, 30, 40]
-          dst_ipv4: 
+          dst_ipv4:
             address: 10.0.0.0
             ipv4netmask: 255.255.0.0
           protocol: udp
-          dst_port: 
+          dst_port:
             from_value: 32000
             to_value: 33000
       drop_at_ingress: false
@@ -245,11 +245,11 @@ ports:
         cbs: 10000
         eir: 0
         ebs: 5000
-        coupling: false  
+        coupling: false
     - name: stream_1
-      stream_identification: 
+      stream_identification:
         - vlanid: 10
-          dst_ipv4: 
+          dst_ipv4:
             address: 224.0.0.0
             ipv4netmask: 255.0.0.0
           protocol: tcp
@@ -261,7 +261,7 @@ ports:
         cbs: 10000
         eir: 20000
         ebs: 2000
-        coupling: true      
+        coupling: true
   traffic_classes:
     - name: high_prio
       priority: 7
@@ -271,11 +271,11 @@ ports:
         idleslope: 50000
     - name: best_effort
       priority: 1
-      frame_priority_values: [3, 2, 1, 0] 
+      frame_priority_values: [3, 2, 1, 0]
       selection_mechanisms:
         type: cbs
         idleslope: 10000
-  macsec_config: 
+  macsec_config:
       vlan_bypass: []
       mka_enabled: true
       hello_time: 1000
@@ -286,7 +286,7 @@ ports:
       kay_on: true
       key_role: key_server_never
       delay_protect: false
-      participant_activation: always 
+      participant_activation: always
 
 
 vlans:

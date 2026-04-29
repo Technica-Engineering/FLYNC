@@ -1,8 +1,8 @@
 meta:
   author: Dev
-  compatible_flync_version: 
+  compatible_flync_version:
     version_schema: semver
-    version: 0.9.0
+    version: 0.11.0
   target_system: flync_os
 name: z2_switch1
 ports:
@@ -18,17 +18,17 @@ ports:
             type: time_receiver
             sync_timeout: 3
             sync_followup_timeout: 10
-          pdelay_config: 
+          pdelay_config:
             log_tx_period: 1
   ingress_streams:
     - name: stream_0
-      stream_identification: 
+      stream_identification:
         - vlanid: [10, 20, 30, 40]
-          dst_ipv4: 
+          dst_ipv4:
             address: 10.0.0.0
             ipv4netmask: 255.255.0.0
           protocol: udp
-          dst_port: 
+          dst_port:
             from_value: 32000
             to_value: 33000
       drop_at_ingress: false
@@ -39,11 +39,11 @@ ports:
         cbs: 10000
         eir: 0
         ebs: 5000
-        coupling: false  
+        coupling: false
     - name: stream_1
-      stream_identification: 
+      stream_identification:
         - vlanid: 10
-          dst_ipv4: 
+          dst_ipv4:
             address: 224.0.0.0
             ipv4netmask: 255.0.0.0
           protocol: tcp
@@ -65,11 +65,11 @@ ports:
         idleslope: 50000
     - name: best_effort
       priority: 1
-      frame_priority_values: [3, 2, 1, 0] 
+      frame_priority_values: [3, 2, 1, 0]
       selection_mechanisms:
         type: cbs
         idleslope: 10000
-  macsec_config: 
+  macsec_config:
       vlan_bypass: []
       mka_enabled: true
       hello_time: 1000
@@ -99,7 +99,7 @@ ports:
             log_tx_period: -3
             two_step: true
             tlv: []
-  macsec_config: 
+  macsec_config:
       vlan_bypass: []
       mka_enabled: true
       hello_time: 1000
@@ -129,7 +129,7 @@ ports:
             log_tx_period: -3
             two_step: true
             tlv: []
-  macsec_config: 
+  macsec_config:
       vlan_bypass: []
       mka_enabled: true
       hello_time: 1000
@@ -141,31 +141,31 @@ ports:
       key_role: key_server_always
       delay_protect: false
       participant_activation: always
-         
+
 tcam_rules:
   - name: rule_1
     id: 1
-    match_filter: 
+    match_filter:
       pcp: [3, 4]
-    match_ports: 
+    match_ports:
       - z2_s1_p0
     action:
       - type: drop
-        ports: 
+        ports:
           - z2_s1_p2
   - name: rule_2
     id: 2
-    match_filter: 
+    match_filter:
       vlanid: 20
       pcp: [3, 4]
-    match_ports: 
+    match_ports:
       - z2_s1_p0
     action:
       - type: vlan_overwrite
-        ports: 
+        ports:
           - z2_s1_p1
         overwrite_vlan_pcp: 1
-        
+
 
 vlans:
 - name: VLAN20
@@ -182,7 +182,7 @@ vlans:
     - z2_s1_p0
     - z2_s1_p2
     - z2_s1_p1
-    
+
 
 
 host_controller:

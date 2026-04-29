@@ -2,7 +2,7 @@ meta:
   author: "Dev"
   compatible_flync_version:
     version_schema: semver
-    version: 0.9.0
+    version: 0.11.0
 
 name: Enhanced Testability Services
 id: 0x0101

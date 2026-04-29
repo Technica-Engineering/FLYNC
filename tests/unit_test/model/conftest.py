@@ -2,7 +2,11 @@ import pytest
 from flync.core.datatypes.ipaddress import IPv4AddressEntry, IPv6AddressEntry
 
 from flync.model.flync_4_someip.service_interface import (
-    SDTimings, SOMEIPEventTimings, SOMEIPFieldTimings, SOMEIPMethodTimings,SDConfig
+    SDTimings,
+    SOMEIPEventTimings,
+    SOMEIPFieldTimings,
+    SOMEIPMethodTimings,
+    SDConfig,
 )
 from flync.model.flync_4_ecu import (
     MII,
@@ -19,7 +23,7 @@ from flync.model.flync_4_ecu import (
     UDPOption,
     Controller,
     ControllerInterface,
-    VirtualControllerInterface
+    VirtualControllerInterface,
 )
 from flync.model.flync_4_tsn.qos import (
     CBSShaper,
@@ -43,7 +47,7 @@ def metadata_entry():
             "author": "Dev",
             "compatible_flync_version": {
                 "version_schema": "semver",
-                "version": "0.9.0",
+                "version": "0.11.0",
             },
         }
     )
@@ -57,7 +61,7 @@ def embedded_metadata_entry():
             "author": "Dev",
             "compatible_flync_version": {
                 "version_schema": "semver",
-                "version": "0.9.0",
+                "version": "0.11.0",
             },
             "target_system": "every",
         }
@@ -359,7 +363,7 @@ def someip_event_default_timings_profile():
         profile_id="event_default",
         type="event",
         debounce=100,
-        max_retention=10
+        max_retention=10,
     )
     yield someip_event_default_timings_profile
 
@@ -371,7 +375,7 @@ def someip_method_default_timings_profile():
         type="method",
         req_debounce=100,
         req_max_retention=10,
-        res_max_retention=10
+        res_max_retention=10,
     )
     yield someip_method_default_timings_profile
 
@@ -388,7 +392,7 @@ def someip_field_default_timings_profile():
         setter_req_max_retention=10,
         setter_res_max_retention=10,
         notifier_debounce=100,
-        notifier_max_retention=10
+        notifier_max_retention=10,
     )
     yield someip_field_default_timings_profile
 
@@ -396,10 +400,7 @@ def someip_field_default_timings_profile():
 @pytest.fixture
 def someip_event_custom_timings_profile():
     someip_event_custom_timings_profile = SOMEIPEventTimings(
-        profile_id="event_custom",
-        type="event",
-        debounce=100,
-        max_retention=10
+        profile_id="event_custom", type="event", debounce=100, max_retention=10
     )
     yield someip_event_custom_timings_profile
 
@@ -411,7 +412,7 @@ def someip_method_custom_timings_profile():
         type="method",
         req_debounce=100,
         req_max_retention=10,
-        res_max_retention=10
+        res_max_retention=10,
     )
     yield someip_method_custom_timings_profile
 
@@ -428,28 +429,30 @@ def someip_field_custom_timings_profile():
         setter_req_max_retention=10,
         setter_res_max_retention=10,
         notifier_debounce=100,
-        notifier_max_retention=10
+        notifier_max_retention=10,
     )
     yield someip_field_custom_timings_profile
 
 
 @pytest.fixture
 def someip_sdconfig():
-    someip_sdconfig =  SDConfig(
+    someip_sdconfig = SDConfig(
         ip_address="224.224.224.255",
         port=30490,
-        sd_timings=[SDTimings(
-            profile_id="default",
-            initial_delay_min=10,
-            initial_delay_max=10,
-            repetitions_base_delay=30,
-            repetitions_max=3,
-            request_response_delay_min=10,
-            request_response_delay_max=10,
-            offer_cyclic_delay=1000,
-            offer_ttl=3,
-            find_ttl=1000,
-            subscribe_ttl=3
-        )]
+        sd_timings=[
+            SDTimings(
+                profile_id="default",
+                initial_delay_min=10,
+                initial_delay_max=10,
+                repetitions_base_delay=30,
+                repetitions_max=3,
+                request_response_delay_min=10,
+                request_response_delay_max=10,
+                offer_cyclic_delay=1000,
+                offer_ttl=3,
+                find_ttl=1000,
+                subscribe_ttl=3,
+            )
+        ],
     )
     yield someip_sdconfig
