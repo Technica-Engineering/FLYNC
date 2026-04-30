@@ -1,0 +1,13 @@
+name: EthPowertrainContainer
+type: container
+pdu_id: 2001
+length: 31
+header_type: short_header
+description: >-
+  Container PDU bundling powertrain PDUs (engine status, vehicle dynamics,
+  transmission state) into a single Ethernet payload.
+
+contained_pdus:
+  - pdu_ref: PDU_EngineStatus
+  - pdu_ref: PDU_VehicleDynamics
+  - pdu_ref: PDU_TransmissionStatus

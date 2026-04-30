@@ -1,0 +1,13 @@
+name: EthBodyContainer
+type: container
+pdu_id: 2002
+length: 14
+header_type: short_header
+description: >-
+  Container PDU bundling body comfort PDUs (left mirror, right mirror,
+  cabin light) into a single Ethernet payload.
+
+contained_pdus:
+  - pdu_ref: PDU_MirrorLeft
+  - pdu_ref: PDU_MirrorRight
+  - pdu_ref: PDU_CabinLight

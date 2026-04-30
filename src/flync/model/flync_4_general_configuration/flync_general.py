@@ -14,6 +14,8 @@ from flync.core.base_models import FLYNCBaseModel
 from flync.model.flync_4_ecu import TCPOption
 from flync.model.flync_4_someip import SOMEIPConfig
 
+from .flync_channels import FLYNCChannelConfig
+
 
 class FLYNCGeneralConfig(FLYNCBaseModel):
     """
@@ -31,6 +33,15 @@ class FLYNCGeneralConfig(FLYNCBaseModel):
         Configuration block that holds the global SOME/IP service
         interface definition, SOME/IP timings, and SD timings profiles
         used by every ECU in the system.
+
+    channels : :class:`~flync.model.flync_4_general_configuration\
+.flync_channels.FLYNCChannelConfig`, optional
+        Channel-level configuration grouping CAN buses, LIN buses, and
+        Ethernet Container PDU definitions.  Loaded from the
+        ``general/channels/`` directory.  Each bus or container PDU is
+        stored in its own file under the corresponding sub-folder
+        (``can/``, ``lin/``, ``container_pdus/``).  Absent when the
+        ``general/channels/`` directory does not exist.
     """
 
     tcp_profiles: Annotated[
@@ -58,4 +69,18 @@ class FLYNCGeneralConfig(FLYNCBaseModel):
     ] = Field(
         default=None,
         description="contains the SOME/IP config for the entire system.",
+    )
+    channels: Annotated[
+        Optional[FLYNCChannelConfig],
+        External(
+            output_structure=OutputStrategy.FOLDER,
+            naming_strategy=NamingStrategy.FIXED_PATH,
+            path="channels",
+        ),
+    ] = Field(
+        default=None,
+        description=(
+            "CAN buses, LIN buses and Ethernet Container PDUs, loaded "
+            "from general/channels/."
+        ),
     )

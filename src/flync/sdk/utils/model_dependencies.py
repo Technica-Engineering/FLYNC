@@ -24,7 +24,17 @@ from flync.sdk.context.node_info import NodeInfo
 from .field_utils import get_metadata
 
 
-def extract_container_model(annotation):  # noqa # nosonar
+def _collect_union_options(args):
+    """Return container-model dicts for each non-None union member type."""
+    models = []
+    for arg in args:
+        result = extract_container_model(arg)
+        if result:
+            models.append(result)
+    return models
+
+
+def extract_container_model(annotation):  # noqa
     """Recursively extract ``BaseModel`` types from nested container
     annotations.
 
@@ -41,48 +51,29 @@ def extract_container_model(annotation):  # noqa # nosonar
         ``"container"``
         key set to ``"list"``, ``"dict"``, ``"union"``, or ``"model"``.
     """
+    if get_origin(annotation) is Annotated:
+        annotation = get_args(annotation)[0]
+
     origin = get_origin(annotation)
     args = get_args(annotation)
+    result = None
 
     if origin is list:
         items = extract_container_model(args[0])
-        if not items:
-            return None
-        return {
-            "container": "list",
-            "items": items,
-        }
-
-    if origin is dict:
+        if items:
+            result = {"container": "list", "items": items}
+    elif origin is dict:
         values = extract_container_model(args[1])
-        if not values:
-            return None
-        return {
-            "container": "dict",
-            "keys": args[0],
-            "values": values,
-        }
+        if values:
+            result = {"container": "dict", "keys": args[0], "values": values}
+    elif origin in (Union, types.UnionType):
+        models = _collect_union_options(args)
+        if models:
+            result = {"container": "union", "options": models}
+    elif isinstance(annotation, type) and issubclass(annotation, BaseModel):
+        result = {"container": "model", "model": annotation}
 
-    if origin in (Union, types.UnionType):
-        models = []
-        for arg in args:
-            result = extract_container_model(arg)
-            if result:
-                models.append(result)
-        if not models:
-            return None
-        return {
-            "container": "union",
-            "options": models,
-        }
-
-    if isinstance(annotation, type) and issubclass(annotation, BaseModel):
-        return {
-            "container": "model",
-            "model": annotation,
-        }
-
-    return None
+    return result
 
 
 def unwrap_annotated(annotation):

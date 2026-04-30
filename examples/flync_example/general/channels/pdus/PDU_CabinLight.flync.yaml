@@ -1,0 +1,37 @@
+name: PDU_CabinLight
+type: standard
+pdu_id: 5
+length: 2
+description: Cabin ambient light intensity level and operating mode.
+
+signals:
+  - bit_position: 0
+    endianness: LE
+    subscriber_nodes: [ZonalPlatform1]
+    signal:
+      name: CabinLightLevel
+      description: Ambient cabin light intensity (0 = off, 255 = max).
+      bit_length: 8
+      data_type: uint8
+      factor: 0.392157
+      offset: 0.0
+      lower_limit: 0.0
+      upper_limit: 100.0
+      unit: "%"
+  - bit_position: 8
+    endianness: LE
+    subscriber_nodes: [ZonalPlatform1]
+    signal:
+      name: CabinLightMode
+      description: Cabin light operating mode.
+      bit_length: 2
+      data_type: uint8
+      value_descriptions:
+        - value: 0
+          description: "Off"
+        - value: 1
+          description: Manual
+        - value: 2
+          description: Auto
+        - value: 3
+          description: Error

@@ -4,6 +4,11 @@
 flync_4_general_configuration
 ******************************
 
+The ``flync_4_general_configuration`` module holds the system-wide
+configuration shared across all ECUs in the project, including bus
+definitions, PDU and frame definitions, SOME/IP service descriptions,
+and TCP profiles.
+
 .. admonition:: Expand for Schematic
    :collapsible: closed
 
@@ -12,6 +17,33 @@ flync_4_general_configuration
 .. autoclass:: flync.model.flync_4_general_configuration.FLYNCGeneralConfig()
 
 
+.. _channel_config:
+
+Channel Configuration
+#####################
+
+:class:`~flync.model.flync_4_general_configuration.FLYNCChannelConfig`
+groups all bus and PDU definitions that are stored under
+``general/channels/``.  Every sub-field is **optional** — omit the
+corresponding sub-folder entirely when the system does not use that
+channel type.
+
+.. list-table:: Channel sub-folders
+   :header-rows: 1
+   :widths: 35 65
+
+   * - Sub-folder
+     - Content
+   * - ``general/channels/pdus/``
+     - :ref:`PDU <pdu_model>` definitions (:ref:`Standard <pdu_model>`, :ref:`Multiplexed <pdu_model>`, :ref:`Container <pdu_model>`). One file per PDU.
+   * - ``general/channels/can/``
+     - :ref:`CAN / CAN FD <can_bus>` bus configurations. One file per bus.
+   * - ``general/channels/lin/``
+     - :ref:`LIN <lin_bus>` bus configurations. One file per bus.
+   * - ``general/channels/ethernet/``
+     - :ref:`Ethernet frame <ethernet_frame>` definitions.
+
+.. autoclass:: flync.model.flync_4_general_configuration.FLYNCChannelConfig()
 
 TCP Options
 #############
