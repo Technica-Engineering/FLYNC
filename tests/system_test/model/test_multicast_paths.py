@@ -1,39 +1,14 @@
 import pytest
 from pathlib import Path
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
-from flync.model.flync_4_ecu import (
-    SocketContainer,
-    Switch,
-    SwitchPort,
-    Controller,
-    ControllerInterface,
-    ECUPort,
-    ECU,
-)
+from flync.model.flync_4_ecu import SocketContainer, Switch
 from flync.core.utils.base_utils import read_yaml
 import shutil
-from pydantic import ValidationError
 from tests.system_test.sdk.helper_load_ws import update_yaml_content
 
 absolute_path = Path(__file__).parents[3] / "examples" / "flync_example"
 
 absolute_path = Path(__file__).parents[3] / "examples" / "flync_example"
-
-def reset(class_name):
-
-    for item in class_name.NAMES.copy():
-        if item.startswith(class_name.__name__):
-            class_name.NAMES.remove(item)
-
-
-def reset_unique_name_cache():
-    reset(SwitchPort)
-    reset(Switch)
-    reset(Controller)
-    reset(ControllerInterface)
-    reset(ECUPort)
-    reset(ECU)
-
 
 def test_multicast_paths_no_tx(tmpdir):
     destination_folder = Path(tmpdir) / "copy"
@@ -56,7 +31,9 @@ def test_multicast_paths_no_tx(tmpdir):
     data["name"] = "socket_nm"
     SocketContainer.model_validate(data)
 
-    loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
+    loaded_ws = FLYNCWorkspace.load_workspace(
+        "flync_example", destination_folder
+    )
     assert (
         "Invalid Multicast Configuration"
         and "224.0.0.1"
@@ -80,8 +57,9 @@ def test_multicast_paths_no_path_from_rx_to_tx(tmpdir):
 
     data = read_yaml(file_to_update)
     Switch.model_validate(data)
-    reset_unique_name_cache()
-    loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
+    loaded_ws = FLYNCWorkspace.load_workspace(
+        "flync_example", destination_folder
+    )
     assert (
         "Invalid Multicast Configuration"
         and "224.0.0.1"

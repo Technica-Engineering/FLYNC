@@ -16,7 +16,9 @@ from flync.model.flync_4_someip import (
 def test_someip_service_deployment(
     metadata_entry, someip_sd_server_timings_profile_entry
 ):
-    s = SOMEIPServiceInterface(meta=metadata_entry, name="s", id=1, major_version=1)
+    s = SOMEIPServiceInterface(
+        meta=metadata_entry, name="s", id=1, major_version=1
+    )
     sd = SOMEIPServiceProvider(
         service=1,
         instance_id=1,
@@ -27,9 +29,11 @@ def test_someip_service_deployment(
 
 
 def test_someip_service_deployment_lookup_service_from_id_and_major(
-        metadata_entry,  someip_sd_server_timings_profile_entry
+    metadata_entry, someip_sd_server_timings_profile_entry
 ):
-    si = SOMEIPServiceInterface(meta=metadata_entry, name="s", id=1, major_version=1)
+    si = SOMEIPServiceInterface(
+        meta=metadata_entry, name="s", id=1, major_version=1
+    )
     sp = SOMEIPServiceProvider(
         service=1,
         instance_id=1,
@@ -42,7 +46,9 @@ def test_someip_service_deployment_lookup_service_from_id_and_major(
 def test_someip_service_deployment_serialize_field_as_service(
     metadata_entry, someip_sd_server_timings_profile_entry
 ):
-    s = SOMEIPServiceInterface(meta=metadata_entry, name="s", id=1, major_version=1)
+    s = SOMEIPServiceInterface(
+        meta=metadata_entry, name="s", id=1, major_version=1
+    )
     sd = SOMEIPServiceProvider(
         service=1,
         instance_id=1,
@@ -56,7 +62,9 @@ def test_someip_service_deployment_serialize_field_as_service(
 def test_someip_service_deployment_profile_serialize(
     metadata_entry, someip_sd_server_timings_profile_entry
 ):
-    s = SOMEIPServiceInterface(meta=metadata_entry, name="s", id=1, major_version=1)
+    s = SOMEIPServiceInterface(
+        meta=metadata_entry, name="s", id=1, major_version=1
+    )
     sd = SOMEIPServiceProvider(
         service=1,
         instance_id=1,
@@ -65,9 +73,7 @@ def test_someip_service_deployment_profile_serialize(
     )
     assert (
         sd.someip_sd_timings_profile
-        == someip_sd_server_timings_profile_entry.INSTANCES[
-            "server_default"
-        ].profile_id
+        == someip_sd_server_timings_profile_entry.profile_id
     )
 
 

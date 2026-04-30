@@ -2,8 +2,11 @@
 
 from .base_model import FLYNCBaseModel
 from .dict_instances import DictInstances, NamedDictInstances
+from .instances_registery import (
+    Registry,
+    get_registry,
+)
 from .list_instances import ListInstances, NamedListInstances
-from .resettable_model import BaseRegistry
 from .unique_name import UniqueName
 
 __all__ = [
@@ -13,5 +16,6 @@ __all__ = [
     "NamedDictInstances",
     "ListInstances",
     "NamedListInstances",
-    "BaseRegistry",
+    "Registry",
+    "get_registry",
 ]

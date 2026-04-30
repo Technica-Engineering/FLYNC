@@ -37,12 +37,6 @@ from flync.model.flync_4_someip import (  # type: ignore  # noqa: F401
 _T_Service = TypeVar("_T_Service", bound=SOMEIPServiceDeployment)
 
 
-def reset_unique_name_cache():
-    """Reset cached unique names for controller interfaces and switch ports."""
-    ControllerInterface.NAMES.clear()
-    SwitchPort.NAMES.clear()
-
-
 class ECU(UniqueName):
     """
     Represents an Electronic Control Unit (ECU) in the network.
@@ -255,7 +249,6 @@ class ECU(UniqueName):
         """
         allows the children attributes to access ._ecu
         """
-        reset_unique_name_cache()
         [setattr(p, "_ecu", self) for p in self.ports]  # noqa
         [setattr(c, "_ecu", self) for c in self.topology.connections]  # noqa
         return self

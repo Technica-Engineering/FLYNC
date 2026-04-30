@@ -7,8 +7,6 @@ from collections import defaultdict
 from typing import (
     Annotated,
     Any,
-    ClassVar,
-    Dict,
     List,
     Literal,
     Optional,
@@ -29,7 +27,12 @@ from pydantic import (
 
 import flync.core.utils.common_validators as common_validators
 from flync.core.annotations.external import External, OutputStrategy
-from flync.core.base_models import DictInstances, FLYNCBaseModel
+from flync.core.base_models import (
+    DictInstances,
+    FLYNCBaseModel,
+    Registry,
+    get_registry,
+)
 from flync.core.utils.exceptions import err_minor
 from flync.model.flync_4_metadata import SOMEIPServiceMetadata
 from flync.model.flync_4_safety.e2e import E2EConfig
@@ -82,7 +85,6 @@ class SOMEIPFieldTimings(DictInstances):
         notification may be withheld.
     """
 
-    INSTANCES: ClassVar[Dict[Any, "SOMEIPFieldTimings"]] = {}
     profile_id: str = Field(description="Timing profile for fields.")
     type: Literal["field"]
     getter_req_debounce: int = Field(
@@ -154,7 +156,6 @@ class SOMEIPEventTimings(DictInstances):
         event may be withheld.
     """
 
-    INSTANCES: ClassVar[Dict[Any, "SOMEIPEventTimings"]] = {}
     profile_id: str = Field(description="Timing profile for events.")
     type: Literal["event"]
     debounce: int = Field(
@@ -198,7 +199,6 @@ class SOMEIPMethodTimings(DictInstances):
         response may be withheld.
     """
 
-    INSTANCES: ClassVar[Dict[Any, "SOMEIPMethodTimings"]] = {}
     profile_id: str = Field(description="Timing profile for methods.")
     type: Literal["method"] = "method"
     req_debounce: int = Field(
@@ -364,7 +364,7 @@ class SOMEIPParameter(FLYNCBaseModel):
     #    return v
 
 
-class SOMEIPEvent(FLYNCBaseModel):
+class SOMEIPEvent(DictInstances):
     """
     Defines a SOME/IP event definition.
 
@@ -398,7 +398,6 @@ class SOMEIPEvent(FLYNCBaseModel):
         Defaults to "event_default".
     """
 
-    INSTANCES_BY_NAME: ClassVar[Dict[str, "SOMEIPEvent"]] = {}
     model_config = ConfigDict(extra="forbid", frozen=True)
     name: str = Field(description="name of the event")
     description: Optional[str] = Field(default="")
@@ -412,10 +411,10 @@ class SOMEIPEvent(FLYNCBaseModel):
         Field(description="name of the parameter"),
     ] = Field(default=[])
     someip_timing: Optional[str] = Field(default="event_default")
+    _allow_duplicate: bool = True
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.INSTANCES_BY_NAME[self.name] = self
+    def get_dict_key(self):
+        return self.name
 
 
 class SOMEIPEventgroup(FLYNCBaseModel):
@@ -459,13 +458,14 @@ class SOMEIPEventgroup(FLYNCBaseModel):
         conset(item_type=SOMEIPEvent | SOMEIPField, min_length=1),
     ] = Field(description="the events this eventgroup contains")
 
+    # should only be called in validator
     @classmethod
     def __lookup_event_by_name(cls, value: SOMEIPEvent | SOMEIPField):
         """looks up a single event if just the name was provided"""
         if type(value) is not str:
             return value
-        lookup_event: Optional[SOMEIPEvent] = (
-            SOMEIPEvent.INSTANCES_BY_NAME.get(value)
+        lookup_event: Optional[SOMEIPEvent] = get_registry(SOMEIPEvent).get(
+            value
         )
         if not lookup_event:
             logging.info(f"!!!!did not find event by name {value}")
@@ -646,7 +646,6 @@ class SOMEIPServiceInterface(DictInstances):
         Metadata for the SOME/IP Service.
     """
 
-    INSTANCES: ClassVar[Dict[Any, "SOMEIPServiceInterface"]] = {}
     model_config = ConfigDict(extra="forbid", frozen=True)
     name: str = Field(description="name of the service")
     description: Optional[str] = Field(default="")
@@ -819,7 +818,6 @@ class SDTimings(DictInstances):
         Defaults to 3.
     """
 
-    INSTANCES: ClassVar[Dict[Any, "SDTimings"]] = {}
     profile_id: str = Field(
         description="A unique ID for the SOME/IP-SD timings profile"
     )
@@ -1013,6 +1011,7 @@ class SOMEIPConfig(FLYNCBaseModel):
 
     @model_validator(mode="after")
     def validate_timing_exist(self):
+        registery: Registry = get_registry()
         for service_inst in self.services:
             for service_element in (
                 service_inst.events
@@ -1020,11 +1019,9 @@ class SOMEIPConfig(FLYNCBaseModel):
                 + service_inst.methods
             ):
                 if service_element.someip_timing is not None:
-                    if (
-                        service_element.someip_timing
-                        not in SOMEIPFieldTimings.INSTANCES
-                        and isinstance(service_element, SOMEIPField)
-                    ):
+                    if service_element.someip_timing not in registery.get_dict(
+                        SOMEIPFieldTimings
+                    ) and isinstance(service_element, SOMEIPField):
                         raise ValueError(
                             f"{service_element.id} - "
                             f"{service_element.name}.someip_timing "
@@ -1033,7 +1030,7 @@ class SOMEIPConfig(FLYNCBaseModel):
                         )
                     elif (
                         service_element.someip_timing
-                        not in SOMEIPEventTimings.INSTANCES
+                        not in registery.get_dict(SOMEIPEventTimings)
                         and isinstance(service_element, SOMEIPEvent)
                     ):
                         raise ValueError(
@@ -1044,7 +1041,7 @@ class SOMEIPConfig(FLYNCBaseModel):
                         )
                     elif (
                         service_element.someip_timing
-                        not in SOMEIPMethodTimings.INSTANCES
+                        not in registery.get_dict(SOMEIPMethodTimings)
                         and isinstance(service_element, SOMEIPMethod)
                     ):
                         raise ValueError(

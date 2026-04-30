@@ -6,7 +6,6 @@ from pydantic import BaseModel, TypeAdapter, ValidationError
 from pydantic_core import ErrorDetails, InitErrorDetails, PydanticCustomError
 
 from flync.core.base_models.base_model import FLYNCBaseModel
-from flync.core.base_models.unique_name import UniqueName
 from flync.core.utils.exceptions import _validation_warnings
 
 FATAL_ERROR_TYPES = {"extra_forbid", "extra_forbidden", "fatal", "missing"}
@@ -501,12 +500,6 @@ def validate_with_policy(
     warnings_token = _validation_warnings.set([])
     try:
         while True:
-            # Snapshot UniqueName.NAMES before each attempt so that names
-            # registered during a failed pass can be rolled back before
-            # retrying. Without this, class-level name registrations from the
-            # failed pass cause AssertionError on every subsequent
-            # port/interface in the retry.
-            names_snapshot = frozenset(UniqueName.NAMES)
             try:
                 result = TypeAdapter(model).validate_python(working)
                 accumulated = _validation_warnings.get() or []
@@ -529,10 +522,6 @@ def validate_with_policy(
                     working,
                 ):
                     break
-                # Restore the names registry to the pre-attempt snapshot so
-                # that re-validated objects can register their names cleanly.
-                UniqueName.NAMES.clear()
-                UniqueName.NAMES.update(names_snapshot)
             except Exception as e:
                 fatal_ctx = {"ex": e.with_traceback(None)}
                 raise ValidationError.from_exception_data(

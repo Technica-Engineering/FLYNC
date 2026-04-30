@@ -23,6 +23,10 @@ from flync.core.annotations import (
 )
 from flync.core.annotations.reference import Reference, ReferenceStrategy
 from flync.core.base_models.base_model import FLYNCBaseModel
+from flync.core.base_models.instances_registery import (
+    Registry,
+    registry_context,
+)
 from flync.core.utils.exceptions_handling import (
     errors_to_init_errors,
     get_name_by_alias,
@@ -112,6 +116,7 @@ class FLYNCWorkspace(object):
         self.sources: Dict[ObjectId, SourceRef] = {}
         # root information (if any)
         self.flync_model: Optional[FLYNCModel | FLYNCBaseModel] = None
+        self.registry: Registry = Registry()
         self.workspace_root: Optional[Path] = None
         if not workspace_path:
             raise ValueError(
@@ -192,7 +197,11 @@ class FLYNCWorkspace(object):
             workspace_path=workspace_path,
             configuration=workspace_config,
         )
-        model = output.__load_from_path(workspace_path)
+        # since all the objects created need to have a shared registry
+        # ensure new registry here
+        model = None
+        with registry_context(output.registry):
+            model = output.__load_from_path(workspace_path)
 
         if not isinstance(model, FLYNCBaseModel):
             logger.error("Unable to load the workspace %s", workspace_path)

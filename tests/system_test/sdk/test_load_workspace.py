@@ -1,3 +1,4 @@
+import asyncio
 import pytest
 from pathlib import Path
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
@@ -39,7 +40,9 @@ def test_load_workspace_valid_absolute_path():
 
 
 # Verify workspace loads with valid relative path
-relative_path = Path( Path(__file__).parent, "..", "..", "..", "examples", "flync_example")
+relative_path = Path(
+    Path(__file__).parent, "..", "..", "..", "examples", "flync_example"
+)
 
 
 def test_load_workspace_valid_relative_path():
@@ -135,8 +138,12 @@ files = [
     *Path(absolute_path).glob("ecus/*/ports.flync.yaml"),
     *Path(absolute_path).glob("ecus/*/topology.flync.yaml"),
     *Path(absolute_path).glob("ecus/*/ecu_metadata.flync.yaml"),
-    *Path(absolute_path).glob("ecus/*/controllers/*/ethernet_interfaces/*/interface_config.flync.yaml"),
-    *Path(absolute_path).glob("ecus/*/controllers/*/controller_metadata.flync.yaml"),
+    *Path(absolute_path).glob(
+        "ecus/*/controllers/*/ethernet_interfaces/*/interface_config.flync.yaml"
+    ),
+    *Path(absolute_path).glob(
+        "ecus/*/controllers/*/controller_metadata.flync.yaml"
+    ),
 ]
 
 
@@ -156,14 +163,19 @@ def test_load_workspace_missing_mandatory_file(tmpdir, file):
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
 
+
 # Verify handling unsupported file format
 files = [
     Path(absolute_path, "system_metadata.flync.yaml"),
     *Path(absolute_path).glob("ecus/*/ports.flync.yaml"),
     *Path(absolute_path).glob("ecus/*/topology.flync.yaml"),
     *Path(absolute_path).glob("ecus/*/ecu_metadata.flync.yaml"),
-    *Path(absolute_path).glob("ecus/*/controllers/*/ethernet_interfaces/*/interface_config.flync.yaml"),
-    *Path(absolute_path).glob("ecus/*/controllers/*/controller_metadata.flync.yaml"),
+    *Path(absolute_path).glob(
+        "ecus/*/controllers/*/ethernet_interfaces/*/interface_config.flync.yaml"
+    ),
+    *Path(absolute_path).glob(
+        "ecus/*/controllers/*/controller_metadata.flync.yaml"
+    ),
 ]
 
 
@@ -229,7 +241,9 @@ def test_load_workspace_upper_key(tmpdir):
         / "interface_config.flync.yaml"
     )
     update_yaml_content(file_to_update, "name", "NAME")
-    workspace = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
+    workspace = FLYNCWorkspace.load_workspace(
+        "flync_example", destination_folder
+    )
     assert "Field required" in str(workspace.load_errors)
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
@@ -249,11 +263,11 @@ def test_load_workspace_incorret_value_type(tmpdir):
         / "eth_ecu_c1_iface1"
         / "interface_config.flync.yaml"
     )
-    update_yaml_content(
-        file_to_update, "name: eth_ecu_c1_iface1", "name: 123"
+    update_yaml_content(file_to_update, "name: eth_ecu_c1_iface1", "name: 123")
+    workspace = FLYNCWorkspace.load_workspace(
+        "flync_example", destination_folder
     )
-    workspace = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
-    assert ("Input should be a valid string" in str(workspace.load_errors) )
+    assert "Input should be a valid string" in str(workspace.load_errors)
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
 
@@ -371,7 +385,7 @@ def test_load_workspace_duplicate_key(tmpdir):
 
 
 # Verify handling missing dashe in list items
-@pytest.mark.skip(reason = "Test should not depend on number of spaces")
+@pytest.mark.skip(reason="Test should not depend on number of spaces")
 def test_load_workspace_missing_dashe(tmpdir):
     destination_folder = Path(tmpdir) / "copy"
     shutil.copytree(absolute_path, destination_folder)
@@ -425,3 +439,53 @@ def test_load_workspace_missing_key_value(tmpdir):
         assert "name\n  Field required" in str(exc_info)
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
+
+
+def _assert_workspace_valid(ws: FLYNCWorkspace):
+    assert ws is not None
+    assert ws.flync_model is not None
+    assert ws.load_errors == []
+    assert ws.flync_model.ecus
+    assert ws.flync_model.topology
+    assert ws.flync_model.topology.system_topology
+    assert ws.flync_model.general
+    assert ws.flync_model.general.someip_config
+    assert ws.flync_model.general.tcp_profiles
+    assert ws.flync_model.metadata
+    assert model_has_socket(ws)
+
+
+# Verify loading multiple independent workspace copies sequentially
+@pytest.mark.skip("time consumption high")
+def test_load_multiple_workspaces_sync(tmpdir):
+    workspaces = []
+    for i in range(1, 4):
+        destination = Path(tmpdir) / f"copy{i}"
+        shutil.copytree(absolute_path, destination)
+        ws = FLYNCWorkspace.load_workspace(f"flync_example_{i}", destination)
+        workspaces.append(ws)
+
+    for ws in workspaces:
+        _assert_workspace_valid(ws)
+
+
+# Verify loading multiple independent workspace copies concurrently
+@pytest.mark.skip("time consumption high")
+def test_load_multiple_workspaces_async(tmpdir):
+    paths = []
+    for i in range(1, 4):
+        destination = Path(tmpdir) / f"copy{i}"
+        shutil.copytree(absolute_path, destination)
+        paths.append((f"flync_example_{i}", destination))
+
+    async def load_all():
+        tasks = [
+            asyncio.to_thread(FLYNCWorkspace.load_workspace, name, path)
+            for name, path in paths
+        ]
+        return await asyncio.gather(*tasks)
+
+    workspaces = asyncio.run(load_all())
+
+    for ws in workspaces:
+        _assert_workspace_valid(ws)

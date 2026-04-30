@@ -1,6 +1,6 @@
 """Defines the Controller and ControllerInterface models for FLYNC."""
 
-from typing import Annotated, ClassVar, Dict, List, Literal, Optional
+from typing import Annotated, List, Literal, Optional
 
 from pydantic import (
     AfterValidator,
@@ -356,7 +356,6 @@ class ControllerInterface(NamedDictInstances):
         Fixed to ``"controller_interface"``.
     """
 
-    INSTANCES: ClassVar[Dict[str, "ControllerInterface"]] = {}
     name: str = Field()
     mac_address: MacAddress = Field()
     mii_config: Optional[MII | RMII | SGMII | RGMII | XFI] = Field(
@@ -383,6 +382,7 @@ class ControllerInterface(NamedDictInstances):
     _type: Literal["controller_interface"] = PrivateAttr(
         default="controller_interface"
     )
+    _controller: Optional["Controller"] = PrivateAttr(default=None)
 
     @property
     def type(self):
@@ -467,14 +467,11 @@ class ControllerInterface(NamedDictInstances):
         Helper function
         Returns the controller that the interface is a part of
         """
-
-        for ctrl in Controller.INSTANCES:
-            for eth_iface in ctrl.ethernet_interfaces:
-                if eth_iface.interface_config.name == self.name:
-                    return ctrl
-        raise err_fatal(
-            "Fatal Error: The interface is not a part of any controller"
-        )
+        if not self._controller:
+            raise err_fatal(
+                "Fatal Error: The interface is not a part of any controller"
+            )
+        return self._controller
 
     def is_part_of_vlan(self, vlan):
         for node in self.compute_nodes:
@@ -493,14 +490,8 @@ class ControllerInterface(NamedDictInstances):
         of the controller that the interface is a part of
 
         """
-        for controller in Controller.INSTANCES:
-            for eth_iface in controller.ethernet_interfaces:
-                if eth_iface.interface_config.name == self.name:
-                    return [
-                        ei.interface_config
-                        for ei in controller.ethernet_interfaces
-                    ]
-        return []
+        eth_interfaces = self.get_controller().ethernet_interfaces or []
+        return [ei.interface_config for ei in eth_interfaces]
 
     def get_connected_components(self):
         """
@@ -560,7 +551,7 @@ class EthernetInterface(FLYNCBaseModel):
     ] = Field(default_factory=list, exclude=True)
 
 
-class Controller(NamedListInstances["Controller"]):
+class Controller(NamedListInstances):
     """
     Represents a controller device that contains multiple interfaces.
 
@@ -586,7 +577,6 @@ class Controller(NamedListInstances["Controller"]):
         The type of the object generated. Defaults to "Controller".
     """
 
-    INSTANCES: ClassVar[List["Controller"]] = []
     name: Annotated[
         str,
         Implied(
@@ -672,3 +662,8 @@ class Controller(NamedListInstances["Controller"]):
         for eth_iface in self.ethernet_interfaces:
             all_macs.extend(eth_iface.interface_config.get_all_macs())
         return all_macs
+
+    def model_post_init(self, __context):
+        for interface in self.ethernet_interfaces:
+            interface.interface_config._controller = self
+        return super().model_post_init(__context)

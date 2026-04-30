@@ -9,6 +9,7 @@ from pydantic import Field, PrivateAttr, RootModel, model_validator
 
 import flync.core.utils.common_validators as common_validators
 from flync.core.annotations.reference import Reference
+from flync.core.base_models import Registry, get_registry
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.exceptions import err_major
 from flync.model.flync_4_ecu.controller import ControllerInterface
@@ -87,12 +88,14 @@ class ECUPortToXConnection(InternalConnection):
         Raises:
             err_major: No matching ECU port found for the connection.
         """
-        if self.ecu_port_name not in ECUPort.INSTANCES.keys():
+        registry: Registry = get_registry()
+        ecu_ports_instances = registry.get_dict(ECUPort)
+        self._ecu_port = ecu_ports_instances.get(self.ecu_port_name, None)
+        if self._ecu_port is None:
             raise err_major(
                 f"ECU port '{self.ecu_port_name}' referenced in connection"
                 f" '{self.id}' was not found or was not validated"
             )
-        self._ecu_port = ECUPort.INSTANCES[self.ecu_port_name]
         return self
 
 
@@ -128,13 +131,17 @@ class SwitchPortToXConnection(InternalConnection):
         Raises:
             err_major: No matching switch port found for the connection.
         """
-        if self.switch_port_name not in SwitchPort.INSTANCES.keys():
+        registry: Registry = get_registry()
+        switch_port_instances = registry.get_dict(SwitchPort)
+        self._switch_port = switch_port_instances.get(
+            self.switch_port_name, None
+        )
+        if self._switch_port is None:
             raise err_major(
                 f"Switch port '{self.switch_port_name}'"
                 " referenced in connection"
                 f" '{self.id}' was not found or was not validated"
             )
-        self._switch_port = SwitchPort.INSTANCES[self.switch_port_name]
         return self
 
 
@@ -180,13 +187,17 @@ class ECUPortToSwitchPort(ECUPortToXConnection):
         this connection or  the optional MII configuration is invalid.
 
         """
-        if self.switch_port_name not in SwitchPort.INSTANCES.keys():
+        registry: Registry = get_registry()
+        switch_port_instances = registry.get_dict(SwitchPort)
+        self._switch_port = switch_port_instances.get(
+            self.switch_port_name, None
+        )
+        if self._switch_port is None:
             raise err_major(
                 f"Switch port '{self.switch_port_name}'"
                 " referenced in connection"
                 f" '{self.id}' was not found or was not validated"
             )
-        self._switch_port = SwitchPort.INSTANCES[self.switch_port_name]
         # Add connected component to each other
         self.ecu_port._connected_components.append(self.switch_port)
         self.switch_port._connected_component = self.ecu_port
@@ -248,12 +259,14 @@ class ECUPortToControllerInterface(ECUPortToXConnection):
             err_major: The specified controller interface does not exist for
             this connection or the MII,HTB configuration is invalid.
         """
-        if self.iface_name not in ControllerInterface.INSTANCES.keys():
+        registry: Registry = get_registry()
+        controller_interface_instances = registry.get_dict(ControllerInterface)
+        self._iface = controller_interface_instances.get(self.iface_name, None)
+        if self._iface is None:
             raise err_major(
                 f"Controller interface '{self.iface_name}' referenced in"
                 f" connection '{self.id}' was not found or was not validated"
             )
-        self._iface = ControllerInterface.INSTANCES[self.iface_name]
         # Add connected component to each other
         self.ecu_port._connected_components.append(self.iface)
         self.iface._connected_component = self.ecu_port
@@ -312,12 +325,14 @@ class SwitchPortToControllerInterface(SwitchPortToXConnection):
             exist for this connection  or the MII,HTB
             MACSec or GPTP configuration is invalid.
         """
-        if self.iface_name not in ControllerInterface.INSTANCES.keys():
+        registry: Registry = get_registry()
+        controller_interface_instances = registry.get_dict(ControllerInterface)
+        self._iface = controller_interface_instances.get(self.iface_name, None)
+        if self._iface is None:
             raise err_major(
                 f"Controller interface '{self.iface_name}' referenced in"
                 f" connection '{self.id}' was not found or was not validated"
             )
-        self._iface = ControllerInterface.INSTANCES[self.iface_name]
         # Add connected component to each other
         self.switch_port._connected_component = self.iface
         self.iface._connected_component = self.switch_port
@@ -382,12 +397,16 @@ class SwitchPortToSwitchPort(SwitchPortToXConnection):
             this connection or the MII,HTB
             MACSec or GPTP configuration is invalid.
         """
-        if self.switch2_port_name not in SwitchPort.INSTANCES.keys():
+        registry: Registry = get_registry()
+        switch_port_instances = registry.get_dict(SwitchPort)
+        self._switch2_port = switch_port_instances.get(
+            self.switch2_port_name, None
+        )
+        if self._switch2_port is None:
             raise err_major(
                 f"Switch port '{self.switch2_port_name}' referenced in"
                 f" connection '{self.id}' was not found or was not validated"
             )
-        self._switch2_port = SwitchPort.INSTANCES[self.switch2_port_name]
 
         # Add connected component to each other
         self.switch_port._connected_component = self.switch2_port
@@ -470,19 +489,26 @@ class ControllerInterfaceToControllerInterface(InternalConnection):
             exist for this connection or the MII,HTB
             MACSec or GPTP configuration is invalid.
         """
-        if self.iface_name not in ControllerInterface.INSTANCES.keys():
+        registry: Registry = get_registry()
+        controller_interfaces_instances = registry.get_dict(
+            ControllerInterface
+        )
+        self._iface = controller_interfaces_instances.get(
+            self.iface_name, None
+        )
+        if self._iface is None:
             raise err_major(
                 f"Controller interface '{self.iface_name}' referenced in"
                 f" connection '{self.id}' was not found or was not validated"
             )
-        self._iface = ControllerInterface.INSTANCES[self.iface_name]
-
-        if self.iface2_name not in ControllerInterface.INSTANCES.keys():
+        self._iface2 = controller_interfaces_instances.get(
+            self.iface2_name, None
+        )
+        if self._iface2 is None:
             raise err_major(
                 f"Controller interface '{self.iface2_name}' referenced in"
                 f" connection '{self.id}' was not found or was not validated"
             )
-        self._iface2 = ControllerInterface.INSTANCES[self.iface2_name]
         # Add connected component to each other
         self.iface._connected_component = self.iface2
         self.iface2._connected_component = self.iface

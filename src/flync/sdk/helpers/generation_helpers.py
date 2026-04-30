@@ -14,6 +14,8 @@ from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
 from pydantic_extra_types.mac_address import MacAddress
 
+from flync.core.base_models import Registry, get_registry
+from flync.core.base_models.instances_registery import registry_context
 from flync.core.base_models.unique_name import UniqueName
 from flync.core.datatypes.ipaddress import IPv4AddressEntry
 from flync.model.flync_4_ecu.phy import BASET1
@@ -361,7 +363,7 @@ class ExternalConnectionFactory(FLYNCFactory):
 
     @classmethod
     def build(cls, **kwargs):
-        insts = list(ECUPort.INSTANCES.keys())
+        insts = list(get_registry().get_dict(ECUPort).keys())
         kwargs["ecu1_port"] = insts[0]
         kwargs["ecu2_port"] = insts[1]
         return super().build(**kwargs)
@@ -376,7 +378,7 @@ class BASET1Factory(FLYNCFactory):
 
     @classmethod
     def build(cls, **kwargs):
-        insts = list(ECUPort.INSTANCES.values())
+        insts = list(get_registry().get_dict(ECUPort).values())
         if len(insts) > 0:
             kwargs["role"] = (
                 "slave" if insts[0].mdi_config.role == "master" else "master"
@@ -426,9 +428,10 @@ def generate_external_node(
     node = type_from_input(node)
     # generate object from type
     model_factory = Factory.get_factory(node)
-    flync_obj = model_factory.build(
-        **override_values,
-    )
+    with registry_context(Registry()):
+        flync_obj = model_factory.build(
+            **override_values,
+        )
     # dump to output
     if not isinstance(node_path, Path):
         node_path = Path(node_path)
@@ -528,9 +531,10 @@ def generate_node(
                 Factory.add_names(inst.get_key())
 
             model_factory = Factory.get_factory(node_info.python_type)
-            generated_node = model_factory.build(
-                **override_values,
-            )
+            with registry_context(ws.registry):
+                generated_node = model_factory.build(
+                    **override_values,
+                )
             break
 
     if isinstance(generated_node, FLYNCModel):

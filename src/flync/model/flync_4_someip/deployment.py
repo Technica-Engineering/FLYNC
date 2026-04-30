@@ -6,9 +6,15 @@ to model a SOME/IP deployment.
 import abc
 from typing import Annotated, List, Literal, Optional
 
-from pydantic import Field, IPvAnyAddress, field_serializer, field_validator
+from pydantic import (
+    Field,
+    IPvAnyAddress,
+    ValidationInfo,
+    field_serializer,
+    field_validator,
+)
 
-from flync.core.base_models import FLYNCBaseModel
+from flync.core.base_models import FLYNCBaseModel, Registry, get_registry
 from flync.core.utils.base_utils import is_ip_multicast
 from flync.model.flync_4_someip.service_interface import (
     SDTimings,
@@ -163,17 +169,23 @@ class SOMEIPServiceDeployment(abc.ABC, FLYNCBaseModel):
     def model_post_init(self, __context):
         return super().model_post_init(__context)
 
-    @field_validator("service", "major_version", mode="after")
+    @field_validator(
+        "service",
+        "major_version",
+        mode="after",
+    )
     @classmethod
-    def _lookup_service_from_id(cls, value, info):
+    def _lookup_service_from_id(cls, value, info: ValidationInfo):
         if info.field_name == "service":
             assert isinstance(value, int), "service must be int"
             return value
         elif info.field_name == "major_version":
             sid = info.data["service"]
             major = value
-
-            service = SOMEIPServiceInterface.INSTANCES.get((sid, major))
+            registry: Registry = get_registry()
+            service = registry.get_dict(SOMEIPServiceInterface).get(
+                (sid, major)
+            )
             assert service, (
                 "did not find a service definition matching "
                 f"the provided key (id = {sid:#06x}, major_version = {value})"
@@ -186,7 +198,8 @@ class SOMEIPServiceDeployment(abc.ABC, FLYNCBaseModel):
     def _lookup_some_ip_sd_timing_profile_from_id(cls, value):
 
         profile_id = value
-        profile_found = SDTimings.INSTANCES.get((profile_id))
+        registery: Registry = get_registry()
+        profile_found = registery.get_dict(SDTimings).get((profile_id))
         assert profile_found, "did not find a SOME/IP SD timings profile"
         " with the provided key '{value}'"
         return value
@@ -227,14 +240,19 @@ class SOMEIPServiceConsumer(SOMEIPServiceDeployment):
 
     @field_validator("consumed_eventgroups", mode="after")
     @classmethod
-    def _check_consumed_eventgroups_are_provided(cls, value, info):
+    def _check_consumed_eventgroups_are_provided(
+        cls, value, info: ValidationInfo
+    ):
         consumed_eventgroups = value
 
         service = info.data["service"]
         if isinstance(service, int):
             sid = service
             major = info.data["major_version"]
-            service = SOMEIPServiceInterface.INSTANCES.get((sid, major))
+            reigstery: Registry = get_registry()
+            service = reigstery.get_dict(SOMEIPServiceInterface).get(
+                (sid, major)
+            )
 
         if consumed_eventgroups is not None:
             consumed = set(consumed_eventgroups)

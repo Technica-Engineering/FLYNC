@@ -2,9 +2,6 @@
 
 from typing import (
     Annotated,
-    Any,
-    ClassVar,
-    Dict,
     List,
     Literal,
     Optional,
@@ -22,7 +19,12 @@ from pydantic import (
 )
 from pydantic.networks import IPvAnyAddress
 
-from flync.core.base_models import DictInstances, FLYNCBaseModel
+from flync.core.base_models import (
+    DictInstances,
+    FLYNCBaseModel,
+    Registry,
+    get_registry,
+)
 from flync.core.datatypes.ipaddress import (
     IPv4AddressEntry,
     IPv6AddressEntry,
@@ -202,7 +204,6 @@ class TCPOption(DictInstances):
         the connection attempt.
     """
 
-    INSTANCES: ClassVar[Dict[Any, "TCPOption"]] = {}
     tcp_profile_id: int = Field()
     nagle: Optional[StrictBool] = Field(default=False)
     keepalive_enabled: Optional[StrictBool] = Field(default=True)
@@ -262,7 +263,9 @@ class SocketTCP(Socket):
         provided ID — all other fields use their defaults, and a
         warning is emitted.
         """
-        if value not in TCPOption.INSTANCES:
+        registry: Registry = get_registry()
+        tcp_options_instances = registry.get_dict(TCPOption)
+        if value not in tcp_options_instances:
             TCPOption(tcp_profile_id=value)
             warn(
                 f"TCP Socket with TCP Option profile ID {value}"

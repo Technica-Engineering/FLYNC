@@ -10,7 +10,7 @@ from pydantic import Field, PrivateAttr, model_serializer, model_validator
 import flync.core.utils.common_validators as common_validators
 from flync.core.annotations.external import External, OutputStrategy
 from flync.core.annotations.reference import Reference
-from flync.core.base_models.base_model import FLYNCBaseModel
+from flync.core.base_models import FLYNCBaseModel, Registry, get_registry
 from flync.core.utils.exceptions import err_major
 from flync.model.flync_4_ecu.port import ECUPort
 
@@ -89,19 +89,20 @@ class ExternalConnection(FLYNCBaseModel):
                     between the two ports, or if the port roles are not
                     complementary.
         """
-        if self.ecu1_port_name not in ECUPort.INSTANCES.keys():
+        registery: Registry = get_registry()
+        self._ecu1_port = registery.get_dict(ECUPort).get(self.ecu1_port_name)
+        if self._ecu1_port is None:
             raise err_major(
                 f"ECU port name {self.ecu1_port_name} in connection"
                 f" {self.id} does not exist"
             )
-        self._ecu1_port = ECUPort.INSTANCES[self.ecu1_port_name]
 
-        if self.ecu2_port_name not in ECUPort.INSTANCES.keys():
+        self._ecu2_port = registery.get_dict(ECUPort).get(self.ecu2_port_name)
+        if self._ecu2_port is None:
             raise err_major(
                 f"ECU port name {self.ecu2_port_name} in connection"
                 f" {self.id} does not exist"
             )
-        self._ecu2_port = ECUPort.INSTANCES[self.ecu2_port_name]
 
         # Add connected component to each other
         self.ecu1_port._connected_components.append(self.ecu2_port)

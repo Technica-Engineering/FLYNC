@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Dict, List, Literal, Optional
+from typing import TYPE_CHECKING, List, Literal, Optional
 
 from pydantic import Field, PrivateAttr, model_validator
 
@@ -60,7 +60,6 @@ class ECUPort(NamedDictInstances):
 
     """
 
-    INSTANCES: ClassVar[Dict[str, "ECUPort"]] = {}
     name: str = Field()
     mdi_config: BASET1 | BASET1S | BASET = Field(
         default_factory=BASET1,

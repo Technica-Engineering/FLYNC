@@ -1,18 +1,15 @@
 """Base class that ensures instance names are unique."""
 
-import typing
-
 import pydantic
 from pydantic import PrivateAttr
 
 from .base_model import FLYNCBaseModel
-from .resettable_model import BaseRegistry
+from .instances_registery import Registry, get_registry
 
 
-class UniqueName(FLYNCBaseModel, BaseRegistry):
+class UniqueName(FLYNCBaseModel):
     """Base class that ensures instance names are unique."""
 
-    NAMES: typing.ClassVar[typing.Set[str]] = set()
     name: str
     _unique_name_validated: bool = PrivateAttr(False)
 
@@ -23,15 +20,12 @@ class UniqueName(FLYNCBaseModel, BaseRegistry):
         if val is None:
             return val
         name = val.get_key()
-        assert name not in UniqueName.NAMES
-        UniqueName.NAMES.add(name)
+        # if this object already exists, then something is wrong.
+        tracked_reg: Registry = get_registry()
+        assert name not in tracked_reg.names
+        tracked_reg.names.add(name)
         val._unique_name_validated = True
         return val
 
     def get_key(self):
         return f"{self.__class__.__name__}.{self.name}"
-
-    @classmethod
-    def reset(cls):
-        cls.NAMES.clear()
-        return super().reset()

@@ -6,9 +6,6 @@ from ruamel.yaml import YAML
 
 from flync.sdk.utils.sdk_types import PathType
 
-yaml = YAML(typ="rt")
-yaml.preserve_quotes = True
-
 
 class Document(object):
     """Represents a YAML document with parsing capabilities.
@@ -37,6 +34,12 @@ class Document(object):
         self.needs_compose = needs_compose
         self.ast: Any | None = None
         self.compose_ast = None
+        # ruamel.yaml YAML instances are not thread-safe: they store
+        # per-parse composer state on the instance itself. Each Document
+        # owns its own instance so concurrent parses in different threads
+        # never share state.
+        self._yaml = YAML(typ="rt")
+        self._yaml.preserve_quotes = True
 
     def parse(self):
         """Parse the YAML text into an abstract syntax tree.
@@ -46,10 +49,10 @@ class Document(object):
 
         Returns: None
         """
-        self.ast = yaml.load(self.text)
+        self.ast = self._yaml.load(self.text)
         # only needed for object maps, so can be ignored otherwise
         if self.needs_compose:
-            self.compose_ast = yaml.compose(self.text)
+            self.compose_ast = self._yaml.compose(self.text)
 
     def update_text(self, text: str):
         """Update the document's text and re-parse it.

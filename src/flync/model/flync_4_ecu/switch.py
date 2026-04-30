@@ -5,13 +5,10 @@ from __future__ import annotations
 from ipaddress import IPv4Address, IPv4Network, IPv6Address, IPv6Network
 from typing import (
     Annotated,
-    ClassVar,
-    Dict,
     List,
     Literal,
     Optional,
     Self,
-    Type,
 )
 
 from pydantic import (
@@ -25,7 +22,10 @@ from pydantic import (
 from pydantic.networks import IPvAnyAddress
 
 import flync.core.utils.common_validators as common_validators
-from flync.core.base_models import NamedDictInstances, NamedListInstances
+from flync.core.base_models import (
+    NamedDictInstances,
+    NamedListInstances,
+)
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.datatypes.ipaddress import IPv4AddressEntry, IPv6AddressEntry
 from flync.core.utils.common_validators import validate_vlan_id
@@ -112,7 +112,6 @@ class SwitchPort(NamedDictInstances):
 
     """
 
-    INSTANCES: ClassVar[Dict[str, "SwitchPort"]] = {}
     name: str = Field()
     silicon_port_no: int = Field(ge=0)
     default_vlan_id: int = Field(..., ge=0, le=4095)
@@ -153,6 +152,7 @@ class SwitchPort(NamedDictInstances):
     _mdi_config: BASET1 | BASET1S | BASET | None = PrivateAttr(default=None)
     _connected_component = PrivateAttr(default=None)
     _type: Literal["switch_port"] = PrivateAttr(default="switch_port")
+    _switch: Optional["Switch"] = PrivateAttr(default=None)
 
     @property
     def mdi_config(self):
@@ -186,29 +186,24 @@ class SwitchPort(NamedDictInstances):
         Helper function. Returns the switch that the port is a part of
         """
 
-        for switch in Switch.INSTANCES:
-
-            for port in switch.ports:
-                if port.name == self.name:
-                    return switch
-        raise err_minor(
-            f"The switch port {self.name} is not a part of any switch"
-        )
+        return self._switch
 
     def get_vlan_connected_ports(self, vlan):
         """
         Helper function. Returns the switch ports that are part of
         the same VLAN as that port
         """
+        ports_names = set()
         ports = []
         for vlan_entry in self.get_switch().vlans:
             if vlan_entry.id == vlan:
-                ports.extend(vlan_entry.ports)
-        ports_obj = [SwitchPort.INSTANCES[sport] for sport in ports]
-        return ports_obj
+                ports_names.update(set(vlan_entry.ports))
+        for port in self.get_switch().ports:
+            if port.name in ports_names:
+                ports.append(port)
+        return ports
 
     def is_part_of_vlan(self, vlan):
-
         for vlan_entry in self.get_switch().vlans:
             if vlan_entry.id == vlan and self.name in vlan_entry.ports:
                 return True
@@ -484,7 +479,6 @@ class Switch(NamedListInstances):
 
     """
 
-    INSTANCES: ClassVar[List[Type["Switch"]]] = []
     name: str = Field()
     tcam_rules: Annotated[
         Optional[List[TCAMRule]],
@@ -696,3 +690,8 @@ class Switch(NamedListInstances):
 
     def get_mac(self):
         return self.host_controller.mac_address
+
+    def model_post_init(self, __context):
+        for port in self.ports:
+            port._switch = self
+        return super().model_post_init(__context)

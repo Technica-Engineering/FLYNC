@@ -31,7 +31,6 @@ from flync.sdk.helpers.generation_helpers import (
 from flync.sdk.utils.model_dependencies import get_model_dependency_graph
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 from flync.sdk.workspace.ids import ObjectId
-from tests.conftest import reset_global_registery_function
 
 from .dummy_model import DummyRoot
 from .helper import (
@@ -143,14 +142,12 @@ def test_validate_partial_external_node(
     node_path = sep.join([get_flync_example_path, node_path])
     validation_result = validate_external_node(node_type, node_path)
     first_result = to_jsonable(validation_result, get_flync_example_path)
-    reset_global_registery_function()
     validation_result_string_type = validate_external_node(
         node_type.__name__, node_path
     )
     second_result = to_jsonable(
         validation_result_string_type, get_flync_example_path
     )
-    reset_global_registery_function()
     output = {
         "path_type_usage": {
             "value": node_type.__name__,
@@ -179,7 +176,6 @@ def test_validate_partial_external_node(
 def test_validate_partial_node(get_flync_example_path, node_type, node_paths):
     output = {}
     for path in node_paths:
-        reset_global_registery_function()
         validation_result = validate_node(get_flync_example_path, path)
         assert isinstance(validation_result.model, node_type)
         output[f"path_type_usage_path_{path}"] = to_jsonable(
@@ -191,7 +187,6 @@ def test_validate_partial_node(get_flync_example_path, node_type, node_paths):
             get_flync_example_path,
         )
         logger.info(f"will be outputting {output}")
-        reset_global_registery_function()
     verify(
         json.dumps(
             output,
@@ -247,10 +242,10 @@ def test_roundtrip_conversion(get_flync_example_path):
     params,
 )
 @pytest.mark.skip(
-    reason = "The unique mac validation rules gives a validation error, when you generate a node "
+    reason="The unique mac validation rules gives a validation error, when you generate a node "
     "in an existing workspace. The API just checks for uniquenames instances, but IP"
     " and MAC has to be unique too"
-    )
+)
 def test_generate_partial_external_node(node_type, node_path):
     if node_type is Controller:
         pytest.skip(
@@ -271,11 +266,12 @@ def test_generate_partial_external_node(node_type, node_path):
     assert len(ws_validation.errors) == 0
     assert isinstance(ws_validation.model, node_type)
 
+
 @pytest.mark.skip(
-    reason = "The unique mac validation rules gives a validation error, when you generate a node "
+    reason="The unique mac validation rules gives a validation error, when you generate a node "
     "in an existing workspace. The API just checks for uniquenames instances, but IP"
     " and MAC has to be unique too"
-    )
+)
 @pytest.mark.parametrize(
     "node_type,node_path",
     partial_params,
@@ -297,7 +293,6 @@ def test_generate_partial_node(get_flync_example_path, node_type, node_path):
             shutil.rmtree(output_path)
         if to_check_output_file.is_dir():
             shutil.rmtree(to_check_output_file)
-    reset_global_registery_function()
     generated_workspace = try_load_workspace(
         ws_name="generated_workspace",
         output_path=output_path,
@@ -306,7 +301,6 @@ def test_generate_partial_node(get_flync_example_path, node_type, node_path):
     generate_node(generated_workspace, list(node_path))
     to_check_output_file.mkdir(parents=True, exist_ok=True)
     shutil.copytree(output_path, to_check_output_file, dirs_exist_ok=True)
-    reset_global_registery_function()
     ws_validation = validate_workspace(
         to_check_output_file, generated_workspace.configuration
     )
