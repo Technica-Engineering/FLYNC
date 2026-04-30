@@ -16,7 +16,7 @@ class IPv4AddressEntry(FLYNCBaseModel):
     Parameters
     ----------
     address : :class:`IPv4Address`
-        The IPv4 address.
+        The IPv4 address. "0.0.0.0" means dynamic.
 
     ipv4netmask : :class:`IPv4Address`
         The subnet mask in IPv4 format.
@@ -48,7 +48,7 @@ class IPv6AddressEntry(FLYNCBaseModel):
     Parameters
     ----------
     address : :class:`IPv6Address`
-        The IPv6 address.
+        The IPv6 address. "::" means dynamic.
 
     ipv6prefix : int
         The prefix length (0-128).
