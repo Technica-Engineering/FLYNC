@@ -135,7 +135,7 @@ class FLYNCModel(FLYNCBaseModel):
                 for ip in new_ips:
                     if ip not in all_ips:
                         all_ips.append(ip)
-                    else:
+                    elif str(ip) not in ("0.0.0.0", "::"):
                         warn(f"The IP {ip} is repeated in ECU {ecu.name}")
         except PydanticCustomError as e:
             warn(str(e))
