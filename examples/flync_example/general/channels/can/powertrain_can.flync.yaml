@@ -1,0 +1,77 @@
+name: PowertrainCAN
+description: 500 kbit/s classical CAN bus carrying engine, transmission, and vehicle dynamics signals.
+version: "1.0"
+baud_rate: 500000
+
+nodes:
+  - name: EngineECU
+    node_id: 1
+    description: Engine Management System.
+  - name: TransmissionECU
+    node_id: 2
+    description: Transmission Control Module.
+  - name: HPC
+    node_id: 16
+    description: High-Processing Core — CAN gateway node.
+
+frames:
+
+  # --------------------------------------------------------------------------
+  # Frame: EngineStatus  (0x101, 8 bytes, EngineECU -> HPC + TransmissionECU)
+  # --------------------------------------------------------------------------
+  - name: Frame_EngineStatus
+    type: can
+    description: Engine speed, torque, temperature and state from EngineECU.
+    length: 8
+    can_id: 257          # 0x101
+    id_format: standard_11bit
+    publisher_node: EngineECU
+    packed_pdus:
+      - pdu_ref: PDU_EngineStatus
+        bit_position: 0
+    timing:
+      cyclic_timings:
+        - cycle: 0.010
+      event_timings: []
+
+  # --------------------------------------------------------------------------
+  # Frame: VehicleDynamics  (0x201, 6 bytes, EngineECU -> HPC + others)
+  # --------------------------------------------------------------------------
+  - name: Frame_VehicleDynamics
+    type: can
+    description: Vehicle speed and lateral acceleration from EngineECU.
+    length: 6
+    can_id: 513          # 0x201
+    id_format: standard_11bit
+    publisher_node: EngineECU
+    packed_pdus:
+      - pdu_ref: PDU_VehicleDynamics
+        bit_position: 0
+    timing:
+      cyclic_timings:
+        - cycle: 0.020
+      event_timings: []
+
+  # --------------------------------------------------------------------------
+  # Frame: TransmissionStatus  (0x301, 8 bytes, multiplexed PDU)
+  #
+  #   Bits [0..3]  = GearInfoMux selector  (DBC: M)
+  #   Mux value 0  = gear position data
+  #   Mux value 1  = torque converter data
+  # --------------------------------------------------------------------------
+  - name: Frame_TransmissionStatus
+    type: can
+    description: Transmission status from TransmissionECU, multiplexed on GearInfoMux.
+    length: 8
+    can_id: 769          # 0x301
+    id_format: standard_11bit
+    publisher_node: TransmissionECU
+    packed_pdus:
+      - pdu_ref: PDU_TransmissionStatus
+        bit_position: 0
+    timing:
+      cyclic_timings:
+        - cycle: 0.020
+      event_timings:
+        - final_repetitions: 3
+          repeating_time_range: 0.005

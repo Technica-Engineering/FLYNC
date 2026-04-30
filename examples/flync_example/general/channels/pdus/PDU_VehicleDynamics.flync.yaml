@@ -1,0 +1,36 @@
+name: PDU_VehicleDynamics
+type: standard
+pdu_id: 513
+length: 6
+description: Vehicle speed and lateral body acceleration.
+
+signals:
+  - bit_position: 0
+    endianness: LE
+    subscriber_nodes: [HPC, EngineECU, TransmissionECU]
+    signal:
+      name: VehicleSpeed
+      description: Longitudinal vehicle speed from ABS.
+      bit_length: 16
+      data_type: uint16
+      factor: 0.01
+      offset: 0.0
+      lower_limit: 0.0
+      upper_limit: 655.35
+      unit: km/h
+      value_descriptions:
+        - value: 65535
+          description: Signal_Not_Available
+  - bit_position: 16
+    endianness: LE
+    subscriber_nodes: [HPC]
+    signal:
+      name: LateralAcceleration
+      description: Lateral body acceleration.
+      bit_length: 16
+      data_type: int16
+      factor: 0.001
+      offset: 0.0
+      lower_limit: -32.768
+      upper_limit: 32.767
+      unit: m/s2

@@ -1,0 +1,39 @@
+name: PDU_MirrorLeft
+type: standard
+pdu_id: 1
+length: 2
+description: Left exterior mirror horizontal and vertical position.
+
+signals:
+  - bit_position: 0
+    endianness: LE
+    subscriber_nodes: [ZonalPlatform1]
+    signal:
+      name: MirrorLeftHorizontal
+      description: Left exterior mirror horizontal position.
+      bit_length: 8
+      data_type: uint8
+      factor: 1.0
+      offset: -90.0
+      lower_limit: -90.0
+      upper_limit: 90.0
+      unit: deg
+      value_descriptions:
+        - value: 255
+          description: Position_Unknown
+  - bit_position: 8
+    endianness: LE
+    subscriber_nodes: [ZonalPlatform1]
+    signal:
+      name: MirrorLeftVertical
+      description: Left exterior mirror vertical position.
+      bit_length: 8
+      data_type: uint8
+      factor: 1.0
+      offset: -30.0
+      lower_limit: -30.0
+      upper_limit: 30.0
+      unit: deg
+      value_descriptions:
+        - value: 255
+          description: Position_Unknown

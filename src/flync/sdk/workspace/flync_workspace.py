@@ -6,7 +6,7 @@ Provides classes and functions to manage workspace operations.
 
 import logging
 from pathlib import Path
-from typing import Dict, Optional, Union, get_args, get_origin
+from typing import Annotated, Dict, Optional, Union, get_args, get_origin
 
 import yaml
 from pydantic import RootModel
@@ -460,7 +460,68 @@ class FLYNCWorkspace(object):
             else:
                 self.load_flync_model(attr_value, next_path / attr_name)
 
-    def __handle_generic_types_list(  # noqa # nosonar
+    def __load_list_item(
+        self,
+        sub_item_path: Path,
+        base_type,
+        base_type_args: tuple,
+        list_element_type,
+        field_name: str,
+        item_dir: Path,
+        external,
+        list_paths: list[str],
+    ):
+        """Load one item from a list-folder entry, handling Union and
+        concrete types.
+
+        Args:
+            sub_item_path (Path): Path to the file or folder for this item.
+            base_type: Origin type of the list element
+                (e.g. ``Union`` or ``None``).
+            base_type_args (tuple): Generic args of ``base_type``.
+            list_element_type: Declared element type of the list field.
+            field_name (str): Field name on the parent model.
+            item_dir (Path): Parent directory containing the list items.
+            external: The ``External`` annotation for this field.
+            list_paths (list[str]): Dot-path context for this item.
+
+        Returns:
+            The loaded model instance, or ``None`` if loading failed.
+        """
+        if base_type is Union:
+            item_info: dict = {}
+            self.__handle_generic_types_union(
+                base_type_args,
+                external,
+                sub_item_path.name,
+                field_name,
+                item_info,
+                item_dir,
+                list_paths,
+            )
+            if field_name not in item_info:
+                logger.warning(
+                    "Skipping file %s: could not be loaded"
+                    " as any of the expected types.",
+                    str(sub_item_path),
+                )
+                return None
+            return item_info[field_name]
+        else:
+            item = self.__load_from_path(
+                sub_item_path,
+                list_element_type,
+                field_name,
+                list_paths,
+            )
+            if item is None:
+                logger.warning(
+                    "Skipping file %s: failed to load.",
+                    str(sub_item_path),
+                )
+            return item
+
+    def __handle_generic_types_list(  # noqa
         self,
         base_type_args: tuple,
         external: External,
@@ -469,7 +530,7 @@ class FLYNCWorkspace(object):
         module_load_info: dict,
         path: Path,
         current_object_paths: list[str],
-    ) -> bool:  # noqa # nosonar
+    ) -> bool:
         """Load an external ``list`` field from disk into ``module_load_info``.
 
         Iterates files/folders under the external directory for
@@ -493,8 +554,11 @@ class FLYNCWorkspace(object):
         list_element_type = base_type_args[0]
         if OutputStrategy.FOLDER in external.output_structure:
             item_dir = path / external_path
-            base_type = get_origin(list_element_type)
-            base_type_args = get_args(list_element_type)
+            effective_element_type = list_element_type
+            if get_origin(list_element_type) is Annotated:
+                effective_element_type = get_args(list_element_type)[0]
+            base_type = get_origin(effective_element_type)
+            base_type_args = get_args(effective_element_type)
             for idx, sub_item_path in enumerate(item_dir.iterdir()):
                 if not self.is_path_supported(sub_item_path):
                     logger.warning(
@@ -506,28 +570,19 @@ class FLYNCWorkspace(object):
                 list_paths = self.add_list_item_object_path(
                     list_name, current_object_paths, idx
                 )
-                item_info: dict = {}
-                if base_type is Union:
-                    self.__handle_generic_types_union(
-                        base_type_args,
-                        external,
-                        sub_item_path.name,
-                        field_name,
-                        item_info,
-                        item_dir,
-                        list_paths,
-                    )
-                    list_item_value.append(item_info[field_name])
-                else:
-                    list_item_value.append(
-                        self.__load_from_path(
-                            sub_item_path,
-                            list_element_type,
-                            field_name,
-                            list_paths,
-                        )
-                    )
-
+                item = self.__load_list_item(
+                    sub_item_path,
+                    base_type,
+                    base_type_args,
+                    list_element_type,
+                    field_name,
+                    item_dir,
+                    external,
+                    list_paths,
+                )
+                if item is None:
+                    continue
+                list_item_value.append(item)
             module_load_info[field_name] = list_item_value
             return True
         if OutputStrategy.SINGLE_FILE in external.output_structure:
@@ -617,7 +672,46 @@ class FLYNCWorkspace(object):
             return True
         return False
 
-    def __handle_generic_types_union(  # noqa # nosonar
+    def __try_load_union_type(
+        self,
+        path: Path,
+        external_path: str,
+        possible_type,
+        field_name: str,
+        current_object_paths: list[str],
+    ):
+        """Attempt to load one union member type, restoring diagnostics on
+        failure.
+
+        Args:
+            path (Path): Absolute path of the current directory.
+            external_path (str): Relative path segment for this field.
+            possible_type: The union member type to attempt.
+            field_name (str): Field name on the parent model.
+            current_object_paths (list[str]): Dot-path contexts for object
+                tracking.
+
+        Returns:
+            The loaded model instance, or ``None`` if the type did not match.
+        """
+        attempt_path = (path / external_path).absolute()
+        doc_id = self.document_id_from_path(attempt_path)
+        diags_existed = doc_id in self.documents_diags
+        saved_diags = list(self.documents_diags.get(doc_id, []))
+        result = self.__load_from_path(
+            path / external_path,
+            possible_type,
+            field_name,
+            current_object_paths,
+        )
+        if result is None:
+            if diags_existed:
+                self.documents_diags[doc_id] = saved_diags
+            elif doc_id in self.documents_diags:
+                del self.documents_diags[doc_id]
+        return result
+
+    def __handle_generic_types_union(  # noqa
         self,
         base_type_args: tuple,
         external,
@@ -626,7 +720,7 @@ class FLYNCWorkspace(object):
         module_load_info: dict,
         path: Path,
         current_object_paths: list[str],
-    ) -> bool:  # noqa # nosonar
+    ) -> bool:
         """Attempt to load an external ``Union`` field by trying each member
         type.
 
@@ -657,12 +751,16 @@ class FLYNCWorkspace(object):
                 if issubclass(
                     possible_base_type or possible_type, FLYNCBaseModel
                 ):
-                    module_load_info[field_name] = self.__load_from_path(
-                        path / external_path,
+                    result = self.__try_load_union_type(
+                        path,
+                        external_path,
                         possible_type,
                         field_name,
                         current_object_paths,
                     )
+                    if result is None:
+                        continue
+                    module_load_info[field_name] = result
                 else:
                     self.__handle_generic_types(
                         possible_type,

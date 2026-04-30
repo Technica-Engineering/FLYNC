@@ -1,0 +1,75 @@
+name: PDU_EngineStatus
+type: standard
+pdu_id: 257
+length: 8
+description: >-
+  Engine speed, torque, coolant temperature and operating state.
+  Transmitted cyclically at 10 ms by EngineECU on PowertrainCAN.
+
+signals:
+  - bit_position: 0
+    endianness: LE
+    subscriber_nodes: [HPC, TransmissionECU]
+    signal:
+      name: EngineSpeed
+      description: Crankshaft rotational speed.
+      bit_length: 16
+      data_type: uint16
+      factor: 0.25
+      offset: 0.0
+      lower_limit: 0.0
+      upper_limit: 16383.75
+      unit: rpm
+      value_descriptions:
+        - value: 65535
+          description: Signal_Not_Available
+  - bit_position: 16
+    endianness: LE
+    subscriber_nodes: [HPC, TransmissionECU]
+    signal:
+      name: EngineTorque
+      description: Indicated engine torque at crankshaft.
+      bit_length: 16
+      data_type: int16
+      factor: 0.1
+      offset: -3276.8
+      lower_limit: -3276.8
+      upper_limit: 3276.7
+      unit: Nm
+  - bit_position: 32
+    endianness: LE
+    subscriber_nodes: [HPC]
+    signal:
+      name: EngineCoolantTemp
+      description: Engine coolant temperature.
+      bit_length: 8
+      data_type: uint8
+      factor: 1.0
+      offset: -40.0
+      lower_limit: -40.0
+      upper_limit: 215.0
+      unit: degC
+      value_descriptions:
+        - value: 254
+          description: Sensor_Error
+        - value: 255
+          description: Signal_Not_Available
+  - bit_position: 40
+    endianness: LE
+    subscriber_nodes: [HPC, TransmissionECU]
+    signal:
+      name: EngineStatus
+      description: Engine operating state.
+      bit_length: 4
+      data_type: uint8
+      value_descriptions:
+        - value: 0
+          description: "Off"
+        - value: 1
+          description: Cranking
+        - value: 2
+          description: Running
+        - value: 3
+          description: Stall
+        - value: 15
+          description: Error

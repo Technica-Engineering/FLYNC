@@ -28,6 +28,7 @@ from flync.core.datatypes.ipaddress import (
     IPv6AddressEntry,
 )
 from flync.core.utils.exceptions import err_minor, warn
+from flync.model.flync_4_signal.frame import PDUSender
 from flync.model.flync_4_someip import (
     SOMEIPSDDeployment,
     SOMEIPServiceConsumer,
@@ -49,11 +50,16 @@ class DeploymentUnion(RootModel):
     :class:`~flync.model.flync_4_someip.SOMEIPServiceProvider`
     or
     :class:`~flync.model.flync_4_someip.SOMEIPSDDeployment`
+    or
+    :class:`~flync.model.flync_4_signal.pdu.PDUSender`
 
     """
 
     root: (
-        SOMEIPServiceConsumer | SOMEIPServiceProvider | SOMEIPSDDeployment
+        SOMEIPServiceConsumer
+        | SOMEIPServiceProvider
+        | SOMEIPSDDeployment
+        | PDUSender
     ) = Field(discriminator="deployment_type")
 
 

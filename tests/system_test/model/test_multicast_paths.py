@@ -17,6 +17,7 @@ from tests.system_test.sdk.helper_load_ws import update_yaml_content
 
 absolute_path = Path(__file__).parents[3] / "examples" / "flync_example"
 
+absolute_path = Path(__file__).parents[3] / "examples" / "flync_example"
 
 def reset(class_name):
 
