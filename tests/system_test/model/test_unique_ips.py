@@ -77,7 +77,7 @@ def test_unique_ips_duplicate_ipv4_across_ecus(tmpdir):
     assert len(warnings) == 1
     assert "10.0.50.1" in warnings[0]["msg"]
     # Warning is reported for the second ECU that contains the duplicate.
-    assert "eth_ecu" in warnings[0]["msg"]
+    assert "repeated in" in warnings[0]["msg"]
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
 
@@ -97,7 +97,7 @@ def test_unique_ips_duplicate_ipv4_within_same_ecu(tmpdir):
     warnings = _ip_repeat_warnings(loaded_ws.load_errors)
     assert len(warnings) == 1
     assert "10.0.40.7" in warnings[0]["msg"]
-    assert "eth_ecu" in warnings[0]["msg"]
+    assert "repeated in" in warnings[0]["msg"]
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
 

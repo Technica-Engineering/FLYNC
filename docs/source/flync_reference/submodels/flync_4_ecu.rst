@@ -35,7 +35,7 @@ ECU Ports Config
       The external physical ports (and PHYs) of the ECUs of the system are configured in one dedicated file.
       For an ECU config, this file is **mandatory** since all ECUs need to define (at least) one port.
 
-   .. literalinclude:: ../../_static/flync_example/ecus/high_processing_core/ports.flync.yaml
+   .. literalinclude:: ../../_static/flync_example/ecus/high_performance_compute/ports.flync.yaml
       :language: yaml
 
 
@@ -73,7 +73,7 @@ Ethernet Interfaces
    .. note::
       The configuration of a controller interface is defined in one file per Controller.
 
-   .. literalinclude:: ../../_static/flync_example/ecus/high_processing_core/controllers/hpc_controller1/ethernet_interfaces/hpc_c1_iface1/interface_config.flync.yaml
+   .. literalinclude:: ../../_static/flync_example/ecus/high_performance_compute/controllers/hpc_controller1/ethernet_interfaces/hpc_c1_iface1/interface_config.flync.yaml
       :language: yaml
 
 
@@ -128,7 +128,7 @@ Socket Config
       It is advisable to keep sockets that provide similar functionality together
       (e.g. all SOME/IP sockets in the same file).
 
-   .. literalinclude:: ../../_static/flync_example/ecus/high_processing_core/controllers/hpc_controller1/ethernet_interfaces/hpc_c1_iface1/sockets/socket_someip.flync.yaml
+   .. literalinclude:: ../../_static/flync_example/ecus/high_performance_compute/controllers/hpc_controller1/ethernet_interfaces/hpc_c1_iface1/sockets/socket_someip.flync.yaml
 
 .. autoclass:: flync.model.flync_4_ecu.socket_container.SocketContainer()
 .. autoclass:: flync.model.flync_4_ecu.sockets.Socket()
@@ -168,7 +168,7 @@ Switch Config
       The switches directory contains the individual configuration files for every ethernet switch that is present in that ECU.
       This is a **non-mandatory** directory for the ECU configuration, since not all ECUs have switches.
 
-   .. literalinclude:: ../../_static/flync_example/ecus/high_processing_core/switches/hpc_switch1.flync.yaml
+   .. literalinclude:: ../../_static/flync_example/ecus/high_performance_compute/switches/hpc_switch1.flync.yaml
       :language: yaml
 
 .. hint::
@@ -246,7 +246,7 @@ ECU Internal Topology
       This file contains all the different internal connections between entities of an ECU (ports, switch ports, controller interfaces, ...) to resolve the internal topology of the component and run validation checks on the model.
       This is a **mandatory** file for the ECU configuration, since all ECUs present (at least) one ECU port and one Controller Interface.
 
-   .. literalinclude:: ../../_static/flync_example/ecus/high_processing_core/topology.flync.yaml
+   .. literalinclude:: ../../_static/flync_example/ecus/high_performance_compute/topology.flync.yaml
 
 
 Internal Connection

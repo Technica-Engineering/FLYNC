@@ -40,7 +40,7 @@ def test_multicast_paths_no_tx(tmpdir):
     file_to_update = (
         destination_folder
         / "ecus"
-        / "high_processing_core"
+        / "high_performance_compute"
         / "controllers"
         / "hpc_controller2"
         / "ethernet_interfaces"
@@ -71,7 +71,7 @@ def test_multicast_paths_no_path_from_rx_to_tx(tmpdir):
     file_to_update = (
         destination_folder
         / "ecus"
-        / "high_processing_core"
+        / "high_performance_compute"
         / "switches"
         / "hpc_switch1.flync.yaml"
     )
@@ -100,7 +100,7 @@ def test_switch_flooded(tmpdir):
     ecus = loaded_ws.flync_model.ecus
     switch = None
     for ecu in ecus:
-        if ecu.name == "high_processing_core":
+        if ecu.name == "high_performance_compute":
             switch = ecu.get_switch_by_name("hpc_switch1")
 
     for v in switch.vlans:
