@@ -424,7 +424,7 @@ class ECU(UniqueName):
         all_socket_containers = [
             sc
             for controller in self.controllers
-            for eth_iface in controller.ethernet_interfaces
+            for eth_iface in (controller.ethernet_interfaces or [])
             for sc in (eth_iface.sockets or [])
         ]
         return {
@@ -476,7 +476,7 @@ class ECU(UniqueName):
         """
         service_instances = []
         for controller in self.controllers:
-            for eth_iface in controller.ethernet_interfaces:
+            for eth_iface in controller.ethernet_interfaces or []:
                 for ecu_sockets in eth_iface.sockets or []:
                     for socket in ecu_sockets.sockets or []:
                         for deployment in socket.deployments or []:

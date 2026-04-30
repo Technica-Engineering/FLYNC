@@ -28,6 +28,9 @@ from flync.core.base_models import (
     NamedListInstances,
 )
 from flync.core.utils.exceptions import err_fatal, err_major, err_minor
+from flync.core.version_migrators.legacy_controller_check import (
+    reject_legacy_controller,
+)
 from flync.model.flync_4_ecu.phy import MII, RGMII, RMII, SGMII, XFI
 from flync.model.flync_4_ecu.socket_container import SocketContainer
 from flync.model.flync_4_ecu.sockets import (
@@ -599,12 +602,12 @@ class Controller(NamedListInstances["Controller"]):
     ] = Field()
 
     ethernet_interfaces: Annotated[
-        List[EthernetInterface],
+        Optional[List[EthernetInterface]],
         External(
             output_structure=OutputStrategy.FOLDER,
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
-    ] = Field()
+    ] = Field(default_factory=list)
     l2_bridge: Annotated[
         Optional[L2Bridge],
         External(
@@ -614,6 +617,20 @@ class Controller(NamedListInstances["Controller"]):
         ),
     ] = Field(default=None)
     _type: Literal["controller"] = PrivateAttr(default="controller")
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_legacy_controller_layout(cls, data):
+        reject_legacy_controller(data)
+        return data
+
+    @model_validator(mode="after")
+    def require_ethernet_interfaces(self):
+        if not self.ethernet_interfaces:
+            raise err_major(
+                "Controller must declare at least one ethernet interface."
+            )
+        return self
 
     @model_validator(mode="after")
     def check_ports_l2_bridge_are_interfaces_or_compute_nodes(self):

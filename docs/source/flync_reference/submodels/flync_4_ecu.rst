@@ -51,6 +51,11 @@ ECU Ports Config
 Controller Config
 ##################
 
+.. version-changed:: 0.11.0
+
+   The Structure of the Controller configuration was significantly updated with Version 0.11.0!
+   Make sure to upgrade your config to the new structure as described in the reference: :ref:`controller_config_reference`
+
 .. admonition:: Expand for Schematic
    :collapsible: closed
 

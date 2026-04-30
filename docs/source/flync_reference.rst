@@ -133,15 +133,23 @@ All components inside the ECU are described in an internal topology where the st
    - :ref:`internal_topology`
    - :ref:`ECU Metadata <ecu_meta>`
 
+.. _controller_config_reference:
+
 ECUs - Controllers
 ==================
+
+.. version-changed:: 0.11.0
+
+   The Structure of the Controller configuration was significantly updated with Version 0.11.0!
+   Make sure to upgrade your config to the new structure described in this section.
+
 
 Each controller of an ECU is represented as a **directory**.
 
 Ethernet interfaces are grouped in the sub-directory ``ethernet_interfaces/``, where each interface is its own named directory.
 One interface directory consists of:
-   - an interface configuration
-   - optionally a ``sockets/`` directory for socket deployments.
+- an interface configuration
+- optionally a ``sockets/`` directory for socket deployments.
 
 .. code-block::
 
