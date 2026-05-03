@@ -1,10 +1,17 @@
 import asyncio
-import pytest
-from pathlib import Path
-from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 import shutil
+from pathlib import Path
+
+import pytest
 from pydantic import ValidationError
-from .helper_load_ws import *
+
+from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
+
+from .helper_load_ws import (
+    append_yaml_content,
+    model_has_socket,
+    update_yaml_content,
+)
 
 # Verify loading workspace multiple times
 absolute_path = Path(__file__).parents[3] / "examples" / "flync_example"
@@ -15,9 +22,7 @@ def test_load_workspace_multiple_times(tmpdir):
     for i in range(1, 4):
         destination_folder = Path(tmpdir) / f"copy{i}"
         shutil.copytree(absolute_path, destination_folder)
-        workspace = FLYNCWorkspace.load_workspace(
-            "flync_example", destination_folder
-        )
+        workspace = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
         assert workspace is not None
         if destination_folder.exists():
             shutil.rmtree(destination_folder)
@@ -40,9 +45,7 @@ def test_load_workspace_valid_absolute_path():
 
 
 # Verify workspace loads with valid relative path
-relative_path = Path(
-    Path(__file__).parent, "..", "..", "..", "examples", "flync_example"
-)
+relative_path = Path(Path(__file__).parent, "..", "..", "..", "examples", "flync_example")
 
 
 def test_load_workspace_valid_relative_path():
@@ -60,9 +63,7 @@ def test_load_workspace_valid_relative_path():
 
 
 def test_load_workspace_valid_str_path():
-    workspace = FLYNCWorkspace.load_workspace(
-        "flync_example", str(absolute_path)
-    )
+    workspace = FLYNCWorkspace.load_workspace("flync_example", str(absolute_path))
     assert workspace is not None
     assert workspace.flync_model is not None
     assert workspace.flync_model.ecus
@@ -91,17 +92,13 @@ required_attributes = [
 @pytest.mark.xfail(reason="Known bug")
 def test_load_workspace_exsistence_attribute(attribute):
     workspace = FLYNCWorkspace.load_workspace("flync_example", absolute_path)
-    assert hasattr(
-        workspace, attribute
-    ), f"Workspace is missing attribute: {attribute}"
+    assert hasattr(workspace, attribute), f"Workspace is missing attribute: {attribute}"
 
 
 # Verify handling invalid workspace directory path
 def test_load_workspace_invalid_yaml_path():
     with pytest.raises(FileNotFoundError):
-        FLYNCWorkspace.load_workspace(
-            "flync_example", "/path/to/nonexistent/directory"
-        )
+        FLYNCWorkspace.load_workspace("flync_example", "/path/to/nonexistent/directory")
 
 
 def test_load_workspace_empty_name():
@@ -138,12 +135,8 @@ files = [
     *Path(absolute_path).glob("ecus/*/ports.flync.yaml"),
     *Path(absolute_path).glob("ecus/*/topology.flync.yaml"),
     *Path(absolute_path).glob("ecus/*/ecu_metadata.flync.yaml"),
-    *Path(absolute_path).glob(
-        "ecus/*/controllers/*/ethernet_interfaces/*/interface_config.flync.yaml"
-    ),
-    *Path(absolute_path).glob(
-        "ecus/*/controllers/*/controller_metadata.flync.yaml"
-    ),
+    *Path(absolute_path).glob("ecus/*/controllers/*/ethernet_interfaces/*/interface_config.flync.yaml"),
+    *Path(absolute_path).glob("ecus/*/controllers/*/controller_metadata.flync.yaml"),
 ]
 
 
@@ -154,9 +147,7 @@ def test_load_workspace_missing_mandatory_file(tmpdir, file):
     path_to_remove = destination_folder / file.relative_to(absolute_path)
     path_to_remove.unlink()
     try:
-        loaded_ws = FLYNCWorkspace.load_workspace(
-            "flync_example", destination_folder
-        )
+        loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
         assert loaded_ws.load_errors != []
     except ValidationError:
         pass
@@ -170,12 +161,8 @@ files = [
     *Path(absolute_path).glob("ecus/*/ports.flync.yaml"),
     *Path(absolute_path).glob("ecus/*/topology.flync.yaml"),
     *Path(absolute_path).glob("ecus/*/ecu_metadata.flync.yaml"),
-    *Path(absolute_path).glob(
-        "ecus/*/controllers/*/ethernet_interfaces/*/interface_config.flync.yaml"
-    ),
-    *Path(absolute_path).glob(
-        "ecus/*/controllers/*/controller_metadata.flync.yaml"
-    ),
+    *Path(absolute_path).glob("ecus/*/controllers/*/ethernet_interfaces/*/interface_config.flync.yaml"),
+    *Path(absolute_path).glob("ecus/*/controllers/*/controller_metadata.flync.yaml"),
 ]
 
 
@@ -188,9 +175,7 @@ def test_load_workspace_invalid_format(tmpdir, file):
     new_file_path = file_to_rename.with_name(new_file_name)
     file_to_rename.rename(new_file_path)
     try:
-        loaded_ws = FLYNCWorkspace.load_workspace(
-            "flync_example", destination_folder
-        )
+        loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
         assert loaded_ws.load_errors != []
     except ValidationError:
         pass
@@ -199,16 +184,8 @@ def test_load_workspace_invalid_format(tmpdir, file):
 
 
 # Verify workspace loading with added image (schema/diagram)
-image_path = (
-    Path(__file__).parents[2]
-    / "docs"
-    / "source"
-    / "_static"
-    / "technica-logo.png"
-)
-directories = [absolute_path] + [
-    path for path in absolute_path.rglob("*") if path.is_dir()
-]
+image_path = Path(__file__).parents[2] / "docs" / "source" / "_static" / "technica-logo.png"
+directories = [absolute_path] + [path for path in absolute_path.rglob("*") if path.is_dir()]
 
 
 @pytest.mark.parametrize("dir", directories)
@@ -218,9 +195,7 @@ def test_load_workspace_add_image(tmpdir, dir):
     shutil.copytree(absolute_path, destination_folder)
     path_to_add = destination_folder / dir.relative_to(absolute_path)
     shutil.copy(image_path, path_to_add)
-    workspace = FLYNCWorkspace.load_workspace(
-        "flync_example", destination_folder
-    )
+    workspace = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
     assert workspace is not None
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
@@ -241,9 +216,7 @@ def test_load_workspace_upper_key(tmpdir):
         / "interface_config.flync.yaml"
     )
     update_yaml_content(file_to_update, "name", "NAME")
-    workspace = FLYNCWorkspace.load_workspace(
-        "flync_example", destination_folder
-    )
+    workspace = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
     assert "Field required" in str(workspace.load_errors)
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
@@ -264,9 +237,7 @@ def test_load_workspace_incorret_value_type(tmpdir):
         / "interface_config.flync.yaml"
     )
     update_yaml_content(file_to_update, "name: eth_ecu_c1_iface1", "name: 123")
-    workspace = FLYNCWorkspace.load_workspace(
-        "flync_example", destination_folder
-    )
+    workspace = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
     assert "Input should be a valid string" in str(workspace.load_errors)
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
@@ -295,9 +266,7 @@ def test_load_workspace_incorret_value_format(tmpdir, key, value):
         / "eth_ecu_c1_iface1"
         / "interface_config.flync.yaml"
     )
-    update_yaml_content(
-        file_to_update, "mac_address: 00:11:22:33:44:55", f"mac_address: {key}"
-    )
+    update_yaml_content(file_to_update, "mac_address: 00:11:22:33:44:55", f"mac_address: {key}")
     with pytest.raises(ValidationError) as exc_info:
         FLYNCWorkspace.load_workspace("flync_example", destination_folder)
     assert value in str(exc_info.value)
@@ -321,9 +290,7 @@ def test_load_workspace_extra_key_value(tmpdir):
     )
     append_yaml_content(file_to_update, "\nnew_value: something\n")
     try:
-        loaded_ws = FLYNCWorkspace.load_workspace(
-            "flync_example", destination_folder
-        )
+        loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
         assert loaded_ws.load_errors != []
     except ValidationError as exc_info:
         assert "new_value\n  Extra inputs are not permitted" in str(exc_info)
@@ -347,9 +314,7 @@ def test_load_workspace_key_value_misplaced(tmpdir):
     )
     update_yaml_content(file_to_update, "  mode: mac", "mode: mac")
     try:
-        loaded_ws = FLYNCWorkspace.load_workspace(
-            "flync_example", destination_folder
-        )
+        loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
         assert loaded_ws.load_errors != []
     except ValidationError as exc_info:
         assert "mii_config.sgmii.mode\n  Field required" in str(exc_info)
@@ -405,9 +370,7 @@ def test_load_workspace_missing_dashe(tmpdir):
         "multicast:\n            224.0.0.1",
     )
     try:
-        loaded_ws = FLYNCWorkspace.load_workspace(
-            "flync_example", destination_folder
-        )
+        loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
         assert loaded_ws.load_errors != []
     except ValidationError as exc_info:
         assert "multicast\n  Input should be a valid list" in str(exc_info)
@@ -431,9 +394,7 @@ def test_load_workspace_missing_key_value(tmpdir):
     )
     update_yaml_content(file_to_update, "name: eth_ecu_c1_iface1", "")
     try:
-        loaded_ws = FLYNCWorkspace.load_workspace(
-            "flync_example", destination_folder
-        )
+        loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
         assert loaded_ws.load_errors != []
     except ValidationError as exc_info:
         assert "name\n  Field required" in str(exc_info)
@@ -479,10 +440,7 @@ def test_load_multiple_workspaces_async(tmpdir):
         paths.append((f"flync_example_{i}", destination))
 
     async def load_all():
-        tasks = [
-            asyncio.to_thread(FLYNCWorkspace.load_workspace, name, path)
-            for name, path in paths
-        ]
+        tasks = [asyncio.to_thread(FLYNCWorkspace.load_workspace, name, path) for name, path in paths]
         return await asyncio.gather(*tasks)
 
     workspaces = asyncio.run(load_all())

@@ -37,27 +37,18 @@ class MACMulticastEndpoint(FLYNCBaseModel):
     """
 
     name: str = Field(description="Name of the multicast endpoint.")
-    mac_address: MacAddress = Field(
-        description="MAC address of the controller that this endpoint is \
-            bound to."
-    )
-    protocol: str = Field(
-        description="Protocol that is expected on this endpoint."
-    )
+    mac_address: MacAddress = Field(description="MAC address of the controller that this endpoint is \
+            bound to.")
+    protocol: str = Field(description="Protocol that is expected on this endpoint.")
     ethertype: Optional[int] = Field(
         description="EtherType that is expected on this endpoint.",
         ge=0x0000,
         le=0xFFFF,
     )
-    vlan_id: Annotated[Optional[int], AfterValidator(validate_vlan_id)] = (
-        Field(
-            description="VLAN ID expected on this endpoint "
-            "(``None`` for untagged).",
-        )
+    vlan_id: Annotated[Optional[int], AfterValidator(validate_vlan_id)] = Field(
+        description="VLAN ID expected on this endpoint " "(``None`` for untagged).",
     )
-    multicast_tx: Optional[
-        List[Annotated[MacAddress, AfterValidator(validate_mac_multicast)]]
-    ] = Field(
+    multicast_tx: Optional[List[Annotated[MacAddress, AfterValidator(validate_mac_multicast)]]] = Field(
         description="List of multicast addresses that this endpoint should \
             transmit to.",
         default_factory=list,
@@ -93,10 +84,7 @@ class AVTPMulticastEndpoint(MACMulticastEndpoint):
                 MacAddress("91:E0:F0:00:00:00"),
                 MacAddress("91:E0:F0:00:00:FF"),
             ):
-                raise err_major(
-                    f"AVTP multicast address {str(mac).upper()} is out of "
-                    "the valid range 91:E0:F0:00:00:00 - 91:E0:F0:00:00:FF."
-                )
+                raise err_major(f"AVTP multicast address {str(mac).upper()} is out of " "the valid range 91:E0:F0:00:00:00 - 91:E0:F0:00:00:FF.")
         return v
 
 

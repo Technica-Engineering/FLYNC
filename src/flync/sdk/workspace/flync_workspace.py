@@ -105,9 +105,7 @@ class FLYNCWorkspace(object):
             )
         self.name = name
         self.configuration = configuration or WorkspaceConfiguration()
-        self.model_graph: ModelDependencyGraph = get_model_dependency_graph(
-            self.configuration.root_model
-        )
+        self.model_graph: ModelDependencyGraph = get_model_dependency_graph(self.configuration.root_model)
         # documents
         self.documents: Dict[str, Document] = {}
         self.documents_diags: Dict[str, list[ErrorDetails]] = {}
@@ -135,11 +133,7 @@ class FLYNCWorkspace(object):
             list[ErrorDetails]: All per-document errors concatenated into a
             single list.
         """
-        return [
-            error
-            for doc_errors in self.documents_diags.values()
-            for error in doc_errors
-        ]
+        return [error for doc_errors in self.documents_diags.values() for error in doc_errors]
 
     # region creator
     @classmethod
@@ -224,9 +218,7 @@ class FLYNCWorkspace(object):
 
         Returns: FLYNCWorkspace
         """
-        output = FLYNCWorkspace.safe_load_workspace(
-            workspace_name, workspace_path, workspace_config=workspace_config
-        )
+        output = FLYNCWorkspace.safe_load_workspace(workspace_name, workspace_path, workspace_config=workspace_config)
         if not isinstance(output.flync_model, FLYNCBaseModel):
             raise ValidationError.from_exception_data(
                 title=f"Model ({workspace_name}) Creation Error",
@@ -249,17 +241,13 @@ class FLYNCWorkspace(object):
         if isinstance(uri, str):
             uri = Path(uri)
         if uri.is_absolute():
-            uri = uri.relative_to(
-                self.workspace_root  # type: ignore[arg-type]
-            )
+            uri = uri.relative_to(self.workspace_root)  # type: ignore[arg-type]
         uri = uri.as_posix()
         doc = Document(uri, text, self.configuration.map_objects)
         doc.parse()
         self.documents[uri] = doc
 
-    def load_flync_model(  # noqa # nosonar
-        self, flync_model: FLYNCBaseModel, file_path: PathType = ""
-    ):  # noqa # nosonar
+    def load_flync_model(self, flync_model: FLYNCBaseModel, file_path: PathType = ""):  # noqa # nosonar  # noqa # nosonar
         """Load a FLYNCModel into the workspace.
 
         This is a placeholder implementation that stores the model for later
@@ -270,9 +258,7 @@ class FLYNCWorkspace(object):
         content = self.__get_model_content(flync_model, file_path)
         self.__save_content_to_file(file_path, content)
 
-    def __save_content_to_file(  # noqa # nosonar
-        self, file_path: Path, content
-    ):  # noqa # nosonar
+    def __save_content_to_file(self, file_path: Path, content):  # noqa # nosonar  # noqa # nosonar
         """Persist serialized model content as a Document in the workspace.
 
         Resolves the full URI under the workspace root, creates a
@@ -290,19 +276,13 @@ class FLYNCWorkspace(object):
             # no need to create a document
             return
         if not self.workspace_root:
-            raise ValueError(
-                "Unable to save contents in a workspace, the workspace root is not defined."  # noqa
-            )
-        uri = self.workspace_root / file_path.with_suffix(
-            self.configuration.flync_file_extension
-        )
+            raise ValueError("Unable to save contents in a workspace, the workspace root is not defined.")  # noqa
+        uri = self.workspace_root / file_path.with_suffix(self.configuration.flync_file_extension)
         doc = Document(uri, content, self.configuration.map_objects)
         self.documents[str(uri)] = doc
         self.generate_configs(uri)
 
-    def __get_model_content(  # noqa # nosonar
-        self, flync_model: FLYNCBaseModel, file_path
-    ):  # noqa # nosonar
+    def __get_model_content(self, flync_model: FLYNCBaseModel, file_path):  # noqa # nosonar  # noqa # nosonar
         """Serialize a model to a dict, routing external fields to separate
         documents.
 
@@ -324,29 +304,21 @@ class FLYNCWorkspace(object):
         """
         exclude = set()
         for field_name, field_info in type(flync_model).model_fields.items():
-            external: External | None = get_metadata(
-                field_info.metadata, External
-            )
+            external: External | None = get_metadata(field_info.metadata, External)
             if external is not None:
                 exclude.add(field_name)
                 # field will need to be added to to a new separate document
                 flync_attribute = getattr(flync_model, field_name)
-                self.__handle_load_external_types(
-                    file_path, flync_attribute, external, field_name
-                )
+                self.__handle_load_external_types(file_path, flync_attribute, external, field_name)
                 continue
-            implied: Implied | None = get_metadata(
-                field_info.metadata, Implied
-            )
+            implied: Implied | None = get_metadata(field_info.metadata, Implied)
             if implied is not None and implied.strategy in (
                 ImpliedStrategy.FOLDER_NAME,
                 ImpliedStrategy.FILE_NAME,
             ):
                 exclude.add(field_name)
 
-        content = flync_model.model_dump(
-            exclude=exclude, exclude_unset=self.configuration.exclude_unset
-        )
+        content = flync_model.model_dump(exclude=exclude, exclude_unset=self.configuration.exclude_unset)
         return content
 
     def __handle_load_external_types(  # noqa # nosonar
@@ -378,39 +350,25 @@ class FLYNCWorkspace(object):
         if flync_attribute is None or not flync_attribute:
             # none field, do nothing
             return
-        if (
-            external.naming_strategy == NamingStrategy.FIXED_PATH
-            and external.path is not None
-        ):
+        if external.naming_strategy == NamingStrategy.FIXED_PATH and external.path is not None:
             external_path = external.path
         elif external.naming_strategy == NamingStrategy.FIELD_NAME:
             external_path = field_name
         else:
-            raise ValueError(
-                "Unable to find an external path for {}", field_name
-            )
+            raise ValueError("Unable to find an external path for {}", field_name)
         next_path = file_path / external_path
         if isinstance(flync_attribute, list):
-            self.__handle_load_external_types_list(
-                flync_attribute, external, next_path, field_name
-            )
+            self.__handle_load_external_types_list(flync_attribute, external, next_path, field_name)
         elif isinstance(flync_attribute, dict):
-            self.__handle_load_external_types_dict(
-                flync_attribute, external, next_path
-            )
+            self.__handle_load_external_types_dict(flync_attribute, external, next_path)
         elif isinstance(flync_attribute, FLYNCBaseModel):
-            if (
-                OutputStrategy.SINGLE_FILE in external.output_structure
-                and OutputStrategy.OMMIT_ROOT not in external.output_structure
-            ):
+            if OutputStrategy.SINGLE_FILE in external.output_structure and OutputStrategy.OMMIT_ROOT not in external.output_structure:
                 content = self.__get_model_content(flync_attribute, next_path)
                 self.__save_content_to_file(next_path, {field_name: content})
             else:
                 self.load_flync_model(flync_attribute, next_path)
         else:
-            raise ValueError(
-                "Unable to load object {} from flync object", field_name
-            )
+            raise ValueError("Unable to load object {} from flync object", field_name)
 
     def __handle_load_external_types_list(  # noqa # nosonar
         self,
@@ -440,15 +398,12 @@ class FLYNCWorkspace(object):
             else:
                 self.load_flync_model(
                     attr,
-                    next_path
-                    / get_name(attr, self.__get_field_filename(attr)),
+                    next_path / get_name(attr, self.__get_field_filename(attr)),
                 )
         if len(list_content) != 0:
             self.__save_content_to_file(next_path, {field_name: list_content})
 
-    def __handle_load_external_types_dict(  # noqa # nosonar
-        self, flync_attribute: dict, external: External, next_path: Path
-    ):  # noqa # nosonar
+    def __handle_load_external_types_dict(self, flync_attribute: dict, external: External, next_path: Path):  # noqa # nosonar  # noqa # nosonar
         """Save a dict of external model instances to their output locations.
 
         When ``output_structure`` is ``SINGLE_FILE``, all values are
@@ -463,9 +418,7 @@ class FLYNCWorkspace(object):
         dict_content = {}
         for attr_name, attr_value in flync_attribute.items():
             if external.output_structure == OutputStrategy.SINGLE_FILE:
-                dict_content[attr_name] = self.__get_model_content(
-                    attr_value, next_path
-                )
+                dict_content[attr_name] = self.__get_model_content(attr_value, next_path)
             else:
                 self.load_flync_model(attr_value, next_path / attr_name)
 
@@ -510,8 +463,7 @@ class FLYNCWorkspace(object):
             )
             if field_name not in item_info:
                 logger.warning(
-                    "Skipping file %s: could not be loaded"
-                    " as any of the expected types.",
+                    "Skipping file %s: could not be loaded" " as any of the expected types.",
                     str(sub_item_path),
                 )
                 return None
@@ -576,9 +528,7 @@ class FLYNCWorkspace(object):
                     )
                     continue
                 list_name = self.name_form_file(sub_item_path)
-                list_paths = self.add_list_item_object_path(
-                    list_name, current_object_paths, idx
-                )
+                list_paths = self.add_list_item_object_path(list_name, current_object_paths, idx)
                 item = self.__load_list_item(
                     sub_item_path,
                     base_type,
@@ -657,9 +607,7 @@ class FLYNCWorkspace(object):
                     sub_item_path,
                     dict_element_type,
                     field_name,
-                    self.update_objects_path(
-                        current_object_paths, sub_item_path.name
-                    ),
+                    self.update_objects_path(current_object_paths, sub_item_path.name),
                 )
             module_load_info[field_name] = dict_item_value
             return True
@@ -757,9 +705,7 @@ class FLYNCWorkspace(object):
                     # optional external field, don't do anything
                     continue
                 possible_base_type = get_origin(possible_type)
-                if issubclass(
-                    possible_base_type or possible_type, FLYNCBaseModel
-                ):
+                if issubclass(possible_base_type or possible_type, FLYNCBaseModel):
                     result = self.__try_load_union_type(
                         path,
                         external_path,
@@ -876,11 +822,7 @@ class FLYNCWorkspace(object):
             # not a flync model and has no document. Add it manually.
             self._add_object_to_path(
                 path=path / external_path if external_path else path,
-                model=(
-                    module_load_info[field_name]
-                    if field_name in module_load_info
-                    else None
-                ),
+                model=(module_load_info[field_name] if field_name in module_load_info else None),
                 current_object_paths=current_object_paths,
                 start_line=0,
                 end_line=0,
@@ -889,12 +831,8 @@ class FLYNCWorkspace(object):
             )
             return
 
-        if not issubclass(
-            get_origin(attribute_type) or attribute_type, FLYNCBaseModel
-        ):
-            raise ValueError(
-                "externally annotated field {} cannot be loaded", field_name
-            )
+        if not issubclass(get_origin(attribute_type) or attribute_type, FLYNCBaseModel):
+            raise ValueError("externally annotated field {} cannot be loaded", field_name)
         module_load_info[field_name] = self.__load_from_path(
             path / external_path,
             attribute_type,
@@ -941,9 +879,7 @@ class FLYNCWorkspace(object):
         module_load_info: dict = {}
         # start by loading each field
         for field_name, field_info in current_type.model_fields.items():
-            external: External | None = get_metadata(
-                field_info.metadata, External
-            )
+            external: External | None = get_metadata(field_info.metadata, External)
             self.__handle_external_field_load(
                 path,
                 current_object_paths,
@@ -952,12 +888,8 @@ class FLYNCWorkspace(object):
                 field_info,
                 external,
             )
-            implied: Implied | None = get_metadata(
-                field_info.metadata, Implied
-            )
-            self.__handle_implied_field_load(
-                path, module_load_info, field_name, implied
-            )
+            implied: Implied | None = get_metadata(field_info.metadata, Implied)
+            self.__handle_implied_field_load(path, module_load_info, field_name, implied)
 
         # then group all the fields into the same object and return it
         self.__append_to_info_dict(path, module_load_info)
@@ -975,19 +907,11 @@ class FLYNCWorkspace(object):
             # based on expected file structure
             original_type = current_type
             if current_type_name:  # part of a parent
-                current_type = self.model_graph.rebuild_type_from_parent(
-                    current_type, current_type_name
-                )
-            relative_path = path.relative_to(
-                self.workspace_root.absolute()  # type: ignore[union-attr]
-            )
-            model, errors = validate_with_policy(
-                current_type, module_load_info, relative_path.as_posix()
-            )
+                current_type = self.model_graph.rebuild_type_from_parent(current_type, current_type_name)
+            relative_path = path.relative_to(self.workspace_root.absolute())  # type: ignore[union-attr]
+            model, errors = validate_with_policy(current_type, module_load_info, relative_path.as_posix())
             # errors should be path specific
-            self.documents_diags[self.document_id_from_path(path)].extend(
-                errors
-            )
+            self.documents_diags[self.document_id_from_path(path)].extend(errors)
             if self.configuration.map_objects:
                 self._update_objects(
                     path,
@@ -996,14 +920,10 @@ class FLYNCWorkspace(object):
                     parent_name=current_type_name,
                 )
             if current_type_name:
-                model = self.model_graph.normalize_child_to_parent(
-                    original_type, current_type_name, model
-                )
+                model = self.model_graph.normalize_child_to_parent(original_type, current_type_name, model)
             return model
         except ValidationError as e:
-            self.documents_diags[self.document_id_from_path(path)].extend(
-                e.errors()
-            )
+            self.documents_diags[self.document_id_from_path(path)].extend(e.errors())
             return None
 
     def __handle_implied_field_load(
@@ -1032,33 +952,21 @@ class FLYNCWorkspace(object):
             # field will need to be added to to a new separate document
             attribute_type = field_info.annotation
             if attribute_type is None:
-                raise ValueError(
-                    "Attribute {} has an invalid type.", field_name
-                )
+                raise ValueError("Attribute {} has an invalid type.", field_name)
             base_type: type | None = get_origin(attribute_type)
             base_type_args = get_args(attribute_type)
             external_path = (
-                external.path
-                if (
-                    (external.naming_strategy == NamingStrategy.FIXED_PATH)
-                    and (external.path is not None)
-                )
-                else field_name
+                external.path if ((external.naming_strategy == NamingStrategy.FIXED_PATH) and (external.path is not None)) else field_name
             )
             if OutputStrategy.SINGLE_FILE in external.output_structure:
                 external_path += self.configuration.flync_file_extension
                 if OutputStrategy.OMMIT_ROOT not in external.output_structure:
                     # the output file is a dictionary
                     # we need to load it accordingly
-                    attribute_type = dict[
-                        str, attribute_type  # type: ignore[valid-type]
-                    ]
+                    attribute_type = dict[str, attribute_type]  # type: ignore[valid-type]
                     base_type = get_origin(attribute_type)
                     base_type_args = get_args(attribute_type)
-            new_paths = [
-                self.new_object_path(current, field_name)
-                for current in current_object_paths
-            ]
+            new_paths = [self.new_object_path(current, field_name) for current in current_object_paths]
             self.__handle_generic_types(
                 attribute_type,
                 base_type,
@@ -1105,9 +1013,7 @@ class FLYNCWorkspace(object):
         """
         if path.is_file():
             if not self.is_flync_file(path):
-                logger.error(
-                    "trying to load an unsupported file: %s", str(path)
-                )
+                logger.error("trying to load an unsupported file: %s", str(path))
                 return
             with open(path, "r", encoding="utf-8") as direct_data:
                 self._open_document(path, direct_data.read())
@@ -1161,9 +1067,7 @@ class FLYNCWorkspace(object):
         if uri is not None:
             uri = str(uri)
             if uri not in self.documents:
-                raise ValueError(
-                    f"Document with URI {uri} not found in workspace."
-                )
+                raise ValueError(f"Document with URI {uri} not found in workspace.")
         docs = [self.documents[uri]] if uri else self.documents.values()
         for doc in docs:
             # create file
@@ -1231,9 +1135,7 @@ class FLYNCWorkspace(object):
             file_name = file_name.replace(extension, "")
         return file_name
 
-    def fill_path_from_object(  # noqa # nosonar
-        self, model_object: FLYNCBaseModel, object_path: str
-    ) -> str:  # noqa # nosonar
+    def fill_path_from_object(self, model_object: FLYNCBaseModel, object_path: str) -> str:  # noqa # nosonar  # noqa # nosonar
         """Replace placeholder segments in an object path with concrete keys.
 
         Traverses the workspace's root model following ``object_path``,
@@ -1253,9 +1155,7 @@ class FLYNCWorkspace(object):
         current_parent = self.flync_model
         for parts_idx, part in enumerate(parts):
             if part == "[]":
-                for idx, obj in enumerate(
-                    current_parent  # type: ignore[arg-type]
-                ):
+                for idx, obj in enumerate(current_parent):  # type: ignore[arg-type]
                     if obj == model_object:
                         parts[parts_idx] = idx  # type: ignore[call-overload]
                         current_parent = obj  # type: ignore[assignment]
@@ -1280,9 +1180,7 @@ class FLYNCWorkspace(object):
             str: The path relative to the workspace root, as a string.
         """
         if doc_path not in self.__cached_uris:
-            self.__cached_uris[doc_path] = doc_path.absolute().relative_to(
-                self.workspace_root  # type: ignore[arg-type]
-            )
+            self.__cached_uris[doc_path] = doc_path.absolute().relative_to(self.workspace_root)  # type: ignore[arg-type]
         return self.__cached_uris[doc_path].as_posix()
 
     @staticmethod
@@ -1298,9 +1196,7 @@ class FLYNCWorkspace(object):
         """
         return ".".join([current_path, str(new_object_name)])
 
-    def update_objects_path(
-        self, current_paths: list[str], new_object_name: str
-    ) -> list[str]:
+    def update_objects_path(self, current_paths: list[str], new_object_name: str) -> list[str]:
         """Extend every path in a list with a new segment.
 
         Args:
@@ -1310,10 +1206,7 @@ class FLYNCWorkspace(object):
         Returns:
             list[str]: New list of extended path strings.
         """
-        return [
-            self.new_object_path(current_path, new_object_name)
-            for current_path in current_paths
-        ]
+        return [self.new_object_path(current_path, new_object_name) for current_path in current_paths]
 
     # endregion
 
@@ -1357,13 +1250,9 @@ class FLYNCWorkspace(object):
             if node is None:
                 node = document.compose_ast
             if isinstance(node, MappingNode):
-                self._update_mapping_node_objects(
-                    path, model, current_object_paths, node
-                )
+                self._update_mapping_node_objects(path, model, current_object_paths, node)
             elif isinstance(node, SequenceNode):
-                self._update_sequence_node_objects(
-                    path, model, current_object_paths, node, parent_name
-                )
+                self._update_sequence_node_objects(path, model, current_object_paths, node, parent_name)
             if node is not None:
                 start_line, start_column = (
                     node.start_mark.line + 1,
@@ -1383,9 +1272,7 @@ class FLYNCWorkspace(object):
             end_column,
         )
 
-    def _update_sequence_node_objects(
-        self, path, model, current_object_paths, node, parent_name
-    ):
+    def _update_sequence_node_objects(self, path, model, current_object_paths, node, parent_name):
         for idx, item in enumerate(node.value):
             list_paths = self.add_list_item_object_path(
                 getattr(model[idx], "name", None),  # type: ignore
@@ -1400,18 +1287,14 @@ class FLYNCWorkspace(object):
                 parent_name=parent_name,
             )
 
-    def _update_mapping_node_objects(
-        self, path, model, current_object_paths, node
-    ):
+    def _update_mapping_node_objects(self, path, model, current_object_paths, node):
         for key_node, val_node in node.value:
             if isinstance(model, dict):
                 model_value = model[key_node.value]
             else:
                 model_value = getattr(model, key_node.value, None)
                 if model_value is None:
-                    field_alias = get_name_by_alias(
-                        type(model), key_node.value
-                    )
+                    field_alias = get_name_by_alias(type(model), key_node.value)
                     model_value = getattr(model, field_alias)
             self._update_objects(
                 path,
@@ -1450,16 +1333,10 @@ class FLYNCWorkspace(object):
             list[str]: New list of object paths for this item.
         """
         list_paths = []
-        if (
-            ListObjectsMode.INDEX in self.configuration.list_objects_mode
-        ) or not item_name:
+        if (ListObjectsMode.INDEX in self.configuration.list_objects_mode) or not item_name:
             list_paths += self.update_objects_path(current_object_paths, idx)
-        if (
-            ListObjectsMode.NAME in self.configuration.list_objects_mode
-        ) and item_name:
-            list_paths += self.update_objects_path(
-                current_object_paths, item_name
-            )
+        if (ListObjectsMode.NAME in self.configuration.list_objects_mode) and item_name:
+            list_paths += self.update_objects_path(current_object_paths, item_name)
 
         return list_paths
 
@@ -1536,9 +1413,7 @@ class FLYNCWorkspace(object):
         """
         return list(self.objects.keys())
 
-    def get_definition(
-        self, object_id: ObjectId, field_name: str
-    ) -> Optional[ObjectId]:
+    def get_definition(self, object_id: ObjectId, field_name: str) -> Optional[ObjectId]:
         """
         Resolve and return definition identifiers for a given field reference.
         Args:
@@ -1591,9 +1466,7 @@ class FLYNCWorkspace(object):
         current_obj = self.get_object(object_id)
 
         for semantic_obj in self.objects.values():
-            fields: dict | None = getattr(
-                type(semantic_obj.model), "model_fields", None
-            )
+            fields: dict | None = getattr(type(semantic_obj.model), "model_fields", None)
             if fields is None:
                 continue
 
@@ -1601,9 +1474,7 @@ class FLYNCWorkspace(object):
                 if obj_id_def := self.get_definition(semantic_obj.id, field):
                     model_def = self.get_object(obj_id_def)
                     if model_def.model is current_obj.model:
-                        self.find_path_from_field(
-                            object_id, refs, semantic_obj, field, info
-                        )
+                        self.find_path_from_field(object_id, refs, semantic_obj, field, info)
         return refs
 
     def find_path_from_field(
@@ -1650,9 +1521,7 @@ class FLYNCWorkspace(object):
             )
         refs.append(path_candidate)
 
-    def get_semantic_object_from_model(
-        self, model: FLYNCBaseModel
-    ) -> SemanticObject | None:
+    def get_semantic_object_from_model(self, model: FLYNCBaseModel) -> SemanticObject | None:
         """Find and return the semantic object that corresponds
         to a validated Flync object.
 
@@ -1687,9 +1556,7 @@ class FLYNCWorkspace(object):
         """
         return self.sources[id]
 
-    def objects_at(
-        self, uri: str, line: int, character: int
-    ) -> list[ObjectId]:
+    def objects_at(self, uri: str, line: int, character: int) -> list[ObjectId]:
         """Return the list of ObjectIds located at the specified position in a
         document.
 
@@ -1712,12 +1579,8 @@ class FLYNCWorkspace(object):
             if src.uri != uri:
                 continue
             r = src.range
-            if (
-                line > r.start.line
-                or (line == r.start.line and character >= r.start.character)
-            ) and (
-                line < r.end.line
-                or (line == r.end.line and character <= r.end.character)
+            if (line > r.start.line or (line == r.start.line and character >= r.start.character)) and (
+                line < r.end.line or (line == r.end.line and character <= r.end.character)
             ):
                 result.append(oid)
         return result

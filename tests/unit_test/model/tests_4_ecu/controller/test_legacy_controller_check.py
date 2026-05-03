@@ -85,9 +85,7 @@ def test_controller_model_validate_rejects_legacy_payload():
     assert "0.10" in msg  # downgrade hint
 
 
-def test_controller_model_validate_accepts_new_payload(
-    embedded_metadata_entry, virtual_controller_interface
-):
+def test_controller_model_validate_accepts_new_payload(embedded_metadata_entry, virtual_controller_interface):
     Controller.model_validate(
         {
             "name": "new_ctrl",

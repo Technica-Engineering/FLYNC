@@ -23,7 +23,7 @@ jobs:
       - name: Run black
         uses: psf/black@26.3.1
         with:
-          options: "--check --verbose --line-length 79 --diff"
+          options: "--check --verbose --line-length 149 --diff"
           src: "./src"
 
   isort:
@@ -41,7 +41,7 @@ jobs:
       - name: Run isort
         run: |
           mkdir format-reports
-          poetry run isort --check --diff --color --line-length 79 src > format-reports/isort-report.diff
+          poetry run isort --check --diff --color --line-length 149 src > format-reports/isort-report.diff
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v7
@@ -63,8 +63,8 @@ jobs:
 
       - name: Run flake8
         run: |
-          poetry run flake8 src
-          poetry run flake8 src --format=html --htmldir=flake8-report
+          poetry run flake8 --max-line-length 149 src
+          poetry run flake8 --max-line-length 149 src --format=html --htmldir=flake8-report
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v7

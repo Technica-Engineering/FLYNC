@@ -53,9 +53,7 @@ def get_name_by_alias(model: type[BaseModel], alias: str):
     raise KeyError(alias)
 
 
-def safe_yaml_position(  # noqa # nosonar
-    node: Any, loc: tuple, model: type[BaseModel] | None = None
-) -> Tuple[int | None, int | None]:
+def safe_yaml_position(node: Any, loc: tuple, model: type[BaseModel] | None = None) -> Tuple[int | None, int | None]:  # noqa # nosonar
     """
     Given a ruamel.yaml node and a Pydantic `loc` tuple, return
     (line, column). Falls back gracefully if key/item is missing.
@@ -78,9 +76,7 @@ def safe_yaml_position(  # noqa # nosonar
             current_model = None
         else:
             # Map field name to YAML key if alias exists
-            yaml_key = (
-                resolve_alias(current_model, part) if current_model else part
-            )
+            yaml_key = resolve_alias(current_model, part) if current_model else part
 
             try:
                 current = current[yaml_key]
@@ -129,13 +125,9 @@ def _extract_position(parent: Any, key: Any) -> Tuple[int | None, int | None]:
         line = parent.lc.line
         col = parent.lc.col
         if isinstance(key, int):
-            line, col = getattr(  # type: ignore[misc]
-                parent.lc, "item", lambda k: None
-            )(key)
+            line, col = getattr(parent.lc, "item", lambda k: None)(key)  # type: ignore[misc]
         else:
-            line, col = getattr(  # type: ignore[misc]
-                parent.lc, "value", lambda k: None
-            )(key)
+            line, col = getattr(parent.lc, "value", lambda k: None)(key)  # type: ignore[misc]
     except AttributeError:
         return None, None
 
@@ -237,11 +229,7 @@ def delete_at_loc(data: Any, loc: Tuple):
     for key in loc[:-1]:
         if isinstance(cur, dict) and key in cur:
             cur = cur[key]
-        elif (
-            isinstance(cur, list)
-            and isinstance(key, int)
-            and 0 <= key < len(cur)
-        ):
+        elif isinstance(cur, list) and isinstance(key, int) and 0 <= key < len(cur):
             cur = cur[key]
         else:
             return
@@ -249,11 +237,7 @@ def delete_at_loc(data: Any, loc: Tuple):
     last = loc[-1]
     if isinstance(cur, dict) and last in cur:
         del cur[last]
-    elif (
-        isinstance(cur, list)
-        and isinstance(last, int)
-        and 0 <= last < len(cur)
-    ):
+    elif isinstance(cur, list) and isinstance(last, int) and 0 <= last < len(cur):
         cur.pop(last)
 
 
@@ -339,10 +323,7 @@ def _wrap_native_error(err: ErrorDetails) -> ErrorDetails:
     sub_errors = f"{original_type}: {original_msg}"
     return {
         "type": "major",
-        "msg": (
-            f"1 or more errors found while validating {field_name}. "
-            f"Removing {field_name}."
-        ),
+        "msg": (f"1 or more errors found while validating {field_name}. " f"Removing {field_name}."),
         "loc": loc,
         "input": err.get("input"),
         "ctx": {"sub_errors": sub_errors},
@@ -383,16 +364,9 @@ def _enrich_validation_error(
         return ve_enriched
 
 
-def _has_top_level_fatal(
-    errs: List[ErrorDetails], removed_locs: Set[Tuple]
-) -> bool:
+def _has_top_level_fatal(errs: List[ErrorDetails], removed_locs: Set[Tuple]) -> bool:
     """Return True when an unrecovered fatal error sits at depth ≤ 1."""
-    return any(
-        e.get("type") in FATAL_ERROR_TYPES
-        and len(e.get("loc", ())) <= 1
-        and e.get("loc", ()) not in removed_locs
-        for e in errs
-    )
+    return any(e.get("type") in FATAL_ERROR_TYPES and len(e.get("loc", ())) <= 1 and e.get("loc", ()) not in removed_locs for e in errs)
 
 
 def _collect_original_error(
@@ -404,11 +378,7 @@ def _collect_original_error(
     major_removed_locs: Set[Tuple],
 ) -> None:
     """Record ``err`` and excise its location from ``working``."""
-    err_to_collect = (
-        err
-        if err.get("type") in FLYNC_ERROR_TYPES
-        else _wrap_native_error(err)
-    )
+    err_to_collect = err if err.get("type") in FLYNC_ERROR_TYPES else _wrap_native_error(err)
     collected_errors.append(err_to_collect)
     delete_at_loc(working, remove_loc)
     removed_locs.add(remove_loc)
@@ -462,9 +432,7 @@ def _process_error_list(
     return made_progress
 
 
-def validate_with_policy(
-    model: Type[FLYNCBaseModel], data: Any, path
-) -> Tuple[Optional[FLYNCBaseModel], List[ErrorDetails]]:
+def validate_with_policy(model: Type[FLYNCBaseModel], data: Any, path) -> Tuple[Optional[FLYNCBaseModel], List[ErrorDetails]]:
     """
     Helper function to perform model validation from the given data,
     collect errors with different severity and perform action
@@ -504,13 +472,9 @@ def validate_with_policy(
                 result = TypeAdapter(model).validate_python(working)
                 accumulated = _validation_warnings.get() or []
                 _tag_warnings_with_path(accumulated, path)
-                return result, get_unique_errors(
-                    collected_errors + accumulated
-                )
+                return result, get_unique_errors(collected_errors + accumulated)
             except ValidationError as ve:
-                ve_enriched = _enrich_validation_error(
-                    ve, model, working, path
-                )
+                ve_enriched = _enrich_validation_error(ve, model, working, path)
                 errs = ve_enriched.errors()
                 if _has_top_level_fatal(errs, removed_locs):
                     raise ve_enriched

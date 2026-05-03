@@ -130,9 +130,7 @@ class SingleRateTwoColorMarker(FLYNCBaseModel):
         Disabled for the two-color model.
     """
 
-    type: Literal["single_rate_two_color"] = Field(
-        default="single_rate_two_color"
-    )
+    type: Literal["single_rate_two_color"] = Field(default="single_rate_two_color")
     cir: int = Field(..., gt=0)
     cbs: int = Field(..., gt=0)
     eir: Literal[0] = Field(0)
@@ -176,9 +174,7 @@ class SingleRateThreeColorMarker(FLYNCBaseModel):
         Enabled for three-color behavior.
     """
 
-    type: Literal["single_rate_three_color"] = Field(
-        default="single_rate_three_color"
-    )
+    type: Literal["single_rate_three_color"] = Field(default="single_rate_three_color")
     cir: int = Field(..., gt=0)
     cbs: int = Field(..., gt=0)
     eir: Literal[0] = Field(0)
@@ -223,9 +219,7 @@ class DoubleRateThreeColorMarker(FLYNCBaseModel):
         bucket.
     """
 
-    type: Literal["double_rate_three_color"] = Field(
-        default="double_rate_three_color"
-    )
+    type: Literal["double_rate_three_color"] = Field(default="double_rate_three_color")
     cir: int = Field(..., gt=0)
     cbs: int = Field(..., gt=0)
     eir: int = Field(..., gt=0)
@@ -309,36 +303,18 @@ class FrameFilter(FLYNCBaseModel):
         Destination transport layer port(s). Integers must be > 0.
     """
 
-    src_mac: Optional[str | MACAddressEntry | List[str | MACAddressEntry]] = (
-        Field(default=None)
-    )
-    dst_mac: Optional[str | MACAddressEntry | List[str | MACAddressEntry]] = (
-        Field(default=None)
-    )
+    src_mac: Optional[str | MACAddressEntry | List[str | MACAddressEntry]] = Field(default=None)
+    dst_mac: Optional[str | MACAddressEntry | List[str | MACAddressEntry]] = Field(default=None)
     vlan_tagged: Optional[bool] = Field(default=None)
-    vlanid: Optional[int | ValueRange | List[int | ValueRange]] = Field(
-        default=None
-    )
+    vlanid: Optional[int | ValueRange | List[int | ValueRange]] = Field(default=None)
     pcp: Optional[int | List[int]] = Field(default=None)
-    src_ipv4: Optional[
-        IPv4AddressEntry | IPv4Address | List[IPv4AddressEntry | IPv4Address]
-    ] = Field(default=None)
-    dst_ipv4: Optional[
-        IPv4AddressEntry | IPv4Address | List[IPv4AddressEntry | IPv4Address]
-    ] = Field(default=None)
-    src_ipv6: Optional[
-        IPv6AddressEntry | IPv6Address | List[IPv6AddressEntry | IPv6Address]
-    ] = Field(default=None)
-    dst_ipv6: Optional[
-        IPv6AddressEntry | IPv6Address | List[IPv6AddressEntry | IPv6Address]
-    ] = Field(default=None)
+    src_ipv4: Optional[IPv4AddressEntry | IPv4Address | List[IPv4AddressEntry | IPv4Address]] = Field(default=None)
+    dst_ipv4: Optional[IPv4AddressEntry | IPv4Address | List[IPv4AddressEntry | IPv4Address]] = Field(default=None)
+    src_ipv6: Optional[IPv6AddressEntry | IPv6Address | List[IPv6AddressEntry | IPv6Address]] = Field(default=None)
+    dst_ipv6: Optional[IPv6AddressEntry | IPv6Address | List[IPv6AddressEntry | IPv6Address]] = Field(default=None)
     protocol: Optional[Literal["tcp"] | Literal["udp"]] = Field(default=None)
-    src_port: Optional[int | ValueRange | List[int | ValueRange]] = Field(
-        default=None
-    )
-    dst_port: Optional[int | ValueRange | List[int | ValueRange]] = Field(
-        default=None
-    )
+    src_port: Optional[int | ValueRange | List[int | ValueRange]] = Field(default=None)
+    dst_port: Optional[int | ValueRange | List[int | ValueRange]] = Field(default=None)
 
     @staticmethod
     def vlan_validator(value):
@@ -348,10 +324,7 @@ class FrameFilter(FLYNCBaseModel):
     @staticmethod
     def pcp_validator(value):
         if value < 0 or value > 7:
-            raise err_minor(
-                "pcp value must be greater than or equal to 0 "
-                "and less than or equal to 7"
-            )
+            raise err_minor("pcp value must be greater than or equal to 0 " "and less than or equal to 7")
 
     @field_validator("vlanid", mode="after")
     @classmethod
@@ -410,9 +383,7 @@ class FrameFilter(FLYNCBaseModel):
         if isinstance(value, list):
             serialized = [self.serialize_ip_address(v) for v in value]
 
-        if isinstance(value, IPv4AddressEntry) or isinstance(
-            value, IPv6AddressEntry
-        ):
+        if isinstance(value, IPv4AddressEntry) or isinstance(value, IPv6AddressEntry):
             serialized = value.model_dump()
 
         if isinstance(value, IPv4Address) or isinstance(value, IPv6Address):
@@ -470,11 +441,7 @@ class Stream(FLYNCBaseModel):
     stream_identification: List[FrameFilter] = Field([])
     drop_at_ingress: Optional[bool] = Field(default=False)
     max_sdu_size: Optional[int] = Field(default=1522, ge=0)
-    policer: Optional[
-        SingleRateTwoColorMarker
-        | SingleRateThreeColorMarker
-        | DoubleRateThreeColorMarker
-    ] = Field(default=None, discriminator="type")
+    policer: Optional[SingleRateTwoColorMarker | SingleRateThreeColorMarker | DoubleRateThreeColorMarker] = Field(default=None, discriminator="type")
     ipv: Optional[int] = Field(default=None, ge=0, le=7)
     ats: Optional[ATSInstance] = Field(default=None)
 
@@ -521,13 +488,9 @@ class TrafficClass(FLYNCBaseModel):
         Optional[List[int]],
         BeforeValidator(common_validators.none_to_empty_list),
     ] = Field(default=[])
-    selection_mechanisms: Optional[CBSShaper | ATSShaper] = Field(
-        default=None, discriminator="type"
-    )
+    selection_mechanisms: Optional[CBSShaper | ATSShaper] = Field(default=None, discriminator="type")
 
-    @field_validator(
-        "frame_priority_values", "internal_priority_values", mode="after"
-    )
+    @field_validator("frame_priority_values", "internal_priority_values", mode="after")
     @classmethod
     def validate_priority_values(cls, v):
         """Priority values in list must be in range 0 - 7."""
@@ -543,14 +506,8 @@ class TrafficClass(FLYNCBaseModel):
     def validate_at_least_one_prio_list(self) -> Self:
         """At least one of frame_priority_values \
             or internal_priority_values must be set."""
-        if (
-            not self.frame_priority_values
-            and not self.internal_priority_values
-        ):
-            raise err_minor(
-                "At least one of frame_priority_values or "
-                "internal_priority_values must be provided and non-empty"
-            )
+        if not self.frame_priority_values and not self.internal_priority_values:
+            raise err_minor("At least one of frame_priority_values or " "internal_priority_values must be provided and non-empty")
         return self
 
 
@@ -811,9 +768,7 @@ class HTBInstance(FLYNCBaseModel):
             else:
                 class_priority.append(child.priority)
                 if child.child_classes:
-                    self.check_all_class_priority_unique(
-                        child.child_classes, class_priority
-                    )
+                    self.check_all_class_priority_unique(child.child_classes, class_priority)
 
     def check_all_classes_unique(self, child_classes, names):
         """
@@ -880,9 +835,7 @@ class HTBInstance(FLYNCBaseModel):
         rate = 0
         for child in child_classes:
             if child.child_classes:
-                rate_sum_child = self.check_rate_consistency(
-                    child.child_classes
-                )
+                rate_sum_child = self.check_rate_consistency(child.child_classes)
                 if rate_sum_child > child.rate:
                     raise err_minor(
                         f"Validation Error in HTB Config. Removing "

@@ -10,24 +10,19 @@ from flync.model.flync_4_ecu.sockets import (
 )
 from flync.model.flync_4_signal.frame import PDUSender
 
-
 # ---------------------------------------------------------------------------
 # PDUSender via DeploymentUnion
 # ---------------------------------------------------------------------------
 
 
 def test_positive_deployment_union_pdu_sender():
-    dep = DeploymentUnion.model_validate(
-        {"deployment_type": "pdu_sender", "frame_ref": "my_eth_frame"}
-    )
+    dep = DeploymentUnion.model_validate({"deployment_type": "pdu_sender", "frame_ref": "my_eth_frame"})
     assert isinstance(dep.root, PDUSender)
     assert dep.root.frame_ref == "my_eth_frame"
 
 
 def test_positive_deployment_union_pdu_sender_default_type():
-    dep = DeploymentUnion.model_validate(
-        {"deployment_type": "pdu_sender", "frame_ref": "frame_A"}
-    )
+    dep = DeploymentUnion.model_validate({"deployment_type": "pdu_sender", "frame_ref": "frame_A"})
     assert dep.root.deployment_type == "pdu_sender"
 
 
@@ -127,9 +122,7 @@ def test_negative_pdu_sender_missing_frame_ref_on_socket():
 
 def test_negative_deployment_union_unknown_type():
     with pytest.raises(ValidationError):
-        DeploymentUnion.model_validate(
-            {"deployment_type": "unknown_type", "frame_ref": "frm_X"}
-        )
+        DeploymentUnion.model_validate({"deployment_type": "unknown_type", "frame_ref": "frm_X"})
 
 
 def test_negative_pdu_sender_extra_fields():

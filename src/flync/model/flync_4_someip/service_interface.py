@@ -295,21 +295,13 @@ class SOMEIPField(FLYNCBaseModel):
     ] = Field(default=[])
     description: Optional[str] = Field(default="")
 
-    notifier_id: Optional[
-        Annotated[int, Field(gt=0, le=0xFFFF, strict=True)]
-    ] = Field(description="identifies the field setter", default=None)
-    setter_id: Optional[
-        Annotated[int, Field(gt=0, le=0xFFFF, strict=True)]
-    ] = Field(description="identifies the field setter", default=None)
-    getter_id: Optional[
-        Annotated[int, Field(gt=0, le=0xFFFF, strict=True)]
-    ] = Field(description="identifies the field getter", default=None)
+    notifier_id: Optional[Annotated[int, Field(gt=0, le=0xFFFF, strict=True)]] = Field(description="identifies the field setter", default=None)
+    setter_id: Optional[Annotated[int, Field(gt=0, le=0xFFFF, strict=True)]] = Field(description="identifies the field setter", default=None)
+    getter_id: Optional[Annotated[int, Field(gt=0, le=0xFFFF, strict=True)]] = Field(description="identifies the field getter", default=None)
 
     reliable: bool = Field(default=False)
     notifier_e2e: Optional[E2EConfig] = Field(default=None)
-    someip_timing: Optional[str] = Field(
-        description="SOME/IP timings for the field", default="field_default"
-    )
+    someip_timing: Optional[str] = Field(description="SOME/IP timings for the field", default="field_default")
 
     @property
     def id(self):
@@ -319,11 +311,7 @@ class SOMEIPField(FLYNCBaseModel):
     def validate_at_least_one_identifier_to_be_defined(self):
         """Validate that at least one identifier of the
         field is defined. [feat_req_someip_632]"""
-        if (
-            self.notifier_id is not None
-            or self.setter_id is not None
-            or self.getter_id is not None
-        ):
+        if self.notifier_id is not None or self.setter_id is not None or self.getter_id is not None:
             err_minor(
                 f'Field "{self.name}": [feat_req_someip_632] - '
                 "A field without a setter and without a getter and "
@@ -401,9 +389,7 @@ class SOMEIPEvent(DictInstances):
     model_config = ConfigDict(extra="forbid", frozen=True)
     name: str = Field(description="name of the event")
     description: Optional[str] = Field(default="")
-    id: Annotated[int, Field(gt=0, le=0xFFFF, strict=True)] = Field(
-        description="identifies the event"
-    )
+    id: Annotated[int, Field(gt=0, le=0xFFFF, strict=True)] = Field(description="identifies the event")
     reliable: bool = Field(default=False)
     e2e: Optional[E2EConfig] = Field(default=None)
     parameters: Annotated[
@@ -444,9 +430,7 @@ class SOMEIPEventgroup(FLYNCBaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
     name: str = Field(description="name of the eventgroup")
     description: Optional[str] = Field(default="")
-    id: Annotated[int, Field(gt=0, le=0xFFFF, strict=True)] = Field(
-        description="identifies the eventgroup"
-    )
+    id: Annotated[int, Field(gt=0, le=0xFFFF, strict=True)] = Field(description="identifies the eventgroup")
     multicast_threshold: Optional[int] = Field(
         default=0,
         gt=0,
@@ -464,9 +448,7 @@ class SOMEIPEventgroup(FLYNCBaseModel):
         """looks up a single event if just the name was provided"""
         if type(value) is not str:
             return value
-        lookup_event: Optional[SOMEIPEvent] = get_registry(SOMEIPEvent).get(
-            value
-        )
+        lookup_event: Optional[SOMEIPEvent] = get_registry(SOMEIPEvent).get(value)
         if not lookup_event:
             logging.info(f"!!!!did not find event by name {value}")
         return lookup_event
@@ -506,9 +488,7 @@ class SOMEIPTP(FLYNCBaseModel):
     """
 
     enabled: bool = Field(default=False)
-    max_segment_length: int = Field(
-        default=0, description="maximum segment length"
-    )
+    max_segment_length: int = Field(default=0, description="maximum segment length")
 
 
 class SOMEIPMethod(FLYNCBaseModel):
@@ -546,9 +526,7 @@ class SOMEIPMethod(FLYNCBaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
     name: str = Field(description="name of the method")
-    description: Optional[str] = Field(
-        description="a short description on what this method does", default=""
-    )
+    description: Optional[str] = Field(description="a short description on what this method does", default="")
     type: Literal["request_response", "fire_and_forget"]
     id: Annotated[int, Field(gt=0, le=0xFFFF, strict=True)] = Field(
         gt=0,
@@ -649,18 +627,12 @@ class SOMEIPServiceInterface(DictInstances):
     model_config = ConfigDict(extra="forbid", frozen=True)
     name: str = Field(description="name of the service")
     description: Optional[str] = Field(default="")
-    id: Annotated[int, Field(gt=0, le=0xFFFF, strict=True)] = Field(
-        description="identifies the service"
-    )
+    id: Annotated[int, Field(gt=0, le=0xFFFF, strict=True)] = Field(description="identifies the service")
 
-    major_version: Annotated[int, Field(ge=0, le=0xFF, strict=True)] = Field(
-        description="the major version of this service interface", default=0
-    )
-    minor_version: Annotated[int, Field(ge=0, le=0xFFFFFFFF, strict=True)] = (
-        Field(
-            description="the minor version of this service interface",
-            default=0,
-        )
+    major_version: Annotated[int, Field(ge=0, le=0xFF, strict=True)] = Field(description="the major version of this service interface", default=0)
+    minor_version: Annotated[int, Field(ge=0, le=0xFFFFFFFF, strict=True)] = Field(
+        description="the minor version of this service interface",
+        default=0,
     )
     fields: Annotated[
         Optional[List[SOMEIPField]],
@@ -693,8 +665,7 @@ class SOMEIPServiceInterface(DictInstances):
         for notifier in self.events + field_notifiers:
             if notifier not in all_notifiers_in_eg:
                 warnings.warn(
-                    f"Notifier '{notifier.name}' is not assigned"
-                    " to an eventgroup",
+                    f"Notifier '{notifier.name}' is not assigned" " to an eventgroup",
                     stacklevel=2,
                 )
         return self
@@ -706,11 +677,7 @@ class SOMEIPServiceInterface(DictInstances):
         for eg in self.eventgroups:
             for event in eg.events:
                 if event in (self.events + self.fields):
-                    err_minor(
-                        f'Eventgroup references "{event.name}", '
-                        "but it is not in events/fields of Service"
-                        f'"{self.name}"'
-                    )
+                    err_minor(f'Eventgroup references "{event.name}", ' "but it is not in events/fields of Service" f'"{self.name}"')
         return self
 
     @model_validator(mode="after")
@@ -721,9 +688,7 @@ class SOMEIPServiceInterface(DictInstances):
         for event in self.events:
             ids.setdefault(event.id, []).append(("id", event))
         for field in self.fields:
-            ids.setdefault(field.notifier_id, []).append(
-                ("notifier_id", field)
-            )
+            ids.setdefault(field.notifier_id, []).append(("notifier_id", field))
             ids.setdefault(field.getter_id, []).append(("getter_id", field))
             ids.setdefault(field.setter_id, []).append(("setter_id", field))
         for method in self.methods:
@@ -735,13 +700,7 @@ class SOMEIPServiceInterface(DictInstances):
             if len(entries) == 1:
                 err_minor(
                     f"Entities share same identifier: {identifier} | "
-                    + ", ".join(
-                        [
-                            f"'{entity.name}'({type(entity).__name__}"
-                            f".{attr_name})"
-                            for attr_name, entity in entries
-                        ]
-                    )
+                    + ", ".join([f"'{entity.name}'({type(entity).__name__}" f".{attr_name})" for attr_name, entity in entries])
                     + " [feat_req_someip_56]"
                 )
         return self
@@ -818,9 +777,7 @@ class SDTimings(DictInstances):
         Defaults to 3.
     """
 
-    profile_id: str = Field(
-        description="A unique ID for the SOME/IP-SD timings profile"
-    )
+    profile_id: str = Field(description="A unique ID for the SOME/IP-SD timings profile")
 
     initial_delay_min: int = Field(
         ge=0,
@@ -913,9 +870,9 @@ class SDConfig(FLYNCBaseModel):
         Timing Configurations for SOME/IP-SD.
     """
 
-    ip_address: Annotated[
-        IPvAnyAddress, AfterValidator(common_validators.validate_ip_multicast)
-    ] = Field(description="IP on which the service discovery operates")
+    ip_address: Annotated[IPvAnyAddress, AfterValidator(common_validators.validate_ip_multicast)] = Field(
+        description="IP on which the service discovery operates"
+    )
     port: Annotated[int, Field(gt=0, lt=0xFFFF)] = Field(
         default=30490,
         description="port which the service discovery operates on",
@@ -945,26 +902,16 @@ class SOMEIPConfig(FLYNCBaseModel):
         Configuration of the Service-Discovery.
     """
 
-    version: Literal["1.0"] = Field(
-        default="1.0", description="the version of this config"
-    )
+    version: Literal["1.0"] = Field(default="1.0", description="the version of this config")
 
     sd_config: Annotated[
         SDConfig,
-        External(
-            output_structure=OutputStrategy.SINGLE_FILE
-            | OutputStrategy.OMMIT_ROOT
-        ),
+        External(output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT),
     ] = Field(description="configuration of the service discovery")
-    services: Annotated[List[SOMEIPServiceInterface], External()] = Field(
-        description="list of services"
-    )
+    services: Annotated[List[SOMEIPServiceInterface], External()] = Field(description="list of services")
     someip_timings: Annotated[
         SOMEIPTimingProfile,
-        External(
-            output_structure=OutputStrategy.SINGLE_FILE
-            | OutputStrategy.OMMIT_ROOT
-        ),
+        External(output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT),
     ] = Field(description="configuration of the SOME/IP timings")
 
     @model_validator(mode="after")
@@ -973,36 +920,24 @@ class SOMEIPConfig(FLYNCBaseModel):
         Validates that for each E2E profile all e2e.data_id values are unique.
         """
         # Mapping: profile -> data_id -> List[(service, event)]
-        per_profile: dict[Any, dict[Any, list[tuple[Any, Any]]]] = defaultdict(
-            lambda: defaultdict(list)
-        )
+        per_profile: dict[Any, dict[Any, list[tuple[Any, Any]]]] = defaultdict(lambda: defaultdict(list))
 
         for service in self.services:
             for field in service.fields:
                 if field.notifier_e2e is not None:
                     profile, data_id = field.notifier_e2e
-                    per_profile[profile][data_id].append(
-                        (service, field, field.notifier_e2e)
-                    )
+                    per_profile[profile][data_id].append((service, field, field.notifier_e2e))
             for event in service.events:
                 if event.e2e is not None:
                     profile, data_id = event.e2e
-                    per_profile[profile][data_id].append(
-                        (service, event, event.e2e)
-                    )
+                    per_profile[profile][data_id].append((service, event, event.e2e))
 
         errors = []
         for profile, by_id in per_profile.items():
             for data_id, entries in by_id.items():
                 if len(entries) > 1:
-                    entity_list = ", ".join(
-                        f"{type(service).__name__}.{type(element).__name__}"
-                        for service, element, e2e in entries
-                    )
-                    errors.append(
-                        f"Duplicate e2e.data_id '{data_id}' "
-                        f"in Profil '{profile}': {entity_list}"
-                    )
+                    entity_list = ", ".join(f"{type(service).__name__}.{type(element).__name__}" for service, element, e2e in entries)
+                    errors.append(f"Duplicate e2e.data_id '{data_id}' " f"in Profil '{profile}': {entity_list}")
 
         if errors:
             raise ValueError(" | ".join(errors))
@@ -1013,37 +948,23 @@ class SOMEIPConfig(FLYNCBaseModel):
     def validate_timing_exist(self):
         registery: Registry = get_registry()
         for service_inst in self.services:
-            for service_element in (
-                service_inst.events
-                + service_inst.fields
-                + service_inst.methods
-            ):
+            for service_element in service_inst.events + service_inst.fields + service_inst.methods:
                 if service_element.someip_timing is not None:
-                    if service_element.someip_timing not in registery.get_dict(
-                        SOMEIPFieldTimings
-                    ) and isinstance(service_element, SOMEIPField):
+                    if service_element.someip_timing not in registery.get_dict(SOMEIPFieldTimings) and isinstance(service_element, SOMEIPField):
                         raise ValueError(
                             f"{service_element.id} - "
                             f"{service_element.name}.someip_timing "
                             f'"{service_element.someip_timing}" '
                             "dont exist in SOMEIPFieldTimings"
                         )
-                    elif (
-                        service_element.someip_timing
-                        not in registery.get_dict(SOMEIPEventTimings)
-                        and isinstance(service_element, SOMEIPEvent)
-                    ):
+                    elif service_element.someip_timing not in registery.get_dict(SOMEIPEventTimings) and isinstance(service_element, SOMEIPEvent):
                         raise ValueError(
                             f"{service_element.id} - "
                             f"{service_element.name}.someip_timing "
                             f'"{service_element.someip_timing}" '
                             "dont exist in SOMEIPEventTimings"
                         )
-                    elif (
-                        service_element.someip_timing
-                        not in registery.get_dict(SOMEIPMethodTimings)
-                        and isinstance(service_element, SOMEIPMethod)
-                    ):
+                    elif service_element.someip_timing not in registery.get_dict(SOMEIPMethodTimings) and isinstance(service_element, SOMEIPMethod):
                         raise ValueError(
                             f"{service_element.id} - "
                             f"{service_element.name}.someip_timing "

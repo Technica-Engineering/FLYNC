@@ -8,9 +8,7 @@ from pydantic_core import ErrorDetails, PydanticCustomError
 # Accumulates informational warnings during a validate_with_policy call.
 # Validators append to this list via warn() instead of raising, so the
 # validated field is kept while the message still surfaces as a warning.
-_validation_warnings: ContextVar[Optional[List[ErrorDetails]]] = ContextVar(
-    "_validation_warnings", default=None
-)
+_validation_warnings: ContextVar[Optional[List[ErrorDetails]]] = ContextVar("_validation_warnings", default=None)
 
 
 def warn(msg: str) -> None:

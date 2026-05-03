@@ -42,9 +42,7 @@ class MulticastGroupMembership(FLYNCBaseModel):
     ] = Field()
     description: Optional[str] = Field(default="")
     mode: Literal["tx"] | Literal["rx"] = Field(default="tx")
-    vlan: Annotated[Optional[int], AfterValidator(validate_vlan_id)] = Field(
-        default=0
-    )
+    vlan: Annotated[Optional[int], AfterValidator(validate_vlan_id)] = Field(default=0)
     src_ip: Optional[IPvAnyAddress] = Field(default=None)
     solicited_node_multicast: Optional[bool] = Field(default=False)
     _interface: ControllerInterface = PrivateAttr()

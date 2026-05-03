@@ -31,11 +31,7 @@ def type_from_input(node: str | type[FLYNCBaseModel]) -> type[FLYNCBaseModel]:
         type[FLYNCBaseModel]: The resolved model class.
     """
     if isinstance(node, str):
-        node = (
-            get_model_dependency_graph(root=FLYNCModel)
-            .fields_info[node]
-            .python_type
-        )
+        node = get_model_dependency_graph(root=FLYNCModel).fields_info[node].python_type
     return node  # type: ignore[return-value]
 
 

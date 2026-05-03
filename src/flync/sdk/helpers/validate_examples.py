@@ -11,9 +11,7 @@ from pathlib import Path
 from sys import executable
 
 PROJECT_BASE = Path(__file__).resolve().parents[4]
-VALIDATE_WORKSPACE_SCRIPT = Path.joinpath(
-    Path(__file__).resolve().parent, Path("validate_workspace.py")
-)
+VALIDATE_WORKSPACE_SCRIPT = Path.joinpath(Path(__file__).resolve().parent, Path("validate_workspace.py"))
 EXAMPLES_DIR = PROJECT_BASE / "examples"
 
 

@@ -3,7 +3,15 @@
 # Use locally to run all checkers at once, e.g., before pushing code to the repository.
 # Usage: bash local_checkers.sh
 
-poetry run isort --check --diff --color --line-length 79 src
-poetry run flake8 src
-poetry run black --check --diff --color src
+LINE_LENGTH=149
+
+# src
+poetry run isort --check --diff --color --line-length $LINE_LENGTH src
+poetry run flake8 --max-line-length $LINE_LENGTH src
+poetry run black --target-version py312 --check --diff --color src
 poetry run mypy src --show-error-codes --pretty --install-types --non-interactive
+
+# tests
+poetry run isort --check --diff --color --line-length $LINE_LENGTH tests
+#poetry run flake8 --max-line-length $LINE_LENGTH tests
+poetry run black --target-version py312 --check --diff --color tests

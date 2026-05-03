@@ -47,16 +47,10 @@ class ExternalConnection(FLYNCBaseModel):
         Runtime reference to the second ECUPort object.
     """
 
-    type: Literal["ecu_port_to_ecu_port"] = Field(
-        default="ecu_port_to_ecu_port"
-    )
+    type: Literal["ecu_port_to_ecu_port"] = Field(default="ecu_port_to_ecu_port")
     id: str = Field()
-    ecu1_port_name: Annotated[str, Reference(source="_ecu1_port")] = Field(
-        alias="ecu1_port"
-    )
-    ecu2_port_name: Annotated[str, Reference(source="_ecu2_port")] = Field(
-        alias="ecu2_port"
-    )
+    ecu1_port_name: Annotated[str, Reference(source="_ecu1_port")] = Field(alias="ecu1_port")
+    ecu2_port_name: Annotated[str, Reference(source="_ecu2_port")] = Field(alias="ecu2_port")
 
     _ecu1_port: Optional[ECUPort] = PrivateAttr(default=None)
     _ecu2_port: Optional[ECUPort] = PrivateAttr(default=None)
@@ -92,17 +86,11 @@ class ExternalConnection(FLYNCBaseModel):
         registery: Registry = get_registry()
         self._ecu1_port = registery.get_dict(ECUPort).get(self.ecu1_port_name)
         if self._ecu1_port is None:
-            raise err_major(
-                f"ECU port name {self.ecu1_port_name} in connection"
-                f" {self.id} does not exist"
-            )
+            raise err_major(f"ECU port name {self.ecu1_port_name} in connection" f" {self.id} does not exist")
 
         self._ecu2_port = registery.get_dict(ECUPort).get(self.ecu2_port_name)
         if self._ecu2_port is None:
-            raise err_major(
-                f"ECU port name {self.ecu2_port_name} in connection"
-                f" {self.id} does not exist"
-            )
+            raise err_major(f"ECU port name {self.ecu2_port_name} in connection" f" {self.id} does not exist")
 
         # Add connected component to each other
         self.ecu1_port._connected_components.append(self.ecu2_port)
@@ -163,12 +151,8 @@ class ExternalConnection(FLYNCBaseModel):
                 f"({mdi_ecu2_port.autonegotiation})"
             )
         # Check mdi speed
-        comp1 = self.ecu1_port.get_internal_connected_component(
-            [self.ecu1_port.ecu]
-        )
-        comp2 = self.ecu2_port.get_internal_connected_component(
-            [self.ecu2_port.ecu]
-        )
+        comp1 = self.ecu1_port.get_internal_connected_component([self.ecu1_port.ecu])
+        comp2 = self.ecu2_port.get_internal_connected_component([self.ecu2_port.ecu])
         # Check timesync validity
         common_validators.validate_macsec(comp1, comp2, self.id)
         common_validators.validate_gptp(comp1, comp2, self.id)
@@ -209,8 +193,5 @@ class FLYNCTopology(FLYNCBaseModel):
 
     system_topology: Annotated[
         SystemTopology,
-        External(
-            output_structure=OutputStrategy.SINGLE_FILE
-            | OutputStrategy.OMMIT_ROOT
-        ),
+        External(output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT),
     ]

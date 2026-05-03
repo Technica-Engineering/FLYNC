@@ -13,9 +13,7 @@ def test_positive_ipv4address():
         "address": "10.0.0.100",
         "ipv4netmask": "255.255.255.0",
     }
-    viface = VirtualControllerInterface.model_validate(
-        {"name": "valid_iface", "vlanid": 10, "addresses": [ip_address_entry]}
-    )
+    viface = VirtualControllerInterface.model_validate({"name": "valid_iface", "vlanid": 10, "addresses": [ip_address_entry]})
     assert isinstance(viface.addresses[0], IPv4AddressEndpoint)
 
 
@@ -24,9 +22,7 @@ def test_positive_ipv6address():
         "address": "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
         "ipv6prefix": 128,
     }
-    viface = VirtualControllerInterface.model_validate(
-        {"name": "valid_iface", "vlanid": 10, "addresses": [ip_address_entry]}
-    )
+    viface = VirtualControllerInterface.model_validate({"name": "valid_iface", "vlanid": 10, "addresses": [ip_address_entry]})
     assert isinstance(viface.addresses[0], IPv6AddressEndpoint)
 
 

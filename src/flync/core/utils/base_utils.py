@@ -68,9 +68,7 @@ def get_yaml_paths(base_path: str | os.PathLike) -> list:
     path_list = []
     if base_path.is_dir():
         for ending in ["*.yaml", "*.yml"]:
-            path_list += [
-                f.resolve().as_posix() for f in base_path.rglob(ending)
-            ]
+            path_list += [f.resolve().as_posix() for f in base_path.rglob(ending)]
     elif base_path.is_file() and base_path.suffix in [".yaml", ".yml"]:
         path_list.append(base_path.absolute().as_posix())
 
@@ -142,10 +140,7 @@ def is_mac_multicast(input: str) -> Tuple[bool, str]:
 
     """
     is_multicast = False
-    msg = (
-        f"{input} is not a MAC Multicast. "
-        "The first byte's least significant bit should be 1."
-    )
+    msg = f"{input} is not a MAC Multicast. " "The first byte's least significant bit should be 1."
 
     mac_bytes = input.replace(":", "").replace("-", "")  # Remove separators
     first_byte = int(mac_bytes[:2], 16)  # Convert the first byte to an integer
@@ -237,16 +232,8 @@ def check_obj_in_list(obj, list):
     flag = False
     for c in list:
         if (c.type == obj.type) and (
-            (
-                c.type == "switch_port"
-                and obj.name == c.name
-                and obj.get_switch().name == c.get_switch().name
-            )
-            or (
-                c.type == "controller_interface"
-                and obj.name == c.name
-                and obj.get_controller().name == c.get_controller().name
-            )
+            (c.type == "switch_port" and obj.name == c.name and obj.get_switch().name == c.get_switch().name)
+            or (c.type == "controller_interface" and obj.name == c.name and obj.get_controller().name == c.get_controller().name)
             or (c.type == "ecu_port" and obj.name == c.name)
         ):
             flag = True
@@ -309,6 +296,4 @@ def find_all(base, target_class: Type[T]) -> list[T]:
         list: A list of all instances of the target class found within the
         base object.
     """
-    return [
-        o for o in deep_iter(base, target_class) if isinstance(o, target_class)
-    ]
+    return [o for o in deep_iter(base, target_class) if isinstance(o, target_class)]

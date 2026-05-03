@@ -31,9 +31,7 @@ class SocketContainer(FLYNCBaseModel):
     """
 
     name: Annotated[str, Implied(strategy=ImpliedStrategy.FILE_NAME)] = Field()
-    vlan_id: Annotated[
-        Optional[int], AfterValidator(common_validators.validate_vlan_id)
-    ] = Field(default=0)
+    vlan_id: Annotated[Optional[int], AfterValidator(common_validators.validate_vlan_id)] = Field(default=0)
     sockets: Annotated[
         Optional[
             List[

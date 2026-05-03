@@ -251,8 +251,7 @@ class LINBus(UniqueName):
         """Ensure the baud rate is a standard LIN rate."""
         if value not in _ALLOWED_LIN_BAUD_RATES:
             raise err_minor(
-                "baud_rate {value} is not a valid LIN baud rate. "
-                "Allowed values: {allowed}",
+                "baud_rate {value} is not a valid LIN baud rate. " "Allowed values: {allowed}",
                 value=value,
                 allowed=sorted(_ALLOWED_LIN_BAUD_RATES),
             )
@@ -264,14 +263,12 @@ class LINBus(UniqueName):
         masters = [n.name for n in self.nodes if isinstance(n, LINMasterNode)]
         if len(masters) == 0:
             raise err_major(
-                "LINBus '{name}' has no master node. "
-                "Exactly one LINMasterNode is required.",
+                "LINBus '{name}' has no master node. " "Exactly one LINMasterNode is required.",
                 name=self.name,
             )
         if len(masters) > 1:
             raise err_major(
-                "LINBus '{name}' has {count} master nodes ({masters}). "
-                "LIN supports exactly one master.",
+                "LINBus '{name}' has {count} master nodes ({masters}). " "LIN supports exactly one master.",
                 name=self.name,
                 count=len(masters),
                 masters=masters,
@@ -286,9 +283,7 @@ class LINBus(UniqueName):
             for entry in table.entries:
                 if entry.frame_name not in frame_names:
                     raise err_major(
-                        "LINScheduleTable '{table}' references unknown "
-                        "frame '{frame}'. "
-                        "Defined frames: {defined}",
+                        "LINScheduleTable '{table}' references unknown " "frame '{frame}'. " "Defined frames: {defined}",
                         table=table.name,
                         frame=entry.frame_name,
                         defined=sorted(frame_names),

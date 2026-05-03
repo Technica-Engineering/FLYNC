@@ -117,9 +117,7 @@ def extract_model_dependencies(model: type[BaseModel]) -> dict:
     return _extract_model_dependencies(model, visited=set())
 
 
-def _extract_model_dependencies(
-    model: type[BaseModel], visited: set[type[BaseModel]]
-) -> dict:
+def _extract_model_dependencies(model: type[BaseModel], visited: set[type[BaseModel]]) -> dict:
     """Recursively extract model dependencies, guarding against cycles.
 
     Args:
@@ -150,9 +148,7 @@ def _extract_model_dependencies(
         container_info = extract_container_model(annotation)
 
         if container_info:
-            structure_info = build_dependency_structure(
-                container_info, visited
-            )
+            structure_info = build_dependency_structure(container_info, visited)
             deps[name] = {
                 "external": external,
                 "structure": structure_info,
@@ -202,10 +198,7 @@ def build_dependency_structure(info, visited):  # noqa # nosonar
     if info["container"] == "union":
         return {
             "type": "union",
-            "options": [
-                build_dependency_structure(opt, visited)
-                for opt in info["options"]
-            ],
+            "options": [build_dependency_structure(opt, visited) for opt in info["options"]],
         }
 
 
@@ -227,14 +220,10 @@ def walk_structure(parent_model, structure, edges, visited=None):
     if not visited:
         visited = set()
     if structure["type"] == "list":
-        walk_structure(
-            parent_model, structure["items"], edges, visited=visited
-        )
+        walk_structure(parent_model, structure["items"], edges, visited=visited)
 
     elif structure["type"] == "dict":
-        walk_structure(
-            parent_model, structure["values"], edges, visited=visited
-        )
+        walk_structure(parent_model, structure["values"], edges, visited=visited)
 
     elif structure["type"] == "union":
         for option in structure["options"]:
@@ -300,9 +289,7 @@ class ModelDependencyGraph:
         """
         self.root = root
         self.edges, self.tree = collect_edges(root)
-        self.reverse_tree: dict[type[BaseModel], set[type[BaseModel]]] = (
-            self._invert()
-        )
+        self.reverse_tree: dict[type[BaseModel], set[type[BaseModel]]] = self._invert()
         self.fields_info: dict[str, NodeInfo] = self._field_info()
 
     def _invert(self):
@@ -334,9 +321,7 @@ class ModelDependencyGraph:
         """
         field_info: dict[str, NodeInfo] = {}
         # add root to info
-        field_info[self.root.__name__] = NodeInfo(
-            self.root.__name__, self.root
-        )
+        field_info[self.root.__name__] = NodeInfo(self.root.__name__, self.root)
 
         def walk(current_model, subtree, path=(), container_chain=()):
             """Iterate over a model's dependency subtree and dispatch to
@@ -357,13 +342,9 @@ class ModelDependencyGraph:
                 if field_name == "__cycle__":  # found a cyclic item
                     continue
                 structure = info["structure"]
-                walk_structure(
-                    current_model, field_name, structure, path, container_chain
-                )
+                walk_structure(current_model, field_name, structure, path, container_chain)
 
-        def walk_structure(
-            parent_model, field_name, structure, path, container_chain
-        ):
+        def walk_structure(parent_model, field_name, structure, path, container_chain):
             """Recursively resolve a single field's structure and record its
             path.
 
@@ -385,11 +366,7 @@ class ModelDependencyGraph:
             t = structure["type"]
 
             if t in ("list", "dict"):
-                child_struct = (
-                    structure.get("items")
-                    if t == "list"
-                    else structure.get("values")
-                )
+                child_struct = structure.get("items") if t == "list" else structure.get("values")
                 walk_structure(
                     parent_model,
                     field_name,
@@ -413,12 +390,8 @@ class ModelDependencyGraph:
                 new_path = path + ((child_model, field_name, container_chain),)
                 model_field_key = child_model.__name__
                 if child_model not in field_info:
-                    field_info[model_field_key] = NodeInfo(
-                        child_model.__name__, child_model
-                    )
-                field_info[model_field_key].flync_paths.append(
-                    ModelDependencyGraph.complex_path_to_string_path(new_path)
-                )
+                    field_info[model_field_key] = NodeInfo(child_model.__name__, child_model)
+                field_info[model_field_key].flync_paths.append(ModelDependencyGraph.complex_path_to_string_path(new_path))
 
                 # recurse into children
                 if "children" in structure:
@@ -431,9 +404,7 @@ class ModelDependencyGraph:
         walk(self.root, self.tree)
         return dict(field_info)
 
-    def parent_from_child(
-        self, field_type: type[BaseModel], parent_attribute_name: str
-    ):
+    def parent_from_child(self, field_type: type[BaseModel], parent_attribute_name: str):
         """Find the parent model class that owns a given child field.
 
         Args:
@@ -452,9 +423,7 @@ class ModelDependencyGraph:
                 continue
             return parent
 
-    def field_info_from_child(
-        self, field_type: type[BaseModel], parent_attribute_name: str
-    ):
+    def field_info_from_child(self, field_type: type[BaseModel], parent_attribute_name: str):
         """Return the field info object for a child field on its parent model.
 
         Args:
@@ -471,9 +440,7 @@ class ModelDependencyGraph:
             return field_type
         return parent.model_fields[parent_attribute_name]
 
-    def rebuild_type_from_parent(
-        self, field_type: type[BaseModel], parent_attribute_name: str
-    ):
+    def rebuild_type_from_parent(self, field_type: type[BaseModel], parent_attribute_name: str):
         """Compute the effective validation type for a child field.
 
         Accounts for ``SINGLE_FILE`` and ``OMMIT_ROOT`` output strategies
@@ -487,34 +454,21 @@ class ModelDependencyGraph:
             type: The adjusted type to use for validation.
         """
         real_type = field_type
-        attribute = self.field_info_from_child(
-            field_type, parent_attribute_name
-        )
+        attribute = self.field_info_from_child(field_type, parent_attribute_name)
         # in case of omit root, we need to include a dictionary
         external = get_metadata(attribute.metadata, External)
-        if (
-            external is not None
-            and OutputStrategy.SINGLE_FILE in external.output_structure
-        ):
+        if external is not None and OutputStrategy.SINGLE_FILE in external.output_structure:
             if NoneType not in get_args(attribute.annotation):
                 real_type = attribute.annotation
                 # Re-attach any pydantic validators (BeforeValidator, etc.)
                 # that live in the field metadata so they run on the raw file
                 # data during validate_with_policy. The External annotation
                 # itself is not a pydantic validator and must be excluded.
-                validator_metadata = [
-                    m
-                    for m in attribute.metadata
-                    if not isinstance(m, External)
-                ]
+                validator_metadata = [m for m in attribute.metadata if not isinstance(m, External)]
                 if validator_metadata:
-                    real_type = Annotated[  # type: ignore[assignment]
-                        real_type, *validator_metadata
-                    ]
+                    real_type = Annotated[real_type, *validator_metadata]  # type: ignore[assignment]
             if OutputStrategy.OMMIT_ROOT not in external.output_structure:
-                real_type = dict[
-                    str, real_type  # type: ignore[valid-type, assignment]
-                ]
+                real_type = dict[str, real_type]  # type: ignore[valid-type, assignment]
         return real_type
 
     def normalize_child_to_parent(
@@ -540,9 +494,7 @@ class ModelDependencyGraph:
         """
         if not model_data:
             return None
-        attribute = self.field_info_from_child(
-            field_type, parent_attribute_name
-        )
+        attribute = self.field_info_from_child(field_type, parent_attribute_name)
         # in case of omit root, we need to include a dictionary
         external = get_metadata(attribute.metadata, External)
         if (
@@ -553,9 +505,7 @@ class ModelDependencyGraph:
             return model_data[parent_attribute_name]
         return model_data
 
-    def path_from_object(
-        self, model_object: BaseModel, parent_name: str
-    ) -> str:
+    def path_from_object(self, model_object: BaseModel, parent_name: str) -> str:
         """Return the dot-separated FLYNC path to an object given its parent
         field name.
 
@@ -624,9 +574,7 @@ def hash_directory_fast(directory: str, ext=".py") -> str:
                 fpath = join(root, fname)
                 file_stat = stat(fpath)
                 # Hash metadata only, not file contents
-                h.update(
-                    f"{fpath}{file_stat.st_mtime}{file_stat.st_size}".encode()
-                )
+                h.update(f"{fpath}{file_stat.st_mtime}{file_stat.st_size}".encode())
     return h.hexdigest()
 
 
@@ -642,9 +590,7 @@ def get_package_root(package_name: str | None = None) -> str:
     package = importlib.import_module(package_name)
     package_path = package.__file__
     if not package_path or not isinstance(package_path, str):
-        raise ValueError(
-            "Unable to figure out the package location %s", package_name
-        )
+        raise ValueError("Unable to figure out the package location %s", package_name)
     package_path = abspath(package_path)
     return dirname(package_path)
 

@@ -49,43 +49,29 @@ from flync.model.flync_4_tsn import (
 
 _PTPConfigField = Annotated[
     Optional[PTPConfig],
-    BeforeValidator(
-        common_validators.validate_or_remove("PTP config", PTPConfig)
-    ),
+    BeforeValidator(common_validators.validate_or_remove("PTP config", PTPConfig)),
 ]
 _MACsecConfigField = Annotated[
     Optional[MACsecConfig],
-    BeforeValidator(
-        common_validators.validate_or_remove("MACsec config", MACsecConfig)
-    ),
+    BeforeValidator(common_validators.validate_or_remove("MACsec config", MACsecConfig)),
 ]
 _FirewallField = Annotated[
     Optional[Firewall],
-    BeforeValidator(
-        common_validators.validate_or_remove("firewall", Firewall)
-    ),
+    BeforeValidator(common_validators.validate_or_remove("firewall", Firewall)),
 ]
 _HTBField = Annotated[
     Optional[HTBInstance],
-    BeforeValidator(
-        common_validators.validate_or_remove("HTB config", HTBInstance)
-    ),
+    BeforeValidator(common_validators.validate_or_remove("HTB config", HTBInstance)),
 ]
 _IngressStreamsField = Annotated[
     Optional[List[Stream]],
-    BeforeValidator(
-        common_validators.validate_or_remove("ingress streams", List[Stream])
-    ),
+    BeforeValidator(common_validators.validate_or_remove("ingress streams", List[Stream])),
     BeforeValidator(common_validators.none_to_empty_list),
 ]
 _TrafficClassesField = Annotated[
     Optional[List[TrafficClass]],
     AfterValidator(common_validators.validate_traffic_classes),
-    BeforeValidator(
-        common_validators.validate_or_remove(
-            "traffic classes", List[TrafficClass]
-        )
-    ),
+    BeforeValidator(common_validators.validate_or_remove("traffic classes", List[TrafficClass])),
     BeforeValidator(common_validators.none_to_empty_list),
 ]
 
@@ -135,14 +121,7 @@ class VirtualControllerInterface(FLYNCBaseModel):
     @field_serializer("addresses", "multicast")
     def serialize_addresses(self, value):
         if value is not None:
-            return [
-                (
-                    v.model_dump()
-                    if isinstance(v, FLYNCBaseModel)
-                    else str(v).upper()
-                )
-                for v in value
-            ]
+            return [(v.model_dump() if isinstance(v, FLYNCBaseModel) else str(v).upper()) for v in value]
 
 
 class ComputeNodes(FLYNCBaseModel):
@@ -216,16 +195,12 @@ class ComputeNodes(FLYNCBaseModel):
     @field_validator("ingress_streams", mode="after")
     def validate_ingress_streams(cls, value):
         """Ensure no ingress stream carries an ipv or ats value."""
-        return common_validators.validate_ingress_streams_fields(
-            value, "compute node"
-        )
+        return common_validators.validate_ingress_streams_fields(value, "compute node")
 
     @model_validator(mode="after")
     def validate_vlans(self):
         """Raise if any VLAN ID is repeated across virtual interfaces."""
-        common_validators.validate_vlan_ids_unique(
-            self.virtual_interfaces, self.name
-        )
+        common_validators.validate_vlan_ids_unique(self.virtual_interfaces, self.name)
         return self
 
 
@@ -358,9 +333,7 @@ class ControllerInterface(NamedDictInstances):
 
     name: str = Field()
     mac_address: MacAddress = Field()
-    mii_config: Optional[MII | RMII | SGMII | RGMII | XFI] = Field(
-        default=None, discriminator="type"
-    )
+    mii_config: Optional[MII | RMII | SGMII | RGMII | XFI] = Field(default=None, discriminator="type")
     compute_nodes: Optional[List[ComputeNodes]] = Field(default_factory=list)
     virtual_interfaces: Annotated[
         Optional[List[VirtualControllerInterface]],
@@ -379,9 +352,7 @@ class ControllerInterface(NamedDictInstances):
     ingress_streams: _IngressStreamsField = Field(default=[])
     traffic_classes: _TrafficClassesField = Field(default_factory=list)
     _connected_component = PrivateAttr(default=None)
-    _type: Literal["controller_interface"] = PrivateAttr(
-        default="controller_interface"
-    )
+    _type: Literal["controller_interface"] = PrivateAttr(default="controller_interface")
     _controller: Optional["Controller"] = PrivateAttr(default=None)
 
     @property
@@ -395,30 +366,21 @@ class ControllerInterface(NamedDictInstances):
     @field_validator("ingress_streams", mode="after")
     def validate_ingress_streams(cls, value):
         """Ensure no ingress stream carries an ipv or ats value."""
-        return common_validators.validate_ingress_streams_fields(
-            value, "controller interface"
-        )
+        return common_validators.validate_ingress_streams_fields(value, "controller interface")
 
     @model_validator(mode="after")
     def require_valid_virtual_interface(self):
         """Raise a major error if all virtual interfaces were removed."""
         has_direct = bool(self.virtual_interfaces)
-        has_via_nodes = any(
-            bool(node.virtual_interfaces)
-            for node in (self.compute_nodes or [])
-        )
+        has_via_nodes = any(bool(node.virtual_interfaces) for node in (self.compute_nodes or []))
         if not has_direct and not has_via_nodes:
-            raise err_major(
-                "Interface should have at least 1 valid virtual interface."
-            )
+            raise err_major("Interface should have at least 1 valid virtual interface.")
         return self
 
     @model_validator(mode="after")
     def validate_vlans(self):
         """Raise if any VLAN ID is repeated across virtual interfaces."""
-        common_validators.validate_vlan_ids_unique(
-            self.virtual_interfaces, self.name
-        )
+        common_validators.validate_vlan_ids_unique(self.virtual_interfaces, self.name)
         return self
 
     @model_validator(mode="after")
@@ -468,9 +430,7 @@ class ControllerInterface(NamedDictInstances):
         Returns the controller that the interface is a part of
         """
         if not self._controller:
-            raise err_fatal(
-                "Fatal Error: The interface is not a part of any controller"
-            )
+            raise err_fatal("Fatal Error: The interface is not a part of any controller")
         return self._controller
 
     def is_part_of_vlan(self, vlan):
@@ -537,8 +497,7 @@ class EthernetInterface(FLYNCBaseModel):
     interface_config: Annotated[
         ControllerInterface,
         External(
-            output_structure=OutputStrategy.SINGLE_FILE
-            | OutputStrategy.OMMIT_ROOT,
+            output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT,
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
     ] = Field()
@@ -601,8 +560,7 @@ class Controller(NamedListInstances):
     l2_bridge: Annotated[
         Optional[L2Bridge],
         External(
-            output_structure=OutputStrategy.SINGLE_FILE
-            | OutputStrategy.OMMIT_ROOT,
+            output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT,
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
     ] = Field(default=None)
@@ -617,9 +575,7 @@ class Controller(NamedListInstances):
     @model_validator(mode="after")
     def require_ethernet_interfaces(self):
         if not self.ethernet_interfaces:
-            raise err_major(
-                "Controller must declare at least one ethernet interface."
-            )
+            raise err_major("Controller must declare at least one ethernet interface.")
         return self
 
     @model_validator(mode="after")
@@ -635,14 +591,8 @@ class Controller(NamedListInstances):
 
         if self.l2_bridge is not None:
             for port in self.l2_bridge.ports:
-                if (
-                    port.node_connected not in interface_names
-                    and port.node_connected not in compute_node_names
-                ):
-                    raise err_minor(
-                        f"{port.node_connected} is not a valid"
-                        "controller interface or compute node"
-                    )
+                if port.node_connected not in interface_names and port.node_connected not in compute_node_names:
+                    raise err_minor(f"{port.node_connected} is not a valid" "controller interface or compute node")
         return self
 
     def get_all_ips(self):

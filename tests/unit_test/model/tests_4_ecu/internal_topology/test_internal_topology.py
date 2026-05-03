@@ -1,18 +1,18 @@
 import pytest
 from pydantic import ValidationError
 
+from flync.model.flync_4_ecu import (
+    BASET1,
+    MII,
+    ControllerInterface,
+    ECUPort,
+    SwitchPort,
+)
 from flync.model.flync_4_ecu.internal_topology import (
     ECUPortToSwitchPort,
     InternalTopology,
     SwitchPortToControllerInterface,
     SwitchPortToSwitchPort,
-)
-from flync.model.flync_4_ecu import (
-    ECUPort,
-    SwitchPort,
-    ControllerInterface,
-    BASET1,
-    MII,
 )
 
 
@@ -47,7 +47,7 @@ def test_internal_topology_ecu_port_not_defined():
         ]
     }
     with pytest.raises(ValidationError):
-        st = InternalTopology.model_validate(kwargs)
+        InternalTopology.model_validate(kwargs)
 
 
 def test_internal_topology_switch_port_not_defined():
@@ -63,7 +63,7 @@ def test_internal_topology_switch_port_not_defined():
         ]
     }
     with pytest.raises(ValidationError):
-        st = InternalTopology.model_validate(kwargs)
+        InternalTopology.model_validate(kwargs)
 
 
 def test_negative_internal_topology_switch_port_to_controller_interface_missing_switch_port(
@@ -86,7 +86,7 @@ def test_negative_internal_topology_switch_port_to_controller_interface_missing_
         ]
     }
     with pytest.raises(ValidationError):
-        st = InternalTopology.model_validate(kwargs)
+        InternalTopology.model_validate(kwargs)
 
 
 def test_negative_internal_topology_switch_port_to_controller_interface_missing_controller_interface(
@@ -109,7 +109,7 @@ def test_negative_internal_topology_switch_port_to_controller_interface_missing_
         ]
     }
     with pytest.raises(ValidationError):
-        st = InternalTopology.model_validate(kwargs)
+        InternalTopology.model_validate(kwargs)
 
 
 def test_internal_topology_chooses_switch_port_to_controller_interface_if_type_expected(
@@ -159,7 +159,7 @@ def test_negative_switch_to_switch_missing_port_2():
         ]
     }
     with pytest.raises(ValidationError):
-        st = InternalTopology.model_validate(kwargs)
+        InternalTopology.model_validate(kwargs)
 
 
 def test_internal_topology_chooses_switch_to_switch_same_ecu_if_type_expected():

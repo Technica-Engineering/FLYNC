@@ -4,9 +4,7 @@ import typing
 from contextlib import contextmanager
 from contextvars import ContextVar
 
-_active_registry: ContextVar["Registry | None"] = ContextVar(
-    "active_registry", default=None
-)
+_active_registry: ContextVar["Registry | None"] = ContextVar("active_registry", default=None)
 
 
 class Registry(object):
@@ -36,14 +34,8 @@ class Registry(object):
             instance_id: The key for the instance within its type bucket.
         """
         instances_dict = self.dict_by_class.setdefault(type(instance), {})
-        if (
-            hasattr(instance, "_allow_duplicate")
-            and not getattr(instance, "_allow_duplicate")
-            and instance_id in instances_dict
-        ):
-            raise ValueError(
-                "Id {} already exists for instance {}", instance_id, instance
-            )
+        if hasattr(instance, "_allow_duplicate") and not getattr(instance, "_allow_duplicate") and instance_id in instances_dict:
+            raise ValueError("Id {} already exists for instance {}", instance_id, instance)
         instances_dict[instance_id] = instance
 
     def register_list_item(self, instance):
@@ -107,10 +99,7 @@ def get_registry() -> Registry:
     """
     registry = _active_registry.get()
     if registry is None:
-        raise RuntimeError(
-            "No active registry. "
-            "Wrap model construction in registry_context()."
-        )
+        raise RuntimeError("No active registry. " "Wrap model construction in registry_context().")
     return registry
 
 
