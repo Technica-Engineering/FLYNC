@@ -69,11 +69,5 @@ class DiagnosticsResult:
             str: A human-readable string with the workspace name and relative
                 path.
         """
-        workspace_path = (
-            value.workspace_root.relative_to(getcwd())
-            if value.workspace_root is not None
-            else None
-        )
-        return (
-            f"workspace name: {value.name}, workspace path: {workspace_path}"
-        )
+        workspace_path = value.workspace_root.relative_to(getcwd()) if value.workspace_root is not None else None
+        return f"workspace name: {value.name}, workspace path: {workspace_path}"

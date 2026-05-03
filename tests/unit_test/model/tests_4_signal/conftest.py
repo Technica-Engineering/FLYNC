@@ -1,16 +1,16 @@
 import pytest
 
+from flync.model.flync_4_signal.frame import (
+    CANFrame,
+    LINFrame,
+)
+from flync.model.flync_4_signal.pdu import PDUInstance, StandardPDU
 from flync.model.flync_4_signal.signal import (
     Signal,
     SignalDataType,
     SignalGroup,
     SignalGroupInstance,
     SignalInstance,
-)
-from flync.model.flync_4_signal.pdu import PDUInstance, StandardPDU
-from flync.model.flync_4_signal.frame import (
-    CANFrame,
-    LINFrame,
 )
 
 

@@ -1,8 +1,9 @@
 import pytest
 from pydantic import ValidationError
-from flync.model.flync_4_ecu.phy import MII, RMII, SGMII, RGMII, BASET1, XFI
-from flync.model.flync_4_ecu.switch import SwitchPort, ControllerInterface
+
+from flync.model.flync_4_ecu.phy import BASET1, MII, RGMII, RMII, SGMII, XFI
 from flync.model.flync_4_ecu.port import ECUPort
+from flync.model.flync_4_ecu.switch import ControllerInterface, SwitchPort
 
 # Positive Tests for MII Config in ECU Ports
 

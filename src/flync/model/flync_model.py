@@ -80,8 +80,7 @@ class FLYNCModel(FLYNCBaseModel):
     metadata: Annotated[
         SystemMetadata,
         External(
-            output_structure=OutputStrategy.SINGLE_FILE
-            | OutputStrategy.OMMIT_ROOT,
+            output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT,
             naming_strategy=NamingStrategy.FIXED_PATH,
             path="system_metadata",
         ),
@@ -157,11 +156,7 @@ class FLYNCModel(FLYNCBaseModel):
 
             for rx in rx_list:
                 if rx not in tx_list:
-                    warn(
-                        "Invalid Multicast Configuration. There "
-                        "is a multicast rx configured for the address "
-                        f"{rx} but no tx."
-                    )
+                    warn("Invalid Multicast Configuration. There " "is a multicast rx configured for the address " f"{rx} but no tx.")
         except PydanticCustomError as e:
             warn(str(e))
         return self
@@ -179,11 +174,7 @@ class FLYNCModel(FLYNCBaseModel):
                     if (mcast.mode == "tx") and key not in paths:
 
                         paths[key] = compute_path(mcast.vlan, mcast._interface)
-                    if (
-                        (mcast.mode == "tx")
-                        and key in paths
-                        and not check_obj_in_list(mcast._interface, paths[key])
-                    ):
+                    if (mcast.mode == "tx") and key in paths and not check_obj_in_list(mcast._interface, paths[key]):
                         warn(
                             "Invalid Multicast Address Configuration. There"
                             " are several RX that the TX Endpoint at "
@@ -207,9 +198,7 @@ class FLYNCModel(FLYNCBaseModel):
                 if mac not in all_macs:
                     all_macs.append(mac)
                 else:
-                    raise err_major(
-                        f"The MAC {mac} is repeated in ECU {ecu.name}"
-                    )
+                    raise err_major(f"The MAC {mac} is repeated in ECU {ecu.name}")
         return self
 
     def check_rx_are_reached(self, separ, paths, vlans_dict):
@@ -218,16 +207,8 @@ class FLYNCModel(FLYNCBaseModel):
                 key = str(mcast.group) + separ + str(mcast.vlan)
                 if (mcast.mode == "rx") and key not in paths:
 
-                    warn(
-                        "Invalid Multicast Address Configuration. There"
-                        " are no TX endpoints for this address "
-                        f"{key} "
-                    )
-                if (
-                    (mcast.mode == "rx")
-                    and key in paths
-                    and not check_obj_in_list(mcast._interface, paths[key])
-                ):
+                    warn("Invalid Multicast Address Configuration. There" " are no TX endpoints for this address " f"{key} ")
+                if (mcast.mode == "rx") and key in paths and not check_obj_in_list(mcast._interface, paths[key]):
                     warn(
                         "Invalid Multicast Address Configuration."
                         f"The RX interface for address {key} "
@@ -256,17 +237,10 @@ class FLYNCModel(FLYNCBaseModel):
         IPv6 address configured in any ECU as TX if there is a RX for the
         same multicast group and VLAN.
         """
-        multicasts = [
-            mc
-            for ecu in self.ecus
-            for mc in ecu.multicast_groups
-            if mc.solicited_node_multicast
-        ]
+        multicasts = [mc for ecu in self.ecus for mc in ecu.multicast_groups if mc.solicited_node_multicast]
 
         for ecu in self.ecus:
-            update_ecu_multicast = collect_ipv6_solicited_node_tx(
-                ecu, multicasts
-            )
+            update_ecu_multicast = collect_ipv6_solicited_node_tx(ecu, multicasts)
             if ecu.name in update_ecu_multicast:
                 ecu.multicast_groups.append(update_ecu_multicast[ecu.name])
         return self
@@ -280,9 +254,7 @@ class FLYNCModel(FLYNCBaseModel):
                         found_mcast = True
                         addr.ports.append(comp.name)
                 if not found_mcast:
-                    new_mcast_group = MulticastGroup(
-                        address=mcast_addr, ports=[comp.name]
-                    )
+                    new_mcast_group = MulticastGroup(address=mcast_addr, ports=[comp.name])
                     v_entry.multicast.append(new_mcast_group)
 
     def load_switch_multicast(self, vlans_dict, paths):
@@ -322,20 +294,12 @@ class FLYNCModel(FLYNCBaseModel):
 
     def get_interface_by_name(self, name):
         return next(
-            (
-                interface
-                for interface in self.get_all_interfaces()
-                if interface.name == name
-            ),
+            (interface for interface in self.get_all_interfaces() if interface.name == name),
             None,
         )
 
     def get_all_interfaces(self):
-        return [
-            eth_iface.interface_config
-            for controller in self.get_all_controllers()
-            for eth_iface in controller.ethernet_interfaces
-        ]
+        return [eth_iface.interface_config for controller in self.get_all_controllers() for eth_iface in controller.ethernet_interfaces]
 
     def get_all_interfaces_names(self):
         """Return all the controller interface names"""
@@ -348,11 +312,7 @@ class FLYNCModel(FLYNCBaseModel):
         """Return a list of all interfaces for a given ECU."""
         ecu = self.get_ecu_by_name(ecu_name)
         if ecu:
-            return [
-                eth_iface.interface_config.name
-                for controller in ecu.controllers
-                for eth_iface in controller.ethernet_interfaces
-            ]
+            return [eth_iface.interface_config.name for controller in ecu.controllers for eth_iface in controller.ethernet_interfaces]
         return []
 
     def get_system_topology_info(self):

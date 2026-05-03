@@ -52,20 +52,14 @@ class WorkspaceConfiguration:
     """
 
     flync_file_extension: str = DEFAULT_EXTENSION
-    allowed_extensions: set[str] = field(
-        default_factory=lambda: {DEFAULT_EXTENSION, ".flync.yml"}
-    )
+    allowed_extensions: set[str] = field(default_factory=lambda: {DEFAULT_EXTENSION, ".flync.yml"})
     exclude_unset: bool = True
     root_model: Type[FLYNCBaseModel] = FLYNCModel
     map_objects: bool = False
-    list_objects_mode: ListObjectsMode = (
-        ListObjectsMode.INDEX | ListObjectsMode.NAME
-    )
+    list_objects_mode: ListObjectsMode = ListObjectsMode.INDEX | ListObjectsMode.NAME
 
     @classmethod
-    def create_from_config(
-        cls, existing_config: "WorkspaceConfiguration", **configs
-    ) -> "WorkspaceConfiguration":
+    def create_from_config(cls, existing_config: "WorkspaceConfiguration", **configs) -> "WorkspaceConfiguration":
         """Create a new configuration by overriding fields on an existing one.
 
         Converts ``existing_config`` to a dict, applies ``configs`` on top,

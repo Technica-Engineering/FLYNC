@@ -26,9 +26,7 @@ class BaseVersion(FLYNCBaseModel):
 
     """
 
-    version_schema: Optional[Literal["semver", "pep440"]] = Field(
-        default="semver"
-    )
+    version_schema: Optional[Literal["semver", "pep440"]] = Field(default="semver")
     version: str = Field(examples=["0.0.1"])
 
     @field_serializer("version")
@@ -41,27 +39,15 @@ class BaseVersion(FLYNCBaseModel):
 
         if self.version_schema == "pep440":
             try:
-                parsed = (
-                    raw_version
-                    if isinstance(raw_version, Pep440Version)
-                    else Pep440Version(str(raw_version))
-                )
+                parsed = raw_version if isinstance(raw_version, Pep440Version) else Pep440Version(str(raw_version))
             except InvalidVersion as e:
-                raise err_major(
-                    f"Version '{raw_version}' is not valid PEP 440"
-                ) from e
+                raise err_major(f"Version '{raw_version}' is not valid PEP 440") from e
 
         elif self.version_schema == "semver":
             try:
-                parsed = (
-                    raw_version
-                    if isinstance(raw_version, SemVersion)
-                    else SemVersion.parse(str(raw_version))
-                )
+                parsed = raw_version if isinstance(raw_version, SemVersion) else SemVersion.parse(str(raw_version))
             except ValueError as e:
-                raise err_major(
-                    f"Version '{raw_version}' is not valid Semantic Version"
-                ) from e
+                raise err_major(f"Version '{raw_version}' is not valid Semantic Version") from e
 
         object.__setattr__(self, "version", parsed)
         return self

@@ -4,13 +4,18 @@ from pydantic import ValidationError
 from flync.model.flync_4_bus.can_bus import CANBus, CANBusNode
 from flync.model.flync_4_signal.frame import CANFDFrame, CANFrame
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 
-def _make_can_frame(name="frm", can_id=0x100, id_format="standard_11bit", length=8, publisher_node=None):
+def _make_can_frame(
+    name="frm",
+    can_id=0x100,
+    id_format="standard_11bit",
+    length=8,
+    publisher_node=None,
+):
     return CANFrame(
         name=name,
         can_id=can_id,

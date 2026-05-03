@@ -5,20 +5,15 @@ from flync.model.flync_4_someip import (
     SOMEIPEvent,
     SOMEIPEventgroup,
     SOMEIPParameter,
-    SOMEIPServiceInterface,
-    SOMEIPServiceDeployment,
-    SOMEIPServiceProvider,
     SOMEIPServiceConsumer,
+    SOMEIPServiceInterface,
+    SOMEIPServiceProvider,
     UInt8,
 )
 
 
-def test_someip_service_deployment(
-    metadata_entry, someip_sd_server_timings_profile_entry
-):
-    s = SOMEIPServiceInterface(
-        meta=metadata_entry, name="s", id=1, major_version=1
-    )
+def test_someip_service_deployment(metadata_entry, someip_sd_server_timings_profile_entry):
+    s = SOMEIPServiceInterface(meta=metadata_entry, name="s", id=1, major_version=1)
     sd = SOMEIPServiceProvider(
         service=1,
         instance_id=1,
@@ -28,12 +23,8 @@ def test_someip_service_deployment(
     sd._serialize_field_as_service(s)
 
 
-def test_someip_service_deployment_lookup_service_from_id_and_major(
-    metadata_entry, someip_sd_server_timings_profile_entry
-):
-    si = SOMEIPServiceInterface(
-        meta=metadata_entry, name="s", id=1, major_version=1
-    )
+def test_someip_service_deployment_lookup_service_from_id_and_major(metadata_entry, someip_sd_server_timings_profile_entry):
+    si = SOMEIPServiceInterface(meta=metadata_entry, name="s", id=1, major_version=1)
     sp = SOMEIPServiceProvider(
         service=1,
         instance_id=1,
@@ -43,12 +34,8 @@ def test_someip_service_deployment_lookup_service_from_id_and_major(
     assert sp.service == si
 
 
-def test_someip_service_deployment_serialize_field_as_service(
-    metadata_entry, someip_sd_server_timings_profile_entry
-):
-    s = SOMEIPServiceInterface(
-        meta=metadata_entry, name="s", id=1, major_version=1
-    )
+def test_someip_service_deployment_serialize_field_as_service(metadata_entry, someip_sd_server_timings_profile_entry):
+    s = SOMEIPServiceInterface(meta=metadata_entry, name="s", id=1, major_version=1)
     sd = SOMEIPServiceProvider(
         service=1,
         instance_id=1,
@@ -59,31 +46,20 @@ def test_someip_service_deployment_serialize_field_as_service(
     assert id == 1
 
 
-def test_someip_service_deployment_profile_serialize(
-    metadata_entry, someip_sd_server_timings_profile_entry
-):
-    s = SOMEIPServiceInterface(
-        meta=metadata_entry, name="s", id=1, major_version=1
-    )
+def test_someip_service_deployment_profile_serialize(metadata_entry, someip_sd_server_timings_profile_entry):
+    s = SOMEIPServiceInterface(meta=metadata_entry, name="s", id=1, major_version=1)
     sd = SOMEIPServiceProvider(
         service=1,
         instance_id=1,
         major_version=1,
         someip_sd_timings_profile="server_default",
     )
-    assert (
-        sd.someip_sd_timings_profile
-        == someip_sd_server_timings_profile_entry.profile_id
-    )
+    assert sd.someip_sd_timings_profile == someip_sd_server_timings_profile_entry.profile_id
 
 
-def test_someip_service_consumer_deployment_empty_eventgroups(
-    metadata_entry, someip_sd_server_timings_profile_entry
-):
+def test_someip_service_consumer_deployment_empty_eventgroups(metadata_entry, someip_sd_server_timings_profile_entry):
     s = SOMEIPServiceInterface(meta=metadata_entry, name="s", id=1)
-    sd = SOMEIPServiceConsumer(
-        service=1, instance_id=1, someip_sd_timings_profile="server_default"
-    )
+    sd = SOMEIPServiceConsumer(service=1, instance_id=1, someip_sd_timings_profile="server_default")
 
 
 def test_someip_service_consumer_deployment_with_eventgroups(metadata_entry):

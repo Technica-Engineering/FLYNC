@@ -2,7 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from flync.model.flync_4_ecu.controller import Controller, ControllerInterface
-from flync.model.flync_4_security.firewall import *
+from flync.model.flync_4_security.firewall import Firewall
 
 
 def test_firewall_config_positive_(virtual_controller_interface):
@@ -31,7 +31,7 @@ def test_firewall_config_positive_(virtual_controller_interface):
     assert isinstance(controller_iface.firewall, Firewall)
 
 
-def test_firewall_config_positive_multiple_rules(virtual_controller_interface,embedded_metadata_entry):
+def test_firewall_config_positive_multiple_rules(virtual_controller_interface, embedded_metadata_entry):
 
     firewall_example = {
         "default_action": "drop",
@@ -60,14 +60,13 @@ def test_firewall_config_positive_multiple_rules(virtual_controller_interface,em
     )
 
     controller = Controller.model_validate(
-        {   "controller_metadata": embedded_metadata_entry,
+        {
+            "controller_metadata": embedded_metadata_entry,
             "name": "controller_example",
             "ethernet_interfaces": [{"interface_config": controller_iface}],
         }
     )
-    assert isinstance(
-        controller.ethernet_interfaces[0].interface_config.firewall, Firewall
-    )
+    assert isinstance(controller.ethernet_interfaces[0].interface_config.firewall, Firewall)
 
 
 def test_negative_firewall_config_multiple_rules_same_filter(
@@ -103,9 +102,7 @@ def test_negative_firewall_config_multiple_rules_same_filter(
                                 "name": "iface1",
                                 "mac_address": "00:11:22:33:44:55",
                                 "mii_config": None,
-                                "virtual_interfaces": [
-                                    virtual_controller_interface
-                                ],
+                                "virtual_interfaces": [virtual_controller_interface],
                                 "firewall": firewall_example,
                             }
                         )
@@ -115,9 +112,7 @@ def test_negative_firewall_config_multiple_rules_same_filter(
         )
 
 
-def test_positive_only_dst_ipv4_in_frame_filter(
-    virtual_controller_interface, embedded_metadata_entry
-):
+def test_positive_only_dst_ipv4_in_frame_filter(virtual_controller_interface, embedded_metadata_entry):
 
     firewall_example = {
         "default_action": "drop",
@@ -152,14 +147,10 @@ def test_positive_only_dst_ipv4_in_frame_filter(
             "ethernet_interfaces": [{"interface_config": controller_iface}],
         }
     )
-    assert isinstance(
-        controller.ethernet_interfaces[0].interface_config.firewall, Firewall
-    )
+    assert isinstance(controller.ethernet_interfaces[0].interface_config.firewall, Firewall)
 
 
-def test_positive_only_dst_ipv6_in_frame_filter(
-    virtual_controller_interface, embedded_metadata_entry
-):
+def test_positive_only_dst_ipv6_in_frame_filter(virtual_controller_interface, embedded_metadata_entry):
 
     firewall_example = {
         "default_action": "drop",
@@ -167,9 +158,7 @@ def test_positive_only_dst_ipv6_in_frame_filter(
             {
                 "name": "allow_someip_vlan_multicast",
                 "action": "accept",
-                "pattern": {
-                    "dst_ipv6": "2001:0db8:85a3:0000:0000:8a2e:0370:7334"
-                },
+                "pattern": {"dst_ipv6": "2001:0db8:85a3:0000:0000:8a2e:0370:7334"},
             },
             {
                 "name": "allow_someip_vlan_multicast",
@@ -196,9 +185,7 @@ def test_positive_only_dst_ipv6_in_frame_filter(
             "ethernet_interfaces": [{"interface_config": controller_iface}],
         }
     )
-    assert isinstance(
-        controller.ethernet_interfaces[0].interface_config.firewall, Firewall
-    )
+    assert isinstance(controller.ethernet_interfaces[0].interface_config.firewall, Firewall)
 
 
 def test_negative_both_dst_ipv4_and_dst_ipv6_in_frame_filter(
@@ -232,9 +219,7 @@ def test_negative_both_dst_ipv4_and_dst_ipv6_in_frame_filter(
                                 "name": "iface1",
                                 "mac_address": "00:11:22:33:44:55",
                                 "mii_config": None,
-                                "virtual_interfaces": [
-                                    virtual_controller_interface
-                                ],
+                                "virtual_interfaces": [virtual_controller_interface],
                                 "firewall": firewall_example,
                             }
                         )

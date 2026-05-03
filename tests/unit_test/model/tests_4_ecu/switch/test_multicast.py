@@ -1,8 +1,8 @@
 import pytest
-
 from pydantic import ValidationError
-from flync.model.flync_4_ecu import MulticastGroup
+
 import flync.core.utils.base_utils as utils
+from flync.model.flync_4_ecu import MulticastGroup
 
 
 @pytest.mark.parametrize(

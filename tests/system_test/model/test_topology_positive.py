@@ -1,11 +1,13 @@
-import pytest
 import json
 from pathlib import Path
+
+import pytest
+
 from flync.model.flync_4_ecu import *
-from flync.model.flync_4_metadata import *
-from flync.model.flync_4_topology import *
 from flync.model.flync_4_ecu.controller import *
 from flync.model.flync_4_ecu.internal_topology import *
+from flync.model.flync_4_metadata import *
+from flync.model.flync_4_topology import *
 from flync.model.flync_model import FLYNCModel
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 
@@ -43,9 +45,7 @@ def valid_simple_ecu():
         address=IPvAnyAddress("192.0.2.1"),
         ipv4netmask=IPvAnyAddress("192.0.0.0"),
     )
-    virtual_iface_ecu1 = VirtualControllerInterface(
-        name="virtual", vlanid=55, addresses=[ipv4_ecu1]
-    )
+    virtual_iface_ecu1 = VirtualControllerInterface(name="virtual", vlanid=55, addresses=[ipv4_ecu1])
     ctrl_iface_ecu1 = ControllerInterface(
         name="control1",
         mac_address=MacAddress("00:00:5e:00:53:01"),
@@ -71,14 +71,10 @@ def valid_simple_ecu():
     )
 
     # --- Internal links ---
-    internal_topology_ecu1 = InternalTopology(
-        connections=[InternalConnectionUnion(root=ecu_to_controller_cnx1)]
-    )
+    internal_topology_ecu1 = InternalTopology(connections=[InternalConnectionUnion(root=ecu_to_controller_cnx1)])
 
     # --- ECU Metadata ---
-    ecu_metadata = ECUMetadata(
-        type="ecu", author="test_team", compatible_flync_version=system_version
-    )
+    ecu_metadata = ECUMetadata(type="ecu", author="test_team", compatible_flync_version=system_version)
 
     # --- Create the ECU ---
     ecu1 = ECU(
@@ -90,14 +86,10 @@ def valid_simple_ecu():
     )
 
     # --- External links ---
-    empty_topology = FLYNCTopology(
-        system_topology=SystemTopology(connections=[])
-    )
+    empty_topology = FLYNCTopology(system_topology=SystemTopology(connections=[]))
 
     # --- Full FLYNC Model ---
-    flync_model = FLYNCModel(
-        ecus=[ecu1], topology=empty_topology, metadata=system_metadata
-    )
+    flync_model = FLYNCModel(ecus=[ecu1], topology=empty_topology, metadata=system_metadata)
 
     return flync_model
 
@@ -135,9 +127,7 @@ def valid_ecu_with_switch():
         address=IPvAnyAddress("192.0.2.1"),
         ipv4netmask=IPvAnyAddress("192.0.0.0"),
     )
-    virtual_iface_ecu1 = VirtualControllerInterface(
-        name="virtual", vlanid=55, addresses=[ipv4_ecu1]
-    )
+    virtual_iface_ecu1 = VirtualControllerInterface(name="virtual", vlanid=55, addresses=[ipv4_ecu1])
     ctrl_iface_ecu1 = ControllerInterface(
         name="control1",
         mac_address=MacAddress("00:00:5e:00:53:01"),
@@ -161,9 +151,7 @@ def valid_ecu_with_switch():
     )
 
     # --- Switch ---
-    switch1 = Switch(
-        name="switch1", ports=[switch_port1], vlans=[], meta=embedded_metadata
-    )
+    switch1 = Switch(name="switch1", ports=[switch_port1], vlans=[], meta=embedded_metadata)
 
     # --- ECU Port Configuration ---
     port_ecu1 = ECUPort(name="port1")
@@ -193,9 +181,7 @@ def valid_ecu_with_switch():
     )
 
     # --- ECU Metadata ---
-    ecu_metadata = ECUMetadata(
-        type="ecu", author="test_team", compatible_flync_version=system_version
-    )
+    ecu_metadata = ECUMetadata(type="ecu", author="test_team", compatible_flync_version=system_version)
 
     # --- Create the ECU ---
     ecu1 = ECU(
@@ -208,14 +194,10 @@ def valid_ecu_with_switch():
     )
 
     # --- External links ---
-    empty_topology = FLYNCTopology(
-        system_topology=SystemTopology(connections=[])
-    )
+    empty_topology = FLYNCTopology(system_topology=SystemTopology(connections=[]))
 
     # --- Full FLYNC Model ---
-    flync_model = FLYNCModel(
-        ecus=[ecu1], topology=empty_topology, metadata=system_metadata
-    )
+    flync_model = FLYNCModel(ecus=[ecu1], topology=empty_topology, metadata=system_metadata)
 
     return flync_model
 
@@ -253,9 +235,7 @@ def valid_inter_ecu_connection():
         address=IPvAnyAddress("192.0.2.1"),
         ipv4netmask=IPvAnyAddress("192.0.0.0"),
     )
-    virtual_iface_ecu1 = VirtualControllerInterface(
-        name="virtual1", vlanid=55, addresses=[ipv4_ecu1]
-    )
+    virtual_iface_ecu1 = VirtualControllerInterface(name="virtual1", vlanid=55, addresses=[ipv4_ecu1])
     ctrl_iface_ecu1 = ControllerInterface(
         name="control1",
         mac_address=MacAddress("00:00:5e:00:53:01"),
@@ -266,9 +246,7 @@ def valid_inter_ecu_connection():
         address=IPvAnyAddress("192.0.2.2"),
         ipv4netmask=IPvAnyAddress("192.0.0.0"),
     )
-    virtual_iface_ecu2 = VirtualControllerInterface(
-        name="virtual2", vlanid=55, addresses=[ipv4_ecu2]
-    )
+    virtual_iface_ecu2 = VirtualControllerInterface(name="virtual2", vlanid=55, addresses=[ipv4_ecu2])
     ctrl_iface_ecu2 = ControllerInterface(
         name="control2",
         mac_address=MacAddress("00:00:5e:00:53:02"),
@@ -306,17 +284,11 @@ def valid_inter_ecu_connection():
     )
 
     # --- Internal links ---
-    internal_topology_ecu1 = InternalTopology(
-        connections=[InternalConnectionUnion(root=ecu_to_controller_cnx1)]
-    )
-    internal_topology_ecu2 = InternalTopology(
-        connections=[InternalConnectionUnion(root=ecu_to_controller_cnx2)]
-    )
+    internal_topology_ecu1 = InternalTopology(connections=[InternalConnectionUnion(root=ecu_to_controller_cnx1)])
+    internal_topology_ecu2 = InternalTopology(connections=[InternalConnectionUnion(root=ecu_to_controller_cnx2)])
 
     # --- ECU Metadata ---
-    ecu_metadata = ECUMetadata(
-        type="ecu", author="test_team", compatible_flync_version=system_version
-    )
+    ecu_metadata = ECUMetadata(type="ecu", author="test_team", compatible_flync_version=system_version)
 
     # --- Create the ECU ---
     ecu1 = ECU(
@@ -349,9 +321,7 @@ def valid_inter_ecu_connection():
     )
 
     # --- Full FLYNC Model ---
-    flync_model = FLYNCModel(
-        ecus=[ecu1, ecu2], topology=ecus_topology, metadata=system_metadata
-    )
+    flync_model = FLYNCModel(ecus=[ecu1, ecu2], topology=ecus_topology, metadata=system_metadata)
 
     return flync_model
 
@@ -389,9 +359,7 @@ def valid_iface_to_iface():
         address=IPvAnyAddress("192.0.2.1"),
         ipv4netmask=IPvAnyAddress("192.0.0.0"),
     )
-    virtual_iface_ecu1 = VirtualControllerInterface(
-        name="virtual", vlanid=55, addresses=[ipv4_ecu1]
-    )
+    virtual_iface_ecu1 = VirtualControllerInterface(name="virtual", vlanid=55, addresses=[ipv4_ecu1])
     ctrl_iface_ecu1 = ControllerInterface(
         name="control1",
         mac_address=MacAddress("00:00:5e:00:53:01"),
@@ -403,9 +371,7 @@ def valid_iface_to_iface():
         address=IPvAnyAddress("192.0.2.2"),
         ipv4netmask=IPvAnyAddress("192.0.0.0"),
     )
-    virtual_iface_ecu2 = VirtualControllerInterface(
-        name="virtual2", vlanid=55, addresses=[ipv4_ecu2]
-    )
+    virtual_iface_ecu2 = VirtualControllerInterface(name="virtual2", vlanid=55, addresses=[ipv4_ecu2])
     ctrl_iface_ecu2 = ControllerInterface(
         name="control2",
         mac_address=MacAddress("00:00:5e:00:53:02"),
@@ -453,9 +419,7 @@ def valid_iface_to_iface():
     )
 
     # --- ECU Metadata ---
-    ecu_metadata = ECUMetadata(
-        type="ecu", author="test_team", compatible_flync_version=system_version
-    )
+    ecu_metadata = ECUMetadata(type="ecu", author="test_team", compatible_flync_version=system_version)
 
     # --- Create the ECU ---
     ecu1 = ECU(
@@ -467,14 +431,10 @@ def valid_iface_to_iface():
     )
 
     # --- External links ---
-    empty_topology = FLYNCTopology(
-        system_topology=SystemTopology(connections=[])
-    )
+    empty_topology = FLYNCTopology(system_topology=SystemTopology(connections=[]))
 
     # --- Full FLYNC Model ---
-    flync_model = FLYNCModel(
-        ecus=[ecu1], topology=empty_topology, metadata=system_metadata
-    )
+    flync_model = FLYNCModel(ecus=[ecu1], topology=empty_topology, metadata=system_metadata)
 
     return flync_model
 
@@ -520,9 +480,7 @@ def test_flync_model(tmpdir, valid_model_func):
     workspace.generate_configs()
 
     # --- Reload ---
-    ws = FLYNCWorkspace.load_workspace(
-        workspace_name="new_workspace", workspace_path=workspace_path
-    )
+    ws = FLYNCWorkspace.load_workspace(workspace_name="new_workspace", workspace_path=workspace_path)
     final_model = ws.flync_model
 
     # --- Validate reloaded model integrity ---
@@ -538,6 +496,4 @@ def test_flync_model(tmpdir, valid_model_func):
     initial_json = json.dumps(initial_model.dict(), sort_keys=True)
     final_json = json.dumps(final_model.dict(), sort_keys=True)
 
-    assert (
-        initial_json == final_json
-    ), "The final model is different from the initial model!"
+    assert initial_json == final_json, "The final model is different from the initial model!"

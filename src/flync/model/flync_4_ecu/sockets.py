@@ -57,12 +57,7 @@ class DeploymentUnion(RootModel):
 
     """
 
-    root: (
-        SOMEIPServiceConsumer
-        | SOMEIPServiceProvider
-        | SOMEIPSDDeployment
-        | PDUSender
-    ) = Field(discriminator="deployment_type")
+    root: SOMEIPServiceConsumer | SOMEIPServiceProvider | SOMEIPSDDeployment | PDUSender = Field(discriminator="deployment_type")
 
 
 def get_endpoint_type_from_address(
@@ -114,11 +109,7 @@ class Socket(FLYNCBaseModel):
     endpoint_address: IPvAnyAddress = Field()
     port_no: int = Field()
     deployments: Optional[List[DeploymentUnion]] = Field(default_factory=list)
-    endpoint_type: Optional[Literal["multicast", "unicast"]] = Field(
-        default_factory=lambda x: get_endpoint_type_from_address(
-            x["endpoint_address"]
-        )
-    )
+    endpoint_type: Optional[Literal["multicast", "unicast"]] = Field(default_factory=lambda x: get_endpoint_type_from_address(x["endpoint_address"]))
     multicast_tx: Optional[List[IPvAnyAddress]] = Field(default_factory=list)
 
     @field_validator("deployments", mode="before")
@@ -140,11 +131,7 @@ class Socket(FLYNCBaseModel):
                     )
                     for err in e.errors()
                 )
-                raise err_minor(
-                    f"Validation error in deployment {idx}"
-                    f" of socket - {detail}."
-                    " Skipping to the next deployment."
-                )
+                raise err_minor(f"Validation error in deployment {idx}" f" of socket - {detail}." " Skipping to the next deployment.")
             idx = idx + 1
         return valid_deployment
 
@@ -211,9 +198,7 @@ class TCPOption(DictInstances):
     keepcount: Optional[int] = Field(default=10)
     keepintvl: Optional[int] = Field(default=2)
     user_timeout: Optional[int] = Field(default=28)
-    congestion_avoidance: Optional[Literal["reno", "cubic", "bbr"]] = Field(
-        default="reno"
-    )
+    congestion_avoidance: Optional[Literal["reno", "cubic", "bbr"]] = Field(default="reno")
     tcp_maxseg: Optional[int] = Field(default=1460)
     tcp_quickack: Optional[StrictBool] = Field(default=False)
     tcp_syncnt: Optional[int] = Field(default=6)
@@ -267,11 +252,7 @@ class SocketTCP(Socket):
         tcp_options_instances = registry.get_dict(TCPOption)
         if value not in tcp_options_instances:
             TCPOption(tcp_profile_id=value)
-            warn(
-                f"TCP Socket with TCP Option profile ID {value}"
-                " does not exist. "
-                "Creating a profile with default options."
-            )
+            warn(f"TCP Socket with TCP Option profile ID {value}" " does not exist. " "Creating a profile with default options.")
         return value
 
 
@@ -303,13 +284,7 @@ class IPv4AddressEndpoint(IPv4AddressEntry):
         Assigned TCP and UDP socket endpoints.
     """
 
-    sockets: Optional[
-        List[
-            Annotated[
-                Union[SocketTCP, SocketUDP], Field(discriminator="protocol")
-            ]
-        ]
-    ] = Field(default_factory=list, exclude=True)
+    sockets: Optional[List[Annotated[Union[SocketTCP, SocketUDP], Field(discriminator="protocol")]]] = Field(default_factory=list, exclude=True)
 
     @model_validator(mode="after")
     def check_if_sockets_have_the_same_ip(self):
@@ -323,10 +298,7 @@ class IPv4AddressEndpoint(IPv4AddressEntry):
         """
         for socket in self.sockets:
             if str(socket.endpoint_address) != str(self.address):
-                raise err_minor(
-                    "Sockets must be tied to the same address "
-                    "as the IPv4 endpoint."
-                )
+                raise err_minor("Sockets must be tied to the same address " "as the IPv4 endpoint.")
 
         return self
 
@@ -343,13 +315,7 @@ class IPv6AddressEndpoint(IPv6AddressEntry):
         Assigned TCP and UDP socket endpoints.
     """
 
-    sockets: Optional[
-        List[
-            Annotated[
-                Union[SocketTCP, SocketUDP], Field(discriminator="protocol")
-            ]
-        ]
-    ] = Field(default_factory=list, exclude=True)
+    sockets: Optional[List[Annotated[Union[SocketTCP, SocketUDP], Field(discriminator="protocol")]]] = Field(default_factory=list, exclude=True)
 
     @model_validator(mode="after")
     def check_if_sockets_have_the_same_ip(self):
@@ -363,10 +329,7 @@ class IPv6AddressEndpoint(IPv6AddressEntry):
         """
         for socket in self.sockets:
             if str(socket.endpoint_address) != str(self.address):
-                raise err_minor(
-                    "Sockets must be tied to the same address "
-                    "as the IPv6 endpoint."
-                )
+                raise err_minor("Sockets must be tied to the same address " "as the IPv6 endpoint.")
         return self
 
 

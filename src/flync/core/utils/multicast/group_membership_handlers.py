@@ -64,9 +64,7 @@ def collect_ipv6_solicited_node_tx(
     tx_group_keys = set()
     tx_groups = []
     update_ecu_multicast = {}
-    vi_controller_interfaces = find_all(
-        ecu.controllers, VirtualControllerInterface
-    )
+    vi_controller_interfaces = find_all(ecu.controllers, VirtualControllerInterface)
     for multicast, vi in product(rx_multicasts, vi_controller_interfaces):
         if vi.vlanid != multicast.vlan:
             continue

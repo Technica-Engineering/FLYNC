@@ -66,9 +66,7 @@ class ECUPort(NamedDictInstances):
         discriminator="mode",
         description="how to use this",
     )
-    mii_config: Optional[MII | RMII | SGMII | RGMII | XFI] = Field(
-        default=None, discriminator="type"
-    )
+    mii_config: Optional[MII | RMII | SGMII | RGMII | XFI] = Field(default=None, discriminator="type")
     _ecu: "ECU" | None = PrivateAttr(default=None)
     _connected_components: List = PrivateAttr(default_factory=list)
     _type: Literal["ecu_port"] = PrivateAttr(default="ecu_port")
@@ -92,14 +90,8 @@ class ECUPort(NamedDictInstances):
         are present, their ``speed`` fields match.
         """
 
-        if (
-            self.mii_config is not None
-            and self.mii_config.speed != self.mdi_config.speed
-        ):
-            raise err_major(
-                f"MII and MDI config should have the same speed "
-                f"in ECU Ports. Port {self.name}"
-            )
+        if self.mii_config is not None and self.mii_config.speed != self.mdi_config.speed:
+            raise err_major(f"MII and MDI config should have the same speed " f"in ECU Ports. Port {self.name}")
         return self
 
     def get_internal_connected_component(self, ecus):

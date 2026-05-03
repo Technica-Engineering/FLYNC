@@ -98,16 +98,14 @@ class FLYNCChannelConfig(FLYNCBaseModel):
                 unknown_refs = _collect_unknown_pdu_refs(bus, pdu_registry)
                 if unknown_refs:
                     raise err_major(
-                        "CANBus '{name}' references unknown PDU(s):"
-                        " {unknown_refs}",
+                        "CANBus '{name}' references unknown PDU(s):" " {unknown_refs}",
                         name=bus.name,
                         unknown_refs=sorted(unknown_refs),
                     )
                 unknown = _collect_unknown_subscribers(bus, pdu_registry)
                 if unknown:
                     raise err_major(
-                        "CANBus '{name}' has signal subscriber_node(s) not "
-                        "declared in nodes: {unknown}",
+                        "CANBus '{name}' has signal subscriber_node(s) not " "declared in nodes: {unknown}",
                         name=bus.name,
                         unknown=sorted(unknown),
                     )
@@ -136,11 +134,7 @@ def _collect_unknown_subscribers(
             pdu = pdu_registry.get(pdu_inst.pdu_ref)
             if pdu is not None:
                 for placement in _iter_placements(pdu):
-                    unknown.update(
-                        sub
-                        for sub in placement.subscriber_nodes
-                        if sub not in declared
-                    )
+                    unknown.update(sub for sub in placement.subscriber_nodes if sub not in declared)
     return unknown
 
 
@@ -151,7 +145,5 @@ def _iter_placements(
     if isinstance(pdu, StandardPDU):
         yield from chain(pdu.signals, pdu.signal_groups)
     else:
-        mux_items = chain.from_iterable(
-            chain(g.signals, g.signal_groups) for g in pdu.mux_groups
-        )
+        mux_items = chain.from_iterable(chain(g.signals, g.signal_groups) for g in pdu.mux_groups)
         yield from chain([pdu.selector_signal], pdu.static_signals, mux_items)

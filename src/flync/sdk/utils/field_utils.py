@@ -29,9 +29,7 @@ def get_metadata(meta: Iterable[object], cls: type[T]) -> Optional[T]:
     return None
 
 
-def get_name(
-    named_object: T, attr_name: str, fallback_name: str | None = None
-) -> str:
+def get_name(named_object: T, attr_name: str, fallback_name: str | None = None) -> str:
     """Retrieve a display name for an object.
 
     Looks up ``attr_name`` on ``named_object``. Falls back to
@@ -47,10 +45,7 @@ def get_name(
         The resolved display name string.
     """
     attr_name = attr_name or "name"
-    return (
-        getattr(named_object, attr_name, fallback_name)
-        or type(named_object).__name__
-    )
+    return getattr(named_object, attr_name, fallback_name) or type(named_object).__name__
 
 
 def get_field_name_from_alias(model: type[BaseModel], alias: str):

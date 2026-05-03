@@ -15,9 +15,7 @@ def get_switch_port_connected_component(
     not already there in the paths
     """
     conn = comp.connected_component
-    if check_vlan_conn_valid(
-        conn, connected_components, new_connected_components, vlan
-    ):
+    if check_vlan_conn_valid(conn, connected_components, new_connected_components, vlan):
         new_list.append(conn)
     mcast_ports = comp.get_vlan_connected_ports(vlan)
     for sport_obj in mcast_ports:
@@ -30,9 +28,7 @@ def get_switch_port_connected_component(
             new_list.append(sport_obj)
 
 
-def get_ecu_port_connected_component(
-    comp, connected_components, new_connected_components, new_list, vlan
-):
+def get_ecu_port_connected_component(comp, connected_components, new_connected_components, new_list, vlan):
     """Helper function to help validate multicast paths.
 
     Adds all the components connected to a ECU
@@ -41,15 +37,11 @@ def get_ecu_port_connected_component(
     """
     conn = comp.connected_components
     for conn1 in conn:
-        if check_vlan_conn_valid(
-            conn1, connected_components, new_connected_components, vlan
-        ):
+        if check_vlan_conn_valid(conn1, connected_components, new_connected_components, vlan):
             new_list.append(conn1)
 
 
-def get_controller_interface_connected_component(
-    comp, connected_components, new_connected_components, new_list, vlan
-):
+def get_controller_interface_connected_component(comp, connected_components, new_connected_components, new_list, vlan):
     """Helper function to help validate multicast paths.
 
     Adds all the components connected to a controller
@@ -57,19 +49,12 @@ def get_controller_interface_connected_component(
     not already there in the paths
     """
     conn = comp.connected_component
-    if check_vlan_conn_valid(
-        conn, connected_components, new_connected_components, vlan
-    ):
+    if check_vlan_conn_valid(conn, connected_components, new_connected_components, vlan):
         new_list.append(conn)
     connected_interfaces = comp.get_other_interfaces()
 
     for iface in connected_interfaces:
-        if (
-            check_vlan_conn_valid(
-                iface, connected_components, new_connected_components, vlan
-            )
-            and iface.name != conn.name
-        ):
+        if check_vlan_conn_valid(iface, connected_components, new_connected_components, vlan) and iface.name != conn.name:
             new_list.append(iface)
 
 
@@ -100,9 +85,7 @@ def compute_path(vlan, interface):
     connected_components.append(interface)
 
     direct_conn = interface.get_connected_components()
-    if check_vlan_conn_valid(
-        direct_conn, connected_components, new_connected_components, vlan
-    ):
+    if check_vlan_conn_valid(direct_conn, connected_components, new_connected_components, vlan):
         new_connected_components.append(direct_conn)
 
     while len(new_connected_components) != 0:

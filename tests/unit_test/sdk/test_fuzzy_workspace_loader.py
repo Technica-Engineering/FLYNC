@@ -114,14 +114,7 @@ def __run_script(
     workspace: Path,
     fuzzed_fies: list[Path],
 ):
-    script_path = str(
-        package_root
-        / "src"
-        / "flync"
-        / "sdk"
-        / "helpers"
-        / "validate_workspace.py"
-    )
+    script_path = str(package_root / "src" / "flync" / "sdk" / "helpers" / "validate_workspace.py")
     result = subprocess.run(
         [sys.executable, script_path, str(input_dir)],
         capture_output=True,
@@ -166,9 +159,7 @@ def test_fuzzed_yaml(seed, pytestconfig, get_flync_example_path):
     for yaml_file in to_fuzz:
         __fuzz_yaml_file(yaml_file)
 
-    rc = __run_script(
-        fuzzed, output_file, pytestconfig.rootpath, fuzzed, to_fuzz
-    )
+    rc = __run_script(fuzzed, output_file, pytestconfig.rootpath, fuzzed, to_fuzz)
 
     # Assertions depend on your expectations
     assert rc in (0, 1)  # e.g. must not crash

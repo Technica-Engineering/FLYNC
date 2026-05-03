@@ -1,14 +1,15 @@
-import pytest
-from pathlib import Path
-from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
-from flync.model.flync_4_ecu import SocketContainer, Switch
-from flync.core.utils.base_utils import read_yaml
 import shutil
+from pathlib import Path
+
+from flync.core.utils.base_utils import read_yaml
+from flync.model.flync_4_ecu import SocketContainer, Switch
+from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 from tests.system_test.sdk.helper_load_ws import update_yaml_content
 
 absolute_path = Path(__file__).parents[3] / "examples" / "flync_example"
 
 absolute_path = Path(__file__).parents[3] / "examples" / "flync_example"
+
 
 def test_multicast_paths_no_tx(tmpdir):
     destination_folder = Path(tmpdir) / "copy"
@@ -31,14 +32,8 @@ def test_multicast_paths_no_tx(tmpdir):
     data["name"] = "socket_nm"
     SocketContainer.model_validate(data)
 
-    loaded_ws = FLYNCWorkspace.load_workspace(
-        "flync_example", destination_folder
-    )
-    assert (
-        "Invalid Multicast Configuration"
-        and "224.0.0.1"
-        and "no tx" in str(loaded_ws.load_errors)
-    )
+    loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
+    assert "Invalid Multicast Configuration" and "224.0.0.1" and "no tx" in str(loaded_ws.load_errors)
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
 
@@ -46,26 +41,13 @@ def test_multicast_paths_no_tx(tmpdir):
 def test_multicast_paths_no_path_from_rx_to_tx(tmpdir):
     destination_folder = Path(tmpdir) / "copie2"
     shutil.copytree(absolute_path, destination_folder)
-    file_to_update = (
-        destination_folder
-        / "ecus"
-        / "high_performance_compute"
-        / "switches"
-        / "hpc_switch1.flync.yaml"
-    )
+    file_to_update = destination_folder / "ecus" / "high_performance_compute" / "switches" / "hpc_switch1.flync.yaml"
     update_yaml_content(file_to_update, "    - hpc_s1_p3", "")
 
     data = read_yaml(file_to_update)
     Switch.model_validate(data)
-    loaded_ws = FLYNCWorkspace.load_workspace(
-        "flync_example", destination_folder
-    )
-    assert (
-        "Invalid Multicast Configuration"
-        and "224.0.0.1"
-        and "eth_ecu_c1_iface1"
-        and "cannot be reached by the TX" in str(loaded_ws.load_errors)
-    )
+    loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
+    assert "Invalid Multicast Configuration" and "224.0.0.1" and "eth_ecu_c1_iface1" and "cannot be reached by the TX" in str(loaded_ws.load_errors)
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
 
@@ -73,9 +55,7 @@ def test_multicast_paths_no_path_from_rx_to_tx(tmpdir):
 def test_switch_flooded(tmpdir):
     destination_folder = Path(tmpdir) / "copie2"
     shutil.copytree(absolute_path, destination_folder)
-    loaded_ws = FLYNCWorkspace.load_workspace(
-        "flync_example", destination_folder
-    )
+    loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
     ecus = loaded_ws.flync_model.ecus
     switch = None
     for ecu in ecus:

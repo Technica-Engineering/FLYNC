@@ -13,8 +13,6 @@ expected warning entry.
 import shutil
 from pathlib import Path
 
-import pytest
-
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 from tests.system_test.sdk.helper_load_ws import update_yaml_content
 
@@ -23,12 +21,7 @@ absolute_path = Path(__file__).parents[3] / "examples" / "flync_example"
 
 def _ip_repeat_warnings(load_errors):
     """Return only the duplicate-IP warnings emitted by validate_unique_ips."""
-    return [
-        e
-        for e in load_errors
-        if e.get("type") == "warning"
-        and "is repeated in ECU" in e.get("msg", "")
-    ]
+    return [e for e in load_errors if e.get("type") == "warning" and "is repeated in ECU" in e.get("msg", "")]
 
 
 def _load_example(tmpdir, name="copy"):
@@ -53,9 +46,7 @@ def _eth_ecu_iface_config(workspace_root):
 def test_unique_ips_no_warning_on_clean_workspace(tmpdir):
     """The example workspace has unique IPs and must not warn."""
     destination_folder = _load_example(tmpdir)
-    loaded_ws = FLYNCWorkspace.load_workspace(
-        "flync_example", destination_folder
-    )
+    loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
     assert _ip_repeat_warnings(loaded_ws.load_errors) == []
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
@@ -66,13 +57,9 @@ def test_unique_ips_duplicate_ipv4_across_ecus(tmpdir):
     destination_folder = _load_example(tmpdir)
     # 10.0.50.1 already exists in zonal_platform1/z1_c1_i1_viface2.
     # Replace 10.0.50.7 in eth_ecu so the IP appears in two ECUs.
-    update_yaml_content(
-        _eth_ecu_iface_config(destination_folder), "10.0.50.7", "10.0.50.1"
-    )
+    update_yaml_content(_eth_ecu_iface_config(destination_folder), "10.0.50.7", "10.0.50.1")
 
-    loaded_ws = FLYNCWorkspace.load_workspace(
-        "flync_example", destination_folder
-    )
+    loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
     warnings = _ip_repeat_warnings(loaded_ws.load_errors)
     assert len(warnings) == 1
     assert "10.0.50.1" in warnings[0]["msg"]
@@ -87,13 +74,9 @@ def test_unique_ips_duplicate_ipv4_within_same_ecu(tmpdir):
     destination_folder = _load_example(tmpdir)
     # eth_ecu_vm1 already declares 10.0.40.7 in vlan 40.  Set the second
     # compute node's address to the same IP to trigger an in-ECU clash.
-    update_yaml_content(
-        _eth_ecu_iface_config(destination_folder), "10.0.50.7", "10.0.40.7"
-    )
+    update_yaml_content(_eth_ecu_iface_config(destination_folder), "10.0.50.7", "10.0.40.7")
 
-    loaded_ws = FLYNCWorkspace.load_workspace(
-        "flync_example", destination_folder
-    )
+    loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
     warnings = _ip_repeat_warnings(loaded_ws.load_errors)
     assert len(warnings) == 1
     assert "10.0.40.7" in warnings[0]["msg"]
@@ -124,9 +107,7 @@ def test_unique_ips_duplicate_ipv6_across_ecus(tmpdir):
         "2001:db8:85a3::8a2e:370:7334",
     )
 
-    loaded_ws = FLYNCWorkspace.load_workspace(
-        "flync_example", destination_folder
-    )
+    loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
     warnings = _ip_repeat_warnings(loaded_ws.load_errors)
     assert len(warnings) == 1
     assert "2001:db8:85a3::8a2e:370:7334" in warnings[0]["msg"]
@@ -143,9 +124,7 @@ def test_unique_ips_dynamic_ipv4_zero_address_is_allowed(tmpdir):
     update_yaml_content(iface, "10.0.40.7", "0.0.0.0")
     update_yaml_content(iface, "10.0.50.7", "0.0.0.0")
 
-    loaded_ws = FLYNCWorkspace.load_workspace(
-        "flync_example", destination_folder
-    )
+    loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
     warnings = _ip_repeat_warnings(loaded_ws.load_errors)
     assert all("0.0.0.0" not in w["msg"] for w in warnings)
     if destination_folder.exists():
@@ -162,9 +141,7 @@ def test_unique_ips_multiple_duplicates_each_emit_a_warning(tmpdir):
     update_yaml_content(iface, "10.0.40.7", "10.0.40.1")
     update_yaml_content(iface, "10.0.50.7", "10.0.50.1")
 
-    loaded_ws = FLYNCWorkspace.load_workspace(
-        "flync_example", destination_folder
-    )
+    loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
     warnings = _ip_repeat_warnings(loaded_ws.load_errors)
     messages = " | ".join(w["msg"] for w in warnings)
     assert "10.0.40.1" in messages

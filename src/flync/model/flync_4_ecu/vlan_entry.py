@@ -77,9 +77,7 @@ class VLANEntry(FLYNCBaseModel):
     """
 
     name: str = Field()
-    id: Annotated[int, AfterValidator(common_validators.validate_vlan_id)] = (
-        Field(...)
-    )
+    id: Annotated[int, AfterValidator(common_validators.validate_vlan_id)] = Field(...)
     default_priority: int = Field(..., ge=0, le=7)
     ports: List[str] = Field()
     multicast: List[MulticastGroup] | None = Field(default=[])

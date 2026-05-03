@@ -115,39 +115,25 @@ class SwitchPort(NamedDictInstances):
     name: str = Field()
     silicon_port_no: int = Field(ge=0)
     default_vlan_id: int = Field(..., ge=0, le=4095)
-    mii_config: Optional[MII | RMII | SGMII | RGMII | XFI] = Field(
-        default=None, discriminator="type"
-    )
+    mii_config: Optional[MII | RMII | SGMII | RGMII | XFI] = Field(default=None, discriminator="type")
     ptp_config: Annotated[
         Optional[PTPConfig],
-        BeforeValidator(
-            common_validators.validate_or_remove("PTP config", PTPConfig)
-        ),
+        BeforeValidator(common_validators.validate_or_remove("PTP config", PTPConfig)),
     ] = Field(default=None)
     ingress_streams: Annotated[
         Optional[List[Stream]],
-        BeforeValidator(
-            common_validators.validate_or_remove(
-                "ingress streams", List[Stream]
-            )
-        ),
+        BeforeValidator(common_validators.validate_or_remove("ingress streams", List[Stream])),
         BeforeValidator(common_validators.none_to_empty_list),
     ] = Field(default=[])
     traffic_classes: Annotated[
         Optional[List[TrafficClass]],
         AfterValidator(common_validators.validate_traffic_classes),
-        BeforeValidator(
-            common_validators.validate_or_remove(
-                "traffic classes", List[TrafficClass]
-            )
-        ),
+        BeforeValidator(common_validators.validate_or_remove("traffic classes", List[TrafficClass])),
         BeforeValidator(common_validators.none_to_empty_list),
     ] = Field(default=[])
     macsec_config: Annotated[
         Optional[MACsecConfig],
-        BeforeValidator(
-            common_validators.validate_or_remove("MACsec config", MACsecConfig)
-        ),
+        BeforeValidator(common_validators.validate_or_remove("MACsec config", MACsecConfig)),
     ] = Field(default=None)
     _mdi_config: BASET1 | BASET1S | BASET | None = PrivateAttr(default=None)
     _connected_component = PrivateAttr(default=None)
@@ -283,9 +269,7 @@ class VLANOverwrite(FLYNCBaseModel):
     """
 
     type: Literal["vlan_overwrite"] = Field(default="vlan_overwrite")
-    overwrite_vlan_id: Annotated[
-        Optional[int], AfterValidator(validate_vlan_id)
-    ] = Field(default=None)
+    overwrite_vlan_id: Annotated[Optional[int], AfterValidator(validate_vlan_id)] = Field(default=None)
     overwrite_vlan_pcp: Optional[int] = Field(default=None)
     ports: List[str] = Field()
 
@@ -338,9 +322,7 @@ class TCAMRule(FLYNCBaseModel):
     id: StrictInt = Field()
     match_filter: FrameFilter = Field()
     match_ports: List[str] = Field()
-    action: List[
-        (Drop | Mirror | VLANOverwrite | ForceEgress | RemoveVLAN)
-    ] = Field()
+    action: List[(Drop | Mirror | VLANOverwrite | ForceEgress | RemoveVLAN)] = Field()
 
     @model_validator(mode="after")
     def validate_exclusive_drop_force_mirror(self):
@@ -362,8 +344,7 @@ class TCAMRule(FLYNCBaseModel):
 
         if len(all_ports) != len(set(all_ports)):
             raise err_minor(
-                "A TCAM Rule can either drop OR force egress OR "
-                "mirror on one port.",
+                "A TCAM Rule can either drop OR force egress OR " "mirror on one port.",
             )
         return self
 
@@ -387,8 +368,7 @@ class TCAMRule(FLYNCBaseModel):
 
         if len(all_ports) != len(set(all_ports)):
             raise err_minor(
-                "A TCAM Rule can either remove OR "
-                "overwrite a vlan on one port.",
+                "A TCAM Rule can either remove OR " "overwrite a vlan on one port.",
             )
         return self
 
@@ -526,11 +506,7 @@ class Switch(NamedListInstances):
                                         if stream.ipv == iv:
                                             found_stream = True
                             if not found_stream:
-                                raise err_minor(
-                                    f"Not able to find any streams with "
-                                    f"internal priority values {iv}. "
-                                    f"Traffic class {tr.name}"
-                                )
+                                raise err_minor(f"Not able to find any streams with " f"internal priority values {iv}. " f"Traffic class {tr.name}")
         return self
 
     @model_validator(mode="after")
@@ -547,10 +523,7 @@ class Switch(NamedListInstances):
         for port in self.ports:
             if port.traffic_classes:
                 for tr in port.traffic_classes:
-                    if (
-                        tr.selection_mechanisms
-                        and tr.selection_mechanisms.type == "ats"
-                    ):
+                    if tr.selection_mechanisms and tr.selection_mechanisms.type == "ats":
                         found_ats = False
                         for port_find in self.ports:
                             if port_find.ingress_streams:
@@ -558,10 +531,7 @@ class Switch(NamedListInstances):
                                     if stream.ats:
                                         found_ats = True
                         if not found_ats:
-                            raise err_minor(
-                                f"No ATS Instance found for traffic class "
-                                f"{tr.name}"
-                            )
+                            raise err_minor(f"No ATS Instance found for traffic class " f"{tr.name}")
 
         return self
 
@@ -609,9 +579,7 @@ class Switch(NamedListInstances):
             err_minor: Duplicate ``name`` values found among the TCAM rules.
         """
         names = [tcam.name for tcam in self.tcam_rules]
-        common_validators.validate_list_items_unique(
-            names, "tcam_rules (name)"
-        )
+        common_validators.validate_list_items_unique(names, "tcam_rules (name)")
 
         return self
 
@@ -626,15 +594,10 @@ class Switch(NamedListInstances):
         """
         if not self.host_controller or not self.host_controller.routing_table:
             return self
-        vci_names = [
-            vci.name for vci in self.host_controller.virtual_interfaces
-        ]
+        vci_names = [vci.name for vci in self.host_controller.virtual_interfaces]
         for route in self.host_controller.routing_table:
             if route.egress_interface not in vci_names:
-                raise err_minor(
-                    f"RouteEntry egress_interface {route.egress_interface}"
-                    f" is not a virtual interface of the host_controller."
-                )
+                raise err_minor(f"RouteEntry egress_interface {route.egress_interface}" f" is not a virtual interface of the host_controller.")
         return self
 
     @model_validator(mode="after")
@@ -648,9 +611,7 @@ class Switch(NamedListInstances):
         """
         if not self.host_controller or not self.host_controller.routing_table:
             return self
-        vci_map = {
-            vci.name: vci for vci in self.host_controller.virtual_interfaces
-        }
+        vci_map = {vci.name: vci for vci in self.host_controller.virtual_interfaces}
         for route in self.host_controller.routing_table:
             vci = vci_map.get(route.egress_interface)
             if vci is None:

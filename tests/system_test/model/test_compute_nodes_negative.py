@@ -1,7 +1,20 @@
 import pytest
-from flync.model.flync_4_metadata.metadata import BaseVersion
-from flync.model.flync_4_ecu.controller import *
 from pydantic import ValidationError
+
+from flync.model.flync_4_ecu.controller import (
+    ComputeNodes,
+    Controller,
+    ControllerInterface,
+    EmbeddedMetadata,
+    EthernetInterface,
+    L2Bridge,
+    L2BridgePort,
+    PTPConfig,
+    VirtualControllerInterface,
+    VLANEntry,
+)
+from flync.model.flync_4_metadata.metadata import BaseVersion
+
 
 @pytest.mark.xfail(reason="Known bug")
 def test_compute_nodes_require_l2bridge():
@@ -15,12 +28,33 @@ def test_compute_nodes_require_l2bridge():
     Without this, model would allow impossible network topologies.
     """
     system_version = BaseVersion(version_schema="semver", version="0.9.0")
-    embedded_metadata = EmbeddedMetadata(type="embedded",author="test_team",compatible_flync_version=system_version,target_system="my_system")
-    ctrl_iface = ControllerInterface(name="eth0",mac_address="00:11:22:33:44:55",compute_nodes=[ComputeNodes(name="vm1",mac_address="00:11:22:33:44:66",virtual_interfaces=[VirtualControllerInterface(name="vctrl",vlanid=10,addresses=[])])])
+    embedded_metadata = EmbeddedMetadata(
+        type="embedded",
+        author="test_team",
+        compatible_flync_version=system_version,
+        target_system="my_system",
+    )
+    ctrl_iface = ControllerInterface(
+        name="eth0",
+        mac_address="00:11:22:33:44:55",
+        compute_nodes=[
+            ComputeNodes(
+                name="vm1",
+                mac_address="00:11:22:33:44:66",
+                virtual_interfaces=[VirtualControllerInterface(name="vctrl", vlanid=10, addresses=[])],
+            )
+        ],
+    )
     iface = EthernetInterface(interface_config=ctrl_iface)
 
     with pytest.raises(ValidationError):
-        Controller(name="ctrl1",controller_metadata=embedded_metadata,ethernet_interfaces=[iface],l2_bridge=None)
+        Controller(
+            name="ctrl1",
+            controller_metadata=embedded_metadata,
+            ethernet_interfaces=[iface],
+            l2_bridge=None,
+        )
+
 
 def test_bridge_port_invalid_reference():
     """
@@ -34,13 +68,40 @@ def test_bridge_port_invalid_reference():
     This avoids silent miswiring like "ethO" vs "eth0".
     """
     system_version = BaseVersion(version_schema="semver", version="0.9.0")
-    embedded_metadata = EmbeddedMetadata(type="embedded",author="test_team",compatible_flync_version=system_version,target_system="my_system")
-    ctrl_iface = ControllerInterface(name="eth0",mac_address="00:11:22:33:44:55",compute_nodes=[ComputeNodes(name="vm1",mac_address="00:11:22:33:44:55",virtual_interfaces=[VirtualControllerInterface(name="vctrl",vlanid=10,addresses=[])])])
-    bridge = L2Bridge(name="br0",ports=[L2BridgePort(name="p1", node_connected="unknown_node"),],vlans=[])
+    embedded_metadata = EmbeddedMetadata(
+        type="embedded",
+        author="test_team",
+        compatible_flync_version=system_version,
+        target_system="my_system",
+    )
+    ctrl_iface = ControllerInterface(
+        name="eth0",
+        mac_address="00:11:22:33:44:55",
+        compute_nodes=[
+            ComputeNodes(
+                name="vm1",
+                mac_address="00:11:22:33:44:55",
+                virtual_interfaces=[VirtualControllerInterface(name="vctrl", vlanid=10, addresses=[])],
+            )
+        ],
+    )
+    bridge = L2Bridge(
+        name="br0",
+        ports=[
+            L2BridgePort(name="p1", node_connected="unknown_node"),
+        ],
+        vlans=[],
+    )
     iface = EthernetInterface(interface_config=ctrl_iface)
 
     with pytest.raises(ValidationError):
-        Controller(name="ctrl1",controller_metadata=embedded_metadata,ethernet_interfaces=[iface],l2_bridge=bridge)
+        Controller(
+            name="ctrl1",
+            controller_metadata=embedded_metadata,
+            ethernet_interfaces=[iface],
+            l2_bridge=bridge,
+        )
+
 
 def test_ptp_conflict_between_interface_and_compute_node():
     """
@@ -54,9 +115,22 @@ def test_ptp_conflict_between_interface_and_compute_node():
     This protects against undefined runtime behavior (who actually handles PTP?).
     """
     with pytest.raises(ValidationError):
-        ControllerInterface(name="eth0",mac_address="00:11:22:33:44:55",ptp_config=PTPConfig(),compute_nodes=[ComputeNodes(name="vm1",mac_address="00:11:22:33:44:66",virtual_interfaces=[VirtualControllerInterface(name="vctrl",vlanid=10,addresses=[])],ptp_config=PTPConfig())])
+        ControllerInterface(
+            name="eth0",
+            mac_address="00:11:22:33:44:55",
+            ptp_config=PTPConfig(),
+            compute_nodes=[
+                ComputeNodes(
+                    name="vm1",
+                    mac_address="00:11:22:33:44:66",
+                    virtual_interfaces=[VirtualControllerInterface(name="vctrl", vlanid=10, addresses=[])],
+                    ptp_config=PTPConfig(),
+                )
+            ],
+        )
 
-@pytest.mark.xfail(reason="Known bug")  
+
+@pytest.mark.xfail(reason="Known bug")
 def test_vlan_invalid_port_reference():
     """
     Objective:
@@ -68,13 +142,38 @@ def test_vlan_invalid_port_reference():
     Without this, VLAN configs would reference ghost ports, breaking connectivity logic.
     """
     system_version = BaseVersion(version_schema="semver", version="0.9.0")
-    embedded_metadata = EmbeddedMetadata(type="embedded",author="test_team",compatible_flync_version=system_version,target_system="my_system")
-    ctrl_iface = ControllerInterface(name="eth0",mac_address="00:11:22:33:44:55",compute_nodes=[ComputeNodes(name="vm1",mac_address="00:11:22:33:44:55",virtual_interfaces=[VirtualControllerInterface(name="vctrl",vlanid=10,addresses=[])])])
-    bridge = L2Bridge(name="br0",ports=[L2BridgePort(name="p1", node_connected="eth0")],vlans=[VLANEntry(name="test",id=10,default_priority=0, ports=["p2"])])
+    embedded_metadata = EmbeddedMetadata(
+        type="embedded",
+        author="test_team",
+        compatible_flync_version=system_version,
+        target_system="my_system",
+    )
+    ctrl_iface = ControllerInterface(
+        name="eth0",
+        mac_address="00:11:22:33:44:55",
+        compute_nodes=[
+            ComputeNodes(
+                name="vm1",
+                mac_address="00:11:22:33:44:55",
+                virtual_interfaces=[VirtualControllerInterface(name="vctrl", vlanid=10, addresses=[])],
+            )
+        ],
+    )
+    bridge = L2Bridge(
+        name="br0",
+        ports=[L2BridgePort(name="p1", node_connected="eth0")],
+        vlans=[VLANEntry(name="test", id=10, default_priority=0, ports=["p2"])],
+    )
     iface = EthernetInterface(interface_config=ctrl_iface)
 
     with pytest.raises(ValidationError):
-        Controller(name="ctrl1",controller_metadata=embedded_metadata,ethernet_interfaces=[iface],l2_bridge=bridge)
+        Controller(
+            name="ctrl1",
+            controller_metadata=embedded_metadata,
+            ethernet_interfaces=[iface],
+            l2_bridge=bridge,
+        )
+
 
 @pytest.mark.xfail(reason="Known bug")
 def test_compute_node_not_in_bridge_ports():
@@ -88,13 +187,38 @@ def test_compute_node_not_in_bridge_ports():
     Otherwise, you'd have compute nodes defined but no path to anything.
     """
     system_version = BaseVersion(version_schema="semver", version="0.9.0")
-    embedded_metadata = EmbeddedMetadata(type="embedded",author="test_team",compatible_flync_version=system_version,target_system="my_system")
-    ctrl_iface = ControllerInterface(name="eth0",mac_address="00:11:22:33:44:55",compute_nodes=[ComputeNodes(name="vm1",mac_address="00:11:22:33:44:66",virtual_interfaces=[VirtualControllerInterface(name="vctrl",vlanid=10,addresses=[])])])
-    bridge = L2Bridge(name="br0",ports=[L2BridgePort(name="p1", node_connected="eth0")],vlans=[])
+    embedded_metadata = EmbeddedMetadata(
+        type="embedded",
+        author="test_team",
+        compatible_flync_version=system_version,
+        target_system="my_system",
+    )
+    ctrl_iface = ControllerInterface(
+        name="eth0",
+        mac_address="00:11:22:33:44:55",
+        compute_nodes=[
+            ComputeNodes(
+                name="vm1",
+                mac_address="00:11:22:33:44:66",
+                virtual_interfaces=[VirtualControllerInterface(name="vctrl", vlanid=10, addresses=[])],
+            )
+        ],
+    )
+    bridge = L2Bridge(
+        name="br0",
+        ports=[L2BridgePort(name="p1", node_connected="eth0")],
+        vlans=[],
+    )
     iface = EthernetInterface(interface_config=ctrl_iface)
 
     with pytest.raises(ValidationError):
-        Controller(name="ctrl1",controller_metadata=embedded_metadata,ethernet_interfaces=[iface],l2_bridge=bridge)
+        Controller(
+            name="ctrl1",
+            controller_metadata=embedded_metadata,
+            ethernet_interfaces=[iface],
+            l2_bridge=bridge,
+        )
+
 
 def test_feature_offload_to_compute_node_only():
     """
@@ -107,13 +231,43 @@ def test_feature_offload_to_compute_node_only():
     This ensures system supports flexible feature placement, not just centralized config.
     """
     system_version = BaseVersion(version_schema="semver", version="0.9.0")
-    embedded_metadata = EmbeddedMetadata(type="embedded",author="test_team",compatible_flync_version=system_version,target_system="my_system")
-    ctrl_iface = ControllerInterface(name="eth0",mac_address="00:11:22:33:44:55",ptp_config=None,compute_nodes=[ComputeNodes(name="vm1",mac_address="00:11:22:33:44:66",virtual_interfaces=[VirtualControllerInterface(name="vctrl",vlanid=10,addresses=[])],ptp_config=PTPConfig())])
-    bridge = L2Bridge(name="br0",ports=[L2BridgePort(name="p1", node_connected="eth0"),L2BridgePort(name="p2", node_connected="vm1"),],vlans=[])
+    embedded_metadata = EmbeddedMetadata(
+        type="embedded",
+        author="test_team",
+        compatible_flync_version=system_version,
+        target_system="my_system",
+    )
+    ctrl_iface = ControllerInterface(
+        name="eth0",
+        mac_address="00:11:22:33:44:55",
+        ptp_config=None,
+        compute_nodes=[
+            ComputeNodes(
+                name="vm1",
+                mac_address="00:11:22:33:44:66",
+                virtual_interfaces=[VirtualControllerInterface(name="vctrl", vlanid=10, addresses=[])],
+                ptp_config=PTPConfig(),
+            )
+        ],
+    )
+    bridge = L2Bridge(
+        name="br0",
+        ports=[
+            L2BridgePort(name="p1", node_connected="eth0"),
+            L2BridgePort(name="p2", node_connected="vm1"),
+        ],
+        vlans=[],
+    )
     iface = EthernetInterface(interface_config=ctrl_iface)
-    controller = Controller(name="ctrl1",controller_metadata=embedded_metadata,ethernet_interfaces=[iface],l2_bridge=bridge)
+    controller = Controller(
+        name="ctrl1",
+        controller_metadata=embedded_metadata,
+        ethernet_interfaces=[iface],
+        l2_bridge=bridge,
+    )
 
     assert controller.ethernet_interfaces[0].interface_config.compute_nodes[0].ptp_config is not None
+
 
 @pytest.mark.xfail(reason="Known bug")
 def test_duplicate_name_between_interface_and_compute_node_should_fail():
@@ -127,6 +281,25 @@ def test_duplicate_name_between_interface_and_compute_node_should_fail():
 
     This prevents undefined behavior in L2Bridge connectivity resolution.
     """
-    ControllerInterface(name="eth0",mac_address="00:11:22:33:44:55",ptp_config=None,compute_nodes=[ComputeNodes(name="eth0",mac_address="00:11:22:33:44:66",virtual_interfaces=[VirtualControllerInterface(name="vctrl",vlanid=10,addresses=[])],ptp_config=PTPConfig())])
+    ControllerInterface(
+        name="eth0",
+        mac_address="00:11:22:33:44:55",
+        ptp_config=None,
+        compute_nodes=[
+            ComputeNodes(
+                name="eth0",
+                mac_address="00:11:22:33:44:66",
+                virtual_interfaces=[VirtualControllerInterface(name="vctrl", vlanid=10, addresses=[])],
+                ptp_config=PTPConfig(),
+            )
+        ],
+    )
     with pytest.raises(ValidationError):
-        L2Bridge(name="br0",ports=[L2BridgePort(name="p1", node_connected="eth0"),L2BridgePort(name="p2", node_connected="eth0"),],vlans=[])
+        L2Bridge(
+            name="br0",
+            ports=[
+                L2BridgePort(name="p1", node_connected="eth0"),
+                L2BridgePort(name="p2", node_connected="eth0"),
+            ],
+            vlans=[],
+        )

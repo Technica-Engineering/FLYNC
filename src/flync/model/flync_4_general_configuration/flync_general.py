@@ -47,11 +47,7 @@ class FLYNCGeneralConfig(FLYNCBaseModel):
     tcp_profiles: Annotated[
         List[TCPOption],
         External(output_structure=OutputStrategy.SINGLE_FILE),
-        BeforeValidator(
-            common_validators.validate_or_remove(
-                "TCP profiles", List[TCPOption]
-            )
-        ),
+        BeforeValidator(common_validators.validate_or_remove("TCP profiles", List[TCPOption])),
         BeforeValidator(common_validators.none_to_empty_list),
     ] = Field(default=[])
     someip_config: Annotated[
@@ -61,11 +57,7 @@ class FLYNCGeneralConfig(FLYNCBaseModel):
             naming_strategy=NamingStrategy.FIXED_PATH,
             path="someip",
         ),
-        BeforeValidator(
-            common_validators.validate_or_remove(
-                "SOME/IP config", SOMEIPConfig
-            )
-        ),
+        BeforeValidator(common_validators.validate_or_remove("SOME/IP config", SOMEIPConfig)),
     ] = Field(
         default=None,
         description="contains the SOME/IP config for the entire system.",
@@ -79,8 +71,5 @@ class FLYNCGeneralConfig(FLYNCBaseModel):
         ),
     ] = Field(
         default=None,
-        description=(
-            "CAN buses, LIN buses and Ethernet Container PDUs, loaded "
-            "from general/channels/."
-        ),
+        description=("CAN buses, LIN buses and Ethernet Container PDUs, loaded " "from general/channels/."),
     )

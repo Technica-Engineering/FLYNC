@@ -158,9 +158,7 @@ class CANFrameBase(Frame):
 
     can_id: int = Field()
     id_format: Literal["standard_11bit", "extended_29bit"] = Field()
-    publisher_node: Optional[Annotated[str, Field(min_length=1)]] = Field(
-        default=None
-    )
+    publisher_node: Optional[Annotated[str, Field(min_length=1)]] = Field(default=None)
     packed_pdus: List[PDUInstance] = Field(default_factory=list)
     timing: Optional[FrameTransmissionTiming] = Field(default=None)
 
@@ -202,8 +200,7 @@ class CANFrame(CANFrameBase):
         _validate_can_id(self.can_id, self.id_format)
         if self.is_remote_frame and self.length != 0:
             raise err_minor(
-                "CANFrame '{name}': is_remote_frame=True requires length=0 "
-                "(RTR frames carry no data payload); got length={length}",
+                "CANFrame '{name}': is_remote_frame=True requires length=0 " "(RTR frames carry no data payload); got length={length}",
                 name=self.name,
                 length=self.length,
             )
@@ -241,8 +238,7 @@ class CANFDFrame(CANFrameBase):
         _validate_can_id(self.can_id, self.id_format)
         if self.length not in _CAN_FD_VALID_LENGTHS:
             raise err_minor(
-                "CANFDFrame '{name}' length {length} is not a valid CAN FD "
-                "payload size; valid sizes are {valid}",
+                "CANFDFrame '{name}' length {length} is not a valid CAN FD " "payload size; valid sizes are {valid}",
                 name=self.name,
                 length=self.length,
                 valid=sorted(_CAN_FD_VALID_LENGTHS),
@@ -291,14 +287,10 @@ class LINFrame(Frame):
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-_CAN_FD_VALID_LENGTHS: FrozenSet[int] = frozenset(
-    {0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 16, 20, 24, 32, 48, 64}
-)
+_CAN_FD_VALID_LENGTHS: FrozenSet[int] = frozenset({0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 16, 20, 24, 32, 48, 64})
 
 
-def _check_pdu_bit_positions(
-    frame_name: str, packed_pdus: List[PDUInstance]
-) -> None:
+def _check_pdu_bit_positions(frame_name: str, packed_pdus: List[PDUInstance]) -> None:
     """Raise if any two PDU in the frame share the same bit_position."""
     seen: set = set()
     for pdu in packed_pdus:
@@ -306,8 +298,7 @@ def _check_pdu_bit_positions(
             continue
         if pdu.bit_position in seen:
             raise err_minor(
-                "Frame '{name}': multiple PDU instances share "
-                "bit_position {pos}; overlapping placements are not permitted",
+                "Frame '{name}': multiple PDU instances share " "bit_position {pos}; overlapping placements are not permitted",
                 name=frame_name,
                 pos=pdu.bit_position,
             )
@@ -319,8 +310,7 @@ def _validate_can_id(can_id: int, id_format: str) -> None:
     limit = 0x7FF if id_format == "standard_11bit" else 0x1FFFFFFF
     if not (0 <= can_id <= limit):
         raise err_minor(
-            "CAN ID {can_id} is out of range for id_format '{id_format}' "
-            "(allowed 0 – {limit})",
+            "CAN ID {can_id} is out of range for id_format '{id_format}' " "(allowed 0 – {limit})",
             can_id=can_id,
             id_format=id_format,
             limit=limit,

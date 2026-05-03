@@ -104,33 +104,20 @@ class ECU(UniqueName):
     topology: Annotated[
         "InternalTopology",
         External(
-            output_structure=OutputStrategy.SINGLE_FILE
-            | OutputStrategy.OMMIT_ROOT,
+            output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT,
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
-        BeforeValidator(
-            common_validators.validate_or_remove(
-                "internal topology", InternalTopology, severity="major"
-            )
-        ),
+        BeforeValidator(common_validators.validate_or_remove("internal topology", InternalTopology, severity="major")),
     ] = Field()
     ecu_metadata: Annotated[
         "ECUMetadata",
-        External(
-            output_structure=OutputStrategy.SINGLE_FILE
-            | OutputStrategy.OMMIT_ROOT
-        ),
+        External(output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT),
     ] = Field()
     mac_multicast_endpoints: Annotated[
         Optional["MACMulticastEndpoints"],
-        External(
-            output_structure=OutputStrategy.SINGLE_FILE
-            | OutputStrategy.OMMIT_ROOT
-        ),
+        External(output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT),
     ] = Field(exclude=True, default=None)
-    multicast_groups: Optional[List[MulticastGroupMembership]] = Field(
-        default_factory=list, exclude=True
-    )
+    multicast_groups: Optional[List[MulticastGroupMembership]] = Field(default_factory=list, exclude=True)
 
     def model_post_init(self, context):
         """
@@ -166,17 +153,10 @@ class ECU(UniqueName):
         if isinstance(data, dict):
             controllers = data.get("controllers") or []
             switches = data.get("switches") or []
-            broken_controllers = isinstance(controllers, list) and any(
-                c is None for c in controllers
-            )
-            broken_switches = isinstance(switches, list) and any(
-                s is None for s in switches
-            )
+            broken_controllers = isinstance(controllers, list) and any(c is None for c in controllers)
+            broken_switches = isinstance(switches, list) and any(s is None for s in switches)
             if broken_controllers or broken_switches:
-                raise err_major(
-                    "ECU has invalid components. "
-                    "Check controller and switch errors for details."
-                )
+                raise err_major("ECU has invalid components. " "Check controller and switch errors for details.")
         return data
 
     @model_validator(mode="after")
@@ -189,14 +169,10 @@ class ECU(UniqueName):
         for controller in self.controllers:
             for eth_iface in controller.ethernet_interfaces:
                 iface_config = eth_iface.interface_config
-                vlan_ids_in_sockets = {
-                    sc.vlan_id for sc in (eth_iface.sockets or [])
-                }
+                vlan_ids_in_sockets = {sc.vlan_id for sc in (eth_iface.sockets or [])}
                 if not vlan_ids_in_sockets:
                     continue
-                vlan_ids_in_interface = {
-                    vi.vlanid for vi in iface_config.virtual_interfaces or []
-                }
+                vlan_ids_in_interface = {vi.vlanid for vi in iface_config.virtual_interfaces or []}
                 missing_vlans = vlan_ids_in_sockets - vlan_ids_in_interface
                 if missing_vlans:
                     raise err_minor(
@@ -272,9 +248,7 @@ class ECU(UniqueName):
                                     vlan=socket_container.vlan_id,
                                     src_ip=socket.endpoint_address,
                                 )
-                                interface = self.get_interface_for_ip(
-                                    str(socket.endpoint_address)
-                                )
+                                interface = self.get_interface_for_ip(str(socket.endpoint_address))
                                 group._interface = interface
                                 self.multicast_groups.append(group)
         return self
@@ -328,9 +302,7 @@ class ECU(UniqueName):
                         vlan=endpoint.vlan_id or None,
                         src_ip=None,
                     )
-                    interface = self.get_interface_for_mac(
-                        str(endpoint.mac_address)
-                    )
+                    interface = self.get_interface_for_mac(str(endpoint.mac_address))
                     if not interface:
                         raise err_minor(
                             f"Error in MAC multicast:\n"
@@ -415,10 +387,7 @@ class ECU(UniqueName):
         grouped by VLAN ID.
         """
         all_socket_containers = [
-            sc
-            for controller in self.controllers
-            for eth_iface in (controller.ethernet_interfaces or [])
-            for sc in (eth_iface.sockets or [])
+            sc for controller in self.controllers for eth_iface in (controller.ethernet_interfaces or []) for sc in (eth_iface.sockets or [])
         ]
         return {
             vlan_id: [
@@ -427,10 +396,7 @@ class ECU(UniqueName):
                 if socket_container.vlan_id == vlan_id
                 for socket in socket_container.sockets or []
             ]
-            for vlan_id in set(
-                socket_container.vlan_id
-                for socket_container in all_socket_containers
-            )
+            for vlan_id in set(socket_container.vlan_id for socket_container in all_socket_containers)
         }
 
     def get_interface_for_ip(self, ip):
@@ -440,15 +406,11 @@ class ECU(UniqueName):
 
     def get_interface_for_mac(self, mac):
         for iface in self.get_all_interfaces():
-            macs = [iface.mac_address] + [
-                node.mac_address for node in iface.compute_nodes
-            ]
+            macs = [iface.mac_address] + [node.mac_address for node in iface.compute_nodes]
             if mac in macs:
                 return iface
 
-    def __get_services_of_type(
-        self, service_type: type[_T_Service]
-    ) -> list[_T_Service]:
+    def __get_services_of_type(self, service_type: type[_T_Service]) -> list[_T_Service]:
         """Return all SOME/IP service deployments of a given type.
 
         Iterates over all ethernet interfaces, their socket containers and

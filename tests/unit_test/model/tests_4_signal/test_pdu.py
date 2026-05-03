@@ -1,13 +1,6 @@
 import pytest
 from pydantic import ValidationError
 
-from flync.model.flync_4_signal.signal import (
-    Signal,
-    SignalDataType,
-    SignalGroup,
-    SignalGroupInstance,
-    SignalInstance,
-)
 from flync.model.flync_4_signal.pdu import (
     ContainedPDURef,
     ContainerPDU,
@@ -16,7 +9,13 @@ from flync.model.flync_4_signal.pdu import (
     PDUInstance,
     StandardPDU,
 )
-
+from flync.model.flync_4_signal.signal import (
+    Signal,
+    SignalDataType,
+    SignalGroup,
+    SignalGroupInstance,
+    SignalInstance,
+)
 
 # ---------------------------------------------------------------------------
 # PDUInstance

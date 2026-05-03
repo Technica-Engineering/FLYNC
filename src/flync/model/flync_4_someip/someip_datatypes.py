@@ -453,12 +453,8 @@ class BitfieldEntry(BaseModel):
     """
 
     name: str = Field(..., description="Name of the individual bitfield")
-    bitposition: int = Field(
-        ..., description="Bitposition for the individual bitfield"
-    )
-    description: Optional[str] = Field(
-        "", description="Optional description of the field"
-    )
+    bitposition: int = Field(..., description="Bitposition for the individual bitfield")
+    description: Optional[str] = Field("", description="Optional description of the field")
     values: Optional[List[BitfieldEntryValue]] = Field(
         default_factory=list,
         description="Optional values defined for the entry",
@@ -500,18 +496,13 @@ class Bitfield(Datatype):
         description="defines the possible length of the bitfield",
     )
 
-    fields: Optional[List[BitfieldEntry]] = Field(
-        default=None, description="List of bitfield entries"
-    )
+    fields: Optional[List[BitfieldEntry]] = Field(default=None, description="List of bitfield entries")
 
     @model_validator(mode="after")
     def validate_length_against_fields_size(self):
         """Validate size of fields equals bitfield length"""
         if self.fields is not None and len(self.fields) <= self.length:
-            err_minor(
-                f"Mismatch between length({self.length}) and "
-                f"number of defined fields ({len(self.fields)})"
-            )
+            err_minor(f"Mismatch between length({self.length}) and " f"number of defined fields ({len(self.fields)})")
         return self
 
     @model_validator(mode="after")
@@ -520,10 +511,7 @@ class Bitfield(Datatype):
         if self.fields is not None:
             for field in self.fields:
                 if field.bitposition < self.length:
-                    err_minor(
-                        f"Bitposition of {field.name} is out of range: "
-                        f"{field.bitposition} >= {self.length}"
-                    )
+                    err_minor(f"Bitposition of {field.name} is out of range: " f"{field.bitposition} >= {self.length}")
         return self
 
 
@@ -578,9 +566,7 @@ class Enum(Datatype):
 
     name: str = Field(default="Enum")
     type: Literal["enum"] = Field("enum")
-    base_type: TypingUnion["Ints"] = Field(
-        default_factory=lambda: Enum.default_base_type()
-    )
+    base_type: TypingUnion["Ints"] = Field(default_factory=lambda: Enum.default_base_type())
     entries: List[EnumEntry] = Field(default_factory=list)
     BASE_TYPE_RANGES: ClassVar[dict[str, tuple[int, int]]] = {
         "UInt8": (0, 2**8 - 1),
@@ -595,9 +581,7 @@ class Enum(Datatype):
 
     @field_validator("entries")
     @classmethod
-    def validate_entries(
-        cls, entries: list["EnumEntry"], info: ValidationInfo
-    ) -> list["EnumEntry"]:
+    def validate_entries(cls, entries: list["EnumEntry"], info: ValidationInfo) -> list["EnumEntry"]:
         base_type = info.data.get("base_type")
         if base_type is None:
             return entries  # Cannot validate without base_type
@@ -609,11 +593,7 @@ class Enum(Datatype):
                 raise err_minor(f"Duplicate enum value: {entry.value}")
             seen.add(entry.value)
             if not (min_value <= entry.value <= max_value):
-                raise err_minor(
-                    f"Enum value {entry.value} "
-                    f"exceeds valid range for {base_type_name} "
-                    f"({min_value} to {max_value})"
-                )
+                raise err_minor(f"Enum value {entry.value} " f"exceeds valid range for {base_type_name} " f"({min_value} to {max_value})")
         return entries
 
     @staticmethod
@@ -637,9 +617,7 @@ class BaseString(Datatype):
     name: str = Field(default="BaseString")
     type: str = Field()
     encoding: Literal["UTF-8", "UTF-16BE", "UTF-16LE"] = Field(
-        description="the encoding of the string\n\n"
-        ".. needextract::\n"
-        '\t:filter: id in ["feat_req_someip_234","feat_req_someip_235"]\n\n',
+        description="the encoding of the string\n\n" ".. needextract::\n" '\t:filter: id in ["feat_req_someip_234","feat_req_someip_235"]\n\n',
         default="UTF-8",
     )
 
@@ -717,14 +695,12 @@ class DynamicLengthString(BaseString):
     name: str = Field(default="DynamicLengthString")
     type: Literal["dynamic_length_string"] = Field(
         default="dynamic_length_string",
-        description="used internally by flync to efficiently determine the "
-        "constructor to use from yaml",
+        description="used internally by flync to efficiently determine the " "constructor to use from yaml",
     )
     max_length: Optional[int] = Field(
         default=None,
         ge=0,
-        description="Maximum string length in bytes."
-        "None means no upper limit.",
+        description="Maximum string length in bytes." "None means no upper limit.",
     )
     min_length: Optional[int] = Field(
         default=None,
@@ -773,9 +749,7 @@ class ArrayType(ComplexDatatype):
         min_length=1,
         description="Ordered list of array dimensions (outer → inner)",
     )
-    element_type: "AllTypes" = Field(
-        description="Datatype of the innermost array element"
-    )
+    element_type: "AllTypes" = Field(description="Datatype of the innermost array element")
 
 
 class ArrayDimension(FLYNCBaseModel):
@@ -819,12 +793,8 @@ class ArrayDimension(FLYNCBaseModel):
         default=None,
         description="Length of length-field in bits for dynamic dimension",
     )
-    upper_limit: Optional[int] = Field(
-        default=None, gt=0, description="Upper bound of elements"
-    )
-    lower_limit: Optional[int] = Field(
-        default=None, ge=0, description="Lower bound of elements"
-    )
+    upper_limit: Optional[int] = Field(default=None, gt=0, description="Upper bound of elements")
+    lower_limit: Optional[int] = Field(default=None, ge=0, description="Lower bound of elements")
     bit_alignment: Optional[Literal[8, 16, 32, 64, 128, 256]] = Field(
         default=None,
         description="Optional padding alignment after this dimension",
@@ -835,9 +805,7 @@ class ArrayDimension(FLYNCBaseModel):
     def validate(cls, value, info):
         kind = info.data["kind"]
         if kind == "dynamic":
-            assert (
-                value > 0
-            ), "Length of length-field must be > 0 for dynamic arrays"
+            assert value > 0, "Length of length-field must be > 0 for dynamic arrays"
 
         return value
 
@@ -867,9 +835,7 @@ class Struct(ComplexDatatype):
     """
 
     type: Literal["struct"] = Field("struct")
-    members: List["AllTypes"] = Field(
-        description="the members of the struct"
-    )  # type: ignore
+    members: List["AllTypes"] = Field(description="the members of the struct")  # type: ignore
     bit_alignment: Literal[8, 16, 32, 64, 128, 256] = Field(
         default=8,
         description="defines the optional alignment padding that can be added "
@@ -879,8 +845,7 @@ class Struct(ComplexDatatype):
     )
     length_of_length_field: Literal[0, 8, 16, 32] = Field(
         default=0,
-        description="defines the length of the length-field in bits for "
-        "the struct",
+        description="defines the length of the length-field in bits for " "the struct",
     )
 
 
@@ -905,9 +870,7 @@ class Typedef(ComplexDatatype):
 
     type: Literal["typedef"] = Field("typedef")
     name: str = Field(description="Name of the typedef reference")
-    datatyperef: "AllTypes" = Field(
-        description="Referenced datatype definition"
-    )  # type: ignore
+    datatyperef: "AllTypes" = Field(description="Referenced datatype definition")  # type: ignore
 
 
 class UnionMember(Datatype):
@@ -936,20 +899,14 @@ class UnionMember(Datatype):
 
     type: Annotated[
         "AllTypes",
-        Field(
-            description="member datatype (discriminated by its 'type' field)"
-        ),
+        Field(description="member datatype (discriminated by its 'type' field)"),
     ]
-    index: Annotated[
-        int, Field(description="index of the union member", strict=True, ge=0)
-    ]
+    index: Annotated[int, Field(description="index of the union member", strict=True, ge=0)]
     name: Annotated[str, Field(description="name of the union member")]
 
     mandatory: Annotated[
         Optional[bool],
-        Field(
-            description="whether the union member is mandatory", default=None
-        ),
+        Field(description="whether the union member is mandatory", default=None),
     ] = None
 
     @field_validator("type", mode="before")
@@ -993,9 +950,7 @@ class Union(Datatype):
 
     name: str = Field(default="Union")
     type: Literal["union"] = Field("union")
-    members: List[UnionMember] = Field(
-        description="list of the allowed datatypes a union can have"
-    )
+    members: List[UnionMember] = Field(description="list of the allowed datatypes a union can have")
     bit_alignment: Literal[8, 16, 32, 64, 128, 256] = Field(
         default=8,
         description="defines the optional alignment padding that can be \
@@ -1039,17 +994,7 @@ Floats = Annotated[
 "Collection of Float Types"
 
 AllTypes = Annotated[
-    Ints
-    | Floats
-    | Enum
-    | Boolean
-    | Struct
-    | Typedef
-    | Union
-    | ArrayType
-    | DynamicLengthString
-    | FixedLengthString
-    | Bitfield,
+    Ints | Floats | Enum | Boolean | Struct | Typedef | Union | ArrayType | DynamicLengthString | FixedLengthString | Bitfield,
     Field(discriminator="type"),
 ]
 "Collection of all dataypes"

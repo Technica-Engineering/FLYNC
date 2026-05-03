@@ -9,7 +9,8 @@ from flync.model.flync_4_ecu.controller import (
 
 
 def test_positive_controller_interface_config(
-    virtual_controller_interface: VirtualControllerInterface,embedded_metadata_entry
+    virtual_controller_interface: VirtualControllerInterface,
+    embedded_metadata_entry,
 ):
     ctrl_interface = {
         "name": "interface_test",
@@ -18,7 +19,8 @@ def test_positive_controller_interface_config(
         "ptp_config": None,
     }
     ctrl = Controller.model_validate(
-        {   "controller_metadata": embedded_metadata_entry,
+        {
+            "controller_metadata": embedded_metadata_entry,
             "name": "controller_test",
             "ethernet_interfaces": [{"interface_config": ctrl_interface}],
         }
@@ -46,7 +48,9 @@ def test_negative_controller_interface_wrong_mac(
         )
 
 
-def test_negative_controller_interface_missing_vifaces(embedded_metadata_entry):
+def test_negative_controller_interface_missing_vifaces(
+    embedded_metadata_entry,
+):
     ctrl_interface = {
         "name": "interface_test",
         "mac_address": "aa:bb:cc:dd:ee:ff",

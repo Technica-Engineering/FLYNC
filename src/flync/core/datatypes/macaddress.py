@@ -18,9 +18,7 @@ def mac_to_int(mac: MacAddress) -> int:
     return int(hex_str, 16)
 
 
-def is_mac_in_range(
-    mac: MacAddress | str, start: MacAddress, end: MacAddress
-) -> bool:
+def is_mac_in_range(mac: MacAddress | str, start: MacAddress, end: MacAddress) -> bool:
     """Check if a MAC address is within a specified range."""
     if isinstance(mac, str):
         mac = MacAddress(mac)

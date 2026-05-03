@@ -83,9 +83,7 @@ def validate_external_node(
     model = None
     ws = None
     if workspace_config:
-        workspace_config = WorkspaceConfiguration.create_from_config(
-            workspace_config, root_model=node
-        )
+        workspace_config = WorkspaceConfiguration.create_from_config(workspace_config, root_model=node)
     else:
         workspace_config = WorkspaceConfiguration(root_model=node)
     try:
@@ -109,9 +107,7 @@ def validate_external_node(
             "Encountered issue while validating node %s",
             ex.with_traceback(None),  # type: ignore[func-returns-value]
         )
-    return DiagnosticsResult(
-        state=state, errors=errors, model=model, workspace=ws
-    )
+    return DiagnosticsResult(state=state, errors=errors, model=model, workspace=ws)
 
 
 def validate_node(
@@ -136,14 +132,9 @@ def validate_node(
         DiagnosticsResult: Validation outcome for the specified node.
     """
     # load entire workspace
-    workspace_results = validate_workspace(
-        ws_path, workspace_config=workspace_config
-    )
+    workspace_results = validate_workspace(ws_path, workspace_config=workspace_config)
     # validate node in workspace
-    if (
-        not workspace_results.workspace
-        or node_path not in workspace_results.workspace.objects
-    ):
+    if not workspace_results.workspace or node_path not in workspace_results.workspace.objects:
         workspace_results.state = WorkspaceState.INVALID
         fatal_ctx = {"node_path": node_path}
         error = InitErrorDetails(
@@ -156,15 +147,9 @@ def validate_node(
             input=workspace_results.model,
         )
         try:
-            raise ValidationError.from_exception_data(
-                title="partial node validation", line_errors=[error]
-            )
+            raise ValidationError.from_exception_data(title="partial node validation", line_errors=[error])
         except ValidationError as ex:
             workspace_results.errors[node_path] = ex.errors()
     else:
-        workspace_results.model = (
-            workspace_results.workspace.objects[  # type: ignore[assignment]
-                ObjectId(node_path)
-            ].model
-        )
+        workspace_results.model = workspace_results.workspace.objects[ObjectId(node_path)].model  # type: ignore[assignment]
     return workspace_results

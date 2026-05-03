@@ -27,9 +27,7 @@ def test_positive_controller_viface_single_ipv4(
             "virtual_interfaces": [virtual_iface],
         }
     )
-    assert isinstance(
-        controller_iface.virtual_interfaces[0], VirtualControllerInterface
-    )
+    assert isinstance(controller_iface.virtual_interfaces[0], VirtualControllerInterface)
 
 
 def test_positive_controller_viface_single_ipv6(
@@ -48,9 +46,7 @@ def test_positive_controller_viface_single_ipv6(
             "virtual_interfaces": [virtual_iface],
         }
     )
-    assert isinstance(
-        controller_iface.virtual_interfaces[0], VirtualControllerInterface
-    )
+    assert isinstance(controller_iface.virtual_interfaces[0], VirtualControllerInterface)
 
 
 def test_positive_controller_viface_mixed_ipv4_ipv6(

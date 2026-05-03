@@ -35,26 +35,15 @@ class FirewallRule(FLYNCBaseModel):
     def validate_pattern(self):
         pattern = self.pattern
         if all(field is None for field in vars(pattern).values()):
-            raise err_minor(
-                "At least one of the fields in pattern of firewall rule "
-                "should be present"
-            )
+            raise err_minor("At least one of the fields in pattern of firewall rule " "should be present")
         if pattern.dst_ipv4 is not None and pattern.dst_ipv6 is not None:
-            raise err_minor(
-                "Firewall rule cannot have both dst ipv4 and dst ipv6 set"
-            )
+            raise err_minor("Firewall rule cannot have both dst ipv4 and dst ipv6 set")
         if pattern.src_ipv4 is not None and pattern.src_ipv6 is not None:
-            raise err_minor(
-                "Firewall rule cannot have both src ipv4 and src ipv6 set"
-            )
+            raise err_minor("Firewall rule cannot have both src ipv4 and src ipv6 set")
         if pattern.src_ipv4 is not None and pattern.dst_ipv6 is not None:
-            raise err_minor(
-                "Firewall rule cannot have both src ipv4 and dst ipv6 set"
-            )
+            raise err_minor("Firewall rule cannot have both src ipv4 and dst ipv6 set")
         if pattern.src_ipv6 is not None and pattern.dst_ipv4 is not None:
-            raise err_minor(
-                "Firewall rule cannot have both src ipv6 and dst ipv4 set"
-            )
+            raise err_minor("Firewall rule cannot have both src ipv6 and dst ipv4 set")
         return self
 
 
@@ -73,9 +62,7 @@ class Firewall(FLYNCBaseModel):
         conditions and actions.
     """
 
-    default_action: Optional[Literal["reject", "accept", "drop"]] = Field(
-        default="reject"
-    )
+    default_action: Optional[Literal["reject", "accept", "drop"]] = Field(default="reject")
     input_rules: Annotated[
         Optional[List[FirewallRule]],
         BeforeValidator(common_validators.none_to_empty_list),
@@ -91,9 +78,7 @@ class Firewall(FLYNCBaseModel):
 
     @field_validator("input_rules", "output_rules", "forward_rules")
     @classmethod
-    def check_duplicate_rules(
-        cls, rules: List[FirewallRule]
-    ) -> List[FirewallRule]:
+    def check_duplicate_rules(cls, rules: List[FirewallRule]) -> List[FirewallRule]:
         filter_list = []
         for rule in rules:
             if rule.pattern in filter_list:

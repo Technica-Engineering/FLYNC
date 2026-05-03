@@ -13,9 +13,7 @@ def get_flync_example_path(pytestconfig):
 
 @pytest.fixture
 def loaded_workspace(get_flync_example_path):
-    return FLYNCWorkspace.load_workspace(
-        "test_workspace", get_flync_example_path
-    )
+    return FLYNCWorkspace.load_workspace("test_workspace", get_flync_example_path)
 
 
 @pytest.fixture

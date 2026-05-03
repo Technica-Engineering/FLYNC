@@ -82,9 +82,7 @@ def __add_pydantic_errors_to_report(
         msg = err.get("msg", "")
         raw_ctx = err.get("ctx", {})
         sub_errors = raw_ctx.get("sub_errors", "")
-        ctx = ", ".join(
-            f"{k}={v}" for k, v in raw_ctx.items() if k != "sub_errors"
-        )
+        ctx = ", ".join(f"{k}={v}" for k, v in raw_ctx.items() if k != "sub_errors")
         error_list.append([err_type, msg, location, ctx, sub_errors])
 
 
@@ -141,9 +139,7 @@ def render_validation_errors(errors: dict) -> None:
         console.print(table)
 
 
-parser = argparse.ArgumentParser(
-    description="Script to validate a FLYNC workspace."
-)
+parser = argparse.ArgumentParser(description="Script to validate a FLYNC workspace.")
 parser.add_argument("path", help="Absolute path to FLYNC configuration.")
 parser.add_argument(
     "-n",
@@ -168,44 +164,29 @@ VALIDATION_SOFT_ERRORS: dict = {}
 try:
     loaded_ws = FLYNCWorkspace.load_workspace(flync_name, path.resolve())
 except Exception as e:
-    console.print(
-        "[bold red]VALIDATION FAILED:"
-        f" Validation of {flync_name} failed![/bold red]"
-    )
+    console.print("[bold red]VALIDATION FAILED:" f" Validation of {flync_name} failed![/bold red]")
     if isinstance(e, ValidationError):
         all_errs = e.errors()
         warn_rows = [x for x in all_errs if x.get("type") == "warning"]
         err_rows = [x for x in all_errs if x.get("type") != "warning"]
         if warn_rows:
             VALIDATION_WARNINGS[flync_name] = []
-            __add_pydantic_errors_to_report(
-                warn_rows, VALIDATION_WARNINGS[flync_name]
-            )
+            __add_pydantic_errors_to_report(warn_rows, VALIDATION_WARNINGS[flync_name])
         if err_rows:
             err_list: list = []
             __add_pydantic_errors_to_report(err_rows, err_list)
             VALIDATION_ERRORS[flync_name] = err_list
     else:
-        VALIDATION_ERRORS = add_errors_to_report(
-            VALIDATION_ERRORS, flync_name, e
-        )
+        VALIDATION_ERRORS = add_errors_to_report(VALIDATION_ERRORS, flync_name, e)
 if loaded_ws and loaded_ws.load_errors:
-    actual_warnings = [
-        e for e in loaded_ws.load_errors if e.get("type") == "warning"
-    ]
-    soft_errors = [
-        e for e in loaded_ws.load_errors if e.get("type") != "warning"
-    ]
+    actual_warnings = [e for e in loaded_ws.load_errors if e.get("type") == "warning"]
+    soft_errors = [e for e in loaded_ws.load_errors if e.get("type") != "warning"]
     if actual_warnings:
         VALIDATION_WARNINGS[flync_name] = []
-        __add_pydantic_errors_to_report(
-            actual_warnings, VALIDATION_WARNINGS[flync_name]
-        )
+        __add_pydantic_errors_to_report(actual_warnings, VALIDATION_WARNINGS[flync_name])
     if soft_errors:
         VALIDATION_SOFT_ERRORS[flync_name] = []
-        __add_pydantic_errors_to_report(
-            soft_errors, VALIDATION_SOFT_ERRORS[flync_name]
-        )
+        __add_pydantic_errors_to_report(soft_errors, VALIDATION_SOFT_ERRORS[flync_name])
 
 for config_name, warnings in VALIDATION_WARNINGS.items():
     console.print(f"\n[bold yellow]Warnings for {config_name}:[/bold yellow]")
@@ -220,9 +201,7 @@ for config_name, warnings in VALIDATION_WARNINGS.items():
 render_validation_errors(VALIDATION_SOFT_ERRORS)
 render_validation_errors(VALIDATION_ERRORS)
 if len(VALIDATION_ERRORS) == 0:
-    console.print(
-        f"[bold green]>> {flync_name} is properly configured! <<[/bold green]"
-    )
+    console.print(f"[bold green]>> {flync_name} is properly configured! <<[/bold green]")
     sys.exit(0)
 else:
     sys.exit(1)

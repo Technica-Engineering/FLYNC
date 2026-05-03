@@ -154,24 +154,16 @@ class Signal(UniqueName):
     def _factor_nonzero(cls, v: float) -> float:
         """Reject a zero factor, which would collapse all physical values."""
         if not v:
-            raise ValueError(
-                "factor must not be zero; a zero factor collapses all "
-                "physical values to the offset"
-            )
+            raise ValueError("factor must not be zero; a zero factor collapses all " "physical values to the offset")
         return v
 
     @field_validator("value_descriptions")
     @classmethod
-    def _value_descriptions_unique(
-        cls, v: List[ValueDescription]
-    ) -> List[ValueDescription]:
+    def _value_descriptions_unique(cls, v: List[ValueDescription]) -> List[ValueDescription]:
         seen: set[int] = set()
         for vd in v:
             if vd.value in seen:
-                raise ValueError(
-                    f"Duplicate value {vd.value!r} in value_descriptions; "
-                    "each raw value must appear at most once"
-                )
+                raise ValueError(f"Duplicate value {vd.value!r} in value_descriptions; " "each raw value must appear at most once")
             seen.add(vd.value)
         return v
 
@@ -180,42 +172,28 @@ class Signal(UniqueName):
         natural = self.data_type.natural_bit_width()
         if self.data_type.is_float():
             if self.bit_length != natural:
-                raise ValueError(
-                    f"{self.data_type.value} requires exactly {natural} bits; "
-                    f"got bit_length={self.bit_length}"
-                )
+                raise ValueError(f"{self.data_type.value} requires exactly {natural} bits; " f"got bit_length={self.bit_length}")
         elif natural is not None and self.bit_length > natural:
-            raise ValueError(
-                f"bit_length={self.bit_length} exceeds the natural width "
-                f"of {self.data_type.value} ({natural} bits)"
-            )
+            raise ValueError(f"bit_length={self.bit_length} exceeds the natural width " f"of {self.data_type.value} ({natural} bits)")
         return self
 
     @model_validator(mode="after")
     def _validate_limits(self) -> "Signal":
         if self.lower_limit is not None and self.upper_limit is not None:
             if self.lower_limit > self.upper_limit:
-                raise ValueError(
-                    f"lower_limit ({self.lower_limit}) must not exceed "
-                    f"upper_limit ({self.upper_limit})"
-                )
+                raise ValueError(f"lower_limit ({self.lower_limit}) must not exceed " f"upper_limit ({self.upper_limit})")
         return self
 
     @model_validator(mode="after")
     def _validate_initial_value(self) -> "Signal":
         if self.initial_value is not None:
-            _check_initial_value(
-                self.initial_value, self.data_type, self.bit_length
-            )
+            _check_initial_value(self.initial_value, self.data_type, self.bit_length)
         return self
 
     @model_validator(mode="after")
     def _validate_value_descriptions_range(self) -> "Signal":
         dt = self.data_type
-        if self.value_descriptions and not (
-            dt.is_float()
-            or dt in (SignalDataType.CHAR, SignalDataType.BYTEARRAY)
-        ):
+        if self.value_descriptions and not (dt.is_float() or dt in (SignalDataType.CHAR, SignalDataType.BYTEARRAY)):
             if dt.is_unsigned_integer():
                 lo, hi = 0, (1 << self.bit_length) - 1
             else:
@@ -276,49 +254,29 @@ class SignalGroupInstance(InstancePlacement):
     signal_group: SignalGroup = Field()
 
 
-def _check_initial_value(
-    iv: object, dt: SignalDataType, bit_length: int
-) -> None:
+def _check_initial_value(iv: object, dt: SignalDataType, bit_length: int) -> None:
     """Validate if the type is fit or not."""
     if dt == SignalDataType.BYTEARRAY:
         if not isinstance(iv, bytes):
-            raise ValueError(
-                f"initial_value for bytearray signal must be bytes; "
-                f"got {type(iv).__name__}"
-            )
+            raise ValueError(f"initial_value for bytearray signal must be bytes; " f"got {type(iv).__name__}")
     elif dt == SignalDataType.CHAR:
         if not isinstance(iv, str):
-            raise ValueError(
-                f"initial_value for char signal must be str; "
-                f"got {type(iv).__name__}"
-            )
+            raise ValueError(f"initial_value for char signal must be str; " f"got {type(iv).__name__}")
     elif dt.is_float():
         if not isinstance(iv, (float, int)) or isinstance(iv, bool):
-            raise ValueError(
-                f"initial_value for {dt.value} must be numeric; "
-                f"got {type(iv).__name__}"
-            )
+            raise ValueError(f"initial_value for {dt.value} must be numeric; " f"got {type(iv).__name__}")
     elif dt.is_unsigned_integer() or dt.is_signed_integer():
         _check_integer_initial_value(iv, dt, bit_length)
 
 
-def _check_integer_initial_value(
-    iv: object, dt: SignalDataType, bit_length: int
-) -> None:
+def _check_integer_initial_value(iv: object, dt: SignalDataType, bit_length: int) -> None:
     """Validate that an integer is the right type and fits in bit_length."""
     if not isinstance(iv, int) or isinstance(iv, bool):
-        raise ValueError(
-            f"initial_value for {dt.value} must be int; "
-            f"got {type(iv).__name__}"
-        )
+        raise ValueError(f"initial_value for {dt.value} must be int; " f"got {type(iv).__name__}")
     if dt.is_unsigned_integer():
         lo, hi = 0, (1 << bit_length) - 1
     else:
         lo = -(1 << (bit_length - 1))
         hi = (1 << (bit_length - 1)) - 1
     if not (lo <= iv <= hi):
-        raise ValueError(
-            f"initial_value {iv} is outside the representable "
-            f"range [{lo}, {hi}] for {dt.value} "
-            f"with bit_length={bit_length}"
-        )
+        raise ValueError(f"initial_value {iv} is outside the representable " f"range [{lo}, {hi}] for {dt.value} " f"with bit_length={bit_length}")

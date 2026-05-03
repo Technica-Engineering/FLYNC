@@ -27,9 +27,7 @@ class IntegrityWithoutConfidentiality(FLYNCBaseModel):
         Preference for offset timing. Always 0 for this cipher.
     """
 
-    type: Literal["integrity_without_confidentiality"] = Field(
-        default="integrity_without_confidentiality"
-    )
+    type: Literal["integrity_without_confidentiality"] = Field(default="integrity_without_confidentiality")
     offset_preference: Optional[Literal[0]] = Field(default=0)
 
 
@@ -52,9 +50,7 @@ class IntegrityWithConfidentiality(FLYNCBaseModel):
         Allows choosing between no offset, 30 ns, or 50 ns.
     """
 
-    type: Literal["integrity_with_confidentiality"] = Field(
-        default="integrity_with_confidentiality"
-    )
+    type: Literal["integrity_with_confidentiality"] = Field(default="integrity_with_confidentiality")
     offset_preference: Optional[Literal[0, 30, 50]] = Field(default=0)
 
 
@@ -129,9 +125,7 @@ class MACsecConfig(FLYNCBaseModel):
         Defaults to using integrity-only without confidentiality.
     """
 
-    vlan_bypass: List[
-        Annotated[int, Field(ge=1), AfterValidator(validate_vlan_id)]
-    ] = Field()
+    vlan_bypass: List[Annotated[int, Field(ge=1), AfterValidator(validate_vlan_id)]] = Field()
     mka_enabled: Optional[bool] = Field(default=True)
     hello_time: int = Field()
     bounded_hello_time: int = Field()
@@ -139,24 +133,18 @@ class MACsecConfig(FLYNCBaseModel):
     sak_retire_time: int = Field()
     hello_time_rampup: List[int] = Field([])
     sak_rekey_time: Optional[int] = Field(default=3, ge=0)
-    macsec_mode: Literal[
-        "disabled", "integrity", "integrity_confidentiality"
-    ] = Field()
+    macsec_mode: Literal["disabled", "integrity", "integrity_confidentiality"] = Field()
     kay_on: bool = Field()
     key_role: Literal["key_server_always", "key_server_never"] = Field()
     delay_protect: bool = Field()
     participant_activation: Literal["disabled", "onoperup", "always"] = Field()
     sci_included: Optional[bool] = Field(default=False)
-    cipher_preference: List[DiscriminatedCipher] = Field(
-        default_factory=lambda: MACsecConfig.default_entries_list()
-    )
+    cipher_preference: List[DiscriminatedCipher] = Field(default_factory=lambda: MACsecConfig.default_entries_list())
 
     @model_validator(mode="after")
     def validate_mka_macsecmode_disabled(self):
         if not self.mka_enabled and self.macsec_mode != "disabled":
-            raise err_minor(
-                "If MKA is not enabled, macsec_mode should be disabled."
-            )
+            raise err_minor("If MKA is not enabled, macsec_mode should be disabled.")
         return self
 
     @model_validator(mode="after")
@@ -166,10 +154,6 @@ class MACsecConfig(FLYNCBaseModel):
         return self
 
     @staticmethod
-    def default_entries_list() -> (
-        list[IntegrityWithoutConfidentiality | IntegrityWithConfidentiality]
-    ):
-        entries: list[
-            IntegrityWithoutConfidentiality | IntegrityWithConfidentiality
-        ] = [IntegrityWithoutConfidentiality()]
+    def default_entries_list() -> list[IntegrityWithoutConfidentiality | IntegrityWithConfidentiality]:
+        entries: list[IntegrityWithoutConfidentiality | IntegrityWithConfidentiality] = [IntegrityWithoutConfidentiality()]
         return entries
