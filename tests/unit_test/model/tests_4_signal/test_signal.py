@@ -308,6 +308,40 @@ def test_positive_signal_model_validate():
     assert sig.factor == 0.5
 
 
+def test_positive_signal_data_type_roundtrip():
+    """Test that SignalDataType serializes to string and deserializes back to enum."""
+    import random
+
+    sig_original = Signal(
+        name=f"orig-{random.random()}",
+        bit_length=8,
+        data_type=SignalDataType("uint8"),
+        factor=2.0,
+        offset=1.5,
+        unit="km/h",
+    )
+    # Serialize
+    data = sig_original.model_dump()
+    assert data["data_type"] == "uint8"
+    assert isinstance(data["data_type"], str)
+
+    # Change name to avoid UniqueName registry conflict
+    data["name"] = f"roundtrip-{random.random()}"
+
+    # Deserialize - should convert string back to SignalDataType enum
+    sig_roundtrip = Signal.model_validate(data)
+
+    assert isinstance(sig_roundtrip.data_type, SignalDataType)
+    assert sig_roundtrip.data_type == SignalDataType.UINT8
+    assert sig_roundtrip.data_type.value == "uint8"
+
+    # Verify all other fields match
+    assert sig_roundtrip.bit_length == sig_original.bit_length
+    assert sig_roundtrip.factor == sig_original.factor
+    assert sig_roundtrip.offset == sig_original.offset
+    assert sig_roundtrip.unit == sig_original.unit
+
+
 # ---------------------------------------------------------------------------
 # Signal — negative tests
 # ---------------------------------------------------------------------------
