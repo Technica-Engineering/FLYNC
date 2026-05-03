@@ -9,14 +9,14 @@ from flync.model.flync_4_ecu import (
 
 
 def _mgm_data_key(g: "MulticastGroupMembership"):
-    """Return a tuple of data fields used for deduplication.
-
-    Pydantic's default __eq__ compares __pydantic_private__ as well, which
-    causes infinite recursion when ControllerInterface._connected_component
-    forms a cycle (e.g. via ECUPortToControllerInterface or
-    SwitchPortToControllerInterface).  Comparing only the data fields is
-    sufficient for uniqueness checks.
     """
+    Return a tuple of data fields used for deduplication.
+
+    Pydantic's default __eq__ compares __pydantic_private__ as well, which causes infinite recursion when ControllerInterface._connected_component
+    forms a cycle (e.g. via ECUPortToControllerInterface or SwitchPortToControllerInterface).
+    Comparing only the data fields is sufficient for uniqueness checks.
+    """
+
     return (str(g.group), g.vlan, g.mode, str(g.src_ip) if g.src_ip else None)
 
 
@@ -24,9 +24,9 @@ def collect_ipv6_solicited_node_rx(
     ecu: ECU,
 ) -> dict[str, MulticastGroupMembership]:
     """
-    Collects all the MulticastGroupMembership instances for the
-    solicited-node multicast group in the given ECU.
+    Collects all the MulticastGroupMembership instances for the solicited-node multicast group in the given ECU.
     """
+
     rx_group_keys = set()
     rx_groups = []
     update_ecu_multicast = {}
@@ -58,9 +58,9 @@ def collect_ipv6_solicited_node_tx(
     rx_multicasts: list[MulticastGroupMembership],
 ) -> dict[str, MulticastGroupMembership]:
     """
-    Collects all the MulticastGroupMembership instances for the
-    solicited-node multicast group in the given ECU.
+    Collects all the MulticastGroupMembership instances for the solicited-node multicast group in the given ECU.
     """
+
     tx_group_keys = set()
     tx_groups = []
     update_ecu_multicast = {}

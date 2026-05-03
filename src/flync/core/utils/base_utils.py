@@ -1,7 +1,4 @@
-"""
-Base Utils that can be useful throughout the whole FLYNC Library and
-toolchain.
-"""
+"""Base Utils that can be useful throughout the whole FLYNC Library and toolchain."""
 
 import os
 from ipaddress import IPv4Address, IPv6Address, ip_address
@@ -17,7 +14,8 @@ from flync.core.utils.exceptions import err_fatal
 
 
 def read_yaml(path: str | os.PathLike | Path):
-    """Read a YAML file.
+    """
+    Read a YAML file.
 
     Args:
         path (str | os.PathLike | Path): Path to the YAML file
@@ -28,6 +26,7 @@ def read_yaml(path: str | os.PathLike | Path):
     Returns:
         Any: Retrieved data from YAML.
     """
+
     if not isinstance(path, Path):
         path = Path(path)
     if not path.exists():
@@ -45,18 +44,21 @@ def read_yaml(path: str | os.PathLike | Path):
 
 
 def write_to_file(obj, file_to_update):
-    """Read a YAML file.
+    """
+    Read a YAML file.
 
     Args:
         obj : FLYNC object to write
         file_to_update : Path of the file for output
     """
+
     with open(file_to_update, "w") as f:
         yaml.safe_dump(obj.model_dump(), f, sort_keys=False)
 
 
 def get_yaml_paths(base_path: str | os.PathLike) -> list:
-    """Collect absolute paths to yaml files from a base_path.
+    """
+    Collect absolute paths to yaml files from a base_path.
 
     Args:
         base_path (str | os.PathLike): Base Path to FLYNC Config.
@@ -64,6 +66,7 @@ def get_yaml_paths(base_path: str | os.PathLike) -> list:
     Returns:
         list: List of absolute file paths to yaml files.
     """
+
     base_path = Path(base_path)
     path_list = []
     if base_path.is_dir():
@@ -76,15 +79,14 @@ def get_yaml_paths(base_path: str | os.PathLike) -> list:
 
 
 def is_mac_address(input: str) -> Tuple[bool, str]:
-    """Helper to check if an input is a valid MAC address based on pydantic
-    validator.
+    """
+    Helper to check if an input is a valid MAC address based on pydantic validator.
 
     Args:
         input (str): input string that should be checked.
 
     Returns:
-        bool: Returns the result of check as a boolean as well as a message
-        that could be used in logging or exception handling.
+        bool: Returns the result of check as a boolean as well as a message that could be used in logging or exception handling.
         If the result boolean is true, the provided input is a MAC address.
         If the boolean is false, it is not.
     """
@@ -100,18 +102,17 @@ def is_mac_address(input: str) -> Tuple[bool, str]:
 
 
 def is_mac_unicast(input: str) -> Tuple[bool, str]:
-    """Helper to check if a MAC address is unicast.
-    Unicast if first byte's least significant bit is 0.
+    """
+    Helper to check if a MAC address is unicast. Unicast if first byte's least significant bit is 0.
 
     Args:
         input (str): input string that should be checked.
 
     Returns:
-        Union[bool, str]: Returns the result of check as a boolean as well as
-        a message that could be used in logging or exception handling.
-        If the result boolean is true, the provided input is
-        an unicast MAC address. If the boolean is false, it is not.
+        Union[bool, str]: Returns the result of check as a boolean as well as a message that could be used in logging or exception handling.
+        If the result boolean is true, the provided input is a unicast MAC address. If the boolean is false, it is not.
     """
+
     is_unicast = False
     msg = msg = f"{input} is not a Unicast MAC address."
 
@@ -126,21 +127,20 @@ def is_mac_unicast(input: str) -> Tuple[bool, str]:
 
 
 def is_mac_multicast(input: str) -> Tuple[bool, str]:
-    """Method to check if a MAC address is multicast.
-    Multicast if first byte's least significant bit is 1.
+    """
+    Method to check if a MAC address is multicast. Multicast if first byte's least significant bit is 1.
 
     Args:
         input (str): input string that should be checked.
 
     Returns:
-        Union[bool, str]: Returns the result of check as a boolean
-        as well as a message that could be used in logging or exception
-        handling. If the result boolean is true, the provided input is a
-        MAC multicast address. If the boolean is false, it is not.
+        Union[bool, str]: Returns the result of check as a boolean as well as a message that could be used in logging or exception
+        handling. If the result boolean is true, the provided input is a MAC multicast address. If the boolean is false, it is not.
 
     """
+
     is_multicast = False
-    msg = f"{input} is not a MAC Multicast. " "The first byte's least significant bit should be 1."
+    msg = f"{input} is not a MAC Multicast. The first byte's least significant bit should be 1."
 
     mac_bytes = input.replace(":", "").replace("-", "")  # Remove separators
     first_byte = int(mac_bytes[:2], 16)  # Convert the first byte to an integer
@@ -153,18 +153,18 @@ def is_mac_multicast(input: str) -> Tuple[bool, str]:
 
 
 def is_ip_address(input: IPv4Address | IPv6Address | str) -> Tuple[bool, str]:
-    """Helper to check if an input is a valid IP address.
+    """
+    Helper to check if an input is a valid IP address.
 
     Args:
         input (:class:`IPv4Address` | :class:`IPv6Address` | str): input
         string that should be checked.
 
     Returns:
-        bool: Returns the result of check as a boolean as well as a message
-        that could be used in logging or exception handling.
-        If the result boolean is true, the provided input is an IP address.
-        If the boolean is false, it is not.
+        bool: Returns the result of check as a boolean as well as a message that could be used in logging or exception handling.
+        If the result boolean is true, the provided input is an IP address. If the boolean is false, it is not.
     """
+
     try:
         ip_address(input)
         is_ip = True
@@ -178,19 +178,18 @@ def is_ip_address(input: IPv4Address | IPv6Address | str) -> Tuple[bool, str]:
 def is_ip_multicast(
     input: IPv4Address | IPv6Address | str,
 ) -> Tuple[bool, str]:
-    """Method to check if a string is an IP multicast address.
+    """
+    Method to check if a string is an IP multicast address.
 
     Args:
-        input (:class:`IPv4Address` | :class:`IPv6Address`): input string that
-        should be checked.
+        input (:class:`IPv4Address` | :class:`IPv6Address`): input string that should be checked.
 
     Returns:
-        Union[bool, str]: Returns the result of check as a boolean as well as
-        a message that could be used in logging or exception handling.
-        If the result boolean is true, the provided input is
-        an IP multicast address. If the boolean is false, it is not.
+        Union[bool, str]: Returns the result of check as a boolean as well as a message that could be used in logging or exception handling.
+        If the result boolean is true, the provided input is an IP multicast address. If the boolean is false, it is not.
 
     """
+
     is_multicast = False
     address = ip_address(input)
     if address.is_multicast:
@@ -203,7 +202,8 @@ def is_ip_multicast(
 
 
 def get_duplicates_in_list(input: list) -> list:
-    """Find duplicates in a list.
+    """
+    Find duplicates in a list.
 
     Args:
         input (list): a list where duplicates are suspected.
@@ -226,9 +226,9 @@ def get_duplicates_in_list(input: list) -> list:
 
 def check_obj_in_list(obj, list):
     """
-    Helper function: To check if the object is in the
-    list or not
+    Helper function: To check if the object is in the list or not
     """
+
     flag = False
     for c in list:
         if (c.type == obj.type) and (
@@ -243,8 +243,7 @@ def check_obj_in_list(obj, list):
 
 def deep_iter(obj, stop_class):
     """
-    Helper function: To deeply iterate through an object and its children.
-    The iteration will stop if an object of type stop_class is reached.
+    Helper function: To deeply iterate through an object and its children. The iteration will stop if an object of type stop_class is reached.
 
     Args:
         obj: The object to iterate through.
@@ -252,6 +251,7 @@ def deep_iter(obj, stop_class):
     Returns:
         Generator: A generator that yields objects of the specified type.
     """
+
     seen = set()
     stack = [obj]
     while stack:
@@ -296,4 +296,5 @@ def find_all(base, target_class: Type[T]) -> list[T]:
         list: A list of all instances of the target class found within the
         base object.
     """
+
     return [o for o in deep_iter(base, target_class) if isinstance(o, target_class)]

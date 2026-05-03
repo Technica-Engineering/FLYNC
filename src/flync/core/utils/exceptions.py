@@ -12,18 +12,18 @@ _validation_warnings: ContextVar[Optional[List[ErrorDetails]]] = ContextVar("_va
 
 
 def warn(msg: str) -> None:
-    """Record a validation warning without raising a validation error.
+    """
+    Record a validation warning without raising a validation error.
 
-    The message is appended to the active warning list (set up by
-    ``validate_with_policy``) and will be returned alongside
-    ``load_errors`` so that it appears in the warnings table.  If called
-    outside a ``validate_with_policy`` context the call is silently ignored.
+    The message is appended to the active warning list (set up by ``validate_with_policy``) and will be returned alongside
+    ``load_errors`` so that it appears in the warnings table.  If called outside a ``validate_with_policy`` context the call is silently ignored.
 
     Parameters
     ----------
     msg : str
         Human-readable warning message.
     """
+
     warnings_list = _validation_warnings.get()
     if warnings_list is not None:
         warnings_list.append(
@@ -48,13 +48,13 @@ def err_minor(msg: str, **ctx) -> PydanticCustomError:
         Error message that may contain placeholders
 
     ctx : dict
-        Context arguments that define key-value
-        pairs to fill the placeholders in `msg`
+        Context arguments that define key-value pairs to fill the placeholders in `msg`
 
     Returns
     -------
     PydanticCustomError
     """
+
     return PydanticCustomError("minor", msg, ctx)
 
 
@@ -68,13 +68,13 @@ def err_major(msg: str, **ctx) -> PydanticCustomError:
         Error message that may contain placeholders
 
     ctx : dict
-        Context arguments that define key-value
-        pairs to fill the placeholders in `msg`
+        Context arguments that define key-value pairs to fill the placeholders in `msg`
 
     Returns
     -------
     PydanticCustomError
     """
+
     return PydanticCustomError("major", msg, ctx)
 
 
@@ -88,11 +88,11 @@ def err_fatal(msg: str, **ctx) -> PydanticCustomError:
         Error message that may contain placeholders
 
     ctx : dict
-        Context arguments that define key-value
-        pairs to fill the placeholders in `msg`
+        Context arguments that define key-value pairs to fill the placeholders in `msg`
 
     Returns
     -------
     PydanticCustomError
     """
+
     return PydanticCustomError("fatal", msg, ctx)

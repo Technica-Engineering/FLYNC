@@ -20,8 +20,8 @@ class FirewallRule(FLYNCBaseModel):
         A unique name identifying the rule.
 
     action : Literal['reject', 'accept', 'drop']
-        The action to take when the pattern matches. Can be one of
-        ``'reject'``, ``'accept'``, or ``'drop'``.
+        The action to take when the pattern matches.
+        Can be one of ``'reject'``, ``'accept'``, or ``'drop'``.
 
     pattern : :class:`~flync.model.flync_4_tsn.qos.FrameFilter`
         The filter pattern used to match frames for this rule.
@@ -35,7 +35,7 @@ class FirewallRule(FLYNCBaseModel):
     def validate_pattern(self):
         pattern = self.pattern
         if all(field is None for field in vars(pattern).values()):
-            raise err_minor("At least one of the fields in pattern of firewall rule " "should be present")
+            raise err_minor("At least one of the fields in pattern of firewall rule should be present")
         if pattern.dst_ipv4 is not None and pattern.dst_ipv6 is not None:
             raise err_minor("Firewall rule cannot have both dst ipv4 and dst ipv6 set")
         if pattern.src_ipv4 is not None and pattern.src_ipv6 is not None:
@@ -58,8 +58,7 @@ class Firewall(FLYNCBaseModel):
         Can be one of ``'reject'``, ``'accept'``, or ``'drop'``.
 
     rules : list of :class:`FirewallRule`
-        A list of ``FirewallRule`` objects that define matching
-        conditions and actions.
+        A list of ``FirewallRule`` objects that define matching conditions and actions.
     """
 
     default_action: Optional[Literal["reject", "accept", "drop"]] = Field(default="reject")

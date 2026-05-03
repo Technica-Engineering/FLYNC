@@ -21,11 +21,9 @@ class SocketContainer(FLYNCBaseModel):
         Name of the socket container, implied from the filename on disk.
 
     vlan_id : int, optional
-        ID of the virtual interface. Use ``None`` for an untagged
-        container.
+        ID of the virtual interface. Use ``None`` for an untagged container.
 
-    sockets : list of \
-    :class:`~flync.model.flync_4_ecu.sockets.SocketTCP` or \
+    sockets : list of :class:`~flync.model.flync_4_ecu.sockets.SocketTCP` or \
     :class:`~flync.model.flync_4_ecu.sockets.SocketUDP`
         Assigned TCP and UDP socket endpoints.
     """

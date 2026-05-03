@@ -1,7 +1,7 @@
-"""VLAN configuration models for switches.
+"""
+VLAN configuration models for switches.
 
-Defines :class:`VLANEntry` (a single VLAN configuration on a switch) and
-:class:`MulticastGroup` (a multicast destination tied to a set of switch
+Defines :class:`VLANEntry` (a single VLAN configuration on a switch) and :class:`MulticastGroup` (a multicast destination tied to a set of switch
 ports inside that VLAN).
 """
 
@@ -24,14 +24,11 @@ class MulticastGroup(FLYNCBaseModel):
     """
     Represents a multicast group configuration.
 
-    This class defines a multicast group by associating a multicast
-    destination address with a set of switch ports that participate
-    in the group.
+    This class defines a multicast group by associating a multicast destination address with a set of switch ports that participate in the group.
 
     Parameters
     ----------
-    address : :class:`IPv4Address` or :class:`IPv6Address` or \
-    :class:`MacAddress`
+    address : :class:`IPv4Address` or :class:`IPv6Address` or :class:`MacAddress`
         The multicast address. Must be a valid MAC or IP multicast address.
 
     ports : list of str
@@ -44,12 +41,18 @@ class MulticastGroup(FLYNCBaseModel):
     @field_validator("address", mode="after")
     @classmethod
     def validate_multicast_address(cls, v):
-        """Validate that ``address`` is an IP or MAC multicast address."""
+        """
+        Validate that ``address`` is an IP or MAC multicast address.
+        """
+
         return common_validators.validate_any_multicast_address(v)
 
     @field_serializer("address")
     def serialize_address(self, address):
-        """Serialize the multicast address as a string."""
+        """
+        Serialize the multicast address as a string.
+        """
+
         return str(address)
 
 
@@ -63,8 +66,7 @@ class VLANEntry(FLYNCBaseModel):
         Human-readable name for the VLAN.
 
     id : int
-        VLAN ID. Values 0-4094 are accepted; 4095 is reserved by IEEE
-        802.1Q and emits a warning when used.
+        VLAN ID. Values 0-4094 are accepted; 4095 is reserved by IEEE 802.1Q and emits a warning when used.
 
     default_priority : int
         Default frame priority for the VLAN (0-7).
@@ -85,5 +87,8 @@ class VLANEntry(FLYNCBaseModel):
     @field_validator("multicast", mode="before")
     @classmethod
     def normalize_multicast(cls, v):
-        """Coerce a ``None`` multicast list to an empty list."""
+        """
+        Coerce a ``None`` multicast list to an empty list.
+        """
+
         return common_validators.none_to_empty_list(v)

@@ -64,8 +64,7 @@ class IPv6AddressEntry(FLYNCBaseModel):
 
     def derive_multicast_address(self) -> IPv6Address:
         """
-        Derives the corresponding solicited-node multicast address
-        by taking the last 24 bits of the unicast address
+        Derives the corresponding solicited-node multicast address by taking the last 24 bits of the unicast address
         and appending them to the prefix FF02::1:FF00:0/104
 
         Returns
@@ -73,6 +72,7 @@ class IPv6AddressEntry(FLYNCBaseModel):
         :class:`IPv6Address`
             The derived multicast address.
         """
+
         unicast_int = int(self.address)
         multicast_prefix_int = int(IPv6Address("FF02::1:FF00:0"))
         derived_multicast_int = multicast_prefix_int | (unicast_int & 0xFFFFFF)

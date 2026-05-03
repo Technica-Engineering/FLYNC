@@ -1,8 +1,7 @@
 """
 Model dependency graph utilities for the FLYNC SDK.
 
-Provides functions and classes to build, traverse, and query the dependency
-graph between Pydantic models that make up a FLYNC workspace.
+Provides functions and classes to build, traverse, and query the dependency graph between Pydantic models that make up a FLYNC workspace.
 """
 
 import hashlib
@@ -38,8 +37,8 @@ def _collect_union_options(args):
 
 
 def extract_container_model(annotation):  # noqa
-    """Recursively extract ``BaseModel`` types from nested container
-    annotations.
+    """
+    Recursively extract ``BaseModel`` types from nested container annotations.
 
     Handles ``list[Model]``, ``dict[str, Model]``,
     ``list[dict[str, Model]]``,
@@ -50,10 +49,10 @@ def extract_container_model(annotation):  # noqa
 
     Returns:
         dict | None: A dict describing the container shape, or ``None`` when
-        no ``BaseModel`` type is reachable. The dict always has a
-        ``"container"``
+        no ``BaseModel`` type is reachable. The dict always has a ``"container"``
         key set to ``"list"``, ``"dict"``, ``"union"``, or ``"model"``.
     """
+
     if get_origin(annotation) is Annotated:
         annotation = get_args(annotation)[0]
 
@@ -80,17 +79,17 @@ def extract_container_model(annotation):  # noqa
 
 
 def unwrap_annotated(annotation):
-    """Recursively strip ``Annotated`` wrappers from a type annotation.
+    """
+    Recursively strip ``Annotated`` wrappers from a type annotation.
 
     Args:
-        annotation: A Python type annotation, potentially wrapped in one or
-            more ``Annotated[T, ...]`` layers.
+        annotation: A Python type annotation, potentially wrapped in one or more ``Annotated[T, ...]`` layers.
 
     Returns:
-        tuple[type, list]: A ``(clean_type, metadata)`` pair where
-        ``clean_type`` is the innermost unwrapped type and ``metadata`` is
+        tuple[type, list]: A ``(clean_type, metadata)`` pair where ``clean_type`` is the innermost unwrapped type and ``metadata`` is
         the flat list of all collected annotation arguments.
     """
+
     metadata = []
 
     while get_origin(annotation) is Annotated:
@@ -103,7 +102,8 @@ def unwrap_annotated(annotation):
 
 @lru_cache(maxsize=None)
 def extract_model_dependencies(model: type[BaseModel]) -> dict:
-    """Return the cached dependency tree for a Pydantic model.
+    """
+    Return the cached dependency tree for a Pydantic model.
 
     Results are memoized so the graph is only built once per model class.
 
@@ -111,23 +111,22 @@ def extract_model_dependencies(model: type[BaseModel]) -> dict:
         model (type[BaseModel]): The model to inspect.
 
     Returns:
-        dict: A dependency tree mapping field names to their structure and
-        external annotation metadata.
+        dict: A dependency tree mapping field names to their structure and external annotation metadata.
     """
+
     return _extract_model_dependencies(model, visited=set())
 
 
 def _extract_model_dependencies(model: type[BaseModel], visited: set[type[BaseModel]]) -> dict:
-    """Recursively extract model dependencies, guarding against cycles.
+    """
+    Recursively extract model dependencies, guarding against cycles.
 
     Args:
         model (type[BaseModel]): The model being inspected.
-        visited (set[type[BaseModel]]): Models currently on the call stack,
-            used to detect and break circular references.
+        visited (set[type[BaseModel]]): Models currently on the call stack, used to detect and break circular references.
 
     Returns:
-        dict: Dependency structure for the model's fields, or
-        ``{"__cycle__": True}`` when a cycle is detected.
+        dict: Dependency structure for the model's fields, or ``{"__cycle__": True}`` when a cycle is detected.
     """
 
     # ---- CYCLE BREAKER ----
@@ -158,23 +157,22 @@ def _extract_model_dependencies(model: type[BaseModel], visited: set[type[BaseMo
 
 
 def build_dependency_structure(info, visited):  # noqa # nosonar
-    """Convert extracted container info into a resolved dependency tree.
+    """
+    Convert extracted container info into a resolved dependency tree.
 
-    Recursively replaces ``"model"`` leaf entries with their full child
-    dependency trees as returned by :func:`_extract_model_dependencies`.
+    Recursively replaces ``"model"`` leaf entries with their full child dependency trees as returned by :func:`_extract_model_dependencies`.
 
     Args:
         info (dict): A container-shape dict as produced by
             :func:`extract_container_model`.
         visited (set[type[BaseModel]]): Models currently on the call stack,
-            forwarded to :func:`_extract_model_dependencies` for cycle
-            detection.
+            forwarded to :func:`_extract_model_dependencies` for cycle detection.
 
     Returns:
-        dict: A dependency tree node with a ``"type"`` key and additional
-        keys depending on the container kind (``"items"``, ``"values"``,
+        dict: A dependency tree node with a ``"type"`` key and additional keys depending on the container kind (``"items"``, ``"values"``,
         ``"options"``, or ``"children"``).
     """
+
     if info["container"] == "model":
         model = info["model"]
         return {
@@ -203,10 +201,10 @@ def build_dependency_structure(info, visited):  # noqa # nosonar
 
 
 def walk_structure(parent_model, structure, edges, visited=None):
-    """Walk a dependency structure and collect directed edges between models.
+    """
+    Walk a dependency structure and collect directed edges between models.
 
-    Traverses container types (list, dict, union) recursively until reaching
-    concrete model types, then records a directed edge from ``parent_model``
+    Traverses container types (list, dict, union) recursively until reaching concrete model types, then records a directed edge from ``parent_model``
     to each discovered child model.
 
     Args:
@@ -217,6 +215,7 @@ def walk_structure(parent_model, structure, edges, visited=None):
         visited (set | None): Models currently being traversed; used to avoid
             infinite recursion on cycles.
     """
+
     if not visited:
         visited = set()
     if structure["type"] == "list":
@@ -243,7 +242,8 @@ def walk_structure(parent_model, structure, edges, visited=None):
 
 
 def collect_edges(model: type[BaseModel], edges=None):
-    """Collect all directed dependency edges reachable from a root model.
+    """
+    Collect all directed dependency edges reachable from a root model.
 
     Args:
         model (type[BaseModel]): The root model to start from.
@@ -254,6 +254,7 @@ def collect_edges(model: type[BaseModel], edges=None):
         set of ``(parent, child)`` model pairs and ``deps`` is the raw
         dependency tree for ``model``.
     """
+
     if edges is None:
         edges = set()
 
@@ -266,39 +267,40 @@ def collect_edges(model: type[BaseModel], edges=None):
 
 
 class ModelDependencyGraph:
-    """Dependency graph for a hierarchy of Pydantic models.
+    """
+    Dependency graph for a hierarchy of Pydantic models.
 
-    Builds and exposes a directed graph of model relationships, enabling
-    look-ups of parent–child relationships and path resolution.
+    Builds and exposes a directed graph of model relationships, enabling look-ups of parent–child relationships and path resolution.
 
     Attributes:
         root (type[BaseModel]): The root model of the graph.
         edges (set): Set of ``(parent, child)`` model-class pairs.
         tree (dict): Raw dependency tree rooted at ``root``.
-        reverse_tree (dict[type, set[type]]): Inverted graph mapping each
-            child model to its set of parent models.
-        fields_info (dict[str, NodeInfo]): Metadata for every node in the
-            graph, keyed by class name.
+        reverse_tree (dict[type, set[type]]): Inverted graph mapping each child model to its set of parent models.
+        fields_info (dict[str, NodeInfo]): Metadata for every node in the graph, keyed by class name.
     """
 
     def __init__(self, root: type[BaseModel]):
-        """Build the dependency graph for the given root model.
+        """
+        Build the dependency graph for the given root model.
 
         Args:
             root (type[BaseModel]): The root Pydantic model class.
         """
+
         self.root = root
         self.edges, self.tree = collect_edges(root)
         self.reverse_tree: dict[type[BaseModel], set[type[BaseModel]]] = self._invert()
         self.fields_info: dict[str, NodeInfo] = self._field_info()
 
     def _invert(self):
-        """Invert the edge set to produce a child-to-parents mapping.
+        """
+        Invert the edge set to produce a child-to-parents mapping.
 
         Returns:
-            dict[type, set[type]]: Mapping of each child model class to the
-            set of parent model classes that reference it.
+            dict[type, set[type]]: Mapping of each child model class to the set of parent model classes that reference it.
         """
+
         reverse: dict[type[BaseModel], set[type[BaseModel]]] = {}
         for p, c in self.edges:
             if c not in reverse:
@@ -307,36 +309,33 @@ class ModelDependencyGraph:
         return dict(reverse)
 
     def _field_info(self):  # noqa # nosonar
-        """Build per-node metadata including all paths from the root model.
+        """
+        Build per-node metadata including all paths from the root model.
 
-        Walks the full dependency tree starting from ``self.root`` and
-        records, for every reachable model class, the dot-separated paths
-        through which it can be reached. Internal nested helpers ``walk``
-        and ``walk_structure`` drive the recursion.
+        Walks the full dependency tree starting from ``self.root`` and records, for every reachable model class, the dot-separated paths
+        through which it can be reached. Internal nested helpers ``walk`` and ``walk_structure`` drive the recursion.
 
         Returns:
-            dict[str, NodeInfo]: Mapping of class names to :class:`NodeInfo`
-            objects. Each ``NodeInfo`` carries the Python type and the list
+            dict[str, NodeInfo]: Mapping of class names to :class:`NodeInfo` objects. Each ``NodeInfo`` carries the Python type and the list
             of dot-separated FLYNC paths leading to it.
         """
+
         field_info: dict[str, NodeInfo] = {}
         # add root to info
         field_info[self.root.__name__] = NodeInfo(self.root.__name__, self.root)
 
         def walk(current_model, subtree, path=(), container_chain=()):
-            """Iterate over a model's dependency subtree and dispatch to
+            """
+            Iterate over a model's dependency subtree and dispatch to
             ``walk_structure``.
 
             Args:
-                current_model: The Pydantic model class whose fields are being
-                    walked.
-                subtree (dict): The dependency tree for ``current_model`` as
-                    returned by :func:`_extract_model_dependencies`.
-                path (tuple): Accumulated path segments from the root to the
-                    current position.
-                container_chain (tuple): Accumulated container kinds (e.g.
-                    ``"list"``, ``"dict"``) that wrap the current field.
+                current_model: The Pydantic model class whose fields are being walked.
+                subtree (dict): The dependency tree for ``current_model`` as returned by :func:`_extract_model_dependencies`.
+                path (tuple): Accumulated path segments from the root to the current position.
+                container_chain (tuple): Accumulated container kinds (e.g. ``"list"``, ``"dict"``) that wrap the current field.
             """
+
             for field_name, info in subtree.items():
                 # add current path to dict
                 if field_name == "__cycle__":  # found a cyclic item
@@ -345,24 +344,20 @@ class ModelDependencyGraph:
                 walk_structure(current_model, field_name, structure, path, container_chain)
 
         def walk_structure(parent_model, field_name, structure, path, container_chain):
-            """Recursively resolve a single field's structure and record its
-            path.
+            """
+            Recursively resolve a single field's structure and record its path.
 
-            Descends through ``"list"``, ``"dict"``, and ``"union"`` container
-            nodes, accumulating container kinds in ``container_chain``, until a
-            ``BaseModel`` leaf is reached.  At that point the leaf is recorded
-            in ``field_info`` and the walk continues into its children.
+            Descends through ``"list"``, ``"dict"``, and ``"union"`` container nodes, accumulating container kinds in ``container_chain``, until a
+            ``BaseModel`` leaf is reached.  At that point the leaf is recorded in ``field_info`` and the walk continues into its children.
 
             Args:
                 parent_model: The Pydantic model class that owns the field.
-                field_name (str): The attribute name of the field on
-                    ``parent_model``.
+                field_name (str): The attribute name of the field on ``parent_model``.
                 structure (dict): The dependency structure node to resolve.
-                path (tuple): Path segments accumulated from the root to the
-                    current node.
-                container_chain (tuple): Container kinds wrapping the current
-                    field, used to produce ``[]`` / ``{}`` path segments.
+                path (tuple): Path segments accumulated from the root to the current node.
+                container_chain (tuple): Container kinds wrapping the current field, used to produce ``[]`` / ``{}`` path segments.
             """
+
             t = structure["type"]
 
             if t in ("list", "dict"):
@@ -405,17 +400,17 @@ class ModelDependencyGraph:
         return dict(field_info)
 
     def parent_from_child(self, field_type: type[BaseModel], parent_attribute_name: str):
-        """Find the parent model class that owns a given child field.
+        """
+        Find the parent model class that owns a given child field.
 
         Args:
             field_type (type[BaseModel]): The child model class.
-            parent_attribute_name (str): The field name on the parent that
-                holds the child.
+            parent_attribute_name (str): The field name on the parent that holds the child.
 
         Returns:
-            type[BaseModel] | None: The parent model class, or ``None`` if
-            not found.
+            type[BaseModel] | None: The parent model class, or ``None`` if not found.
         """
+
         potential_parents = self.reverse_tree[field_type]
         for parent in potential_parents:
             attribute = parent.model_fields.get(parent_attribute_name, None)
@@ -424,27 +419,28 @@ class ModelDependencyGraph:
             return parent
 
     def field_info_from_child(self, field_type: type[BaseModel], parent_attribute_name: str):
-        """Return the field info object for a child field on its parent model.
+        """
+        Return the field info object for a child field on its parent model.
 
         Args:
             field_type (type[BaseModel]): The child model class.
             parent_attribute_name (str): The attribute name on the parent.
 
         Returns:
-            FieldInfo | type[BaseModel]: The Pydantic ``FieldInfo`` for the
-            attribute on the parent, or ``field_type`` itself when no parent
+            FieldInfo | type[BaseModel]: The Pydantic ``FieldInfo`` for the attribute on the parent, or ``field_type`` itself when no parent
             is found.
         """
+
         parent = self.parent_from_child(field_type, parent_attribute_name)
         if not parent:
             return field_type
         return parent.model_fields[parent_attribute_name]
 
     def rebuild_type_from_parent(self, field_type: type[BaseModel], parent_attribute_name: str):
-        """Compute the effective validation type for a child field.
+        """
+        Compute the effective validation type for a child field.
 
-        Accounts for ``SINGLE_FILE`` and ``OMMIT_ROOT`` output strategies
-        that change how the YAML is structured on disk.
+        Accounts for ``SINGLE_FILE`` and ``OMMIT_ROOT`` output strategies that change how the YAML is structured on disk.
 
         Args:
             field_type (type[BaseModel]): The child model class.
@@ -453,6 +449,7 @@ class ModelDependencyGraph:
         Returns:
             type: The adjusted type to use for validation.
         """
+
         real_type = field_type
         attribute = self.field_info_from_child(field_type, parent_attribute_name)
         # in case of omit root, we need to include a dictionary
@@ -477,11 +474,10 @@ class ModelDependencyGraph:
         parent_attribute_name: str,
         model_data,
     ):
-        """Strip the wrapper dict added by ``rebuild_type_from_parent`` when
-        needed.
+        """
+        Strip the wrapper dict added by ``rebuild_type_from_parent`` when needed.
 
-        When a field was loaded as ``dict[str, T]`` due to ``SINGLE_FILE``
-        without ``OMMIT_ROOT``, this method extracts the inner value so the
+        When a field was loaded as ``dict[str, T]`` due to ``SINGLE_FILE`` without ``OMMIT_ROOT``, this method extracts the inner value so the
         parent receives the correctly typed object.
 
         Args:
@@ -492,6 +488,7 @@ class ModelDependencyGraph:
         Returns:
             The unwrapped value, or ``None`` if ``model_data`` is falsy.
         """
+
         if not model_data:
             return None
         attribute = self.field_info_from_child(field_type, parent_attribute_name)
@@ -506,13 +503,12 @@ class ModelDependencyGraph:
         return model_data
 
     def path_from_object(self, model_object: BaseModel, parent_name: str) -> str:
-        """Return the dot-separated FLYNC path to an object given its parent
-        field name.
+        """
+        Return the dot-separated FLYNC path to an object given its parent field name.
 
         Args:
             model_object (BaseModel): The model instance to locate.
-            parent_name (str): The field name on the parent that holds this
-                object.
+            parent_name (str): The field name on the parent that holds this object.
 
         Returns:
             str: The dot-separated path string.
@@ -520,6 +516,7 @@ class ModelDependencyGraph:
         Raises:
             ValueError: If no matching path can be inferred.
         """
+
         object_info = self.fields_info[str(type(model_object))]
         for portential_path in object_info.flync_paths:
             if parent_name in portential_path:
@@ -528,13 +525,11 @@ class ModelDependencyGraph:
 
     @staticmethod
     def complex_path_to_string_path(complex_path: list[tuple]) -> str:
-        """Convert an internal complex path representation to a dot-separated
-        string.
+        """
+        Convert an internal complex path representation to a dot-separated string.
 
-        Each element of ``complex_path`` is a tuple of
-        ``(model_class, field_name, container_chain)``. Container chains of
-        ``"dict"`` produce ``{}`` segments and ``"list"`` produce ``[]``
-        segments in the output.
+        Each element of ``complex_path`` is a tuple of ``(model_class, field_name, container_chain)``. Container chains of
+        ``"dict"`` produce ``{}`` segments and ``"list"`` produce ``[]`` segments in the output.
 
         Args:
             complex_path (list[tuple]): The internal path representation.
@@ -542,6 +537,7 @@ class ModelDependencyGraph:
         Returns:
             str: A dot-separated path string such as ``"items.[].name"``.
         """
+
         parts = []
         for parent in complex_path:
             parts.append(parent[1])
@@ -560,12 +556,14 @@ _cache_name = ""
 
 
 def hash_directory_fast(directory: str, ext=".py") -> str:
-    """Calculates an md5 hash from a directory.
+    """
+    Calculates a md5 hash from a directory.
 
     Args:
         directory (str): The location of the cache files.
         ext (str): which files to include (default python).
     """
+
     # only used for file name selection
     h = hashlib.md5()  # NOSONAR python:S4790
     for root, _, files in walk(directory):
@@ -579,12 +577,14 @@ def hash_directory_fast(directory: str, ext=".py") -> str:
 
 
 def get_package_root(package_name: str | None = None) -> str:
-    """Gets the location of a package, will default to current package.
+    """
+    Gets the location of a package, will default to current package.
 
     Args:
         package_name (str): The location of the cache files.
             None or default means FLYNC package.
     """
+
     if not package_name:
         package_name = __package__.split(".")[0]
     package = importlib.import_module(package_name)
@@ -596,12 +596,14 @@ def get_package_root(package_name: str | None = None) -> str:
 
 
 def delete_unwanted_cache_files(cache_location: str, cache_file_name: str):
-    """deletes the cache files of the library when different.
+    """
+    deletes the cache files of the library when different.
 
     Args:
         cache_location (str): The location of the cache files.
         cache_file_name (str): The name of the cache file to keep.
     """
+
     for f in listdir(cache_location):
         if cache_file_name not in f:
             remove(join(cache_location, f))
@@ -624,11 +626,11 @@ def cleanup_old_caches():
 
 
 def get_model_dependency_graph(root: type[BaseModel]) -> ModelDependencyGraph:
-    """Return a cached :class:`ModelDependencyGraph` for the given root model.
+    """
+    Return a cached :class:`ModelDependencyGraph` for the given root model.
 
     Building a graph is expensive, so instances are cached by root model class.
-    Always prefer this factory over instantiating :class:`ModelDependencyGraph`
-    directly.
+    Always prefer this factory over instantiating :class:`ModelDependencyGraph` directly.
 
     Args:
         root (type[BaseModel]): The root Pydantic model class.
@@ -636,6 +638,7 @@ def get_model_dependency_graph(root: type[BaseModel]) -> ModelDependencyGraph:
     Returns:
         ModelDependencyGraph: The (possibly cached) dependency graph.
     """
+
     key = str(root)
     shelv_location, shelv_file_name = cleanup_old_caches()
     with _shelve_lock:

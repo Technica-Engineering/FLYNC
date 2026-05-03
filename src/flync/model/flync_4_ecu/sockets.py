@@ -40,10 +40,8 @@ from flync.model.flync_4_someip import (
 
 class DeploymentUnion(RootModel):
     """
-    Union type representing a deployment configuration for a socket.
-    This model wraps a union of different deployment models and uses the
-    ``deployment_type`` field as a discriminator to determine which specific
-    deployment model is present.
+    Union type representing a deployment configuration for a socket. This model wraps a union of different deployment models and uses the
+    ``deployment_type`` field as a discriminator to determine which specific deployment model is present.
 
     Possible types
     --------------
@@ -64,8 +62,7 @@ def get_endpoint_type_from_address(
     address: IPvAnyAddress,
 ) -> Literal["multicast", "unicast"]:
     """
-    Determine the endpoint type (multicast or unicast)
-    based on the given IP address.
+    Determine the endpoint type (multicast or unicast) based on the given IP address.
     """
 
     if address.is_multicast:
@@ -94,15 +91,11 @@ class Socket(FLYNCBaseModel):
         Deployments of the socket.
 
     endpoint_type : Literal["multicast", "unicast"], optional
-        The type of the socket endpoint, which can be either "multicast"
-        or "unicast". This field is per default automatically determined
-        based on the value of ``endpoint_address``, but can be overridden
-        by explicitly providing a value.
+        The type of the socket endpoint, which can be either "multicast" or "unicast".  This field is per default automatically determined
+        based on the value of ``endpoint_address``, but can be overridden by explicitly providing a value.
 
-    multicast_tx : list of :class:`IPv4Multicast` or :class:`IPv6Multicast`, \
-        optional
-        Multicast addresses that the socket is allowed to transmit to
-        (only applicable for sockets with a multicast endpoint_type).
+    multicast_tx : list of :class:`IPv4Multicast` or :class:`IPv6Multicast`, optional
+        Multicast addresses that the socket is allowed to transmit to (only applicable for sockets with a multicast endpoint_type).
     """
 
     name: str = Field()
@@ -117,6 +110,7 @@ class Socket(FLYNCBaseModel):
         """
         Drop invalid deployments from the list of deployments.
         """
+
         valid_deployment = []
         idx = 0
         for dep in deployment:
@@ -131,7 +125,7 @@ class Socket(FLYNCBaseModel):
                     )
                     for err in e.errors()
                 )
-                raise err_minor(f"Validation error in deployment {idx}" f" of socket - {detail}." " Skipping to the next deployment.")
+                raise err_minor(f"Validation error in deployment {idx}" f" of socket - {detail}. Skipping to the next deployment.")
             idx = idx + 1
         return valid_deployment
 
@@ -173,12 +167,10 @@ class TCPOption(DictInstances):
         Seconds between successive keep-alive probes.
 
     user_timeout : int
-        Maximum time in seconds that unacknowledged data may remain
-        before the connection is closed.
+        Maximum time in seconds that unacknowledged data may remain before the connection is closed.
 
     congestion_avoidance : str
-        Congestion-avoidance algorithm to use (e.g., ``Reno``, ``cubic``,
-        or ``bbr``).
+        Congestion-avoidance algorithm to use (e.g., ``Reno``, ``cubic``, or ``bbr``).
 
     tcp_maxseg : int
         Maximum segment size for outgoing TCP packets.
@@ -187,8 +179,7 @@ class TCPOption(DictInstances):
         Enable or disable the "quick-ack" feature.
 
     tcp_syncnt : int
-        Number of SYN retransmissions TCP may perform before aborting
-        the connection attempt.
+        Number of SYN retransmissions TCP may perform before aborting the connection attempt.
     """
 
     tcp_profile_id: int = Field()
@@ -229,8 +220,7 @@ class SocketTCP(Socket):
     protocol : Literal["tcp"]
         Transport protocol for the socket. Defaults to ``"tcp"``.
     tcp_profile : int
-        The unique identifier of the TCP profile whose options
-        are applied to the socket.
+        The unique identifier of the TCP profile whose options are applied to the socket.
     """
 
     protocol: Literal["tcp"] = Field(default="tcp")
@@ -240,19 +230,17 @@ class SocketTCP(Socket):
     @classmethod
     def _lookup_tcp_profile_from_id(cls, value):
         """
-        Resolve the integer ``tcp_profile`` identifier to a
-        registered ``TCPOption`` instance.
+        Resolve the integer ``tcp_profile`` identifier to a registered ``TCPOption`` instance.
 
-        If no profile with the given ID exists, a default
-        ``TCPOption`` is created and registered using only the
-        provided ID — all other fields use their defaults, and a
-        warning is emitted.
+        If no profile with the given ID exists, a default ``TCPOption`` is created and registered using only the
+        provided ID — all other fields use their defaults, and a warning is emitted.
         """
+
         registry: Registry = get_registry()
         tcp_options_instances = registry.get_dict(TCPOption)
         if value not in tcp_options_instances:
             TCPOption(tcp_profile_id=value)
-            warn(f"TCP Socket with TCP Option profile ID {value}" " does not exist. " "Creating a profile with default options.")
+            warn(f"TCP Socket with TCP Option profile ID {value} does not exist. Creating a profile with default options.")
         return value
 
 
@@ -278,8 +266,7 @@ class IPv4AddressEndpoint(IPv4AddressEntry):
 
     Parameters
     ----------
-    sockets : list of \
-    :class:`~flync.model.flync_4_ecu.sockets.SocketTCP` or \
+    sockets : list of :class:`~flync.model.flync_4_ecu.sockets.SocketTCP` or \
     :class:`~flync.model.flync_4_ecu.sockets.SocketUDP`
         Assigned TCP and UDP socket endpoints.
     """
@@ -289,16 +276,15 @@ class IPv4AddressEndpoint(IPv4AddressEntry):
     @model_validator(mode="after")
     def check_if_sockets_have_the_same_ip(self):
         """
-        Validate that every socket is bound to the same IPv4
-        address as the one defined in the class.
+        Validate that every socket is bound to the same IPv4 address as the one defined in the class.
 
         Raises:
-            err_minor: If any socket's ``endpoint_address``
-            differs from ``self.address``.
+            err_minor: If any socket's ``endpoint_address`` differs from ``self.address``.
         """
+
         for socket in self.sockets:
             if str(socket.endpoint_address) != str(self.address):
-                raise err_minor("Sockets must be tied to the same address " "as the IPv4 endpoint.")
+                raise err_minor("Sockets must be tied to the same address as the IPv4 endpoint.")
 
         return self
 
@@ -309,8 +295,7 @@ class IPv6AddressEndpoint(IPv6AddressEntry):
 
     Parameters
     ----------
-    sockets : list of \
-    :class:`~flync.model.flync_4_ecu.sockets.SocketTCP` or \
+    sockets : list of :class:`~flync.model.flync_4_ecu.sockets.SocketTCP` or \
     :class:`~flync.model.flync_4_ecu.sockets.SocketUDP`
         Assigned TCP and UDP socket endpoints.
     """
@@ -320,16 +305,16 @@ class IPv6AddressEndpoint(IPv6AddressEntry):
     @model_validator(mode="after")
     def check_if_sockets_have_the_same_ip(self):
         """
-        Validate that every socket is bound to the same IPv6
-        address as the one defined in the class.
+        Validate that every socket is bound to the same IPv6 address as the one defined in the class.
 
         Raises:
             err_minor: If any socket's ``endpoint_address``
             differs from ``self.address``.
         """
+
         for socket in self.sockets:
             if str(socket.endpoint_address) != str(self.address):
-                raise err_minor("Sockets must be tied to the same address " "as the IPv6 endpoint.")
+                raise err_minor("Sockets must be tied to the same address as the IPv6 endpoint.")
         return self
 
 

@@ -21,8 +21,7 @@ class BaseVersion(FLYNCBaseModel):
         Versioning scheme that defines how the version string is interpreted.
 
     version : str
-        Version value expressed according to the selected ``version_schema``.
-        Must be provided as a raw string.
+        Version value expressed according to the selected ``version_schema``. Must be provided as a raw string.
 
     """
 
@@ -57,9 +56,7 @@ class SoftwareBaseMetadata(BaseVersion):
     """
     Represents software-related metadata.
 
-    This model describes versioning information for
-    software components.
-
+    This model describes versioning information for software components.
     """
 
 
@@ -67,8 +64,7 @@ class HardwareBaseMetadata(BaseVersion):
     """
     Represents hardware-related metadata.
 
-    This model describes supplier and versioning information for
-    hardware components.
+    This model describes supplier and versioning information for hardware components.
 
     Parameters
     ----------
@@ -77,7 +73,6 @@ class HardwareBaseMetadata(BaseVersion):
 
     product_id : str, optional
         Supplier-specific part identification.
-
     """
 
     supplier: Optional[str] = Field(default=None)
@@ -88,11 +83,8 @@ class BaseMetadata(FLYNCBaseModel):
     """
     Base class for model and system metadata definitions.
 
-    This class provides common metadata attributes shared across
-    different configuration artifacts, such as systems, ECUs, and
-    services.
-    It defines identifying and versioning information used for traceability
-    and documentation.
+    This class provides common metadata attributes shared across different configuration artifacts, such as systems, ECUs, and services.
+    It defines identifying and versioning information used for traceability and documentation.
 
     Parameters
     ----------
@@ -102,13 +94,11 @@ class BaseMetadata(FLYNCBaseModel):
     author : str
         Author or organization responsible for the entity definition.
 
-    compatible_flync_version : \
-    :class:`~flync.model.flync_4_metadata.metadata.BaseVersion`
+    compatible_flync_version : :class:`~flync.model.flync_4_metadata.metadata.BaseVersion`
         FLYNC version with which this model is compatible.
 
     extensions : dict of str to str, optional
-        Optional map of extension keys and values for custom or
-        tool-specific metadata.
+        Optional map of extension keys and values for custom or tool-specific metadata.
     """
 
     type: str = Field()
@@ -121,8 +111,7 @@ class SystemMetadata(BaseMetadata):
     """
     Represents system-level metadata.
 
-    This metadata describes the overall system context, including OEM
-    and platform information.
+    This metadata describes the overall system context, including OEM and platform information.
 
     Parameters
     ----------
@@ -154,8 +143,7 @@ class ECUMetadata(BaseMetadata):
     """
     Represents metadata for an Electronic Control Unit (ECU).
 
-    This metadata combines system-level identification with optional hardware
-    and software descriptions.
+    This metadata combines system-level identification with optional hardware and software descriptions.
 
     Parameters
     -----------
@@ -188,19 +176,13 @@ class EmbeddedMetadata(BaseMetadata):
     type : Literal["embedded"]
         Literal identifier specifying an embedded device.
 
-    hardware : \
-        :class:`~flync.model.flync_4_metadata.metadata.HardwareBaseMetadata`\
-        | None
+    hardware : :class:`~flync.model.flync_4_metadata.metadata.HardwareBaseMetadata` | None
         Optional hardware metadata associated with the embedded device.
 
-    app : \
-        :class:`~flync.model.flync_4_metadata.metadata.SoftwareBaseMetadata`\
-        | None
+    app : :class:`~flync.model.flync_4_metadata.metadata.SoftwareBaseMetadata` | None
         Optional software metadata for the application.
 
-    bootloader : \
-        :class:`~flync.model.flync_4_metadata.metadata.SoftwareBaseMetadata`\
-        | None
+    bootloader : :class:`~flync.model.flync_4_metadata.metadata.SoftwareBaseMetadata` | None
         Optional software metadata for the bootloader.
 
     target_system : str

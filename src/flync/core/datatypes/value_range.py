@@ -9,8 +9,7 @@ class ValueRange(FLYNCBaseModel):
     """
     Defines an inclusive range of integer values.
 
-    This datatype is typically used to express valid numeric intervals for
-    parameters, identifiers, or signal values.
+    This datatype is typically used to express valid numeric intervals for parameters, identifiers, or signal values.
 
     Parameters
     ----------

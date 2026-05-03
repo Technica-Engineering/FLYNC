@@ -1,8 +1,7 @@
 """
 Diagnostic result types for the FLYNC SDK.
 
-Provides :class:`WorkspaceState` and :class:`DiagnosticsResult`, which
-represent the outcome of validating a FLYNC workspace or node.
+Provides :class:`WorkspaceState` and :class:`DiagnosticsResult`, which represent the outcome of validating a FLYNC workspace or node.
 """
 
 from enum import Enum
@@ -18,7 +17,8 @@ from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 
 
 class WorkspaceState(str, Enum):
-    """Enumeration of possible workspace validation states.
+    """
+    Enumeration of possible workspace validation states.
 
     Attributes:
         UNKNOWN: State has not been determined.
@@ -41,16 +41,14 @@ class WorkspaceState(str, Enum):
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))
 class DiagnosticsResult:
-    """Result of a workspace or node validation operation.
+    """
+    Result of a workspace or node validation operation.
 
     Attributes:
         state (WorkspaceState): The overall validation state.
-        errors (dict[str, list[ErrorDetails]]): Mapping of document URIs to
-            their associated Pydantic validation error details.
-        model (Optional[FLYNCBaseModel]): The validated root model, or
-            ``None`` if validation failed.
-        workspace (Optional[FLYNCWorkspace]): The loaded workspace instance,
-            or ``None`` if the workspace could not be created.
+        errors (dict[str, list[ErrorDetails]]): Mapping of document URIs to their associated Pydantic validation error details.
+        model (Optional[FLYNCBaseModel]): The validated root model, or ``None`` if validation failed.
+        workspace (Optional[FLYNCWorkspace]): The loaded workspace instance, or ``None`` if the workspace could not be created.
     """
 
     state: WorkspaceState
@@ -60,14 +58,15 @@ class DiagnosticsResult:
 
     @field_serializer("workspace")
     def serialize_workspace(self, value: FLYNCWorkspace) -> str:
-        """Serialize the workspace to a compact string representation.
+        """
+        Serialize the workspace to a compact string representation.
 
         Args:
             value (FLYNCWorkspace): The workspace to serialize.
 
         Returns:
-            str: A human-readable string with the workspace name and relative
-                path.
+            str: A human-readable string with the workspace name and relative path.
         """
+
         workspace_path = value.workspace_root.relative_to(getcwd()) if value.workspace_root is not None else None
         return f"workspace name: {value.name}, workspace path: {workspace_path}"

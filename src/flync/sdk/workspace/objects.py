@@ -4,7 +4,8 @@ from .ids import ObjectId
 
 
 class SemanticObject(object):
-    """Wrapper around a validated semantic model.
+    """
+    Wrapper around a validated semantic model.
 
     Attributes:
         id (ObjectId): Identifier of the semantic object.
@@ -12,11 +13,13 @@ class SemanticObject(object):
     """
 
     def __init__(self, id: ObjectId, model: BaseModel):
-        """Initialize a SemanticObject.
+        """
+        Initialize a SemanticObject.
 
         Args:
             id (ObjectId): Identifier of the semantic object.
             model (BaseModel): The validated Pydantic model.
         """
+
         self.id = id
         self.model = model

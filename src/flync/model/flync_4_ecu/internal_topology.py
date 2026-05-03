@@ -1,7 +1,4 @@
-"""
-Defines the internal connection types between ECU components
-such as ECU ports, switch ports, and controller interfaces.
-"""
+"""Defines the internal connection types between ECU components such as ECU ports, switch ports, and controller interfaces."""
 
 from typing import TYPE_CHECKING, Annotated, List, Literal, Optional
 
@@ -22,8 +19,7 @@ if TYPE_CHECKING:
 
 class InternalConnection(FLYNCBaseModel):
     """
-    Represents a base internal connection between two
-    ECU components.
+    Represents a base internal connection between two ECU components.
 
     Parameters
     ----------
@@ -57,8 +53,7 @@ class InternalConnection(FLYNCBaseModel):
 
 class ECUPortToXConnection(InternalConnection):
     """
-    Base class for connections from an ECU port to another
-    ECU component.
+    Base class for connections from an ECU port to another ECU component.
 
     Parameters
     ----------
@@ -81,11 +76,13 @@ class ECUPortToXConnection(InternalConnection):
 
     @model_validator(mode="after")
     def validate_ecu_port_exists(self):
-        """Check if the ECU port referenced by the connection exists.
+        """
+        Check if the ECU port referenced by the connection exists.
 
         Raises:
             err_major: No matching ECU port found for the connection.
         """
+
         registry: Registry = get_registry()
         ecu_ports_instances = registry.get_dict(ECUPort)
         self._ecu_port = ecu_ports_instances.get(self.ecu_port_name, None)
@@ -119,16 +116,18 @@ class SwitchPortToXConnection(InternalConnection):
 
     @model_validator(mode="after")
     def validate_switch_port_exists(self):
-        """Check if the switch port referenced by the connection exists.
+        """
+        Check if the switch port referenced by the connection exists.
 
         Raises:
             err_major: No matching switch port found for the connection.
         """
+
         registry: Registry = get_registry()
         switch_port_instances = registry.get_dict(SwitchPort)
         self._switch_port = switch_port_instances.get(self.switch_port_name, None)
         if self._switch_port is None:
-            raise err_major(f"Switch port '{self.switch_port_name}'" " referenced in connection" f" '{self.id}' was not found or was not validated")
+            raise err_major(f"Switch port '{self.switch_port_name}' referenced in connection" f" '{self.id}' was not found or was not validated")
         return self
 
 
@@ -164,19 +163,18 @@ class ECUPortToSwitchPort(ECUPortToXConnection):
     @model_validator(mode="after")
     def validate_connection_compatibility(self):
         """
-        Check if the switch port referenced by the connection exists and
-        validate optional MII configuration for compatibility.
+        Check if the switch port referenced by the connection exists and validate optional MII configuration for compatibility.
 
         Raises:
-        err_major: The specified switch port does not exist for
-        this connection or  the optional MII configuration is invalid.
+        err_major: The specified switch port does not exist for this connection or  the optional MII configuration is invalid.
 
         """
+
         registry: Registry = get_registry()
         switch_port_instances = registry.get_dict(SwitchPort)
         self._switch_port = switch_port_instances.get(self.switch_port_name, None)
         if self._switch_port is None:
-            raise err_major(f"Switch port '{self.switch_port_name}'" " referenced in connection" f" '{self.id}' was not found or was not validated")
+            raise err_major(f"Switch port '{self.switch_port_name}' referenced in connection" f" '{self.id}' was not found or was not validated")
         # Add connected component to each other
         self.ecu_port._connected_components.append(self.switch_port)
         self.switch_port._connected_component = self.ecu_port
@@ -225,13 +223,12 @@ class ECUPortToControllerInterface(ECUPortToXConnection):
     @model_validator(mode="after")
     def validate_connection_compatibility(self):
         """
-        Check if the controller interface referenced by the connection exists
-        and validate optional MII, HTB configurations for compatibility.
+        Check if the controller interface referenced by the connection exists and validate optional MII, HTB configurations for compatibility.
 
         Raises:
-            err_major: The specified controller interface does not exist for
-            this connection or the MII,HTB configuration is invalid.
+            err_major: The specified controller interface does not exist for this connection or the MII,HTB configuration is invalid.
         """
+
         registry: Registry = get_registry()
         controller_interface_instances = registry.get_dict(ControllerInterface)
         self._iface = controller_interface_instances.get(self.iface_name, None)
@@ -278,15 +275,14 @@ class SwitchPortToControllerInterface(SwitchPortToXConnection):
     @model_validator(mode="after")
     def validate_connection_compatibility(self):
         """
-        Check if the controller interface referenced by the
-        connection exists andvalidate MII, HTB, MACsec and
+        Check if the controller interface referenced by the connection exists andvalidate MII, HTB, MACsec and
         GPTP configurations for compatibility.
 
         Raises:
-            err_major: The specified controller interface does not
-            exist for this connection  or the MII,HTB
-            MACSec or GPTP configuration is invalid.
+            err_major:
+                The specified controller interface does not exist for this connection or the MII, HTB, MACsec, or GPTP configuration is invalid.
         """
+
         registry: Registry = get_registry()
         controller_interface_instances = registry.get_dict(ControllerInterface)
         self._iface = controller_interface_instances.get(self.iface_name, None)
@@ -344,8 +340,9 @@ class SwitchPortToSwitchPort(SwitchPortToXConnection):
         Raises:
             err_major: The specified controller interface does not exist for
             this connection or the MII,HTB
-            MACSec or GPTP configuration is invalid.
+            MACsec or GPTP configuration is invalid.
         """
+
         registry: Registry = get_registry()
         switch_port_instances = registry.get_dict(SwitchPort)
         self._switch2_port = switch_port_instances.get(self.switch2_port_name, None)
@@ -417,10 +414,10 @@ class ControllerInterfaceToControllerInterface(InternalConnection):
         MACsec and GPTP configurations for compatibility.
 
         Raises:
-            err_major: The specified controller interfaces does not
-            exist for this connection or the MII,HTB
-            MACSec or GPTP configuration is invalid.
+            err_major: The specified controller interfaces does not exist for this connection or the MII, HTB, MACsec, or GPTP configuration
+            is invalid.
         """
+
         registry: Registry = get_registry()
         controller_interfaces_instances = registry.get_dict(ControllerInterface)
         self._iface = controller_interfaces_instances.get(self.iface_name, None)
@@ -445,11 +442,9 @@ class ControllerInterfaceToControllerInterface(InternalConnection):
 
 class InternalConnectionUnion(RootModel):
     """
-    Union type representing a connection between two internal
-    ECU components.
+    Union type representing a connection between two internal ECU components.
 
-    This model wraps a union of different internal connection
-    types and uses the ``type`` field as a discriminator to
+    This model wraps a union of different internal connection types and uses the ``type`` field as a discriminator to
     determine which specific connection type is present.
 
     Possible types

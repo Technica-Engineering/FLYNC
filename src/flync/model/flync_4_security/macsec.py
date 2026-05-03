@@ -11,17 +11,14 @@ from flync.core.utils.exceptions import err_minor
 
 class IntegrityWithoutConfidentiality(FLYNCBaseModel):
     """
-    Cipher configuration representing integrity protection without
-    confidentiality.
+    Cipher configuration representing integrity protection without confidentiality.
 
-    This configuration supports authentication and integrity
-    checks but does not encrypt the data.
+    This configuration supports authentication and integrity checks but does not encrypt the data.
 
     Parameters
     ----------
     type : Literal["integrity_without_confidentiality"]
-        Identifier for the cipher type. Always
-        ``"integrity_without_confidentiality"``.
+        Identifier for the cipher type. Always ``"integrity_without_confidentiality"``.
 
     offset_preference : Literal[0]
         Preference for offset timing. Always 0 for this cipher.
@@ -33,17 +30,15 @@ class IntegrityWithoutConfidentiality(FLYNCBaseModel):
 
 class IntegrityWithConfidentiality(FLYNCBaseModel):
     """
-    Cipher configuration representing both integrity protection
-    and confidentiality.
+    Cipher configuration representing both integrity protection and confidentiality.
 
-    This configuration includes both encryption and authentication
-    features.
+    This configuration includes both encryption and authentication features.
 
     Parameters
     ----------
     type : Literal["integrity_with_confidentiality"]
-        Identifier for the cipher type. Always
-        ``"integrity_with_confidentiality"``.
+        Identifier for the cipher type.
+        Always ``"integrity_with_confidentiality"``.
 
     offset_preference : Literal[0, 30, 50]
         Offset timing preference for transmission (in nanoseconds).
@@ -64,8 +59,7 @@ class MACsecConfig(FLYNCBaseModel):
     """
     Configuration for MACsec (Media Access Control Security).
 
-    Includes global MKA (MACsec Key Agreement) settings and per-port
-    security configuration.
+    Includes global MKA (MACsec Key Agreement) settings and per-port security configuration.
 
     Parameters
     ----------
@@ -76,19 +70,16 @@ class MACsecConfig(FLYNCBaseModel):
         Whether MACsec Key Agreement (MKA) is enabled. Default is True.
 
     hello_time : int
-        MKPDU period when a connection is established, applicable when
-        delay_protect is disabled (milliseconds).
+        MKPDU period when a connection is established, applicable when delay_protect is disabled (milliseconds).
 
     bounded_hello_time : int
         Hello time applicable with delay_protect enabled (milliseconds).
 
     life_time : int
-        Life time for a peer to transmit MKPDU's in order to consider it
-        alive (milliseconds).
+        Life time for a peer to transmit MKPDU's in order to consider it alive (milliseconds).
 
     sak_retire_time : int
-        During a key rotation, time to retire the previous SAK key
-        (milliseconds).
+        During a key rotation, time to retire the previous SAK key (milliseconds).
 
     hello_time_rampup : list of int
         Periods between initial MKA messages after linkup (milliseconds).
@@ -98,27 +89,23 @@ class MACsecConfig(FLYNCBaseModel):
 
     macsec_mode : Literal["disabled", "integrity", \
     "integrity_confidentiality"]
-        MACsec operation mode. Options include disabled, integrity-only,
-        and full encryption.
+        MACsec operation mode. Options include disabled, integrity-only, and full encryption.
 
     kay_on : bool
-        Whether to activate the KaY (Key Agreement Entity) module. When
-        disabled, MACsec is not negotiated.
+        Whether to activate the KaY (Key Agreement Entity) module.
+        When disabled, MACsec is not negotiated.
 
     key_role : Literal["key_server_always", "key_server_never"]
         Role of the device in key negotiation.
 
     delay_protect : bool
-        When enabled, performs frequent updates of the packet number on
-        the receiving side to prevent attackers from delaying MACsec
-        frames.
+        When enabled, performs frequent updates of the packet number on the receiving side to prevent attackers from delaying MACsec frames.
 
     participant_activation : Literal["disabled", "onoperup", "always"]
         Strategy for participant activation.
 
     sci_included : bool
-        Whether to include the Secure Channel Identifier (SCI) in MACsec
-        frames.
+        Whether to include the Secure Channel Identifier (SCI) in MACsec frames.
 
     cipher_preference : list of :class:`DiscriminatedCipher`
         List of preferred ciphers to negotiate, ordered by priority.

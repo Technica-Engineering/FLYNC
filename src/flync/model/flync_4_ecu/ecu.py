@@ -47,28 +47,19 @@ class ECU(UniqueName):
         Name of the ECU.
 
     ports : list of :class:`~flync.model.flync_4_ecu.port.ECUPort`
-        List of physical ECU ports.
-        At least one port must be provided.
+        List of physical ECU ports. At least one port must be provided.
 
-    controllers : list of \
-    :class:`~flync.model.flync_4_ecu.controller.Controller`
+    controllers : list of :class:`~flync.model.flync_4_ecu.controller.Controller`
         Controllers associated with this ECU.
 
-    switches : list of \
-    :class:`~flync.model.flync_4_ecu.switch.Switch`, optional
-        Switches integrated within the ECU. If not provided, the ECU
-        contains no internal switches.
+    switches : list of :class:`~flync.model.flync_4_ecu.switch.Switch`, optional
+        Switches integrated within the ECU. If not provided, the ECU contains no internal switches.
 
-    topology : \
-    :class:`~flync.model.flync_4_ecu.internal_topology.InternalTopology`
-        Internal topology defining the connectivity between
-        ECU components.
+    topology : :class:`~flync.model.flync_4_ecu.internal_topology.InternalTopology`
+        Internal topology defining the connectivity between ECU components.
 
-    multicast_groups : list of \
-    :class:`~flync.model.flync_4_ecu.multicast_groups.\
-        MulticastGroupMembership`, optional
-        Multicast group memberships of the ECU. This field is populated
-        automatically internally.
+    multicast_groups : list of :class:`~flync.model.flync_4_ecu.multicast_groups. MulticastGroupMembership`, optional
+        Multicast group memberships of the ECU. This field is populated automatically internally.
 
     ecu_metadata : :class:`~flync.model.flync_4_metadata.metadata.ECUMetadata`
         Metadata information describing the ECU.
@@ -124,16 +115,14 @@ class ECU(UniqueName):
         Perform post-initialization processing after the model is created.
 
         Following steps are performed:
-        1. Reference the ECU in child components to allow access to ECU-level
-           information.
+        1. Reference the ECU in child components to allow access to ECU-level information.
 
-        2. Bind sockets (defined per ethernet interface) to their corresponding
-           IP addresses in the virtual interfaces, ensuring each socket is
+        2. Bind sockets (defined per ethernet interface) to their corresponding IP addresses in the virtual interfaces, ensuring each socket is
            associated with the correct ECU IP.
 
-        3. Populate multicast group memberships based on socket configurations
-           and virtual interface settings.
+        3. Populate multicast group memberships based on socket configurations and virtual interface settings.
         """
+
         self.__reference_ecu_in_children()
         self.__bind_sockets_to_ip()
         self.__populate_multicast_tx_groups_from_socket()
@@ -143,27 +132,27 @@ class ECU(UniqueName):
     @model_validator(mode="before")
     @classmethod
     def skip_on_broken_controllers(cls, data):
-        """Skip ECU validation when controllers or switches failed to load.
-
-        When a controller or switch cannot be parsed, the workspace places
-        None in the respective list.  Attempting to validate the ECU in that
-        state produces a cascade of unhelpful errors.  Instead report a
-        single major error so that per-component errors remain the focus.
         """
+        Skip ECU validation when controllers or switches failed to load.
+
+        When a controller or switch cannot be parsed, the workspace places None in the respective list.
+        Attempting to validate the ECU in that state produces a cascade of unhelpful errors,
+        instead report a single major error so that per-component errors remain the focus.
+        """
+
         if isinstance(data, dict):
             controllers = data.get("controllers") or []
             switches = data.get("switches") or []
             broken_controllers = isinstance(controllers, list) and any(c is None for c in controllers)
             broken_switches = isinstance(switches, list) and any(s is None for s in switches)
             if broken_controllers or broken_switches:
-                raise err_major("ECU has invalid components. " "Check controller and switch errors for details.")
+                raise err_major("ECU has invalid components. Check controller and switch errors for details.")
         return data
 
     @model_validator(mode="after")
     def validate_vlans_in_sockets(self):
         """
-        Validate that the VLAN IDs specified in the socket containers of each
-        ethernet interface are configured in a virtual interface of that same
+        Validate that the VLAN IDs specified in the socket containers of each ethernet interface are configured in a virtual interface of that same
         ethernet interface."""
 
         for controller in self.controllers:
@@ -176,28 +165,24 @@ class ECU(UniqueName):
                 missing_vlans = vlan_ids_in_sockets - vlan_ids_in_interface
                 if missing_vlans:
                     raise err_minor(
-                        f"Error in socket configuration:\n"
-                        f"The following VLAN IDs are specified in the socket "
-                        f"containers but not configured in any virtual "
-                        f"interface of ethernet interface "
+                        "Error in socket configuration:\n"
+                        "The following VLAN IDs are specified in the socket containers "
+                        "but not configured in any virtual interface of ethernet interface "
                         f"{iface_config.name}: {missing_vlans}."
                     )
         return self
 
     def __bind_sockets_to_ip(self):
         """
-        Associate each socket with the matching IP address on the same
-        ethernet interface where the socket is defined.
+        Associate each socket with the matching IP address on the same ethernet interface where the socket is defined.
 
-        Sockets are scoped to the ethernet interface that owns them, so a
-        socket is only bound to addresses belonging to that interface — not
+        Sockets are scoped to the ethernet interface that owns them, so a socket is only bound to addresses belonging to that interface — not
         to identically-addressed interfaces elsewhere in the ECU.
 
         Raises:
-            err_minor: If a socket's endpoint address does not belong
-                to any virtual interface of the ethernet interface that
-                defines the socket.
+            err_minor: If a socket's endpoint address does not belong to any virtual interface of the ethernet interface that defines the socket.
         """
+
         for controller in self.controllers:
             for eth_iface in controller.ethernet_interfaces:
                 iface_config = eth_iface.interface_config
@@ -210,10 +195,8 @@ class ECU(UniqueName):
                         if endpoint_ip not in iface_ips:
                             raise err_minor(
                                 f"Error in socket {socket.name}:\n"
-                                f"The IP {endpoint_ip} is not configured "
-                                f"in any virtual interface of ethernet "
-                                f"interface {iface_config.name} in ECU "
-                                f"{self.name}."
+                                f"The IP {endpoint_ip} is not configured in any virtual interface of ethernet "
+                                f"interface {iface_config.name} in ECU {self.name}."
                             )
                         for vi in iface_config.virtual_interfaces:
                             for ip in vi.addresses:
@@ -225,14 +208,14 @@ class ECU(UniqueName):
         """
         allows the children attributes to access ._ecu
         """
+
         [setattr(p, "_ecu", self) for p in self.ports]  # noqa
         [setattr(c, "_ecu", self) for c in self.topology.connections]  # noqa
         return self
 
     def __populate_multicast_tx_groups_from_socket(self):
         """
-        Add Multicast TX entries from sockets (defined per ethernet interface)
-        to multicast group memberships.
+        Add Multicast TX entries from sockets (defined per ethernet interface) to multicast group memberships.
         """
 
         for controller in self.controllers:
@@ -255,8 +238,7 @@ class ECU(UniqueName):
 
     def __populate_multicast_rx_groups_from_interfaces(self):
         """
-        Add Multicast RX entries from virtual interfaces
-        to multicast group memberships.
+        Add Multicast RX entries from virtual interfaces to multicast group memberships.
         """
 
         for interface in find_all(self.controllers, ControllerInterface):
@@ -287,8 +269,7 @@ class ECU(UniqueName):
 
     def _populate_multicast_tx_groups_from_mac_multicast_endpoints(self):
         """
-        Add Multicast TX entries from MAC multicast endpoints
-        to multicast group memberships.
+        Add Multicast TX entries from MAC multicast endpoints to multicast group memberships.
         """
 
         if self.mac_multicast_endpoints is not None:
@@ -306,8 +287,7 @@ class ECU(UniqueName):
                     if not interface:
                         raise err_minor(
                             f"Error in MAC multicast:\n"
-                            f"endpoints. Could not find an interface for "
-                            f"address {endpoint.mac_address}. ECU {self.name}"
+                            f"endpoints. Could not find an interface for address {endpoint.mac_address}. ECU {self.name}"
                         )
                     group._interface = interface
                     self.multicast_groups.append(group)
@@ -361,6 +341,7 @@ class ECU(UniqueName):
         """
         Get all IPs in a ECU
         """
+
         ip_lists = []
         for ctrl in self.controllers or []:
             ip_lists.extend(ctrl.get_all_ips())
@@ -373,6 +354,7 @@ class ECU(UniqueName):
         """
         Get all MAC addresses in a ECU
         """
+
         mac_lists = []
         for ctrl in self.controllers:
             mac_lists.extend(ctrl.get_all_macs())
@@ -383,9 +365,9 @@ class ECU(UniqueName):
 
     def get_all_sockets(self) -> dict[int | None, List[Socket]]:
         """
-        Get all sockets across all ethernet interfaces of the ECU,
-        grouped by VLAN ID.
+        Get all sockets across all ethernet interfaces of the ECU, grouped by VLAN ID.
         """
+
         all_socket_containers = [
             sc for controller in self.controllers for eth_iface in (controller.ethernet_interfaces or []) for sc in (eth_iface.sockets or [])
         ]
@@ -411,24 +393,23 @@ class ECU(UniqueName):
                 return iface
 
     def __get_services_of_type(self, service_type: type[_T_Service]) -> list[_T_Service]:
-        """Return all SOME/IP service deployments of a given type.
+        """
+        Return all SOME/IP service deployments of a given type.
 
-        Iterates over all ethernet interfaces, their socket containers and
-        sockets, collecting deployments whose root matches ``service_type``.
+        Iterates over all ethernet interfaces, their socket containers and sockets, collecting deployments whose root matches ``service_type``.
 
         Parameters
         ----------
         service_type : type[SOMEIPServiceDeployment]
-            The concrete deployment type to filter by (e.g.
-            :class:`~flync.model.flync_4_someip.SOMEIPServiceConsumer` or
+            The concrete deployment type to filter by (e.g. :class:`~flync.model.flync_4_someip.SOMEIPServiceConsumer` or
             :class:`~flync.model.flync_4_someip.SOMEIPServiceProvider`).
 
         Returns
         -------
         list[SOMEIPServiceDeployment]
-            All matching service deployment instances found across the ECU's
-            socket containers.
+            All matching service deployment instances found across the ECU's socket containers.
         """
+
         service_instances = []
         for controller in self.controllers:
             for eth_iface in controller.ethernet_interfaces or []:
@@ -441,23 +422,25 @@ class ECU(UniqueName):
         return service_instances
 
     def get_consumed_services(self) -> list[SOMEIPServiceConsumer]:
-        """Return all SOME/IP service consumer deployments of the ECU.
+        """
+        Return all SOME/IP service consumer deployments of the ECU.
 
         Returns
         -------
         list[SOMEIPServiceConsumer]
-            All :class:`~flync.model.flync_4_someip.SOMEIPServiceConsumer`
-            instances found across the ECU's socket containers.
+            All :class:`~flync.model.flync_4_someip.SOMEIPServiceConsumer` instances found across the ECU's socket containers.
         """
+
         return self.__get_services_of_type(SOMEIPServiceConsumer)
 
     def get_provided_services(self) -> list[SOMEIPServiceProvider]:
-        """Return all SOME/IP service provider deployments of the ECU.
+        """
+        Return all SOME/IP service provider deployments of the ECU.
 
         Returns
         -------
         list[SOMEIPServiceProvider]
-            All :class:`~flync.model.flync_4_someip.SOMEIPServiceProvider`
-            instances found across the ECU's socket containers.
+            All :class:`~flync.model.flync_4_someip.SOMEIPServiceProvider` instances found across the ECU's socket containers.
         """
+
         return self.__get_services_of_type(SOMEIPServiceProvider)

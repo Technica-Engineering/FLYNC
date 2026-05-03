@@ -10,9 +10,8 @@ from flync.core.utils.exceptions import _validation_warnings
 
 FATAL_ERROR_TYPES = {"extra_forbid", "extra_forbidden", "fatal", "missing"}
 
-# All error types that originate from FLYNC's own error factories or Pydantic's
-# structural checks.  Any error type NOT in this set is a native Pydantic
-# constraint error (e.g. less_than_equal, int_type) that will be re-wrapped as
+# All error types that originate from FLYNC's own error factories or Pydantic's structural checks.
+# Any error type NOT in this set is a native Pydantic constraint error (e.g. less_than_equal, int_type) that will be re-wrapped as
 # a major error so it follows the standard FLYNC display format.
 FLYNC_ERROR_TYPES = FATAL_ERROR_TYPES | {"minor", "major", "warning"}
 
@@ -21,6 +20,7 @@ def resolve_alias(model: type[BaseModel], field_name: str) -> str:
     """
     Return the YAML key used for a Pydantic field, considering alias.
     """
+
     if not model or not hasattr(model, "model_fields"):
         return field_name
     field = model.model_fields.get(field_name)
@@ -28,7 +28,8 @@ def resolve_alias(model: type[BaseModel], field_name: str) -> str:
 
 
 def get_name_by_alias(model: type[BaseModel], alias: str):
-    """Return the Python field name that corresponds to the given alias.
+    """
+    Return the Python field name that corresponds to the given alias.
 
     Parameters
     ----------
@@ -47,6 +48,7 @@ def get_name_by_alias(model: type[BaseModel], alias: str):
     KeyError
         If no field with the given alias is found.
     """
+
     for field_name, field in model.model_fields.items():
         if field.alias == alias:
             return field_name
@@ -55,9 +57,10 @@ def get_name_by_alias(model: type[BaseModel], alias: str):
 
 def safe_yaml_position(node: Any, loc: tuple, model: type[BaseModel] | None = None) -> Tuple[int | None, int | None]:  # noqa # nosonar
     """
-    Given a ruamel.yaml node and a Pydantic `loc` tuple, return
-    (line, column). Falls back gracefully if key/item is missing.
+    Given a ruamel.yaml node and a Pydantic `loc` tuple, return (line, column).
+    Falls back gracefully if key/item is missing.
     """
+
     current = node
     current_model = model
     parent = None
@@ -118,9 +121,9 @@ def safe_yaml_position(node: Any, loc: tuple, model: type[BaseModel] | None = No
 
 def _extract_position(parent: Any, key: Any) -> Tuple[int | None, int | None]:
     """
-    Safely extract line/col from ruamel.yaml node.
-    Returns (line, column) or (None, None)
+    Safely extract line/col from ruamel.yaml node.  Returns (line, column) or (None, None)
     """
+
     try:
         line = parent.lc.line
         col = parent.lc.col
@@ -141,6 +144,7 @@ def _fallback_position(node: Any) -> Tuple[int | None, int | None]:
     """
     Return the best-effort parent position if key/item is missing.
     """
+
     try:
         line = getattr(node.lc, "line", None)
         col = getattr(node.lc, "col", None)
@@ -162,8 +166,7 @@ def errors_to_init_errors(
     """
     Convert Pydantic validation errors into ``InitErrorDetails`` for re-raising.
 
-    Optionally enriches each error with YAML source location information when
-    ``model`` and ``yaml_data`` are provided, and with the file path when
+    Optionally enriches each error with YAML source location information when ``model`` and ``yaml_data`` are provided, and with the file path when
     ``yaml_path`` is provided.
 
     Parameters
@@ -171,21 +174,18 @@ def errors_to_init_errors(
     errors : List[ErrorDetails]
         The list of errors to convert.
     model : type[BaseModel], optional
-        The Pydantic model class used to resolve field aliases for YAML
-        position look-ups.
+        The Pydantic model class used to resolve field aliases for YAML position look-ups.
     yaml_data : object, optional
-        The parsed ruamel.yaml AST of the document, used together with
-        ``model`` to locate the error position within the file.
+        The parsed ruamel.yaml AST of the document, used together with ``model`` to locate the error position within the file.
     yaml_path : str, optional
-        The workspace-relative file path to embed in each error's context
-        as ``yaml_path``.
+        The workspace-relative file path to embed in each error's context as ``yaml_path``.
 
     Returns
     -------
     List[InitErrorDetails]
-        The converted errors, ready to be passed to
-        ``ValidationError.from_exception_data``.
-    """  # noqa
+        The converted errors, ready to be passed to ``ValidationError.from_exception_data``.
+    """
+
     enriched = []
     for e in errors:
         ctx = e.get("ctx", {})
@@ -210,8 +210,7 @@ def errors_to_init_errors(
 
 def delete_at_loc(data: Any, loc: Tuple):
     """
-    Helper function to remove the key/item from original
-    object by loc(path to an element within the object).
+    Helper function to remove the key/item from original object by loc(path to an element within the object).
 
     Parameters
     ----------
@@ -221,6 +220,7 @@ def delete_at_loc(data: Any, loc: Tuple):
     loc : Tuple
         Path to the location of item to remove.
     """
+
     if not loc:
         return
 
@@ -243,9 +243,8 @@ def delete_at_loc(data: Any, loc: Tuple):
 
 def _get_error_signature(error_details: ErrorDetails) -> Tuple:
     """
-    A function to return hashable representation of ErrorDetails object or
-    dict taken from ValidationError.errors() list to then use it
-    for identification.
+    A function to return hashable representation of ErrorDetails object or dict taken from ValidationError.errors() list to then use it for
+    identification.
 
     Parameters
     ----------
@@ -279,6 +278,7 @@ def get_unique_errors(
     -------
     List[ErrorDetails]
     """
+
     errors_seen: Set[Tuple[str, Tuple]] = set()
     unique_errors: List[ErrorDetails] = []
 
@@ -293,29 +293,26 @@ def get_unique_errors(
 
 
 def _wrap_native_error(err: ErrorDetails) -> ErrorDetails:
-    """Re-wrap a native Pydantic constraint error as a FLYNC major error.
+    """
+    Re-wrap a native Pydantic constraint error as a FLYNC major error.
 
-    Native Pydantic errors (e.g. ``less_than_equal``, ``int_type``) do not
-    carry ``sub_errors`` and appear with their raw Pydantic type in the error
+    Native Pydantic errors (e.g. ``less_than_equal``, ``int_type``) do not carry ``sub_errors`` and appear with their raw Pydantic type in the error
     table.  This wraps them as ``major`` so they follow the standard format:
-    the original type and message appear in the Details column and the message
-    mirrors the ``validate_or_remove`` pattern.
+    the original type and message appear in the Details column and the message mirrors the ``validate_or_remove`` pattern.
 
-    Cascade behaviour is unchanged — the original error type is still used to
-    decide whether to populate ``major_removed_locs``.
+    Cascade behavior is unchanged — the original error type is still used to decide whether to populate ``major_removed_locs``.
 
     Parameters
     ----------
     err : ErrorDetails
-        A Pydantic error dict whose ``type`` is not in
-        :data:`FLYNC_ERROR_TYPES`.
+        A Pydantic error dict whose ``type`` is not in :data:`FLYNC_ERROR_TYPES`.
 
     Returns
     -------
     ErrorDetails
-        A new error dict with ``type="major"``, a human-readable message, and
-        the original error packed into ``ctx["sub_errors"]``.
+        A new error dict with ``type="major"``, a human-readable message, and the original error packed into ``ctx["sub_errors"]``.
     """
+
     original_type = err.get("type", "")
     original_msg = err.get("msg", "")
     loc = err.get("loc", ())
@@ -332,7 +329,10 @@ def _wrap_native_error(err: ErrorDetails) -> ErrorDetails:
 
 
 def _tag_warnings_with_path(warnings: list, path) -> None:
-    """Stamp each warning that lacks a yaml_path with the given path."""
+    """
+    Stamp each warning that lacks a yaml_path with the given path.
+    """
+
     if not path:
         return
     for w in warnings:
@@ -348,7 +348,10 @@ def _enrich_validation_error(
     working: Any,
     path,
 ) -> ValidationError:
-    """Return ``ve`` re-raised with YAML source locations injected."""
+    """
+    Return ``ve`` re-raised with YAML source locations injected.
+    """
+
     try:
         enriched = errors_to_init_errors(
             get_unique_errors(ve.errors()),
@@ -365,7 +368,10 @@ def _enrich_validation_error(
 
 
 def _has_top_level_fatal(errs: List[ErrorDetails], removed_locs: Set[Tuple]) -> bool:
-    """Return True when an unrecovered fatal error sits at depth ≤ 1."""
+    """
+    Return True when an unrecovered fatal error sits at depth ≤ 1.
+    """
+
     return any(e.get("type") in FATAL_ERROR_TYPES and len(e.get("loc", ())) <= 1 and e.get("loc", ()) not in removed_locs for e in errs)
 
 
@@ -377,7 +383,10 @@ def _collect_original_error(
     removed_locs: Set[Tuple],
     major_removed_locs: Set[Tuple],
 ) -> None:
-    """Record ``err`` and excise its location from ``working``."""
+    """
+    Record ``err`` and excise its location from ``working``.
+    """
+
     err_to_collect = err if err.get("type") in FLYNC_ERROR_TYPES else _wrap_native_error(err)
     collected_errors.append(err_to_collect)
     delete_at_loc(working, remove_loc)
@@ -393,17 +402,18 @@ def _process_error_list(
     collected_errors: List[ErrorDetails],
     working: Any,
 ) -> bool:
-    """Remove offending locations from ``working`` and collect errors.
+    """
+    Remove offending locations from ``working`` and collect errors.
 
     For each error:
-    - fatal nested (depth > 1): remove the parent so the whole sub-object
-      is dropped cleanly.
+    - fatal nested (depth > 1): remove the parent so the whole sub-object is dropped cleanly.
     - minor/major: remove the exact offending field.
     - cascade from an earlier removal: escalate to parent silently.
     - cascade from a major-removed field: stop the chain, do not escalate.
 
     Returns True if at least one location was removed (progress made).
     """
+
     made_progress = False
     for err in errs:
         loc = err.get("loc", ())
@@ -434,14 +444,10 @@ def _process_error_list(
 
 def validate_with_policy(model: Type[FLYNCBaseModel], data: Any, path) -> Tuple[Optional[FLYNCBaseModel], List[ErrorDetails]]:
     """
-    Helper function to perform model validation from the given data,
-    collect errors with different severity and perform action
-    based on severity.
+    Helper function to perform model validation from the given data, collect errors with different severity and perform action based on severity.
 
-    For minor/major errors the offending field is removed from the working
-    data via :func:`delete_at_loc` and validation is retried, so that the
-    model can still be constructed without the invalid field.  The loop
-    continues until either validation succeeds, a fatal error is encountered,
+    For minor/major errors the offending field is removed from the working data via :func:`delete_at_loc` and validation is retried, so that the
+    model can still be constructed without the invalid field. The loop continues until either validation succeeds, a fatal error is encountered,
     or no further progress can be made (all error locations already removed).
 
     Parameters
@@ -461,6 +467,7 @@ def validate_with_policy(model: Type[FLYNCBaseModel], data: Any, path) -> Tuple[
     ------
     ValidationError
     """
+
     working = data
     collected_errors: List[ErrorDetails] = []
     removed_locs: Set[Tuple] = set()

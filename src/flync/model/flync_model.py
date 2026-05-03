@@ -1,6 +1,5 @@
 """
-Top-level system model aggregating ECUs, topology,
-metadata, and general configuration in FLYNC.
+Top-level system model aggregating ECUs, topology, metadata, and general configuration in FLYNC.
 """
 
 from typing import Annotated, Dict, List, Optional, Tuple
@@ -34,8 +33,7 @@ class FLYNCModel(FLYNCBaseModel):
     """
     Represents the top-level FLYNC configuration model for a system.
 
-    This model aggregates all ECUs, system topology, metadata, and
-    general configuration settings for the entire system.
+    This model aggregates all ECUs, system topology, metadata, and general configuration settings for the entire system.
 
     Parameters
     ----------
@@ -43,16 +41,12 @@ class FLYNCModel(FLYNCBaseModel):
         List of ECU definitions included in the system.
 
     topology : :class:`~flync.model.flync_4_topology.FLYNCTopology`
-        The system-wide topology including external ECU connections
-        and optional multicast paths.
+        The system-wide topology including external ECU connections and optional multicast paths.
 
     metadata : :class:`~flync.model.flync_4_metadata.SystemMetadata`
-        System-level metadata including OEM, platform, and hardware/software
-        information.
+        System-level metadata including OEM, platform, and hardware/software information.
 
-    general : \
-        :class:`~flync.model.flync_4_general_configuration.FLYNCGeneralConfig`
-        , optional
+    general : :class:`~flync.model.flync_4_general_configuration.FLYNCGeneralConfig`, optional
         Optional general configuration settings applicable system-wide.
     """
 
@@ -94,13 +88,14 @@ class FLYNCModel(FLYNCBaseModel):
     @model_validator(mode="before")
     @classmethod
     def skip_broken_ecus(cls, data):
-        """Remove None ECUs from the list before validation.
+        """
+        Remove None ECUs from the list before validation.
 
-        When an ECU file fails to load the workspace inserts None into the
-        ecus list.  Errors are already reported at the ECU level, so the
-        None entries are silently dropped here to prevent a cascade of
+        When an ECU file fails to load the workspace inserts None into the ecus list.
+        JErrors are already reported at the ECU level, so the None entries are silently dropped here to prevent a cascade of
         FLYNCModel-level errors for the same root cause.
         """
+
         if isinstance(data, dict):
             ecus = data.get("ecus") or []
             if isinstance(ecus, list) and any(e is None for e in ecus):
@@ -113,12 +108,11 @@ class FLYNCModel(FLYNCBaseModel):
 
         Following steps are performed:
 
-        1. Populate the solicited-node RX multicast group memberships for each
-           IPv6 address configured in any ECU.
+        1. Populate the solicited-node RX multicast group memberships for each IPv6 address configured in any ECU.
 
-        2. Populate the solicited-node TX multicast group memberships for each
-           ECU based on the RX entries for the same multicast group and VLAN.
+        2. Populate the solicited-node TX multicast group memberships for each ECU based on the RX entries for the same multicast group and VLAN.
         """
+
         self.__populate_ipv6_solicited_node_multicasts_rx()
         self.__populate_ipv6_solicited_node_multicasts_tx()
 
@@ -127,6 +121,7 @@ class FLYNCModel(FLYNCBaseModel):
         """
         Validate all IPs are unique system wide
         """
+
         try:
             all_ips = []
             for ecu in self.ecus:
@@ -156,7 +151,7 @@ class FLYNCModel(FLYNCBaseModel):
 
             for rx in rx_list:
                 if rx not in tx_list:
-                    warn("Invalid Multicast Configuration. There " "is a multicast rx configured for the address " f"{rx} but no tx.")
+                    warn("Invalid Multicast Configuration. There is a multicast rx configured for the address " f"{rx} but no tx.")
         except PydanticCustomError as e:
             warn(str(e))
         return self
@@ -176,10 +171,8 @@ class FLYNCModel(FLYNCBaseModel):
                         paths[key] = compute_path(mcast.vlan, mcast._interface)
                     if (mcast.mode == "tx") and key in paths and not check_obj_in_list(mcast._interface, paths[key]):
                         warn(
-                            "Invalid Multicast Address Configuration. There"
-                            " are several RX that the TX Endpoint at "
-                            f"{mcast._interface.name} cannot reach."
-                            f"{serialize_components(paths[key])}"
+                            "Invalid Multicast Address Configuration. There are several RX that the TX Endpoint at "
+                            f"{mcast._interface.name} cannot reach. {serialize_components(paths[key])}"
                         )
             self.check_rx_are_reached(separ, paths, vlans_dict)
         except PydanticCustomError as e:
@@ -191,6 +184,7 @@ class FLYNCModel(FLYNCBaseModel):
         """
         Validate all MACs are unique system wide
         """
+
         all_macs = []
         for ecu in self.ecus:
             new_macs = ecu.get_all_macs()
@@ -207,13 +201,11 @@ class FLYNCModel(FLYNCBaseModel):
                 key = str(mcast.group) + separ + str(mcast.vlan)
                 if (mcast.mode == "rx") and key not in paths:
 
-                    warn("Invalid Multicast Address Configuration. There" " are no TX endpoints for this address " f"{key} ")
+                    warn("Invalid Multicast Address Configuration. There are no TX endpoints for this address " f"{key} ")
                 if (mcast.mode == "rx") and key in paths and not check_obj_in_list(mcast._interface, paths[key]):
                     warn(
-                        "Invalid Multicast Address Configuration."
-                        f"The RX interface for address {key} "
-                        f"- {mcast._interface.name} cannot be reached "
-                        f"by the TX ports."
+                        "Invalid Multicast Address Configuration. The RX interface for address {key} "
+                        f"- {mcast._interface.name} cannot be reached by the TX ports."
                     )
 
         self.load_switch_multicast(vlans_dict, paths)
@@ -222,9 +214,9 @@ class FLYNCModel(FLYNCBaseModel):
 
     def __populate_ipv6_solicited_node_multicasts_rx(self):
         """
-        Populate the solicited-node multicast group memberships for each
-        IPv6 address configured in any ECU.
+        Populate the solicited-node multicast group memberships for each IPv6 address configured in any ECU.
         """
+
         for ecu in self.ecus:
             update_ecu_multicast = collect_ipv6_solicited_node_rx(ecu)
             if ecu.name in update_ecu_multicast:
@@ -233,10 +225,10 @@ class FLYNCModel(FLYNCBaseModel):
 
     def __populate_ipv6_solicited_node_multicasts_tx(self):
         """
-        Populate the solicited-node multicast group memberships for each
-        IPv6 address configured in any ECU as TX if there is a RX for the
+        Populate the solicited-node multicast group memberships for each IPv6 address configured in any ECU as TX if there is a RX for the
         same multicast group and VLAN.
         """
+
         multicasts = [mc for ecu in self.ecus for mc in ecu.multicast_groups if mc.solicited_node_multicast]
 
         for ecu in self.ecus:

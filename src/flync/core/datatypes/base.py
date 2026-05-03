@@ -23,14 +23,12 @@ class Datatype(FLYNCBaseModel):
         Discriminator identifying the concrete datatype kind.
 
     endianness : Literal["BE", "LE"], optional
-        Byte order used for encoding multi-byte values. Defaults to
-        big-endian ("BE").
+        Byte order used for encoding multibyte values. Defaults to big-endian ("BE").
 
     member_name : str, optional
-        When this datatype is stored as a struct member, this field holds
-        the member's name within the struct (which may differ from the
-        type's own ``name``). None when the datatype is not a struct member
-        or when member name equals the type name.
+        When this datatype is stored as a struct member, this field holds the member's name within the struct (which may differ from the
+        type's own ``name``).
+        None when the datatype is not a struct member or when member name equals the type name.
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True)

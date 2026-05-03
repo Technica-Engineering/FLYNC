@@ -57,22 +57,19 @@ logger = logging.getLogger(__name__)
 
 
 class FLYNCWorkspace(object):
-    """Workspace class managing documents, objects, and diagnostics.
+    """
+    Workspace class managing documents, objects, and diagnostics.
 
-    This class provides methods to ingest documents, run analysis, and expose
-    semantic and source APIs for use by the SDK and language server.
+    This class provides methods to ingest documents, run analysis, and expose semantic and source APIs for use by the SDK and language server.
 
     Attributes:
         name (str): Name of the workspace.
 
-        documents (Dict[str, Document]): Mapping of document URIs to Document \
-        objects.
+        documents (Dict[str, Document]): Mapping of document URIs to Document objects.
 
-        objects (Dict[ObjectId, SemanticObject]): Semantic objects indexed by \
-        ObjectId.
+        objects (Dict[ObjectId, SemanticObject]): Semantic objects indexed by ObjectId.
 
-        sources (Dict[ObjectId, SourceRef]): Source references indexed by \
-        ObjectId.
+        sources (Dict[ObjectId, SourceRef]): Source references indexed by ObjectId.
 
         dependencies (Dict[ObjectId, Set[ObjectId]]): Dependency graph.
 
@@ -87,17 +84,16 @@ class FLYNCWorkspace(object):
         workspace_path: PathType = "",
         configuration: WorkspaceConfiguration | None = None,
     ):  # noqa # nosonar
-        """Initialize the workspace.
+        """
+        Initialize the workspace.
 
         Args:
             name (str): Human-readable name for this workspace instance.
-            workspace_path (PathType): Absolute path to the workspace root
-                directory. An empty string raises :class:`ValueError`.
-            configuration (WorkspaceConfiguration | None): Optional
-                configuration object. When ``None``, a default
-                :class:`~flync.sdk.context.workspace_config.WorkspaceConfiguration`
-                is used.
+            workspace_path (PathType): Absolute path to the workspace root directory. An empty string raises :class:`ValueError`.
+            configuration (WorkspaceConfiguration | None): Optional configuration object.
+                When ``None``, a default :class:`~flync.sdk.context.workspace_config.WorkspaceConfiguration` is used.
         """
+
         if not name:
             raise ValueError(
                 "Passed an invalid value for workspace name {}",
@@ -127,12 +123,14 @@ class FLYNCWorkspace(object):
 
     @property
     def load_errors(self):
-        """Flattened list of all validation errors across all loaded documents.
+        """
+        Flattened list of all validation errors across all loaded documents.
 
         Returns:
             list[ErrorDetails]: All per-document errors concatenated into a
             single list.
         """
+
         return [error for doc_errors in self.documents_diags.values() for error in doc_errors]
 
     # region creator
@@ -144,7 +142,8 @@ class FLYNCWorkspace(object):
         file_path: PathType = "",
         workspace_config: Optional[WorkspaceConfiguration] = None,
     ) -> "FLYNCWorkspace":
-        """loads a workspace object from a FLYNC Object.
+        """
+        loads a workspace object from a FLYNC Object.
 
         Args:
             flync_model (str): the FLYNC object from which the workspace will be created.
@@ -155,6 +154,7 @@ class FLYNCWorkspace(object):
 
         Returns: FLYNCWorkspace
         """  # noqa
+
         if not workspace_name:
             workspace_name = "generated_workspace"
         output = FLYNCWorkspace(
@@ -174,10 +174,10 @@ class FLYNCWorkspace(object):
         workspace_path: PathType,
         workspace_config: Optional[WorkspaceConfiguration] = None,
     ) -> "FLYNCWorkspace":
-        """loads a workspace object from a location of the Yaml Configuration.
+        """
+        loads a workspace object from a location of the Yaml Configuration.
 
-        In case this fails, the workspace will still be created, but with an
-        empty model.
+        In case this fails, the workspace will still be created, but with an empty model.
 
         Args:
             workspace_name (str): The name of the workspace.
@@ -186,6 +186,7 @@ class FLYNCWorkspace(object):
 
         Returns: FLYNCWorkspace
         """
+
         output = FLYNCWorkspace(
             name=workspace_name,
             workspace_path=workspace_path,
@@ -209,7 +210,8 @@ class FLYNCWorkspace(object):
         workspace_path: PathType,
         workspace_config: Optional[WorkspaceConfiguration] = None,
     ) -> "FLYNCWorkspace":
-        """loads a workspace object from a location of the Yaml Configuration.
+        """
+        loads a workspace object from a location of the Yaml Configuration.
 
         Args:
             workspace_name (str): The name of the workspace.
@@ -218,6 +220,7 @@ class FLYNCWorkspace(object):
 
         Returns: FLYNCWorkspace
         """
+
         output = FLYNCWorkspace.safe_load_workspace(workspace_name, workspace_path, workspace_config=workspace_config)
         if not isinstance(output.flync_model, FLYNCBaseModel):
             raise ValidationError.from_exception_data(
@@ -229,7 +232,8 @@ class FLYNCWorkspace(object):
     # endregion
     # region ingestion
     def _open_document(self, uri: PathType, text: str):  # noqa # nosonar
-        """Open a document, parse it, and add it to the workspace.
+        """
+        Open a document, parse it, and add it to the workspace.
 
         Args:
             uri (str): The document's URI.
@@ -238,6 +242,7 @@ class FLYNCWorkspace(object):
 
         Returns: None
         """
+
         if isinstance(uri, str):
             uri = Path(uri)
         if uri.is_absolute():
@@ -248,29 +253,30 @@ class FLYNCWorkspace(object):
         self.documents[uri] = doc
 
     def load_flync_model(self, flync_model: FLYNCBaseModel, file_path: PathType = ""):  # noqa # nosonar  # noqa # nosonar
-        """Load a FLYNCModel into the workspace.
+        """
+        Load a FLYNCModel into the workspace.
 
         This is a placeholder implementation that stores the model for later
         use.
         """
+
         if isinstance(file_path, str):
             file_path = Path(file_path)
         content = self.__get_model_content(flync_model, file_path)
         self.__save_content_to_file(file_path, content)
 
     def __save_content_to_file(self, file_path: Path, content):  # noqa # nosonar  # noqa # nosonar
-        """Persist serialized model content as a Document in the workspace.
+        """
+        Persist serialized model content as a Document in the workspace.
 
-        Resolves the full URI under the workspace root, creates a
-        :class:`~flync.sdk.workspace.document.Document` for it, and calls
-        :meth:`generate_configs` to write it to disk. Does nothing when
-        ``content`` is empty (e.g. all fields were external).
+        Resolves the full URI under the workspace root, creates a :class:`~flync.sdk.workspace.document.Document` for it, and calls
+        :meth:`generate_configs` to write it to disk. Does nothing when ``content`` is empty (e.g. all fields were external).
 
         Args:
             file_path (Path): Relative path (without extension) for the file.
-            content: The serialized content to write; may be a ``dict``, a
-                ``list``, or a plain string.
+            content: The serialized content to write; may be a ``dict``, a ``list``, or a plain string.
         """
+
         if not content:
             # everything in the object was external,
             # no need to create a document
@@ -283,25 +289,22 @@ class FLYNCWorkspace(object):
         self.generate_configs(uri)
 
     def __get_model_content(self, flync_model: FLYNCBaseModel, file_path):  # noqa # nosonar  # noqa # nosonar
-        """Serialize a model to a dict, routing external fields to separate
-        documents.
+        """
+        Serialize a model to a dict, routing external fields to separate documents.
 
-        Iterates over the model's fields. Fields annotated with
-        :class:`~flync.core.annotations.External` are excluded from the
-        returned dict and handled recursively. Fields with
-        :class:`~flync.core.annotations.Implied` ``FOLDER_NAME`` strategy are
-        also excluded (their value is inferred from the directory name at load
-        time).
+        Iterates over the model's fields.
+        Fields annotated with :class:`~flync.core.annotations.External` are excluded from the returned dict and handled recursively.
+        Fields with :class:`~flync.core.annotations.
+        Implied` ``FOLDER_NAME`` strategy are also excluded (their value is inferred from the directory name at load time).
 
         Args:
             flync_model (FLYNCBaseModel): The model instance to serialize.
-            file_path (Path): The base file path used when routing external
-                fields.
+            file_path (Path): The base file path used when routing external fields.
 
         Returns:
-            dict: The serialized content with external and implied fields
-            excluded.
+            dict: The serialized content with external and implied fields excluded.
         """
+
         exclude = set()
         for field_name, field_info in type(flync_model).model_fields.items():
             external: External | None = get_metadata(field_info.metadata, External)
@@ -328,25 +331,23 @@ class FLYNCWorkspace(object):
         external: External,
         field_name: str,
     ):  # noqa # nosonar
-        """Dispatch an external field value to the correct save handler.
+        """
+        Dispatch an external field value to the correct save handler.
 
-        Determines the output path from the
-        :class:`~flync.core.annotations.External`
+        Determines the output path from the :class:`~flync.core.annotations.External`
         naming strategy, then delegates to the appropriate handler based on
         whether the attribute is a list, dict, or a :class:`FLYNCBaseModel`.
 
         Args:
             file_path (Path): Base path of the parent document.
             flync_attribute: The field value to save externally.
-            external (External): The ``External`` annotation controlling
-                naming and output structure.
-            field_name (str): The field name, used as the default path when
-                ``FIELD_NAME`` strategy is active.
+            external (External): The ``External`` annotation controlling naming and output structure.
+            field_name (str): The field name, used as the default path when ``FIELD_NAME`` strategy is active.
 
         Raises:
-            ValueError: If no valid external path can be determined or the
-                attribute type is not supported.
+            ValueError: If no valid external path can be determined or the attribute type is not supported.
         """
+
         if flync_attribute is None or not flync_attribute:
             # none field, do nothing
             return
@@ -377,20 +378,19 @@ class FLYNCWorkspace(object):
         next_path: Path,
         field_name: str,
     ):  # noqa # nosonar
-        """Save a list of external model instances to their output locations.
+        """
+        Save a list of external model instances to their output locations.
 
-        When ``output_structure`` is ``SINGLE_FILE``, all items are
-        serialized into a single file. Otherwise each item is written to
-        its own file named after its ``name`` attribute (or the implied
-        file-name field).
+        When ``output_structure`` is ``SINGLE_FILE``, all items are serialized into a single file.
+        Otherwise each item is written to its own file named after its ``name`` attribute (or the implied file-name field).
 
         Args:
             flync_attribute (list): The list of model instances to persist.
             external (External): The ``External`` annotation for this field.
             next_path (Path): The resolved output directory path.
-            field_name (str): The field name, used as the key when writing a
-                combined single-file output.
+            field_name (str): The field name, used as the key when writing a combined single-file output.
         """
+
         list_content = []
         for attr in flync_attribute:
             if external.output_structure == OutputStrategy.SINGLE_FILE:
@@ -404,10 +404,10 @@ class FLYNCWorkspace(object):
             self.__save_content_to_file(next_path, {field_name: list_content})
 
     def __handle_load_external_types_dict(self, flync_attribute: dict, external: External, next_path: Path):  # noqa # nosonar  # noqa # nosonar
-        """Save a dict of external model instances to their output locations.
+        """
+        Save a dict of external model instances to their output locations.
 
-        When ``output_structure`` is ``SINGLE_FILE``, all values are
-        aggregated into a single file keyed by their original dict keys.
+        When ``output_structure`` is ``SINGLE_FILE``, all values are aggregated into a single file keyed by their original dict keys.
         Otherwise each value is written to its own file named after its key.
 
         Args:
@@ -415,6 +415,7 @@ class FLYNCWorkspace(object):
             external (External): The ``External`` annotation for this field.
             next_path (Path): The resolved output directory path.
         """
+
         dict_content = {}
         for attr_name, attr_value in flync_attribute.items():
             if external.output_structure == OutputStrategy.SINGLE_FILE:
@@ -433,13 +434,12 @@ class FLYNCWorkspace(object):
         external,
         list_paths: list[str],
     ):
-        """Load one item from a list-folder entry, handling Union and
-        concrete types.
+        """
+        Load one item from a list-folder entry, handling Union and concrete types.
 
         Args:
             sub_item_path (Path): Path to the file or folder for this item.
-            base_type: Origin type of the list element
-                (e.g. ``Union`` or ``None``).
+            base_type: Origin type of the list element (e.g. ``Union`` or ``None``).
             base_type_args (tuple): Generic args of ``base_type``.
             list_element_type: Declared element type of the list field.
             field_name (str): Field name on the parent model.
@@ -450,6 +450,7 @@ class FLYNCWorkspace(object):
         Returns:
             The loaded model instance, or ``None`` if loading failed.
         """
+
         if base_type is Union:
             item_info: dict = {}
             self.__handle_generic_types_union(
@@ -463,7 +464,7 @@ class FLYNCWorkspace(object):
             )
             if field_name not in item_info:
                 logger.warning(
-                    "Skipping file %s: could not be loaded" " as any of the expected types.",
+                    "Skipping file %s: could not be loaded as any of the expected types.",
                     str(sub_item_path),
                 )
                 return None
@@ -492,10 +493,10 @@ class FLYNCWorkspace(object):
         path: Path,
         current_object_paths: list[str],
     ) -> bool:
-        """Load an external ``list`` field from disk into ``module_load_info``.
+        """
+        Load an external ``list`` field from disk into ``module_load_info``.
 
-        Iterates files/folders under the external directory for
-        ``FOLDER`` strategy, or delegates to a single-file loader for
+        Iterates files/folders under the external directory for ``FOLDER`` strategy, or delegates to a single-file loader for
         ``SINGLE_FILE`` strategy.
 
         Args:
@@ -503,14 +504,14 @@ class FLYNCWorkspace(object):
             external (External): Annotation controlling the load strategy.
             external_path (str): Relative path segment for this field.
             field_name (str): Field name on the parent model.
-            module_load_info (dict): Accumulator for loaded field values;
-                updated in place.
+            module_load_info (dict): Accumulator for loaded field values; updated in place.
             path (Path): Absolute path of the current directory.
             current_object_paths (str): Dot-path context for object tracking.
 
         Returns:
             bool: ``True`` if the field was handled, ``False`` otherwise.
         """
+
         list_item_value = []
         list_element_type = base_type_args[0]
         if OutputStrategy.FOLDER in external.output_structure:
@@ -572,26 +573,24 @@ class FLYNCWorkspace(object):
         path: Path,
         current_object_paths: list[str],
     ) -> bool:  # noqa # nosonar
-        """Load an external ``dict`` field from disk into ``module_load_info``.
+        """
+        Load an external ``dict`` field from disk into ``module_load_info``.
 
-        Iterates items under the external directory for ``FOLDER`` strategy,
-        or delegates to a single-file loader for ``SINGLE_FILE`` strategy.
+        Iterates items under the external directory for ``FOLDER`` strategy, or delegates to a single-file loader for ``SINGLE_FILE`` strategy.
 
         Args:
-            base_type_args (tuple): Generic args of the dict annotation
-                ``(key_type, value_type)``.
+            base_type_args (tuple): Generic args of the dict annotation ``(key_type, value_type)``.
             external (External): Annotation controlling the load strategy.
             external_path (str): Relative path segment for this field.
             field_name (str): Field name on the parent model.
-            module_load_info (dict): Accumulator for loaded field values;
-                updated in place.
+            module_load_info (dict): Accumulator for loaded field values; updated in place.
             path (Path): Absolute path of the current directory.
-            current_object_paths (list[str]): Dot-path contexts for object
-                tracking.
+            current_object_paths (list[str]): Dot-path contexts for object tracking.
 
         Returns:
             bool: ``True`` if the field was handled, ``False`` otherwise.
         """
+
         dict_item_value = {}
         dict_element_type = base_type_args[1]
         if OutputStrategy.FOLDER in external.output_structure:
@@ -637,20 +636,20 @@ class FLYNCWorkspace(object):
         field_name: str,
         current_object_paths: list[str],
     ):
-        """Attempt to load one union member type, restoring diagnostics on
-        failure.
+        """
+        Attempt to load one union member type, restoring diagnostics on failure.
 
         Args:
             path (Path): Absolute path of the current directory.
             external_path (str): Relative path segment for this field.
             possible_type: The union member type to attempt.
             field_name (str): Field name on the parent model.
-            current_object_paths (list[str]): Dot-path contexts for object
-                tracking.
+            current_object_paths (list[str]): Dot-path contexts for object tracking.
 
         Returns:
             The loaded model instance, or ``None`` if the type did not match.
         """
+
         attempt_path = (path / external_path).absolute()
         doc_id = self.document_id_from_path(attempt_path)
         diags_existed = doc_id in self.documents_diags
@@ -678,26 +677,24 @@ class FLYNCWorkspace(object):
         path: Path,
         current_object_paths: list[str],
     ) -> bool:
-        """Attempt to load an external ``Union`` field by trying each member
-        type.
+        """
+        Attempt to load an external ``Union`` field by trying each member type.
 
-        Iterates through the union's member types and loads the first one
-        that succeeds. ``NoneType`` members are skipped.
+        Iterates through the union's member types and loads the first one that succeeds. ``NoneType`` members are skipped.
 
         Args:
             base_type_args (tuple): The union member types.
             external: The ``External`` annotation for this field.
             external_path (str): Relative path segment for this field.
             field_name (str): Field name on the parent model.
-            module_load_info (dict): Accumulator for loaded field values;
-                updated in place.
+            module_load_info (dict): Accumulator for loaded field values; updated in place.
             path (Path): Absolute path of the current directory.
-            current_object_paths (list[str]): Dot-path contexts for object
-                tracking.
+            current_object_paths (list[str]): Dot-path contexts for object tracking.
 
         Returns:
             bool: ``True`` if at least one union member loaded successfully.
         """
+
         success_union = False
         for possible_type in base_type_args:
             try:
@@ -747,31 +744,27 @@ class FLYNCWorkspace(object):
         field_name: str,
         current_object_paths: list[str],
     ):  # noqa # nosonar
-        """Dispatch an external field to the correct type-specific loader.
+        """
+        Dispatch an external field to the correct type-specific loader.
 
-        Routes ``list``, ``dict``, and ``Union`` types to their dedicated
-        handlers. Falls through to a direct model load for concrete
-        ``FLYNCBaseModel`` subclasses, or does nothing for optional fields
-        whose value is absent.
+        Routes ``list``, ``dict``, and ``Union`` types to their dedicated handlers.
+        Falls through to a direct model load for concrete ``FLYNCBaseModel`` subclasses, or does nothing for optional fields whose value is absent.
 
         Args:
             attribute_type (type): The full (possibly generic) annotation type.
-            base_type (type | None): The ``get_origin`` of ``attribute_type``,
-                or ``None`` for non-generic types.
+            base_type (type | None): The ``get_origin`` of ``attribute_type``, or ``None`` for non-generic types.
             base_type_args (tuple): The ``get_args`` of ``attribute_type``.
             external (External): Annotation controlling load strategy.
             path (Path): Absolute path of the current directory.
             external_path (str): Relative path segment for this field.
-            module_load_info (dict): Accumulator for loaded field values;
-                updated in place.
+            module_load_info (dict): Accumulator for loaded field values; updated in place.
             field_name (str): Field name on the parent model.
-            current_object_paths (str): Dot-path context(s) for object
-                tracking.
+            current_object_paths (str): Dot-path context(s) for object tracking.
 
         Raises:
-            ValueError: If the field type is not supported for external
-                loading.
+            ValueError: If the field type is not supported for external loading.
         """
+
         done = False
 
         if base_type is list:
@@ -847,26 +840,22 @@ class FLYNCWorkspace(object):
         current_type_name: Optional[str] = None,
         current_object_paths: Optional[list[str]] = None,
     ) -> FLYNCBaseModel | None:
-        """Load and validate a model from a filesystem path.
+        """
+        Load and validate a model from a filesystem path.
 
-        Recursively processes all fields of ``current_type``, routing external
-        fields to their files/directories and collecting implied values. After
-        gathering all field data it validates the dict against the type and
-        updates the workspace's object and diagnostic stores.
+        Recursively processes all fields of ``current_type``, routing external fields to their files/directories and collecting implied values.
+        After gathering all field data it validates the dict against the type and updates the workspace's object and diagnostic stores.
 
         Args:
             path (PathType): Directory (or file) path to load from.
-            current_type (type[FLYNCBaseModel] | None): The expected model
-                type. Defaults to the workspace's configured root model.
-            current_type_name (str | None): The parent field name for this
-                type, used to reconstruct the correct validation type.
-            current_object_paths (list[str] | None): Dot-path context(s) for
-                object tracking.
+            current_type (type[FLYNCBaseModel] | None): The expected model type. Defaults to the workspace's configured root model.
+            current_type_name (str | None): The parent field name for this type, used to reconstruct the correct validation type.
+            current_object_paths (list[str] | None): Dot-path context(s) for object tracking.
 
         Returns:
-            FLYNCBaseModel | None: The validated model instance, or ``None``
-            if validation failed.
+            FLYNCBaseModel | None: The validated model instance, or ``None`` if validation failed.
         """
+
         # if no type is passed, then this is the starting point
         if current_type is None:
             current_type = self.configuration.root_model
@@ -987,30 +976,26 @@ class FLYNCWorkspace(object):
         field_name: Optional[str] = None,
         fixed_name: Optional[str] = None,
     ):  # noqa # nosonar
-        """Merge the contents of a FLYNC file into a model load-info dict.
+        """
+        Merge the contents of a FLYNC file into a model load-info dict.
 
-        Opens the file at ``path``, registers it as a document, and merges
-        its parsed YAML content into ``model_load_info``. The merge behaviour
-        depends on ``output_strategy``:
+        Opens the file at ``path``, registers it as a document, and merges its parsed YAML content into ``model_load_info``.
+        The merge behaviour depends on ``output_strategy``:
 
-        - ``OMMIT_ROOT``: assigns the raw content to
-          ``model_load_info[field_name]``.
+        - ``OMMIT_ROOT``: assigns the raw content to ``model_load_info[field_name]``.
         - ``FIXED_ROOT``: assigns only the ``fixed_name`` key of the content.
         - Default: updates ``model_load_info`` with all top-level keys.
 
-        Does nothing when ``path`` is not a file or is not a recognised FLYNC
-        file extension.
+        Does nothing when ``path`` is not a file or is not a recognised FLYNC file extension.
 
         Args:
             path (Path): Path to the FLYNC YAML file.
             model_load_info (dict): Accumulator dict; updated in place.
-            output_strategy (OutputStrategy | None): Optional output strategy
-                that controls how the file content is merged.
-            field_name (str | None): Target key in ``model_load_info`` for
-                ``OMMIT_ROOT`` / ``FIXED_ROOT`` strategies.
-            fixed_name (str | None): Key inside the file content to extract
-                for ``FIXED_ROOT`` strategy.
+            output_strategy (OutputStrategy | None): Optional output strategy that controls how the file content is merged.
+            field_name (str | None): Target key in ``model_load_info`` for ``OMMIT_ROOT`` / ``FIXED_ROOT`` strategies.
+            fixed_name (str | None): Key inside the file content to extract for ``FIXED_ROOT`` strategy.
         """
+
         if path.is_file():
             if not self.is_flync_file(path):
                 logger.error("trying to load an unsupported file: %s", str(path))
@@ -1031,19 +1016,18 @@ class FLYNCWorkspace(object):
 
     @staticmethod
     def __get_field_filename(model: FLYNCBaseModel):  # noqa # nosonar
-        """Return the field name whose value supplies the output filename.
+        """
+        Return the field name whose value supplies the output filename.
 
-        Searches the model's fields for one annotated with
-        :class:`~flync.core.annotations.Implied` using the ``FILE_NAME``
-        strategy.
+        Searches the model's fields for one annotated with :class:`~flync.core.annotations.Implied` using the ``FILE_NAME`` strategy.
 
         Args:
             model (FLYNCBaseModel): The model instance to inspect.
 
         Returns:
-            str | None: The field name to use as the file name, or ``None``
-            if no such field exists.
+            str | None: The field name to use as the file name, or ``None`` if no such field exists.
         """
+
         for field, info in type(model).model_fields.items():
             implied: Implied | None = get_metadata(info.metadata, Implied)
             if implied and implied.strategy == ImpliedStrategy.FILE_NAME:
@@ -1052,18 +1036,18 @@ class FLYNCWorkspace(object):
         return None
 
     def generate_configs(self, uri: PathType | None = None):
-        """Save the workspace to the given path.
+        """
+        Save the workspace to the given path.
 
-        Creates the output directory (if it does not exist) and writes a simple
-        representation of the workspace. If a FLYNCModel has been loaded via
-        ``load_flync_model``, it attempts to serialize the model to JSON.
+        Creates the output directory (if it does not exist) and writes a simple representation of the workspace.
+        If a FLYNCModel has been loaded via ``load_flync_model``, it attempts to serialize the model to JSON.
 
         Args:
-            uri (str | Path | None): Optional argument to save specific file
-                                    instead of the entire workspace.
+            uri (str | Path | None): Optional argument to save specific file instead of the entire workspace.
 
         Returns: None
         """
+
         if uri is not None:
             uri = str(uri)
             if uri not in self.documents:
@@ -1088,7 +1072,8 @@ class FLYNCWorkspace(object):
     # endregion
     # region helpers
     def is_path_supported(self, path: PathType):
-        """Return whether a path is a directory or a recognised FLYNC file.
+        """
+        Return whether a path is a directory or a recognised FLYNC file.
 
         Args:
             path (PathType): The path to check.
@@ -1096,39 +1081,41 @@ class FLYNCWorkspace(object):
         Returns:
             bool: ``True`` if the path is a directory or a FLYNC file.
         """
+
         if not isinstance(path, Path):
             path = Path(path)
         return path.is_dir() or self.is_flync_file(path)
 
     def is_flync_file(self, path: PathType):
-        """Return whether a path has a recognised FLYNC file extension.
+        """
+        Return whether a path has a recognised FLYNC file extension.
 
         Args:
             path (PathType): The path to check.
 
         Returns:
-            bool: ``True`` if the path's combined suffixes are in
-            :attr:`~WorkspaceConfiguration.allowed_extensions`.
+            bool: ``True`` if the path's combined suffixes are in :attr:`~WorkspaceConfiguration.allowed_extensions`.
         """
+
         if not isinstance(path, Path):
             path = Path(path)
         return "".join(path.suffixes) in self.configuration.allowed_extensions
 
     def name_form_file(self, file_name: str | Path) -> str:
-        """Strip all recognised FLYNC file extensions from a filename.
+        """
+        Strip all recognised FLYNC file extensions from a filename.
 
-        Iterates over every extension in
-        :attr:`~flync.sdk.context.workspace_config.WorkspaceConfiguration.allowed_extensions`
-        and removes it as a suffix, leaving the bare stem. If a
-        :class:`pathlib.Path` is passed, only its ``name`` component is used.
+        Iterates over every extension in :attr:`~flync.sdk.context.workspace_config.WorkspaceConfiguration.allowed_extensions`
+        and removes it as a suffix, leaving the bare stem.
+        If a :class:`pathlib.Path` is passed, only its ``name`` component is used.
 
         Args:
             file_name (str | Path): The filename or path to strip.
 
         Returns:
-            str: The filename with all FLYNC extensions removed
-            (e.g. ``"my_ecu.flync.yaml"`` → ``"my_ecu"``).
+            str: The filename with all FLYNC extensions removed (e.g. ``"my_ecu.flync.yaml"`` → ``"my_ecu"``).
         """
+
         if isinstance(file_name, Path):
             file_name = file_name.name
         for extension in self.configuration.allowed_extensions:
@@ -1136,21 +1123,20 @@ class FLYNCWorkspace(object):
         return file_name
 
     def fill_path_from_object(self, model_object: FLYNCBaseModel, object_path: str) -> str:  # noqa # nosonar  # noqa # nosonar
-        """Replace placeholder segments in an object path with concrete keys.
+        """
+        Replace placeholder segments in an object path with concrete keys.
 
-        Traverses the workspace's root model following ``object_path``,
-        substituting ``[]`` with the actual list index and ``{}`` with the
+        Traverses the workspace's root model following ``object_path``, substituting ``[]`` with the actual list index and ``{}`` with the
         actual dict key when ``model_object`` is found.
 
         Args:
             model_object (FLYNCBaseModel): The model instance to locate.
-            object_path (str): Dot-separated path containing ``[]`` or ``{}``
-                placeholders.
+            object_path (str): Dot-separated path containing ``[]`` or ``{}`` placeholders.
 
         Returns:
-            str: The resolved dot-separated path with concrete index/key
-                values.
+            str: The resolved dot-separated path with concrete index/key values.
         """
+
         parts = object_path.split(".")
         current_parent = self.flync_model
         for parts_idx, part in enumerate(parts):
@@ -1171,7 +1157,8 @@ class FLYNCWorkspace(object):
     __cached_uris: dict[Path, Path] = {}
 
     def document_id_from_path(self, doc_path: Path) -> str:
-        """Return the workspace-relative string identifier for a document path.
+        """
+        Return the workspace-relative string identifier for a document path.
 
         Args:
             doc_path (Path): An absolute path to a document file.
@@ -1179,13 +1166,15 @@ class FLYNCWorkspace(object):
         Returns:
             str: The path relative to the workspace root, as a string.
         """
+
         if doc_path not in self.__cached_uris:
             self.__cached_uris[doc_path] = doc_path.absolute().relative_to(self.workspace_root)  # type: ignore[arg-type]
         return self.__cached_uris[doc_path].as_posix()
 
     @staticmethod
     def new_object_path(current_path: str, new_object_name: int | str) -> str:
-        """Extend a dot-separated object path with a new segment.
+        """
+        Extend a dot-separated object path with a new segment.
 
         Args:
             current_path (str): The existing dot-separated path.
@@ -1194,10 +1183,12 @@ class FLYNCWorkspace(object):
         Returns:
             str: The extended path string.
         """
+
         return ".".join([current_path, str(new_object_name)])
 
     def update_objects_path(self, current_paths: list[str], new_object_name: str) -> list[str]:
-        """Extend every path in a list with a new segment.
+        """
+        Extend every path in a list with a new segment.
 
         Args:
             current_paths (list[str]): Existing dot-separated paths.
@@ -1206,6 +1197,7 @@ class FLYNCWorkspace(object):
         Returns:
             list[str]: New list of extended path strings.
         """
+
         return [self.new_object_path(current_path, new_object_name) for current_path in current_paths]
 
     # endregion
@@ -1220,22 +1212,20 @@ class FLYNCWorkspace(object):
         node: Node | None = None,
         parent_name: str | None = None,
     ):
-        """Recursively register model values and their source positions.
+        """
+        Recursively register model values and their source positions.
 
-        Walks the YAML AST node alongside the validated model, calling
-        :meth:`_add_object_to_path` for every value encountered so that
+        Walks the YAML AST node alongside the validated model, calling :meth:`_add_object_to_path` for every value encountered so that
         each semantic object is associated with its source location.
 
         Args:
             path (Path): Absolute path of the document containing this node.
             model (FLYNCBaseModel): The validated model value at this node.
-            current_object_paths (str | list[str]): Dot-path context(s) for
-                the current model value.
-            node (Node | None): The ruamel.yaml AST node corresponding to
-                ``model``. Defaults to the document's root compose AST.
-            parent_name (str | None): The field name on the parent that
-                points to this node, used for sequence items.
+            current_object_paths (str | list[str]): Dot-path context(s) for the current model value.
+            node (Node | None): The ruamel.yaml AST node corresponding to ``model``. Defaults to the document's root compose AST.
+            parent_name (str | None): The field name on the parent that points to this node, used for sequence items.
         """
+
         start_line = 0
         end_line = 0
         start_column = 0
@@ -1305,33 +1295,29 @@ class FLYNCWorkspace(object):
             )
 
     def add_list_item_object_path(self, item_name, current_object_paths, idx):
-        """Build the object path(s) for a single list item.
+        """
+        Build the object path(s) for a single list item.
 
-        Depending on
-        :attr:`~flync.sdk.context.workspace_config.WorkspaceConfiguration.list_objects_mode`,
+        Depending on :attr:`~flync.sdk.context.workspace_config.WorkspaceConfiguration.list_objects_mode`,
         the item may be registered under its numeric index, its name, or both:
 
-        - :attr:`~flync.sdk.context.workspace_config.ListObjectsMode.INDEX`:
-          appends the zero-based integer index as a path segment.
-        - :attr:`~flync.sdk.context.workspace_config.ListObjectsMode.NAME`:
-          appends ``item_name`` as an additional path segment when the name is
-          non-empty. For external (folder-based) lists the name comes from the
-          file/directory stem; for inline lists it comes from the model's
+        - :attr:`~flync.sdk.context.workspace_config.ListObjectsMode.INDEX`: appends the zero-based integer index as a path segment.
+        - :attr:`~flync.sdk.context.workspace_config.ListObjectsMode.NAME`: appends ``item_name`` as an additional path segment when the name is
+          non-empty. For external (folder-based) lists the name comes from the file/directory stem; for inline lists it comes from the model's
           ``name`` attribute.
 
-        Both flags are active by default, so a list item is accessible under
-        two IDs simultaneously (e.g. ``controllers.0`` and
+        Both flags are active by default, so a list item is accessible under two IDs simultaneously (e.g. ``controllers.0`` and
         ``controllers.my_ctrl``).
 
         Args:
-            item_name (str | None): Name of the list item, or ``None`` /
-                empty string when the item has no name.
+            item_name (str | None): Name of the list item, or ``None`` empty string when the item has no name.
             current_object_paths (list[str]): Parent path(s) to extend.
             idx (int): Zero-based position of the item in the list.
 
         Returns:
             list[str]: New list of object paths for this item.
         """
+
         list_paths = []
         if (ListObjectsMode.INDEX in self.configuration.list_objects_mode) or not item_name:
             list_paths += self.update_objects_path(current_object_paths, idx)
@@ -1350,21 +1336,21 @@ class FLYNCWorkspace(object):
         start_column,
         end_column,
     ):  # noqa # nosonar
-        """Register a model value and its source location for each given path.
+        """
+        Register a model value and its source location for each given path.
 
-        Creates entries in :attr:`objects` and :attr:`sources` for every path
-        in ``current_object_paths``. Skips paths that are already registered.
+        Creates entries in :attr:`objects` and :attr:`sources` for every path in ``current_object_paths``. Skips paths that are already registered.
 
         Args:
             path (Path): Absolute path of the document containing the object.
             model: The semantic object value to store.
-            current_object_paths (list[str]): Dot-separated object ids to
-                register.
+            current_object_paths (list[str]): Dot-separated object ids to register.
             start_line (int): 1-based start line of the object in the document.
             end_line (int): 1-based end line of the object.
             start_column (int): 1-based start column.
             end_column (int): 1-based end column.
         """
+
         for object_path in current_object_paths:
             object_id = ObjectId(object_path.strip("."))
             if object_id in self.objects:
@@ -1379,7 +1365,8 @@ class FLYNCWorkspace(object):
             )
 
     def get_object(self, id: ObjectId) -> SemanticObject:
-        """Retrieve a semantic object by its ObjectId.
+        """
+        Retrieve a semantic object by its ObjectId.
 
         Args:
             id (ObjectId):
@@ -1389,10 +1376,12 @@ class FLYNCWorkspace(object):
             SemanticObject:
                 The requested semantic object.
         """
+
         return self.objects[id]
 
     def has_object(self, id: ObjectId) -> bool:
-        """Checks if a specific key exists within a dictionary of objects.
+        """
+        Checks if a specific key exists within a dictionary of objects.
 
         Args:
             id (ObjectId):
@@ -1402,15 +1391,18 @@ class FLYNCWorkspace(object):
             bool:
                 True if the key is found, False otherwise.
         """
+
         return id in self.objects.keys()
 
     def list_objects(self) -> list[ObjectId]:
-        """Return a list of all ObjectIds present in the workspace.
+        """
+        Return a list of all ObjectIds present in the workspace.
 
         Returns:
             list[ObjectId]:
                 List of object identifiers.
         """
+
         return list(self.objects.keys())
 
     def get_definition(self, object_id: ObjectId, field_name: str) -> Optional[ObjectId]:
@@ -1424,9 +1416,8 @@ class FLYNCWorkspace(object):
         Returns
 
             ObjectId
-                A list of object identifiers that match the resolved reference
-                criteria. The list may be empty if no definitions are found
-                or if the field has no valid reference metadata.
+                A list of object identifiers that match the resolved reference criteria.
+                The list may be empty if no definitions are found or if the field has no valid reference metadata.
         """
 
         def_id: Optional[ObjectId] = None
@@ -1446,12 +1437,11 @@ class FLYNCWorkspace(object):
         return def_id
 
     def get_references_of(self, object_id: ObjectId) -> list[ObjectId]:
-        """Return all ObjectIds that reference the given object.
+        """
+        Return all ObjectIds that reference the given object.
 
-        Iterates over every semantic object in the workspace and checks whether
-        any of its fields are defined by the same model as the target object.
-        For each matching field, the concrete path to that field is collected
-        via `find_path_from_field`.
+        Iterates over every semantic object in the workspace and checks whether any of its fields are defined by the same model as the target object.
+        For each matching field, the concrete path to that field is collected via `find_path_from_field`.
 
         Args:
             object_id (ObjectId):
@@ -1459,9 +1449,9 @@ class FLYNCWorkspace(object):
 
         Returns:
             list[ObjectId]:
-                A list of ObjectIds representing all fields across the
-                workspace that reference the given object.
+                A list of ObjectIds representing all fields across the workspace that reference the given object.
         """
+
         refs: list[ObjectId] = []
         current_obj = self.get_object(object_id)
 
@@ -1488,14 +1478,12 @@ class FLYNCWorkspace(object):
         """
         Resolve the concrete ObjectId path for a field and append it to refs.
 
-        Tries to build the path as `<semantic_obj.id>.<field>`, falling back to
-        `<semantic_obj.id>.<info.alias>` when the first candidate is not
+        Tries to build the path as `<semantic_obj.id>.<field>`, falling back to `<semantic_obj.id>.<info.alias>` when the first candidate is not
         present in the workspace. Raises if neither candidate exists.
 
         Args:
             object_id (ObjectId):
-                The id of the target object being referenced (used in the
-                error message when the path cannot be resolved).
+                The id of the target object being referenced (used in the error message when the path cannot be resolved).
             refs (list[ObjectId]):
                 Accumulator list to which the resolved path is appended.
             semantic_obj (SemanticObject):
@@ -1503,14 +1491,13 @@ class FLYNCWorkspace(object):
             field (str):
                 The field name on `semantic_obj`'s model.
             info:
-                The Pydantic `FieldInfo` for the field, used to access the
-                field alias as a fallback path segment.
+                The Pydantic `FieldInfo` for the field, used to access the field alias as a fallback path segment.
 
         Raises:
             ValueError:
-                If neither the field name nor its alias resolves to a known
-                object in the workspace.
+                If neither the field name nor its alias resolves to a known object in the workspace.
         """
+
         path_candidate = ObjectId(f"{semantic_obj.id}.{field}")
         if not self.has_object(path_candidate):
             path_candidate = ObjectId(f"{semantic_obj.id}.{info.alias}")
@@ -1522,8 +1509,8 @@ class FLYNCWorkspace(object):
         refs.append(path_candidate)
 
     def get_semantic_object_from_model(self, model: FLYNCBaseModel) -> SemanticObject | None:
-        """Find and return the semantic object that corresponds
-        to a validated Flync object.
+        """
+        Find and return the semantic object that corresponds to a validated Flync object.
 
         Args:
             model (FLYNCBaseModel):
@@ -1533,6 +1520,7 @@ class FLYNCWorkspace(object):
             SemanticObject | None:
                 Optional semantic object that corresponds to Flync object.
         """
+
         for semantic_object in self.objects.values():
             if model is semantic_object.model:
                 return semantic_object
@@ -1544,7 +1532,8 @@ class FLYNCWorkspace(object):
     # region source APIs (LSP)
 
     def get_source(self, id: ObjectId) -> SourceRef:
-        """Retrieve the source reference for a given ObjectId.
+        """
+        Retrieve the source reference for a given ObjectId.
 
         Args:
             id (ObjectId):
@@ -1554,19 +1543,18 @@ class FLYNCWorkspace(object):
             SourceRef:
                 The source reference associated with the object.
         """
+
         return self.sources[id]
 
     def objects_at(self, uri: str, line: int, character: int) -> list[ObjectId]:
-        """Return the list of ObjectIds located at the specified position in a
-        document.
+        """
+        Return the list of ObjectIds located at the specified position in a document.
 
         Args:
             uri (str):
                 Document URI.
             line (int):
-                1-based line number, consistent with the
-                :class:`~flync.sdk.workspace.source.Position` values stored
-                during YAML parsing.
+                1-based line number, consistent with the :class:`~flync.sdk.workspace.source.Position` values stored during YAML parsing.
             character (int):
                 1-based character offset within the line.
 
@@ -1574,6 +1562,7 @@ class FLYNCWorkspace(object):
             list[ObjectId]:
                 List of object identifiers at the given position.
         """
+
         result = []
         for oid, src in self.sources.items():
             if src.uri != uri:

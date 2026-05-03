@@ -27,8 +27,7 @@ from flync.core.utils.exceptions import err_minor
 
 class ATSInstance(FLYNCBaseModel):
     """
-    Defines an ATS (Asynchronous Traffic Shaping) instance configuration
-    for an ingress stream. ATS shaping is applied on egress when an
+    Defines an ATS (Asynchronous Traffic Shaping) instance configuration for an ingress stream. ATS shaping is applied on egress when an
     :class:`ATSShaper` is configured.
 
     Parameters
@@ -52,11 +51,9 @@ class ATSInstance(FLYNCBaseModel):
 
 class ATSShaper(FLYNCBaseModel):
     """
-    Specifies a shaper using the ATS (Asynchronous Traffic Shaping)
-    mechanism.
+    Specifies a shaper using the ATS (Asynchronous Traffic Shaping) mechanism.
 
-    This shaper applies to a specific stream ATS instance configured on
-    an :class:`ATSInstance`.
+    This shaper applies to a specific stream ATS instance configured on an :class:`ATSInstance`.
 
     Parameters
     ----------
@@ -72,10 +69,9 @@ class CBSShaper(FLYNCBaseModel):
     """
     Credit-Based Shaper (CBS) configuration model.
 
-    This class represents the configuration for a CBS traffic shaping
-    mechanism, which manages bandwidth allocation and latency for
-    time-sensitive networking (TSN) streams. CBS uses a credit-based
-    algorithm to control frame transmission rates.
+    This class represents the configuration for a CBS traffic shaping mechanism, which manages bandwidth allocation and latency for
+    time-sensitive networking (TSN) streams.
+    CBS uses a credit-based algorithm to control frame transmission rates.
 
     Parameters
     ----------
@@ -84,8 +80,7 @@ class CBSShaper(FLYNCBaseModel):
         Defaults to "cbs" for schema identification.
 
     idleslope : int
-        The rate at which credits accumulate when the stream is not
-        transmitting. Determines bandwidth allocation.
+        The rate at which credits accumulate when the stream is not transmitting. Determines bandwidth allocation.
         Value specified in kilobits per second (kbps).
         Must be between 0 and 1000000.
     """
@@ -98,10 +93,8 @@ class SingleRateTwoColorMarker(FLYNCBaseModel):
     """
     Policer model implementing a single-rate, two-color marker.
 
-    This model marks traffic based on a single committed rate (CIR),
-    with two traffic colors: conforming and exceeding.
-    It does not support excess information rate (EIR) and operates
-    without coupling.
+    This model marks traffic based on a single committed rate (CIR), with two traffic colors: conforming and exceeding.
+    It does not support excess information rate (EIR) and operates without coupling.
 
     Parameters
     ----------
@@ -142,10 +135,8 @@ class SingleRateThreeColorMarker(FLYNCBaseModel):
     """
     Policer model implementing a single-rate, three-color marker.
 
-    This model uses a single committed rate (CIR) and marks packets as
-    conforming, exceeding, or violating based on bucket fill levels.
-    Coupling is enabled to allow the excess bucket to draw from the
-    committed bucket.
+    This model uses a single committed rate (CIR) and marks packets as conforming, exceeding, or violating based on bucket fill levels.
+    Coupling is enabled to allow the excess bucket to draw from the committed bucket.
 
     Parameters
     ----------
@@ -186,8 +177,7 @@ class DoubleRateThreeColorMarker(FLYNCBaseModel):
     """
     Policer model implementing a double-rate, three-color marker.
 
-    This model supports both committed and excess information rates
-    (CIR and EIR) and marks traffic with three colors:
+    This model supports both committed and excess information rates (CIR and EIR) and marks traffic with three colors:
     conforming, exceeding, and violating.
     Coupling behavior is configurable.
 
@@ -229,25 +219,17 @@ class DoubleRateThreeColorMarker(FLYNCBaseModel):
 
 class FrameFilter(FLYNCBaseModel):
     """
-    Defines filtering rules for frames based on MAC/IP addresses, VLAN,
-    and transport protocol ports.
+    Defines filtering rules for frames based on MAC/IP addresses, VLAN, and transport protocol ports.
 
     Parameters
     ----------
-    src_mac : :class:`MacAddress` or \
-    :class:`~flync.core.datatypes.MACAddressEntry` \
-    or list of  \
-    (MacAddress | :class:`~flync.core.datatypes.MACAddressEntry`), \
-    optional
+    src_mac : :class:`MacAddress` or :class:`~flync.core.datatypes.MACAddressEntry` \
+    or list of  (MacAddress | :class:`~flync.core.datatypes.MACAddressEntry`), optional
         Source MAC address(es) to filter by.
-        Acceptable formats are ``xx:xx:xx:xx:xx:xx`` or
-        ``xx-xx-xx-xx-xx-xx`` (hexadecimal).
+        Acceptable formats are ``xx:xx:xx:xx:xx:xx`` or ``xx-xx-xx-xx-xx-xx`` (hexadecimal).
 
-    dst_mac : :class:`MacAddress` or \
-    :class:`~flync.core.datatypes.MACAddressEntry` \
-    or list of \
-    (MacAddress | :class:`~flync.core.datatypes.MACAddressEntry`), \
-    optional
+    dst_mac : :class:`MacAddress` or :class:`~flync.core.datatypes.MACAddressEntry` \
+    or list of (MacAddress | :class:`~flync.core.datatypes.MACAddressEntry`), optional
         Destination MAC address(es) to filter by.
         Same format rules as ``src_mac``.
 
@@ -255,51 +237,39 @@ class FrameFilter(FLYNCBaseModel):
         Whether the frame has a 802.1Q VLAN tag.
 
     vlanid : int or :class:`~flync.core.datatypes.value_range.ValueRange` or \
-    list of \
-    (int | :class:`~flync.core.datatypes.value_range.ValueRange`), optional
-        VLAN Identifier(s) to match. Integer values must be in the
-        range 0-4094; 4095 is reserved by IEEE 802.1Q and emits a
-        warning when used. ``None`` matches untagged frames.
-        ``ValueRange`` can specify an inclusive interval.
+    list of (int | :class:`~flync.core.datatypes.value_range.ValueRange`), optional
+        VLAN Identifier(s) to match.
+        Integer values must be in the range 0-4094; 4095 is reserved by IEEE 802.1Q and emits a warning when used.
+        ``None`` matches untagged frames. ``ValueRange`` can specify an inclusive interval.
 
     pcp : int or list of int, optional
         Priority Code Point (IEEE 802.1p traffic class). Values 0-7.
 
-    src_ipv4 : :class:`~flync.core.datatypes.ipaddress.IPv4AddressEntry` or \
-    :class:`IPv4Address` or list of \
-    (:class:`~flync.core.datatypes.ipaddress.IPv4AddressEntry` | \
-    :class:`IPv4Address`), optional
+    src_ipv4 : :class:`~flync.core.datatypes.ipaddress.IPv4AddressEntry` or :class:`IPv4Address` or \
+    list of (:class:`~flync.core.datatypes.ipaddress.IPv4AddressEntry` | :class:`IPv4Address`), optional
         Source IPv4 address(es) to filter by.
 
-    dst_ipv4 : :class:`~flync.core.datatypes.ipaddress.IPv4AddressEntry` or \
-    :class:`IPv4Address` or list of \
-    (:class:`~flync.core.datatypes.ipaddress.IPv4AddressEntry` | \
-    :class:`IPv4Address`), optional
+    dst_ipv4 : :class:`~flync.core.datatypes.ipaddress.IPv4AddressEntry` or :class:`IPv4Address` or \
+    list of (:class:`~flync.core.datatypes.ipaddress.IPv4AddressEntry` | :class:`IPv4Address`), optional
         Destination IPv4 address(es) to filter by.
 
-    src_ipv6 : :class:`~flync.core.datatypes.ipaddress.IPv6AddressEntry` or \
-    :class:`IPv6Address` or list of \
-    (:class:`~flync.core.datatypes.ipaddress.IPv6AddressEntry` | \
-    :class:`IPv6Address`), optional
+    src_ipv6 : :class:`~flync.core.datatypes.ipaddress.IPv6AddressEntry` or :class:`IPv6Address` or \
+    list of (:class:`~flync.core.datatypes.ipaddress.IPv6AddressEntry` | :class:`IPv6Address`), optional
         Source IPv6 address(es) to filter by.
 
-    dst_ipv6 : :class:`~flync.core.datatypes.ipaddress.IPv6AddressEntry` or \
-    :class:`IPv6Address` or list of \
-    (:class:`~flync.core.datatypes.ipaddress.IPv6AddressEntry` | \
-    :class:`IPv6Address`), optional
+    dst_ipv6 : :class:`~flync.core.datatypes.ipaddress.IPv6AddressEntry` or :class:`IPv6Address` or \
+    list of (:class:`~flync.core.datatypes.ipaddress.IPv6AddressEntry` | :class:`IPv6Address`), optional
         Destination IPv6 address(es) to filter by.
 
     protocol : Literal["tcp", "udp"], optional
         Transport protocol to filter by.
 
-    src_port : int or :class:`~flync.core.datatypes.value_range.ValueRange` \
-    or list of \
-    (int | :class:`~flync.core.datatypes.value_range.ValueRange`), optional
+    src_port : int or :class:`~flync.core.datatypes.value_range.ValueRange` or \
+    list of (int | :class:`~flync.core.datatypes.value_range.ValueRange`), optional
         Source transport layer port(s). Integers must be > 0.
 
-    dst_port : int or :class:`~flync.core.datatypes.value_range.ValueRange` \
-    or list of \
-    (int | :class:`~flync.core.datatypes.value_range.ValueRange`), optional
+    dst_port : int or :class:`~flync.core.datatypes.value_range.ValueRange` or \
+    list of (int | :class:`~flync.core.datatypes.value_range.ValueRange`), optional
         Destination transport layer port(s). Integers must be > 0.
     """
 
@@ -324,7 +294,7 @@ class FrameFilter(FLYNCBaseModel):
     @staticmethod
     def pcp_validator(value):
         if value < 0 or value > 7:
-            raise err_minor("pcp value must be greater than or equal to 0 " "and less than or equal to 7")
+            raise err_minor("pcp value must be greater than or equal to 0 and less than or equal to 7")
 
     @field_validator("vlanid", mode="after")
     @classmethod
@@ -433,8 +403,7 @@ class Stream(FLYNCBaseModel):
         Internal Priority Value (0-7) assigned to the stream, if used.
 
     ats : :class:`ATSInstance`, optional
-        Optional Asynchronous Traffic Shaping configuration for ingress
-        streams.
+        Optional Asynchronous Traffic Shaping configuration for ingress streams.
     """
 
     name: str = Field()
@@ -448,8 +417,7 @@ class Stream(FLYNCBaseModel):
 
 class TrafficClass(FLYNCBaseModel):
     """
-    Defines a traffic class for prioritizing and shaping traffic on
-    device egress queues.
+    Defines a traffic class for prioritizing and shaping traffic on device egress queues.
 
     Parameters
     ----------
@@ -470,11 +438,9 @@ class TrafficClass(FLYNCBaseModel):
         Valid range for each entry: 0-7.
         Default is an empty list.
 
-    selection_mechanisms : :class:`CBSShaper` or :class:`ATSShaper`, \
-    optional
+    selection_mechanisms : :class:`CBSShaper` or :class:`ATSShaper`, optional
         Optional shaping mechanism applied to the traffic class.
-        Can be a CBS (Credit-Based Shaper) or ATS
-        (Asynchronous Traffic Shaper) instance.
+        Can be a CBS (Credit-Based Shaper) or ATS (Asynchronous Traffic Shaper) instance.
         The correct subclass is selected using the `type` discriminator.
     """
 
@@ -504,10 +470,12 @@ class TrafficClass(FLYNCBaseModel):
 
     @model_validator(mode="after")
     def validate_at_least_one_prio_list(self) -> Self:
-        """At least one of frame_priority_values \
+        """
+        At least one of frame_priority_values \
             or internal_priority_values must be set."""
+
         if not self.frame_priority_values and not self.internal_priority_values:
-            raise err_minor("At least one of frame_priority_values or " "internal_priority_values must be provided and non-empty")
+            raise err_minor("At least one of frame_priority_values or internal_priority_values must be provided and non-empty")
         return self
 
 
@@ -538,15 +506,13 @@ class ChildClass(FLYNCBaseModel):
         Minimum guaranteed bandwidth for this child class in Mbps.
 
     ceil : int
-        Maximum bandwidth this class can consume if leftover \
-        capacity is available (in Mbps).
+        Maximum bandwidth this class can consume if leftover capacity is available (in Mbps).
 
     priority : int
         Priority of the child class.
 
     filter : list of :class:`HTBFilter`, optional
-        List of filters applied to identify traffic belonging to this
-        class.
+        List of filters applied to identify traffic belonging to this class.
 
     child_classes : list of :class:`ChildClass`, optional
         Nested child classes under this HTB class.
@@ -568,8 +534,7 @@ class ChildClass(FLYNCBaseModel):
 
 class HTBInstance(FLYNCBaseModel):
     """
-    Defines an HTB (Hierarchical Token Bucket) instance for traffic shaping
-    and class-based bandwidth management.
+    Defines an HTB (Hierarchical Token Bucket) instance for traffic shaping and class-based bandwidth management.
 
     Parameters
     ----------
@@ -578,8 +543,7 @@ class HTBInstance(FLYNCBaseModel):
         Must follow the format `"number:"`.
 
     default_class : int, optional
-        Default class ID to which traffic is assigned if it does not match
-        any child class.
+        Default class ID to which traffic is assigned if it does not match any child class.
 
     child_classes : list of :class:`ChildClass`
         List of child classes under the HTB root, defining traffic
@@ -593,8 +557,7 @@ class HTBInstance(FLYNCBaseModel):
     @model_validator(mode="after")
     def validate_htb_config(self):
         """
-        Validate the HTB (Hierarchical Token Bucket) configuration
-        attached to the model instance.
+        Validate the HTB (Hierarchical Token Bucket) configuration attached to the model instance.
 
         Parameters
         ----------
@@ -603,15 +566,14 @@ class HTBInstance(FLYNCBaseModel):
         Returns
         -------
         self
-            The same model instance, returned to satisfy the Pydantic
-            ``model_validator`` contract after successful validation.
+            The same model instance, returned to satisfy the Pydantic ``model_validator`` contract after successful validation.
 
         Raises
         ------
         err_minor
-            If any of the validation rules fail (missing default class,
-            duplicate class IDs, rate/ceil inconsistencies, etc.).
+            If any of the validation rules fail (missing default class, duplicate class IDs, rate/ceil inconsistencies, etc.).
         """
+
         # Default class should exist if specified and must be a leaf class.
 
         if self.default_class is not None:
@@ -623,10 +585,8 @@ class HTBInstance(FLYNCBaseModel):
                     break
             if not exists:
                 raise err_minor(
-                    f"Validation Error in HTB Config. Removing"
-                    f"config from the interface. "
-                    f"Default class {default} should exist in"
-                    f" the HTB config."
+                    f"Validation Error in HTB Config. Removing config from the interface. "
+                    f"Default class {default} should exist in the HTB config."
                 )
 
         # Prio of child classes are unique
@@ -651,33 +611,28 @@ class HTBInstance(FLYNCBaseModel):
 
     def check_default(self, child_class, default):
         """
-        Verify that the ``default`` class identifier
-        refers to a leaf class within the HTB hierarchy.
+        Verify that the ``default`` class identifier refers to a leaf class within the HTB hierarchy.
 
         Parameters
         ----------
         self : :class:`HTBInstance`
             The model instance being validated.
         child_class : :class:`HTBClass`
-            A class (or subtree) from the HTB configuration to be
-            inspected.
+            A class (or subtree) from the HTB configuration to be inspected.
         default : int
-            The class identifier that should correspond
-            to a leaf class.
+            The class identifier that should correspond to a leaf class.
 
         Returns
         -------
         bool
-            ``True`` if the ``default`` identifier is
-            found and is a leaf class;``False`` otherwise.
+            ``True`` if the ``default`` identifier is found and is a leaf class;``False`` otherwise.
 
         Raises
         ------
         err_minor
-            If the ``default`` identifier is found but the
-            corresponding class has child classes
-            (i.e., it is not a leaf).
+            If the ``default`` identifier is found but the corresponding class has child classes (i.e., it is not a leaf).
         """
+
         if child_class.classid == default:
             if child_class.child_classes:
                 raise err_minor(
@@ -697,8 +652,7 @@ class HTBInstance(FLYNCBaseModel):
 
     def check_ceil_greater_than_rate(self, child):
         """
-        Ensure that the ``ceil`` value of an HTB class is not smaller
-        than its ``rate`` value, and apply the same check recursively
+        Ensure that the ``ceil`` value of an HTB class is not smaller than its ``rate`` value, and apply the same check recursively
         to any nested child classes.
 
         Parameters
@@ -706,8 +660,7 @@ class HTBInstance(FLYNCBaseModel):
         self : :class:`HTBInstance`
             The model instance that owns the HTB configuration.
         child : :class:`HTBClass`
-            The HTB class (or subtree) whose ``ceil`` and ``rate``
-            values are being validated.
+            The HTB class (or subtree) whose ``ceil`` and ``rate`` values are being validated.
 
         Returns
         -------
@@ -718,15 +671,13 @@ class HTBInstance(FLYNCBaseModel):
         ------
         err_minor
             If ``child.ceil`` is less than ``child.rate``.
-            The error message also identifies the offending
-            class via its ``classid``.
+            The error message also identifies the offending class via its ``classid``.
         """
+
         if child.ceil < child.rate:
             raise err_minor(
-                f"Validation Error in HTB Config. Removing config"
-                f"from the interface. Incompatible "
-                f" HTB config.Ceil cannot be less than  rate. "
-                f"Class {child.classid}."
+                f"Validation Error in HTB Config. Removing config from the interface. Incompatible "
+                f" HTB config.Ceil cannot be less than  rate. Class {child.classid}."
             )
         else:
             if child.child_classes:
@@ -740,7 +691,8 @@ class HTBInstance(FLYNCBaseModel):
 
         Parameters
         ----------
-        self : :class:`HTBInstance` The model instance being validated.
+        self : :class:`HTBInstance`
+            The model instance being validated.
         child_classes : list[:class:`HTBClass`]
             The current collection of HTB classes to inspect.
         class_priority : list[int]
@@ -755,9 +707,10 @@ class HTBInstance(FLYNCBaseModel):
         Raises
         ------
         err_minor
-            If a duplicate ``prio`` is encountered. The error message
-            identifies the offending prio.
+            If a duplicate ``prio`` is encountered.
+            The error message identifies the offending prio.
         """
+
         for child in child_classes:
             if child.priority in class_priority:
                 raise err_minor(
@@ -772,17 +725,16 @@ class HTBInstance(FLYNCBaseModel):
 
     def check_all_classes_unique(self, child_classes, names):
         """
-        Walk the HTB tree and verify that every ``classid``
-        appears only once.
+        Walk the HTB tree and verify that every ``classid`` appears only once.
 
         Parameters
         ----------
-        self : :class:`HTBInstance` The model instance being validated.
+        self : :class:`HTBInstance`
+            The model instance being validated.
         child_classes : list[:class:`HTBClass`]
             The current collection of HTB classes to inspect.
         names : list[int]
-            Accumulator of class IDs that have already been seen during
-            the walk.
+            Accumulator of class IDs that have already been seen during the walk.
 
         Returns
         -------
@@ -792,9 +744,10 @@ class HTBInstance(FLYNCBaseModel):
         Raises
         ------
         err_minor
-            If a duplicate ``classid`` is encountered. The error message
-            identifies the offending ID.
+            If a duplicate ``classid`` is encountered.
+            The error message identifies the offending ID.
         """
+
         for child in child_classes:
             if child.classid in names:
                 raise err_minor(
@@ -809,12 +762,12 @@ class HTBInstance(FLYNCBaseModel):
 
     def check_rate_consistency(self, child_classes):
         """
-        Verify that, for every parent class, the sum of the ``rate`` values
-        of its direct child classes does not exceed the parent’s own ````.
+        Verify that, for every parent class, the sum of the ``rate`` values of its direct child classes does not exceed the parent’s own ````.
 
         Parameters
         ----------
-        self : :class:`HTBInstance` The model instance being validated.
+        self : :class:`HTBInstance`
+            The model instance being validated.
         child_classes : list[:class:`HTBClass`]
             List of HTB classes (or a subtree) to be inspected.
 
@@ -822,27 +775,23 @@ class HTBInstance(FLYNCBaseModel):
         -------
         int
             The total ``rate`` of the supplied ``child_classes``.
-            This value ispropagated upward so that parent levels
-             can compare their own ``rate`` against the cumulative child rate.
+            This value ispropagated upward so that parent levels can compare their own ``rate`` against the cumulative child rate.
 
         Raises
         ------
         err_minor
-            If the summed ``rate`` of a parent’s children is greater than the
-            parent’s ``rate``.  The error message includes the offending
-            ``classid``.
+            If the summed ``rate`` of a parent’s children is greater than the parent’s ``rate``.
+            The error message includes the offending ``classid``.
         """
+
         rate = 0
         for child in child_classes:
             if child.child_classes:
                 rate_sum_child = self.check_rate_consistency(child.child_classes)
                 if rate_sum_child > child.rate:
                     raise err_minor(
-                        f"Validation Error in HTB Config. Removing "
-                        f"config from the interface. "
-                        f"Incompatible HTB config. "
-                        f"Sum of rate of child classes is greater than the "
-                        f"rate of parent class. Class {child.classid}."
+                        f"Validation Error in HTB Config. Removing config from the interface. Incompatible HTB config. "
+                        f"Sum of rate of child classes is greater than the rate of parent class. Class {child.classid}."
                     )
             rate = rate + child.rate
 
@@ -850,38 +799,36 @@ class HTBInstance(FLYNCBaseModel):
 
     def check_ceil_consistency(self, child_classes):
         """
-        Ensure that each child class’s ``ceil`` does not exceed its parent’s
-        ``ceil`` value.
+        Ensure that each child class’s ``ceil`` does not exceed its parent’s ``ceil`` value.
 
         Parameters
         ----------
-        self : :class:`HTBInstance` The model instance being validated.
+        self : :class:`HTBInstance`
+            The model instance being validated.
         child_classes : list[:class:`HTBClass`]
             List of HTB classes (or a subtree) to be inspected.
 
         Returns
         -------
         int
-            The maximum ``ceil`` value found among the supplied
-            ``child_classes``.This value is returned so that
-            higher‑level parents can compare their ``ceil`` against it.
+            The maximum ``ceil`` value found among the supplied ``child_classes``.
+            This value is returned so that higher‑level parents can compare their ``ceil`` against it.
 
         Raises
         ------
         err_minor
-            If any child’s ``ceil`` is larger than the parent’s ``ceil``.The
-            message identifies the offending ``classid``.
+            If any child’s ``ceil`` is larger than the parent’s ``ceil``.
+            The message identifies the offending ``classid``.
         """
+
         ceil = 0
         for child in child_classes:
             if child.child_classes:
                 ceil_child = self.check_ceil_consistency(child.child_classes)
                 if ceil_child > child.ceil:
                     raise err_minor(
-                        f"Validation Error in HTB Config. Removing config from"
-                        f"the interface."
-                        f"Incompatible HTB config. Ceil of child class should "
-                        f"be less than parent's class. Class {child.classid}."
+                        f"Validation Error in HTB Config. Removing config from the interface."
+                        f"Incompatible HTB config. Ceil of child class should be less than parent's class. Class {child.classid}."
                     )
             ceil = max(ceil, child.ceil)
         return ceil

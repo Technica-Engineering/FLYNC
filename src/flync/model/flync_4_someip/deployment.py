@@ -1,6 +1,5 @@
 """
-this module contains the necessary datastructures
-to model a SOME/IP deployment.
+this module contains the necessary datastructures to model a SOME/IP deployment.
 """
 
 import abc
@@ -25,7 +24,8 @@ DeploymentTypes = Literal["someip", "someip_provider", "someip_consumer"]
 
 
 class Layer4Endpoint(FLYNCBaseModel):
-    """Layer4Endpoint Class method for Layer4 endpoint .
+    """
+    Layer4Endpoint Class method for Layer4 endpoint .
 
     Parameters
     ----------
@@ -69,7 +69,8 @@ class MulticastEndpoint(BaseUDPDeployment):
 
 
 class MulticastSDEndpoint(MulticastEndpoint):
-    """MulticastSDEndpoint
+    """
+    MulticastSDEndpoint
 
     Parameters
     ----------
@@ -83,8 +84,8 @@ class MulticastSDEndpoint(MulticastEndpoint):
 
 
 class UDPDeployment(BaseUDPDeployment):
-    """Allows deploying a SOME/IP service onto
-    a UDP-endpoint (including multicast).
+    """
+    Allows deploying a SOME/IP service onto a UDP-endpoint (including multicast).
 
     Parameters
     ----------
@@ -103,7 +104,8 @@ class TCPDeployment(Layer4Endpoint):
 
 
 class SOMEIPSDDeployment(FLYNCBaseModel):
-    """Defines the Service Discovery endpoint of SOME/IP.
+    """
+    Defines the Service Discovery endpoint of SOME/IP.
 
     Parameters
     ----------
@@ -119,8 +121,8 @@ class SOMEIPSDDeployment(FLYNCBaseModel):
 
 
 class SOMEIPServiceDeployment(abc.ABC, FLYNCBaseModel):
-    """SOMEIPServiceDeployment Create a service deployment
-    that will be used for provided service.
+    """
+    SOMEIPServiceDeployment Create a service deployment that will be used for provided service.
 
     Parameters
     ----------
@@ -189,8 +191,8 @@ class SOMEIPServiceDeployment(abc.ABC, FLYNCBaseModel):
 
 
 class SOMEIPServiceConsumer(SOMEIPServiceDeployment):
-    """Defines the consumer of a SOME/IP service instance
-    (like subscribing & calling methods).
+    """
+    Defines the consumer of a SOME/IP service instance (like subscribing & calling methods).
 
     Parameters
     ----------
@@ -235,8 +237,8 @@ class SOMEIPServiceConsumer(SOMEIPServiceDeployment):
 
 
 class SOMEIPServiceProvider(SOMEIPServiceDeployment):
-    """Defines the provider of a SOME/IP service instance
-    (like offering & sending responses, events).
+    """
+    Defines the provider of a SOME/IP service instance (like offering & sending responses, events).
 
     Parameters
     ----------

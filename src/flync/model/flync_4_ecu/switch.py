@@ -72,28 +72,20 @@ class SwitchPort(NamedDictInstances):
         VLAN ID to be added to an untagged frame ingressing on the port.
         Use ``None`` for an untagged port (no default VLAN).
 
-    mii_config : :class:`~flync.model.flync_4_ecu.phy.MII` or \
-    :class:`~flync.model.flync_4_ecu.phy.RMII` or \
-    :class:`~flync.model.flync_4_ecu.phy.SGMII` or \
-    :class:`~flync.model.flync_4_ecu.phy.RGMII`, optional
+    mii_config : :class:`~flync.model.flync_4_ecu.phy.MII` or :class:`~flync.model.flync_4_ecu.phy.RMII` or \
+    :class:`~flync.model.flync_4_ecu.phy.SGMII` or :class:`~flync.model.flync_4_ecu.phy.RGMII`, optional
         Media-independent interface configuration (e.g., MII or RMII).
 
-    ptp_config : :class:`~flync.model.flync_4_tsn.PTPConfig`, \
-    optional
+    ptp_config : :class:`~flync.model.flync_4_tsn.PTPConfig`, optional
         Precision Time Protocol configuration.
 
-    ingress_streams : list of :class:`~flync.model.flync_4_tsn.Stream`, \
-    optional
+    ingress_streams : list of :class:`~flync.model.flync_4_tsn.Stream`, optional
         Stream-based IEEE 802.1Qci configuration.
 
-    traffic_classes : list of \
-    :class:`~flync.model.flync_4_tsn.TrafficClass`, optional
-        Traffic class definitions and traffic shaping configuration
-        applied to egress port queues.
+    traffic_classes : list of :class:`~flync.model.flync_4_tsn.TrafficClass`, optional
+        Traffic class definitions and traffic shaping configuration applied to egress port queues.
 
-    macsec_config : \
-    :class:`~flync.model.flync_4_security.MACsecConfig`, \
-    optional
+    macsec_config : :class:`~flync.model.flync_4_security.MACsecConfig`, optional
         MACsec configuration for the port.
 
     Private Attributes
@@ -101,14 +93,12 @@ class SwitchPort(NamedDictInstances):
     _type :
         The type of the object generated. Set to controller_interface.
 
-    _mdi_config : :class:`~flync.model.flync_4_ecu.phy.BaseT1` or \
-    :class:`~flync.model.flync_4_ecu.phy.BaseT1S` or \
+    _mdi_config : :class:`~flync.model.flync_4_ecu.phy.BaseT1` or :class:`~flync.model.flync_4_ecu.phy.BaseT1S` or \
     :class:`~flync.model.flync_4_ecu.phy.BaseT`
 
     _connected_component:
-        The switch port, controller interface or ecu port connected
-        to the switch port. This attribute
-        is managed internally and is not part of the public API.
+        The switch port, controller interface or ecu port connected to the switch port.
+        This attribute is managed internally and is not part of the public API.
 
     """
 
@@ -163,22 +153,26 @@ class SwitchPort(NamedDictInstances):
 
     def copy_mdi_config_to_switch(self, mdi_config):
         """
-        Helper function. COpies the MDI config from ECU port to switch port
+        Helper function.
+        Copies the MDI config from ECU port to switch port.
         """
+
         self._mdi_config = mdi_config
 
     def get_switch(self):
         """
-        Helper function. Returns the switch that the port is a part of
+        Helper function.
+        Returns the switch that the port is a part of.
         """
 
         return self._switch
 
     def get_vlan_connected_ports(self, vlan):
         """
-        Helper function. Returns the switch ports that are part of
-        the same VLAN as that port
+        Helper function.
+        Returns the switch ports that are part of the same VLAN as that port.
         """
+
         ports_names = set()
         ports = []
         for vlan_entry in self.get_switch().vlans:
@@ -232,8 +226,7 @@ class Mirror(FLYNCBaseModel):
 
 class ForceEgress(FLYNCBaseModel):
     """
-    Action that forces a packet to leave through a given set of ports,
-    bypassing the normal forwarding decision.
+    Action that forces a packet to leave through a given set of ports, bypassing the normal forwarding decision.
 
     Parameters
     ----------
@@ -310,12 +303,9 @@ class TCAMRule(FLYNCBaseModel):
     match_ports : list of str
         Ports to which the rule is bound.
 
-    action : list of :class:`Drop` or :class:`Mirror` or \
-    :class:`ForceEgress` or :class:`VLANOverwrite` or \
-    :class:`RemoveVLAN`
+    action : list of :class:`Drop` or :class:`Mirror` or :class:`ForceEgress` or :class:`VLANOverwrite` or :class:`RemoveVLAN`
         One or more actions performed when the rule matches.
-        The ``type`` field of each action class acts as the discriminating
-        key for Pydantic.
+        The ``type`` field of each action class acts as the discriminating key for Pydantic.
     """
 
     name: str = Field()
@@ -326,17 +316,17 @@ class TCAMRule(FLYNCBaseModel):
 
     @model_validator(mode="after")
     def validate_exclusive_drop_force_mirror(self):
-        """Validate that a TCAM rule does **not** use more than one of the
-        mutually‑exclusive actions *drop*, *force_egress* or *mirror* on the
+        """
+        Validate that a TCAM rule does **not** use more than one of the mutually‑exclusive actions *drop*, *force_egress* or *mirror* on the
         same port.
 
         Args:
             self (TCAMRule): The model instance being validated.
 
         Raises:
-            err_minor: If a port appears in more than one of the actions
-                ``drop``, ``force_egress`` or ``mirror these actions per port.
+            err_minor: If a port appears in more than one of the actions ``drop``, ``force_egress`` or ``mirror these actions per port.
         """
+
         all_ports = []
         for action in self.action:
             if action.type in ["drop", "force_egress", "mirror"]:
@@ -344,23 +334,23 @@ class TCAMRule(FLYNCBaseModel):
 
         if len(all_ports) != len(set(all_ports)):
             raise err_minor(
-                "A TCAM Rule can either drop OR force egress OR " "mirror on one port.",
+                "A TCAM Rule can either drop OR force egress OR mirror on one port.",
             )
         return self
 
     @model_validator(mode="after")
     def validate_exclusive_vlan_action(self):
-        """Validate that a TCAM rule does **not** mix the VLAN actions
-        *remove_vlan* and *vlan_overwrite* on the same port.
+        """
+        Validate that a TCAM rule does **not** mix the VLAN actions *remove_vlan* and *vlan_overwrite* on the same port.
 
         Args:
             self (TCAMRule): The model instance being validated.
 
         Raises:
             err_minor
-                ``vlan_overwrite`` actions.  Only one of these actions may be
-                applied to a given port.
+                ``vlan_overwrite`` actions.  Only one of these actions may be applied to a given port.
         """
+
         all_ports = []
         for action in self.action:
             if action.type in ["remove_vlan", "vlan_overwrite"]:
@@ -368,7 +358,7 @@ class TCAMRule(FLYNCBaseModel):
 
         if len(all_ports) != len(set(all_ports)):
             raise err_minor(
-                "A TCAM Rule can either remove OR " "overwrite a vlan on one port.",
+                "A TCAM Rule can either remove OR overwrite a vlan on one port.",
             )
         return self
 
@@ -379,21 +369,16 @@ class RouteEntry(FLYNCBaseModel):
 
     Parameters
     ----------
-    destination : \
-    :class:`~flync.core.datatypes.ipaddress.IPv4AddressEntry` or \
-    :class:`~flync.core.datatypes.ipaddress.IPv6AddressEntry`
-        The destination network expressed as address and mask
-        (e.g. ``address="10.0.0.0", ipv4netmask="255.255.255.0"``).
+    destination : :class:`~flync.core.datatypes.ipaddress.IPv4AddressEntry` or :class:`~flync.core.datatypes.ipaddress.IPv6AddressEntry`
+        The destination network expressed as address and mask (e.g. ``address="10.0.0.0", ipv4netmask="255.255.255.0"``).
 
     default_gateway : :class:`~pydantic.networks.IPvAnyAddress`
-        Gateway IP for this route. If the next hop is another switch,
-        this is that switch's VCI address on the shared subnet.
-        If the next hop is a controller interface (directly connected),
-        this is the controller interface's IP address.
+        Gateway IP for this route.
+        If the next hop is another switch, this is that switch's VCI address on the shared subnet.
+        If the next hop is a controller interface (directly connected), this is the controller interface's IP address.
 
     egress_interface : str
-        Name of the host controller's virtual interface (VCI) through
-        which this route is forwarded.
+        Name of the host controller's virtual interface (VCI) through which this route is forwarded.
     """
 
     destination: IPv4AddressEntry | IPv6AddressEntry = Field()
@@ -405,19 +390,16 @@ class SwitchHostController(ControllerInterface):
     """
     Represents an internal controller that manages a switch.
 
-    Extends :class:`~flync.model.flync_4_ecu.controller.ControllerInterface`
-    with an optional static routing table. All standard controller interface
-    features are supported. When a ``routing_table`` is
-    provided, the host controller additionally acts as an IP router between
-    subnets, with each subnet's gateway IP hosted on the corresponding
-    :class:`~flync.model.flync_4_ecu.controller.VirtualControllerInterface`.
+    Extends :class:`~flync.model.flync_4_ecu.controller.ControllerInterface` with an optional static routing table.
+    All standard controller interface features are supported.
+    When a ``routing_table`` is provided, the host controller additionally acts as an IP router between subnets, with each subnet's gateway IP
+    hosted on the corresponding :class:`~flync.model.flync_4_ecu.controller.VirtualControllerInterface`.
 
     Parameters
     ----------
     routing_table : list of :class:`RouteEntry`, optional
         Static routing table for L3 forwarding between subnets.
-        Each entry maps a destination network (address + mask) to a
-        ``default_gateway`` IP and an ``egress_interface`` (VCI name) on
+        Each entry maps a destination network (address + mask) to a ``default_gateway`` IP and an ``egress_interface`` (VCI name) on
         the host controller through which the traffic is forwarded.
     """
 
@@ -434,28 +416,24 @@ class Switch(NamedListInstances):
     Parameters
     ----------
     meta : :class:`~flync.model.flync_4_metadata.metadata.EmbeddedMetadata`
-        Metadata associated with the switch, such as vendor-specific
-        or implementation-specific attributes.
+        Metadata associated with the switch, such as vendor-specific or implementation-specific attributes.
 
     name : str
         Name of the switch.
 
     ports : list of :class:`SwitchPort`
-        List of external (connected to ECU ports) or internal
-        (connected to internal ECU interfaces) switch ports.
+        List of external (connected to ECU ports) or internal (connected to internal ECU interfaces) switch ports.
 
     vlans : list of :class:`~flync.model.flync_4_ecu.vlan_entry.VLANEntry`
         List of VLAN entries configured on the switch.
 
     host_controller : :class:`SwitchHostController`, optional
-        Internal controller that manages the switch. Supports all the
-        standard controller interface features and optionally L3 IP
-        routing via a routing table.
+        Internal controller that manages the switch.
+        Supports all the standard controller interface features and optionally L3 IP routing via a routing table.
 
     tcam_rules : list of :class:`TCAMRule`, optional
-        List of TCAM rules configured on the switch. These rules define
-        packet-matching conditions and associated actions applied to
-        ingress or egress traffic.
+        List of TCAM rules configured on the switch.
+        These rules define packet-matching conditions and associated actions applied to ingress or egress traffic.
 
     """
 
@@ -472,12 +450,12 @@ class Switch(NamedListInstances):
     @model_validator(mode="after")
     def validate_unique_port_number(self):
         """
-        Validate if the silicon port numbers for all the
-        different switch ports are unique
+        Validate if the silicon port numbers for all the different switch ports are unique
 
         Raises:
             Validation error if a silicon port number is repeated
         """
+
         silicon_port_numbers = []
         for port in self.ports:
             silicon_port_numbers.append(port.silicon_port_no)
@@ -490,9 +468,9 @@ class Switch(NamedListInstances):
     @model_validator(mode="after")
     def validate_ipv_mapping(self) -> Self:
         """
-        Check if internal priority value of traffic classes
-        is defined in ingress streams
+        Check if internal priority value of traffic classes is defined in ingress streams
         """
+
         for port in self.ports:
             if port.traffic_classes:
                 for tr in port.traffic_classes:
@@ -506,13 +484,13 @@ class Switch(NamedListInstances):
                                         if stream.ipv == iv:
                                             found_stream = True
                             if not found_stream:
-                                raise err_minor(f"Not able to find any streams with " f"internal priority values {iv}. " f"Traffic class {tr.name}")
+                                raise err_minor(f"Not able to find any streams with internal priority values {iv}. Traffic class {tr.name}")
         return self
 
     @model_validator(mode="after")
     def validate_ats_instances(self) -> Self:
-        """Check if the shaper is ATS, the instance is defined
-        # on some port on ingress
+        """
+        Check if the shaper is ATS, the instance is defined # on some port on ingress
 
         Raises:
             err_minor: No ATS Instance found for traffic class
@@ -520,6 +498,7 @@ class Switch(NamedListInstances):
         Returns:
             _type_: Self
         """
+
         for port in self.ports:
             if port.traffic_classes:
                 for tr in port.traffic_classes:
@@ -537,13 +516,13 @@ class Switch(NamedListInstances):
 
     @model_validator(mode="after")
     def validate_ports_in_tcam_exist(self):
-        """Validate that every port referenced in TCAM rules exists on the
-        switch.
+        """
+        Validate that every port referenced in TCAM rules exists on the switch.
 
         Raises:
-            err_minor: If a port listed in a TCAM rule (match_ports or
-                action.ports) is not present in the switch's port list.
+            err_minor: If a port listed in a TCAM rule (match_ports or action.ports) is not present in the switch's port list.
         """
+
         if not self.tcam_rules:
             return self
         switch_port_names = [port.name for port in self.ports]
@@ -562,22 +541,26 @@ class Switch(NamedListInstances):
 
     @model_validator(mode="after")
     def validate_tcam_ids_unique(self):
-        """Validate that each TCAM rule has a unique identifier.
+        """
+        Validate that each TCAM rule has a unique identifier.
 
         Raises:
             err_minor: Duplicate ``id`` values found among the TCAM rules.
         """
+
         ids = [tcam.id for tcam in self.tcam_rules]
         common_validators.validate_list_items_unique(ids, "tcam_rules (id)")
         return self
 
     @model_validator(mode="after")
     def validate_tcam_name_unique(self):
-        """Validate that each TCAM rule has a unique name.
+        """
+        Validate that each TCAM rule has a unique name.
 
         Raises:
             err_minor: Duplicate ``name`` values found among the TCAM rules.
         """
+
         names = [tcam.name for tcam in self.tcam_rules]
         common_validators.validate_list_items_unique(names, "tcam_rules (name)")
 
@@ -585,13 +568,13 @@ class Switch(NamedListInstances):
 
     @model_validator(mode="after")
     def validate_routing_table_egress_interface(self):
-        """Validate that every ``egress_interface`` in the routing table
-        exists as a VCI on the host controller of the switch.
+        """
+        Validate that every ``egress_interface`` in the routing table exists as a VCI on the host controller of the switch.
 
         Raises:
-            err_minor: An ``egress_interface`` is not a VCI of the host
-                controller.
+            err_minor: An ``egress_interface`` is not a VCI of the host controller.
         """
+
         if not self.host_controller or not self.host_controller.routing_table:
             return self
         vci_names = [vci.name for vci in self.host_controller.virtual_interfaces]
@@ -602,13 +585,13 @@ class Switch(NamedListInstances):
 
     @model_validator(mode="after")
     def validate_routing_table_default_gateway(self):
-        """Validate that ``default_gateway`` of each route falls within
-        the subnet of its ``egress_interface`` VCI.
+        """
+        Validate that ``default_gateway`` of each route falls within the subnet of its ``egress_interface`` VCI.
 
         Raises:
-            err_minor: ``default_gateway`` is not within the subnet of
-                the ``egress_interface`` VCI.
+            err_minor: ``default_gateway`` is not within the subnet of the ``egress_interface`` VCI.
         """
+
         if not self.host_controller or not self.host_controller.routing_table:
             return self
         vci_map = {vci.name: vci for vci in self.host_controller.virtual_interfaces}
@@ -618,15 +601,15 @@ class Switch(NamedListInstances):
                 continue
             if not self.gateway_in_subnet(route, vci):
                 raise err_minor(
-                    f"RouteEntry default_gateway {route.default_gateway}"
-                    f" is not within the subnet of egress_interface"
-                    f" {route.egress_interface}."
+                    f"RouteEntry default_gateway {route.default_gateway} is not within the subnet of egress_interface" f" {route.egress_interface}."
                 )
         return self
 
     def gateway_in_subnet(self, route, vci) -> bool:
-        """Return ``True`` if ``route.default_gateway`` falls within any
-        address subnet configured on ``vci``."""
+        """
+        Return ``True`` if ``route.default_gateway`` falls within any address subnet configured on ``vci``.
+        """
+
         for addr_entry in vci.addresses:
             if (
                 isinstance(addr_entry, IPv4AddressEndpoint)

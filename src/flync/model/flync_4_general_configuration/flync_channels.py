@@ -98,14 +98,14 @@ class FLYNCChannelConfig(FLYNCBaseModel):
                 unknown_refs = _collect_unknown_pdu_refs(bus, pdu_registry)
                 if unknown_refs:
                     raise err_major(
-                        "CANBus '{name}' references unknown PDU(s):" " {unknown_refs}",
+                        "CANBus '{name}' references unknown PDU(s): {unknown_refs}",
                         name=bus.name,
                         unknown_refs=sorted(unknown_refs),
                     )
                 unknown = _collect_unknown_subscribers(bus, pdu_registry)
                 if unknown:
                     raise err_major(
-                        "CANBus '{name}' has signal subscriber_node(s) not " "declared in nodes: {unknown}",
+                        "CANBus '{name}' has signal subscriber_node(s) not declared in nodes: {unknown}",
                         name=bus.name,
                         unknown=sorted(unknown),
                     )

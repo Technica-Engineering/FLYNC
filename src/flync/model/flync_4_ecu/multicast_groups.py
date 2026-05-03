@@ -1,7 +1,7 @@
-"""Multicast group membership model for virtual controller interfaces.
+"""
+Multicast group membership model for virtual controller interfaces.
 
-Defines :class:`MulticastGroupMembership`, describing participation of a
-virtual controller interface in a single multicast group (IPv4, IPv6 or
+Defines :class:`MulticastGroupMembership`, describing participation of a virtual controller interface in a single multicast group (IPv4, IPv6 or
 MAC) along with the direction (tx/rx), VLAN and optional source IP.
 """
 

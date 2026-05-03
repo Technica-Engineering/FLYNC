@@ -40,16 +40,14 @@ class LINMasterNode(FLYNCBaseModel):
     name : str
         Name of the master node (e.g. ``"Master"``).
     lin_protocol : Literal["1.3", "2.0", "2.1", "2.2A"]
-        LIN protocol version supported by this node.  Written as the
-        node's ``LIN_protocol`` attribute in LDF ``Node_attributes``.
+        LIN protocol version supported by this node.
+        Written as the node's ``LIN_protocol`` attribute in LDF ``Node_attributes``.
     p2_min : float
-        Minimum time (ms) between the end of the slave response and
-        the start of the next frame header.  Maps to ``P2_min`` in the
-        LDF ``Nodes.Master`` block.
+        Minimum time (ms) between the end of the slave response and the start of the next frame header.
+        Maps to ``P2_min`` in the LDF ``Nodes.Master`` block.
     st_min : float
-        Minimum separation time (ms) between consecutive frame headers
-        transmitted by the master.  Maps to ``ST_min`` in the LDF
-        ``Nodes.Master`` block.
+        Minimum separation time (ms) between consecutive frame headers transmitted by the master.
+        Maps to ``ST_min`` in the LDF ``Nodes.Master`` block.
     description : str, optional
         Optional human-readable description.
     """
@@ -66,8 +64,7 @@ class LINSlaveNode(FLYNCBaseModel):
     """
     LIN bus slave node.
 
-    In an LDF file slave nodes are listed in the ``Nodes.Slaves``
-    block and described in detail within ``Node_attributes``.
+    In an LDF file slave nodes are listed in the ``Nodes.Slaves`` block and described in detail within ``Node_attributes``.
 
     Parameters
     ----------
@@ -78,17 +75,17 @@ class LINSlaveNode(FLYNCBaseModel):
     lin_protocol : Literal["1.3", "2.0", "2.1", "2.2A"]
         LIN protocol version supported by this node.
     configured_nad : int
-        Configured Node Address (0x00 – 0xFF).  Written as
-        ``configured_NAD`` in the LDF ``Node_attributes`` block.
+        Configured Node Address (0x00 – 0xFF).
+        Written as ``configured_NAD`` in the LDF ``Node_attributes`` block.
     initial_nad : int
-        Initial Node Address (0x00 – 0xFF).  Written as
-        ``initial_NAD`` in the LDF ``Node_attributes`` block.
+        Initial Node Address (0x00 – 0xFF).
+        Written as ``initial_NAD`` in the LDF ``Node_attributes`` block.
     product_id : str, optional
-        Product identification string.  Written as ``product_id`` in
-        the LDF ``Node_attributes`` block.
+        Product identification string.
+        Written as ``product_id`` in the LDF ``Node_attributes`` block.
     response_error : str, optional
-        Name of the signal used to report response errors.  Written as
-        ``response_error`` in the LDF ``Node_attributes`` block.
+        Name of the signal used to report response errors.
+        Written as ``response_error`` in the LDF ``Node_attributes`` block.
     description : str, optional
         Optional human-readable description.
     """
@@ -108,8 +105,7 @@ AnyLINNode = Annotated[
     Union[LINMasterNode, LINSlaveNode],
     Field(discriminator="node_type"),
 ]
-"""Type alias for a LIN bus node entry (master or slave), discriminated
-by the ``node_type`` field."""
+"""Type alias for a LIN bus node entry (master or slave), discriminated by the ``node_type`` field."""
 
 
 # ---------------------------------------------------------------------------
@@ -121,19 +117,17 @@ class LINScheduleEntry(FLYNCBaseModel):
     """
     Single entry in a LIN schedule table.
 
-    Each entry specifies a frame to be transmitted and the slot period
-    after which the next frame is scheduled.
+    Each entry specifies a frame to be transmitted and the slot period after which the next frame is scheduled.
 
     Parameters
     ----------
     frame_name : str
-        Name of the :class:`~flync.model.flync_4_signal.frame.LINFrame`
-        to transmit.  Must reference a frame present in the owning
-        :class:`LINBus`.  Corresponds to the frame name in the LDF
-        ``Schedule_tables`` entry.
+        Name of the :class:`~flync.model.flync_4_signal.frame.LINFrame` to transmit.
+        Must reference a frame present in the owning :class:`LINBus`.
+        Corresponds to the frame name in the LDF ``Schedule_tables`` entry.
     period : float
-        Slot period in milliseconds.  Corresponds to
-        ``delay <period> ms`` in the LDF ``Schedule_tables`` block.
+        Slot period in milliseconds.
+        Corresponds to ``delay <period> ms`` in the LDF ``Schedule_tables`` block.
         Must be greater than zero.
     """
 
@@ -145,9 +139,8 @@ class LINScheduleTable(UniqueName):
     """
     LIN schedule table.
 
-    A named sequence of frame transmissions with associated slot
-    periods.  Corresponds to a single ``Schedule_tables`` entry in the
-    LDF file.
+    A named sequence of frame transmissions with associated slot periods.
+    Corresponds to a single ``Schedule_tables`` entry in the LDF file.
 
     Parameters
     ----------
@@ -173,10 +166,8 @@ class LINBus(UniqueName):
     """
     LIN bus configuration.
 
-    Models the complete LIN bus, including the protocol header
-    information needed for LDF file generation, the master and slave
-    node definitions, the schedule tables, and the set of frames on
-    the bus.
+    Models the complete LIN bus, including the protocol header information needed for LDF file generation, the master and slave
+    node definitions, the schedule tables, and the set of frames on the bus.
 
     LDF file mapping:
 
@@ -186,15 +177,11 @@ class LINBus(UniqueName):
     * ``channel_name`` → ``Channel_name``
     * ``time_base`` → ``Time_base`` (ms)
     * ``jitter`` → ``Jitter`` (ms)
-    * ``nodes`` → ``Nodes { Master: …; Slaves: …; }`` and
-      ``Node_attributes``
-    * ``frames`` → ``Frames`` section; signal publishers derived from
-      each frame's ``publisher_node``
+    * ``nodes`` → ``Nodes { Master: …; Slaves: …; }`` and ``Node_attributes``
+    * ``frames`` → ``Frames`` section; signal publishers derived from each frame's ``publisher_node``
     * ``schedule_tables`` → ``Schedule_tables`` section
-    * Signal encoding types and ``Signal_representation`` are derived
-      from the ``Signal.factor``, ``Signal.offset``,
-      ``Signal.lower_limit``, ``Signal.upper_limit``, ``Signal.unit``,
-      and ``Signal.value_descriptions`` fields during LDF export.
+    * Signal encoding types and ``Signal_representation`` are derived from the ``Signal.factor``, ``Signal.offset``,
+      ``Signal.lower_limit``, ``Signal.upper_limit``, ``Signal.unit``, and ``Signal.value_descriptions`` fields during LDF export.
 
     Parameters
     ----------
@@ -203,26 +190,23 @@ class LINBus(UniqueName):
     description : str, optional
         Optional human-readable description.
     lin_protocol_version : Literal["1.3", "2.0", "2.1", "2.2A"]
-        LIN protocol version for the ``LIN_protocol_version`` LDF
-        header field.
+        LIN protocol version for the ``LIN_protocol_version`` LDF header field.
     lin_language_version : Literal["1.3", "2.0", "2.1", "2.2A"]
-        LIN description language version for the
-        ``LIN_language_version`` LDF header field.
+        LIN description language version for the ``LIN_language_version`` LDF header field.
     baud_rate : int
-        Bus bit rate in bits/s.  Must be one of the standard LIN baud
-        rates: 1 200, 2 400, 4 800, 9 600, 10 400, or 19 200 bits/s.
+        Bus bit rate in bits/s.
+        Must be one of the standard LIN baud rates: 1 200, 2 400, 4 800, 9 600, 10 400, or 19 200 bits/s.
         Written as-is to the LDF ``LIN_speed`` field.
     channel_name : str, optional
         Optional LIN channel name for the LDF ``Channel_name`` field.
     time_base : float
-        Scheduling time base in milliseconds.  Defaults to ``5.0``.
-        Corresponds to the LDF ``Time_base`` field.
+        Scheduling time base in milliseconds.
+        Defaults to ``5.0``. Corresponds to the LDF ``Time_base`` field.
     jitter : float
-        Maximum scheduling jitter in milliseconds.  Defaults to
-        ``0.0``.  Corresponds to the LDF ``Jitter`` field.
+        Maximum scheduling jitter in milliseconds.
+        Defaults to ``0.0``.  Corresponds to the LDF ``Jitter`` field.
     nodes : list of :class:`LINMasterNode` | :class:`LINSlaveNode`
-        Exactly one :class:`LINMasterNode` and any number of
-        :class:`LINSlaveNode` entries.
+        Exactly one :class:`LINMasterNode` and any number of :class:`LINSlaveNode` entries.
     schedule_tables : list of :class:`LINScheduleTable`
         Named schedule tables for the LDF ``Schedule_tables`` section.
     frames : list of :class:`~flync.model.flync_4_signal.frame.LINFrame`
@@ -251,7 +235,7 @@ class LINBus(UniqueName):
         """Ensure the baud rate is a standard LIN rate."""
         if value not in _ALLOWED_LIN_BAUD_RATES:
             raise err_minor(
-                "baud_rate {value} is not a valid LIN baud rate. " "Allowed values: {allowed}",
+                "baud_rate {value} is not a valid LIN baud rate. Allowed values: {allowed}",
                 value=value,
                 allowed=sorted(_ALLOWED_LIN_BAUD_RATES),
             )
@@ -263,12 +247,12 @@ class LINBus(UniqueName):
         masters = [n.name for n in self.nodes if isinstance(n, LINMasterNode)]
         if len(masters) == 0:
             raise err_major(
-                "LINBus '{name}' has no master node. " "Exactly one LINMasterNode is required.",
+                "LINBus '{name}' has no master node. Exactly one LINMasterNode is required.",
                 name=self.name,
             )
         if len(masters) > 1:
             raise err_major(
-                "LINBus '{name}' has {count} master nodes ({masters}). " "LIN supports exactly one master.",
+                "LINBus '{name}' has {count} master nodes ({masters}). LIN supports exactly one master.",
                 name=self.name,
                 count=len(masters),
                 masters=masters,
@@ -283,7 +267,7 @@ class LINBus(UniqueName):
             for entry in table.entries:
                 if entry.frame_name not in frame_names:
                     raise err_major(
-                        "LINScheduleTable '{table}' references unknown " "frame '{frame}'. " "Defined frames: {defined}",
+                        "LINScheduleTable '{table}' references unknown frame '{frame}'. Defined frames: {defined}",
                         table=table.name,
                         frame=entry.frame_name,
                         defined=sorted(frame_names),

@@ -77,12 +77,13 @@ class ExternalConnection(FLYNCBaseModel):
         """
         Verify that the two ECU ports connected by this object are compatible.
 
-        The check includes compatibility of MDI, MACSec and gPTP.
+        The check includes compatibility of MDI, MACsec and gPTP.
 
         err_major: If any of the MDI parameters are missing or do not match
                     between the two ports, or if the port roles are not
                     complementary.
         """
+
         registery: Registry = get_registry()
         self._ecu1_port = registery.get_dict(ECUPort).get(self.ecu1_port_name)
         if self._ecu1_port is None:

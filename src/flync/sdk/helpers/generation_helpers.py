@@ -39,9 +39,9 @@ def __get_valid_path(paths: list[str]) -> list[str]:
         paths (list[str]): A list of path-like strings.
 
     Returns:
-        list[str]: A list of non-numeric chunks representing a valid path,
-                   or an empty list if no valid path is found.
+        list[str]: A list of non-numeric chunks representing a valid path, or an empty list if no valid path is found.
     """
+
     if len(paths) == 1 and paths[0] in ["", "."]:
         return []
     for p in paths:
@@ -57,6 +57,7 @@ def is_union(tp) -> bool:
     """
     Determine whether a given type annotation represents a Union type.
     """
+
     return tp is Union or tp is UnionType or get_origin(tp) is Union or isinstance(tp, UnionType)
 
 
@@ -116,6 +117,7 @@ class Factory(object):
             """
             Recursively yield all subclasses of a given class.
             """
+
             for subclass in cls.__subclasses__():
                 yield subclass
                 yield from __get_all_subclasses(subclass)
@@ -207,8 +209,7 @@ class FLYNCFactory(ModelFactory[FLYNCBaseModel]):
     @staticmethod
     def __get_field_value_list(field_info, arg_type, origin_type, **kwargs) -> tuple[bool, Any]:
         """
-        Generate a default list of values for a Pydantic field when
-        the type annotation indicates a list of FLYNCBaseModel subclasses.
+        Generate a default list of values for a Pydantic field when the type annotation indicates a list of FLYNCBaseModel subclasses.
 
         Args:
             field_info (FieldInfo): Metadata about the Pydantic field.
@@ -221,6 +222,7 @@ class FLYNCFactory(ModelFactory[FLYNCBaseModel]):
                 - `bool`: Whether a valid list of values was generated.
                 - `Any`: The generated list of model instances.
         """
+
         if arg_type and inspect.isclass(arg_type) and issubclass(arg_type, FLYNCBaseModel) and origin_type is list:
             min_length: int = 2 if arg_type == ECUPort else FLYNCFactory.__min_length_list(field_info)
             return True, Factory.get_factory(arg_type).batch(
@@ -238,9 +240,9 @@ class FLYNCFactory(ModelFactory[FLYNCBaseModel]):
             field_info (FieldInfo): The Pydantic field metadata object.
 
         Returns:
-            int: The minimum list length, either from metadata
-            or the default of `1`.
+            int: The minimum list length, either from metadata or the default of `1`.
         """
+
         min_length = 1
         if field_info.metadata is None:
             return min_length
@@ -342,16 +344,14 @@ def dump_flync_workspace(
     workspace_name: str | None,
     workspace_config: WorkspaceConfiguration | None = None,
 ) -> None:
-    """Generate a FLYNC workspace from a FLYNCModel object.
+    """
+    Generate a FLYNC workspace from a FLYNCModel object.
 
     Args:
-        flync_model (:class:`~flync.model.flync_model.FLYNCModel`): The
-            FLYNC model to generate the workspace from.
-        output_path (str | pathlib.Path): The path where the workspace
-            will be created.
+        flync_model (:class:`~flync.model.flync_model.FLYNCModel`): The FLYNC model to generate the workspace from.
+        output_path (str | pathlib.Path): The path where the workspace will be created.
         workspace_name (str | None): Optional name for the workspace.
-        workspace_config (WorkspaceConfiguration | None): Optional
-            workspace configuration. Uses defaults if ``None``.
+        workspace_config (WorkspaceConfiguration | None): Optional workspace configuration. Uses defaults if ``None``.
 
     Returns:
         None
@@ -375,6 +375,7 @@ def generate_external_node(
     """
     Generate external node.
     """
+
     node = type_from_input(node)
     # generate object from type
     model_factory = Factory.get_factory(node)
@@ -424,9 +425,9 @@ def __resolve_semantic_object(
 
 def __resolve_path(valid_path: list[str], ws: FLYNCWorkspace) -> tuple[type[FLYNCBaseModel], FLYNCBaseModel | None, str]:
     """
-    Walk valid_path segments and resolve the FLYNC
-    root type, parent model, and flync_path.
+    Walk valid_path segments and resolve the FLYNC root type, parent model, and flync_path.
     """
+
     root: type[FLYNCBaseModel] = FLYNCModel
     parent: FLYNCBaseModel | None = None
     flync_path = ""
@@ -456,6 +457,7 @@ def generate_node(
     """
     Generate node.
     """
+
     valid_path = __get_valid_path(node_paths)
     root, parent, flync_path = __resolve_path(valid_path, ws)
     nodes = available_flync_nodes(root_node=root)

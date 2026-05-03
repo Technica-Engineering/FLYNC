@@ -8,12 +8,12 @@ def get_switch_port_connected_component(
     new_list,
     vlan,
 ):
-    """Helper function to help validate multicast paths.
-
-    Adds all the components connected to a switch
-    port to the list of components that were
-    not already there in the paths
     """
+    Helper function to help validate multicast paths.
+
+    Adds all the components connected to a switch port to the list of components that were not already there in the paths
+    """
+
     conn = comp.connected_component
     if check_vlan_conn_valid(conn, connected_components, new_connected_components, vlan):
         new_list.append(conn)
@@ -29,12 +29,12 @@ def get_switch_port_connected_component(
 
 
 def get_ecu_port_connected_component(comp, connected_components, new_connected_components, new_list, vlan):
-    """Helper function to help validate multicast paths.
-
-    Adds all the components connected to a ECU
-    Port to the list of components that were
-    not already there in the paths
     """
+    Helper function to help validate multicast paths.
+
+    Adds all the components connected to a ECU Port to the list of components that were not already there in the paths
+    """
+
     conn = comp.connected_components
     for conn1 in conn:
         if check_vlan_conn_valid(conn1, connected_components, new_connected_components, vlan):
@@ -42,12 +42,12 @@ def get_ecu_port_connected_component(comp, connected_components, new_connected_c
 
 
 def get_controller_interface_connected_component(comp, connected_components, new_connected_components, new_list, vlan):
-    """Helper function to help validate multicast paths.
-
-    Adds all the components connected to a controller
-    interface to the list of components that were
-    not already there in the paths
     """
+    Helper function to help validate multicast paths.
+
+    Adds all the components connected to a controller interface to the list of components that were not already there in the paths
+    """
+
     conn = comp.connected_component
     if check_vlan_conn_valid(conn, connected_components, new_connected_components, vlan):
         new_list.append(conn)
@@ -62,6 +62,7 @@ def check_vlan_conn_valid(comp, list1, list2, vlan):
     """
     Helper to help compute multicast paths
     """
+
     flag = True
     if not comp:
         flag = False
@@ -80,6 +81,7 @@ def compute_path(vlan, interface):
     """
     Compute multicast path
     """
+
     connected_components = []
     new_connected_components = []
     connected_components.append(interface)
@@ -126,9 +128,9 @@ def compute_path(vlan, interface):
 
 def serialize_components(list):
     """
-    Displays the names of the components object
-    present in the list
+    Displays the names of the components object present in the list
     """
+
     obj_str = "[ "
     for obj in list:
         obj_str = obj_str + (obj.name) + " , "

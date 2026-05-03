@@ -154,7 +154,7 @@ class Signal(UniqueName):
     def _factor_nonzero(cls, v: float) -> float:
         """Reject a zero factor, which would collapse all physical values."""
         if not v:
-            raise ValueError("factor must not be zero; a zero factor collapses all " "physical values to the offset")
+            raise ValueError("factor must not be zero; a zero factor collapses all physical values to the offset")
         return v
 
     @field_validator("value_descriptions")
@@ -163,7 +163,7 @@ class Signal(UniqueName):
         seen: set[int] = set()
         for vd in v:
             if vd.value in seen:
-                raise ValueError(f"Duplicate value {vd.value!r} in value_descriptions; " "each raw value must appear at most once")
+                raise ValueError(f"Duplicate value {vd.value!r} in value_descriptions; each raw value must appear at most once")
             seen.add(vd.value)
         return v
 

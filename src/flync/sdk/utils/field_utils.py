@@ -1,8 +1,7 @@
 """
 Field utility helpers for the FLYNC SDK.
 
-Provides functions for extracting metadata and display names from Pydantic
-model fields.
+Provides functions for extracting metadata and display names from Pydantic model fields.
 """
 
 from typing import Iterable, Optional, TypeVar
@@ -23,6 +22,7 @@ def get_metadata(meta: Iterable[object], cls: type[T]) -> Optional[T]:
     Returns:
         An instance of `cls` if found; otherwise, None.
     """
+
     for m in meta:
         if isinstance(m, cls):
             return m
@@ -30,7 +30,8 @@ def get_metadata(meta: Iterable[object], cls: type[T]) -> Optional[T]:
 
 
 def get_name(named_object: T, attr_name: str, fallback_name: str | None = None) -> str:
-    """Retrieve a display name for an object.
+    """
+    Retrieve a display name for an object.
 
     Looks up ``attr_name`` on ``named_object``. Falls back to
     ``fallback_name`` if the attribute is absent or falsy, and finally to
@@ -44,6 +45,7 @@ def get_name(named_object: T, attr_name: str, fallback_name: str | None = None) 
     Returns:
         The resolved display name string.
     """
+
     attr_name = attr_name or "name"
     return getattr(named_object, attr_name, fallback_name) or type(named_object).__name__
 
@@ -60,6 +62,7 @@ def get_field_name_from_alias(model: type[BaseModel], alias: str):
         str: The actual field name corresponding to the given alias.
             If no field with the alias exists, the alias itself is returned.
     """
+
     for name, field in model.model_fields.items():
         if field.alias == alias:
             return name

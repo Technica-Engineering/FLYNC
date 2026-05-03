@@ -18,8 +18,7 @@ from flync.core.utils.exceptions import err_minor
 
 class PrimitiveDatatype(Datatype):
     """
-    Base class for primitive datatypes such as integers, floating-point
-    values, or booleans.
+    Base class for primitive datatypes such as integers, floating-point values, or booleans.
 
     Parameters
     ----------
@@ -33,8 +32,8 @@ class PrimitiveDatatype(Datatype):
         Discriminator identifying the concrete primitive datatype kind.
 
     endianness : Literal["BE", "LE"], optional
-        Byte order used for encoding multi-byte values. Defaults to
-        big-endian ("BE").
+        Byte order used for encoding multibyte values.
+        Defaults to big-endian ("BE").
 
     bit_size : int
         Size in bits of the primitive datatype.
@@ -57,7 +56,7 @@ class ComplexDatatype(Datatype):
         Discriminator identifying the concrete complex datatype kind.
 
     endianness : Literal["BE", "LE"], optional
-        Byte order used for encoding multi-byte values. Defaults to
+        Byte order used for encoding multibyte values. Defaults to
         big-endian ("BE").
     """
 
@@ -96,8 +95,7 @@ class BaseInt(PrimitiveDatatype):
     """
     Base class for all integer primitive datatypes.
 
-    This class provides shared semantics for signed and unsigned integer
-    representations and defines common descriptive metadata.
+    This class provides shared semantics for signed and unsigned integer representations and defines common descriptive metadata.
 
     """
 
@@ -106,8 +104,7 @@ class BaseFloat(PrimitiveDatatype):
     """
     Base class for all floating-point primitive datatypes.
 
-    This class provides shared semantics for floating-point representations
-    and defines common descriptive metadata.
+    This class provides shared semantics for floating-point representations and defines common descriptive metadata.
 
     """
 
@@ -157,8 +154,8 @@ class UInt16(BaseInt):
         Indicates that the integer is unsigned.
 
     endianness : Literal["BE", "LE"], optional
-        Byte order used for encoding multi-byte values. Defaults to
-        big-endian ("BE").
+        Byte order used for encoding multibyte values.
+        Defaults to big-endian ("BE").
 
     bit_size : int
         Storage size in bits: 16.
@@ -187,8 +184,8 @@ class UInt32(BaseInt):
         Indicates that the integer is unsigned.
 
     endianness : Literal["BE", "LE"], optional
-        Byte order used for encoding multi-byte values. Defaults to
-        big-endian ("BE").
+        Byte order used for encoding multibyte values.
+        Defaults to big-endian ("BE").
 
     bit_size : int
         Storage size in bits: 32.
@@ -217,8 +214,8 @@ class UInt64(BaseInt):
         Indicates that the integer is unsigned.
 
     endianness : Literal["BE", "LE"], optional
-        Byte order used for encoding multi-byte values. Defaults to
-        big-endian ("BE").
+        Byte order used for encoding multibyte values.
+        Defaults to big-endian ("BE").
 
     bit_size : int
         Storage size in bits: 64.
@@ -276,8 +273,8 @@ class Int16(BaseInt):
         Indicates that the integer is signed.
 
     endianness : Literal["BE", "LE"], optional
-        Byte order used for encoding multi-byte values. Defaults to
-        big-endian ("BE").
+        Byte order used for encoding multibyte values.
+        Defaults to big-endian ("BE").
 
     bit_size : int
         Storage size in bits: 16.
@@ -306,8 +303,8 @@ class Int32(BaseInt):
         Indicates that the integer is signed.
 
     endianness : Literal["BE", "LE"], optional
-        Byte order used for encoding multi-byte values. Defaults to
-        big-endian ("BE").
+        Byte order used for encoding multibyte values.
+        Defaults to big-endian ("BE").
 
     bit_size : int
         Storage size in bits: 32.
@@ -336,8 +333,8 @@ class Int64(BaseInt):
         Indicates that the integer is signed.
 
     endianness : Literal["BE", "LE"], optional
-        Byte order used for encoding multi-byte values. Defaults to
-        big-endian ("BE").
+        Byte order used for encoding multibyte values.
+        Defaults to big-endian ("BE").
 
     bit_size : int
         Storage size in bits: 64.
@@ -366,8 +363,8 @@ class Float32(PrimitiveDatatype):
         Indicates that the float is signed.
 
     endianness : Literal["BE", "LE"], optional
-        Byte order used for encoding multi-byte values. Defaults to
-        big-endian ("BE").
+        Byte order used for encoding multibyte values.
+        Defaults to big-endian ("BE").
 
     bit_size : int
         Storage size in bits: 32.
@@ -396,8 +393,8 @@ class Float64(BaseFloat):
         Indicates that the float is signed.
 
     endianness : Literal["BE", "LE"], optional
-        Byte order used for encoding multi-byte values. Defaults to
-        big-endian ("BE").
+        Byte order used for encoding multibyte values.
+        Defaults to big-endian ("BE").
 
     bit_size : int
         Storage size in bits: 64.
@@ -441,15 +438,13 @@ class BitfieldEntry(BaseModel):
         Name of the individual bitfield.
 
     bitposition : int
-        Bit position of the individual bitfield within the enclosing
-        bitfield datatype.
+        Bit position of the individual bitfield within the enclosing bitfield datatype.
 
     description : str, optional
         Human-readable description of the field.
 
     values : list of :class:`BitfieldEntryValue`, optional
-        Optional enumeration of named values defined for this bitfield
-        entry.
+        Optional enumeration of named values defined for this bitfield entry.
     """
 
     name: str = Field(..., description="Name of the individual bitfield")
@@ -477,8 +472,8 @@ class Bitfield(Datatype):
         Discriminator identifying this datatype as a bitfield.
 
     endianness : Literal["BE", "LE"], optional
-        Byte order used for encoding multi-byte values. Defaults to
-        big-endian ("BE").
+        Byte order used for encoding multibyte values.
+        Defaults to big-endian ("BE").
 
     length : Literal[8, 16, 32, 64], optional
         Size of the bitfield in bits.
@@ -552,16 +547,15 @@ class Enum(Datatype):
         Datatype discriminator identifying this datatype as an enumeration.
 
     endianness : Literal["BE", "LE"], optional
-        Byte order used for encoding multi-byte values. Defaults to
-        big-endian ("BE").
+        Byte order used for encoding multibyte values.
+        Defaults to big-endian ("BE").
 
     base_type : Ints, optional
         Underlying integer datatype used to encode enumeration values.
         Defaults to :class:`UInt8`.
 
     entries : list of :class:`EnumEntry`, optional
-        List of enumeration entries defining the mapping between numeric
-        values and symbolic names.
+        List of enumeration entries defining the mapping between numeric values and symbolic names.
     """
 
     name: str = Field(default="Enum")
@@ -617,7 +611,7 @@ class BaseString(Datatype):
     name: str = Field(default="BaseString")
     type: str = Field()
     encoding: Literal["UTF-8", "UTF-16BE", "UTF-16LE"] = Field(
-        description="the encoding of the string\n\n" ".. needextract::\n" '\t:filter: id in ["feat_req_someip_234","feat_req_someip_235"]\n\n',
+        description="the encoding of the string\n\n.. needextract::\n" '\t:filter: id in ["feat_req_someip_234","feat_req_someip_235"]\n\n',
         default="UTF-8",
     )
 
@@ -626,9 +620,8 @@ class FixedLengthString(BaseString):
     """
     Fixed-length string datatype.
 
-    This string occupies a fixed number of bytes on the wire. If the
-    actual content is shorter than the configured length, it is padded
-    with zero bytes.
+    This string occupies a fixed number of bytes on the wire.
+    If the actual content is shorter than the configured length, it is padded with zero bytes.
 
     Parameters
     ----------
@@ -639,12 +632,11 @@ class FixedLengthString(BaseString):
         Discriminator used to identify this datatype.
 
     length : int
-        Total length of the string in bytes, including zero-termination
-        and any padding.
+        Total length of the string in bytes, including zero-termination and any padding.
 
     length_of_length_field : Literal[0, 8, 16, 32]
-        Size of the optional length field in bits. A value of 0 indicates
-        that no length field is present.
+        Size of the optional length field in bits.
+        A value of 0 indicates that no length field is present.
     """
 
     name: str = Field(default="FixedLengthString")
@@ -657,8 +649,7 @@ class FixedLengthString(BaseString):
     )
     length_of_length_field: Literal[0, 8, 16, 32] = Field(
         default=0,
-        description="defines the length of the length-field in bits of the"
-        "fixed length string where 0 indicates that there is"
+        description="defines the length of the length-field in bits of the fixed length string where 0 indicates that there is"
         "no length field present.",
     )
 
@@ -667,8 +658,7 @@ class DynamicLengthString(BaseString):
     """
     Dynamic-length string datatype.
 
-    The encoded representation starts with a length field, followed by
-    the string content and a zero-termination character.
+    The encoded representation starts with a length field, followed by the string content and a zero-termination character.
 
     Parameters
     ----------
@@ -688,19 +678,18 @@ class DynamicLengthString(BaseString):
         Size of the length field in bits that precedes the string data.
 
     bit_alignment : Literal[8, 16, 32, 64, 128, 256]
-        Optional padding alignment applied after the string so that the
-        next parameter starts at the specified bit boundary.
+        Optional padding alignment applied after the string so that the next parameter starts at the specified bit boundary.
     """
 
     name: str = Field(default="DynamicLengthString")
     type: Literal["dynamic_length_string"] = Field(
         default="dynamic_length_string",
-        description="used internally by flync to efficiently determine the " "constructor to use from yaml",
+        description="used internally by flync to efficiently determine the constructor to use from yaml",
     )
     max_length: Optional[int] = Field(
         default=None,
         ge=0,
-        description="Maximum string length in bytes." "None means no upper limit.",
+        description="Maximum string length in bytes.None means no upper limit.",
     )
     min_length: Optional[int] = Field(
         default=None,
@@ -716,8 +705,7 @@ class DynamicLengthString(BaseString):
     )
     bit_alignment: Literal[8, 16, 32, 64, 128, 256] = Field(
         default=8,
-        description="defines the optional alignment padding that can be added "
-        "after the dynamic length string to fix the alignment of "
+        description="defines the optional alignment padding that can be added after the dynamic length string to fix the alignment of "
         "the next parameter to 8, 16, 32, 64, 128, or 256 bits.",
     )
 
@@ -735,12 +723,12 @@ class ArrayType(ComplexDatatype):
         Discriminator identifying this datatype as an array.
 
     dimensions : List[:class:`ArrayDimension`]
-        Ordered list of array dimensions (outer → inner). Must contain
-        at least one dimension.
+        Ordered list of array dimensions (outer → inner).
+        Must contain at least one dimension.
 
     element_type : :class:`AllTypes`
-        Datatype of the innermost array element. This may itself be a
-        primitive, struct, union, or another array type.
+        Datatype of the innermost array element.
+        This may itself be a primitive, struct, union, or another array type.
     """
 
     name: str = Field(default="Array")
@@ -759,23 +747,23 @@ class ArrayDimension(FLYNCBaseModel):
     Parameters
     ----------
     kind : Literal["fixed", "dynamic"]
-        Specifies whether the dimension has a fixed size or a dynamically
-        encoded length.
+        Specifies whether the dimension has a fixed size or a dynamically encoded length.
 
     length : int, optional
-        Number of elements for a fixed-length dimension. Must be greater
-        than 0. Only valid when ``kind="fixed"``.
+        Number of elements for a fixed-length dimension.
+        Must be greater than 0. Only valid when ``kind="fixed"``.
 
     length_of_length_field : Literal[0, 8, 16, 32], optional
-        Size in bits of the length field that precedes the array data for a
-        dynamic dimension. Only valid when ``kind="dynamic"``.
+        Size in bits of the length field that precedes the array data for a dynamic dimension.
+        Only valid when ``kind="dynamic"``.
 
     upper_limit : int, optional
-        Upper bound on the number of elements. Must be greater than 0.
+        Upper bound on the number of elements.
+        Must be greater than 0.
 
     lower_limit : int, optional
-        Lower bound on the number of elements. Must be greater than or
-        equal to 0.
+        Lower bound on the number of elements.
+        Must be greater than or equal to 0.
 
     bit_alignment : Literal[8, 16, 32, 64, 128, 256], optional
         Optional padding alignment in bits applied after this dimension.
@@ -814,8 +802,7 @@ class Struct(ComplexDatatype):
     """
     Structured datatype composed of multiple ordered members.
 
-    A struct groups several datatypes into a single composite element that
-    is serialized in the order the members are defined.
+    A struct groups several datatypes into a single composite element that is serialized in the order the members are defined.
 
     Parameters
     ----------
@@ -826,8 +813,7 @@ class Struct(ComplexDatatype):
         Ordered list of datatypes that form the members of the struct.
 
     bit_alignment : Literal[8, 16, 32, 64, 128, 256]
-        Optional padding alignment applied after the struct to ensure the
-        next parameter starts at the specified bit boundary.
+        Optional padding alignment applied after the struct to ensure the next parameter starts at the specified bit boundary.
 
     length_of_length_field : Literal[0, 8, 16, 32]
         Size of the optional length field in bits that prefixes the struct.
@@ -838,14 +824,12 @@ class Struct(ComplexDatatype):
     members: List["AllTypes"] = Field(description="the members of the struct")  # type: ignore
     bit_alignment: Literal[8, 16, 32, 64, 128, 256] = Field(
         default=8,
-        description="defines the optional alignment padding that can be added "
-        "after the variable length data element like struct to "
-        "fix the alignment of the next parameter to 8, 16, 32, "
-        "64, 128, or 256 bits.",
+        description="defines the optional alignment padding that can be added after the variable length data element like struct to "
+        "fix the alignment of the next parameter to 8, 16, 32, 64, 128, or 256 bits.",
     )
     length_of_length_field: Literal[0, 8, 16, 32] = Field(
         default=0,
-        description="defines the length of the length-field in bits for " "the struct",
+        description="defines the length of the length-field in bits for the struct",
     )
 
 
@@ -853,8 +837,7 @@ class Typedef(ComplexDatatype):
     """
     Alias datatype that references another datatype definition.
 
-    A typedef introduces an alternative name for an existing datatype
-    without changing its underlying structure or serialization behavior.
+    A typedef introduces an alternative name for an existing datatype without changing its underlying structure or serialization behavior.
 
     Parameters
     ----------
@@ -875,10 +858,9 @@ class Typedef(ComplexDatatype):
 
 class UnionMember(Datatype):
     """
-    Represents a single member entry of an union datatype.
+    Represents a single member entry of a union datatype.
 
-    Each union member defines a possible datatype that may be present,
-    together with its selector index and a descriptive name.
+    Each union member defines a possible datatype that may be present, together with its selector index and a descriptive name.
 
     Parameters
     ----------
@@ -886,9 +868,9 @@ class UnionMember(Datatype):
         Member datatype (discriminated by its ``type`` field).
 
     index : int
-        Index of the union member. This value is used in the serialized
-        union to indicate which member is currently active. Must be
-        greater than or equal to 0.
+        Index of the union member.
+        This value is used in the serialized union to indicate which member is currently active.
+        Must be greater than or equal to 0.
 
     name : str
         Name of the union member.
@@ -919,10 +901,9 @@ class UnionMember(Datatype):
 
 class Union(Datatype):
     """
-    Represents an union datatype.
+    Represents a union datatype.
 
-    A union allows exactly one of several possible member datatypes to be
-    encoded at runtime. The active member is identified using a type
+    A union allows exactly one of several possible member datatypes to be encoded at runtime. The active member is identified using a type
     selector field.
 
     Parameters
@@ -937,8 +918,7 @@ class Union(Datatype):
         List of the allowed datatypes a union can contain.
 
     bit_alignment : Literal[8, 16, 32, 64, 128, 256], optional
-        Defines the optional alignment padding that can be added after the
-        union to fix the alignment of the next parameter to 8, 16, 32, 64,
+        Defines the optional alignment padding that can be added after the union to fix the alignment of the next parameter to 8, 16, 32, 64,
         128 or 256 bits.
 
     length_of_length_field : Literal[0, 8, 16, 32], optional
@@ -953,19 +933,16 @@ class Union(Datatype):
     members: List[UnionMember] = Field(description="list of the allowed datatypes a union can have")
     bit_alignment: Literal[8, 16, 32, 64, 128, 256] = Field(
         default=8,
-        description="defines the optional alignment padding that can be \
-            added after union to fix the alignment of the next parameter \
+        description="defines the optional alignment padding that can be added after union to fix the alignment of the next parameter \
                 to 8, 16, 32, 64, 128 or 256 bits.",
     )
     length_of_length_field: Literal[0, 8, 16, 32] = Field(
         default=32,
-        description="defines the length of the length-field \
-            in bits for the union",
+        description="defines the length of the length-field in bits for the union",
     )
     length_of_type_field: Literal[0, 8, 16, 32] = Field(
         default=32,
-        description="defines the length of the type-selector-field \
-            in bits for the union",
+        description="defines the length of the type-selector-field in bits for the union",
     )
 
 

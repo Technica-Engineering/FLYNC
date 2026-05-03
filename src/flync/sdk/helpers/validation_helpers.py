@@ -1,10 +1,8 @@
 """
 Validation helper functions for the FLYNC SDK.
 
-Provides high-level functions to validate FLYNC workspaces and individual
-nodes, returning structured
-:class:`~flync.sdk.context.diagnostics_result.DiagnosticsResult`
-objects that capture the validation state, errors, and loaded model.
+Provides high-level functions to validate FLYNC workspaces and individual nodes, returning structured
+:class:`~flync.sdk.context.diagnostics_result.DiagnosticsResult` objects that capture the validation state, errors, and loaded model.
 """
 
 import faulthandler
@@ -39,17 +37,17 @@ def validate_workspace(
     workspace_path: str | Path,
     workspace_config: WorkspaceConfiguration | None = None,
 ) -> DiagnosticsResult:
-    """Validate an entire FLYNC workspace rooted at the default ``FLYNCModel``.
+    """
+    Validate an entire FLYNC workspace rooted at the default ``FLYNCModel``.
 
     Args:
         workspace_path (str | Path): Path to the workspace directory.
-        workspace_config (WorkspaceConfiguration | None): Optional workspace
-            configuration. Uses defaults if ``None``.
+        workspace_config (WorkspaceConfiguration | None): Optional workspace configuration. Uses defaults if ``None``.
 
     Returns:
-        DiagnosticsResult: The validation outcome including state, errors, and
-        the loaded model.
+        DiagnosticsResult: The validation outcome including state, errors, and the loaded model.
     """
+
     return validate_external_node(FLYNCModel, workspace_path, workspace_config)
 
 
@@ -58,25 +56,22 @@ def validate_external_node(
     node_path: Path | str,
     workspace_config: WorkspaceConfiguration | None = None,
 ) -> DiagnosticsResult:
-    """Validate a specific FLYNC node type at a given filesystem path.
+    """
+    Validate a specific FLYNC node type at a given filesystem path.
 
-    Loads the node using a fresh workspace configured with ``node`` as the
-    root model, then inspects per-document errors to determine the overall
+    Loads the node using a fresh workspace configured with ``node`` as the root model, then inspects per-document errors to determine the overall
     :class:`~flync.sdk.context.diagnostics_result.WorkspaceState`.
 
     Args:
-        node (str | type[FLYNCBaseModel]): The model class to validate, or
-            its string name.
-        node_path (Path | str): Path to the directory containing the node's
-            FLYNC configuration files.
-        workspace_config (WorkspaceConfiguration | None): Optional workspace
-            configuration. Uses defaults if ``None``. The ``root_model``
-            field is always overwritten with ``node``.
+        node (str | type[FLYNCBaseModel]): The model class to validate, or its string name.
+        node_path (Path | str): Path to the directory containing the node's FLYNC configuration files.
+        workspace_config (WorkspaceConfiguration | None): Optional workspace configuration.
+            Uses defaults if ``None``. The ``root_model`` field is always overwritten with ``node``.
 
     Returns:
-        DiagnosticsResult: Validation outcome with state, per-document errors,
-        the loaded model, and the workspace instance.
+        DiagnosticsResult: Validation outcome with state, per-document errors, the loaded model, and the workspace instance.
     """
+
     node = type_from_input(node)
     state = WorkspaceState.EMPTY
     errors = {}
@@ -115,22 +110,21 @@ def validate_node(
     node_path: str = "",
     workspace_config: WorkspaceConfiguration | None = None,
 ) -> DiagnosticsResult:
-    """Validate a single node within an already-loaded workspace.
+    """
+    Validate a single node within an already-loaded workspace.
 
-    First validates the full workspace, then checks that the node at
-    ``node_path`` exists and extracts its model. If the node is missing, a
+    First validates the full workspace, then checks that the node at ``node_path`` exists and extracts its model. If the node is missing, a
     fatal validation error is recorded.
 
     Args:
         ws_path (Path | str): Path to the workspace root directory.
-        node_path (str): Dot-separated path to the target node within the
-            workspace object graph.
-        workspace_config (WorkspaceConfiguration | None): Optional workspace
-            configuration forwarded to :func:`validate_workspace`.
+        node_path (str): Dot-separated path to the target node within the workspace object graph.
+        workspace_config (WorkspaceConfiguration | None): Optional workspace configuration forwarded to :func:`validate_workspace`.
 
     Returns:
         DiagnosticsResult: Validation outcome for the specified node.
     """
+
     # load entire workspace
     workspace_results = validate_workspace(ws_path, workspace_config=workspace_config)
     # validate node in workspace

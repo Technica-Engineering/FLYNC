@@ -21,8 +21,8 @@ class BitRange(Datatype):
         Datatype discriminator inherited from :class:`Datatype`.
 
     endianness : Literal["BE", "LE"], optional
-        Byte order used for encoding multi-byte values. Defaults to
-        big-endian ("BE").
+        Byte order used for encoding multibyte values.
+        Defaults to big-endian ("BE").
 
     start : int
         Starting bit position (inclusive).

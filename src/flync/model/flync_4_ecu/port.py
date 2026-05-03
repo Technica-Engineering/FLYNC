@@ -27,24 +27,19 @@ class ECUPort(NamedDictInstances):
     """
     Represents an ECU port and its configuration.
 
-    This class encapsulates both the media-dependent (MDI) and
-    media-independent (MII) interface configurations for a port.
+    This class encapsulates both the media-dependent (MDI) and media-independent (MII) interface configurations for a port.
 
     Parameters
     ----------
     name : str
         Name of the ECU port.
 
-    mdi_config : :class:`~flync.model.flync_4_ecu.phy.BASET1` or \
-    :class:`~flync.model.flync_4_ecu.phy.BASET1S` or \
+    mdi_config : :class:`~flync.model.flync_4_ecu.phy.BASET1` or :class:`~flync.model.flync_4_ecu.phy.BASET1S` or \
     :class:`~flync.model.flync_4_ecu.phy.BASET`
-        Media-dependent interface configuration, such as BASE-T1,
-        BASE-T1S or BASE-T.
+        Media-dependent interface configuration, such as BASE-T1, BASE-T1S or BASE-T.
 
-    mii_config : :class:`~flync.model.flync_4_ecu.phy.MII` or \
-    :class:`~flync.model.flync_4_ecu.phy.RMII` or \
-    :class:`~flync.model.flync_4_ecu.phy.SGMII` or \
-    :class:`~flync.model.flync_4_ecu.phy.RGMII`, optional
+    mii_config : :class:`~flync.model.flync_4_ecu.phy.MII` or :class:`~flync.model.flync_4_ecu.phy.RMII` or \
+    :class:`~flync.model.flync_4_ecu.phy.SGMII` or :class:`~flync.model.flync_4_ecu.phy.RGMII`, optional
         Media-independent interface configuration, such as MII or RMII.
 
     Private Attributes
@@ -52,12 +47,10 @@ class ECUPort(NamedDictInstances):
     _ecu :
         The ECU of which the ECU Port is a part of.
     _connected_component:
-        The switch port, controller interface or ecu port connected
-        to the controller interface. This attribute
+        The switch port, controller interface or ecu port connected to the controller interface. This attribute
         is managed internally and is not part of the public API.
     _type:
         The type of the object generated. Set to ecu_port.
-
     """
 
     name: str = Field()
@@ -86,19 +79,18 @@ class ECUPort(NamedDictInstances):
     @model_validator(mode="after")
     def verify_mdi_and_mii_config_have_same_speed(self):
         """
-        Ensure that, when both MII and MDI configurations
-        are present, their ``speed`` fields match.
+        Ensure that, when both MII and MDI configurations are present, their ``speed`` fields match.
         """
 
         if self.mii_config is not None and self.mii_config.speed != self.mdi_config.speed:
-            raise err_major(f"MII and MDI config should have the same speed " f"in ECU Ports. Port {self.name}")
+            raise err_major(f"MII and MDI config should have the same speed in ECU Ports. Port {self.name}")
         return self
 
     def get_internal_connected_component(self, ecus):
         """
-        Return the component inside the ECU
-        connected  to the ECU Port.
+        Return the component inside the ECU connected  to the ECU Port.
         """
+
         return next(
             (c for c in self._connected_components if c.type != "ecu_port"),
             None,

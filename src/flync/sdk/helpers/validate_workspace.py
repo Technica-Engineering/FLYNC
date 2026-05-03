@@ -1,9 +1,8 @@
 """
 CLI script for validating a FLYNC workspace.
 
-When run directly, accepts a path to a FLYNC configuration directory and
-validates it, printing any errors as a Rich table and exiting with a non-zero
-status code on failure.
+When run directly, accepts a path to a FLYNC configuration directory and validates it,
+printing any errors as a Rich table and exiting with a non-zero status code on failure.
 """
 
 import argparse
@@ -25,15 +24,16 @@ console = Console(force_terminal=True, legacy_windows=False)
 
 
 def _make_details_cell(sub_errors: str) -> Table | str:
-    """Build a nested table for the Details column.
+    """
+    Build a nested table for the Details column.
 
-    Each newline-separated sub-error gets its own row, separated by a
-    horizontal rule, matching the visual pattern:
+    Each newline-separated sub-error gets its own row, separated by a horizontal rule, matching the visual pattern:
 
         Error 1: abc not good
         ─────────────────────
         Error 2: DEF not good
     """
+
     if not sub_errors:
         return ""
     lines = [ln for ln in sub_errors.split("\n") if ln]
@@ -50,7 +50,8 @@ def _make_details_cell(sub_errors: str) -> Table | str:
 
 
 def sanitize_error_message(error_msg: str) -> str:
-    """Strip ANSI escape codes from an error message string.
+    """
+    Strip ANSI escape codes from an error message string.
 
     Args:
         error_msg (str): The raw error message, potentially containing ANSI
@@ -59,6 +60,7 @@ def sanitize_error_message(error_msg: str) -> str:
     Returns:
         str: The message with all ANSI escape codes removed.
     """
+
     return ANSI_ESCAPE_RE.sub("", error_msg)
 
 
@@ -66,7 +68,8 @@ def __add_pydantic_errors_to_report(
     pydantic_validation_errors: list[ErrorDetails],
     error_list: list,
 ):
-    """Append formatted rows for Pydantic errors to a report list.
+    """
+    Append formatted rows for Pydantic errors to a report list.
 
     Each error is flattened into a ``[type, message, location, context]``
     row and appended to ``error_list`` in place.
@@ -76,6 +79,7 @@ def __add_pydantic_errors_to_report(
             dicts as returned by ``ValidationError.errors()``.
         error_list (list): The mutable list to append formatted rows to.
     """
+
     for err in pydantic_validation_errors:
         location = ".".join(str(p) for p in err.get("loc", []))
         err_type = err.get("type", "")
@@ -91,10 +95,10 @@ def add_errors_to_report(
     config_name: str,
     exc: Exception,
 ):
-    """Record an exception as formatted error rows in a report dictionary.
+    """
+    Record an exception as formatted error rows in a report dictionary.
 
-    Handles both :class:`pydantic.ValidationError` (expanded field-by-field)
-    and generic exceptions (treated as a single row).
+    Handles both :class:`pydantic.ValidationError` (expanded field-by-field) and generic exceptions (treated as a single row).
 
     Args:
         errors_report (dict): Mapping of config names to lists of error rows.
@@ -105,6 +109,7 @@ def add_errors_to_report(
     Returns:
         dict: The updated ``errors_report`` mapping.
     """
+
     errs: list = []
 
     if isinstance(exc, ValidationError):

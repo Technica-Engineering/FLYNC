@@ -1,8 +1,7 @@
 """
 Node helper functions for the FLYNC SDK.
 
-Provides utilities to resolve node types from the model dependency graph
-and enumerate all nodes reachable from a given root model.
+Provides utilities to resolve node types from the model dependency graph and enumerate all nodes reachable from a given root model.
 """
 
 import faulthandler
@@ -19,10 +18,10 @@ faulthandler.enable()
 
 
 def type_from_input(node: str | type[FLYNCBaseModel]) -> type[FLYNCBaseModel]:
-    """Resolve a node identifier to its Python type.
+    """
+    Resolve a node identifier to its Python type.
 
-    Accepts either a string class name (looked up in the global dependency
-    graph) or a type directly.
+    Accepts either a string class name (looked up in the global dependency graph) or a type directly.
 
     Args:
         node (str | type[FLYNCBaseModel]): A model class or its string name.
@@ -30,6 +29,7 @@ def type_from_input(node: str | type[FLYNCBaseModel]) -> type[FLYNCBaseModel]:
     Returns:
         type[FLYNCBaseModel]: The resolved model class.
     """
+
     if isinstance(node, str):
         node = get_model_dependency_graph(root=FLYNCModel).fields_info[node].python_type
     return node  # type: ignore[return-value]
@@ -38,7 +38,8 @@ def type_from_input(node: str | type[FLYNCBaseModel]) -> type[FLYNCBaseModel]:
 def available_flync_nodes(
     root_node: Optional[str | type[FLYNCBaseModel]] = FLYNCModel,
 ) -> dict[str, NodeInfo]:
-    """Return metadata for all nodes reachable from a root model.
+    """
+    Return metadata for all nodes reachable from a root model.
 
     Args:
         root_node (str | type[FLYNCBaseModel] | None): The root model class
@@ -49,6 +50,7 @@ def available_flync_nodes(
         dict[str, NodeInfo]: Mapping of class names to :class:`NodeInfo`
         objects describing each node in the dependency graph.
     """
+
     if root_node is None:
         root_node = FLYNCModel
     root_node = type_from_input(root_node)
