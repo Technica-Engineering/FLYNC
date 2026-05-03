@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import List, Literal, Optional
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_serializer, field_validator, model_validator
 
 from flync.core.base_models import FLYNCBaseModel, UniqueName
 
@@ -148,6 +148,10 @@ class Signal(UniqueName):
     unit: Optional[str] = Field(default=None)
     initial_value: Optional[float | int | bytes | str] = Field(default=None)
     value_descriptions: List[ValueDescription] = Field(default_factory=list)
+
+    @field_serializer("data_type")
+    def serialize_data_type(self, data_type: SignalDataType) -> str:
+        return data_type.value
 
     @field_validator("factor")
     @classmethod
