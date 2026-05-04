@@ -22,6 +22,7 @@ from .mac_multicast_endpoint import (
 from .multicast_groups import MulticastGroupMembership
 from .phy import BASET, BASET1, BASET1S, MII, RGMII, RMII, SGMII, XFI
 from .port import ECUPort
+from .router import RouteEntry
 from .socket_container import SocketContainer
 from .sockets import (
     IPv4AddressEndpoint,
@@ -33,9 +34,7 @@ from .sockets import (
     UDPOption,
 )
 from .switch import (
-    RouteEntry,
     Switch,
-    SwitchHostController,
     SwitchPort,
     TCAMRule,
     TrafficClass,
@@ -71,7 +70,6 @@ __all__ = [
     "ECUPort",
     "RouteEntry",
     "Switch",
-    "SwitchHostController",
     "SwitchPort",
     "VLANEntry",
     "MulticastGroup",

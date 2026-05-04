@@ -32,6 +32,7 @@ from flync.core.version_migrators.legacy_controller_check import (
     reject_legacy_controller,
 )
 from flync.model.flync_4_ecu.phy import MII, RGMII, RMII, SGMII, XFI
+from flync.model.flync_4_ecu.router import RouteEntry, gateway_in_subnet
 from flync.model.flync_4_ecu.socket_container import SocketContainer
 from flync.model.flync_4_ecu.sockets import (
     IPv4AddressEndpoint,
@@ -291,6 +292,11 @@ class ControllerInterface(NamedDictInstances):
     traffic_classes : list of :class:`~flync.model.flync_4_tsn.TrafficClass`, optional
         Traffic class definitions and egress queue shaping configuration.
 
+    routing_table : list of :class:`~flync.model.flync_4_ecu.router.RouteEntry`, optional
+        Static routing table for forwarding between subnets.
+        When provided, this interface acts as an IP router.
+        Each entry maps a destination network to a ``default_gateway`` IP and an ``egress_interface`` (VCI name).
+
     Private Attributes
     ------------------
     _connected_component :
@@ -319,6 +325,10 @@ class ControllerInterface(NamedDictInstances):
     htb: _HTBField = Field(default=None)
     ingress_streams: _IngressStreamsField = Field(default=[])
     traffic_classes: _TrafficClassesField = Field(default_factory=list)
+    routing_table: Annotated[
+        Optional[List[RouteEntry]],
+        BeforeValidator(common_validators.none_to_empty_list),
+    ] = Field(default=[])
     _connected_component = PrivateAttr(default=None)
     _type: Literal["controller_interface"] = PrivateAttr(default="controller_interface")
     _controller: Optional["Controller"] = PrivateAttr(default=None)
@@ -386,6 +396,47 @@ class ControllerInterface(NamedDictInstances):
                     raise err_minor(
                         f"{feature} is configured on both controller interface {self.name} and compute node "
                         f"{node.name}. It must be defined on either the interface or its compute nodes, not both."
+                    )
+        return self
+
+    @model_validator(mode="after")
+    def validate_routing_table_egress_interface(self):
+        """
+        Validate that every ``egress_interface`` in the routing table exists as a VCI on this interface.
+
+        Raises:
+            err_minor: An ``egress_interface`` is not a VCI of this interface.
+        """
+        if self.routing_table:
+            all_vcis = list(self.virtual_interfaces or [])
+            for node in self.compute_nodes or []:
+                all_vcis.extend(node.virtual_interfaces or [])
+            vci_names = [vci.name for vci in all_vcis]
+            for route in self.routing_table:
+                if route.egress_interface not in vci_names:
+                    raise err_minor(f"RouteEntry egress_interface {route.egress_interface} is not a virtual interface of the controller interface.")
+        return self
+
+    @model_validator(mode="after")
+    def validate_routing_table_default_gateway(self):
+        """
+        Validate that ``default_gateway`` of each route falls within the subnet of its ``egress_interface`` VCI.
+
+        Raises:
+            err_minor: ``default_gateway`` is not within the subnet of the ``egress_interface`` VCI.
+        """
+        if self.routing_table:
+            all_vcis = list(self.virtual_interfaces or [])
+            for node in self.compute_nodes or []:
+                all_vcis.extend(node.virtual_interfaces or [])
+            vci_map = {vci.name: vci for vci in all_vcis}
+            for route in self.routing_table:
+                vci = vci_map.get(route.egress_interface)
+                if vci is None:
+                    continue
+                if not gateway_in_subnet(route, vci):
+                    raise err_minor(
+                        f"RouteEntry default_gateway {route.default_gateway} is not within the subnet of egress_interface {route.egress_interface}."
                     )
         return self
 

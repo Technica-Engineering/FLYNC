@@ -207,6 +207,16 @@ TCAM
 .. autoclass:: flync.model.flync_4_ecu.switch.RemoveVLAN()
 
 
+
+.. _router:
+
+Router Config
+#############
+
+.. autoclass:: flync.model.flync_4_ecu.router.RouteEntry()
+
+
+
 .. _phy:
 
 PHY Config
