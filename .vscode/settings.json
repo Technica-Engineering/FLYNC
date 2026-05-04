@@ -17,7 +17,7 @@
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "ms-python.black-formatter",
     "black-formatter.args": [
-        "--line-length=79"
+        "--line-length=149"
     ],
     "debugpy.debugJustMyCode": false
 }
