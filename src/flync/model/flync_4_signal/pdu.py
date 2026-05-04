@@ -1,6 +1,6 @@
 from typing import List, Literal, Optional, Tuple
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 
 from flync.core.base_models import FLYNCBaseModel, UniqueName
 from flync.core.utils.exceptions import err_minor
@@ -238,6 +238,13 @@ class ContainerPDUHeader(FLYNCBaseModel):
     id_length_bits: int = Field(gt=0)
     length_field_bits: int = Field(gt=0)
 
+    @field_validator("id_length_bits", "length_field_bits")
+    @classmethod
+    def must_be_byte_aligned(cls, v: int) -> int:
+        if v % 8 != 0:
+            raise ValueError(f"must be a multiple of 8, got {v}")
+        return v
+
 
 class ContainerPDU(PDU):
     """
@@ -262,7 +269,7 @@ class ContainerPDU(PDU):
     def validate_minimum_container_size(self) -> "ContainerPDU":
         """Ensure container length covers the per-slot header overhead."""
         overhead_bits = self.header.id_length_bits + self.header.length_field_bits
-        overhead = (overhead_bits + 7) // 8  # bits → bytes, rounding up
+        overhead = overhead_bits // 8  # bits → bytes (always byte-aligned)
         minimum = len(self.contained_pdus) * overhead
         if self.length < minimum:
             raise err_minor(
