@@ -23,8 +23,8 @@ lint:
     - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
   script:
     - poetry install --no-root --only static-analysis
-    - poetry run flake8 src
-    - poetry run flake8 src --format=html --htmldir=flake8-report
+    - poetry run flake8 --max-line-length 149 src
+    - poetry run flake8 --max-line-length 149 src --format=html --htmldir=flake8-report
   artifacts:
     expire_in: 2 days
     paths:
@@ -42,7 +42,8 @@ format:
   script:
     - poetry install --no-root --only static-analysis
     - mkdir format-reports
-    - poetry run black --check --diff --color src > format-reports/black-report.diff
+    - poetry run black --target-version py312 --check --diff --color src > format-reports/black-report-src.diff
+    - poetry run black --target-version py312 --check --diff --color tests > format-reports/black-report-tests.diff
   artifacts:
     expire_in: 2 days
     paths:
@@ -60,7 +61,8 @@ isort:
   script:
     - poetry install --no-root --only static-analysis
     - mkdir format-reports
-    - poetry run isort --check --diff --color --line-length 79 src > format-reports/isort-report.diff
+    - poetry run isort --check --diff --color --line-length 149 src > format-reports/isort-report-src.diff
+    - poetry run isort --check --diff --color --line-length 149 tests > format-reports/isort-report-tests.diff
   artifacts:
     expire_in: 2 days
     paths:
