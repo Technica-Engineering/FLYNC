@@ -25,7 +25,7 @@ class SignalDataType(str, Enum):
     BYTEARRAY = "bytearray"
 
     def natural_bit_width(self) -> Optional[int]:
-        """Canonical bit width for this type, or ``None`` for ``bytearray``."""
+        """Canonical bit width for this type. Size for single element for ``char`` and ``bytearray``."""
         _widths = {
             SignalDataType.UINT8: 8,
             SignalDataType.UINT16: 16,
@@ -38,6 +38,7 @@ class SignalDataType(str, Enum):
             SignalDataType.FLOAT32: 32,
             SignalDataType.FLOAT64: 64,
             SignalDataType.CHAR: 8,
+            SignalDataType.BYTEARRAY: 8,
         }
         return _widths.get(self)
 
@@ -61,6 +62,13 @@ class SignalDataType(str, Enum):
             SignalDataType.INT16,
             SignalDataType.INT32,
             SignalDataType.INT64,
+        )
+
+    def is_complex_datattype(self) -> bool:
+        """Return ``True`` for complex datatypes."""
+        return self in (
+            SignalDataType.CHAR,
+            SignalDataType.BYTEARRAY,
         )
 
 
@@ -174,18 +182,22 @@ class Signal(UniqueName):
     @model_validator(mode="after")
     def _validate_bit_length_for_data_type(self) -> "Signal":
         natural = self.data_type.natural_bit_width()
-        if self.data_type.is_float():
+        if self.data_type.is_complex_datattype():
+            if natural is not None and (self.bit_length < natural or self.bit_length % natural != 0):
+                raise ValueError(f"{self.data_type.value} requires {natural} bits or a multiple of that; got bit_length={self.bit_length}")
+            return self
+        elif self.data_type.is_float():
             if self.bit_length != natural:
-                raise ValueError(f"{self.data_type.value} requires exactly {natural} bits; " f"got bit_length={self.bit_length}")
+                raise ValueError(f"{self.data_type.value} requires exactly {natural} bits; got bit_length={self.bit_length}")
         elif natural is not None and self.bit_length > natural:
-            raise ValueError(f"bit_length={self.bit_length} exceeds the natural width " f"of {self.data_type.value} ({natural} bits)")
+            raise ValueError(f"bit_length={self.bit_length} exceeds the natural width of {self.data_type.value} ({natural} bits)")
         return self
 
     @model_validator(mode="after")
     def _validate_limits(self) -> "Signal":
         if self.lower_limit is not None and self.upper_limit is not None:
             if self.lower_limit > self.upper_limit:
-                raise ValueError(f"lower_limit ({self.lower_limit}) must not exceed " f"upper_limit ({self.upper_limit})")
+                raise ValueError(f"lower_limit ({self.lower_limit}) must not exceed upper_limit ({self.upper_limit})")
         return self
 
     @model_validator(mode="after")
@@ -262,13 +274,13 @@ def _check_initial_value(iv: object, dt: SignalDataType, bit_length: int) -> Non
     """Validate if the type is fit or not."""
     if dt == SignalDataType.BYTEARRAY:
         if not isinstance(iv, bytes):
-            raise ValueError(f"initial_value for bytearray signal must be bytes; " f"got {type(iv).__name__}")
+            raise ValueError(f"initial_value for bytearray signal must be bytes; got {type(iv).__name__}")
     elif dt == SignalDataType.CHAR:
         if not isinstance(iv, str):
-            raise ValueError(f"initial_value for char signal must be str; " f"got {type(iv).__name__}")
+            raise ValueError(f"initial_value for char signal must be str; got {type(iv).__name__}")
     elif dt.is_float():
         if not isinstance(iv, (float, int)) or isinstance(iv, bool):
-            raise ValueError(f"initial_value for {dt.value} must be numeric; " f"got {type(iv).__name__}")
+            raise ValueError(f"initial_value for {dt.value} must be numeric; got {type(iv).__name__}")
     elif dt.is_unsigned_integer() or dt.is_signed_integer():
         _check_integer_initial_value(iv, dt, bit_length)
 
@@ -276,11 +288,11 @@ def _check_initial_value(iv: object, dt: SignalDataType, bit_length: int) -> Non
 def _check_integer_initial_value(iv: object, dt: SignalDataType, bit_length: int) -> None:
     """Validate that an integer is the right type and fits in bit_length."""
     if not isinstance(iv, int) or isinstance(iv, bool):
-        raise ValueError(f"initial_value for {dt.value} must be int; " f"got {type(iv).__name__}")
+        raise ValueError(f"initial_value for {dt.value} must be int; got {type(iv).__name__}")
     if dt.is_unsigned_integer():
         lo, hi = 0, (1 << bit_length) - 1
     else:
         lo = -(1 << (bit_length - 1))
         hi = (1 << (bit_length - 1)) - 1
     if not (lo <= iv <= hi):
-        raise ValueError(f"initial_value {iv} is outside the representable " f"range [{lo}, {hi}] for {dt.value} " f"with bit_length={bit_length}")
+        raise ValueError(f"initial_value {iv} is outside the representable range [{lo}, {hi}] for {dt.value} with bit_length={bit_length}")

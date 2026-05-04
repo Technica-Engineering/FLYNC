@@ -46,7 +46,7 @@ def test_positive_signal_data_type_natural_bit_width():
     assert SignalDataType.FLOAT32.natural_bit_width() == 32
     assert SignalDataType.FLOAT64.natural_bit_width() == 64
     assert SignalDataType.CHAR.natural_bit_width() == 8
-    assert SignalDataType.BYTEARRAY.natural_bit_width() is None
+    assert SignalDataType.BYTEARRAY.natural_bit_width() == 8
 
 
 def test_positive_signal_data_type_is_float():
@@ -155,8 +155,9 @@ def test_positive_signal_with_optional_fields():
         pytest.param(SignalDataType.INT32, 32, id="int32"),
         pytest.param(SignalDataType.INT64, 64, id="int64"),
         pytest.param(SignalDataType.CHAR, 8, id="char"),
+        pytest.param(SignalDataType.CHAR, 48, id="char"),
         pytest.param(SignalDataType.BYTEARRAY, 24, id="bytearray_24bit"),
-        pytest.param(SignalDataType.BYTEARRAY, 1, id="bytearray_1bit"),
+        pytest.param(SignalDataType.BYTEARRAY, 8, id="bytearray_1bit"),
     ],
 )
 def test_positive_signal_all_types(data_type, bit_length):
