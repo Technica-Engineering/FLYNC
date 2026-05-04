@@ -30,7 +30,7 @@ from flync.core.datatypes.ipaddress import (
     IPv6AddressEntry,
 )
 from flync.core.utils.exceptions import err_minor, warn
-from flync.model.flync_4_signal.frame import PDUSender
+from flync.model.flync_4_signal.frame import PDUReceiver, PDUSender
 from flync.model.flync_4_someip import (
     SOMEIPSDDeployment,
     SOMEIPServiceConsumer,
@@ -51,11 +51,13 @@ class DeploymentUnion(RootModel):
     or
     :class:`~flync.model.flync_4_someip.SOMEIPSDDeployment`
     or
-    :class:`~flync.model.flync_4_signal.pdu.PDUSender`
+    :class:`~flync.model.flync_4_signal.frame.PDUSender`
+    or
+    :class:`~flync.model.flync_4_signal.frame.PDUReceiver`
 
     """
 
-    root: SOMEIPServiceConsumer | SOMEIPServiceProvider | SOMEIPSDDeployment | PDUSender = Field(discriminator="deployment_type")
+    root: SOMEIPServiceConsumer | SOMEIPServiceProvider | SOMEIPSDDeployment | PDUSender | PDUReceiver = Field(discriminator="deployment_type")
 
 
 def get_endpoint_type_from_address(

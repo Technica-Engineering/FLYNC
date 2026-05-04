@@ -1,0 +1,9 @@
+node_type: master
+bus_ref: BodyLIN
+lin_protocol: "2.2A"
+p2_min: 0.5
+st_min: 0.0
+sender_frames:
+  - frame_ref: Frame_MirrorLeftStatus
+  - frame_ref: Frame_MirrorRightStatus
+  - frame_ref: Frame_CabinLightStatus

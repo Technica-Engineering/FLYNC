@@ -1,0 +1,5 @@
+bus_ref: DiagCAN
+sender_frames:
+  - frame_ref: Frame_EngineDiagResponse
+receiver_frames:
+  - frame_ref: Frame_LightDiagRequest

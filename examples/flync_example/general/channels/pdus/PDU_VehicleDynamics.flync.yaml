@@ -6,7 +6,7 @@ description: Vehicle speed and lateral body acceleration.
 signals:
   - bit_position: 0
     endianness: LE
-    subscriber_nodes: [HPC, EngineECU, TransmissionECU]
+
     signal:
       name: VehicleSpeed
       description: Longitudinal vehicle speed from ABS.
@@ -22,7 +22,7 @@ signals:
           description: Signal_Not_Available
   - bit_position: 16
     endianness: LE
-    subscriber_nodes: [HPC]
+
     signal:
       name: LateralAcceleration
       description: Lateral body acceleration.

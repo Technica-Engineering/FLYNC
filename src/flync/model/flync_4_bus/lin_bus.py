@@ -1,11 +1,8 @@
-from typing import Annotated, List, Literal, Optional, Union
+from typing import Annotated, List, Literal, Optional
 
 from pydantic import Field, field_validator, model_validator
 
-from flync.core.base_models import (
-    FLYNCBaseModel,
-    UniqueName,
-)
+from flync.core.base_models import FLYNCBaseModel, UniqueName
 from flync.core.utils.exceptions import err_major, err_minor
 from flync.model.flync_4_signal.frame import LINFrame
 
@@ -20,93 +17,6 @@ _ALLOWED_LIN_BAUD_RATES = {1_200, 2_400, 4_800, 9_600, 10_400, 19_200}
 # ---------------------------------------------------------------------------
 
 _LINProtocol = Literal["1.3", "2.0", "2.1", "2.2A"]
-
-# ---------------------------------------------------------------------------
-# Node definitions
-# ---------------------------------------------------------------------------
-
-
-class LINMasterNode(FLYNCBaseModel):
-    """
-    LIN bus master node.
-
-    In an LDF file the master is declared in the ``Nodes`` section
-    under ``Master:`` with its timing parameters.
-
-    Parameters
-    ----------
-    node_type : Literal["master"]
-        Discriminator field.  Always ``"master"``.
-    name : str
-        Name of the master node (e.g. ``"Master"``).
-    lin_protocol : Literal["1.3", "2.0", "2.1", "2.2A"]
-        LIN protocol version supported by this node.
-        Written as the node's ``LIN_protocol`` attribute in LDF ``Node_attributes``.
-    p2_min : float
-        Minimum time (ms) between the end of the slave response and the start of the next frame header.
-        Maps to ``P2_min`` in the LDF ``Nodes.Master`` block.
-    st_min : float
-        Minimum separation time (ms) between consecutive frame headers transmitted by the master.
-        Maps to ``ST_min`` in the LDF ``Nodes.Master`` block.
-    description : str, optional
-        Optional human-readable description.
-    """
-
-    node_type: Literal["master"] = Field(default="master")
-    name: str = Field()
-    lin_protocol: _LINProtocol = Field()
-    p2_min: float = Field()
-    st_min: float = Field()
-    description: Optional[str] = Field(default=None)
-
-
-class LINSlaveNode(FLYNCBaseModel):
-    """
-    LIN bus slave node.
-
-    In an LDF file slave nodes are listed in the ``Nodes.Slaves`` block and described in detail within ``Node_attributes``.
-
-    Parameters
-    ----------
-    node_type : Literal["slave"]
-        Discriminator field.  Always ``"slave"``.
-    name : str
-        Name of the slave node.
-    lin_protocol : Literal["1.3", "2.0", "2.1", "2.2A"]
-        LIN protocol version supported by this node.
-    configured_nad : int
-        Configured Node Address (0x00 – 0xFF).
-        Written as ``configured_NAD`` in the LDF ``Node_attributes`` block.
-    initial_nad : int
-        Initial Node Address (0x00 – 0xFF).
-        Written as ``initial_NAD`` in the LDF ``Node_attributes`` block.
-    product_id : str, optional
-        Product identification string.
-        Written as ``product_id`` in the LDF ``Node_attributes`` block.
-    response_error : str, optional
-        Name of the signal used to report response errors.
-        Written as ``response_error`` in the LDF ``Node_attributes`` block.
-    description : str, optional
-        Optional human-readable description.
-    """
-
-    node_type: Literal["slave"] = Field(default="slave")
-    name: str = Field()
-    lin_protocol: _LINProtocol = Field()
-    configured_nad: Annotated[int, Field(ge=0, le=0xFF)] = Field()
-    initial_nad: Annotated[int, Field(ge=0, le=0xFF)] = Field()
-    product_id: Optional[str] = Field(default=None)
-    response_error: Optional[str] = Field(default=None)
-    description: Optional[str] = Field(default=None)
-
-
-# Discriminated union used in LINBus.nodes
-AnyLINNode = Annotated[
-    Union[LINMasterNode, LINSlaveNode],
-    Field(discriminator="node_type"),
-]
-"""Type alias for a LIN bus node entry (master or slave), discriminated by the ``node_type`` field."""
-
 
 # ---------------------------------------------------------------------------
 # Schedule table
@@ -166,8 +76,9 @@ class LINBus(UniqueName):
     """
     LIN bus configuration.
 
-    Models the complete LIN bus, including the protocol header information needed for LDF file generation, the master and slave
-    node definitions, the schedule tables, and the set of frames on the bus.
+    Models the complete LIN bus, including the protocol header information needed for LDF file generation,
+    the schedule tables, and the set of frames on the bus.  Node participation (master/slave role, NAD,
+    timing parameters) is declared on the controller's LIN interface, not here.
 
     LDF file mapping:
 
@@ -177,8 +88,7 @@ class LINBus(UniqueName):
     * ``channel_name`` → ``Channel_name``
     * ``time_base`` → ``Time_base`` (ms)
     * ``jitter`` → ``Jitter`` (ms)
-    * ``nodes`` → ``Nodes { Master: …; Slaves: …; }`` and ``Node_attributes``
-    * ``frames`` → ``Frames`` section; signal publishers derived from each frame's ``publisher_node``
+    * ``frames`` → ``Frames`` section
     * ``schedule_tables`` → ``Schedule_tables`` section
     * Signal encoding types and ``Signal_representation`` are derived from the ``Signal.factor``, ``Signal.offset``,
       ``Signal.lower_limit``, ``Signal.upper_limit``, ``Signal.unit``, and ``Signal.value_descriptions`` fields during LDF export.
@@ -205,8 +115,6 @@ class LINBus(UniqueName):
     jitter : float
         Maximum scheduling jitter in milliseconds.
         Defaults to ``0.0``.  Corresponds to the LDF ``Jitter`` field.
-    nodes : list of :class:`LINMasterNode` | :class:`LINSlaveNode`
-        Exactly one :class:`LINMasterNode` and any number of :class:`LINSlaveNode` entries.
     schedule_tables : list of :class:`LINScheduleTable`
         Named schedule tables for the LDF ``Schedule_tables`` section.
     frames : list of :class:`~flync.model.flync_4_signal.frame.LINFrame`
@@ -221,7 +129,6 @@ class LINBus(UniqueName):
     channel_name: Optional[str] = Field(default=None)
     time_base: float = Field(default=5.0)
     jitter: float = Field(default=0.0)
-    nodes: List[AnyLINNode] = Field(default_factory=list)
     schedule_tables: List[LINScheduleTable] = Field(default_factory=list)
     frames: List[LINFrame] = Field(default_factory=list)
 
@@ -242,24 +149,6 @@ class LINBus(UniqueName):
         return value
 
     @model_validator(mode="after")
-    def validate_single_master(self) -> "LINBus":
-        """Enforce the LIN single-master constraint."""
-        masters = [n.name for n in self.nodes if isinstance(n, LINMasterNode)]
-        if len(masters) == 0:
-            raise err_major(
-                "LINBus '{name}' has no master node. Exactly one LINMasterNode is required.",
-                name=self.name,
-            )
-        if len(masters) > 1:
-            raise err_major(
-                "LINBus '{name}' has {count} master nodes ({masters}). LIN supports exactly one master.",
-                name=self.name,
-                count=len(masters),
-                masters=masters,
-            )
-        return self
-
-    @model_validator(mode="after")
     def validate_schedule_frame_references(self) -> "LINBus":
         """Ensure every schedule entry references a defined frame."""
         frame_names = {f.name for f in self.frames}
@@ -272,17 +161,4 @@ class LINBus(UniqueName):
                         frame=entry.frame_name,
                         defined=sorted(frame_names),
                     )
-        return self
-
-    @model_validator(mode="after")
-    def validate_unique_node_names(self) -> "LINBus":
-        """Ensure node names are unique within this bus."""
-        names = [n.name for n in self.nodes]
-        duplicates = [n for n in names if names.count(n) > 1]
-        if duplicates:
-            raise err_minor(
-                "LINBus '{name}' has duplicate node name(s): {duplicates}",
-                name=self.name,
-                duplicates=sorted(set(duplicates)),
-            )
         return self

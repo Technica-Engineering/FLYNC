@@ -17,7 +17,7 @@ mux_groups:
     signals:
       - bit_position: 8
         endianness: LE
-        subscriber_nodes: [HPC]
+
         signal:
           name: CurrentGear
           description: Currently engaged gear.
@@ -40,7 +40,7 @@ mux_groups:
               description: Drive_D4
       - bit_position: 16
         endianness: LE
-        subscriber_nodes: [HPC]
+
         signal:
           name: GearShiftMode
           description: Automatic / manual / sport shift mode.
@@ -57,7 +57,7 @@ mux_groups:
     signals:
       - bit_position: 8
         endianness: LE
-        subscriber_nodes: [HPC]
+
         signal:
           name: TorqueConverterSlipSpeed
           description: Slip speed of the torque converter.
@@ -68,7 +68,7 @@ mux_groups:
           unit: rpm
       - bit_position: 24
         endianness: LE
-        subscriber_nodes: [HPC]
+
         signal:
           name: TorqueConverterLockup
           description: Torque converter lock-up clutch state.

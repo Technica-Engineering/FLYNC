@@ -3,17 +3,6 @@ description: 500 kbit/s classical CAN bus carrying engine, transmission, and veh
 version: "1.0"
 baud_rate: 500000
 
-nodes:
-  - name: EngineECU
-    node_id: 1
-    description: Engine Management System.
-  - name: TransmissionECU
-    node_id: 2
-    description: Transmission Control Module.
-  - name: HPC
-    node_id: 16
-    description: High-Processing Core — CAN gateway node.
-
 frames:
 
   # --------------------------------------------------------------------------
@@ -25,7 +14,6 @@ frames:
     length: 8
     can_id: 257          # 0x101
     id_format: standard_11bit
-    publisher_node: EngineECU
     packed_pdus:
       - pdu_ref: PDU_EngineStatus
         bit_position: 0
@@ -43,7 +31,6 @@ frames:
     length: 6
     can_id: 513          # 0x201
     id_format: standard_11bit
-    publisher_node: EngineECU
     packed_pdus:
       - pdu_ref: PDU_VehicleDynamics
         bit_position: 0
@@ -65,7 +52,6 @@ frames:
     length: 8
     can_id: 769          # 0x301
     id_format: standard_11bit
-    publisher_node: TransmissionECU
     packed_pdus:
       - pdu_ref: PDU_TransmissionStatus
         bit_position: 0

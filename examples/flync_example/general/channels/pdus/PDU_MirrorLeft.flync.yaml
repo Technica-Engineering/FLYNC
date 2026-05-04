@@ -6,7 +6,7 @@ description: Left exterior mirror horizontal and vertical position.
 signals:
   - bit_position: 0
     endianness: LE
-    subscriber_nodes: [ZonalPlatform1]
+
     signal:
       name: MirrorLeftHorizontal
       description: Left exterior mirror horizontal position.
@@ -22,7 +22,7 @@ signals:
           description: Position_Unknown
   - bit_position: 8
     endianness: LE
-    subscriber_nodes: [ZonalPlatform1]
+
     signal:
       name: MirrorLeftVertical
       description: Left exterior mirror vertical position.
