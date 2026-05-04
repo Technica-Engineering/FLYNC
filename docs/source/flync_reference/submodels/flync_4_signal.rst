@@ -32,9 +32,15 @@ Signals are not placed directly into PDUs; instead a
 with its placement information (bit offset, byte order, and the list
 of subscribing nodes).
 
+.. autoclass:: flync.model.flync_4_signal.SignalDataType()
+   :members:
+   :undoc-members:
+
 .. autoclass:: flync.model.flync_4_signal.Signal()
 
 .. autoclass:: flync.model.flync_4_signal.ValueDescription()
+
+.. autoclass:: flync.model.flync_4_signal.InstancePlacement()
 
 .. autoclass:: flync.model.flync_4_signal.SignalInstance()
 
@@ -88,7 +94,7 @@ There are three PDU types, distinguished by the ``type`` discriminator field:
 Standard PDU
 ============
 
-.. admonition:: Expand for a YAML example - 📄 ``general/channels/pdus/<name>.flync.yaml``
+.. admonition:: Expand for a YAML example - 📄 ``general/channels/pdus/PDU_EngineStatus.flync.yaml``
    :collapsible: closed
 
    .. note::
@@ -96,7 +102,7 @@ Standard PDU
       ``general/channels/pdus/``.  This directory is **optional** and
       may be omitted when no PDUs are defined.
 
-   .. literalinclude:: ../../../../examples/signal_pdu_example/general/channels/pdus/PDU_EngineStatus.flync.yaml
+   .. literalinclude:: ../../../../examples/flync_example/general/channels/pdus/PDU_EngineStatus.flync.yaml
       :language: yaml
 
 .. autoclass:: flync.model.flync_4_signal.StandardPDU()
@@ -104,7 +110,7 @@ Standard PDU
 Multiplexed PDU
 ===============
 
-.. admonition:: Expand for a YAML example - 📄 ``general/channels/pdus/<name>.flync.yaml``
+.. admonition:: Expand for a YAML example - 📄 ``general/channels/pdus/PDU_TransmissionStatus.flync.yaml``
    :collapsible: closed
 
    .. note::
@@ -113,7 +119,7 @@ Multiplexed PDU
       transmission cycle.  This corresponds to the DBC ``M``/``mN``
       multiplexer notation.
 
-   .. literalinclude:: ../../../../examples/signal_pdu_example/general/channels/pdus/PDU_TransmissionStatus.flync.yaml
+   .. literalinclude:: ../../../../examples/flync_example/general/channels/pdus/PDU_TransmissionStatus.flync.yaml
       :language: yaml
 
 .. autoclass:: flync.model.flync_4_signal.MultiplexedPDU()
@@ -123,19 +129,24 @@ Multiplexed PDU
 Container PDU
 =============
 
-.. admonition:: Expand for a YAML example - 📄 ``general/channels/pdus/<name>.flync.yaml``
+.. admonition:: Expand for a YAML example - 📄 ``general/channels/ethernet_pdu_containers/eth_powertrain_container.flync.yaml``
    :collapsible: closed
 
    .. note::
       An Ethernet Container PDU is stored in its own ``.flync.yaml``
       file under ``general/channels/pdus/``, alongside all other PDU
       types.  It bundles several application PDUs into one Ethernet
-      payload using short (2 + 1 bytes) or long (4 + 2 bytes) PDU headers.
+      payload.  The per-slot header format is configured via the ``header``
+      block, which specifies ``id_length_bits`` and ``length_field_bits``.
 
-   .. literalinclude:: ../../../../examples/signal_pdu_example/general/channels/pdus/eth_powertrain_container.flync.yaml
+   .. literalinclude:: ../../../../examples/flync_example/general/channels/ethernet_pdu_containers/eth_powertrain_container.flync.yaml
       :language: yaml
 
+.. autoclass:: flync.model.flync_4_signal.ContainerPDUHeader()
+
 .. autoclass:: flync.model.flync_4_signal.ContainerPDU()
+
+.. autoclass:: flync.model.flync_4_signal.ContainedPDURef()
 
 .. autoclass:: flync.model.flync_4_signal.PDUInstance()
 
@@ -159,6 +170,8 @@ name via :class:`~flync.model.flync_4_signal.PDUInstance`.
 
 .. autoclass:: flync.model.flync_4_signal.Frame()
 
+.. autoclass:: flync.model.flync_4_signal.CANFrameBase()
+
 .. autoclass:: flync.model.flync_4_signal.CANFrame()
 
 .. autoclass:: flync.model.flync_4_signal.CANFDFrame()
@@ -170,7 +183,7 @@ name via :class:`~flync.model.flync_4_signal.PDUInstance`.
 Ethernet Frame
 ==============
 
-.. admonition:: Expand for a YAML example - 📄 ``general/channels/ethernet/<name>.flync.yaml``
+.. admonition:: Expand for a YAML example - 📄 ``general/channels/ethernet/ethernet_frames.flync.yaml``
    :collapsible: closed
 
    .. note::
@@ -182,7 +195,7 @@ Ethernet Frame
       Transport (socket, IP address, port) is bound separately on the
       sender ECU via a ``pdu_sender`` deployment on the relevant socket.
 
-   .. literalinclude:: ../../../../examples/signal_pdu_example/general/channels/ethernet/ethernet_frames.flync.yaml
+   .. literalinclude:: ../../../../examples/flync_example/general/channels/ethernet/ethernet_frames.flync.yaml
       :language: yaml
 
 .. autoclass:: flync.model.flync_4_signal.EthernetFrame()
@@ -190,7 +203,7 @@ Ethernet Frame
 PDU Sender Deployment
 =====================
 
-.. admonition:: Expand for a YAML example - 📄 ``ecus/<ecu>/sockets/socket_pdu.flync.yaml``
+.. admonition:: Expand for a YAML example - 📄 ``ecus/high_performance_compute/controllers/hpc_controller1/ethernet_interfaces/hpc_c1_iface1/sockets/socket_pdu.flync.yaml``
    :collapsible: closed
 
    .. note::
@@ -200,7 +213,7 @@ PDU Sender Deployment
       :class:`~flync.model.flync_4_ecu.SocketTCP` or
       :class:`~flync.model.flync_4_ecu.SocketUDP`.
 
-   .. literalinclude:: ../../../../examples/signal_pdu_example/ecus/high_processing_core/sockets/socket_pdu.flync.yaml
+   .. literalinclude:: ../../../../examples/flync_example/ecus/high_performance_compute/controllers/hpc_controller1/ethernet_interfaces/hpc_c1_iface1/sockets/socket_pdu.flync.yaml
       :language: yaml
 
 .. autoclass:: flync.model.flync_4_signal.PDUSender()

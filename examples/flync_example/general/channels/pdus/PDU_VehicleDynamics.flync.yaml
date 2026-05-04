@@ -1,6 +1,5 @@
 name: PDU_VehicleDynamics
 type: standard
-pdu_id: 513
 length: 6
 description: Vehicle speed and lateral body acceleration.
 

@@ -39,7 +39,7 @@ CAN Bus
       This directory is **optional** — omit it when the system has no
       CAN buses.
 
-   .. literalinclude:: ../../../../examples/signal_pdu_example/general/channels/can/powertrain_can.flync.yaml
+   .. literalinclude:: ../../../../examples/flync_example/general/channels/can/powertrain_can.flync.yaml
       :language: yaml
 
 .. autoclass:: flync.model.flync_4_bus.CANBus()
@@ -69,7 +69,7 @@ LIN Bus
       This directory is **optional** — omit it when the system has no
       LIN buses.
 
-   .. literalinclude:: ../../../../examples/signal_pdu_example/general/channels/lin/body_lin.flync.yaml
+   .. literalinclude:: ../../../../examples/flync_example/general/channels/lin/body_lin.flync.yaml
       :language: yaml
 
 .. autoclass:: flync.model.flync_4_bus.LINBus()
@@ -80,6 +80,8 @@ Nodes
 .. autoclass:: flync.model.flync_4_bus.LINMasterNode()
 
 .. autoclass:: flync.model.flync_4_bus.LINSlaveNode()
+
+.. autodata:: flync.model.flync_4_bus.AnyLINNode
 
 Schedule Tables
 ===============

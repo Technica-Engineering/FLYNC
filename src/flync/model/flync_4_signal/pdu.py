@@ -1,4 +1,4 @@
-from typing import List, Literal, Optional, Tuple
+from typing import List, Literal, Optional, Tuple, Union
 
 from pydantic import Field, model_validator
 
@@ -22,8 +22,6 @@ class PDU(UniqueName):
     ----------
     name : str
         Unique name of the PDU.
-    pdu_id : int
-        Numeric identifier of the PDU.
     length : int
         Length of the PDU payload in bytes.
     pdu_usage : str, optional
@@ -33,7 +31,6 @@ class PDU(UniqueName):
     """
 
     name: str = Field()
-    pdu_id: int = Field()
     length: int = Field(gt=0)
     pdu_usage: Optional[str] = Field(default=None)
     description: Optional[str] = Field(default=None)
@@ -141,7 +138,13 @@ class MultiplexedPDU(PDU):
     def validate_selector_value_ranges(self) -> "MultiplexedPDU":
         """Ensure selector_values fit within the selector signal's width."""
         max_value = (1 << self.selector_signal.signal.bit_length) - 1
-        out_of_range = sorted({g.selector_value for g in self.mux_groups if g.selector_value > max_value})
+        out_of_range = sorted(
+            {
+                g.selector_value
+                for g in self.mux_groups
+                if g.selector_value > max_value
+            }
+        )
         if out_of_range:
             raise err_minor(
                 "MultiplexedPDU '{name}': selector_signal '{sig}' has "
@@ -167,9 +170,12 @@ class MultiplexedPDU(PDU):
             sel_bp + self.selector_signal.signal.bit_length,
         )
         for group in self.mux_groups:
-            group_ranges = _collect_placed_ranges(group.signals, group.signal_groups)
+            group_ranges = _collect_placed_ranges(
+                group.signals, group.signal_groups
+            )
             _check_overlap(
-                f"MultiplexedPDU '{self.name}' " f"mux_group(selector={group.selector_value}) vs selector",
+                f"MultiplexedPDU '{self.name}' "
+                f"mux_group(selector={group.selector_value}) vs selector",
                 [sel_range, *group_ranges],
             )
         if self.static_signals:
@@ -192,10 +198,13 @@ class ContainedPDURef(FLYNCBaseModel):
 
     Parameters
     ----------
+    pdu_id : int
+        Numeric identifier placed in the slot header for this contained PDU.
     pdu_ref : str
         Name of the referenced PDU.
     """
 
+    pdu_id: int = Field()
     pdu_ref: str = Field()
 
 
@@ -223,6 +232,22 @@ class PDUInstance(FLYNCBaseModel):
 # ---------------------------------------------------------------------------
 
 
+class ContainerPDUHeader(FLYNCBaseModel):
+    """
+    Per-slot header configuration for a :class:`ContainerPDU`.
+
+    Parameters
+    ----------
+    id_length_bits : int
+        Bit length of the PDU ID field 
+    length_field_bits : int
+        Bit length of the payload-length field 
+    """
+
+    id_length_bits: int = Field(gt=0)
+    length_field_bits: int = Field(gt=0)
+
+
 class ContainerPDU(PDU):
     """
     Ethernet Container PDU that packs multiple PDUs into one frame payload.
@@ -232,20 +257,20 @@ class ContainerPDU(PDU):
 
     Parameters
     ----------
-    header_type : Literal["short_header", "long_header"]
-        Header format per slot: ``"short_header"`` uses a 2-byte ID and 1-byte length; ``"long_header"`` uses a 4-byte ID and 2-byte length.
+    header : :class:`ContainerPDUHeader`
+        Per-slot header format specifying the bit widths of the ID and length fields.
     contained_pdus : list of :class:`ContainedPDURef`
         PDUs packed inside this container, each referenced by name.
     """
 
     type: Literal["container"] = Field(default="container")
-    header_type: Literal["short_header", "long_header"] = Field()
+    header: ContainerPDUHeader = Field()
     contained_pdus: List[ContainedPDURef] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def validate_minimum_container_size(self) -> "ContainerPDU":
         """Ensure container length covers the per-slot header overhead."""
-        overhead = 3 if self.header_type == "short_header" else 6
+        overhead = self.header.id_length_bits + self.header.length_field_bits
         minimum = len(self.contained_pdus) * overhead
         if self.length < minimum:
             raise err_minor(
