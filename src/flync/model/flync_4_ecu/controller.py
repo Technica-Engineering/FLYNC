@@ -27,7 +27,7 @@ from flync.core.base_models import (
     NamedDictInstances,
     NamedListInstances,
 )
-from flync.core.utils.exceptions import err_fatal, err_major, err_minor
+from flync.core.utils.exceptions import err_fatal, err_major, err_minor, warn
 from flync.core.version_migrators.legacy_controller_check import (
     reject_legacy_controller,
 )
@@ -122,6 +122,8 @@ class VirtualControllerInterface(FLYNCBaseModel):
 
 class ComputeNodes(FLYNCBaseModel):
     """
+    **WARNING: ComputeNode is currently experimental! Subject to change, please use with care.**
+
     A virtual machine (VM) attached to a controller interface.
 
     Compute nodes are VMs that run on the same SoC as the controller.
@@ -187,6 +189,12 @@ class ComputeNodes(FLYNCBaseModel):
         """Ensure no ingress stream carries an ipv or ats value."""
         return common_validators.validate_ingress_streams_fields(value, "compute node")
 
+    @model_validator(mode="before")
+    def experimental_warning(self):
+        """Experimental Class in v0.11.0"""
+        warn("Compute Nodes are currently experimental! Subject to change, please use with care.")
+        return self
+
     @model_validator(mode="after")
     def validate_vlans(self):
         """Raise if any VLAN ID is repeated across virtual interfaces."""
@@ -216,6 +224,8 @@ class L2BridgePort(FLYNCBaseModel):
 
 class L2Bridge(FLYNCBaseModel):
     """
+    **WARNING: L2Bridge is currently experimental! Subject to change, please use with care.**
+
     A software MAC bridge inside a controller.
 
     The L2 bridge is the connectivity fabric that ties together the controller's physical interfaces and their compute nodes.
@@ -239,6 +249,12 @@ class L2Bridge(FLYNCBaseModel):
     name: str = Field()
     ports: List[L2BridgePort] = Field()
     vlans: List[VLANEntry] = Field()
+
+    @model_validator(mode="before")
+    def experimental_warning(self):
+        """Experimental Class in v0.11.0"""
+        warn("L2Bridge is currently experimental! Subject to change, please use with care.")
+        return self
 
 
 class ControllerInterface(NamedDictInstances):
