@@ -8,7 +8,7 @@ description: >-
 signals:
   - bit_position: 0
     endianness: LE
-    subscriber_nodes: [HPC, TransmissionECU]
+
     signal:
       name: EngineSpeed
       description: Crankshaft rotational speed.
@@ -24,7 +24,7 @@ signals:
           description: Signal_Not_Available
   - bit_position: 16
     endianness: LE
-    subscriber_nodes: [HPC, TransmissionECU]
+
     signal:
       name: EngineTorque
       description: Indicated engine torque at crankshaft.
@@ -37,7 +37,7 @@ signals:
       unit: Nm
   - bit_position: 32
     endianness: LE
-    subscriber_nodes: [HPC]
+
     signal:
       name: EngineCoolantTemp
       description: Engine coolant temperature.
@@ -55,7 +55,7 @@ signals:
           description: Signal_Not_Available
   - bit_position: 40
     endianness: LE
-    subscriber_nodes: [HPC, TransmissionECU]
+
     signal:
       name: EngineStatus
       description: Engine operating state.

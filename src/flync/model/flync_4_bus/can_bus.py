@@ -1,9 +1,9 @@
 from collections import Counter
-from typing import Annotated, List, Optional, Union
+from typing import Annotated, List, Union, Optional
 
 from pydantic import Field, field_validator, model_validator
 
-from flync.core.base_models import FLYNCBaseModel, UniqueName
+from flync.core.base_models import UniqueName
 from flync.core.utils.exceptions import err_major, err_minor
 from flync.model.flync_4_signal.frame import CANFDFrame, CANFrame
 
@@ -30,25 +30,6 @@ _ALLOWED_CAN_FD_DATA_RATES = frozenset(
 )
 
 
-class CANBusNode(FLYNCBaseModel):
-    """
-    A node connected to a CAN bus.
-
-    Parameters
-    ----------
-    name : str
-        Unique name of the node within this bus.
-    node_id : int, optional
-        Optional numeric node identifier.
-    description : str, optional
-        Optional description.
-    """
-
-    name: str = Field()
-    node_id: Optional[Annotated[int, Field(ge=0, le=0xFFFF)]] = Field(default=None)
-    description: Optional[str] = Field(default=None)
-
-
 class CANBus(UniqueName):
     """
     CAN bus configuration.
@@ -68,8 +49,6 @@ class CANBus(UniqueName):
     fd_baud_rate : int, optional
         Data-phase bit rate in bits/s.  Required when ``fd_enabled`` is ``True``; must be ``None`` otherwise.  Must be one of: 2 000 000,
         4 000 000, 5 000 000, or 8 000 000.
-    nodes : list of :class:`CANBusNode`
-        Nodes present on this bus.
     frames : list of :class:`CANFrame` | :class:`CANFDFrame`
         Frames transmitted on this bus.  :class:`CANFDFrame` entries are only permitted when ``fd_enabled`` is ``True``.
     """
@@ -80,7 +59,6 @@ class CANBus(UniqueName):
     baud_rate: int = Field()
     fd_enabled: bool = Field(default=False)
     fd_baud_rate: Optional[int] = Field(default=None)
-    nodes: List[CANBusNode] = Field(default_factory=list)
     frames: List[Annotated[Union[CANFrame, CANFDFrame], Field(discriminator="type")]] = Field(default_factory=list)
 
     @field_validator("baud_rate")
@@ -128,17 +106,6 @@ class CANBus(UniqueName):
         return self
 
     @model_validator(mode="after")
-    def validate_unique_node_names(self) -> "CANBus":
-        duplicates = sorted(n for n, c in Counter(node.name for node in self.nodes).items() if c > 1)
-        if duplicates:
-            raise err_minor(
-                "CANBus '{name}' has duplicate node name(s): {duplicates}",
-                name=self.name,
-                duplicates=duplicates,
-            )
-        return self
-
-    @model_validator(mode="after")
     def validate_unique_frame_names(self) -> "CANBus":
         duplicates = sorted(n for n, c in Counter(f.name for f in self.frames).items() if c > 1)
         if duplicates:
@@ -161,14 +128,3 @@ class CANBus(UniqueName):
             )
         return self
 
-    @model_validator(mode="after")
-    def validate_publisher_nodes_declared(self) -> "CANBus":
-        declared = {n.name for n in self.nodes}
-        unknown = sorted({f.publisher_node for f in self.frames if f.publisher_node is not None and f.publisher_node not in declared})
-        if unknown:
-            raise err_major(
-                "CANBus '{name}' has frame(s) with publisher_node not declared in nodes: {unknown}",
-                name=self.name,
-                unknown=unknown,
-            )
-        return self

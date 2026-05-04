@@ -7,43 +7,6 @@ channel_name: LIN1
 time_base: 5.0
 jitter: 0.5
 
-# ------------------------------------------------------------------------------
-# Nodes: one master (ZonalPlatform1 / BCM) + three body-device slaves
-# ------------------------------------------------------------------------------
-nodes:
-  - node_type: master
-    name: ZonalPlatform1
-    description: LIN master.
-    lin_protocol: "2.2A"
-    p2_min: 0.5      # ms -- LDF P2_min
-    st_min: 0.0      # ms -- LDF ST_min
-
-  - node_type: slave
-    name: LeftMirror
-    description: Left exterior mirror actuator.
-    lin_protocol: "2.2A"
-    configured_nad: 1
-    initial_nad: 1
-    product_id: "0x0001 0x0001 0xFF"
-    response_error: MirrorLeftHorizontal
-
-  - node_type: slave
-    name: RightMirror
-    description: Right exterior mirror actuator.
-    lin_protocol: "2.2A"
-    configured_nad: 2
-    initial_nad: 2
-    product_id: "0x0001 0x0002 0xFF"
-    response_error: MirrorRightHorizontal
-
-  - node_type: slave
-    name: CabinLight
-    description: Cabin ambient light controller.
-    lin_protocol: "2.2A"
-    configured_nad: 3
-    initial_nad: 3
-    product_id: "0x0001 0x0003 0xFF"
-
 frames:
 
   - name: Frame_MirrorLeftStatus
@@ -52,7 +15,6 @@ frames:
     length: 2
     lin_id: 1
     checksum_type: enhanced
-    publisher_node: LeftMirror
     packed_pdus:
       - pdu_ref: PDU_MirrorLeft
         bit_position: 0
@@ -63,21 +25,16 @@ frames:
     length: 2
     lin_id: 2
     checksum_type: enhanced
-    publisher_node: RightMirror
     packed_pdus:
       - pdu_ref: PDU_MirrorRight
         bit_position: 0
 
-  # --------------------------------------------------------------------------
-  # Frame: CabinLightStatus  (LIN ID 0x05, 1 byte)
-  # --------------------------------------------------------------------------
   - name: Frame_CabinLightStatus
     type: lin
     description: Cabin light level and mode.
     length: 2
     lin_id: 5
     checksum_type: enhanced
-    publisher_node: CabinLight
     packed_pdus:
       - pdu_ref: PDU_CabinLight
         bit_position: 0

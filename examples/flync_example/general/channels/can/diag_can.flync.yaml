@@ -5,20 +5,6 @@ baud_rate: 500000
 fd_enabled: true
 fd_baud_rate: 2000000
 
-nodes:
-  - name: HPC
-    node_id: 16
-    description: Diagnostic gateway and target ECU.
-  - name: DiagTool
-    node_id: 32
-    description: Off-board diagnostic tester.
-  - name: TransmissionECU
-    node_id: 2
-    description: Transmission Control Module (subscriber in PDU_EngineStatus).
-  - name: ZonalPlatform1
-    node_id: 48
-    description: Zonal Platform 1 (subscriber in PDU_CabinLight).
-
 frames:
 
   - name: Frame_LightDiagRequest
@@ -29,7 +15,6 @@ frames:
     id_format: standard_11bit
     bit_rate_switch: true
     error_state_indicator: false
-    publisher_node: DiagTool
     packed_pdus:
       - pdu_ref: PDU_CabinLight
         bit_position: 0
@@ -42,7 +27,6 @@ frames:
     id_format: standard_11bit
     bit_rate_switch: true
     error_state_indicator: false
-    publisher_node: HPC
     packed_pdus:
       - pdu_ref: PDU_EngineStatus
         bit_position: 0

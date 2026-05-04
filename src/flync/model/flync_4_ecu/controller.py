@@ -31,6 +31,8 @@ from flync.core.utils.exceptions import err_fatal, err_major, err_minor, warn
 from flync.core.version_migrators.legacy_controller_check import (
     reject_legacy_controller,
 )
+from flync.model.flync_4_ecu.can_interface import CANInterfaceConfig
+from flync.model.flync_4_ecu.lin_interface import AnyLINInterfaceConfig
 from flync.model.flync_4_ecu.phy import MII, RGMII, RMII, SGMII, XFI
 from flync.model.flync_4_ecu.router import RouteEntry, gateway_in_subnet
 from flync.model.flync_4_ecu.socket_container import SocketContainer
@@ -590,6 +592,20 @@ class Controller(NamedListInstances):
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
     ] = Field(default_factory=list)
+    can_interfaces: Annotated[
+        Optional[List[CANInterfaceConfig]],
+        External(
+            output_structure=OutputStrategy.FOLDER,
+            naming_strategy=NamingStrategy.FIELD_NAME,
+        ),
+    ] = Field(default_factory=list)
+    lin_interfaces: Annotated[
+        Optional[List[AnyLINInterfaceConfig]],
+        External(
+            output_structure=OutputStrategy.FOLDER,
+            naming_strategy=NamingStrategy.FIELD_NAME,
+        ),
+    ] = Field(default_factory=list)
     l2_bridge: Annotated[
         Optional[L2Bridge],
         External(
@@ -606,9 +622,9 @@ class Controller(NamedListInstances):
         return data
 
     @model_validator(mode="after")
-    def require_ethernet_interfaces(self):
-        if not self.ethernet_interfaces:
-            raise err_major("Controller must declare at least one ethernet interface.")
+    def require_at_least_one_interface(self):
+        if not self.ethernet_interfaces and not self.can_interfaces and not self.lin_interfaces:
+            raise err_major("Controller must declare at least one interface (ethernet, CAN, or LIN).")
         return self
 
     @model_validator(mode="after")

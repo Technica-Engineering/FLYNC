@@ -1,7 +1,6 @@
 """Channel-level configuration for CAN, LIN, Ethernet, and PDU definitions."""
 
-from itertools import chain
-from typing import Annotated, Iterable, List, Optional, Union
+from typing import Annotated, List, Optional, Union
 
 from pydantic import Field, model_validator
 
@@ -19,7 +18,6 @@ from flync.model.flync_4_signal.pdu import (
     MultiplexedPDU,
     StandardPDU,
 )
-from flync.model.flync_4_signal.signal import InstancePlacement
 
 
 class FLYNCChannelConfig(FLYNCBaseModel):
@@ -91,7 +89,7 @@ class FLYNCChannelConfig(FLYNCBaseModel):
     )
 
     @model_validator(mode="after")
-    def validate_subscriber_nodes_declared(self) -> "FLYNCChannelConfig":
+    def validate_pdu_refs(self) -> "FLYNCChannelConfig":
         if self.can_buses:
             pdu_registry = {p.name: p for p in (self.pdus or [])}
             for bus in self.can_buses:
@@ -101,13 +99,6 @@ class FLYNCChannelConfig(FLYNCBaseModel):
                         "CANBus '{name}' references unknown PDU(s): {unknown_refs}",
                         name=bus.name,
                         unknown_refs=sorted(unknown_refs),
-                    )
-                unknown = _collect_unknown_subscribers(bus, pdu_registry)
-                if unknown:
-                    raise err_major(
-                        "CANBus '{name}' has signal subscriber_node(s) not declared in nodes: {unknown}",
-                        name=bus.name,
-                        unknown=sorted(unknown),
                     )
         return self
 
@@ -120,30 +111,3 @@ def _collect_unknown_pdu_refs(bus: "CANBus", pdu_registry: dict) -> "set[str]":
             if pdu_inst.pdu_ref not in pdu_registry:
                 unknown.add(pdu_inst.pdu_ref)
     return unknown
-
-
-def _collect_unknown_subscribers(
-    bus: "CANBus",
-    pdu_registry: dict,
-) -> "set[str]":
-    """Return subscriber node names in bus frames not declared in bus."""
-    declared = {n.name for n in bus.nodes}
-    unknown: set[str] = set()
-    for frame in bus.frames:
-        for pdu_inst in frame.packed_pdus:
-            pdu = pdu_registry.get(pdu_inst.pdu_ref)
-            if pdu is not None:
-                for placement in _iter_placements(pdu):
-                    unknown.update(sub for sub in placement.subscriber_nodes if sub not in declared)
-    return unknown
-
-
-def _iter_placements(
-    pdu: "Union[StandardPDU, MultiplexedPDU]",
-) -> Iterable[InstancePlacement]:
-    """Yield every InstancePlacement in pdu, regardless of PDU type."""
-    if isinstance(pdu, StandardPDU):
-        yield from chain(pdu.signals, pdu.signal_groups)
-    else:
-        mux_items = chain.from_iterable(chain(g.signals, g.signal_groups) for g in pdu.mux_groups)
-        yield from chain([pdu.selector_signal], pdu.static_signals, mux_items)

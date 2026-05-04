@@ -6,7 +6,7 @@ description: Cabin ambient light intensity level and operating mode.
 signals:
   - bit_position: 0
     endianness: LE
-    subscriber_nodes: [ZonalPlatform1]
+
     signal:
       name: CabinLightLevel
       description: Ambient cabin light intensity (0 = off, 255 = max).
@@ -19,7 +19,7 @@ signals:
       unit: "%"
   - bit_position: 8
     endianness: LE
-    subscriber_nodes: [ZonalPlatform1]
+
     signal:
       name: CabinLightMode
       description: Cabin light operating mode.

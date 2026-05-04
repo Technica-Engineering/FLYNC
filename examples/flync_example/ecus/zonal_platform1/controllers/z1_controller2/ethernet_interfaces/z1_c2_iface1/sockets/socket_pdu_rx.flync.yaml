@@ -1,0 +1,11 @@
+vlan_id: 20
+sockets:
+
+  - name: pdu_body_rx
+    endpoint_address: 10.0.20.2
+    endpoint_type: unicast
+    port_no: 30801
+    protocol: udp
+    deployments:
+      - deployment_type: pdu_receiver
+        frame_ref: EthBodyFrame

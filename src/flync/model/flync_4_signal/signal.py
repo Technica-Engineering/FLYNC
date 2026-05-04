@@ -3,7 +3,7 @@ from typing import List, Literal, Optional
 
 from pydantic import Field, field_serializer, field_validator, model_validator
 
-from flync.core.base_models import FLYNCBaseModel, UniqueName
+from flync.core.base_models import FLYNCBaseModel
 
 
 class SignalDataType(str, Enum):
@@ -102,17 +102,14 @@ class InstancePlacement(FLYNCBaseModel):
         Bit position used to indicate that the value has been updated.
     endianness : Literal["BE", "LE"]
         Byte order for this instance.  Defaults to ``"little_endian"``.
-    subscriber_nodes : list of str
-        Names of the nodes that receive this signal or group.
     """
 
     bit_position: Optional[int] = Field(default=None, ge=0)
     update_indication_bit_position: Optional[int] = Field(default=None)
     endianness: Literal["BE", "LE"] = Field(default="LE")
-    subscriber_nodes: List[str] = Field(default_factory=list)
 
 
-class Signal(UniqueName):
+class Signal():
     """
     Logical or physical data element transmitted within a communication
     message.
@@ -120,7 +117,7 @@ class Signal(UniqueName):
     Parameters
     ----------
     name : str
-        Unique name of the signal.
+        Name of the signal.
     description : str, optional
         Optional textual description of the signal.
     bit_length : int
@@ -238,14 +235,14 @@ class SignalInstance(InstancePlacement):
     signal: Signal = Field()
 
 
-class SignalGroup(UniqueName):
+class SignalGroup():
     """
     A reusable group of signals transmitted together within a PDU.
 
     Parameters
     ----------
     name : str
-        Unique name of the signal group.
+        Name of the signal group.
     description : str, optional
         Optional textual description of the group.
     signals : list of :class:`Signal`
