@@ -1,6 +1,5 @@
 name: PDU_MirrorLeft
 type: standard
-pdu_id: 1
 length: 2
 description: Left exterior mirror horizontal and vertical position.
 

@@ -1,6 +1,5 @@
 name: PDU_CabinLight
 type: standard
-pdu_id: 5
 length: 2
 description: Cabin ambient light intensity level and operating mode.
 
@@ -28,7 +27,7 @@ signals:
       data_type: uint8
       value_descriptions:
         - value: 0
-          description: "Off"
+          description: Disabled
         - value: 1
           description: Manual
         - value: 2

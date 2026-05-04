@@ -1,6 +1,6 @@
 from typing import List, Literal, Optional, Tuple
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 
 from flync.core.base_models import FLYNCBaseModel, UniqueName
 from flync.core.utils.exceptions import err_minor
@@ -22,8 +22,6 @@ class PDU(UniqueName):
     ----------
     name : str
         Unique name of the PDU.
-    pdu_id : int
-        Numeric identifier of the PDU.
     length : int
         Length of the PDU payload in bytes.
     pdu_usage : str, optional
@@ -33,7 +31,6 @@ class PDU(UniqueName):
     """
 
     name: str = Field()
-    pdu_id: int = Field()
     length: int = Field(gt=0)
     pdu_usage: Optional[str] = Field(default=None)
     description: Optional[str] = Field(default=None)
@@ -192,10 +189,13 @@ class ContainedPDURef(FLYNCBaseModel):
 
     Parameters
     ----------
+    pdu_id : int
+        Numeric identifier placed in the slot header for this contained PDU.
     pdu_ref : str
         Name of the referenced PDU.
     """
 
+    pdu_id: int = Field()
     pdu_ref: str = Field()
 
 
@@ -223,6 +223,29 @@ class PDUInstance(FLYNCBaseModel):
 # ---------------------------------------------------------------------------
 
 
+class ContainerPDUHeader(FLYNCBaseModel):
+    """
+    Per-slot header configuration for a :class:`ContainerPDU`.
+
+    Parameters
+    ----------
+    id_length_bits : int
+        Bit length of the PDU ID field
+    length_field_bits : int
+        Bit length of the payload-length field
+    """
+
+    id_length_bits: int = Field(gt=0)
+    length_field_bits: int = Field(gt=0)
+
+    @field_validator("id_length_bits", "length_field_bits")
+    @classmethod
+    def must_be_byte_aligned(cls, v: int) -> int:
+        if v % 8 != 0:
+            raise ValueError(f"must be a multiple of 8, got {v}")
+        return v
+
+
 class ContainerPDU(PDU):
     """
     Ethernet Container PDU that packs multiple PDUs into one frame payload.
@@ -232,20 +255,21 @@ class ContainerPDU(PDU):
 
     Parameters
     ----------
-    header_type : Literal["short_header", "long_header"]
-        Header format per slot: ``"short_header"`` uses a 2-byte ID and 1-byte length; ``"long_header"`` uses a 4-byte ID and 2-byte length.
+    header : :class:`ContainerPDUHeader`
+        Per-slot header format specifying the bit widths of the ID and length fields.
     contained_pdus : list of :class:`ContainedPDURef`
         PDUs packed inside this container, each referenced by name.
     """
 
     type: Literal["container"] = Field(default="container")
-    header_type: Literal["short_header", "long_header"] = Field()
+    header: ContainerPDUHeader = Field()
     contained_pdus: List[ContainedPDURef] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def validate_minimum_container_size(self) -> "ContainerPDU":
         """Ensure container length covers the per-slot header overhead."""
-        overhead = 3 if self.header_type == "short_header" else 6
+        overhead_bits = self.header.id_length_bits + self.header.length_field_bits
+        overhead = overhead_bits // 8  # bits → bytes (always byte-aligned)
         minimum = len(self.contained_pdus) * overhead
         if self.length < minimum:
             raise err_minor(

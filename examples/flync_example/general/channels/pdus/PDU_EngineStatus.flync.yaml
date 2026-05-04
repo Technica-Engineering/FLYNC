@@ -1,6 +1,5 @@
 name: PDU_EngineStatus
 type: standard
-pdu_id: 257
 length: 8
 description: >-
   Engine speed, torque, coolant temperature and operating state.
@@ -64,7 +63,7 @@ signals:
       data_type: uint8
       value_descriptions:
         - value: 0
-          description: "Off"
+          description: Stopped
         - value: 1
           description: Cranking
         - value: 2

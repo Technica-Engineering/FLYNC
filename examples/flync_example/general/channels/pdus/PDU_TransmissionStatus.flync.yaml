@@ -1,6 +1,5 @@
 name: PDU_TransmissionStatus
 type: multiplexed
-pdu_id: 769
 length: 8
 description: Transmission status, multiplexed on GearInfoMux selector.
 
