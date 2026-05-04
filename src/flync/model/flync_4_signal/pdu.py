@@ -1,4 +1,4 @@
-from typing import List, Literal, Optional, Tuple, Union
+from typing import List, Literal, Optional, Tuple
 
 from pydantic import Field, model_validator
 
@@ -138,13 +138,7 @@ class MultiplexedPDU(PDU):
     def validate_selector_value_ranges(self) -> "MultiplexedPDU":
         """Ensure selector_values fit within the selector signal's width."""
         max_value = (1 << self.selector_signal.signal.bit_length) - 1
-        out_of_range = sorted(
-            {
-                g.selector_value
-                for g in self.mux_groups
-                if g.selector_value > max_value
-            }
-        )
+        out_of_range = sorted({g.selector_value for g in self.mux_groups if g.selector_value > max_value})
         if out_of_range:
             raise err_minor(
                 "MultiplexedPDU '{name}': selector_signal '{sig}' has "
@@ -170,12 +164,9 @@ class MultiplexedPDU(PDU):
             sel_bp + self.selector_signal.signal.bit_length,
         )
         for group in self.mux_groups:
-            group_ranges = _collect_placed_ranges(
-                group.signals, group.signal_groups
-            )
+            group_ranges = _collect_placed_ranges(group.signals, group.signal_groups)
             _check_overlap(
-                f"MultiplexedPDU '{self.name}' "
-                f"mux_group(selector={group.selector_value}) vs selector",
+                f"MultiplexedPDU '{self.name}' " f"mux_group(selector={group.selector_value}) vs selector",
                 [sel_range, *group_ranges],
             )
         if self.static_signals:
@@ -239,9 +230,9 @@ class ContainerPDUHeader(FLYNCBaseModel):
     Parameters
     ----------
     id_length_bits : int
-        Bit length of the PDU ID field 
+        Bit length of the PDU ID field
     length_field_bits : int
-        Bit length of the payload-length field 
+        Bit length of the payload-length field
     """
 
     id_length_bits: int = Field(gt=0)
@@ -270,7 +261,8 @@ class ContainerPDU(PDU):
     @model_validator(mode="after")
     def validate_minimum_container_size(self) -> "ContainerPDU":
         """Ensure container length covers the per-slot header overhead."""
-        overhead = self.header.id_length_bits + self.header.length_field_bits
+        overhead_bits = self.header.id_length_bits + self.header.length_field_bits
+        overhead = (overhead_bits + 7) // 8  # bits → bytes, rounding up
         minimum = len(self.contained_pdus) * overhead
         if self.length < minimum:
             raise err_minor(
