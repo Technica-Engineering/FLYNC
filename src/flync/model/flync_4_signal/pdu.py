@@ -26,6 +26,8 @@ class PDU(UniqueName):
         Numeric identifier of the PDU.
     length : int
         Length of the PDU payload in bytes.
+    pdu_usage : str, optional
+        Optional string describing the usage of the PDU.
     description : str, optional
         Optional human-readable description.
     """
@@ -33,6 +35,7 @@ class PDU(UniqueName):
     name: str = Field()
     pdu_id: int = Field()
     length: int = Field(gt=0)
+    pdu_usage: Optional[str] = Field(default=None)
     description: Optional[str] = Field(default=None)
 
 
