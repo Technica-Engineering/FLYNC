@@ -290,19 +290,26 @@ class FLYNCFactory(ModelFactory[FLYNCBaseModel]):
 
     @classmethod
     def build(cls, **kwargs):
-        newkwargs = {}
-        res = False
+        new_kwargs = {}
+        pending_fields = {}
+        # Handle provided values first
         for fname, finfo in cls.__model__.model_fields.items():
-            fname = finfo.alias or fname
+            alias = finfo.alias or fname
             if finfo.exclude:
                 continue
-            if fname not in kwargs:
-                res, value = FLYNCFactory.__get_field_value(cls.__model__, fname, finfo, **kwargs)
-                if res:
-                    newkwargs[fname] = value
+
+            if alias in kwargs:
+                # Remove it so it won't be reused for other fields
+                new_kwargs[alias] = kwargs.pop(alias)
             else:
-                newkwargs[fname] = kwargs[fname]
-        obj = super().build(**newkwargs)
+                pending_fields[alias] = finfo
+
+        for fname, finfo in pending_fields.items():
+            has_value, value = FLYNCFactory.__get_field_value(cls.__model__, fname, finfo, **kwargs)
+            if has_value:
+                new_kwargs[fname] = value
+
+        obj = super().build(**new_kwargs)
         if isinstance(obj, UniqueName):
             Factory.add_names(obj.get_key())
         return obj
