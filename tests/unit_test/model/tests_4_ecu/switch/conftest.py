@@ -1,4 +1,5 @@
 import pytest
+
 from flync.model.flync_4_ecu.switch import TCAMRule
 
 

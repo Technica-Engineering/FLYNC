@@ -1,7 +1,4 @@
-"""
-Defines the internal connection types between ECU components
-such as ECU ports, switch ports, and controller interfaces.
-"""
+"""Defines the internal connection types between ECU components such as ECU ports, switch ports, and controller interfaces."""
 
 from typing import TYPE_CHECKING, Annotated, List, Literal, Optional
 
@@ -22,8 +19,7 @@ if TYPE_CHECKING:
 
 class InternalConnection(FLYNCBaseModel):
     """
-    Represents a base internal connection between two
-    ECU components.
+    Represents a base internal connection between two ECU components.
 
     Parameters
     ----------
@@ -57,8 +53,7 @@ class InternalConnection(FLYNCBaseModel):
 
 class ECUPortToXConnection(InternalConnection):
     """
-    Base class for connections from an ECU port to another
-    ECU component.
+    Base class for connections from an ECU port to another ECU component.
 
     Parameters
     ----------
@@ -72,9 +67,7 @@ class ECUPortToXConnection(InternalConnection):
         Managed privately.
     """
 
-    ecu_port_name: Annotated[str, Reference(source="_ecu_port")] = Field(
-        alias="ecu_port"
-    )
+    ecu_port_name: Annotated[str, Reference(source="_ecu_port")] = Field(alias="ecu_port")
     _ecu_port: Optional["ECUPort"] = PrivateAttr(default=None)
 
     @property
@@ -83,19 +76,18 @@ class ECUPortToXConnection(InternalConnection):
 
     @model_validator(mode="after")
     def validate_ecu_port_exists(self):
-        """Check if the ECU port referenced by the connection exists.
+        """
+        Check if the ECU port referenced by the connection exists.
 
         Raises:
             err_major: No matching ECU port found for the connection.
         """
+
         registry: Registry = get_registry()
         ecu_ports_instances = registry.get_dict(ECUPort)
         self._ecu_port = ecu_ports_instances.get(self.ecu_port_name, None)
         if self._ecu_port is None:
-            raise err_major(
-                f"ECU port '{self.ecu_port_name}' referenced in connection"
-                f" '{self.id}' was not found or was not validated"
-            )
+            raise err_major(f"ECU port '{self.ecu_port_name}' referenced in connection" f" '{self.id}' was not found or was not validated")
         return self
 
 
@@ -115,9 +107,7 @@ class SwitchPortToXConnection(InternalConnection):
         Managed privately.
     """
 
-    switch_port_name: Annotated[str, Reference(source="_switch_port")] = Field(
-        alias="switch_port"
-    )
+    switch_port_name: Annotated[str, Reference(source="_switch_port")] = Field(alias="switch_port")
     _switch_port: "SwitchPort" = PrivateAttr()
 
     @property
@@ -126,22 +116,18 @@ class SwitchPortToXConnection(InternalConnection):
 
     @model_validator(mode="after")
     def validate_switch_port_exists(self):
-        """Check if the switch port referenced by the connection exists.
+        """
+        Check if the switch port referenced by the connection exists.
 
         Raises:
             err_major: No matching switch port found for the connection.
         """
+
         registry: Registry = get_registry()
         switch_port_instances = registry.get_dict(SwitchPort)
-        self._switch_port = switch_port_instances.get(
-            self.switch_port_name, None
-        )
+        self._switch_port = switch_port_instances.get(self.switch_port_name, None)
         if self._switch_port is None:
-            raise err_major(
-                f"Switch port '{self.switch_port_name}'"
-                " referenced in connection"
-                f" '{self.id}' was not found or was not validated"
-            )
+            raise err_major(f"Switch port '{self.switch_port_name}' referenced in connection" f" '{self.id}' was not found or was not validated")
         return self
 
 
@@ -166,9 +152,7 @@ class ECUPortToSwitchPort(ECUPortToXConnection):
 
     type: Literal["ecu_port_to_switch_port"] = Field("ecu_port_to_switch_port")
 
-    switch_port_name: Annotated[str, Reference(source="_switch_port")] = Field(
-        alias="switch_port"
-    )
+    switch_port_name: Annotated[str, Reference(source="_switch_port")] = Field(alias="switch_port")
 
     _switch_port: Optional["SwitchPort"] = PrivateAttr(default=None)
 
@@ -179,32 +163,23 @@ class ECUPortToSwitchPort(ECUPortToXConnection):
     @model_validator(mode="after")
     def validate_connection_compatibility(self):
         """
-        Check if the switch port referenced by the connection exists and
-        validate optional MII configuration for compatibility.
+        Check if the switch port referenced by the connection exists and validate optional MII configuration for compatibility.
 
         Raises:
-        err_major: The specified switch port does not exist for
-        this connection or  the optional MII configuration is invalid.
+        err_major: The specified switch port does not exist for this connection or  the optional MII configuration is invalid.
 
         """
+
         registry: Registry = get_registry()
         switch_port_instances = registry.get_dict(SwitchPort)
-        self._switch_port = switch_port_instances.get(
-            self.switch_port_name, None
-        )
+        self._switch_port = switch_port_instances.get(self.switch_port_name, None)
         if self._switch_port is None:
-            raise err_major(
-                f"Switch port '{self.switch_port_name}'"
-                " referenced in connection"
-                f" '{self.id}' was not found or was not validated"
-            )
+            raise err_major(f"Switch port '{self.switch_port_name}' referenced in connection" f" '{self.id}' was not found or was not validated")
         # Add connected component to each other
         self.ecu_port._connected_components.append(self.switch_port)
         self.switch_port._connected_component = self.ecu_port
 
-        common_validators.validate_optional_mii_config_compatibility(
-            self.ecu_port, self.switch_port, self.id
-        )
+        common_validators.validate_optional_mii_config_compatibility(self.ecu_port, self.switch_port, self.id)
         if self.ecu_port.mdi_config and self.switch_port.traffic_classes:
             common_validators.validate_cbs_idleslopes_fit_portspeed(
                 self.switch_port.traffic_classes,
@@ -236,14 +211,10 @@ class ECUPortToControllerInterface(ECUPortToXConnection):
         Managed privately.
     """
 
-    type: Literal["ecu_port_to_controller_interface"] = Field(
-        "ecu_port_to_controller_interface"
-    )
+    type: Literal["ecu_port_to_controller_interface"] = Field("ecu_port_to_controller_interface")
 
     _iface: Optional["ControllerInterface"] = PrivateAttr(default=None)
-    iface_name: Annotated[str, Reference(source="_iface")] = Field(
-        alias="controller_interface"
-    )
+    iface_name: Annotated[str, Reference(source="_iface")] = Field(alias="controller_interface")
 
     @property
     def iface(self) -> Optional["ControllerInterface"]:
@@ -252,31 +223,23 @@ class ECUPortToControllerInterface(ECUPortToXConnection):
     @model_validator(mode="after")
     def validate_connection_compatibility(self):
         """
-        Check if the controller interface referenced by the connection exists
-        and validate optional MII, HTB configurations for compatibility.
+        Check if the controller interface referenced by the connection exists and validate optional MII, HTB configurations for compatibility.
 
         Raises:
-            err_major: The specified controller interface does not exist for
-            this connection or the MII,HTB configuration is invalid.
+            err_major: The specified controller interface does not exist for this connection or the MII,HTB configuration is invalid.
         """
+
         registry: Registry = get_registry()
         controller_interface_instances = registry.get_dict(ControllerInterface)
         self._iface = controller_interface_instances.get(self.iface_name, None)
         if self._iface is None:
-            raise err_major(
-                f"Controller interface '{self.iface_name}' referenced in"
-                f" connection '{self.id}' was not found or was not validated"
-            )
+            raise err_major(f"Controller interface '{self.iface_name}' referenced in" f" connection '{self.id}' was not found or was not validated")
         # Add connected component to each other
         self.ecu_port._connected_components.append(self.iface)
         self.iface._connected_component = self.ecu_port
-        common_validators.validate_optional_mii_config_compatibility(
-            self.ecu_port, self.iface, self.id
-        )
+        common_validators.validate_optional_mii_config_compatibility(self.ecu_port, self.iface, self.id)
         if self.iface is not None:
-            common_validators.validate_htb(
-                self.iface, self.ecu_port.mdi_config.speed
-            )
+            common_validators.validate_htb(self.iface, self.ecu_port.mdi_config.speed)
         return self
 
 
@@ -300,14 +263,10 @@ class SwitchPortToControllerInterface(SwitchPortToXConnection):
         Managed privately.
     """
 
-    type: Literal["switch_port_to_controller_interface"] = Field(
-        "switch_port_to_controller_interface"
-    )
+    type: Literal["switch_port_to_controller_interface"] = Field("switch_port_to_controller_interface")
 
     _iface: Optional["ControllerInterface"] = PrivateAttr(default=None)
-    iface_name: Annotated[str, Reference(source="_iface")] = Field(
-        alias="controller_interface"
-    )
+    iface_name: Annotated[str, Reference(source="_iface")] = Field(alias="controller_interface")
 
     @property
     def iface(self) -> Optional["ControllerInterface"]:
@@ -316,38 +275,28 @@ class SwitchPortToControllerInterface(SwitchPortToXConnection):
     @model_validator(mode="after")
     def validate_connection_compatibility(self):
         """
-        Check if the controller interface referenced by the
-        connection exists andvalidate MII, HTB, MACsec and
+        Check if the controller interface referenced by the connection exists andvalidate MII, HTB, MACsec and
         GPTP configurations for compatibility.
 
         Raises:
-            err_major: The specified controller interface does not
-            exist for this connection  or the MII,HTB
-            MACSec or GPTP configuration is invalid.
+            err_major:
+                The specified controller interface does not exist for this connection or the MII, HTB, MACsec, or GPTP configuration is invalid.
         """
+
         registry: Registry = get_registry()
         controller_interface_instances = registry.get_dict(ControllerInterface)
         self._iface = controller_interface_instances.get(self.iface_name, None)
         if self._iface is None:
-            raise err_major(
-                f"Controller interface '{self.iface_name}' referenced in"
-                f" connection '{self.id}' was not found or was not validated"
-            )
+            raise err_major(f"Controller interface '{self.iface_name}' referenced in" f" connection '{self.id}' was not found or was not validated")
         # Add connected component to each other
         self.switch_port._connected_component = self.iface
         self.iface._connected_component = self.switch_port
 
-        common_validators.validate_compulsory_mii_config_compatibility(
-            self.switch_port, self.iface, self.id
-        )
+        common_validators.validate_compulsory_mii_config_compatibility(self.switch_port, self.iface, self.id)
         if self.iface is not None:
-            common_validators.validate_htb(
-                self.iface, self.iface.mii_config.speed
-            )
+            common_validators.validate_htb(self.iface, self.iface.mii_config.speed)
 
-        common_validators.validate_macsec(
-            self.switch_port, self.iface, self.id
-        )
+        common_validators.validate_macsec(self.switch_port, self.iface, self.id)
 
         common_validators.validate_gptp(self.switch_port, self.iface, self.id)
 
@@ -373,14 +322,10 @@ class SwitchPortToSwitchPort(SwitchPortToXConnection):
         Managed privately.
     """
 
-    type: Literal["switch_to_switch_same_ecu"] = Field(
-        "switch_to_switch_same_ecu"
-    )
+    type: Literal["switch_to_switch_same_ecu"] = Field("switch_to_switch_same_ecu")
 
     _switch2_port: Optional["SwitchPort"] = PrivateAttr(default=None)
-    switch2_port_name: Annotated[str, Reference(source="_switch2_port")] = (
-        Field(alias="switch2_port")
-    )
+    switch2_port_name: Annotated[str, Reference(source="_switch2_port")] = Field(alias="switch2_port")
 
     @property
     def switch2_port(self) -> Optional["SwitchPort"]:
@@ -395,32 +340,22 @@ class SwitchPortToSwitchPort(SwitchPortToXConnection):
         Raises:
             err_major: The specified controller interface does not exist for
             this connection or the MII,HTB
-            MACSec or GPTP configuration is invalid.
+            MACsec or GPTP configuration is invalid.
         """
+
         registry: Registry = get_registry()
         switch_port_instances = registry.get_dict(SwitchPort)
-        self._switch2_port = switch_port_instances.get(
-            self.switch2_port_name, None
-        )
+        self._switch2_port = switch_port_instances.get(self.switch2_port_name, None)
         if self._switch2_port is None:
-            raise err_major(
-                f"Switch port '{self.switch2_port_name}' referenced in"
-                f" connection '{self.id}' was not found or was not validated"
-            )
+            raise err_major(f"Switch port '{self.switch2_port_name}' referenced in" f" connection '{self.id}' was not found or was not validated")
 
         # Add connected component to each other
         self.switch_port._connected_component = self.switch2_port
         self.switch2_port._connected_component = self.switch_port
-        common_validators.validate_compulsory_mii_config_compatibility(
-            self.switch_port, self.switch2_port, self.id
-        )
+        common_validators.validate_compulsory_mii_config_compatibility(self.switch_port, self.switch2_port, self.id)
 
-        common_validators.validate_macsec(
-            self.switch_port, self.switch2_port, self.id
-        )
-        common_validators.validate_gptp(
-            self.switch_port, self.switch2_port, self.id
-        )
+        common_validators.validate_macsec(self.switch_port, self.switch2_port, self.id)
+        common_validators.validate_gptp(self.switch_port, self.switch2_port, self.id)
 
         return self
 
@@ -456,17 +391,11 @@ class ControllerInterfaceToControllerInterface(InternalConnection):
         Managed privately.
     """
 
-    type: Literal["controller_interface_to_controller_interface"] = Field(
-        "controller_interface_to_controller_interface"
-    )
-    iface_name: Annotated[str, Reference(source="_iface")] = Field(
-        alias="controller_interface1"
-    )
+    type: Literal["controller_interface_to_controller_interface"] = Field("controller_interface_to_controller_interface")
+    iface_name: Annotated[str, Reference(source="_iface")] = Field(alias="controller_interface1")
     _iface: Optional["ControllerInterface"] = PrivateAttr(default=None)
 
-    iface2_name: Annotated[str, Reference(source="_iface2")] = Field(
-        alias="controller_interface2"
-    )
+    iface2_name: Annotated[str, Reference(source="_iface2")] = Field(alias="controller_interface2")
     _iface2: Optional["ControllerInterface"] = PrivateAttr(default=None)
 
     @property
@@ -485,44 +414,26 @@ class ControllerInterfaceToControllerInterface(InternalConnection):
         MACsec and GPTP configurations for compatibility.
 
         Raises:
-            err_major: The specified controller interfaces does not
-            exist for this connection or the MII,HTB
-            MACSec or GPTP configuration is invalid.
+            err_major: The specified controller interfaces does not exist for this connection or the MII, HTB, MACsec, or GPTP configuration
+            is invalid.
         """
+
         registry: Registry = get_registry()
-        controller_interfaces_instances = registry.get_dict(
-            ControllerInterface
-        )
-        self._iface = controller_interfaces_instances.get(
-            self.iface_name, None
-        )
+        controller_interfaces_instances = registry.get_dict(ControllerInterface)
+        self._iface = controller_interfaces_instances.get(self.iface_name, None)
         if self._iface is None:
-            raise err_major(
-                f"Controller interface '{self.iface_name}' referenced in"
-                f" connection '{self.id}' was not found or was not validated"
-            )
-        self._iface2 = controller_interfaces_instances.get(
-            self.iface2_name, None
-        )
+            raise err_major(f"Controller interface '{self.iface_name}' referenced in" f" connection '{self.id}' was not found or was not validated")
+        self._iface2 = controller_interfaces_instances.get(self.iface2_name, None)
         if self._iface2 is None:
-            raise err_major(
-                f"Controller interface '{self.iface2_name}' referenced in"
-                f" connection '{self.id}' was not found or was not validated"
-            )
+            raise err_major(f"Controller interface '{self.iface2_name}' referenced in" f" connection '{self.id}' was not found or was not validated")
         # Add connected component to each other
         self.iface._connected_component = self.iface2
         self.iface2._connected_component = self.iface
-        common_validators.validate_compulsory_mii_config_compatibility(
-            self.iface, self.iface2, self.id
-        )
+        common_validators.validate_compulsory_mii_config_compatibility(self.iface, self.iface2, self.id)
         if self.iface is not None:
-            common_validators.validate_htb(
-                self.iface, self.iface.mii_config.speed
-            )
+            common_validators.validate_htb(self.iface, self.iface.mii_config.speed)
         if self.iface2 is not None:
-            common_validators.validate_htb(
-                self.iface2, self.iface2.mii_config.speed
-            )
+            common_validators.validate_htb(self.iface2, self.iface2.mii_config.speed)
         common_validators.validate_macsec(self.iface, self.iface2, self.id)
         common_validators.validate_gptp(self.iface, self.iface2, self.id)
 
@@ -531,11 +442,9 @@ class ControllerInterfaceToControllerInterface(InternalConnection):
 
 class InternalConnectionUnion(RootModel):
     """
-    Union type representing a connection between two internal
-    ECU components.
+    Union type representing a connection between two internal ECU components.
 
-    This model wraps a union of different internal connection
-    types and uses the ``type`` field as a discriminator to
+    This model wraps a union of different internal connection types and uses the ``type`` field as a discriminator to
     determine which specific connection type is present.
 
     Possible types

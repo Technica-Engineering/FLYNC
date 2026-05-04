@@ -1,6 +1,5 @@
 """
-this module contains the necessary datastructures
-to model a SOME/IP deployment.
+this module contains the necessary datastructures to model a SOME/IP deployment.
 """
 
 import abc
@@ -25,7 +24,8 @@ DeploymentTypes = Literal["someip", "someip_provider", "someip_consumer"]
 
 
 class Layer4Endpoint(FLYNCBaseModel):
-    """Layer4Endpoint Class method for Layer4 endpoint .
+    """
+    Layer4Endpoint Class method for Layer4 endpoint .
 
     Parameters
     ----------
@@ -40,9 +40,7 @@ class Layer4Endpoint(FLYNCBaseModel):
     """
 
     protocol: Literal["UDP", "TCP"] = "UDP"
-    port: Annotated[int, Field(gt=0, le=65535)] = Field(
-        description="the l4-port"
-    )
+    port: Annotated[int, Field(gt=0, le=65535)] = Field(description="the l4-port")
 
 
 class BaseUDPDeployment(Layer4Endpoint):
@@ -71,7 +69,8 @@ class MulticastEndpoint(BaseUDPDeployment):
 
 
 class MulticastSDEndpoint(MulticastEndpoint):
-    """MulticastSDEndpoint
+    """
+    MulticastSDEndpoint
 
     Parameters
     ----------
@@ -81,14 +80,12 @@ class MulticastSDEndpoint(MulticastEndpoint):
         Must be greater or equal to 0 and less or equal to 255.
     """
 
-    ip_ttl: Annotated[int, Field(ge=0, le=255)] = Field(
-        description="IP Time-to-Live"
-    )
+    ip_ttl: Annotated[int, Field(ge=0, le=255)] = Field(description="IP Time-to-Live")
 
 
 class UDPDeployment(BaseUDPDeployment):
-    """Allows deploying a SOME/IP service onto
-    a UDP-endpoint (including multicast).
+    """
+    Allows deploying a SOME/IP service onto a UDP-endpoint (including multicast).
 
     Parameters
     ----------
@@ -97,9 +94,7 @@ class UDPDeployment(BaseUDPDeployment):
         Multicast configuration for this endpoint.
     """
 
-    multicast: Optional["MulticastEndpoint"] = Field(
-        description="multicast configuration for this endpoint", default=None
-    )
+    multicast: Optional["MulticastEndpoint"] = Field(description="multicast configuration for this endpoint", default=None)
 
 
 class TCPDeployment(Layer4Endpoint):
@@ -109,7 +104,8 @@ class TCPDeployment(Layer4Endpoint):
 
 
 class SOMEIPSDDeployment(FLYNCBaseModel):
-    """Defines the Service Discovery endpoint of SOME/IP.
+    """
+    Defines the Service Discovery endpoint of SOME/IP.
 
     Parameters
     ----------
@@ -121,14 +117,12 @@ class SOMEIPSDDeployment(FLYNCBaseModel):
     """
 
     deployment_type: Literal["someip_sd"] = Field(default="someip_sd")
-    multicast: Optional["MulticastSDEndpoint"] = Field(
-        description="multicast configuration for SD endpoint", default=None
-    )
+    multicast: Optional["MulticastSDEndpoint"] = Field(description="multicast configuration for SD endpoint", default=None)
 
 
 class SOMEIPServiceDeployment(abc.ABC, FLYNCBaseModel):
-    """SOMEIPServiceDeployment Create a service deployment
-    that will be used for provided service.
+    """
+    SOMEIPServiceDeployment Create a service deployment that will be used for provided service.
 
     Parameters
     ----------
@@ -152,18 +146,10 @@ class SOMEIPServiceDeployment(abc.ABC, FLYNCBaseModel):
     """
 
     deployment_type: DeploymentTypes
-    service: int = Field(
-        description="identifies the service", gt=0, lt=0xFFFF, strict=True
-    )
-    major_version: Annotated[int, Field(gt=0, le=255, strict=True)] = Field(
-        description="the major version of this service interface", default=0
-    )
-    instance_id: Annotated[int, Field(gt=0, lt=0xFFFF)] = Field(
-        description="The id of the service instance"
-    )
-    someip_sd_timings_profile: str = Field(
-        description="The SOME/IP timings profile ussed for the deployment."
-    )
+    service: int = Field(description="identifies the service", gt=0, lt=0xFFFF, strict=True)
+    major_version: Annotated[int, Field(gt=0, le=255, strict=True)] = Field(description="the major version of this service interface", default=0)
+    instance_id: Annotated[int, Field(gt=0, lt=0xFFFF)] = Field(description="The id of the service instance")
+    someip_sd_timings_profile: str = Field(description="The SOME/IP timings profile ussed for the deployment.")
 
     @abc.abstractmethod
     def model_post_init(self, __context):
@@ -183,13 +169,8 @@ class SOMEIPServiceDeployment(abc.ABC, FLYNCBaseModel):
             sid = info.data["service"]
             major = value
             registry: Registry = get_registry()
-            service = registry.get_dict(SOMEIPServiceInterface).get(
-                (sid, major)
-            )
-            assert service, (
-                "did not find a service definition matching "
-                f"the provided key (id = {sid:#06x}, major_version = {value})"
-            )
+            service = registry.get_dict(SOMEIPServiceInterface).get((sid, major))
+            assert service, "did not find a service definition matching " f"the provided key (id = {sid:#06x}, major_version = {value})"
             info.data["service"] = service
             return value
 
@@ -210,8 +191,8 @@ class SOMEIPServiceDeployment(abc.ABC, FLYNCBaseModel):
 
 
 class SOMEIPServiceConsumer(SOMEIPServiceDeployment):
-    """Defines the consumer of a SOME/IP service instance
-    (like subscribing & calling methods).
+    """
+    Defines the consumer of a SOME/IP service instance (like subscribing & calling methods).
 
     Parameters
     ----------
@@ -225,13 +206,9 @@ class SOMEIPServiceConsumer(SOMEIPServiceDeployment):
     consumed_eventgroups : List[str], optional
     """
 
-    deployment_type: Literal["someip_consumer"] = Field(
-        default="someip_consumer"
-    )
+    deployment_type: Literal["someip_consumer"] = Field(default="someip_consumer")
 
-    major_version: Annotated[int, Field(gt=0, le=255, strict=True)] = Field(
-        description="the major version of this service interface", default=0
-    )
+    major_version: Annotated[int, Field(gt=0, le=255, strict=True)] = Field(description="the major version of this service interface", default=0)
 
     consumed_eventgroups: Optional[List[str]] = Field(default=None)
 
@@ -240,9 +217,7 @@ class SOMEIPServiceConsumer(SOMEIPServiceDeployment):
 
     @field_validator("consumed_eventgroups", mode="after")
     @classmethod
-    def _check_consumed_eventgroups_are_provided(
-        cls, value, info: ValidationInfo
-    ):
+    def _check_consumed_eventgroups_are_provided(cls, value, info: ValidationInfo):
         consumed_eventgroups = value
 
         service = info.data["service"]
@@ -250,24 +225,20 @@ class SOMEIPServiceConsumer(SOMEIPServiceDeployment):
             sid = service
             major = info.data["major_version"]
             reigstery: Registry = get_registry()
-            service = reigstery.get_dict(SOMEIPServiceInterface).get(
-                (sid, major)
-            )
+            service = reigstery.get_dict(SOMEIPServiceInterface).get((sid, major))
 
         if consumed_eventgroups is not None:
             consumed = set(consumed_eventgroups)
             provided = set(eg.name for eg in service.eventgroups)
             found = consumed.intersection(provided)
-            assert (
-                found == consumed
-            ), f"Did not find eventgroups with names {consumed - found}"
+            assert found == consumed, f"Did not find eventgroups with names {consumed - found}"
 
         return value
 
 
 class SOMEIPServiceProvider(SOMEIPServiceDeployment):
-    """Defines the provider of a SOME/IP service instance
-    (like offering & sending responses, events).
+    """
+    Defines the provider of a SOME/IP service instance (like offering & sending responses, events).
 
     Parameters
     ----------
@@ -288,19 +259,13 @@ class SOMEIPServiceProvider(SOMEIPServiceDeployment):
         None means all eventgroups of the service are provided.
     """
 
-    deployment_type: Literal["someip_provider"] = Field(
-        default="someip_provider"
-    )
+    deployment_type: Literal["someip_provider"] = Field(default="someip_provider")
 
-    major_version: Annotated[int, Field(gt=0, lt=255, strict=True)] = Field(
-        description="the major version of this service interface"
-    )
+    major_version: Annotated[int, Field(gt=0, lt=255, strict=True)] = Field(description="the major version of this service interface")
 
-    minor_version: Annotated[int, Field(ge=0, lt=0xFFFFFFFF, strict=True)] = (
-        Field(
-            description="the major version of this service interface",
-            default=0,
-        )
+    minor_version: Annotated[int, Field(ge=0, lt=0xFFFFFFFF, strict=True)] = Field(
+        description="the major version of this service interface",
+        default=0,
     )
 
     provided_eventgroups: Optional[List[str]] = Field(default=None)

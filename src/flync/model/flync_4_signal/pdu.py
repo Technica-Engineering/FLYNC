@@ -128,8 +128,7 @@ class MultiplexedPDU(PDU):
         duplicates = [v for v in values if values.count(v) > 1]
         if duplicates:
             raise err_minor(
-                "MultiplexedPDU '{name}' has duplicate selector_value(s): "
-                "{duplicates}",
+                "MultiplexedPDU '{name}' has duplicate selector_value(s): {duplicates}",
                 name=self.name,
                 duplicates=sorted(set(duplicates)),
             )
@@ -139,13 +138,7 @@ class MultiplexedPDU(PDU):
     def validate_selector_value_ranges(self) -> "MultiplexedPDU":
         """Ensure selector_values fit within the selector signal's width."""
         max_value = (1 << self.selector_signal.signal.bit_length) - 1
-        out_of_range = sorted(
-            {
-                g.selector_value
-                for g in self.mux_groups
-                if g.selector_value > max_value
-            }
-        )
+        out_of_range = sorted({g.selector_value for g in self.mux_groups if g.selector_value > max_value})
         if out_of_range:
             raise err_minor(
                 "MultiplexedPDU '{name}': selector_signal '{sig}' has "
@@ -171,12 +164,9 @@ class MultiplexedPDU(PDU):
             sel_bp + self.selector_signal.signal.bit_length,
         )
         for group in self.mux_groups:
-            group_ranges = _collect_placed_ranges(
-                group.signals, group.signal_groups
-            )
+            group_ranges = _collect_placed_ranges(group.signals, group.signal_groups)
             _check_overlap(
-                f"MultiplexedPDU '{self.name}' "
-                f"mux_group(selector={group.selector_value}) vs selector",
+                f"MultiplexedPDU '{self.name}' " f"mux_group(selector={group.selector_value}) vs selector",
                 [sel_range, *group_ranges],
             )
         if self.static_signals:
@@ -240,8 +230,7 @@ class ContainerPDU(PDU):
     Parameters
     ----------
     header_type : Literal["short_header", "long_header"]
-        Header format per slot: ``"short_header"`` uses a 2-byte ID and
-        1-byte length; ``"long_header"`` uses a 4-byte ID and 2-byte length.
+        Header format per slot: ``"short_header"`` uses a 2-byte ID and 1-byte length; ``"long_header"`` uses a 4-byte ID and 2-byte length.
     contained_pdus : list of :class:`ContainedPDURef`
         PDUs packed inside this container, each referenced by name.
     """
@@ -313,8 +302,7 @@ def _check_overflow(
     for item_name, start, end in ranges:
         if end > pdu_bits:
             raise err_minor(
-                "PDU '{pdu_name}': signal/group '{item}' bit range "
-                "[{start}, {end}) overflows PDU length of {bits} bits",
+                "PDU '{pdu_name}': signal/group '{item}' bit range [{start}, {end}) overflows PDU length of {bits} bits",
                 pdu_name=pdu_name,
                 item=item_name,
                 start=start,
@@ -333,8 +321,7 @@ def _check_overlap(
             name_b, start_b, end_b = ranges[j]
             if start_a < end_b and start_b < end_a:
                 raise err_minor(
-                    "{context}: '{a}' [{sa}, {ea}) and "
-                    "'{b}' [{sb}, {eb}) overlap",
+                    "{context}: '{a}' [{sa}, {ea}) and '{b}' [{sb}, {eb}) overlap",
                     context=context,
                     a=name_a,
                     sa=start_a,

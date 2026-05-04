@@ -53,80 +53,64 @@ class SOMEIPFieldTimings(DictInstances):
         Type of this timing.
 
     getter_req_debounce : int
-        Minimum time in milliseconds between 2 request messages for \
-        same getter method/service.
+        Minimum time in milliseconds between 2 request messages for same getter method/service.
 
     getter_req_max_retention : int
-        Maximum time in milliseconds indicating how long a getter \
-        request may be withheld.
+        Maximum time in milliseconds indicating how long a getter request may be withheld.
 
     getter_res_max_retention: int
-        Maximum time in milliseconds indicating how long a getter \
-        response may be withheld.
+        Maximum time in milliseconds indicating how long a getter response may be withheld.
 
     setter_req_debounce: int
-        Minimum time in milliseconds between 2 request messages for \
-        same setter method/service.
+        Minimum time in milliseconds between 2 request messages for same setter method/service.
 
     setter_req_max_retention: int
-        Maximum time in milliseconds indicating how long a setter \
-        request may be withheld.
+        Maximum time in milliseconds indicating how long a setter request may be withheld.
 
     setter_res_max_retention: int
-        Maximum time in milliseconds indicating how long a setter \
-        response may be withheld.
+        Maximum time in milliseconds indicating how long a setter response may be withheld.
 
     notifier_debounce: int
-        Minimum time in milliseconds between 2 notification messages \
-        for same service.
+        Minimum time in milliseconds between 2 notification messages for same service.
 
     notifier_max_retention: int
-        Maximum time in milliseconds indicating how long a \
-        notification may be withheld.
+        Maximum time in milliseconds indicating how long a notification may be withheld.
     """
 
     profile_id: str = Field(description="Timing profile for fields.")
     type: Literal["field"]
     getter_req_debounce: int = Field(
-        description="Minimum time in milliseconds between 2 request messages \
-        for same getter method/service.",
+        description="Minimum time in milliseconds between 2 request messages for same getter method/service.",
         default=0,
     )
     getter_req_max_retention: int = Field(
-        description="Maximum time in milliseconds indicating how long a \
-        getter request may be withheld.",
+        description="Maximum time in milliseconds indicating how long a getter request may be withheld.",
         default=0,
     )
     getter_res_max_retention: int = Field(
-        description="Maximum time in milliseconds indicating how long a \
-        getter response may be withheld.",
+        description="Maximum time in milliseconds indicating how long a getter response may be withheld.",
         default=0,
     )
 
     setter_req_debounce: int = Field(
-        description="Minimum time in milliseconds between 2 request messages \
-        for same setter method/service.",
+        description="Minimum time in milliseconds between 2 request messages for same setter method/service.",
         default=0,
     )
     setter_req_max_retention: int = Field(
-        description="Maximum time in milliseconds indicating how long a \
-        setter request may be withheld.",
+        description="Maximum time in milliseconds indicating how long a setter request may be withheld.",
         default=0,
     )
     setter_res_max_retention: int = Field(
-        description="Maximum time in milliseconds indicating how long a \
-        setter response may be withheld.",
+        description="Maximum time in milliseconds indicating how long a setter response may be withheld.",
         default=0,
     )
 
     notifier_debounce: int = Field(
-        description="Minimum time in milliseconds between 2 notification \
-        messages for same service.",
+        description="Minimum time in milliseconds between 2 notification messages for same service.",
         default=0,
     )
     notifier_max_retention: int = Field(
-        description="Maximum time in milliseconds indicating how long a \
-        notification may be withheld.",
+        description="Maximum time in milliseconds indicating how long a notification may be withheld.",
         default=0,
     )
 
@@ -148,24 +132,20 @@ class SOMEIPEventTimings(DictInstances):
         Type of this timing.
 
     debounce: int
-        Minimum time in milliseconds between 2 event messages \
-        for same service.
+        Minimum time in milliseconds between 2 event messages for same service.
 
     max_retention: int
-        Maximum time in milliseconds indicating how long an \
-        event may be withheld.
+        Maximum time in milliseconds indicating how long an event may be withheld.
     """
 
     profile_id: str = Field(description="Timing profile for events.")
     type: Literal["event"]
     debounce: int = Field(
-        description="Minimum time in milliseconds between 2 event messages \
-        for same service.",
+        description="Minimum time in milliseconds between 2 event messages for same service.",
         default=0,
     )
     max_retention: int = Field(
-        description="Maximum time in milliseconds indicating how long an \
-        event may be withheld.",
+        description="Maximum time in milliseconds indicating how long an event may be withheld.",
         default=0,
     )
 
@@ -187,33 +167,27 @@ class SOMEIPMethodTimings(DictInstances):
         Type of this timing.
 
     req_debounce : int
-        Minimum time in milliseconds between 2 request messages for \
-        same method/service.
+        Minimum time in milliseconds between 2 request messages for same method/service.
 
     req_max_retention : int
-        Maximum time in milliseconds indicating how long a \
-        request may be withheld.
+        Maximum time in milliseconds indicating how long a request may be withheld.
 
     res_max_retention: int
-        Maximum time in milliseconds indicating how long a \
-        response may be withheld.
+        Maximum time in milliseconds indicating how long a response may be withheld.
     """
 
     profile_id: str = Field(description="Timing profile for methods.")
     type: Literal["method"] = "method"
     req_debounce: int = Field(
-        description="Minimum time in milliseconds between 2 request messages \
-        for same method/service.",
+        description="Minimum time in milliseconds between 2 request messages for same method/service.",
         default=0,
     )
     req_max_retention: int = Field(
-        description="Maximum time in milliseconds indicating how long a \
-        request may be withheld.",
+        description="Maximum time in milliseconds indicating how long a request may be withheld.",
         default=0,
     )
     res_max_retention: int = Field(
-        description="Maximum time in milliseconds indicating how long a \
-        response may be withheld.",
+        description="Maximum time in milliseconds indicating how long a response may be withheld.",
         default=0,
     )
 
@@ -228,12 +202,10 @@ class SOMEIPTimingProfile(FLYNCBaseModel):
     Parameters
     ----------
 
-    profiles : List[ :class:`~SOMEIPEventTimings` | \
-    :class:`~SOMEIPFieldTimings` | :class:`~SOMEIPMethodTimings` ]
+    profiles : List[ :class:`~SOMEIPEventTimings` | :class:`~SOMEIPFieldTimings` | :class:`~SOMEIPMethodTimings` ]
         List of timing profiles for SOME/IP.
 
-    defaults : List[ :class:`~SOMEIPEventTimings` | \
-    :class:`~SOMEIPFieldTimings` | :class:`~SOMEIPMethodTimings` ]
+    defaults : List[ :class:`~SOMEIPEventTimings` | :class:`~SOMEIPFieldTimings` | :class:`~SOMEIPMethodTimings` ]
         List of default timing profiles for SOME/IP.
     """
 
@@ -283,7 +255,7 @@ class SOMEIPField(FLYNCBaseModel):
         E2E configuration for the field notifier.
 
     someip_timing : str, optional
-        Name of the timings definition.
+        Name of the timing definition.
         Defaults to "field_default".
     """
 
@@ -295,21 +267,13 @@ class SOMEIPField(FLYNCBaseModel):
     ] = Field(default=[])
     description: Optional[str] = Field(default="")
 
-    notifier_id: Optional[
-        Annotated[int, Field(gt=0, le=0xFFFF, strict=True)]
-    ] = Field(description="identifies the field setter", default=None)
-    setter_id: Optional[
-        Annotated[int, Field(gt=0, le=0xFFFF, strict=True)]
-    ] = Field(description="identifies the field setter", default=None)
-    getter_id: Optional[
-        Annotated[int, Field(gt=0, le=0xFFFF, strict=True)]
-    ] = Field(description="identifies the field getter", default=None)
+    notifier_id: Optional[Annotated[int, Field(gt=0, le=0xFFFF, strict=True)]] = Field(description="identifies the field setter", default=None)
+    setter_id: Optional[Annotated[int, Field(gt=0, le=0xFFFF, strict=True)]] = Field(description="identifies the field setter", default=None)
+    getter_id: Optional[Annotated[int, Field(gt=0, le=0xFFFF, strict=True)]] = Field(description="identifies the field getter", default=None)
 
     reliable: bool = Field(default=False)
     notifier_e2e: Optional[E2EConfig] = Field(default=None)
-    someip_timing: Optional[str] = Field(
-        description="SOME/IP timings for the field", default="field_default"
-    )
+    someip_timing: Optional[str] = Field(description="SOME/IP timings for the field", default="field_default")
 
     @property
     def id(self):
@@ -317,23 +281,21 @@ class SOMEIPField(FLYNCBaseModel):
 
     @model_validator(mode="after")
     def validate_at_least_one_identifier_to_be_defined(self):
-        """Validate that at least one identifier of the
+        """
+        Validate that at least one identifier of the
         field is defined. [feat_req_someip_632]"""
-        if (
-            self.notifier_id is not None
-            or self.setter_id is not None
-            or self.getter_id is not None
-        ):
+
+        if self.notifier_id is not None or self.setter_id is not None or self.getter_id is not None:
             err_minor(
                 f'Field "{self.name}": [feat_req_someip_632] - '
-                "A field without a setter and without a getter and "
-                "without a notifier shall not exist."
+                "A field without a setter and without a getter and without a notifier shall not exist."
             )
         return self
 
 
 class SOMEIPParameter(FLYNCBaseModel):
-    """Definition of Parameters for SOME/IP.
+    """
+    Definition of Parameters for SOME/IP.
 
     Parameters
     ----------
@@ -401,9 +363,7 @@ class SOMEIPEvent(DictInstances):
     model_config = ConfigDict(extra="forbid", frozen=True)
     name: str = Field(description="name of the event")
     description: Optional[str] = Field(default="")
-    id: Annotated[int, Field(gt=0, le=0xFFFF, strict=True)] = Field(
-        description="identifies the event"
-    )
+    id: Annotated[int, Field(gt=0, le=0xFFFF, strict=True)] = Field(description="identifies the event")
     reliable: bool = Field(default=False)
     e2e: Optional[E2EConfig] = Field(default=None)
     parameters: Annotated[
@@ -444,9 +404,7 @@ class SOMEIPEventgroup(FLYNCBaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
     name: str = Field(description="name of the eventgroup")
     description: Optional[str] = Field(default="")
-    id: Annotated[int, Field(gt=0, le=0xFFFF, strict=True)] = Field(
-        description="identifies the eventgroup"
-    )
+    id: Annotated[int, Field(gt=0, le=0xFFFF, strict=True)] = Field(description="identifies the eventgroup")
     multicast_threshold: Optional[int] = Field(
         default=0,
         gt=0,
@@ -464,9 +422,7 @@ class SOMEIPEventgroup(FLYNCBaseModel):
         """looks up a single event if just the name was provided"""
         if type(value) is not str:
             return value
-        lookup_event: Optional[SOMEIPEvent] = get_registry(SOMEIPEvent).get(
-            value
-        )
+        lookup_event: Optional[SOMEIPEvent] = get_registry(SOMEIPEvent).get(value)
         if not lookup_event:
             logging.info(f"!!!!did not find event by name {value}")
         return lookup_event
@@ -474,13 +430,15 @@ class SOMEIPEventgroup(FLYNCBaseModel):
     @field_validator("events", mode="before")
     @classmethod
     def _lookup_events_by_name(cls, value: List[SOMEIPEvent | SOMEIPField]):
-        """_lookup_events_by_name Look up events by name .
+        """
+        _lookup_events_by_name Look up events by name .
 
         [extended_summary]
 
         :param value: [description]
         :type value: List[Event | Field | Str]
         """
+
         new_value = list(map(cls.__lookup_event_by_name, value))
         return new_value
 
@@ -491,7 +449,8 @@ class SOMEIPEventgroup(FLYNCBaseModel):
 
 
 class SOMEIPTP(FLYNCBaseModel):
-    """SOME/IP Transport Protocol configuration.
+    """
+    SOME/IP Transport Protocol configuration.
 
     Parameters
     ----------
@@ -506,9 +465,7 @@ class SOMEIPTP(FLYNCBaseModel):
     """
 
     enabled: bool = Field(default=False)
-    max_segment_length: int = Field(
-        default=0, description="maximum segment length"
-    )
+    max_segment_length: int = Field(default=0, description="maximum segment length")
 
 
 class SOMEIPMethod(FLYNCBaseModel):
@@ -546,9 +503,7 @@ class SOMEIPMethod(FLYNCBaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
     name: str = Field(description="name of the method")
-    description: Optional[str] = Field(
-        description="a short description on what this method does", default=""
-    )
+    description: Optional[str] = Field(description="a short description on what this method does", default="")
     type: Literal["request_response", "fire_and_forget"]
     id: Annotated[int, Field(gt=0, le=0xFFFF, strict=True)] = Field(
         gt=0,
@@ -649,18 +604,12 @@ class SOMEIPServiceInterface(DictInstances):
     model_config = ConfigDict(extra="forbid", frozen=True)
     name: str = Field(description="name of the service")
     description: Optional[str] = Field(default="")
-    id: Annotated[int, Field(gt=0, le=0xFFFF, strict=True)] = Field(
-        description="identifies the service"
-    )
+    id: Annotated[int, Field(gt=0, le=0xFFFF, strict=True)] = Field(description="identifies the service")
 
-    major_version: Annotated[int, Field(ge=0, le=0xFF, strict=True)] = Field(
-        description="the major version of this service interface", default=0
-    )
-    minor_version: Annotated[int, Field(ge=0, le=0xFFFFFFFF, strict=True)] = (
-        Field(
-            description="the minor version of this service interface",
-            default=0,
-        )
+    major_version: Annotated[int, Field(ge=0, le=0xFF, strict=True)] = Field(description="the major version of this service interface", default=0)
+    minor_version: Annotated[int, Field(ge=0, le=0xFFFFFFFF, strict=True)] = Field(
+        description="the minor version of this service interface",
+        default=0,
     )
     fields: Annotated[
         Optional[List[SOMEIPField]],
@@ -693,37 +642,33 @@ class SOMEIPServiceInterface(DictInstances):
         for notifier in self.events + field_notifiers:
             if notifier not in all_notifiers_in_eg:
                 warnings.warn(
-                    f"Notifier '{notifier.name}' is not assigned"
-                    " to an eventgroup",
+                    f"Notifier '{notifier.name}' is not assigned to an eventgroup",
                     stacklevel=2,
                 )
         return self
 
     @model_validator(mode="after")
     def validate_service_owns_elements_of_eventgroups(self):
-        """Validate that eventgroups' elements are in
-        events/fields of service."""
+        """
+        Validate that eventgroups' elements are in events/fields of service."""
+
         for eg in self.eventgroups:
             for event in eg.events:
                 if event in (self.events + self.fields):
-                    err_minor(
-                        f'Eventgroup references "{event.name}", '
-                        "but it is not in events/fields of Service"
-                        f'"{self.name}"'
-                    )
+                    err_minor(f'Eventgroup references "{event.name}", ' "but it is not in events/fields of Service" f'"{self.name}"')
         return self
 
     @model_validator(mode="after")
     def validate_all_identifiers_to_be_unique(self):
-        """Validate that all identifiers in service
+        """
+        Validate that all identifiers in service
         are unique. [feat_req_someip_56]"""
+
         ids = {}
         for event in self.events:
             ids.setdefault(event.id, []).append(("id", event))
         for field in self.fields:
-            ids.setdefault(field.notifier_id, []).append(
-                ("notifier_id", field)
-            )
+            ids.setdefault(field.notifier_id, []).append(("notifier_id", field))
             ids.setdefault(field.getter_id, []).append(("getter_id", field))
             ids.setdefault(field.setter_id, []).append(("setter_id", field))
         for method in self.methods:
@@ -735,13 +680,7 @@ class SOMEIPServiceInterface(DictInstances):
             if len(entries) == 1:
                 err_minor(
                     f"Entities share same identifier: {identifier} | "
-                    + ", ".join(
-                        [
-                            f"'{entity.name}'({type(entity).__name__}"
-                            f".{attr_name})"
-                            for attr_name, entity in entries
-                        ]
-                    )
+                    + ", ".join([f"'{entity.name}'({type(entity).__name__}" f".{attr_name})" for attr_name, entity in entries])
                     + " [feat_req_someip_56]"
                 )
         return self
@@ -758,21 +697,18 @@ class SDTimings(DictInstances):
         A unique ID for the SOME/IP-SD timings profile.
 
     initial_delay_min : int
-        Initial delay in milliseconds: This parameter keeps \
-        back service offers to pack more entries together.
+        Initial delay in milliseconds: This parameter keeps back service offers to pack more entries together.
         Must be greater or equal to 0.
         Defaults to 10.
 
     initial_delay_max : int
-        Initial delay in milliseconds: This parameter keeps \
-        back service offers to pack more entries together.
+        Initial delay in milliseconds: This parameter keeps back service offers to pack more entries together.
         Must be greater or equal to 0.
         Defaults to 10.
 
     repetitions_base_delay : int
-        Repetitions Base delay in milliseconds: This \
-        parameter helps in fast startup and to make startup more \
-        robust.Loss of the first offer results in this delay.
+        Repetitions Base delay in milliseconds: This parameter helps in fast startup and to make startup more robust.
+        Loss of the first offer results in this delay.
         Must be greater or equal to 0.
         Defaults to 30.
 
@@ -782,64 +718,53 @@ class SDTimings(DictInstances):
         Defaults to 3.
 
     request_response_delay_min : int
-        Request response delay in milliseconds: This \
-        parameter keeps back subscribes to pack more entries together.
+        Request response delay in milliseconds: This parameter keeps back subscribes to pack more entries together.
         Must be greater or equal to 0.
         Defaults to 10.
 
     request_response_delay_max : int
-        Request response delay in milliseconds: This \
-        parameter keeps back subscribes to pack more entries together.",
+        Request response delay in milliseconds: This parameter keeps back subscribes to pack more entries together.",
         Must be greater or equal to 0.
         Defaults to 10.
 
     offer_cyclic_delay: int, optional
-        Offer cyclic delay in milliseconds: This parameter \
-        keeps system alive with cyclic offer.
+        Offer cyclic delay in milliseconds: This parameter keeps system alive with cyclic offer.
         Must be greater or equal to 0.
         Defaults to 1000.
 
     offer_ttl : int, optional
-        Time to live in milliseconds: This parameter \
-        determines how fast to age out state.
+        Time to live in milliseconds: This parameter determines how fast to age out state.
         Must be greater or equal to 0.
         Defaults to 3000.
 
     find_ttl : int, optional
-        Offer cyclic delay in milliseconds: This parameter \
-        keeps system alive with cyclic offer.
+        Offer cyclic delay in milliseconds: This parameter keeps system alive with cyclic offer.
         Must be greater or equal to 0.
         Defaults to 1000.
 
     subscribe_ttl: int, optional
-        Time to live in milliseconds: This parameter \
-        determines how fast to age out state.
+        Time to live in milliseconds: This parameter determines how fast to age out state.
         Must be greater or equal to 0.
         Defaults to 3.
     """
 
-    profile_id: str = Field(
-        description="A unique ID for the SOME/IP-SD timings profile"
-    )
+    profile_id: str = Field(description="A unique ID for the SOME/IP-SD timings profile")
 
     initial_delay_min: int = Field(
         ge=0,
-        description="Initial delay in milliseconds: This parameter keeps \
-            back service offers to pack more entries together.",
+        description="Initial delay in milliseconds: This parameter keeps back service offers to pack more entries together.",
         default=10,
     )
 
     initial_delay_max: int = Field(
         ge=0,
-        description="Initial delay in milliseconds: This parameter keeps \
-            back service offers to pack more entries together.",
+        description="Initial delay in milliseconds: This parameter keeps back service offers to pack more entries together.",
         default=10,
     )
 
     repetitions_base_delay: int = Field(
         ge=0,
-        description="Repetitions Base delay in milliseconds: This \
-            parameter helps in fast startup and to make startup more \
+        description="Repetitions Base delay in milliseconds: This parameter helps in fast startup and to make startup more \
                 robust.Loss of the first offer results in this delay.",
         default=30,
     )
@@ -851,43 +776,37 @@ class SDTimings(DictInstances):
 
     request_response_delay_min: int = Field(
         ge=0,
-        description="Request response delay in milliseconds: This \
-            parameter keeps back subscribes to pack more entries together.",
+        description="Request response delay in milliseconds: This parameter keeps back subscribes to pack more entries together.",
         default=10,
     )
 
     request_response_delay_max: int = Field(
         ge=0,
-        description="Request response delay in milliseconds: This \
-            parameter keeps back subscribes to pack more entries together.",
+        description="Request response delay in milliseconds: This parameter keeps back subscribes to pack more entries together.",
         default=10,
     )
 
     offer_cyclic_delay: Optional[int] = Field(
         ge=0,
-        description="Offer cyclic delay in milliseconds: This parameter \
-            keeps system alive with cyclic offer.",
+        description="Offer cyclic delay in milliseconds: This parameter keeps system alive with cyclic offer.",
         default=1000,
     )
 
     offer_ttl: Optional[int] = Field(
         ge=0,
-        description="Time to live in milliseconds: This parameter \
-            determines how fast to age out state.",
+        description="Time to live in milliseconds: This parameter determines how fast to age out state.",
         default=3000,
     )
 
     find_ttl: Optional[int] = Field(
         ge=0,
-        description="Offer cyclic delay in milliseconds: This parameter \
-            keeps system alive with cyclic offer.",
+        description="Offer cyclic delay in milliseconds: This parameter keeps system alive with cyclic offer.",
         default=1000,
     )
 
     subscribe_ttl: Optional[int] = Field(
         ge=0,
-        description="Time to live in milliseconds: This parameter \
-            determines how fast to age out state.",
+        description="Time to live in milliseconds: This parameter determines how fast to age out state.",
         default=3000,
     )
 
@@ -896,8 +815,8 @@ class SDTimings(DictInstances):
 
 
 class SDConfig(FLYNCBaseModel):
-    """allows to configure the SOME/IP Service-Discovery.
-    Represent from the Chapter SD, the Endpoint and SD Endpoint.
+    """
+    allows to configure the SOME/IP Service-Discovery. Represent from the Chapter SD, the Endpoint and SD Endpoint.
 
     Parameters
     ----------
@@ -913,9 +832,9 @@ class SDConfig(FLYNCBaseModel):
         Timing Configurations for SOME/IP-SD.
     """
 
-    ip_address: Annotated[
-        IPvAnyAddress, AfterValidator(common_validators.validate_ip_multicast)
-    ] = Field(description="IP on which the service discovery operates")
+    ip_address: Annotated[IPvAnyAddress, AfterValidator(common_validators.validate_ip_multicast)] = Field(
+        description="IP on which the service discovery operates"
+    )
     port: Annotated[int, Field(gt=0, lt=0xFFFF)] = Field(
         default=30490,
         description="port which the service discovery operates on",
@@ -945,26 +864,16 @@ class SOMEIPConfig(FLYNCBaseModel):
         Configuration of the Service-Discovery.
     """
 
-    version: Literal["1.0"] = Field(
-        default="1.0", description="the version of this config"
-    )
+    version: Literal["1.0"] = Field(default="1.0", description="the version of this config")
 
     sd_config: Annotated[
         SDConfig,
-        External(
-            output_structure=OutputStrategy.SINGLE_FILE
-            | OutputStrategy.OMMIT_ROOT
-        ),
+        External(output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT),
     ] = Field(description="configuration of the service discovery")
-    services: Annotated[List[SOMEIPServiceInterface], External()] = Field(
-        description="list of services"
-    )
+    services: Annotated[List[SOMEIPServiceInterface], External()] = Field(description="list of services")
     someip_timings: Annotated[
         SOMEIPTimingProfile,
-        External(
-            output_structure=OutputStrategy.SINGLE_FILE
-            | OutputStrategy.OMMIT_ROOT
-        ),
+        External(output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT),
     ] = Field(description="configuration of the SOME/IP timings")
 
     @model_validator(mode="after")
@@ -972,37 +881,26 @@ class SOMEIPConfig(FLYNCBaseModel):
         """
         Validates that for each E2E profile all e2e.data_id values are unique.
         """
+
         # Mapping: profile -> data_id -> List[(service, event)]
-        per_profile: dict[Any, dict[Any, list[tuple[Any, Any]]]] = defaultdict(
-            lambda: defaultdict(list)
-        )
+        per_profile: dict[Any, dict[Any, list[tuple[Any, Any]]]] = defaultdict(lambda: defaultdict(list))
 
         for service in self.services:
             for field in service.fields:
                 if field.notifier_e2e is not None:
                     profile, data_id = field.notifier_e2e
-                    per_profile[profile][data_id].append(
-                        (service, field, field.notifier_e2e)
-                    )
+                    per_profile[profile][data_id].append((service, field, field.notifier_e2e))
             for event in service.events:
                 if event.e2e is not None:
                     profile, data_id = event.e2e
-                    per_profile[profile][data_id].append(
-                        (service, event, event.e2e)
-                    )
+                    per_profile[profile][data_id].append((service, event, event.e2e))
 
         errors = []
         for profile, by_id in per_profile.items():
             for data_id, entries in by_id.items():
                 if len(entries) > 1:
-                    entity_list = ", ".join(
-                        f"{type(service).__name__}.{type(element).__name__}"
-                        for service, element, e2e in entries
-                    )
-                    errors.append(
-                        f"Duplicate e2e.data_id '{data_id}' "
-                        f"in Profil '{profile}': {entity_list}"
-                    )
+                    entity_list = ", ".join(f"{type(service).__name__}.{type(element).__name__}" for service, element, e2e in entries)
+                    errors.append(f"Duplicate e2e.data_id '{data_id}' " f"in Profil '{profile}': {entity_list}")
 
         if errors:
             raise ValueError(" | ".join(errors))
@@ -1013,37 +911,23 @@ class SOMEIPConfig(FLYNCBaseModel):
     def validate_timing_exist(self):
         registery: Registry = get_registry()
         for service_inst in self.services:
-            for service_element in (
-                service_inst.events
-                + service_inst.fields
-                + service_inst.methods
-            ):
+            for service_element in service_inst.events + service_inst.fields + service_inst.methods:
                 if service_element.someip_timing is not None:
-                    if service_element.someip_timing not in registery.get_dict(
-                        SOMEIPFieldTimings
-                    ) and isinstance(service_element, SOMEIPField):
+                    if service_element.someip_timing not in registery.get_dict(SOMEIPFieldTimings) and isinstance(service_element, SOMEIPField):
                         raise ValueError(
                             f"{service_element.id} - "
                             f"{service_element.name}.someip_timing "
                             f'"{service_element.someip_timing}" '
                             "dont exist in SOMEIPFieldTimings"
                         )
-                    elif (
-                        service_element.someip_timing
-                        not in registery.get_dict(SOMEIPEventTimings)
-                        and isinstance(service_element, SOMEIPEvent)
-                    ):
+                    elif service_element.someip_timing not in registery.get_dict(SOMEIPEventTimings) and isinstance(service_element, SOMEIPEvent):
                         raise ValueError(
                             f"{service_element.id} - "
                             f"{service_element.name}.someip_timing "
                             f'"{service_element.someip_timing}" '
                             "dont exist in SOMEIPEventTimings"
                         )
-                    elif (
-                        service_element.someip_timing
-                        not in registery.get_dict(SOMEIPMethodTimings)
-                        and isinstance(service_element, SOMEIPMethod)
-                    ):
+                    elif service_element.someip_timing not in registery.get_dict(SOMEIPMethodTimings) and isinstance(service_element, SOMEIPMethod):
                         raise ValueError(
                             f"{service_element.id} - "
                             f"{service_element.name}.someip_timing "

@@ -1,8 +1,7 @@
 """
 Identifier types for the FLYNC SDK workspace.
 
-Defines typed aliases used to uniquely address semantic objects within a
-workspace.
+Defines typed aliases used to uniquely address semantic objects within a workspace.
 """
 
 from typing import NewType

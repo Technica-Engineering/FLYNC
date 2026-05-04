@@ -21,19 +21,15 @@ class SocketContainer(FLYNCBaseModel):
         Name of the socket container, implied from the filename on disk.
 
     vlan_id : int, optional
-        ID of the virtual interface. Use ``None`` for an untagged
-        container.
+        ID of the virtual interface. Use ``None`` for an untagged container.
 
-    sockets : list of \
-    :class:`~flync.model.flync_4_ecu.sockets.SocketTCP` or \
+    sockets : list of :class:`~flync.model.flync_4_ecu.sockets.SocketTCP` or \
     :class:`~flync.model.flync_4_ecu.sockets.SocketUDP`
         Assigned TCP and UDP socket endpoints.
     """
 
     name: Annotated[str, Implied(strategy=ImpliedStrategy.FILE_NAME)] = Field()
-    vlan_id: Annotated[
-        Optional[int], AfterValidator(common_validators.validate_vlan_id)
-    ] = Field(default=0)
+    vlan_id: Annotated[Optional[int], AfterValidator(common_validators.validate_vlan_id)] = Field(default=0)
     sockets: Annotated[
         Optional[
             List[

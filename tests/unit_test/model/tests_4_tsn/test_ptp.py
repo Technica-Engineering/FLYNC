@@ -1,13 +1,12 @@
 import pytest
-
 from pydantic import ValidationError
+
 from flync.model.flync_4_ecu.controller import (
     ControllerInterface,
     VirtualControllerInterface,
 )
-from flync.model.flync_4_tsn.timesync import PTPPort
-from flync.model.flync_4_tsn.timesync import PTPConfig
 from flync.model.flync_4_ecu.switch import SwitchPort
+from flync.model.flync_4_tsn.timesync import PTPConfig, PTPPort
 
 
 def test_positive_ptp_config_controller_time_transmitter(

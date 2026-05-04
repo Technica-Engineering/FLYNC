@@ -5,8 +5,8 @@ from flync.core.base_models import (
     ListInstances,
     NamedDictInstances,
     NamedListInstances,
-    UniqueName,
     Registry,
+    UniqueName,
 )
 from flync.core.base_models.instances_registery import registry_context
 

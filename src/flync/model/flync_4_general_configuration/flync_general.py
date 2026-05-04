@@ -26,32 +26,24 @@ class FLYNCGeneralConfig(FLYNCBaseModel):
     ----------
     tcp_profiles : list of \
     :class:`~flync.model.flync_4_ecu.sockets.TCPOption`
-        List of TCP profiles that define the selectable
-        TCP socket options.
+        List of TCP profiles that define the selectable TCP socket options.
 
     someip_config : :class:`~flync.model.flync_4_someip.SOMEIPConfig`
-        Configuration block that holds the global SOME/IP service
-        interface definition, SOME/IP timings, and SD timings profiles
+        Configuration block that holds the global SOME/IP service interface definition, SOME/IP timings, and SD timings profiles
         used by every ECU in the system.
 
     channels : :class:`~flync.model.flync_4_general_configuration\
 .flync_channels.FLYNCChannelConfig`, optional
-        Channel-level configuration grouping CAN buses, LIN buses, and
-        Ethernet Container PDU definitions.  Loaded from the
-        ``general/channels/`` directory.  Each bus or container PDU is
-        stored in its own file under the corresponding sub-folder
-        (``can/``, ``lin/``, ``container_pdus/``).  Absent when the
-        ``general/channels/`` directory does not exist.
+        Channel-level configuration grouping CAN buses, LIN buses, and Ethernet Container PDU definitions.
+        Loaded from the ``general/channels/`` directory.
+        Each bus or container PDU is stored in its own file under the corresponding sub-folder (``can/``, ``lin/``, ``container_pdus/``).
+        Absent when the ``general/channels/`` directory does not exist.
     """
 
     tcp_profiles: Annotated[
         List[TCPOption],
         External(output_structure=OutputStrategy.SINGLE_FILE),
-        BeforeValidator(
-            common_validators.validate_or_remove(
-                "TCP profiles", List[TCPOption]
-            )
-        ),
+        BeforeValidator(common_validators.validate_or_remove("TCP profiles", List[TCPOption])),
         BeforeValidator(common_validators.none_to_empty_list),
     ] = Field(default=[])
     someip_config: Annotated[
@@ -61,11 +53,7 @@ class FLYNCGeneralConfig(FLYNCBaseModel):
             naming_strategy=NamingStrategy.FIXED_PATH,
             path="someip",
         ),
-        BeforeValidator(
-            common_validators.validate_or_remove(
-                "SOME/IP config", SOMEIPConfig
-            )
-        ),
+        BeforeValidator(common_validators.validate_or_remove("SOME/IP config", SOMEIPConfig)),
     ] = Field(
         default=None,
         description="contains the SOME/IP config for the entire system.",
@@ -79,8 +67,5 @@ class FLYNCGeneralConfig(FLYNCBaseModel):
         ),
     ] = Field(
         default=None,
-        description=(
-            "CAN buses, LIN buses and Ethernet Container PDUs, loaded "
-            "from general/channels/."
-        ),
+        description=("CAN buses, LIN buses and Ethernet Container PDUs, loaded from general/channels/."),
     )

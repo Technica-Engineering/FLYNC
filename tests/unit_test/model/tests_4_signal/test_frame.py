@@ -158,8 +158,11 @@ def test_positive_can_frame_extended_id():
 
 def test_positive_can_frame_rtr():
     frm = CANFrame(
-        name="can_rtr", can_id=0x100, id_format="standard_11bit",
-        length=0, is_remote_frame=True,
+        name="can_rtr",
+        can_id=0x100,
+        id_format="standard_11bit",
+        length=0,
+        is_remote_frame=True,
     )
     assert frm.is_remote_frame is True
 
@@ -230,12 +233,22 @@ def test_positive_can_frame_model_validate():
 
 def test_negative_can_frame_standard_id_too_large():
     with pytest.raises(ValidationError):
-        CANFrame(name="can_bad_std", can_id=0x800, id_format="standard_11bit", length=8)
+        CANFrame(
+            name="can_bad_std",
+            can_id=0x800,
+            id_format="standard_11bit",
+            length=8,
+        )
 
 
 def test_negative_can_frame_extended_id_too_large():
     with pytest.raises(ValidationError):
-        CANFrame(name="can_bad_ext", can_id=0x20000000, id_format="extended_29bit", length=8)
+        CANFrame(
+            name="can_bad_ext",
+            can_id=0x20000000,
+            id_format="extended_29bit",
+            length=8,
+        )
 
 
 def test_negative_can_frame_rtr_with_data():
@@ -256,7 +269,12 @@ def test_negative_can_frame_length_too_large():
 
 def test_negative_can_frame_negative_length():
     with pytest.raises(ValidationError):
-        CANFrame(name="can_neg_len", can_id=0x100, id_format="standard_11bit", length=-1)
+        CANFrame(
+            name="can_neg_len",
+            can_id=0x100,
+            id_format="standard_11bit",
+            length=-1,
+        )
 
 
 def test_negative_can_frame_duplicate_pdu_bit_positions():
@@ -375,12 +393,22 @@ def test_negative_can_fd_frame_invalid_length(bad_length):
 
 def test_negative_can_fd_frame_length_exceeds_max():
     with pytest.raises(ValidationError):
-        CANFDFrame(name="canfd_65", can_id=0x100, id_format="standard_11bit", length=65)
+        CANFDFrame(
+            name="canfd_65",
+            can_id=0x100,
+            id_format="standard_11bit",
+            length=65,
+        )
 
 
 def test_negative_can_fd_frame_standard_id_too_large():
     with pytest.raises(ValidationError):
-        CANFDFrame(name="canfd_bad_id", can_id=0x800, id_format="standard_11bit", length=8)
+        CANFDFrame(
+            name="canfd_bad_id",
+            can_id=0x800,
+            id_format="standard_11bit",
+            length=8,
+        )
 
 
 def test_negative_can_fd_frame_duplicate_pdu_bit_positions():

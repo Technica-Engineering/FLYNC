@@ -4,15 +4,9 @@ from pydantic import ValidationError
 from flync.model.flync_4_ecu import ControllerInterface, Switch, SwitchPort
 
 
-def test_unique_silicon_port_number(
-    embedded_metadata_entry, vlan_entry, switch_host_controller_example
-):
-    switch_port1 = SwitchPort(
-        name="port1", default_vlan_id=1, silicon_port_no=1
-    )
-    switch_port2 = SwitchPort(
-        name="port2", default_vlan_id=2, silicon_port_no=1
-    )
+def test_unique_silicon_port_number(embedded_metadata_entry, vlan_entry, switch_host_controller_example):
+    switch_port1 = SwitchPort(name="port1", default_vlan_id=1, silicon_port_no=1)
+    switch_port2 = SwitchPort(name="port2", default_vlan_id=2, silicon_port_no=1)
 
     with pytest.raises(ValidationError) as e:
         Switch.model_validate(
@@ -25,9 +19,7 @@ def test_unique_silicon_port_number(
             }
         )
 
-    assert "Duplicates found in Switch Ports (silicon_port_number)" in str(
-        e.value
-    )
+    assert "Duplicates found in Switch Ports (silicon_port_number)" in str(e.value)
 
 
 def test_switch_host(
@@ -88,9 +80,7 @@ def test_switch_port_silicon_port_no_negative_rejected():
         )
 
 
-def test_validate_ipv_mapping_positive(
-    embedded_metadata_entry, vlan_entry
-):
+def test_validate_ipv_mapping_positive(embedded_metadata_entry, vlan_entry):
     """A traffic class with internal_priority_values must find a matching
     stream ipv on some port of the same switch."""
     port = SwitchPort.model_validate(
@@ -126,9 +116,7 @@ def test_validate_ipv_mapping_positive(
     assert switch.ports[0].traffic_classes[0].internal_priority_values == [3]
 
 
-def test_validate_ipv_mapping_negative(
-    embedded_metadata_entry, vlan_entry
-):
+def test_validate_ipv_mapping_negative(embedded_metadata_entry, vlan_entry):
     """A traffic class internal_priority_value with no matching stream ipv
     must raise."""
     port = SwitchPort.model_validate(
@@ -159,9 +147,7 @@ def test_validate_ipv_mapping_negative(
     assert "internal priority values 5" in str(e.value)
 
 
-def test_validate_ats_instances_positive(
-    embedded_metadata_entry, vlan_entry
-):
+def test_validate_ats_instances_positive(embedded_metadata_entry, vlan_entry):
     """An ATS shaper traffic class is valid when at least one ingress stream
     on the switch has an ATS instance configured."""
     ats_instance = {
@@ -205,9 +191,7 @@ def test_validate_ats_instances_positive(
     assert shaper.type == "ats"
 
 
-def test_validate_ats_instances_negative(
-    embedded_metadata_entry, vlan_entry
-):
+def test_validate_ats_instances_negative(embedded_metadata_entry, vlan_entry):
     """An ATS shaper traffic class without any ingress stream ATS instance
     must raise even though the ipv mapping is satisfied."""
     port = SwitchPort.model_validate(

@@ -1,9 +1,10 @@
 import pytest
+
 from flync.model.flync_4_ecu import *
-from flync.model.flync_4_metadata import *
-from flync.model.flync_4_topology import *
 from flync.model.flync_4_ecu.controller import *
 from flync.model.flync_4_ecu.internal_topology import *
+from flync.model.flync_4_metadata import *
+from flync.model.flync_4_topology import *
 from flync.model.flync_model import FLYNCModel
 
 
@@ -41,9 +42,7 @@ def invalid_interface_missing():
         address=IPvAnyAddress("192.0.2.1"),
         ipv4netmask=IPvAnyAddress("192.0.0.0"),
     )
-    virtual_iface_ecu1 = VirtualControllerInterface(
-        name="virtual", vlanid=55, addresses=[ipv4_ecu1]
-    )
+    virtual_iface_ecu1 = VirtualControllerInterface(name="virtual", vlanid=55, addresses=[ipv4_ecu1])
     ctrl_iface_ecu1 = ControllerInterface(
         name="control1",
         mac_address=MacAddress("00:00:5e:00:53:01"),
@@ -73,14 +72,10 @@ def invalid_interface_missing():
     )
 
     # --- Internal links ---
-    internal_topology_ecu1 = InternalTopology(
-        connections=[InternalConnectionUnion(root=ecu_to_controller_cnx1)]
-    )
+    internal_topology_ecu1 = InternalTopology(connections=[InternalConnectionUnion(root=ecu_to_controller_cnx1)])
 
     # --- ECU Metadata ---
-    ecu_metadata = ECUMetadata(
-        type="ecu", author="test_team", compatible_flync_version=system_version
-    )
+    ecu_metadata = ECUMetadata(type="ecu", author="test_team", compatible_flync_version=system_version)
 
     # --- Create the ECU ---
     ecu1 = ECU(
@@ -92,14 +87,10 @@ def invalid_interface_missing():
     )
 
     # --- External links ---
-    empty_topology = FLYNCTopology(
-        system_topology=SystemTopology(connections=[])
-    )
+    empty_topology = FLYNCTopology(system_topology=SystemTopology(connections=[]))
 
     # --- Full FLYNC Model ---
-    flync_model = FLYNCModel(
-        ecus=[ecu1], topology=empty_topology, metadata=system_metadata
-    )
+    flync_model = FLYNCModel(ecus=[ecu1], topology=empty_topology, metadata=system_metadata)
 
     return flync_model
 
@@ -139,9 +130,7 @@ def invalid_ecu_no_port():
         address=IPvAnyAddress("192.0.2.1"),
         ipv4netmask=IPvAnyAddress("192.0.0.0"),
     )
-    virtual_iface_ecu1 = VirtualControllerInterface(
-        name="virtual", vlanid=55, addresses=[ipv4_ecu1]
-    )
+    virtual_iface_ecu1 = VirtualControllerInterface(name="virtual", vlanid=55, addresses=[ipv4_ecu1])
     ctrl_iface_ecu1 = ControllerInterface(
         name="control1",
         mac_address=MacAddress("00:00:5e:00:53:01"),
@@ -164,14 +153,10 @@ def invalid_ecu_no_port():
     )
 
     # --- Internal links ---
-    internal_topology_ecu1 = InternalTopology(
-        connections=[InternalConnectionUnion(root=ecu_to_controller_cnx1)]
-    )
+    internal_topology_ecu1 = InternalTopology(connections=[InternalConnectionUnion(root=ecu_to_controller_cnx1)])
 
     # --- ECU Metadata ---
-    ecu_metadata = ECUMetadata(
-        type="ecu", author="test_team", compatible_flync_version=system_version
-    )
+    ecu_metadata = ECUMetadata(type="ecu", author="test_team", compatible_flync_version=system_version)
 
     # --- Create the ECU (NO ECU PORT DEFINED) ---
     ecu1 = ECU(
@@ -183,14 +168,10 @@ def invalid_ecu_no_port():
     )
 
     # --- External links ---
-    empty_topology = FLYNCTopology(
-        system_topology=SystemTopology(connections=[])
-    )
+    empty_topology = FLYNCTopology(system_topology=SystemTopology(connections=[]))
 
     # --- Full FLYNC Model ---
-    flync_model = FLYNCModel(
-        ecus=[ecu1], topology=empty_topology, metadata=system_metadata
-    )
+    flync_model = FLYNCModel(ecus=[ecu1], topology=empty_topology, metadata=system_metadata)
 
     return flync_model
 
@@ -232,9 +213,7 @@ def invalid_controller_isolated():
         address=IPvAnyAddress("192.0.2.1"),
         ipv4netmask=IPvAnyAddress("192.0.0.0"),
     )
-    virtual_iface_ecu1 = VirtualControllerInterface(
-        name="virtual", vlanid=55, addresses=[ipv4_ecu1]
-    )
+    virtual_iface_ecu1 = VirtualControllerInterface(name="virtual", vlanid=55, addresses=[ipv4_ecu1])
     ctrl_iface_ecu1 = ControllerInterface(
         name="control1",
         mac_address=MacAddress("00:00:5e:00:53:01"),
@@ -267,9 +246,7 @@ def invalid_controller_isolated():
     internal_topology_ecu1 = InternalTopology(connections=[])
 
     # --- ECU Metadata ---
-    ecu_metadata = ECUMetadata(
-        type="ecu", author="test_team", compatible_flync_version=system_version
-    )
+    ecu_metadata = ECUMetadata(type="ecu", author="test_team", compatible_flync_version=system_version)
 
     # --- Create the ECU ---
     ecu1 = ECU(
@@ -281,14 +258,10 @@ def invalid_controller_isolated():
     )
 
     # --- External links ---
-    empty_topology = FLYNCTopology(
-        system_topology=SystemTopology(connections=[])
-    )
+    empty_topology = FLYNCTopology(system_topology=SystemTopology(connections=[]))
 
     # --- Full FLYNC Model ---
-    flync_model = FLYNCModel(
-        ecus=[ecu1], topology=empty_topology, metadata=system_metadata
-    )
+    flync_model = FLYNCModel(ecus=[ecu1], topology=empty_topology, metadata=system_metadata)
 
     return flync_model
 
@@ -327,9 +300,7 @@ def invalid_wrong_connection_type():
         address=IPvAnyAddress("192.0.2.1"),
         ipv4netmask=IPvAnyAddress("192.0.0.0"),
     )
-    virtual_iface_ecu1 = VirtualControllerInterface(
-        name="virtual", vlanid=55, addresses=[ipv4_ecu1]
-    )
+    virtual_iface_ecu1 = VirtualControllerInterface(name="virtual", vlanid=55, addresses=[ipv4_ecu1])
     ctrl_iface_ecu1 = ControllerInterface(
         name="control1",
         mac_address=MacAddress("00:00:5e:00:53:01"),
@@ -359,14 +330,10 @@ def invalid_wrong_connection_type():
     )
 
     # --- Internal links ---
-    internal_topology_ecu1 = InternalTopology(
-        connections=[InternalConnectionUnion(root=ecu_to_wrong_cnx)]
-    )
+    internal_topology_ecu1 = InternalTopology(connections=[InternalConnectionUnion(root=ecu_to_wrong_cnx)])
 
     # --- ECU Metadata ---
-    ecu_metadata = ECUMetadata(
-        type="ecu", author="test_team", compatible_flync_version=system_version
-    )
+    ecu_metadata = ECUMetadata(type="ecu", author="test_team", compatible_flync_version=system_version)
 
     # --- Create the ECU ---
     ecu1 = ECU(
@@ -378,14 +345,10 @@ def invalid_wrong_connection_type():
     )
 
     # --- External links ---
-    empty_topology = FLYNCTopology(
-        system_topology=SystemTopology(connections=[])
-    )
+    empty_topology = FLYNCTopology(system_topology=SystemTopology(connections=[]))
 
     # --- Full FLYNC Model ---
-    flync_model = FLYNCModel(
-        ecus=[ecu1], topology=empty_topology, metadata=system_metadata
-    )
+    flync_model = FLYNCModel(ecus=[ecu1], topology=empty_topology, metadata=system_metadata)
 
     return flync_model
 
@@ -424,9 +387,7 @@ def invalid_undeclared_switch():
         address=IPvAnyAddress("192.0.2.1"),
         ipv4netmask=IPvAnyAddress("192.0.0.0"),
     )
-    virtual_iface_ecu1 = VirtualControllerInterface(
-        name="virtual", vlanid=55, addresses=[ipv4_ecu1]
-    )
+    virtual_iface_ecu1 = VirtualControllerInterface(name="virtual", vlanid=55, addresses=[ipv4_ecu1])
     ctrl_iface_ecu1 = ControllerInterface(
         name="control1",
         mac_address=MacAddress("00:00:5e:00:53:01"),
@@ -472,9 +433,7 @@ def invalid_undeclared_switch():
     )
 
     # --- ECU Metadata ---
-    ecu_metadata = ECUMetadata(
-        type="ecu", author="test_team", compatible_flync_version=system_version
-    )
+    ecu_metadata = ECUMetadata(type="ecu", author="test_team", compatible_flync_version=system_version)
 
     # --- Create the ECU ---
     ecu1 = ECU(
@@ -486,14 +445,10 @@ def invalid_undeclared_switch():
     )
 
     # --- External links ---
-    empty_topology = FLYNCTopology(
-        system_topology=SystemTopology(connections=[])
-    )
+    empty_topology = FLYNCTopology(system_topology=SystemTopology(connections=[]))
 
     # --- Full FLYNC Model ---
-    flync_model = FLYNCModel(
-        ecus=[ecu1], topology=empty_topology, metadata=system_metadata
-    )
+    flync_model = FLYNCModel(ecus=[ecu1], topology=empty_topology, metadata=system_metadata)
 
     return flync_model
 
@@ -532,9 +487,7 @@ def invalid_loop_connection():
         address=IPvAnyAddress("192.0.2.1"),
         ipv4netmask=IPvAnyAddress("192.0.0.0"),
     )
-    virtual_iface_ecu1 = VirtualControllerInterface(
-        name="virtual", vlanid=55, addresses=[ipv4_ecu1]
-    )
+    virtual_iface_ecu1 = VirtualControllerInterface(name="virtual", vlanid=55, addresses=[ipv4_ecu1])
     ctrl_iface_ecu1 = ControllerInterface(
         name="control1",
         mac_address=MacAddress("00:00:5e:00:53:01"),
@@ -557,9 +510,7 @@ def invalid_loop_connection():
     )
 
     # --- Switch ---
-    Switch(
-        name="switch1", ports=[switch_port1], vlans=[], meta=embedded_metadata
-    )
+    Switch(name="switch1", ports=[switch_port1], vlans=[], meta=embedded_metadata)
 
     # --- ECU Port Configuration ---
     port_ecu1 = ECUPort(name="port1")
@@ -589,9 +540,7 @@ def invalid_loop_connection():
     )
 
     # --- ECU Metadata ---
-    ecu_metadata = ECUMetadata(
-        type="ecu", author="test_team", compatible_flync_version=system_version
-    )
+    ecu_metadata = ECUMetadata(type="ecu", author="test_team", compatible_flync_version=system_version)
 
     # --- Create the ECU ---
     ecu1 = ECU(
@@ -603,14 +552,10 @@ def invalid_loop_connection():
     )
 
     # --- External links ---
-    empty_topology = FLYNCTopology(
-        system_topology=SystemTopology(connections=[])
-    )
+    empty_topology = FLYNCTopology(system_topology=SystemTopology(connections=[]))
 
     # --- Full FLYNC Model ---
-    flync_model = FLYNCModel(
-        ecus=[ecu1], topology=empty_topology, metadata=system_metadata
-    )
+    flync_model = FLYNCModel(ecus=[ecu1], topology=empty_topology, metadata=system_metadata)
 
     return flync_model
 
@@ -649,9 +594,7 @@ def invalid_cross_ecu_internal_connection():
         address=IPvAnyAddress("192.0.2.1"),
         ipv4netmask=IPvAnyAddress("192.0.0.0"),
     )
-    virtual_iface_ecu1 = VirtualControllerInterface(
-        name="virtual1", vlanid=55, addresses=[ipv4_ecu1]
-    )
+    virtual_iface_ecu1 = VirtualControllerInterface(name="virtual1", vlanid=55, addresses=[ipv4_ecu1])
     ctrl_iface_ecu1 = ControllerInterface(
         name="control1",
         mac_address=MacAddress("00:00:5e:00:53:01"),
@@ -663,9 +606,7 @@ def invalid_cross_ecu_internal_connection():
         address=IPvAnyAddress("192.0.2.2"),
         ipv4netmask=IPvAnyAddress("192.0.0.0"),
     )
-    virtual_iface_ecu2 = VirtualControllerInterface(
-        name="virtual2", vlanid=55, addresses=[ipv4_ecu2]
-    )
+    virtual_iface_ecu2 = VirtualControllerInterface(name="virtual2", vlanid=55, addresses=[ipv4_ecu2])
     ctrl_iface_ecu2 = ControllerInterface(
         name="control2",
         mac_address=MacAddress("00:00:5e:00:53:02"),
@@ -732,9 +673,7 @@ def invalid_cross_ecu_internal_connection():
     )
 
     # --- ECU Metadata ---
-    ecu_metadata = ECUMetadata(
-        type="ecu", author="test_team", compatible_flync_version=system_version
-    )
+    ecu_metadata = ECUMetadata(type="ecu", author="test_team", compatible_flync_version=system_version)
 
     # --- Create the ECU ---
     ecu1 = ECU(
@@ -767,9 +706,7 @@ def invalid_cross_ecu_internal_connection():
     )
 
     # --- Full FLYNC Model ---
-    flync_model = FLYNCModel(
-        ecus=[ecu1, ecu2], topology=ecus_topology, metadata=system_metadata
-    )
+    flync_model = FLYNCModel(ecus=[ecu1, ecu2], topology=ecus_topology, metadata=system_metadata)
 
     return flync_model
 
@@ -808,9 +745,7 @@ def invalid_shared_internal_switch():
         address=IPvAnyAddress("192.0.2.1"),
         ipv4netmask=IPvAnyAddress("192.0.0.0"),
     )
-    virtual_iface_ecu1 = VirtualControllerInterface(
-        name="virtual1", vlanid=55, addresses=[ipv4_ecu1]
-    )
+    virtual_iface_ecu1 = VirtualControllerInterface(name="virtual1", vlanid=55, addresses=[ipv4_ecu1])
     ctrl_iface_ecu1 = ControllerInterface(
         name="control1",
         mac_address=MacAddress("00:00:5e:00:53:01"),
@@ -821,9 +756,7 @@ def invalid_shared_internal_switch():
         address=IPvAnyAddress("192.0.2.2"),
         ipv4netmask=IPvAnyAddress("192.0.0.0"),
     )
-    virtual_iface_ecu2 = VirtualControllerInterface(
-        name="virtual2", vlanid=55, addresses=[ipv4_ecu2]
-    )
+    virtual_iface_ecu2 = VirtualControllerInterface(name="virtual2", vlanid=55, addresses=[ipv4_ecu2])
     ctrl_iface_ecu2 = ControllerInterface(
         name="control2",
         mac_address=MacAddress("00:00:5e:00:53:02"),
@@ -869,14 +802,10 @@ def invalid_shared_internal_switch():
     )
 
     # --- Switch Port ---
-    switch_port1 = SwitchPort(
-        name="sw_port1", silicon_port_no=1, default_vlan_id=1
-    )
+    switch_port1 = SwitchPort(name="sw_port1", silicon_port_no=1, default_vlan_id=1)
 
     # --- Shared Switch (INVALID) ---
-    Switch(
-        name="switch1", ports=[switch_port1], vlans=[], meta=embedded_metadata
-    )
+    Switch(name="switch1", ports=[switch_port1], vlans=[], meta=embedded_metadata)
 
     # --- ECU Switch Connection ---
     ecu_to_switch_cnx1 = ECUPortToSwitchPort(
@@ -907,9 +836,7 @@ def invalid_shared_internal_switch():
     )
 
     # --- ECU Metadata ---
-    ecu_metadata = ECUMetadata(
-        type="ecu", author="test_team", compatible_flync_version=system_version
-    )
+    ecu_metadata = ECUMetadata(type="ecu", author="test_team", compatible_flync_version=system_version)
 
     # --- Create the ECU ---
     ecu1 = ECU(
@@ -928,14 +855,10 @@ def invalid_shared_internal_switch():
     )
 
     # --- External links ---
-    empty_topology = FLYNCTopology(
-        system_topology=SystemTopology(connections=[])
-    )
+    empty_topology = FLYNCTopology(system_topology=SystemTopology(connections=[]))
 
     # --- Full FLYNC Model ---
-    flync_model = FLYNCModel(
-        ecus=[ecu1, ecu2], topology=empty_topology, metadata=system_metadata
-    )
+    flync_model = FLYNCModel(ecus=[ecu1, ecu2], topology=empty_topology, metadata=system_metadata)
 
     return flync_model
 
@@ -974,9 +897,7 @@ def undeclared_switch_reference():
         address=IPvAnyAddress("192.0.2.1"),
         ipv4netmask=IPvAnyAddress("192.0.0.0"),
     )
-    virtual_iface_ecu1 = VirtualControllerInterface(
-        name="virtual", vlanid=55, addresses=[ipv4_ecu1]
-    )
+    virtual_iface_ecu1 = VirtualControllerInterface(name="virtual", vlanid=55, addresses=[ipv4_ecu1])
     ctrl_iface_ecu1 = ControllerInterface(
         name="control1",
         mac_address=MacAddress("00:00:5e:00:53:01"),
@@ -999,9 +920,7 @@ def undeclared_switch_reference():
     )
 
     # --- Switch ---
-    Switch(
-        name="switch1", ports=[switch_port1], vlans=[], meta=embedded_metadata
-    )
+    Switch(name="switch1", ports=[switch_port1], vlans=[], meta=embedded_metadata)
 
     # --- ECU Port Configuration ---
     port_ecu1 = ECUPort(
@@ -1035,9 +954,7 @@ def undeclared_switch_reference():
     )
 
     # --- ECU Metadata ---
-    ecu_metadata = ECUMetadata(
-        type="ecu", author="test_team", compatible_flync_version=system_version
-    )
+    ecu_metadata = ECUMetadata(type="ecu", author="test_team", compatible_flync_version=system_version)
 
     # --- INVALID ECU (undeclared switch) ---
     ecu1 = ECU(
@@ -1050,14 +967,10 @@ def undeclared_switch_reference():
     )
 
     # --- External links ---
-    empty_topology = FLYNCTopology(
-        system_topology=SystemTopology(connections=[])
-    )
+    empty_topology = FLYNCTopology(system_topology=SystemTopology(connections=[]))
 
     # --- Full FLYNC Model ---
-    flync_model = FLYNCModel(
-        ecus=[ecu1], topology=empty_topology, metadata=system_metadata
-    )
+    flync_model = FLYNCModel(ecus=[ecu1], topology=empty_topology, metadata=system_metadata)
 
     return flync_model
 
@@ -1071,9 +984,7 @@ def undeclared_switch_reference():
         pytest.param(invalid_wrong_connection_type),
         pytest.param(invalid_undeclared_switch),
         pytest.param(invalid_loop_connection),
-        pytest.param(
-            invalid_cross_ecu_internal_connection, marks=pytest.mark.xfail
-        ),
+        pytest.param(invalid_cross_ecu_internal_connection, marks=pytest.mark.xfail),
         pytest.param(invalid_shared_internal_switch, marks=pytest.mark.xfail),
         pytest.param(undeclared_switch_reference),
     ],

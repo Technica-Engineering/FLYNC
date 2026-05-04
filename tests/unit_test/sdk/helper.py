@@ -62,9 +62,7 @@ def compare_yaml_files(base_folder: Path, generated_folder: Path) -> bool:
 
     unexpected_keys = generated_keys ^ base_keys
     if unexpected_keys:
-        raise ValueError(
-            f"Found unexpected keys ({unexpected_keys}) during the roundtrip conversion"
-        )
+        raise ValueError(f"Found unexpected keys ({unexpected_keys}) during the roundtrip conversion")
 
     for k in base_keys & generated_keys:
         if base_files[k] != generated_files[k]:
@@ -86,10 +84,7 @@ def model_has_socket(loaded_model: FLYNCModel):
 
 def dataclass_dict_to_json(obj_dict: dict):
     return json.dumps(
-        {
-            k: TypeAdapter(type(v)).dump_json(v).decode("utf-8")
-            for k, v in obj_dict.items()
-        },
+        {k: TypeAdapter(type(v)).dump_json(v).decode("utf-8") for k, v in obj_dict.items()},
         indent=2,
     )
 
@@ -108,12 +103,8 @@ def to_jsonable(obj, relative_path, seen=None):
         out_workspace = {
             "workspace_obj": {
                 "workspace_name": obj.name,
-                "workspace_path": to_jsonable(
-                    obj.workspace_root, relative_path, seen
-                ),
-                "workspace_model": to_jsonable(
-                    obj.flync_model, relative_path, seen
-                ),
+                "workspace_path": to_jsonable(obj.workspace_root, relative_path, seen),
+                "workspace_model": to_jsonable(obj.flync_model, relative_path, seen),
                 "workspace_errors": len(obj.load_errors),
             }
         }
@@ -126,16 +117,12 @@ def to_jsonable(obj, relative_path, seen=None):
         return path_obj
     # mappingproxy or dict-like
     if isinstance(obj, Mapping) or isinstance(obj, MappingProxyType):
-        out_map = {
-            k: to_jsonable(v, relative_path, seen) for k, v in obj.items()
-        }
+        out_map = {k: to_jsonable(v, relative_path, seen) for k, v in obj.items()}
         seen.remove(obj_id)
         return out_map
 
     if isinstance(obj, dict):
-        out_dict = {
-            k: to_jsonable(v, relative_path, seen) for k, v in obj.items()
-        }
+        out_dict = {k: to_jsonable(v, relative_path, seen) for k, v in obj.items()}
         seen.remove(obj_id)
         return out_dict
     if isinstance(obj, list) or isinstance(obj, set):
@@ -157,11 +144,7 @@ def to_jsonable(obj, relative_path, seen=None):
         seen.remove(obj_id)
         return out_obj_model
 
-    if (
-        isinstance(obj, MappingNode)
-        or isinstance(obj, ScalarNode)
-        or isinstance(obj, SequenceNode)
-    ):
+    if isinstance(obj, MappingNode) or isinstance(obj, ScalarNode) or isinstance(obj, SequenceNode):
         seen.remove(obj_id)
         return yaml_node_to_python(obj)
     # ignore classes / metaclasses
@@ -187,34 +170,25 @@ def yaml_node_to_python(node):
     elif isinstance(node, SequenceNode):
         items = [yaml_node_to_python(item) for item in node.value]
         try:
-            items = sorted(
-                items, key=lambda x: json.dumps(x, sort_keys=True, default=str)
-            )
+            items = sorted(items, key=lambda x: json.dumps(x, sort_keys=True, default=str))
         except Exception:
             pass
         return items
     elif isinstance(node, MappingNode):
-        return {
-            yaml_node_to_python(k): yaml_node_to_python(v)
-            for k, v in node.value
-        }
+        return {yaml_node_to_python(k): yaml_node_to_python(v) for k, v in node.value}
     else:
         return str(node)  # fallback
 
-def try_load_workspace(
-        ws_name: str,
-        output_path: Path,
-        ws_config: WorkspaceConfiguration
-        ) -> FLYNCWorkspace:
+
+def try_load_workspace(ws_name: str, output_path: Path, ws_config: WorkspaceConfiguration) -> FLYNCWorkspace:
     if output_path.is_dir():
         return FLYNCWorkspace.safe_load_workspace(
-                ws_name,
-                workspace_path=output_path,
-                workspace_config=ws_config,
-            )
-    return FLYNCWorkspace(
-            name=ws_name,
+            ws_name,
             workspace_path=output_path,
-            configuration=ws_config,
+            workspace_config=ws_config,
         )
-    
+    return FLYNCWorkspace(
+        name=ws_name,
+        workspace_path=output_path,
+        configuration=ws_config,
+    )

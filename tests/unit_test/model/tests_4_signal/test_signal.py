@@ -118,9 +118,7 @@ def test_positive_value_description_model_validate():
 
 
 def test_positive_signal_minimal():
-    sig = Signal(
-        name="temperature", bit_length=8, data_type=SignalDataType.UINT8
-    )
+    sig = Signal(name="temperature", bit_length=8, data_type=SignalDataType.UINT8)
     assert sig.name == "temperature"
     assert sig.bit_length == 8
     assert sig.data_type == SignalDataType.UINT8
@@ -171,16 +169,12 @@ def test_positive_signal_all_types(data_type, bit_length):
 
 
 def test_positive_signal_float32():
-    sig = Signal(
-        name="torque", bit_length=32, data_type=SignalDataType.FLOAT32
-    )
+    sig = Signal(name="torque", bit_length=32, data_type=SignalDataType.FLOAT32)
     assert sig.data_type == SignalDataType.FLOAT32
 
 
 def test_positive_signal_float64():
-    sig = Signal(
-        name="latitude", bit_length=64, data_type=SignalDataType.FLOAT64
-    )
+    sig = Signal(name="latitude", bit_length=64, data_type=SignalDataType.FLOAT64)
     assert sig.data_type == SignalDataType.FLOAT64
 
 
@@ -251,9 +245,7 @@ def test_positive_signal_only_upper_limit():
         pytest.param(SignalDataType.UINT32, 32, 0, id="uint32_zero"),
     ],
 )
-def test_positive_signal_initial_value_integer(
-    data_type, bit_length, initial_value
-):
+def test_positive_signal_initial_value_integer(data_type, bit_length, initial_value):
     sig = Signal(
         name=f"iv_{data_type.value}_{initial_value}",
         bit_length=bit_length,
@@ -314,6 +306,40 @@ def test_positive_signal_model_validate():
     sig = Signal.model_validate(data)
     assert isinstance(sig, Signal)
     assert sig.factor == 0.5
+
+
+def test_positive_signal_data_type_roundtrip():
+    """Test that SignalDataType serializes to string and deserializes back to enum."""
+    import random
+
+    sig_original = Signal(
+        name=f"orig-{random.random()}",
+        bit_length=8,
+        data_type=SignalDataType("uint8"),
+        factor=2.0,
+        offset=1.5,
+        unit="km/h",
+    )
+    # Serialize
+    data = sig_original.model_dump()
+    assert data["data_type"] == "uint8"
+    assert isinstance(data["data_type"], str)
+
+    # Change name to avoid UniqueName registry conflict
+    data["name"] = f"roundtrip-{random.random()}"
+
+    # Deserialize - should convert string back to SignalDataType enum
+    sig_roundtrip = Signal.model_validate(data)
+
+    assert isinstance(sig_roundtrip.data_type, SignalDataType)
+    assert sig_roundtrip.data_type == SignalDataType.UINT8
+    assert sig_roundtrip.data_type.value == "uint8"
+
+    # Verify all other fields match
+    assert sig_roundtrip.bit_length == sig_original.bit_length
+    assert sig_roundtrip.factor == sig_original.factor
+    assert sig_roundtrip.offset == sig_original.offset
+    assert sig_roundtrip.unit == sig_original.unit
 
 
 # ---------------------------------------------------------------------------
@@ -411,17 +437,13 @@ def test_negative_signal_duplicate_value_descriptions():
         pytest.param(SignalDataType.INT8, 8, -129, id="int8_value_neg129"),
     ],
 )
-def test_negative_signal_value_description_out_of_range(
-    data_type, bit_length, bad_value
-):
+def test_negative_signal_value_description_out_of_range(data_type, bit_length, bad_value):
     with pytest.raises(ValidationError):
         Signal(
             name=f"vd_range_{data_type.value}",
             bit_length=bit_length,
             data_type=data_type,
-            value_descriptions=[
-                ValueDescription(value=bad_value, description="Out")
-            ],
+            value_descriptions=[ValueDescription(value=bad_value, description="Out")],
         )
 
 
@@ -436,9 +458,7 @@ def test_negative_signal_value_description_out_of_range(
         pytest.param(SignalDataType.BYTEARRAY, 8, 0, id="bytearray_int"),
     ],
 )
-def test_negative_signal_initial_value_wrong_type(
-    data_type, bit_length, bad_iv
-):
+def test_negative_signal_initial_value_wrong_type(data_type, bit_length, bad_iv):
     with pytest.raises(ValidationError):
         Signal(
             name=f"bad_iv_{data_type.value}",
@@ -458,9 +478,7 @@ def test_negative_signal_initial_value_wrong_type(
         pytest.param(SignalDataType.UINT8, 4, 16, id="uint8_4bit_overflow"),
     ],
 )
-def test_negative_signal_initial_value_out_of_range(
-    data_type, bit_length, bad_iv
-):
+def test_negative_signal_initial_value_out_of_range(data_type, bit_length, bad_iv):
     with pytest.raises(ValidationError):
         Signal(
             name=f"iv_range_{data_type.value}_{bad_iv}",
@@ -521,9 +539,7 @@ def test_positive_signal_instance_without_bit_position(uint8_signal):
 
 
 def test_positive_signal_instance_with_subscribers(uint8_signal):
-    si = SignalInstance(
-        signal=uint8_signal, bit_position=0, subscriber_nodes=["ECU_A"]
-    )
+    si = SignalInstance(signal=uint8_signal, bit_position=0, subscriber_nodes=["ECU_A"])
     assert si.subscriber_nodes == ["ECU_A"]
 
 
@@ -550,9 +566,7 @@ def test_positive_signal_group_multiple_signals():
 
 
 def test_positive_signal_group_with_description(uint8_signal):
-    sg = SignalGroup(
-        name="grp_desc", signals=[uint8_signal], description="Test group"
-    )
+    sg = SignalGroup(name="grp_desc", signals=[uint8_signal], description="Test group")
     assert sg.description == "Test group"
 
 

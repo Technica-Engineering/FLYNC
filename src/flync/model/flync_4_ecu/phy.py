@@ -20,8 +20,7 @@ class BASET1(FLYNCBaseModel):
         Interface mode. Defaults to ``"base_t1"``.
 
     speed : int
-        Supported link speed in megabits per second. Valid values are
-        100 or 1000.
+        Supported link speed in megabits per second. Valid values are 100 or 1000.
 
     duplex : Literal["full"]
         Duplex mode. Defaults to ``"full"``.
@@ -79,8 +78,7 @@ class BASET(FLYNCBaseModel):
         Interface mode. Defaults to ``"base_t"``.
 
     speed : int
-        Supported link speed in megabits per second. Valid values are
-        100 or 1000.
+        Supported link speed in megabits per second. Valid values are 100 or 1000.
 
     duplex : Literal["full"]
         Duplex mode. Defaults to ``"full"``.
@@ -109,8 +107,7 @@ class MII(FLYNCBaseModel):
         Interface type. Defaults to ``"mii"``.
 
     speed : int
-        Supported link speed in megabits per second. Valid values are
-        10 or 100.
+        Supported link speed in megabits per second. Valid values are 10 or 100.
 
     mode : Literal["mac", "phy"]
         Operating mode, either MAC or PHY.
@@ -132,8 +129,7 @@ class RMII(FLYNCBaseModel):
         Interface type. Defaults to ``"rmii"``.
 
     speed : int
-        Supported link speed in megabits per second. Valid values are
-        10 or 100.
+        Supported link speed in megabits per second. Valid values are 10 or 100.
 
     mode : Literal["mac", "phy"]
         Operating mode, either MAC or PHY.
@@ -155,8 +151,7 @@ class SGMII(FLYNCBaseModel):
         Interface type. Defaults to ``"sgmii"``.
 
     speed : int
-        Supported link speed in megabits per second. Valid values are 10,
-        100, 1000, or 2500. Defaults to 1000 Mbps.
+        Supported link speed in megabits per second. Valid values are 10, 100, 1000, or 2500. Defaults to 1000 Mbps.
 
     mode : Literal["mac", "phy"]
         Operating mode, either MAC or PHY.
@@ -169,8 +164,7 @@ class SGMII(FLYNCBaseModel):
 
 class RGMII(FLYNCBaseModel):
     """
-    Represents a Reduced Gigabit Media Independent Interface (RGMII)
-    configuration.
+    Represents a Reduced Gigabit Media Independent Interface (RGMII) configuration.
 
     Parameters
     ----------
@@ -178,8 +172,7 @@ class RGMII(FLYNCBaseModel):
         Interface type. Defaults to ``"rgmii"``.
 
     speed : int
-        Supported link speed in megabits per second. Valid values are 10,
-        100, or 1000. Defaults to 1000 Mbps.
+        Supported link speed in megabits per second. Valid values are 10, 100, or 1000. Defaults to 1000 Mbps.
 
     mode : Literal["mac", "phy"]
         Operating mode, either MAC or PHY.

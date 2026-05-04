@@ -1,7 +1,8 @@
 import pytest
-from pydantic import ValidationError
 from packaging.version import Version as Pep440Version
+from pydantic import ValidationError
 from semver import Version as SemVersion
+
 from flync.model.flync_4_metadata.metadata import ECUMetadata
 
 

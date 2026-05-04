@@ -14,24 +14,20 @@ class PTPTimeTransmitterConfig(FLYNCBaseModel):
     """
     Configuration for a PTP (Precision Time Protocol) time transmitter.
 
-    This class defines the settings required for a device acting as a
-    time transmitter in a PTP domain.
+    This class defines the settings required for a device acting as a time transmitter in a PTP domain.
 
     Parameters
     ----------
     log_tx_period : int
-        Logarithmic mean message interval for Sync messages, expressed
-        as 2^x seconds.
-        Valid range is -7 (128 messages/sec) to 1
-        (1 message every 2 seconds).
+        Logarithmic mean message interval for Sync messages, expressed as 2^x seconds.
+        Valid range is -7 (128 messages/sec) to 1 (1 message every 2 seconds).
 
     two_step : bool, optional
         Flag indicating whether two-step synchronization is used.
         Default is True.
 
     tlv : list of str, optional
-        Optional list of TLV (Type-Length-Value) extensions included
-        in Sync messages.
+        Optional list of TLV (Type-Length-Value) extensions included in Sync messages.
     """
 
     type: Literal["time_transmitter"] = Field(default="time_transmitter")
@@ -47,18 +43,15 @@ class PTPTimeReceiverConfig(FLYNCBaseModel):
     """
     Configuration for a PTP (Precision Time Protocol) time receiver.
 
-    This class defines the settings required for a device acting as
-    a time receiver in a PTP domain.
+    This class defines the settings required for a device acting as a time receiver in a PTP domain.
 
     Parameters
     ----------
     sync_timeout : int
-        Timeout for receiving Sync messages, in milliseconds or \
-        implementation-specific units.
+        Timeout for receiving Sync messages, in milliseconds or implementation-specific units.
 
     sync_followup_timeout : int
-        Timeout in milliseconds for receiving Follow_Up messages \
-        after a Sync message.
+        Timeout in milliseconds for receiving Follow_Up messages after a Sync message.
     """
 
     type: Literal["time_receiver"] = Field(default="time_receiver")
@@ -70,14 +63,12 @@ class PTPPdelayConfig(FLYNCBaseModel):
     """
     Configuration for PTP peer delay (PDelay) messages.
 
-    This class defines the interval for transmitting peer delay
-    measurement messages used to estimate path delay between devices.
+    This class defines the interval for transmitting peer delay measurement messages used to estimate path delay between devices.
 
     Parameters
     ----------
     log_tx_period : int
-        Logarithmic mean message interval for PDelay messages
-        (2^x seconds).
+        Logarithmic mean message interval for PDelay messages (2^x seconds).
         Valid range: -4 to 3.
     """
 
@@ -88,22 +79,18 @@ class PTPPort(FLYNCBaseModel):
     """
     PTP port configuration for an ECU (Electronic Control Unit).
 
-    This class defines the configuration of a PTP port that may act
-    as a transmitter or receiver, and optionally support peer delay
-    measurements.
+    This class defines the configuration of a PTP port that may act as a transmitter or receiver, and optionally support peer delay measurements.
 
     Parameters
     ----------
     domain_id : int
-        PTP domain identifier used to separate multiple time sync
-        domains.
+        PTP domain identifier used to separate multiple time sync domains.
         Must be greater than or equal to 0.
 
     src_port_identity : int
         Unique identity for the source port. Must be >= 0.
 
-    sync_config : :class:`PTPTimeTransmitterConfig` or \
-    :class:`PTPTimeReceiverConfig`
+    sync_config : :class:`PTPTimeTransmitterConfig` or :class:`PTPTimeReceiverConfig`
         Sync behavior configuration for this port.
 
     pdelay_config : :class:`PTPPdelayConfig`, optional
@@ -123,10 +110,8 @@ class PTPConfig(FLYNCBaseModel):
     Parameters
     ----------
     cmlds_linkport_enabled : bool
-        Enable the Common Mean Link Delay Service (CMLDS)
-        on the physical Link Port that these PTP ports share.
-        True → share meanLinkDelay/neighborRateRatio across all
-        domains using delayMechanism=COMMON_P2P.
+        Enable the Common Mean Link Delay Service (CMLDS) on the physical Link Port that these PTP ports share.
+        True → share meanLinkDelay/neighborRateRatio across all domains using delayMechanism=COMMON_P2P.
         False → instance-specific peer delay.
 
     ptp_ports : list of :class:`PTPPort`

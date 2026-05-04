@@ -189,8 +189,6 @@ def test_positive_tcp_socket():
         ),
     ],
 )
-
-
 def test_negative_tcp_socket_parameters(tcp_socket):
     tcp_options = TCPOption(tcp_profile_id=1)
     with pytest.raises(ValidationError) as e:
@@ -277,8 +275,9 @@ def test_positive_tcp_options(tcp_options):
     tcp_options_example = TCPOption.model_validate(tcp_options)
     assert isinstance(tcp_options_example, TCPOption)
 
+
 def test_positive_tcp_profile_invalid():
-    
+
     tcp_socket = {
         "endpoint_address": "10.0.0.1",
         "name": "my_socket",
@@ -288,7 +287,7 @@ def test_positive_tcp_profile_invalid():
     }
     tcp_example = SocketTCP.model_validate(tcp_socket)
     assert isinstance(tcp_example, SocketTCP)
-    
+
 
 @pytest.mark.parametrize(
     "tcp_options",
@@ -390,9 +389,7 @@ def test_udp_socket_is_instance_of_socket(udp_socket_entry_ipv4):
     assert isinstance(udp_socket_entry_ipv4, Socket)
 
 
-def test_ipv4_address_endpoint_with_tcp_and_udp_sockets(
-    tcp_socket_entry_ipv4, udp_socket_entry_ipv4
-):
+def test_ipv4_address_endpoint_with_tcp_and_udp_sockets(tcp_socket_entry_ipv4, udp_socket_entry_ipv4):
     ip_obj = {
         "address": "10.0.1.1",
         "ipv4netmask": "224.0.0.1",
@@ -402,9 +399,7 @@ def test_ipv4_address_endpoint_with_tcp_and_udp_sockets(
     assert isinstance(ip_obj, IPv4AddressEndpoint)
 
 
-def test_ipv6_address_endpoint_with_tcp_and_udp_sockets(
-    tcp_socket_entry_ipv6, udp_socket_entry_ipv6
-):
+def test_ipv6_address_endpoint_with_tcp_and_udp_sockets(tcp_socket_entry_ipv6, udp_socket_entry_ipv6):
     ip_obj = {
         "address": "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
         "ipv6prefix": 64,
@@ -414,9 +409,7 @@ def test_ipv6_address_endpoint_with_tcp_and_udp_sockets(
     assert isinstance(ip_obj, IPv6AddressEndpoint)
 
 
-def test_negative_ipv4_address_endpoint_with_tcp_and_udp_sockets(
-    tcp_socket_entry_ipv6, udp_socket_entry_ipv6
-):
+def test_negative_ipv4_address_endpoint_with_tcp_and_udp_sockets(tcp_socket_entry_ipv6, udp_socket_entry_ipv6):
     ip_obj = {
         "address": "10.0.1.1",
         "ipv4netmask": "224.0.0.1",
@@ -426,9 +419,7 @@ def test_negative_ipv4_address_endpoint_with_tcp_and_udp_sockets(
         ip_obj = IPv4AddressEndpoint.model_validate(ip_obj)
 
 
-def test_negative_ipv6_address_endpoint_with_tcp_and_udp_sockets(
-    tcp_socket_entry_ipv4, udp_socket_entry_ipv4
-):
+def test_negative_ipv6_address_endpoint_with_tcp_and_udp_sockets(tcp_socket_entry_ipv4, udp_socket_entry_ipv4):
     ip_obj = {
         "address": "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
         "ipv6prefix": 64,
@@ -499,9 +490,7 @@ def test_tcp_socket_with_multicast_deployment():
                     service=1,
                     someip_sd_timings_profile="client_default",
                     instance_id=1,
-                    find_service_multicast=MulticastEndpoint(
-                        ip_address="224.0.0.1", port=4444
-                    ),
+                    find_service_multicast=MulticastEndpoint(ip_address="224.0.0.1", port=4444),
                 )
             ],
         )

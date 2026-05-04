@@ -39,9 +39,9 @@ def __get_valid_path(paths: list[str]) -> list[str]:
         paths (list[str]): A list of path-like strings.
 
     Returns:
-        list[str]: A list of non-numeric chunks representing a valid path,
-                   or an empty list if no valid path is found.
+        list[str]: A list of non-numeric chunks representing a valid path, or an empty list if no valid path is found.
     """
+
     if len(paths) == 1 and paths[0] in ["", "."]:
         return []
     for p in paths:
@@ -57,12 +57,8 @@ def is_union(tp) -> bool:
     """
     Determine whether a given type annotation represents a Union type.
     """
-    return (
-        tp is Union
-        or tp is UnionType
-        or get_origin(tp) is Union
-        or isinstance(tp, UnionType)
-    )
+
+    return tp is Union or tp is UnionType or get_origin(tp) is Union or isinstance(tp, UnionType)
 
 
 class Factory(object):
@@ -92,17 +88,13 @@ class Factory(object):
 
     @classmethod
     def factory_model_defined(cls, model: type[FLYNCBaseModel]) -> bool:
-        return (
-            cls.__FACTORY_MODELS is not None and model in cls.__FACTORY_MODELS
-        )
+        return cls.__FACTORY_MODELS is not None and model in cls.__FACTORY_MODELS
 
     @classmethod
     def get_factory(cls, model: type) -> type[ModelFactory]:
         if cls.__MODEL_FACTORY_REGISTRY is None:
             cls.__MODEL_FACTORY_REGISTRY = cls.__build_factory_registry()
-            cls.__FACTORY_MODELS = [
-                r.__model__ for r in cls.__MODEL_FACTORY_REGISTRY.values()
-            ]
+            cls.__FACTORY_MODELS = [r.__model__ for r in cls.__MODEL_FACTORY_REGISTRY.values()]
         if model not in cls.__MODEL_FACTORY_REGISTRY:
             cls.__MODEL_FACTORY_REGISTRY.update(cls.__build_factory_registry())
 
@@ -125,17 +117,14 @@ class Factory(object):
             """
             Recursively yield all subclasses of a given class.
             """
+
             for subclass in cls.__subclasses__():
                 yield subclass
                 yield from __get_all_subclasses(subclass)
 
         for factory_cls in __get_all_subclasses(ModelFactory):
             model = getattr(factory_cls, "__model__", None)
-            if (
-                model is not None
-                and isinstance(model, type)
-                and issubclass(model, FLYNCBaseModel)
-            ):
+            if model is not None and isinstance(model, type) and issubclass(model, FLYNCBaseModel):
                 registry[model] = factory_cls
 
         return registry
@@ -164,12 +153,8 @@ class FLYNCFactory(ModelFactory[FLYNCBaseModel]):
         original_providers = super().get_provider_map()
         original_providers[MacAddress] = lambda: "11:22:33:44:55:66"
         original_providers[IPv6Address] = lambda: IPv6Address("fe80::1")
-        original_providers[IPv4Address] = (
-            lambda: FLYNCFactory.random_multicast_ipv4()
-        )
-        original_providers[IPvAnyAddress] = (
-            lambda: FLYNCFactory.random_multicast_ipv4()
-        )
+        original_providers[IPv4Address] = lambda: FLYNCFactory.random_multicast_ipv4()
+        original_providers[IPvAnyAddress] = lambda: FLYNCFactory.random_multicast_ipv4()
         return original_providers
 
     @staticmethod
@@ -188,16 +173,10 @@ class FLYNCFactory(ModelFactory[FLYNCBaseModel]):
             for a in args:
                 if Factory.factory_model_defined(a):
                     return a
-            if arg1 := [
-                t
-                for t in [IPv4AddressEndpoint, IPv4AddressEntry, IPv4Address]
-                if t in args
-            ]:
+            if arg1 := [t for t in [IPv4AddressEndpoint, IPv4AddressEntry, IPv4Address] if t in args]:
                 arg = arg1[0]
             else:
-                arg = FLYNCFactory.__default_arg_type(
-                    next(a for a in args if a is not type(None))
-                )
+                arg = FLYNCFactory.__default_arg_type(next(a for a in args if a is not type(None)))
         return arg
 
     @staticmethod
@@ -228,12 +207,9 @@ class FLYNCFactory(ModelFactory[FLYNCBaseModel]):
         return valid, result
 
     @staticmethod
-    def __get_field_value_list(
-        field_info, arg_type, origin_type, **kwargs
-    ) -> tuple[bool, Any]:
+    def __get_field_value_list(field_info, arg_type, origin_type, **kwargs) -> tuple[bool, Any]:
         """
-        Generate a default list of values for a Pydantic field when
-        the type annotation indicates a list of FLYNCBaseModel subclasses.
+        Generate a default list of values for a Pydantic field when the type annotation indicates a list of FLYNCBaseModel subclasses.
 
         Args:
             field_info (FieldInfo): Metadata about the Pydantic field.
@@ -246,17 +222,9 @@ class FLYNCFactory(ModelFactory[FLYNCBaseModel]):
                 - `bool`: Whether a valid list of values was generated.
                 - `Any`: The generated list of model instances.
         """
-        if (
-            arg_type
-            and inspect.isclass(arg_type)
-            and issubclass(arg_type, FLYNCBaseModel)
-            and origin_type is list
-        ):
-            min_length: int = (
-                2
-                if arg_type == ECUPort
-                else FLYNCFactory.__min_length_list(field_info)
-            )
+
+        if arg_type and inspect.isclass(arg_type) and issubclass(arg_type, FLYNCBaseModel) and origin_type is list:
+            min_length: int = 2 if arg_type == ECUPort else FLYNCFactory.__min_length_list(field_info)
             return True, Factory.get_factory(arg_type).batch(
                 size=min_length,
                 **kwargs,
@@ -272,9 +240,9 @@ class FLYNCFactory(ModelFactory[FLYNCBaseModel]):
             field_info (FieldInfo): The Pydantic field metadata object.
 
         Returns:
-            int: The minimum list length, either from metadata
-            or the default of `1`.
+            int: The minimum list length, either from metadata or the default of `1`.
         """
+
         min_length = 1
         if field_info.metadata is None:
             return min_length
@@ -296,27 +264,15 @@ class FLYNCFactory(ModelFactory[FLYNCBaseModel]):
             return valid, value
 
         valid, value = False, None
-        origin_type = (
-            get_origin(field_info.annotation) or field_info.annotation
-        )
-        if (
-            origin_type is list
-            or is_union(origin_type)
-            or origin_type is Literal
-        ):
+        origin_type = get_origin(field_info.annotation) or field_info.annotation
+        if origin_type is list or is_union(origin_type) or origin_type is Literal:
             arg_type = FLYNCFactory.__default_arg_type(field_info.annotation)
-            valid, value = FLYNCFactory.__get_field_value_list(
-                field_info, arg_type, origin_type, **kwargs
-            )
+            valid, value = FLYNCFactory.__get_field_value_list(field_info, arg_type, origin_type, **kwargs)
             if valid:
                 return valid, value
             elif origin_type is Literal:
                 valid, value = True, arg_type
-            elif (
-                arg_type
-                and issubclass(arg_type, FLYNCBaseModel)
-                and is_union(origin_type)
-            ):
+            elif arg_type and issubclass(arg_type, FLYNCBaseModel) and is_union(origin_type):
                 valid, value = True, Factory.get_factory(arg_type).build(
                     **kwargs,
                 )
@@ -341,9 +297,7 @@ class FLYNCFactory(ModelFactory[FLYNCBaseModel]):
             if finfo.exclude:
                 continue
             if fname not in kwargs:
-                res, value = FLYNCFactory.__get_field_value(
-                    cls.__model__, fname, finfo, **kwargs
-                )
+                res, value = FLYNCFactory.__get_field_value(cls.__model__, fname, finfo, **kwargs)
                 if res:
                     newkwargs[fname] = value
             else:
@@ -380,9 +334,7 @@ class BASET1Factory(FLYNCFactory):
     def build(cls, **kwargs):
         insts = list(get_registry().get_dict(ECUPort).values())
         if len(insts) > 0:
-            kwargs["role"] = (
-                "slave" if insts[0].mdi_config.role == "master" else "master"
-            )
+            kwargs["role"] = "slave" if insts[0].mdi_config.role == "master" else "master"
         return super().build(**kwargs)
 
 
@@ -392,16 +344,14 @@ def dump_flync_workspace(
     workspace_name: str | None,
     workspace_config: WorkspaceConfiguration | None = None,
 ) -> None:
-    """Generate a FLYNC workspace from a FLYNCModel object.
+    """
+    Generate a FLYNC workspace from a FLYNCModel object.
 
     Args:
-        flync_model (:class:`~flync.model.flync_model.FLYNCModel`): The
-            FLYNC model to generate the workspace from.
-        output_path (str | pathlib.Path): The path where the workspace
-            will be created.
+        flync_model (:class:`~flync.model.flync_model.FLYNCModel`): The FLYNC model to generate the workspace from.
+        output_path (str | pathlib.Path): The path where the workspace will be created.
         workspace_name (str | None): Optional name for the workspace.
-        workspace_config (WorkspaceConfiguration | None): Optional
-            workspace configuration. Uses defaults if ``None``.
+        workspace_config (WorkspaceConfiguration | None): Optional workspace configuration. Uses defaults if ``None``.
 
     Returns:
         None
@@ -425,6 +375,7 @@ def generate_external_node(
     """
     Generate external node.
     """
+
     node = type_from_input(node)
     # generate object from type
     model_factory = Factory.get_factory(node)
@@ -435,19 +386,14 @@ def generate_external_node(
     # dump to output
     if not isinstance(node_path, Path):
         node_path = Path(node_path)
-    FLYNCWorkspace.load_model(
-        flync_obj, file_path=node_path, workspace_config=workspace_config
-    ).generate_configs()
+    FLYNCWorkspace.load_model(flync_obj, file_path=node_path, workspace_config=workspace_config).generate_configs()
 
 
 def _get_flync_path(model: BaseModel | list | set, field_name: str) -> str:
     """Determine the flync path based on model type."""
     if isinstance(model, (list, set)):
         return f"{field_name}.[]"
-    if (
-        isinstance(model, FLYNCBaseModel)
-        and field_name in type(model).model_fields
-    ):
+    if isinstance(model, FLYNCBaseModel) and field_name in type(model).model_fields:
         return f"{field_name}"
     return ""
 
@@ -477,13 +423,11 @@ def __resolve_semantic_object(
     return flync_path, parent, root
 
 
-def __resolve_path(
-    valid_path: list[str], ws: FLYNCWorkspace
-) -> tuple[type[FLYNCBaseModel], FLYNCBaseModel | None, str]:
+def __resolve_path(valid_path: list[str], ws: FLYNCWorkspace) -> tuple[type[FLYNCBaseModel], FLYNCBaseModel | None, str]:
     """
-    Walk valid_path segments and resolve the FLYNC
-    root type, parent model, and flync_path.
+    Walk valid_path segments and resolve the FLYNC root type, parent model, and flync_path.
     """
+
     root: type[FLYNCBaseModel] = FLYNCModel
     parent: FLYNCBaseModel | None = None
     flync_path = ""
@@ -498,9 +442,7 @@ def __resolve_path(
         if not isinstance(so, SemanticObject):
             continue
 
-        flync_path, parent, resolved_root = __resolve_semantic_object(
-            so, field_name
-        )
+        flync_path, parent, resolved_root = __resolve_semantic_object(so, field_name)
         if resolved_root is not None:
             root = resolved_root
 
@@ -515,18 +457,14 @@ def generate_node(
     """
     Generate node.
     """
+
     valid_path = __get_valid_path(node_paths)
     root, parent, flync_path = __resolve_path(valid_path, ws)
     nodes = available_flync_nodes(root_node=root)
     generated_node: FLYNCBaseModel | None = None
     for node_info in nodes.values():
-        if (
-            flync_path in node_info.flync_paths
-            or valid_path == node_info.flync_paths
-        ):
-            instances = [
-                obj for obj in gc.get_objects() if isinstance(obj, UniqueName)
-            ]
+        if flync_path in node_info.flync_paths or valid_path == node_info.flync_paths:
+            instances = [obj for obj in gc.get_objects() if isinstance(obj, UniqueName)]
             for inst in instances:
                 Factory.add_names(inst.get_key())
 

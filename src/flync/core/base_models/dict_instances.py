@@ -14,22 +14,19 @@ T = TypeVar("T", bound="FLYNCBaseModel")
 
 
 class DictInstances(FLYNCBaseModel, Generic[T]):
-    """Base class that registers validated instances in the active
-    :class:`~flync.core.base_models.instances_registery.Registry` under
+    """
+    Base class that registers validated instances in the active :class:`~flync.core.base_models.instances_registery.Registry` under
     a caller-supplied key.
 
-    After Pydantic validation completes, ``ensure_unique_instances``
-    calls :meth:`get_dict_key` and stores ``self`` in
-    ``registry.dict_by_class[type(self)][key]``.  Any later validator
-    that holds a *name* reference to an instance of this class can look
+    After Pydantic validation completes, ``ensure_unique_instances`` calls :meth:`get_dict_key` and stores ``self`` in
+    ``registry.dict_by_class[type(self)][key]``.  Any later validator that holds a *name* reference to an instance of this class can look
     it up without building a separate index.
 
     Subclasses must implement :meth:`get_dict_key`.
 
     **Looking up a registered instance in a validator**
 
-    Use :func:`~flync.core.base_models.instances_registery.get_registry`
-    to obtain the active registry, then call ``get_dict`` with the
+    Use :func:`~flync.core.base_models.instances_registery.get_registry` to obtain the active registry, then call ``get_dict`` with the
     concrete class::
 
         from flync.core.base_models import Registry, get_registry
@@ -48,8 +45,7 @@ class DictInstances(FLYNCBaseModel, Generic[T]):
                     raise ValueError(f"Port '{self.port_name}' not found")
                 return self
 
-    This is the pattern used throughout
-    :mod:`flync.model.flync_4_ecu.internal_topology`, for example in
+    This is the pattern used throughout :mod:`flync.model.flync_4_ecu.internal_topology`, for example in
     ``ECUPortToXConnection.validate_ecu_port_exists``::
 
         registry: Registry = get_registry()
@@ -58,10 +54,8 @@ class DictInstances(FLYNCBaseModel, Generic[T]):
 
     **Injecting a parent back-reference into children**
 
-    When a child model needs to navigate back to its parent at runtime,
-    override ``model_post_init`` on the *parent* to set a private
-    attribute on each child.  Always call
-    ``super().model_post_init(__context)`` last::
+    When a child model needs to navigate back to its parent at runtime, override ``model_post_init`` on the *parent* to set a private
+    attribute on each child.  Always call ``super().model_post_init(__context)`` last::
 
         class MyParent(DictInstances):
             children: List[MyChild] = Field()
@@ -71,8 +65,7 @@ class DictInstances(FLYNCBaseModel, Generic[T]):
                     child._parent = self
                 return super().model_post_init(__context)
 
-    See ``Switch.model_post_init`` in
-    :mod:`flync.model.flync_4_ecu.switch` for the canonical example::
+    See ``Switch.model_post_init`` in :mod:`flync.model.flync_4_ecu.switch` for the canonical example::
 
         def model_post_init(self, __context):
             for port in self.ports:
@@ -100,12 +93,11 @@ class DictInstances(FLYNCBaseModel, Generic[T]):
 
 
 class NamedDictInstances(UniqueName, Generic[T]):
-    """Base class for named models registered in the active
-    :class:`~flync.core.base_models.instances_registery.Registry` keyed
+    """
+    Base class for named models registered in the active :class:`~flync.core.base_models.instances_registery.Registry` keyed
     by their ``name`` field.
 
-    Identical to :class:`DictInstances` but the registry key is always
-    ``self.name`` (via :meth:`get_instance_key`), so subclasses do not
+    Identical to :class:`DictInstances` but the registry key is always ``self.name`` (via :meth:`get_instance_key`), so subclasses do not
     need to implement :meth:`get_dict_key`.
 
     **Looking up a registered instance in a validator**
@@ -139,8 +131,7 @@ class NamedDictInstances(UniqueName, Generic[T]):
 
     **Injecting a parent back-reference into children**
 
-    Same as for :class:`DictInstances` -- override ``model_post_init``
-    on the parent to assign a private back-reference on each child::
+    Same as for :class:`DictInstances` -- override ``model_post_init`` on the parent to assign a private back-reference on each child::
 
         class MyParent(NamedDictInstances):
             children: List[MyChild] = Field()

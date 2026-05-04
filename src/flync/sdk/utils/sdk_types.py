@@ -8,5 +8,4 @@ from pathlib import Path
 from typing import TypeAlias
 
 PathType: TypeAlias = Path | str
-"""A type alias that accepts either a :class:`pathlib.Path` or a plain
-:class:`str`."""
+"""A type alias that accepts either a :class:`pathlib.Path` or a plain :class:`str`."""

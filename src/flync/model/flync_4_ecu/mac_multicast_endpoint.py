@@ -37,27 +37,18 @@ class MACMulticastEndpoint(FLYNCBaseModel):
     """
 
     name: str = Field(description="Name of the multicast endpoint.")
-    mac_address: MacAddress = Field(
-        description="MAC address of the controller that this endpoint is \
-            bound to."
-    )
-    protocol: str = Field(
-        description="Protocol that is expected on this endpoint."
-    )
+    mac_address: MacAddress = Field(description="MAC address of the controller that this endpoint is \
+            bound to.")
+    protocol: str = Field(description="Protocol that is expected on this endpoint.")
     ethertype: Optional[int] = Field(
         description="EtherType that is expected on this endpoint.",
         ge=0x0000,
         le=0xFFFF,
     )
-    vlan_id: Annotated[Optional[int], AfterValidator(validate_vlan_id)] = (
-        Field(
-            description="VLAN ID expected on this endpoint "
-            "(``None`` for untagged).",
-        )
+    vlan_id: Annotated[Optional[int], AfterValidator(validate_vlan_id)] = Field(
+        description="VLAN ID expected on this endpoint (``None`` for untagged).",
     )
-    multicast_tx: Optional[
-        List[Annotated[MacAddress, AfterValidator(validate_mac_multicast)]]
-    ] = Field(
+    multicast_tx: Optional[List[Annotated[MacAddress, AfterValidator(validate_mac_multicast)]]] = Field(
         description="List of multicast addresses that this endpoint should \
             transmit to.",
         default_factory=list,
@@ -66,10 +57,8 @@ class MACMulticastEndpoint(FLYNCBaseModel):
 
 class AVTPMulticastEndpoint(MACMulticastEndpoint):
     """
-    Represents an AVTP multicast endpoint that is bound to a specific \
-        controller.
-    This is a specialized version of MACMulticastEndpoint with fixed \
-        EtherType and protocol values, and additional validation to \
+    Represents an AVTP multicast endpoint that is bound to a specific controller.
+    This is a specialized version of MACMulticastEndpoint with fixed EtherType and protocol values, and additional validation to \
         ensure that multicast addresses are within the AVTP range.
 
     Parameters
@@ -85,18 +74,17 @@ class AVTPMulticastEndpoint(MACMulticastEndpoint):
 
     @field_validator("multicast_tx", mode="after")
     def validate_avtp_multicast_range(cls, v):
-        """Validate that all multicast addresses in the list are within \
+        """
+        Validate that all multicast addresses in the list are within \
             the AVTP multicast range."""
+
         for mac in v:
             if not is_mac_in_range(
                 mac,
                 MacAddress("91:E0:F0:00:00:00"),
                 MacAddress("91:E0:F0:00:00:FF"),
             ):
-                raise err_major(
-                    f"AVTP multicast address {str(mac).upper()} is out of "
-                    "the valid range 91:E0:F0:00:00:00 - 91:E0:F0:00:00:FF."
-                )
+                raise err_major(f"AVTP multicast address {str(mac).upper()} is out of the valid range 91:E0:F0:00:00:00 - 91:E0:F0:00:00:FF.")
         return v
 
 
@@ -107,8 +95,7 @@ class MACEndpointUnion(RootModel):
 
     Possible types
     --------------
-    - :class:`~AVTPMulticastEndpoint`: If ethertype is 0x22F0, the endpoint
-        is treated as an AVTP multicast endpoint.
+    - :class:`~AVTPMulticastEndpoint`: If ethertype is 0x22F0, the endpoint is treated as an AVTP multicast endpoint.
     """
 
     root: AVTPMulticastEndpoint = Field(discriminator="protocol")

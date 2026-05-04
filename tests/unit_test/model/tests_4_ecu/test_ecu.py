@@ -1,21 +1,17 @@
-import pytest
-from flync.model.flync_4_someip import (
-    SOMEIPServiceInterface,
-)
-from pathlib import Path
 from flync.model.flync_4_ecu import (
     BASET1,
     ECU,
+    MII,
     ECUPort,
     Switch,
-    MII,
     VLANEntry,
+)
+from flync.model.flync_4_someip import (
+    SOMEIPServiceInterface,
 )
 
 
-def test_ecu_parsing_from_dicts(
-    metadata_entry, embedded_metadata_entry, ecu_port: ECUPort, MII_entry
-):
+def test_ecu_parsing_from_dicts(metadata_entry, embedded_metadata_entry, ecu_port: ECUPort, MII_entry):
     SOMEIPServiceInterface(meta=metadata_entry, name="s", id=1)
     kwargs = dict(
         name="test",
@@ -42,11 +38,7 @@ def test_ecu_parsing_from_dicts(
                     ),
                     dict(name="c", silicon_port_no=2, default_vlan_id=1),
                 ],
-                vlans=[
-                    VLANEntry(
-                        name="vlan10", id=1, default_priority=1, ports=["a"]
-                    )
-                ],
+                vlans=[VLANEntry(name="vlan10", id=1, default_priority=1, ports=["a"])],
             )
         ],
         controllers=[],
@@ -60,23 +52,18 @@ def test_ecu_parsing_from_dicts(
         ecu_metadata=metadata_entry,
     )
     switch = dict(
-                meta=embedded_metadata_entry,
-                name="d",
-                ports=[
-                    dict(
-                        name="e",
-                        silicon_port_no=1,
-                        default_vlan_id=1,
-                        mii_config=MII(mode="mac"),
-                    ),
-                    dict(name="f", silicon_port_no=2, default_vlan_id=1),
-                ],
-                vlans=[
-                    VLANEntry(
-                        name="vlan10", id=1, default_priority=1, ports=["a"]
-                    )
-                ],
-            )
+        meta=embedded_metadata_entry,
+        name="d",
+        ports=[
+            dict(
+                name="e",
+                silicon_port_no=1,
+                default_vlan_id=1,
+                mii_config=MII(mode="mac"),
+            ),
+            dict(name="f", silicon_port_no=2, default_vlan_id=1),
+        ],
+        vlans=[VLANEntry(name="vlan10", id=1, default_priority=1, ports=["a"])],
+    )
     Switch.model_validate(switch)
     ECU.model_validate(kwargs)
-    

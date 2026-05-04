@@ -2,7 +2,6 @@ import pytest
 from pydantic import ValidationError
 
 from flync.model.flync_4_ecu.controller import ControllerInterface
-from flync.model.flync_4_ecu.switch import SwitchPort
 from flync.model.flync_4_security.macsec import (
     IntegrityWithConfidentiality,
     IntegrityWithoutConfidentiality,
@@ -64,9 +63,7 @@ def test_negative_vlan_bypass_entry(virtual_controller_interface):
         )
 
 
-def test_positive_cipher_preference_integrity_without_confidentiality(
-    integrity_without_confidentiality_entry, virtual_controller_interface
-):
+def test_positive_cipher_preference_integrity_without_confidentiality(integrity_without_confidentiality_entry, virtual_controller_interface):
     macsec_example = {
         "vlan_bypass": [1, 2, 3],
         "mka_enabled": True,
@@ -93,9 +90,7 @@ def test_positive_cipher_preference_integrity_without_confidentiality(
     assert isinstance(controller_iface.macsec_config, MACsecConfig)
 
 
-def test_positive_cipher_preference_integrity_with_confidentiality(
-    integrity_with_confidentiality_entry, virtual_controller_interface
-):
+def test_positive_cipher_preference_integrity_with_confidentiality(integrity_with_confidentiality_entry, virtual_controller_interface):
     macsec_example = {
         "vlan_bypass": [1, 2, 3],
         "mka_enabled": True,
@@ -179,9 +174,7 @@ def test_positive_integrity_with_confidentiality():
             "cipher_preference": [integrity_with_confidentiality],
         }
     )
-    assert isinstance(
-        macsec_example.cipher_preference[0], IntegrityWithConfidentiality
-    )
+    assert isinstance(macsec_example.cipher_preference[0], IntegrityWithConfidentiality)
 
 
 def test_negative_integrity_with_confidentiality():
@@ -229,9 +222,7 @@ def test_positive_integrity_without_confidentiality():
             "cipher_preference": [integrity_without_confidentiality],
         }
     )
-    assert isinstance(
-        macsec_example.cipher_preference[0], IntegrityWithoutConfidentiality
-    )
+    assert isinstance(macsec_example.cipher_preference[0], IntegrityWithoutConfidentiality)
 
 
 def test_negative_integrity_with_confidentiality():

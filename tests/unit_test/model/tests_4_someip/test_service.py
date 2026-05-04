@@ -1,16 +1,18 @@
 """test service class"""
 
-import pytest
 import ipaddress
+
+import pytest
+
+from flync.core.utils.base_utils import is_ip_multicast
 from flync.model.flync_4_someip import (
-    SOMEIPEventgroup,
     SOMEIPEvent,
+    SOMEIPEventgroup,
     SOMEIPField,
     SOMEIPParameter,
     SOMEIPServiceInterface,
     UInt8,
 )
-from flync.core.utils.base_utils import is_ip_multicast
 
 
 def test_service_check_for_events_without_eg(metadata_entry):
@@ -31,11 +33,7 @@ def test_service_check_for_events_without_eg(metadata_entry):
             id=1,
             events=[e],
             fields=[f],
-            eventgroups=[
-                SOMEIPEventgroup(
-                    name="eg", id=1, events=[f], multicast_threshold=10
-                )
-            ],
+            eventgroups=[SOMEIPEventgroup(name="eg", id=1, events=[f], multicast_threshold=10)],
         )
     with pytest.warns(UserWarning, match="not assigned to an eventgroup") as w:
         s.validate_for_notifiers_without_eventgroup()

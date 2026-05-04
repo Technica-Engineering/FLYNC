@@ -2,7 +2,6 @@ import pytest
 from pydantic import ValidationError
 
 from flync.model.flync_4_bus.lin_bus import (
-    AnyLINNode,
     LINBus,
     LINMasterNode,
     LINScheduleEntry,
@@ -10,7 +9,6 @@ from flync.model.flync_4_bus.lin_bus import (
     LINSlaveNode,
 )
 from flync.model.flync_4_signal.frame import LINFrame
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -111,8 +109,18 @@ def test_positive_lin_slave_node_basic():
 
 
 def test_positive_lin_slave_node_nad_boundaries():
-    node_min = LINSlaveNode(name="SlaveMin", lin_protocol="2.2A", configured_nad=0x00, initial_nad=0x00)
-    node_max = LINSlaveNode(name="SlaveMax", lin_protocol="2.2A", configured_nad=0xFF, initial_nad=0xFF)
+    node_min = LINSlaveNode(
+        name="SlaveMin",
+        lin_protocol="2.2A",
+        configured_nad=0x00,
+        initial_nad=0x00,
+    )
+    node_max = LINSlaveNode(
+        name="SlaveMax",
+        lin_protocol="2.2A",
+        configured_nad=0xFF,
+        initial_nad=0xFF,
+    )
     assert node_min.configured_nad == 0
     assert node_max.initial_nad == 0xFF
 
@@ -165,22 +173,42 @@ def test_positive_lin_slave_node_all_protocols(protocol):
 
 def test_negative_lin_slave_node_configured_nad_too_large():
     with pytest.raises(ValidationError):
-        LINSlaveNode(name="BadSlave", lin_protocol="2.2A", configured_nad=0x100, initial_nad=0x01)
+        LINSlaveNode(
+            name="BadSlave",
+            lin_protocol="2.2A",
+            configured_nad=0x100,
+            initial_nad=0x01,
+        )
 
 
 def test_negative_lin_slave_node_initial_nad_too_large():
     with pytest.raises(ValidationError):
-        LINSlaveNode(name="BadSlave2", lin_protocol="2.2A", configured_nad=0x01, initial_nad=0x100)
+        LINSlaveNode(
+            name="BadSlave2",
+            lin_protocol="2.2A",
+            configured_nad=0x01,
+            initial_nad=0x100,
+        )
 
 
 def test_negative_lin_slave_node_configured_nad_negative():
     with pytest.raises(ValidationError):
-        LINSlaveNode(name="BadSlave3", lin_protocol="2.2A", configured_nad=-1, initial_nad=0x01)
+        LINSlaveNode(
+            name="BadSlave3",
+            lin_protocol="2.2A",
+            configured_nad=-1,
+            initial_nad=0x01,
+        )
 
 
 def test_negative_lin_slave_node_invalid_protocol():
     with pytest.raises(ValidationError):
-        LINSlaveNode(name="BadProtoSlave", lin_protocol="4.0", configured_nad=0x01, initial_nad=0x01)
+        LINSlaveNode(
+            name="BadProtoSlave",
+            lin_protocol="4.0",
+            configured_nad=0x01,
+            initial_nad=0x01,
+        )
 
 
 # ---------------------------------------------------------------------------

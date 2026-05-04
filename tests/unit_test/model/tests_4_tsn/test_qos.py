@@ -1,19 +1,19 @@
 import pytest
 from pydantic import ValidationError
 
+from flync.core.datatypes import ValueRange
 from flync.model.flync_4_ecu.switch import Switch, SwitchPort
 from flync.model.flync_4_tsn.qos import (
     ATSInstance,
     ATSShaper,
     CBSShaper,
     DoubleRateThreeColorMarker,
+    HTBInstance,
     SingleRateThreeColorMarker,
     SingleRateTwoColorMarker,
     Stream,
     TrafficClass,
-    HTBInstance,
 )
-from flync.core.datatypes import ValueRange
 
 
 def test_positive_traffic_class_definition_cbs_shaper(
@@ -226,9 +226,7 @@ def test_positive_DoubleRateThreeColorMarker(
     assert isinstance(switch_port.ingress_streams[0], Stream)
 
 
-def test_negative_cbs_shaper_idleslope_greater_than_link_speed(
-    metadata_entry, vlan_entry, MII_entry
-):
+def test_negative_cbs_shaper_idleslope_greater_than_link_speed(metadata_entry, vlan_entry, MII_entry):
     cbs_shaper_example = {
         "type": "cbs",
         "idleslope": 2000000,
@@ -250,9 +248,7 @@ def test_negative_cbs_shaper_idleslope_greater_than_link_speed(
         )
 
 
-def test_positive_hilimit_lolimit_differenece_greater_than_max_frame_size(
-    embedded_metadata_entry, vlan_entry, MII_entry
-):
+def test_positive_hilimit_lolimit_differenece_greater_than_max_frame_size(embedded_metadata_entry, vlan_entry, MII_entry):
     cbs_shaper_example = {
         "type": "cbs",
         "idleslope": 10000,
@@ -299,9 +295,7 @@ def test_negative_hilimit_ceil(vlan_entry, MII_entry):
         traffic_classes=[traffic_class_example],
     )
     with pytest.raises(ValidationError) as e:
-        switch_example = Switch.model_validate(
-            {"name": "switch1", "ports": [ports], "vlans": [vlan_entry]}
-        )
+        switch_example = Switch.model_validate({"name": "switch1", "ports": [ports], "vlans": [vlan_entry]})
 
 
 def test_negative_lolimit_ceil(vlan_entry, MII_entry):
@@ -323,14 +317,10 @@ def test_negative_lolimit_ceil(vlan_entry, MII_entry):
         traffic_classes=[traffic_class_example],
     )
     with pytest.raises(ValidationError) as e:
-        switch_example = Switch.model_validate(
-            {"name": "switch1", "ports": [ports], "vlans": [vlan_entry]}
-        )
+        switch_example = Switch.model_validate({"name": "switch1", "ports": [ports], "vlans": [vlan_entry]})
 
 
-def test_negative_traffic_class_containing_ipv_should_be_defined_on_atleast_one_ingress_stream(
-    vlan_entry, MII_entry
-):
+def test_negative_traffic_class_containing_ipv_should_be_defined_on_atleast_one_ingress_stream(vlan_entry, MII_entry):
     cbs_shaper_example = {
         "type": "cbs",
         "idleslope": 100000,
@@ -349,9 +339,7 @@ def test_negative_traffic_class_containing_ipv_should_be_defined_on_atleast_one_
         traffic_classes=[traffic_class_example],
     )
     with pytest.raises(ValidationError) as e:
-        switch_example = Switch.model_validate(
-            {"name": "switch1", "ports": [ports], "vlans": [vlan_entry]}
-        )
+        switch_example = Switch.model_validate({"name": "switch1", "ports": [ports], "vlans": [vlan_entry]})
 
 
 def test_negative_ats_instance_for_traffic_class(vlan_entry, MII_entry):
@@ -370,9 +358,7 @@ def test_negative_ats_instance_for_traffic_class(vlan_entry, MII_entry):
         traffic_classes=[traffic_class_example],
     )
     with pytest.raises(ValidationError) as e:
-        switch_example = Switch.model_validate(
-            {"name": "switch1", "ports": [ports], "vlans": [vlan_entry]}
-        )
+        switch_example = Switch.model_validate({"name": "switch1", "ports": [ports], "vlans": [vlan_entry]})
 
 
 def test_positive_ats_instance_for_traffic_class(
@@ -415,9 +401,7 @@ def test_positive_ats_instance_for_traffic_class(
     )
 
 
-def test_negative_frame_filter_has_atleast_one_field(
-    ATSInstance_entry, vlan_entry, MII_entry
-):
+def test_negative_frame_filter_has_atleast_one_field(ATSInstance_entry, vlan_entry, MII_entry):
     stream_example = {
         "name": "Stream1",
         "stream_identification": [{"vlanid": None}],
@@ -436,14 +420,10 @@ def test_negative_frame_filter_has_atleast_one_field(
         ingress_streams=[stream_example],
     )
     with pytest.raises(ValidationError) as e:
-        switch_example = Switch.model_validate(
-            {"name": "switch1", "ports": [ports], "vlans": [vlan_entry]}
-        )
+        switch_example = Switch.model_validate({"name": "switch1", "ports": [ports], "vlans": [vlan_entry]})
 
 
-def test_negative_protocol_for_source_port_frame_filter(
-    ATSInstance_entry, vlan_entry, MII_entry
-):
+def test_negative_protocol_for_source_port_frame_filter(ATSInstance_entry, vlan_entry, MII_entry):
 
     stream_example = {
         "name": "Stream1",
@@ -467,9 +447,7 @@ def test_negative_protocol_for_source_port_frame_filter(
         )
 
 
-def test_negative_protocol_for_destination_port_frame_filter(
-    ATSInstance_entry, vlan_entry, MII_entry
-):
+def test_negative_protocol_for_destination_port_frame_filter(ATSInstance_entry, vlan_entry, MII_entry):
 
     stream_example = {
         "name": "Stream1",
@@ -493,9 +471,7 @@ def test_negative_protocol_for_destination_port_frame_filter(
         )
 
 
-def test_negative_pcp_for_frame_filter(
-    ATSInstance_entry, vlan_entry, MII_entry
-):
+def test_negative_pcp_for_frame_filter(ATSInstance_entry, vlan_entry, MII_entry):
 
     stream_example = {
         "name": "Stream1",
@@ -519,9 +495,7 @@ def test_negative_pcp_for_frame_filter(
         )
 
 
-def test_negative_pcp_list_for_frame_filter(
-    ATSInstance_entry, vlan_entry, MII_entry
-):
+def test_negative_pcp_list_for_frame_filter(ATSInstance_entry, vlan_entry, MII_entry):
 
     stream_example = {
         "name": "Stream1",
@@ -545,9 +519,7 @@ def test_negative_pcp_list_for_frame_filter(
         )
 
 
-def test_negative_vlanid_int_for_frame_filter(
-    ATSInstance_entry, vlan_entry, MII_entry
-):
+def test_negative_vlanid_int_for_frame_filter(ATSInstance_entry, vlan_entry, MII_entry):
 
     stream_example = {
         "name": "Stream1",
@@ -571,15 +543,11 @@ def test_negative_vlanid_int_for_frame_filter(
         )
 
 
-def test_negative_vlanid_valuerange_for_frame_filter(
-    ATSInstance_entry, vlan_entry, MII_entry
-):
+def test_negative_vlanid_valuerange_for_frame_filter(ATSInstance_entry, vlan_entry, MII_entry):
 
     stream_example = {
         "name": "Stream1",
-        "stream_identification": [
-            {"vlanid": ValueRange(from_value=4095, to_value=4097)}
-        ],
+        "stream_identification": [{"vlanid": ValueRange(from_value=4095, to_value=4097)}],
         "drop_at_ingress": False,
         "max_sdu_size": 1400,
         "ipv": 5,
@@ -599,15 +567,11 @@ def test_negative_vlanid_valuerange_for_frame_filter(
         )
 
 
-def test_negative_vlanid_list_of_vlanid_or_int_for_frame_filter(
-    ATSInstance_entry, vlan_entry, MII_entry
-):
+def test_negative_vlanid_list_of_vlanid_or_int_for_frame_filter(ATSInstance_entry, vlan_entry, MII_entry):
 
     stream_example = {
         "name": "Stream1",
-        "stream_identification": [
-            {"vlanid": [1, ValueRange(from_value=4095, to_value=4097)]}
-        ],
+        "stream_identification": [{"vlanid": [1, ValueRange(from_value=4095, to_value=4097)]}],
         "drop_at_ingress": False,
         "max_sdu_size": 1400,
         "ipv": 5,
@@ -627,9 +591,7 @@ def test_negative_vlanid_list_of_vlanid_or_int_for_frame_filter(
         )
 
 
-def test_negative_pcp_for_frame_filter(
-    ATSInstance_entry, vlan_entry, MII_entry
-):
+def test_negative_pcp_for_frame_filter(ATSInstance_entry, vlan_entry, MII_entry):
 
     stream_example = {
         "name": "Stream1",
@@ -653,9 +615,7 @@ def test_negative_pcp_for_frame_filter(
         )
 
 
-def test_negative_pcp_list_for_frame_filter(
-    ATSInstance_entry, vlan_entry, MII_entry
-):
+def test_negative_pcp_list_for_frame_filter(ATSInstance_entry, vlan_entry, MII_entry):
 
     stream_example = {
         "name": "Stream1",
@@ -679,9 +639,7 @@ def test_negative_pcp_list_for_frame_filter(
         )
 
 
-def test_negative_vlanid_int_for_frame_filter(
-    ATSInstance_entry, vlan_entry, MII_entry
-):
+def test_negative_vlanid_int_for_frame_filter(ATSInstance_entry, vlan_entry, MII_entry):
 
     stream_example = {
         "name": "Stream1",
@@ -705,15 +663,11 @@ def test_negative_vlanid_int_for_frame_filter(
         )
 
 
-def test_negative_vlanid_valuerange_for_frame_filter(
-    ATSInstance_entry, vlan_entry, MII_entry
-):
+def test_negative_vlanid_valuerange_for_frame_filter(ATSInstance_entry, vlan_entry, MII_entry):
 
     stream_example = {
         "name": "Stream1",
-        "stream_identification": [
-            {"vlanid": ValueRange(from_value=4095, to_value=4097)}
-        ],
+        "stream_identification": [{"vlanid": ValueRange(from_value=4095, to_value=4097)}],
         "drop_at_ingress": False,
         "max_sdu_size": 1400,
         "ipv": 5,
@@ -733,15 +687,11 @@ def test_negative_vlanid_valuerange_for_frame_filter(
         )
 
 
-def test_negative_vlanid_list_of_vlanid_or_int_for_frame_filter(
-    ATSInstance_entry, vlan_entry, MII_entry
-):
+def test_negative_vlanid_list_of_vlanid_or_int_for_frame_filter(ATSInstance_entry, vlan_entry, MII_entry):
 
     stream_example = {
         "name": "Stream1",
-        "stream_identification": [
-            {"vlanid": [1, ValueRange(from_value=4095, to_value=4097)]}
-        ],
+        "stream_identification": [{"vlanid": [1, ValueRange(from_value=4095, to_value=4097)]}],
         "drop_at_ingress": False,
         "max_sdu_size": 1400,
         "ipv": 5,
@@ -761,9 +711,7 @@ def test_negative_vlanid_list_of_vlanid_or_int_for_frame_filter(
         )
 
 
-def test_positive_cbs_should_be_greater_than_max_frame_size(
-    embedded_metadata_entry, SingleRateTwoColorMarker_entry, vlan_entry
-):
+def test_positive_cbs_should_be_greater_than_max_frame_size(embedded_metadata_entry, SingleRateTwoColorMarker_entry, vlan_entry):
 
     stream_example = {
         "name": "Stream1",
@@ -790,9 +738,7 @@ def test_positive_cbs_should_be_greater_than_max_frame_size(
     )
 
 
-def test_positive_ebs_should_be_greater_than_max_frame_size(
-    embedded_metadata_entry, DoubleRateThreeColorMarker_entry, vlan_entry
-):
+def test_positive_ebs_should_be_greater_than_max_frame_size(embedded_metadata_entry, DoubleRateThreeColorMarker_entry, vlan_entry):
 
     stream_example = {
         "name": "Stream1",
@@ -845,9 +791,7 @@ def test_negative_ebs_greater_than_cbs(vlan_entry):
         ingress_streams=[stream_example],
     )
     with pytest.raises(ValidationError) as e:
-        switch_example = Switch.model_validate(
-            {"name": "switch1", "ports": [ports], "vlans": [vlan_entry]}
-        )
+        switch_example = Switch.model_validate({"name": "switch1", "ports": [ports], "vlans": [vlan_entry]})
 
 
 def test_htb():

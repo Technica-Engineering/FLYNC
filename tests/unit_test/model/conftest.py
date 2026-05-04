@@ -1,42 +1,42 @@
 import pytest
-from flync.core.datatypes.ipaddress import IPv4AddressEntry, IPv6AddressEntry
 
-from flync.model.flync_4_someip.service_interface import (
-    SDTimings,
-    SOMEIPEventTimings,
-    SOMEIPFieldTimings,
-    SOMEIPMethodTimings,
-    SDConfig,
-)
+from flync.core.datatypes.ipaddress import IPv4AddressEntry, IPv6AddressEntry
 from flync.model.flync_4_ecu import (
-    MII,
     BASET1,
-    MulticastGroup,
-    ECUPort,
-    SwitchPort,
-    VLANEntry,
-    IPv4AddressEndpoint,
-    IPv6AddressEndpoint,
-    SocketTCP,
-    SocketUDP,
-    TCPOption,
-    UDPOption,
+    MII,
     Controller,
     ControllerInterface,
+    ECUPort,
+    IPv4AddressEndpoint,
+    IPv6AddressEndpoint,
+    MulticastGroup,
+    SocketTCP,
+    SocketUDP,
+    SwitchPort,
+    TCPOption,
+    UDPOption,
     VirtualControllerInterface,
-)
-from flync.model.flync_4_tsn.qos import (
-    CBSShaper,
-    ATSShaper,
-    ATSInstance,
-    SingleRateTwoColorMarker,
-    SingleRateThreeColorMarker,
-    DoubleRateThreeColorMarker,
+    VLANEntry,
 )
 from flync.model.flync_4_ecu.phy import MII
 from flync.model.flync_4_security.macsec import (
     IntegrityWithConfidentiality,
     IntegrityWithoutConfidentiality,
+)
+from flync.model.flync_4_someip.service_interface import (
+    SDConfig,
+    SDTimings,
+    SOMEIPEventTimings,
+    SOMEIPFieldTimings,
+    SOMEIPMethodTimings,
+)
+from flync.model.flync_4_tsn.qos import (
+    ATSInstance,
+    ATSShaper,
+    CBSShaper,
+    DoubleRateThreeColorMarker,
+    SingleRateThreeColorMarker,
+    SingleRateTwoColorMarker,
 )
 
 
@@ -71,26 +71,20 @@ def embedded_metadata_entry():
 
 @pytest.fixture
 def ipv4_entry():
-    ipv4_entry = IPv4AddressEntry(
-        address="10.0.0.1", ipv4netmask="255.255.255.0"
-    )
+    ipv4_entry = IPv4AddressEntry(address="10.0.0.1", ipv4netmask="255.255.255.0")
     yield ipv4_entry
 
 
 @pytest.fixture
 def ipv4_addressendpoint():
-    ipv4_address_endpoint = IPv4AddressEndpoint(
-        address="10.0.0.1", ipv4netmask="255.255.255.0"
-    )
+    ipv4_address_endpoint = IPv4AddressEndpoint(address="10.0.0.1", ipv4netmask="255.255.255.0")
     yield ipv4_address_endpoint
 
 
 @pytest.fixture
 def ipv6_address_endpoint():
 
-    ipv6_address_endpoint = IPv6AddressEndpoint(
-        address="2001:0db8:85a3:0000:0000:8a2e:0370:7334", ipv6prefix=128
-    )
+    ipv6_address_endpoint = IPv6AddressEndpoint(address="2001:0db8:85a3:0000:0000:8a2e:0370:7334", ipv6prefix=128)
     yield ipv6_address_endpoint
 
 
@@ -157,17 +151,13 @@ def ATSInstance_entry():
 
 @pytest.fixture
 def integrity_without_confidentiality_entry():
-    integrity_without_confidentiality_entry = IntegrityWithoutConfidentiality(
-        type="integrity_without_confidentiality", offset_preference=0
-    )
+    integrity_without_confidentiality_entry = IntegrityWithoutConfidentiality(type="integrity_without_confidentiality", offset_preference=0)
     yield integrity_without_confidentiality_entry
 
 
 @pytest.fixture
 def integrity_with_confidentiality_entry():
-    integrity_with_confidentiality_entry = IntegrityWithConfidentiality(
-        type="integrity_with_confidentiality", offset_preference=0
-    )
+    integrity_with_confidentiality_entry = IntegrityWithConfidentiality(type="integrity_with_confidentiality", offset_preference=0)
     yield integrity_with_confidentiality_entry
 
 
@@ -179,9 +169,7 @@ def MII_entry():
 
 @pytest.fixture
 def ipv6_entry():
-    ipv6_entry = IPv6AddressEntry(
-        address="2001:0db8:85a3:0000:0000:8a2e:0370:7334", ipv6prefix=128
-    )
+    ipv6_entry = IPv6AddressEntry(address="2001:0db8:85a3:0000:0000:8a2e:0370:7334", ipv6prefix=128)
     yield ipv6_entry
 
 
@@ -199,9 +187,7 @@ def vlan_entry():
 
 @pytest.fixture
 def mcastv4_group():
-    multicast_group = MulticastGroup(
-        address="224.0.0.1", ports=["port1, port2"]
-    )
+    multicast_group = MulticastGroup(address="224.0.0.1", ports=["port1, port2"])
     yield multicast_group
 
 
@@ -234,9 +220,7 @@ def virtual_controller_interface(ipv4_addressendpoint, ipv6_address_endpoint):
 
 @pytest.fixture
 def switch_port():
-    switch_port = SwitchPort(
-        name="valid_switch_port", default_vlan_id=1, silicon_port_no=1
-    )
+    switch_port = SwitchPort(name="valid_switch_port", default_vlan_id=1, silicon_port_no=1)
     yield switch_port
 
 
@@ -399,9 +383,7 @@ def someip_field_default_timings_profile():
 
 @pytest.fixture
 def someip_event_custom_timings_profile():
-    someip_event_custom_timings_profile = SOMEIPEventTimings(
-        profile_id="event_custom", type="event", debounce=100, max_retention=10
-    )
+    someip_event_custom_timings_profile = SOMEIPEventTimings(profile_id="event_custom", type="event", debounce=100, max_retention=10)
     yield someip_event_custom_timings_profile
 
 

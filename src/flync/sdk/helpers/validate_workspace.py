@@ -1,9 +1,8 @@
 """
 CLI script for validating a FLYNC workspace.
 
-When run directly, accepts a path to a FLYNC configuration directory and
-validates it, printing any errors as a Rich table and exiting with a non-zero
-status code on failure.
+When run directly, accepts a path to a FLYNC configuration directory and validates it,
+printing any errors as a Rich table and exiting with a non-zero status code on failure.
 """
 
 import argparse
@@ -25,15 +24,16 @@ console = Console(force_terminal=True, legacy_windows=False)
 
 
 def _make_details_cell(sub_errors: str) -> Table | str:
-    """Build a nested table for the Details column.
+    """
+    Build a nested table for the Details column.
 
-    Each newline-separated sub-error gets its own row, separated by a
-    horizontal rule, matching the visual pattern:
+    Each newline-separated sub-error gets its own row, separated by a horizontal rule, matching the visual pattern:
 
         Error 1: abc not good
         ─────────────────────
         Error 2: DEF not good
     """
+
     if not sub_errors:
         return ""
     lines = [ln for ln in sub_errors.split("\n") if ln]
@@ -50,7 +50,8 @@ def _make_details_cell(sub_errors: str) -> Table | str:
 
 
 def sanitize_error_message(error_msg: str) -> str:
-    """Strip ANSI escape codes from an error message string.
+    """
+    Strip ANSI escape codes from an error message string.
 
     Args:
         error_msg (str): The raw error message, potentially containing ANSI
@@ -59,6 +60,7 @@ def sanitize_error_message(error_msg: str) -> str:
     Returns:
         str: The message with all ANSI escape codes removed.
     """
+
     return ANSI_ESCAPE_RE.sub("", error_msg)
 
 
@@ -66,7 +68,8 @@ def __add_pydantic_errors_to_report(
     pydantic_validation_errors: list[ErrorDetails],
     error_list: list,
 ):
-    """Append formatted rows for Pydantic errors to a report list.
+    """
+    Append formatted rows for Pydantic errors to a report list.
 
     Each error is flattened into a ``[type, message, location, context]``
     row and appended to ``error_list`` in place.
@@ -76,15 +79,14 @@ def __add_pydantic_errors_to_report(
             dicts as returned by ``ValidationError.errors()``.
         error_list (list): The mutable list to append formatted rows to.
     """
+
     for err in pydantic_validation_errors:
         location = ".".join(str(p) for p in err.get("loc", []))
         err_type = err.get("type", "")
         msg = err.get("msg", "")
         raw_ctx = err.get("ctx", {})
         sub_errors = raw_ctx.get("sub_errors", "")
-        ctx = ", ".join(
-            f"{k}={v}" for k, v in raw_ctx.items() if k != "sub_errors"
-        )
+        ctx = ", ".join(f"{k}={v}" for k, v in raw_ctx.items() if k != "sub_errors")
         error_list.append([err_type, msg, location, ctx, sub_errors])
 
 
@@ -93,10 +95,10 @@ def add_errors_to_report(
     config_name: str,
     exc: Exception,
 ):
-    """Record an exception as formatted error rows in a report dictionary.
+    """
+    Record an exception as formatted error rows in a report dictionary.
 
-    Handles both :class:`pydantic.ValidationError` (expanded field-by-field)
-    and generic exceptions (treated as a single row).
+    Handles both :class:`pydantic.ValidationError` (expanded field-by-field) and generic exceptions (treated as a single row).
 
     Args:
         errors_report (dict): Mapping of config names to lists of error rows.
@@ -107,6 +109,7 @@ def add_errors_to_report(
     Returns:
         dict: The updated ``errors_report`` mapping.
     """
+
     errs: list = []
 
     if isinstance(exc, ValidationError):
@@ -141,9 +144,7 @@ def render_validation_errors(errors: dict) -> None:
         console.print(table)
 
 
-parser = argparse.ArgumentParser(
-    description="Script to validate a FLYNC workspace."
-)
+parser = argparse.ArgumentParser(description="Script to validate a FLYNC workspace.")
 parser.add_argument("path", help="Absolute path to FLYNC configuration.")
 parser.add_argument(
     "-n",
@@ -168,44 +169,29 @@ VALIDATION_SOFT_ERRORS: dict = {}
 try:
     loaded_ws = FLYNCWorkspace.load_workspace(flync_name, path.resolve())
 except Exception as e:
-    console.print(
-        "[bold red]VALIDATION FAILED:"
-        f" Validation of {flync_name} failed![/bold red]"
-    )
+    console.print("[bold red]VALIDATION FAILED:" f" Validation of {flync_name} failed![/bold red]")
     if isinstance(e, ValidationError):
         all_errs = e.errors()
         warn_rows = [x for x in all_errs if x.get("type") == "warning"]
         err_rows = [x for x in all_errs if x.get("type") != "warning"]
         if warn_rows:
             VALIDATION_WARNINGS[flync_name] = []
-            __add_pydantic_errors_to_report(
-                warn_rows, VALIDATION_WARNINGS[flync_name]
-            )
+            __add_pydantic_errors_to_report(warn_rows, VALIDATION_WARNINGS[flync_name])
         if err_rows:
             err_list: list = []
             __add_pydantic_errors_to_report(err_rows, err_list)
             VALIDATION_ERRORS[flync_name] = err_list
     else:
-        VALIDATION_ERRORS = add_errors_to_report(
-            VALIDATION_ERRORS, flync_name, e
-        )
+        VALIDATION_ERRORS = add_errors_to_report(VALIDATION_ERRORS, flync_name, e)
 if loaded_ws and loaded_ws.load_errors:
-    actual_warnings = [
-        e for e in loaded_ws.load_errors if e.get("type") == "warning"
-    ]
-    soft_errors = [
-        e for e in loaded_ws.load_errors if e.get("type") != "warning"
-    ]
+    actual_warnings = [e for e in loaded_ws.load_errors if e.get("type") == "warning"]
+    soft_errors = [e for e in loaded_ws.load_errors if e.get("type") != "warning"]
     if actual_warnings:
         VALIDATION_WARNINGS[flync_name] = []
-        __add_pydantic_errors_to_report(
-            actual_warnings, VALIDATION_WARNINGS[flync_name]
-        )
+        __add_pydantic_errors_to_report(actual_warnings, VALIDATION_WARNINGS[flync_name])
     if soft_errors:
         VALIDATION_SOFT_ERRORS[flync_name] = []
-        __add_pydantic_errors_to_report(
-            soft_errors, VALIDATION_SOFT_ERRORS[flync_name]
-        )
+        __add_pydantic_errors_to_report(soft_errors, VALIDATION_SOFT_ERRORS[flync_name])
 
 for config_name, warnings in VALIDATION_WARNINGS.items():
     console.print(f"\n[bold yellow]Warnings for {config_name}:[/bold yellow]")
@@ -220,9 +206,7 @@ for config_name, warnings in VALIDATION_WARNINGS.items():
 render_validation_errors(VALIDATION_SOFT_ERRORS)
 render_validation_errors(VALIDATION_ERRORS)
 if len(VALIDATION_ERRORS) == 0:
-    console.print(
-        f"[bold green]>> {flync_name} is properly configured! <<[/bold green]"
-    )
+    console.print(f"[bold green]>> {flync_name} is properly configured! <<[/bold green]")
     sys.exit(0)
 else:
     sys.exit(1)

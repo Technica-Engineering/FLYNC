@@ -1,6 +1,7 @@
 import pytest
 from pydantic import ValidationError
 from semver import Version as SemVersion
+
 from flync.model.flync_4_metadata.metadata import (
     HardwareBaseMetadata,
     SoftwareBaseMetadata,
@@ -8,9 +9,7 @@ from flync.model.flync_4_metadata.metadata import (
 
 
 def test_software_metadata_inherits_baseversion():
-    sw = SoftwareBaseMetadata.model_validate(
-        {"version_schema": "semver", "version": "3.2.1"}
-    )
+    sw = SoftwareBaseMetadata.model_validate({"version_schema": "semver", "version": "3.2.1"})
     assert isinstance(sw.version, SemVersion)
 
 
@@ -30,8 +29,6 @@ def test_hardware_metadata_optional_fields():
 
 def test_hardware_metadata_missing_version():
     with pytest.raises(ValidationError) as exc:
-        HardwareBaseMetadata.model_validate(
-            {"version_schema": "semver", "supplier": "My-HW-Supplier"}
-        )
+        HardwareBaseMetadata.model_validate({"version_schema": "semver", "supplier": "My-HW-Supplier"})
     assert "version" in str(exc.value)
     assert "Field required" in str(exc.value)
