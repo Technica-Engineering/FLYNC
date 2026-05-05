@@ -108,7 +108,7 @@ class VirtualControllerInterface(FLYNCBaseModel):
     vlanid: Annotated[
         Optional[int],
         AfterValidator(common_validators.validate_vlan_id),
-    ] = Field(...)
+    ] = Field(default=None)
     addresses: List[IPv6AddressEndpoint | IPv4AddressEndpoint] = Field()
     multicast: Annotated[
         Optional[List[IPvAnyAddress | MacAddress]],
