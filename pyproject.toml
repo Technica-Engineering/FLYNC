@@ -30,7 +30,8 @@ dependencies = [
     "pydantic-extra-types>=2.11.0,<3.0.0",
     "semver>=3.0,<4.0",
     "platformdirs (>=4.9.4,<5.0.0)",
-    "polyfactory==3.3.0"
+    "polyfactory==3.3.0",
+    "filelock>=3.13,<4.0"
 ]
 
 [project.urls]
@@ -85,7 +86,7 @@ types-pyyaml = "^6.0.12.20250915"
 twine = "^6.2.0"
 
 [tool.pytest.ini_options]
-addopts = "-n 0 --cov=flync --cov-report=term --cov-report=xml --junitxml=report.xml"
+addopts = "-n auto --cov=flync --cov-report=term --cov-report=xml --junitxml=report.xml"
 testpaths = ["tests"]
 
 [tool.poetry-dynamic-versioning]
