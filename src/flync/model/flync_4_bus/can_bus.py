@@ -1,5 +1,5 @@
 from collections import Counter
-from typing import Annotated, List, Union, Optional
+from typing import Annotated, List, Optional, Union
 
 from pydantic import Field, field_validator, model_validator
 
@@ -127,4 +127,3 @@ class CANBus(UniqueName):
                 duplicates=duplicates,
             )
         return self
-
