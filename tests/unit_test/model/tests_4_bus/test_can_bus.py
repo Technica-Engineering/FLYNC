@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from flync.model.flync_4_bus.can_bus import CANBus, CANBusNode
+from flync.model.flync_4_bus.can_bus import CANBus
 from flync.model.flync_4_signal.frame import CANFDFrame, CANFrame
 
 # ---------------------------------------------------------------------------
@@ -14,72 +14,17 @@ def _make_can_frame(
     can_id=0x100,
     id_format="standard_11bit",
     length=8,
-    publisher_node=None,
 ):
     return CANFrame(
         name=name,
         can_id=can_id,
         id_format=id_format,
         length=length,
-        publisher_node=publisher_node,
     )
 
 
 def _make_canfd_frame(name="fd_frm", can_id=0x100, id_format="standard_11bit", length=8):
     return CANFDFrame(name=name, can_id=can_id, id_format=id_format, length=length)
-
-
-# ---------------------------------------------------------------------------
-# CANBusNode — positive tests
-# ---------------------------------------------------------------------------
-
-
-def test_positive_can_bus_node_minimal():
-    node = CANBusNode(name="ECU_A")
-    assert node.name == "ECU_A"
-    assert node.node_id is None
-    assert node.description is None
-
-
-def test_positive_can_bus_node_with_node_id():
-    node = CANBusNode(name="ECU_B", node_id=5)
-    assert node.node_id == 5
-
-
-def test_positive_can_bus_node_node_id_min():
-    node = CANBusNode(name="ECU_min", node_id=0)
-    assert node.node_id == 0
-
-
-def test_positive_can_bus_node_node_id_max():
-    node = CANBusNode(name="ECU_max", node_id=0xFFFF)
-    assert node.node_id == 0xFFFF
-
-
-def test_positive_can_bus_node_with_description():
-    node = CANBusNode(name="ECU_D", description="Gateway node")
-    assert node.description == "Gateway node"
-
-
-def test_positive_can_bus_node_model_validate():
-    data = {"name": "ECU_MV", "node_id": 10}
-    node = CANBusNode.model_validate(data)
-    assert isinstance(node, CANBusNode)
-
-
-# ---------------------------------------------------------------------------
-# CANBusNode — negative tests
-# ---------------------------------------------------------------------------
-
-
-def test_negative_can_bus_node_id_too_large():
-    with pytest.raises(ValidationError):
-        CANBusNode(name="ECU_bad", node_id=0x10000)
-
-
-def test_negative_can_bus_node_id_negative():
-    with pytest.raises(ValidationError):
-        CANBusNode(name="ECU_neg", node_id=-1)
 
 
 # ---------------------------------------------------------------------------
@@ -92,7 +37,6 @@ def test_positive_can_bus_minimal():
     assert bus.baud_rate == 500_000
     assert bus.fd_enabled is False
     assert bus.fd_baud_rate is None
-    assert bus.nodes == []
     assert bus.frames == []
 
 
@@ -148,31 +92,10 @@ def test_positive_can_bus_all_valid_fd_data_rates(fd_baud_rate):
     assert bus.fd_baud_rate == fd_baud_rate
 
 
-def test_positive_can_bus_with_nodes():
-    bus = CANBus(
-        name="CAN_nodes",
-        baud_rate=500_000,
-        nodes=[CANBusNode(name="NodeA"), CANBusNode(name="NodeB")],
-    )
-    assert len(bus.nodes) == 2
-
-
 def test_positive_can_bus_with_can_frame():
     frm = _make_can_frame("bus_frm_1")
     bus = CANBus(name="CAN_frm_bus", baud_rate=500_000, frames=[frm])
     assert len(bus.frames) == 1
-
-
-def test_positive_can_bus_with_publisher_node():
-    node = CANBusNode(name="NodePub")
-    frm = _make_can_frame("bus_pub_frm", publisher_node="NodePub")
-    bus = CANBus(
-        name="CAN_pub_bus",
-        baud_rate=500_000,
-        nodes=[node],
-        frames=[frm],
-    )
-    assert bus.frames[0].publisher_node == "NodePub"
 
 
 def test_positive_can_bus_fd_with_canfd_frame():
@@ -257,15 +180,6 @@ def test_negative_can_bus_canfd_frame_without_fd_enabled():
         )
 
 
-def test_negative_can_bus_duplicate_node_names():
-    with pytest.raises(ValidationError):
-        CANBus(
-            name="CAN_dup_nodes",
-            baud_rate=500_000,
-            nodes=[CANBusNode(name="NodeX"), CANBusNode(name="NodeX")],
-        )
-
-
 def test_negative_can_bus_duplicate_frame_names():
     frm = _make_can_frame("dup_frm_single", can_id=0x100)
     with pytest.raises(ValidationError):
@@ -284,9 +198,3 @@ def test_negative_can_bus_same_id_different_format_is_allowed():
     frm2 = _make_can_frame("id_ext", can_id=0x100, id_format="extended_29bit")
     bus = CANBus(name="CAN_mixed_fmt", baud_rate=500_000, frames=[frm1, frm2])
     assert len(bus.frames) == 2
-
-
-def test_negative_can_bus_undeclared_publisher_node():
-    frm = _make_can_frame("undecl_frm", publisher_node="GhostNode")
-    with pytest.raises(ValidationError):
-        CANBus(name="CAN_bad_pub", baud_rate=500_000, frames=[frm])
