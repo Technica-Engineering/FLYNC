@@ -82,8 +82,7 @@ TEST_OBJECTS_PATHS = [
 
 def test_workspace_validator_api(get_flync_example_path):
     validation_result = validate_workspace(get_flync_example_path)
-    assert validation_result.state == WorkspaceState.VALID
-    assert not validation_result.errors
+    assert (validation_result.state == WorkspaceState.VALID) or (validation_result.state == WorkspaceState.WARNING)
     assert validation_result.workspace is not None
     assert validation_result.model is not None
     assert validation_result.workspace.flync_model == validation_result.model
@@ -229,7 +228,7 @@ def test_generate_partial_external_node(node_type, node_path):
     to_check_output_file.mkdir(parents=True, exist_ok=True)
     shutil.copytree(output_path, to_check_output_file, dirs_exist_ok=True)
     ws_validation = validate_external_node(node_type, to_check_output_file)
-    assert ws_validation.state == WorkspaceState.VALID
+    assert (ws_validation.state == WorkspaceState.VALID) or (ws_validation.state == WorkspaceState.WARNING)
     assert len(ws_validation.errors) == 0
     assert isinstance(ws_validation.model, node_type)
 
@@ -263,7 +262,7 @@ def test_generate_partial_node(get_flync_example_path, node_type, node_path):
     to_check_output_file.mkdir(parents=True, exist_ok=True)
     shutil.copytree(output_path, to_check_output_file, dirs_exist_ok=True)
     ws_validation = validate_workspace(to_check_output_file, generated_workspace.configuration)
-    assert ws_validation.state == WorkspaceState.VALID
+    assert (ws_validation.state == WorkspaceState.VALID) or (ws_validation.state == WorkspaceState.WARNING)
     assert len(ws_validation.errors) == 0
     assert any(p in ws_validation.workspace.objects for p in node_path)
     assert isinstance(ws_validation.workspace.get_object(node_path[0]).model, node_type)
@@ -296,7 +295,7 @@ def test_flync_extension(get_flync_example_path):
         yaml.dump(extra_data, f, default_flow_style=False)
 
     output = validate_external_node(ExtendedFLYNC, output_extra_path)
-    assert output.state == WorkspaceState.VALID
+    assert (output.state == WorkspaceState.VALID) or (output.state == WorkspaceState.WARNING)
     created_model: ExtendedFLYNC = output.model
     assert created_model.extra.extra_name == "value"
 

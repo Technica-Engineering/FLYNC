@@ -9,6 +9,7 @@ from flync.model.flync_4_signal.frame import (
     FrameTransmissionTiming,
     LINFrame,
     PDUReceiver,
+    PDUReceiver,
     PDUSender,
 )
 from flync.model.flync_4_signal.pdu import PDUInstance

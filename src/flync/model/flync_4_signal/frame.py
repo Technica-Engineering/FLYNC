@@ -51,6 +51,25 @@ class PDUReceiver(FLYNCBaseModel):
     pdu_ref: str = Field()
 
 
+class PDUReceiver(FLYNCBaseModel):
+    """
+    Deployment that subscribes to an Ethernet frame on a socket.
+
+    Transport (TCP/UDP, IP address, port) is owned by the enclosing socket; this model only binds a frame to that socket.
+    The receiving ECU is the owner of the socket carrying this deployment.
+
+    Parameters
+    ----------
+    deployment_type : Literal["pdu_receiver"]
+        Discriminator value for :class:`~flync.model.flync_4_ecu.sockets.DeploymentUnion`.
+    frame_ref : str
+        Name of an :class:`EthernetFrame` in the frame catalog.
+    """
+
+    deployment_type: Literal["pdu_receiver"] = Field(default="pdu_receiver")
+    frame_ref: str = Field()
+
+
 # ---------------------------------------------------------------------------
 # Frame transmission timing
 # ---------------------------------------------------------------------------
