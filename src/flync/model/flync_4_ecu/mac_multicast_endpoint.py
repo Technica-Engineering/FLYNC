@@ -46,11 +46,9 @@ class MACMulticastEndpoint(FLYNCBaseModel):
         le=0xFFFF,
         default=None,
     )
-    vlan_id: Annotated[Optional[int], AfterValidator(validate_vlan_id)] = (
-        Field(
-            description="VLAN ID expected on this endpoint (``None`` for untagged).",
-            default=None,
-        )
+    vlan_id: Annotated[Optional[int], AfterValidator(validate_vlan_id)] = Field(
+        description="VLAN ID expected on this endpoint (``None`` for untagged).",
+        default=None,
     )
     multicast_tx: Optional[List[Annotated[MacAddress, AfterValidator(validate_mac_multicast)]]] = Field(
         description="List of multicast addresses that this endpoint should \

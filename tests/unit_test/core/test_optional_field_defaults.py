@@ -2,7 +2,6 @@ import types
 import typing
 
 import flync  # noqa: F401  -- imports every model module, populating __subclasses__
-
 from flync.core.base_models import FLYNCBaseModel
 
 
