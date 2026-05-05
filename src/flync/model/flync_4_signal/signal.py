@@ -109,7 +109,7 @@ class InstancePlacement(FLYNCBaseModel):
     endianness: Literal["BE", "LE"] = Field(default="LE")
 
 
-class Signal:
+class Signal(FLYNCBaseModel):
     """
     Logical or physical data element transmitted within a communication
     message.
@@ -235,7 +235,7 @@ class SignalInstance(InstancePlacement):
     signal: Signal = Field()
 
 
-class SignalGroup:
+class SignalGroup(FLYNCBaseModel):
     """
     A reusable group of signals transmitted together within a PDU.
 
