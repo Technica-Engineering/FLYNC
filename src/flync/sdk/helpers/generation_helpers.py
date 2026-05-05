@@ -1,4 +1,3 @@
-import gc
 import inspect
 import pathlib
 import random
@@ -68,11 +67,6 @@ class Factory(object):
 
     __MODEL_FACTORY_REGISTRY: Optional[dict[type, type[ModelFactory]]] = None
     __FACTORY_MODELS: Optional[list[type[FLYNCBaseModel]]] = None
-    __UNIQUE_NAMES: set[str] = set()
-
-    @staticmethod
-    def add_names(key):
-        Factory.__UNIQUE_NAMES.add(key)
 
     @staticmethod
     def build_name(model: type[BaseModel], idx: int = 1):
@@ -81,9 +75,8 @@ class Factory(object):
 
         name = f"{model.__name__.lower()}_{idx}"
         key = f"{model.__name__}.{name}"
-        if key in Factory.__UNIQUE_NAMES:
+        if key in get_registry().names:
             return Factory.build_name(model, idx + 1)
-        Factory.add_names(key)
         return name
 
     @classmethod
@@ -193,17 +186,18 @@ class FLYNCFactory(ModelFactory[FLYNCBaseModel]):
                 - `Any`: The resolved default value, or `None` if unavailable.
         """
 
+        args = get_args(field_info.annotation)
+        is_optional = type(None) in args
         valid, result = (False, None)
         if field_info.default is not PydanticUndefined:
-            valid, result = True, field_info.default
-        args = get_args(field_info.annotation)
-        if field_info.default_factory is not None and type(None) in args:
-            valid, result = (
-                True,
-                field_info.default_factory(),  # type: ignore[call-arg]
-            )
+            valid, result = (True, field_info.default)
+        elif field_info.default_factory is not None and is_optional:
+            valid, result = (True, field_info.default_factory())  # type: ignore[call-arg]
         elif field_info.examples:
             valid, result = True, field_info.examples[0]
+        elif is_optional:
+            valid, result = (True, None)
+
         return valid, result
 
     @staticmethod
@@ -310,8 +304,6 @@ class FLYNCFactory(ModelFactory[FLYNCBaseModel]):
                 new_kwargs[fname] = value
 
         obj = super().build(**new_kwargs)
-        if isinstance(obj, UniqueName):
-            Factory.add_names(obj.get_key())
         return obj
 
 
@@ -471,10 +463,6 @@ def generate_node(
     generated_node: FLYNCBaseModel | None = None
     for node_info in nodes.values():
         if flync_path in node_info.flync_paths or valid_path == node_info.flync_paths:
-            instances = [obj for obj in gc.get_objects() if isinstance(obj, UniqueName)]
-            for inst in instances:
-                Factory.add_names(inst.get_key())
-
             model_factory = Factory.get_factory(node_info.python_type)
             with registry_context(ws.registry):
                 generated_node = model_factory.build(
