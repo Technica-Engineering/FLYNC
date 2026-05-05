@@ -11,12 +11,8 @@ from flync.model.flync_4_bus.lin_bus import (
 
 __all__ = [
     # CAN
-    "CANBusNode",
     "CANBus",
     # LIN
-    "AnyLINNode",
-    "LINMasterNode",
-    "LINSlaveNode",
     "LINScheduleEntry",
     "LINScheduleTable",
     "LINBus",
