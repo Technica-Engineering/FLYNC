@@ -7,12 +7,13 @@ def test_controller_with_bridge_and_compute_nodes_valid():
     Ensure that a complete, correctly wired topology is accepted.
 
     - Controller ↔ Interface ↔ ComputeNode linkage works
-    - L2Bridge connects both interface and compute node
+    - VirtualSwitch connects both interface and compute node
     - VLAN enables communication between them
     - No invalid constraints are triggered
 
     This is baseline sanity check.
     """
+
     system_version = BaseVersion(version_schema="semver", version="0.9.0")
     embedded_metadata = EmbeddedMetadata(
         type="embedded",
@@ -31,7 +32,7 @@ def test_controller_with_bridge_and_compute_nodes_valid():
             )
         ],
     )
-    bridge = L2Bridge(
+    bridge = VirtualSwitch(
         name="br0",
         ports=[
             L2BridgePort(name="p1", node_connected="eth0"),
@@ -44,10 +45,10 @@ def test_controller_with_bridge_and_compute_nodes_valid():
         name="ctrl1",
         controller_metadata=embedded_metadata,
         ethernet_interfaces=[iface],
-        l2_bridge=bridge,
+        virtual_switch=bridge,
     )
 
-    assert controller.l2_bridge is not None
+    assert controller.virtual_switch is not None
 
 
 def test_multiple_interfaces_layer2_connectivity():
@@ -90,7 +91,7 @@ def test_multiple_interfaces_layer2_connectivity():
             )
         ],
     )
-    bridge = L2Bridge(
+    bridge = VirtualSwitch(
         name="br0",
         ports=[
             L2BridgePort(name="p1", node_connected="eth0"),
@@ -104,7 +105,7 @@ def test_multiple_interfaces_layer2_connectivity():
         name="ctrl1",
         controller_metadata=embedded_metadata,
         ethernet_interfaces=[iface1, iface2],
-        l2_bridge=bridge,
+        virtual_switch=bridge,
     )
 
     assert len(controller.ethernet_interfaces) == 2

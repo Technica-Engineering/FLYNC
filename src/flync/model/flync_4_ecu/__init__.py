@@ -8,9 +8,9 @@ from .controller import (
     Controller,
     ControllerInterface,
     EthernetInterface,
-    L2Bridge,
     L2BridgePort,
     VirtualControllerInterface,
+    VirtualSwitch,
 )
 from .ecu import ECU
 from .internal_topology import InternalTopology
@@ -46,7 +46,7 @@ __all__ = [
     "Controller",
     "ControllerInterface",
     "EthernetInterface",
-    "L2Bridge",
+    "VirtualSwitch",
     "L2BridgePort",
     "VirtualControllerInterface",
     "IPv4AddressEndpoint",

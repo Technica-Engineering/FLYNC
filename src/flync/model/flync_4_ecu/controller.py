@@ -130,7 +130,7 @@ class ComputeNodes(FLYNCBaseModel):
 
     Compute nodes are VMs that run on the same SoC as the controller.
     Each compute node has its own MAC address and one or more virtual interfaces (VLANs).
-    Traffic between a compute node and the physical network is forwarded through the :class:`L2Bridge` defined on the parent
+    Traffic between a compute node and the physical network is forwarded through the :class:`VirtualSwitch` defined on the parent
     :class:`Controller` — the L2 bridge acts as a software MAC bridge that connects compute nodes to the controller interface and to each other.
 
     Network features such as PTP, MACsec, ingress stream policing, and traffic shaping can be configured either on the
@@ -206,7 +206,7 @@ class ComputeNodes(FLYNCBaseModel):
 
 class L2BridgePort(FLYNCBaseModel):
     """
-    A port on the :class:`L2Bridge`, referencing a connected node by name.
+    A port on the :class:`VirtualSwitch`, referencing a connected node by name.
 
     Each port is bound to either a :class:`ControllerInterface` or a :class:`ComputeNodes` instance. The ``node_connected`` name must match
     the ``name`` field of one of those objects within the same controller.
@@ -224,9 +224,9 @@ class L2BridgePort(FLYNCBaseModel):
     node_connected: str = Field()
 
 
-class L2Bridge(FLYNCBaseModel):
+class VirtualSwitch(FLYNCBaseModel):
     """
-    **WARNING: L2Bridge is currently experimental! Subject to change, please use with care.**
+    **WARNING: VirtualSwitch is currently experimental! Subject to change, please use with care.**
 
     A software MAC bridge inside a controller.
 
@@ -255,7 +255,7 @@ class L2Bridge(FLYNCBaseModel):
     @model_validator(mode="before")
     def experimental_warning(self):
         """Experimental Class in v0.11.0"""
-        warn("L2Bridge is currently experimental! Subject to change, please use with care.")
+        warn("VirtualSwitch is currently experimental! Subject to change, please use with care.")
         return self
 
 
@@ -267,7 +267,7 @@ class ControllerInterface(NamedDictInstances):
 
     * **Direct mode** — virtual interfaces (VLANs) are stacked directly on the physical interface. No compute nodes or L2 bridge are needed.
 
-    * **Bridge mode** — one or more :class:`ComputeNodes` (VMs) are attached to the interface. In this case the :class:`L2Bridge` defined on the
+    * **Bridge mode** — one or more :class:`ComputeNodes` (VMs) are attached to the interface. In this case the :class:`VirtualSwitch` defined on the
       parent :class:`Controller` acts as a software MAC bridge: it connects the physical interface and each compute node together, and can also
       bridge multiple physical interfaces at Layer 2.
 
@@ -287,7 +287,7 @@ class ControllerInterface(NamedDictInstances):
         Media-independent interface configuration.
 
     compute_nodes : list of :class:`ComputeNodes`, optional
-        VMs attached to this interface. When present, an :class:`L2Bridge` must be defined on the parent :class:`Controller` to connect them.
+        VMs attached to this interface. When present, an :class:`VirtualSwitch` must be defined on the parent :class:`Controller` to connect them.
 
     virtual_interfaces : list of :class:`VirtualControllerInterface`, optional
         VLAN-tagged virtual interfaces stacked directly on this physical interface (used in direct mode, without compute nodes).
@@ -561,7 +561,7 @@ class Controller(NamedListInstances):
     ethernet_interfaces : list of :class:`~EthernetInterface`
         Ethernet interfaces of the controller.
 
-    l2_bridge: :class:`L2Bridge`
+    virtual_switch: :class:`VirtualSwitch`
         Represents a software switch inside a controller in case there are \
             more than one interface or virtual machines/ compute nodes.
 
@@ -606,8 +606,8 @@ class Controller(NamedListInstances):
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
     ] = Field(default_factory=list)
-    l2_bridge: Annotated[
-        Optional[L2Bridge],
+    virtual_switch: Annotated[
+        Optional[VirtualSwitch],
         External(
             output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT,
             naming_strategy=NamingStrategy.FIELD_NAME,
@@ -628,7 +628,7 @@ class Controller(NamedListInstances):
         return self
 
     @model_validator(mode="after")
-    def check_ports_l2_bridge_are_interfaces_or_compute_nodes(self):
+    def check_ports_virtual_switch_are_interfaces_or_compute_nodes(self):
         interface_names = []
         compute_node_names = []
         for eth_iface in self.ethernet_interfaces:
@@ -638,8 +638,8 @@ class Controller(NamedListInstances):
                 for compute_node in iface.compute_nodes:
                     compute_node_names.append(compute_node.name)
 
-        if self.l2_bridge is not None:
-            for port in self.l2_bridge.ports:
+        if self.virtual_switch is not None:
+            for port in self.virtual_switch.ports:
                 if port.node_connected not in interface_names and port.node_connected not in compute_node_names:
                     raise err_minor(f"{port.node_connected} is not a validcontroller interface or compute node")
         return self

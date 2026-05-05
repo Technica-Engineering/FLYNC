@@ -365,7 +365,7 @@ Single controller, single (physical) interface, external PHY, Multiple VMs
    :width: 500px
 
 
-.. note:: You always need to add a L2Bridge to tie your VMs to the interface
+.. note:: You always need to add a VirtualSwitch to tie your VMs to the interface
 
 .. dropdown:: 📄 ``ecu1_ports.flync.yaml``
 
@@ -425,7 +425,7 @@ Single controller, single (physical) interface, external PHY, Multiple VMs
                   addresses:
                      -  address: 10.0.20.2
                         ipv4_netmask: 255.255.255.0
-      l2_bridge:
+      virtual_switch:
          name: br0
          ports:
             -  name: br0_p1
@@ -464,7 +464,7 @@ Single controller, multiple (physical) interface, external PHY no VMs, L2 bridge
    :width: 500px
 
 
-.. note:: You always need to add a L2Bridge to tie one or more interface
+.. note:: You always need to add a VirtualSwitch to tie one or more interface
 
 .. dropdown:: 📄 ``ecu1_ports.flync.yaml``
 
@@ -531,7 +531,7 @@ Single controller, multiple (physical) interface, external PHY no VMs, L2 bridge
                      -  address: 10.0.20.1
                         ipv4_netmask: 255.255.255.0
 
-      l2_bridge:
+      virtual_switch:
          name: br0
          ports:
             -  name: br0_p1

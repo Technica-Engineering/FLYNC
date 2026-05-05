@@ -98,16 +98,16 @@ Ethernet Interfaces
 L2 Bridge
 ==========
 
-.. admonition:: Expand for a YAML example - 📄 ``l2_bridge.flync.yaml``
+.. admonition:: Expand for a YAML example - 📄 ``virtual_switch.flync.yaml``
    :collapsible: closed
 
    .. note::
       A Layer2 Bridge is defined in a separate file per Controller.
 
-   .. literalinclude:: ../../_static/flync_example/ecus/eth_ecu/controllers/eth_ecu_controller1/l2_bridge.flync.yaml
+   .. literalinclude:: ../../_static/flync_example/ecus/eth_ecu/controllers/eth_ecu_controller1/virtual_switch.flync.yaml
       :language: yaml
 
-.. autoclass:: flync.model.flync_4_ecu.L2Bridge()
+.. autoclass:: flync.model.flync_4_ecu.VirtualSwitch()
 .. autoclass:: flync.model.flync_4_ecu.L2BridgePort()
 
 

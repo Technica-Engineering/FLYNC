@@ -7,10 +7,10 @@ from flync.model.flync_4_ecu.controller import (
     ControllerInterface,
     EmbeddedMetadata,
     EthernetInterface,
-    L2Bridge,
     L2BridgePort,
     PTPConfig,
     VirtualControllerInterface,
+    VirtualSwitch,
     VLANEntry,
 )
 from flync.model.flync_4_metadata.metadata import BaseVersion
@@ -22,7 +22,7 @@ def test_compute_nodes_require_l2bridge():
     Objective:
     Enforce that compute nodes cannot exist without a bridge.
 
-    The architectural rule: all compute node traffic must traverse L2Bridge
+    The architectural rule: all compute node traffic must traverse VirtualSwitch
     Prevents “orphaned” compute nodes with no data path
 
     Without this, model would allow impossible network topologies.
@@ -52,7 +52,7 @@ def test_compute_nodes_require_l2bridge():
             name="ctrl1",
             controller_metadata=embedded_metadata,
             ethernet_interfaces=[iface],
-            l2_bridge=None,
+            virtual_switch=None,
         )
 
 
@@ -85,7 +85,7 @@ def test_bridge_port_invalid_reference():
             )
         ],
     )
-    bridge = L2Bridge(
+    bridge = VirtualSwitch(
         name="br0",
         ports=[
             L2BridgePort(name="p1", node_connected="unknown_node"),
@@ -99,7 +99,7 @@ def test_bridge_port_invalid_reference():
             name="ctrl1",
             controller_metadata=embedded_metadata,
             ethernet_interfaces=[iface],
-            l2_bridge=bridge,
+            virtual_switch=bridge,
         )
 
 
@@ -136,7 +136,7 @@ def test_vlan_invalid_port_reference():
     Objective:
     Ensure VLAN definitions are consistent with bridge topology.
 
-    VLAN ports must exist in L2Bridge.ports
+    VLAN ports must exist in VirtualSwitch.ports
     Prevents dangling VLAN memberships
 
     Without this, VLAN configs would reference ghost ports, breaking connectivity logic.
@@ -159,7 +159,7 @@ def test_vlan_invalid_port_reference():
             )
         ],
     )
-    bridge = L2Bridge(
+    bridge = VirtualSwitch(
         name="br0",
         ports=[L2BridgePort(name="p1", node_connected="eth0")],
         vlans=[VLANEntry(name="test", id=10, default_priority=0, ports=["p2"])],
@@ -171,7 +171,7 @@ def test_vlan_invalid_port_reference():
             name="ctrl1",
             controller_metadata=embedded_metadata,
             ethernet_interfaces=[iface],
-            l2_bridge=bridge,
+            virtual_switch=bridge,
         )
 
 
@@ -181,7 +181,7 @@ def test_compute_node_not_in_bridge_ports():
     Objective:
     Ensure every compute node is actually reachable.
 
-    All compute nodes must appear in L2Bridge ports
+    All compute nodes must appear in VirtualSwitch ports
     Prevents disconnected VMs
 
     Otherwise, you'd have compute nodes defined but no path to anything.
@@ -204,7 +204,7 @@ def test_compute_node_not_in_bridge_ports():
             )
         ],
     )
-    bridge = L2Bridge(
+    bridge = VirtualSwitch(
         name="br0",
         ports=[L2BridgePort(name="p1", node_connected="eth0")],
         vlans=[],
@@ -216,7 +216,7 @@ def test_compute_node_not_in_bridge_ports():
             name="ctrl1",
             controller_metadata=embedded_metadata,
             ethernet_interfaces=[iface],
-            l2_bridge=bridge,
+            virtual_switch=bridge,
         )
 
 
@@ -250,7 +250,7 @@ def test_feature_offload_to_compute_node_only():
             )
         ],
     )
-    bridge = L2Bridge(
+    bridge = VirtualSwitch(
         name="br0",
         ports=[
             L2BridgePort(name="p1", node_connected="eth0"),
@@ -263,7 +263,7 @@ def test_feature_offload_to_compute_node_only():
         name="ctrl1",
         controller_metadata=embedded_metadata,
         ethernet_interfaces=[iface],
-        l2_bridge=bridge,
+        virtual_switch=bridge,
     )
 
     assert controller.ethernet_interfaces[0].interface_config.compute_nodes[0].ptp_config is not None
@@ -279,7 +279,7 @@ def test_duplicate_name_between_interface_and_compute_node_should_fail():
     since the system would not be able to distinguish whether a reference
     points to an interface or a compute node.
 
-    This prevents undefined behavior in L2Bridge connectivity resolution.
+    This prevents undefined behavior in VirtualSwitch connectivity resolution.
     """
     ControllerInterface(
         name="eth0",
@@ -295,7 +295,7 @@ def test_duplicate_name_between_interface_and_compute_node_should_fail():
         ],
     )
     with pytest.raises(ValidationError):
-        L2Bridge(
+        VirtualSwitch(
             name="br0",
             ports=[
                 L2BridgePort(name="p1", node_connected="eth0"),

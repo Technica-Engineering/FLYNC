@@ -162,7 +162,7 @@ One interface directory consists of:
        │   ├── 📂❗ ecu_1_controller_1
        |   │   |
        │   │   ├── 📄❗ controller_metadata.flync.yaml
-       │   │   ├── 📄   l2_bridge.flync.yaml
+       │   │   ├── 📄   virtual_switch.flync.yaml
        |   │   |
        │   │   └── 📂❗ ethernet_interfaces
        |   │       |
