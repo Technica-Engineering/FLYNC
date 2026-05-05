@@ -9,6 +9,7 @@ from flync.model.flync_4_signal.frame import (
     FrameEventTiming,
     FrameTransmissionTiming,
     LINFrame,
+    PDUReceiver,
     PDUSender,
 )
 from flync.model.flync_4_signal.pdu import PDUInstance
@@ -201,17 +202,6 @@ def test_positive_can_frame_with_pdu():
         packed_pdus=[PDUInstance(pdu_ref="can_pdu_ref", bit_position=0)],
     )
     assert len(frm.packed_pdus) == 1
-
-
-def test_positive_can_frame_with_publisher():
-    frm = CANFrame(
-        name="can_pub",
-        can_id=0x400,
-        id_format="standard_11bit",
-        length=8,
-        publisher_node="ECU_A",
-    )
-    assert frm.publisher_node == "ECU_A"
 
 
 def test_positive_can_frame_model_validate():
@@ -431,35 +421,19 @@ def test_negative_can_fd_frame_duplicate_pdu_bit_positions():
 
 
 def test_positive_lin_frame_minimal():
-    frm = LINFrame(
-        name="lin_frm_min",
-        lin_id=0x01,
-        publisher_node="Master",
-        length=1,
-    )
+    frm = LINFrame(name="lin_frm_min", lin_id=0x01, length=1)
     assert frm.type == "lin"
     assert frm.lin_id == 0x01
     assert frm.checksum_type == "enhanced"
 
 
 def test_positive_lin_frame_max_id():
-    frm = LINFrame(
-        name="lin_frm_max_id",
-        lin_id=0x3F,
-        publisher_node="Master",
-        length=8,
-    )
+    frm = LINFrame(name="lin_frm_max_id", lin_id=0x3F, length=8)
     assert frm.lin_id == 0x3F
 
 
 def test_positive_lin_frame_classic_checksum():
-    frm = LINFrame(
-        name="lin_frm_classic",
-        lin_id=0x10,
-        publisher_node="SlaveA",
-        length=4,
-        checksum_type="classic",
-    )
+    frm = LINFrame(name="lin_frm_classic", lin_id=0x10, length=4, checksum_type="classic")
     assert frm.checksum_type == "classic"
 
 
@@ -467,7 +441,6 @@ def test_positive_lin_frame_with_timing():
     frm = LINFrame(
         name="lin_frm_timed",
         lin_id=0x05,
-        publisher_node="Master",
         length=8,
         timing=FrameTransmissionTiming(cyclic_timings=[FrameCyclicTiming(cycle=0.005)]),
     )
@@ -478,7 +451,6 @@ def test_positive_lin_frame_with_pdu():
     frm = LINFrame(
         name="lin_frm_pdu",
         lin_id=0x02,
-        publisher_node="Master",
         length=4,
         packed_pdus=[PDUInstance(pdu_ref="lin_pdu_1", bit_position=0)],
     )
@@ -490,22 +462,12 @@ def test_positive_lin_frame_with_pdu():
     [pytest.param(i, id=f"lin_len_{i}") for i in range(1, 9)],
 )
 def test_positive_lin_frame_all_lengths(length):
-    frm = LINFrame(
-        name=f"lin_frm_{length}",
-        lin_id=0x01,
-        publisher_node="Master",
-        length=length,
-    )
+    frm = LINFrame(name=f"lin_frm_{length}", lin_id=0x01, length=length)
     assert frm.length == length
 
 
 def test_positive_lin_frame_model_validate():
-    data = {
-        "name": "lin_frm_mv",
-        "lin_id": 0x10,
-        "publisher_node": "Master",
-        "length": 4,
-    }
+    data = {"name": "lin_frm_mv", "lin_id": 0x10, "length": 4}
     frm = LINFrame.model_validate(data)
     assert isinstance(frm, LINFrame)
 
@@ -517,22 +479,22 @@ def test_positive_lin_frame_model_validate():
 
 def test_negative_lin_frame_id_too_large():
     with pytest.raises(ValidationError):
-        LINFrame(name="lin_bad_id", lin_id=0x40, publisher_node="Master", length=4)
+        LINFrame(name="lin_bad_id", lin_id=0x40, length=4)
 
 
 def test_negative_lin_frame_id_negative():
     with pytest.raises(ValidationError):
-        LINFrame(name="lin_neg_id", lin_id=-1, publisher_node="Master", length=4)
+        LINFrame(name="lin_neg_id", lin_id=-1, length=4)
 
 
 def test_negative_lin_frame_length_zero():
     with pytest.raises(ValidationError):
-        LINFrame(name="lin_len0", lin_id=0x01, publisher_node="Master", length=0)
+        LINFrame(name="lin_len0", lin_id=0x01, length=0)
 
 
 def test_negative_lin_frame_length_too_large():
     with pytest.raises(ValidationError):
-        LINFrame(name="lin_len9", lin_id=0x01, publisher_node="Master", length=9)
+        LINFrame(name="lin_len9", lin_id=0x01, length=9)
 
 
 def test_negative_lin_frame_duplicate_pdu_bit_positions():
@@ -540,18 +502,12 @@ def test_negative_lin_frame_duplicate_pdu_bit_positions():
         LINFrame(
             name="lin_dup_pdu",
             lin_id=0x01,
-            publisher_node="Master",
             length=8,
             packed_pdus=[
                 PDUInstance(pdu_ref="lp1", bit_position=0),
                 PDUInstance(pdu_ref="lp2", bit_position=0),
             ],
         )
-
-
-def test_negative_lin_frame_empty_publisher_node():
-    with pytest.raises(ValidationError):
-        LINFrame(name="lin_no_pub", lin_id=0x01, publisher_node="", length=4)
 
 
 # ---------------------------------------------------------------------------
@@ -579,3 +535,30 @@ def test_positive_pdu_sender_default_type():
 def test_negative_pdu_sender_missing_frame_ref():
     with pytest.raises(ValidationError):
         PDUSender.model_validate({"deployment_type": "pdu_sender"})
+
+
+# ---------------------------------------------------------------------------
+# PDUReceiver
+# ---------------------------------------------------------------------------
+
+
+def test_positive_pdu_receiver_basic():
+    receiver = PDUReceiver(frame_ref="my_ethernet_frame")
+    assert receiver.deployment_type == "pdu_receiver"
+    assert receiver.frame_ref == "my_ethernet_frame"
+
+
+def test_positive_pdu_receiver_model_validate():
+    data = {"deployment_type": "pdu_receiver", "frame_ref": "eth_frame_1"}
+    receiver = PDUReceiver.model_validate(data)
+    assert isinstance(receiver, PDUReceiver)
+
+
+def test_positive_pdu_receiver_default_type():
+    receiver = PDUReceiver(frame_ref="frame_x")
+    assert receiver.deployment_type == "pdu_receiver"
+
+
+def test_negative_pdu_receiver_missing_frame_ref():
+    with pytest.raises(ValidationError):
+        PDUReceiver.model_validate({"deployment_type": "pdu_receiver"})

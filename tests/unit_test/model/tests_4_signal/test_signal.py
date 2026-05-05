@@ -498,7 +498,6 @@ def test_positive_instance_placement_defaults():
     ip = InstancePlacement()
     assert ip.bit_position is None
     assert ip.endianness == "LE"
-    assert ip.subscriber_nodes == []
 
 
 @pytest.mark.parametrize(
@@ -511,11 +510,6 @@ def test_positive_instance_placement_defaults():
 def test_positive_instance_placement_endianness(endianness):
     ip = InstancePlacement(endianness=endianness, bit_position=0)
     assert ip.endianness == endianness
-
-
-def test_positive_instance_placement_with_subscribers():
-    ip = InstancePlacement(subscriber_nodes=["NodeA", "NodeB"], bit_position=0)
-    assert len(ip.subscriber_nodes) == 2
 
 
 def test_negative_instance_placement_negative_bit_position():
@@ -538,15 +532,6 @@ def test_positive_signal_instance_without_bit_position(uint8_signal):
     si = SignalInstance(signal=uint8_signal)
     assert si.bit_position is None
 
-
-def test_positive_signal_instance_with_subscribers(uint8_signal):
-    si = SignalInstance(signal=uint8_signal, bit_position=0, subscriber_nodes=["ECU_A"])
-    assert si.subscriber_nodes == ["ECU_A"]
-
-
-def test_positive_signal_instance_BE(uint8_signal):
-    si = SignalInstance(signal=uint8_signal, bit_position=0, endianness="BE")
-    assert si.endianness == "BE"
 
 
 # ---------------------------------------------------------------------------
