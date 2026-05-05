@@ -8,4 +8,4 @@ sockets:
     protocol: udp
     deployments:
       - deployment_type: pdu_sender
-        frame_ref: EthBodyFrame
+        pdu_ref: EthBodyContainer

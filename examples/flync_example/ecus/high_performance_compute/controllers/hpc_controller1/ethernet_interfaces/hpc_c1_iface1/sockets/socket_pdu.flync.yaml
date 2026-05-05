@@ -8,13 +8,4 @@ sockets:
     protocol: udp
     deployments:
       - deployment_type: pdu_sender
-        frame_ref: EthPowertrainFrame
-
-  - name: pdu_diag_tx
-    endpoint_address: 10.0.20.5
-    endpoint_type: unicast
-    port_no: 13400
-    protocol: udp
-    deployments:
-      - deployment_type: pdu_sender
-        frame_ref: EthDiagFrame
+        pdu_ref: EthPowertrainContainer

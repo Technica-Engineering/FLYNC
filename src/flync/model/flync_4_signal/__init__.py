@@ -4,12 +4,12 @@ from flync.model.flync_4_signal.frame import (
     CANFDFrame,
     CANFrame,
     CANFrameBase,
-    EthernetFrame,
     Frame,
     FrameCyclicTiming,
     FrameEventTiming,
     FrameTransmissionTiming,
     LINFrame,
+    PDUReceiver,
     PDUSender,
 )
 from flync.model.flync_4_signal.pdu import (
@@ -51,12 +51,12 @@ __all__ = [
     "PDUInstance",
     "ContainerPDU",
     "PDUSender",
+    "PDUReceiver",
     # frame
     "FrameEventTiming",
     "FrameCyclicTiming",
     "FrameTransmissionTiming",
     "Frame",
-    "EthernetFrame",
     "CANFrameBase",
     "CANFrame",
     "CANFDFrame",

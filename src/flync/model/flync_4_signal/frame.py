@@ -15,40 +15,40 @@ from flync.model.flync_4_signal.pdu import (
 
 class PDUSender(FLYNCBaseModel):
     """
-    Deployment that publishes an Ethernet frame onto a socket.
+    Deployment that publishes a Container PDU onto a socket.
 
-    Transport (TCP/UDP, IP address, port) is owned by the enclosing socket; this model only binds a frame to that socket.
+    Transport (TCP/UDP, IP address, port) is owned by the enclosing socket; this model only binds a PDU to that socket.
     The publishing ECU is the owner of the socket carrying this deployment.
 
     Parameters
     ----------
     deployment_type : Literal["pdu_sender"]
         Discriminator value for :class:`~flync.model.flync_4_ecu.sockets.DeploymentUnion`.
-    frame_ref : str
-        Name of an :class:`EthernetFrame` in the frame catalog.
+    pdu_ref : str
+        Name of a :class:`~flync.model.flync_4_signal.pdu.ContainerPDU` in the PDU catalog.
     """
 
     deployment_type: Literal["pdu_sender"] = Field(default="pdu_sender")
-    frame_ref: str = Field()
+    pdu_ref: str = Field()
 
 
 class PDUReceiver(FLYNCBaseModel):
     """
-    Deployment that subscribes to an Ethernet frame on a socket.
+    Deployment that subscribes to a Container PDU on a socket.
 
-    Transport (TCP/UDP, IP address, port) is owned by the enclosing socket; this model only binds a frame to that socket.
+    Transport (TCP/UDP, IP address, port) is owned by the enclosing socket; this model only binds a PDU to that socket.
     The receiving ECU is the owner of the socket carrying this deployment.
 
     Parameters
     ----------
     deployment_type : Literal["pdu_receiver"]
         Discriminator value for :class:`~flync.model.flync_4_ecu.sockets.DeploymentUnion`.
-    frame_ref : str
-        Name of an :class:`EthernetFrame` in the frame catalog.
+    pdu_ref : str
+        Name of a :class:`~flync.model.flync_4_signal.pdu.ContainerPDU` in the PDU catalog.
     """
 
     deployment_type: Literal["pdu_receiver"] = Field(default="pdu_receiver")
-    frame_ref: str = Field()
+    pdu_ref: str = Field()
 
 
 # ---------------------------------------------------------------------------
@@ -126,28 +126,6 @@ class Frame(UniqueName):
     name: str = Field()
     description: Optional[str] = Field(default=None)
     length: int = Field()
-
-
-# ---------------------------------------------------------------------------
-# Ethernet frame
-# ---------------------------------------------------------------------------
-
-
-class EthernetFrame(Frame):
-    """
-    Ethernet frame.
-
-    Parameters
-    ----------
-    packed_pdus : list of :class:`PDUInstance`
-        PDUs composed into this frame's payload.
-    timing : :class:`FrameTransmissionTiming`, optional
-        Transmission timing for this frame.
-    """
-
-    type: Literal["ethernet"] = Field(default="ethernet")
-    packed_pdus: List[PDUInstance] = Field(default_factory=list)
-    timing: Optional[FrameTransmissionTiming] = Field(default=None)
 
 
 # ---------------------------------------------------------------------------

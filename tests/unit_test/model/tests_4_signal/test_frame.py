@@ -4,7 +4,6 @@ from pydantic import ValidationError
 from flync.model.flync_4_signal.frame import (
     CANFDFrame,
     CANFrame,
-    EthernetFrame,
     FrameCyclicTiming,
     FrameEventTiming,
     FrameTransmissionTiming,
@@ -94,47 +93,6 @@ def test_positive_frame_transmission_timing_both():
     )
     assert t.debounce_time == 0.005
     assert len(t.event_timings) == 1
-
-
-# ---------------------------------------------------------------------------
-# EthernetFrame
-# ---------------------------------------------------------------------------
-
-
-def test_positive_ethernet_frame_minimal():
-    frm = EthernetFrame(name="eth_frm_1", length=100)
-    assert frm.type == "ethernet"
-    assert frm.packed_pdus == []
-    assert frm.timing is None
-
-
-def test_positive_ethernet_frame_with_timing():
-    frm = EthernetFrame(
-        name="eth_frm_2",
-        length=200,
-        timing=FrameTransmissionTiming(cyclic_timings=[FrameCyclicTiming(cycle=0.02)]),
-    )
-    assert frm.timing is not None
-
-
-def test_positive_ethernet_frame_with_packed_pdus():
-    frm = EthernetFrame(
-        name="eth_frm_3",
-        length=512,
-        packed_pdus=[PDUInstance(pdu_ref="eth_pdu_1", bit_position=0)],
-    )
-    assert len(frm.packed_pdus) == 1
-
-
-def test_positive_ethernet_frame_with_description():
-    frm = EthernetFrame(name="eth_frm_4", length=64, description="Ethernet data frame")
-    assert frm.description == "Ethernet data frame"
-
-
-def test_positive_ethernet_frame_model_validate():
-    data = {"name": "eth_frm_mv", "length": 100}
-    frm = EthernetFrame.model_validate(data)
-    assert isinstance(frm, EthernetFrame)
 
 
 # ---------------------------------------------------------------------------
@@ -516,23 +474,23 @@ def test_negative_lin_frame_duplicate_pdu_bit_positions():
 
 
 def test_positive_pdu_sender_basic():
-    sender = PDUSender(frame_ref="my_ethernet_frame")
+    sender = PDUSender(pdu_ref="my_container_pdu")
     assert sender.deployment_type == "pdu_sender"
-    assert sender.frame_ref == "my_ethernet_frame"
+    assert sender.pdu_ref == "my_container_pdu"
 
 
 def test_positive_pdu_sender_model_validate():
-    data = {"deployment_type": "pdu_sender", "frame_ref": "eth_frame_1"}
+    data = {"deployment_type": "pdu_sender", "pdu_ref": "container_pdu_1"}
     sender = PDUSender.model_validate(data)
     assert isinstance(sender, PDUSender)
 
 
 def test_positive_pdu_sender_default_type():
-    sender = PDUSender(frame_ref="frame_x")
+    sender = PDUSender(pdu_ref="pdu_x")
     assert sender.deployment_type == "pdu_sender"
 
 
-def test_negative_pdu_sender_missing_frame_ref():
+def test_negative_pdu_sender_missing_pdu_ref():
     with pytest.raises(ValidationError):
         PDUSender.model_validate({"deployment_type": "pdu_sender"})
 
@@ -543,22 +501,22 @@ def test_negative_pdu_sender_missing_frame_ref():
 
 
 def test_positive_pdu_receiver_basic():
-    receiver = PDUReceiver(frame_ref="my_ethernet_frame")
+    receiver = PDUReceiver(pdu_ref="my_container_pdu")
     assert receiver.deployment_type == "pdu_receiver"
-    assert receiver.frame_ref == "my_ethernet_frame"
+    assert receiver.pdu_ref == "my_container_pdu"
 
 
 def test_positive_pdu_receiver_model_validate():
-    data = {"deployment_type": "pdu_receiver", "frame_ref": "eth_frame_1"}
+    data = {"deployment_type": "pdu_receiver", "pdu_ref": "container_pdu_1"}
     receiver = PDUReceiver.model_validate(data)
     assert isinstance(receiver, PDUReceiver)
 
 
 def test_positive_pdu_receiver_default_type():
-    receiver = PDUReceiver(frame_ref="frame_x")
+    receiver = PDUReceiver(pdu_ref="pdu_x")
     assert receiver.deployment_type == "pdu_receiver"
 
 
-def test_negative_pdu_receiver_missing_frame_ref():
+def test_negative_pdu_receiver_missing_pdu_ref():
     with pytest.raises(ValidationError):
         PDUReceiver.model_validate({"deployment_type": "pdu_receiver"})

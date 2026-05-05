@@ -533,7 +533,6 @@ def test_positive_signal_instance_without_bit_position(uint8_signal):
     assert si.bit_position is None
 
 
-
 # ---------------------------------------------------------------------------
 # SignalGroup
 # ---------------------------------------------------------------------------
