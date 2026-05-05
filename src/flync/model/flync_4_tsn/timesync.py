@@ -99,7 +99,7 @@ class PTPPort(FLYNCBaseModel):
 
     domain_id: int = Field(..., ge=0)
     src_port_identity: int = Field(..., ge=0)
-    sync_config: PTPTimeTransmitterConfig | PTPTimeReceiverConfig = Field()
+    sync_config: PTPTimeTransmitterConfig | PTPTimeReceiverConfig = Field(discriminator="type")
     pdelay_config: Optional[PTPPdelayConfig] = Field(default=None)
 
 
