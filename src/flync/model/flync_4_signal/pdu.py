@@ -193,10 +193,15 @@ class ContainedPDURef(FLYNCBaseModel):
         Numeric identifier placed in the slot header for this contained PDU.
     pdu_ref : str
         Name of the referenced PDU.
+    offset : int, optional
+        Bit offset of this slot (header + payload) within the container payload.
+        When multiple PDUs are packed sequentially this encodes the start position
+        of each slot so receivers can locate it without parsing preceding slots.
     """
 
     pdu_id: int = Field()
     pdu_ref: str = Field()
+    offset: Optional[int] = Field(default=0, ge=0)
 
 
 class PDUInstance(FLYNCBaseModel):

@@ -11,7 +11,10 @@ description: >-
 contained_pdus:
   - pdu_id: 257
     pdu_ref: PDU_EngineStatus
+    offset: 0
   - pdu_id: 513
     pdu_ref: PDU_VehicleDynamics
+    offset: 11
   - pdu_id: 769
     pdu_ref: PDU_TransmissionStatus
+    offset: 20
