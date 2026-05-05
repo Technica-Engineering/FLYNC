@@ -1,5 +1,6 @@
 name: EthBodyContainer
 type: container
+pdu_id: 2
 length: 14
 header:
   id_length_bits: 16

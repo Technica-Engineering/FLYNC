@@ -379,6 +379,7 @@ def test_negative_multiplexed_pdu_empty_mux_groups():
 def test_positive_container_pdu_16bit_id_8bit_length_empty():
     pdu = ContainerPDU(
         name="ctr_empty_sh",
+        pdu_id=1,
         length=4,
         header=ContainerPDUHeader(id_length_bits=16, length_field_bits=8),
     )
@@ -391,6 +392,7 @@ def test_positive_container_pdu_16bit_id_8bit_length_empty():
 def test_positive_container_pdu_32bit_id_16bit_length_empty():
     pdu = ContainerPDU(
         name="ctr_empty_lh",
+        pdu_id=2,
         length=4,
         header=ContainerPDUHeader(id_length_bits=32, length_field_bits=16),
     )
@@ -401,6 +403,7 @@ def test_positive_container_pdu_32bit_id_16bit_length_empty():
 def test_positive_container_pdu_16bit_id_8bit_length_with_refs():
     pdu = ContainerPDU(
         name="ctr_sh_refs",
+        pdu_id=3,
         length=10,
         header=ContainerPDUHeader(id_length_bits=16, length_field_bits=8),
         contained_pdus=[
@@ -415,6 +418,7 @@ def test_positive_container_pdu_32bit_id_16bit_length_exact_minimum():
     # overhead = (32+16)//8 = 6 bytes per slot; 1 slot => minimum = 6
     pdu = ContainerPDU(
         name="ctr_lh_exact",
+        pdu_id=4,
         length=6,
         header=ContainerPDUHeader(id_length_bits=32, length_field_bits=16),
         contained_pdus=[ContainedPDURef(pdu_id=1, pdu_ref="inner_c")],
@@ -426,6 +430,7 @@ def test_positive_container_pdu_16bit_id_8bit_length_exact_minimum():
     # overhead = (16+8)//8 = 3 bytes per slot; 1 slot => minimum = 3
     pdu = ContainerPDU(
         name="ctr_sh_exact",
+        pdu_id=5,
         length=3,
         header=ContainerPDUHeader(id_length_bits=16, length_field_bits=8),
         contained_pdus=[ContainedPDURef(pdu_id=1, pdu_ref="inner_d")],
@@ -436,6 +441,7 @@ def test_positive_container_pdu_16bit_id_8bit_length_exact_minimum():
 def test_positive_container_pdu_model_validate():
     data = {
         "name": "ctr_mv",
+        "pdu_id": 6,
         "length": 20,
         "header": {"id_length_bits": 16, "length_field_bits": 8},
     }
@@ -453,6 +459,7 @@ def test_negative_container_pdu_too_small_3byte_header():
     with pytest.raises(ValidationError):
         ContainerPDU(
             name="ctr_small_sh",
+            pdu_id=10,
             length=5,
             header=ContainerPDUHeader(id_length_bits=16, length_field_bits=8),
             contained_pdus=[
@@ -467,6 +474,7 @@ def test_negative_container_pdu_too_small_6byte_header():
     with pytest.raises(ValidationError):
         ContainerPDU(
             name="ctr_small_lh",
+            pdu_id=11,
             length=5,
             header=ContainerPDUHeader(id_length_bits=32, length_field_bits=16),
             contained_pdus=[ContainedPDURef(pdu_id=1, pdu_ref="p1")],
@@ -487,6 +495,7 @@ def test_negative_container_pdu_zero_length():
     with pytest.raises(ValidationError):
         ContainerPDU(
             name="ctr_zero_len",
+            pdu_id=12,
             length=0,
             header=ContainerPDUHeader(id_length_bits=16, length_field_bits=8),
         )

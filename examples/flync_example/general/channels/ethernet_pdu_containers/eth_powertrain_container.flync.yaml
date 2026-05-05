@@ -1,5 +1,6 @@
 name: EthPowertrainContainer
 type: container
+pdu_id: 1
 length: 31
 header:
   id_length_bits: 16
