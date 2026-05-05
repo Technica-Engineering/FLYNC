@@ -29,8 +29,7 @@ be reused across CAN, LIN, or Ethernet transport layers.
 
 Signals are not placed directly into PDUs; instead a
 :class:`~flync.model.flync_4_signal.SignalInstance` wraps a signal
-with its placement information (bit offset, byte order, and the list
-of subscribing nodes).
+with its placement information (bit offset and byte order).
 
 .. autoclass:: flync.model.flync_4_signal.SignalDataType()
    :members:
@@ -159,9 +158,12 @@ Frame
 A **Frame** is the protocol-specific transport unit that carries one
 or more PDUs on a physical bus.  CAN and CAN FD frames are defined
 inside ``general/channels/can/``; LIN frames inside
-``general/channels/lin/``; Ethernet frames inside
-``general/channels/ethernet/``.  All frame types reference PDUs by
+``general/channels/lin/``.  All frame types reference PDUs by
 name via :class:`~flync.model.flync_4_signal.PDUInstance`.
+
+For Ethernet, there is no frame layer — sockets reference a
+:class:`~flync.model.flync_4_signal.ContainerPDU` directly via a
+``pdu_sender`` or ``pdu_receiver`` deployment.
 
 .. admonition:: Expand for Schematic
    :collapsible: closed
@@ -178,38 +180,17 @@ name via :class:`~flync.model.flync_4_signal.PDUInstance`.
 
 .. autoclass:: flync.model.flync_4_signal.LINFrame()
 
-.. _ethernet_frame:
-
-Ethernet Frame
-==============
-
-.. admonition:: Expand for a YAML example - 📄 ``general/channels/ethernet/ethernet_frames.flync.yaml``
-   :collapsible: closed
-
-   .. note::
-      Ethernet frames are stored under ``general/channels/ethernet/``.
-      Each entry names the PDUs composed into its payload via
-      :class:`~flync.model.flync_4_signal.PDUInstance` references.
-      A ``pdu_ref`` may point to any PDU subtype, including a
-      :class:`~flync.model.flync_4_signal.ContainerPDU`.
-      Transport (socket, IP address, port) is bound separately on the
-      sender ECU via a ``pdu_sender`` deployment on the relevant socket.
-
-   .. literalinclude:: ../../../../examples/flync_example/general/channels/ethernet/ethernet_frames.flync.yaml
-      :language: yaml
-
-.. autoclass:: flync.model.flync_4_signal.EthernetFrame()
-
-PDU Sender Deployment
-=====================
+PDU Sender / Receiver Deployments
+==================================
 
 .. admonition:: Expand for a YAML example - 📄 ``ecus/high_performance_compute/controllers/hpc_controller1/ethernet_interfaces/hpc_c1_iface1/sockets/socket_pdu.flync.yaml``
    :collapsible: closed
 
    .. note::
-      A ``pdu_sender`` deployment binds an
-      :class:`~flync.model.flync_4_signal.EthernetFrame` to a socket on
-      the publishing ECU.  It is added to the ``deployments`` list of a
+      A ``pdu_sender`` deployment binds a
+      :class:`~flync.model.flync_4_signal.ContainerPDU` to a socket on
+      the publishing ECU.  A ``pdu_receiver`` deployment does the same for
+      the subscribing ECU.  Both are added to the ``deployments`` list of a
       :class:`~flync.model.flync_4_ecu.SocketTCP` or
       :class:`~flync.model.flync_4_ecu.SocketUDP`.
 
@@ -218,13 +199,15 @@ PDU Sender Deployment
 
 .. autoclass:: flync.model.flync_4_signal.PDUSender()
 
+.. autoclass:: flync.model.flync_4_signal.PDUReceiver()
+
 Frame Timing
 ============
 
 Transmission timing is configured at the **frame** layer for every
-protocol.  Each CAN, CAN FD, LIN, or Ethernet frame may carry an
-optional ``timing`` field that drives cyclic, event-driven, and
-debounce scheduling of the frame as a whole on the wire.
+protocol.  Each CAN, CAN FD, or LIN frame may carry an optional
+``timing`` field that drives cyclic, event-driven, and debounce
+scheduling of the frame as a whole on the wire.
 
 .. autoclass:: flync.model.flync_4_signal.FrameTransmissionTiming()
 
