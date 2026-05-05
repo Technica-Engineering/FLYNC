@@ -78,7 +78,7 @@ class SOMEIPFieldTimings(DictInstances):
     """
 
     profile_id: str = Field(description="Timing profile for fields.")
-    type: Literal["field"]
+    type: Literal["field"] = Field(default="field")
     getter_req_debounce: int = Field(
         description="Minimum time in milliseconds between 2 request messages for same getter method/service.",
         default=0,
@@ -139,7 +139,7 @@ class SOMEIPEventTimings(DictInstances):
     """
 
     profile_id: str = Field(description="Timing profile for events.")
-    type: Literal["event"]
+    type: Literal["event"] = Field(default="event")
     debounce: int = Field(
         description="Minimum time in milliseconds between 2 event messages for same service.",
         default=0,
@@ -177,7 +177,7 @@ class SOMEIPMethodTimings(DictInstances):
     """
 
     profile_id: str = Field(description="Timing profile for methods.")
-    type: Literal["method"] = "method"
+    type: Literal["method"] = Field(default="method")
     req_debounce: int = Field(
         description="Minimum time in milliseconds between 2 request messages for same method/service.",
         default=0,
@@ -195,6 +195,9 @@ class SOMEIPMethodTimings(DictInstances):
         return self.profile_id
 
 
+SOMEIPEvenTimingsProfilesUnion = Annotated[Union[SOMEIPEventTimings | SOMEIPFieldTimings | SOMEIPMethodTimings], Field(discriminator="type")]
+
+
 class SOMEIPTimingProfile(FLYNCBaseModel):
     """
     Timings for field.
@@ -210,12 +213,12 @@ class SOMEIPTimingProfile(FLYNCBaseModel):
     """
 
     profiles: Annotated[
-        List[SOMEIPEventTimings | SOMEIPFieldTimings | SOMEIPMethodTimings],
+        List[SOMEIPEvenTimingsProfilesUnion],
         Field(description="List of timing profiles for SOME/IP"),
     ] = Field(default_factory=list)
 
     defaults: Annotated[
-        List[SOMEIPEventTimings | SOMEIPFieldTimings | SOMEIPMethodTimings],
+        List[SOMEIPEvenTimingsProfilesUnion],
         Field(description="List of default timing profiles for SOME/IP"),
     ] = Field(default_factory=list)
 
