@@ -320,7 +320,7 @@ def _wrap_native_error(err: ErrorDetails) -> ErrorDetails:
     sub_errors = f"{original_type}: {original_msg}"
     return {
         "type": "major",
-        "msg": (f"1 or more errors found while validating {field_name}. " f"Removing {field_name}."),
+        "msg": (f"1 or more errors found while validating {field_name}. Removing {field_name}."),
         "loc": loc,
         "input": err.get("input"),
         "ctx": {"sub_errors": sub_errors},

@@ -87,11 +87,11 @@ class ExternalConnection(FLYNCBaseModel):
         registery: Registry = get_registry()
         self._ecu1_port = registery.get_dict(ECUPort).get(self.ecu1_port_name)
         if self._ecu1_port is None:
-            raise err_major(f"ECU port name {self.ecu1_port_name} in connection" f" {self.id} does not exist")
+            raise err_major(f"ECU port name {self.ecu1_port_name} in connection {self.id} does not exist")
 
         self._ecu2_port = registery.get_dict(ECUPort).get(self.ecu2_port_name)
         if self._ecu2_port is None:
-            raise err_major(f"ECU port name {self.ecu2_port_name} in connection" f" {self.id} does not exist")
+            raise err_major(f"ECU port name {self.ecu2_port_name} in connection {self.id} does not exist")
 
         # Add connected component to each other
         self.ecu1_port._connected_components.append(self.ecu2_port)

@@ -680,7 +680,7 @@ class SOMEIPServiceInterface(DictInstances):
             if len(entries) == 1:
                 err_minor(
                     f"Entities share same identifier: {identifier} | "
-                    + ", ".join([f"'{entity.name}'({type(entity).__name__}" f".{attr_name})" for attr_name, entity in entries])
+                    + ", ".join([f"'{entity.name}'({type(entity).__name__}.{attr_name})" for attr_name, entity in entries])
                     + " [feat_req_someip_56]"
                 )
         return self
@@ -900,7 +900,7 @@ class SOMEIPConfig(FLYNCBaseModel):
             for data_id, entries in by_id.items():
                 if len(entries) > 1:
                     entity_list = ", ".join(f"{type(service).__name__}.{type(element).__name__}" for service, element, e2e in entries)
-                    errors.append(f"Duplicate e2e.data_id '{data_id}' " f"in Profil '{profile}': {entity_list}")
+                    errors.append(f"Duplicate e2e.data_id '{data_id}' in Profil '{profile}': {entity_list}")
 
         if errors:
             raise ValueError(" | ".join(errors))

@@ -456,7 +456,7 @@ class Switch(NamedListInstances):
                                     if stream.ats:
                                         found_ats = True
                         if not found_ats:
-                            raise err_minor(f"No ATS Instance found for traffic class " f"{tr.name}")
+                            raise err_minor(f"No ATS Instance found for traffic class {tr.name}")
 
         return self
 

@@ -169,7 +169,7 @@ VALIDATION_SOFT_ERRORS: dict = {}
 try:
     loaded_ws = FLYNCWorkspace.load_workspace(flync_name, path.resolve())
 except Exception as e:
-    console.print("[bold red]VALIDATION FAILED:" f" Validation of {flync_name} failed![/bold red]")
+    console.print("[bold red]VALIDATION FAILED: Validation of {flync_name} failed![/bold red]")
     if isinstance(e, ValidationError):
         all_errs = e.errors()
         warn_rows = [x for x in all_errs if x.get("type") == "warning"]
