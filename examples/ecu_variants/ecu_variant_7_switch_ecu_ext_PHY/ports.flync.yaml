@@ -1,0 +1,23 @@
+ports:
+  - name: ecu1_port1
+    mdi_config:
+      mode: base_t1
+      speed: 100
+      duplex: full
+      role: master
+      autonegotiation: false
+    mii_config:
+      type: rmii
+      speed: 100
+      mode: phy
+  - name: ecu1_port2
+    mdi_config:
+      mode: base_t1
+      speed: 100
+      duplex: full
+      role: master
+      autonegotiation: false
+    mii_config:
+      type: rmii
+      speed: 100
+      mode: phy

@@ -1,0 +1,17 @@
+name: br0
+ports:
+  - name: br0_p1
+    node_connected: ecu1_controller1_iface1
+  - name: br0_p2
+    node_connected: ecu1_controller1_iface2
+vlans:
+  - name: VLAN10
+    id: 10
+    default_priority: 0
+    ports:
+      - br0_p1
+  - name: VLAN20
+    id: 20
+    default_priority: 0
+    ports:
+      - br0_p2

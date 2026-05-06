@@ -1,0 +1,13 @@
+connections:
+  - type: switch_port_to_controller_interface
+    id: conn1
+    switch_port: switch1_port0
+    controller_interface: ecu1_controller1_iface1
+  - type: ecu_port_to_switch_port
+    id: conn2
+    ecu_port: ecu1_port1
+    switch_port: switch1_port1
+  - type: ecu_port_to_switch_port
+    id: conn3
+    ecu_port: ecu1_port2
+    switch_port: switch1_port2

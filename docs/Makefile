@@ -17,11 +17,15 @@ help:
 
 .PHONY: help Makefile
 
-html:
-# copy flync_example for yaml references during runtime of docs build
-	cp -a $(EXAMPLE_SOURCE)$(EXAMPLE_NAME) $(EXAMPLE_DST)
+generate_pictures:
 # create mermaid schematics
 	poetry run python3 ./source/_scripts/create_mermaid.py
+	poetry run python3 ./source/_scripts/generate_ecu_diagram.py $(EXAMPLE_SOURCE)/ecu_variants -o $(EXAMPLE_DST)/images/ecu_variants
+
+
+html: generate_pictures
+# copy flync_example for yaml references during runtime of docs build
+	cp -a $(EXAMPLE_SOURCE)$(EXAMPLE_NAME) $(EXAMPLE_DST)
 # build html docs
 	@$(SPHINXBUILD) -b html "$(SOURCEDIR)" "$(BUILDDIR)"
 # remove flync_example again

@@ -102,765 +102,115 @@ Further Examples
 ECU Variants
 """"""""""""""
 
-Single controller, single (virtual) interface, external PHY
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Variant 1: Single controller, single (virtual) interface, external PHY
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. image:: ./_static/images/ecu_variants/single_controller_single_iface_ext_PHY.png
+Find this example on github: `ecu_variant_1 <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_1_single_controller_single_iface_ext_PHY>`_.
+
+.. image:: ./_static/images/ecu_variants/ecu_variant_1_single_controller_single_iface_ext_PHY.svg
    :align: center
    :width: 500px
-
 
 .. note:: The MDI configuration must be compliant with that of the other ECU to which the port is connected to. In this case, ``mode``, ``speed`` and ``duplex`` must match; while ``role`` must be opposite to that of the other ECU config (i.e., if slave in the connected ECU, master shall be configured).
 
 .. note:: The MII configuration must be compliant with that of the ECU controller configuration. In this case, ``type`` and ``speed`` must match; while ``mode`` must oppose the controller interface config (i.e., if mac in the controller interface, phy shall be configured).
 
-.. dropdown:: 📄 ``ecu1_ports.flync.yaml``
-
-   .. code-block:: yaml
-
-      ports:
-         -  name: ecu1_port1
-            mdi_config:
-               mode: base_t1
-               speed: 100
-               duplex: full
-               role: master
-               autonegotiation: false
-            mii_config:
-               type: rmii
-               speed: 100
-               mode: phy
-
-.. dropdown:: 📄 ``ecu1_controller1.flync.yaml``
-
-   .. code-block:: yaml
-
-      meta:
-         author: Developer1
-         compatible_flync_version:
-            version_schema: semver
-            version: 0.11.0
-         target_system: flync_os
-      name: ecu1_controller1
-      interfaces:
-         -  name: ecu1_controller1_iface1
-            mac_address: 00:11:22:33:44:55
-            mii_config:
-               type: rmii
-               speed: 100
-               mode: mac
-            virtual_interfaces:
-               -  name: ecu1_controller1_iface1_viface1
-                  vlanid: 0
-                  addresses:
-                     -  address: 10.0.10.1
-                        ipv4_netmask: 255.255.255.0
-
-.. dropdown:: 📄 ``ecu1_internal_topology.flync.yaml``
-
-   .. code-block:: yaml
-
-      connections:
-         - type: ecu_port_to_controller_interface
-           id: conn1
-           ecu_port: ecu1_port1
-           controller_interface: ecu1_controller1_iface1
-
 --------------
 
 
-Single controller, single (virtual) interface, integrated PHY
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Variant 2: Single controller, single (virtual) interface, integrated PHY
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. image:: ./_static/images/ecu_variants/single_controller_single_iface_int_PHY.png
+Find this example on github: `ecu_variant_2 <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_2_single_controller_single_iface_int_PHY>`_.
+
+.. image:: ./_static/images/ecu_variants/ecu_variant_2_single_controller_single_iface_int_PHY.svg
    :align: center
    :width: 500px
 
-.. note:: Since PHY is integrated into the host controller, no MII configuration is needed on the port side.
-
-.. dropdown:: 📄 ``ecu1_ports.flync.yaml``
-
-   .. code-block:: yaml
-
-      ports:
-      -  name: ecu1_port1
-         mdi_config:
-            mode: base_t1
-            speed: 100
-            duplex: full
-            role: master
-            autonegotiation: false
-         mii_config: null
-
-.. note:: Since PHY is integrated into the host controller, no MII configuration is needed in the controller either.
-
-.. dropdown:: 📄 ``ecu1_controller1.flync.yaml``
-
-   .. code-block:: yaml
-
-      meta:
-         author: Developer1
-         compatible_flync_version:
-            version_schema: semver
-            version: 0.11.0
-         target_system: flync_os
-      name: ecu1_controller1
-      interfaces:
-         -  name: ecu1_controller1_iface1
-            mac_address: 00:11:22:33:44:55
-            mii_config: null
-            virtual_interfaces:
-               -  name: ecu1_controller1_iface1_viface1
-                  vlanid: 0
-                  addresses:
-                     -  address: 10.0.10.1
-                        ipv4_netmask: 255.255.255.0
-
-.. dropdown:: 📄 ``ecu1_internal_topology.flync.yaml``
-
-   .. code-block:: yaml
-
-      connections:
-         -  type: ecu_port_to_controller_interface
-            id: conn1
-            ecu_port: ecu1_port1
-            controller_interface: ecu1_controller1_iface1
+.. note:: Since PHY is integrated into the host controller, no MII configuration is needed neither on the port side, nor on the controller side.
 
 --------------
 
 
-Single controller, multiple (virtual) interfaces, external PHY
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Variant 3: Single controller, multiple (virtual) interfaces, external PHY
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. image:: ./_static/images/ecu_variants/single_controller_multiple_iface_ext_PHY.png
+Find this example on github: `ecu_variant_3 <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_3_single_controller_multiple_iface_ext_PHY>`_.
+
+.. image:: ./_static/images/ecu_variants/ecu_variant_3_single_controller_multiple_iface_ext_PHY.svg
    :align: center
    :width: 700px
 
-.. dropdown:: 📄 ``ecu1_ports.flync.yaml``
+--------------
 
-   .. code-block:: yaml
 
-      ports:
-      -  name: ecu1_port1
-         mdi_config:
-            mode: base_t1
-            speed: 100
-            duplex: full
-            role: master
-            autonegotiation: false
-        mii_config:
-            type: rmii
-            speed: 100
-            mode: phy
+Variant 4: Single controller, multiple (virtual) interfaces, integrated PHY
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. dropdown:: 📄 ``ecu1_controller1.flync.yaml``
+Find this example on github: `ecu_variant_4 <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_4_single_controller_multiple_iface_int_PHY>`_.
 
-   .. code-block:: yaml
+.. image:: ./_static/images/ecu_variants/ecu_variant_4_single_controller_multiple_iface_int_PHY.svg
+   :align: center
+   :width: 700px
 
-      meta:
-         author: Developer1
-         compatible_flync_version:
-            version_schema: semver
-            version: 0.11.0
-         target_system: flync_os
-      name: ecu1_controller1
-      interfaces:
-         -  name: ecu1_controller1_iface1
-            mac_address: 00:11:22:33:44:55
-            mii_config:
-               type: rmii
-               speed: 100
-               mode: mac
-            virtual_interfaces:
-               -  name: ecu1_controller1_iface1_viface1
-                  vlanid: 10
-                  addresses:
-                     -  address: 10.0.10.1
-                        ipv4_netmask: 255.255.255.0
-               -  name: ecu1_controller1_iface1_viface2
-                  vlanid: 20
-                  addresses:
-                     -  address: 10.0.20.1
-                        ipv4_netmask: 255.255.255.0
+--------------
 
-.. dropdown:: 📄 ``ecu1_internal_topology.flync.yaml``
+Variant 5: Single controller, single (physical) interface, external PHY, Multiple VMs
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-   .. code-block:: yaml
+Find this example on github: `ecu_variant_5 <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_5_single_controller_single_iface_multiple_vms>`_.
 
-      connections:
-         -  type: ecu_port_to_controller_interface
-            id: conn1
-            ecu_port: ecu1_port1
-            controller_interface: ecu1_controller1_iface1
+.. image:: ./_static/images/ecu_variants/ecu_variant_5_single_controller_single_iface_multiple_vms.svg
+   :align: center
+   :width: 500px
+
+.. note:: If there is a VM, it needs to tie to a Controller Interface through a Virtual Switch.
 
 --------------
 
 
-Single controller, multiple (virtual) interfaces, integrated PHY
+Variant 6: Single controller, multiple (physical) interface, external PHY no VMs, Virtual Switch
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Find this example on github: `ecu_variant_6 <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_6_single_controller_multiple_iface_physical_ext_phy>`_.
+
+.. image:: ./_static/images/ecu_variants/ecu_variant_6_single_controller_multiple_iface_physical_ext_phy.svg
+   :align: center
+   :width: 500px
+
+.. note:: Two controller interfaces might be connected through an Virtual Switch.
+
+--------------
+
+
+Variant 7: Switch ECU, multiple (virtual) interfaces, external PHY
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. image:: ./_static/images/ecu_variants/single_controller_multiple_iface_int_PHY.png
-   :align: center
-   :width: 700px
+Find this example on github: `ecu_variant_7 <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_7_switch_ecu_ext_PHY>`_.
 
-.. dropdown:: 📄 ``ecu1_ports.flync.yaml``
-
-   .. code-block:: yaml
-
-      ports:
-         -  name: ecu1_port1
-            mdi_config:
-               mode: base_t1
-               speed: 100
-               duplex: full
-               role: master
-               autonegotiation: false
-            mii_config: null
-
-.. dropdown:: 📄 ``ecu1_controller1.flync.yaml``
-
-   .. code-block:: yaml
-
-      meta:
-         author: Developer1
-         compatible_flync_version:
-            version_schema: semver
-            version: 0.11.0
-         target_system: flync_os
-      name: ecu1_controller1
-      interfaces:
-         -  name: ecu1_controller1_iface1
-            mac_address: 00:11:22:33:44:55
-            mii_config: null
-            virtual_interfaces:
-               -  name: ecu1_controller1_iface1_viface1
-                  vlanid: 10
-                  addresses:
-                     -  address: 10.0.10.1
-                        ipv4_netmask: 255.255.255.0
-               -  name: ecu1_controller1_iface1_viface2
-                  vlanid: 20
-                  addresses:
-                     -  address: 10.0.20.1
-                        ipv4_netmask: 255.255.255.0
-
-.. dropdown:: 📄 ``ecu1_internal_topology.flync.yaml``
-
-   .. code-block:: yaml
-
-      connections:
-         -  type: ecu_port_to_controller_interface
-            id: conn1
-            ecu_port: ecu1_port1
-            controller_interface: ecu1_controller1_iface1
-
-
---------------
-
-Single controller, single (physical) interface, external PHY, Multiple VMs
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. image:: ./_static/images/ecu_variants/single_controller_single_iface_multiple_vms.svg
-   :align: center
-   :width: 500px
-
-
-.. note:: You always need to add a VirtualSwitch to tie your VMs to the interface
-
-.. dropdown:: 📄 ``ecu1_ports.flync.yaml``
-
-   .. code-block:: yaml
-
-      ports:
-         -  name: ecu1_port1
-            mdi_config:
-               mode: base_t1
-               speed: 100
-               duplex: full
-               role: master
-               autonegotiation: false
-            mii_config:
-               type: rmii
-               speed: 100
-               mode: phy
-
-.. dropdown:: 📄 ``ecu1_controller1.flync.yaml``
-
-   .. code-block:: yaml
-
-      meta:
-         author: Developer1
-         compatible_flync_version:
-            version_schema: semver
-            version: 0.11.0
-         target_system: flync_os
-      name: ecu1_controller1
-      interfaces:
-         -  name: ecu1_controller1_iface1
-            mac_address: 00:11:22:33:44:55
-            mii_config:
-               type: rmii
-               speed: 100
-               mode: mac
-            virtual_interfaces:
-               -  name: ecu1_controller1_iface1_viface1
-                  vlanid: 10
-                  addresses:
-                     -  address: 10.0.10.1
-                        ipv4_netmask: 255.255.255.0
-            compute_nodes:
-            -  name: ecu1_c1_vm1
-               mac_address: 00:11:22:33:44:56
-               virtual_interfaces:
-               -  name: ecu1_c1_vm1_viface1
-                  vlanid: 20
-                  addresses:
-                     -  address: 10.0.20.1
-                        ipv4_netmask: 255.255.255.0
-            -  name: ecu1_c1_vm2
-               mac_address: 00:11:22:33:44:57
-               virtual_interfaces:
-               -  name: ecu1_c1_vm2_viface1
-                  vlanid: 20
-                  addresses:
-                     -  address: 10.0.20.2
-                        ipv4_netmask: 255.255.255.0
-      virtual_switch:
-         name: br0
-         ports:
-            -  name: br0_p1
-               node_connected: ecu1_c1_vm1
-            -  name: br0_p2
-               node_connected: ecu1_c1_vm2
-            -  name: br0_p3
-               node_connected: ecu1_controller1_iface1
-         vlans:
-            -  name: VLAN20
-               id: 50
-               default_priority: 0
-               ports:
-               - br0_p0
-               - br0_p1
-               - br0_p2
-
-.. dropdown:: 📄 ``ecu1_internal_topology.flync.yaml``
-
-   .. code-block:: yaml
-
-      connections:
-         - type: ecu_port_to_controller_interface
-           id: conn1
-           ecu_port: ecu1_port1
-           controller_interface: ecu1_controller1_iface1
-
---------------
-
-
-Single controller, multiple (physical) interface, external PHY no VMs, Virtual Switch
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. image:: ./_static/images/ecu_variants/single_controller_multiple_iface_physical_ext_phy.svg
-   :align: center
-   :width: 500px
-
-
-.. note:: You always need to add a VirtualSwitch to tie one or more interface
-
-.. dropdown:: 📄 ``ecu1_ports.flync.yaml``
-
-   .. code-block:: yaml
-
-      ports:
-         -  name: ecu1_port1
-            mdi_config:
-               mode: base_t1
-               speed: 100
-               duplex: full
-               role: master
-               autonegotiation: false
-            mii_config:
-               type: rmii
-               speed: 100
-               mode: phy
-         -  name: ecu1_port2
-            mdi_config:
-               mode: base_t1
-               speed: 100
-               duplex: full
-               role: master
-               autonegotiation: false
-            mii_config:
-               type: rmii
-               speed: 100
-               mode: phy
-
-.. dropdown:: 📄 ``ecu1_controller1.flync.yaml``
-
-   .. code-block:: yaml
-
-      meta:
-         author: Developer1
-         compatible_flync_version:
-            version_schema: semver
-            version: 0.11.0
-         target_system: flync_os
-      name: ecu1_controller1
-      interfaces:
-         -  name: ecu1_controller1_iface1
-            mac_address: 00:11:22:33:44:55
-            mii_config:
-               type: rmii
-               speed: 100
-               mode: mac
-            virtual_interfaces:
-               -  name: ecu1_controller1_iface1_viface1
-                  vlanid: 10
-                  addresses:
-                     -  address: 10.0.10.1
-                        ipv4_netmask: 255.255.255.0
-         -  name: ecu1_controller1_iface2
-            mac_address: 00:11:22:33:44:55
-            mii_config:
-               type: rmii
-               speed: 100
-               mode: mac
-            virtual_interfaces:
-               -  name: ecu1_controller1_iface2_viface1
-                  vlanid: 20
-                  addresses:
-                     -  address: 10.0.20.1
-                        ipv4_netmask: 255.255.255.0
-
-      virtual_switch:
-         name: br0
-         ports:
-            -  name: br0_p1
-               node_connected: ecu1_controller1_iface1
-            -  name: br0_p2
-               node_connected: ecu1_controller1_iface2
-         vlans:
-            -  name: VLAN20
-               id: 20
-               default_priority: 0
-               ports:
-               - br0_p1
-               - br0_p2
-
-            -  name: VLAN10
-               id: 10
-               default_priority: 0
-               ports:
-               - br0_p1
-               - br0_p2
-
-.. dropdown:: 📄 ``ecu1_internal_topology.flync.yaml``
-
-   .. code-block:: yaml
-
-      connections:
-         - type: ecu_port_to_controller_interface
-           id: conn1
-           ecu_port: ecu1_port1
-           controller_interface: ecu1_controller1_iface1
-         - type: ecu_port_to_controller_interface
-           id: conn1
-           ecu_port: ecu1_port2
-           controller_interface: ecu1_controller1_iface2
-
---------------
-
-
-Switch ECU, multiple (virtual) interfaces, external PHY
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. image:: ./_static/images/ecu_variants/switch_ecu_ext_PHY.png
+.. image:: ./_static/images/ecu_variants/ecu_variant_7_switch_ecu_ext_PHY.svg
    :align: center
    :width: 900px
 
-.. dropdown:: 📄 ``ecu1_ports.flync.yaml``
-
-   .. code-block:: yaml
-
-      ports:
-         -  name: ecu1_port1
-            mdi_config:
-               mode: base_t1
-               speed: 100
-               duplex: full
-               role: master
-               autonegotiation: false
-            mii_config:
-               type: rmii
-               speed: 100
-               mode: phy
-         -  name: ecu1_port2
-            mdi_config:
-               mode: base_t1
-               speed: 100
-               duplex: full
-               role: master
-               autonegotiation: false
-            mii_config:
-               type: rmii
-               speed: 100
-               mode: phy
-
-
-.. dropdown:: 📄 ``ecu1_controller1.flync.yaml``
-
-   .. code-block:: yaml
-
-      meta:
-         author: Developer1
-         compatible_flync_version:
-            version_schema: semver
-            version: 0.11.0
-         target_system: flync_os
-      name: ecu1_controller1
-      interfaces:
-         -  name: ecu1_controller1_iface1
-            mac_address: 00:11:22:33:44:55
-            mii_config:
-                  type: rmii
-                  speed: 100
-                  mode: phy
-            virtual_interfaces:
-               -  name: ecu1_controller1_iface1_viface1
-                  vlanid: 10
-                  addresses:
-                     -  address: 10.0.10.1
-                        ipv4_netmask: 255.255.255.0
-               -  name: ecu1_controller1_iface1_viface2
-                  vlanid: 20
-                  addresses:
-                     -  address: 10.0.20.1
-                        ipv4_netmask: 255.255.255.0
-
-.. dropdown:: 📄 ``ecu1_switch1.flync.yaml``
-
-   .. code-block:: yaml
-
-      meta:
-         author: Developer1
-         compatible_flync_version:
-            version_schema: semver
-            version: 0.11.0
-         target_system: flync_os
-      name: ecu1_switch1
-      ports:
-         -  name: switch1_port1
-            silicon_port_no: 1
-            default_vlan_id: 1
-            mii_config:
-               type: rmii
-               speed: 100
-               mode: mac
-         -  name: switch1_port2
-            silicon_port_no: 2
-            default_vlan_id: 1
-            mii_config:
-               type: rmii
-               speed: 100
-               mode: mac
-         -  name: switch1_port0
-            silicon_port_no: 0
-            default_vlan_id: 1
-            mii_config:
-               type: rmii
-               speed: 100
-               mode: mac
-      vlans:
-         -  name: vlan10
-            id: 10
-            default_priority: 0
-            ports:
-               - switch1_port0
-               - switch1_port1
-               - switch1_port2
-         -  name: vlan20
-            id: 20
-            default_priority: 0
-            ports:
-               - switch1_port1
-               - switch1_port2
 
 .. note:: The MII ``mode`` of the ``switch1_port0`` must oppose the one of the ``ecu1_controller1_iface1``.
-
-.. dropdown:: 📄 ``ecu1_internal_topology.flync.yaml``
-
-   .. code-block:: yaml
-
-      connections:
-         -  type: ecu_port_to_switch_port
-            id: conn1
-            ecu_port: ecu1_port1
-            switch_port: switch1_port1
-         -  type: ecu_port_to_switch_port
-            id: conn2
-            ecu_port: ecu1_port2
-            switch_port: switch1_port2
-         -  type: switch_port_to_controller_interface
-            id: conn3
-            switch_port: switch1_port0
-            controller_interface: ecu1_controller1_iface1
 
 --------------
 
 
-Switch ECU with Host controller, multiple (virtual) interfaces, external PHY
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Variant 8: Switch ECU with Host controller, multiple (virtual) interfaces, external PHY
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. image:: ./_static/images/ecu_variants/switch_ecu_with_host_ext_PHY.png
+Find this example on github: `ecu_variant_8 <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_8_switch_ecu_with_host_ext_PHY>`_.
+
+.. image:: ./_static/images/ecu_variants/ecu_variant_8_switch_ecu_with_host_ext_PHY.svg
    :align: center
    :width: 800px
 
-.. dropdown:: 📄 ``ecu1_ports.flync.yaml``
 
-   .. code-block:: yaml
-
-         ports:
-            -  name: ecu1_port1
-               mdi_config:
-                  mode: base_t1
-                  speed: 100
-                  duplex: full
-                  role: master
-                  autonegotiation: false
-               mii_config:
-                  type: rmii
-                  speed: 100
-                  mode: phy
-            -  name: ecu1_port2
-               mdi_config:
-                  mode: base_t1
-                  speed: 100
-                  duplex: full
-                  role: master
-                  autonegotiation: false
-               mii_config:
-                  type: rmii
-                  speed: 100
-                  mode: phy
-
-.. dropdown:: 📄 ``ecu1_controller1.flync.yaml``
-
-   .. code-block:: yaml
-
-         meta:
-            author: Developer1
-            compatible_flync_version:
-               version_schema: semver
-               version: 0.11.0
-         target_system: flync_os
-         name: ecu1_controller1
-         interfaces:
-            -  name: ecu1_controller1_iface1
-               mac_address: 00:11:22:33:44:55
-               mii_config:
-                  type: rmii
-                  speed: 100
-                  mode: phy
-               virtual_interfaces:
-                  -  name: ecu1_controller1_iface1_viface1
-                     vlanid: 10
-                     addresses:
-                        -  address: 10.0.10.1
-                           ipv4_netmask: 255.255.255.0
-                  -  name: ecu1_controller1_iface1_viface2
-                     vlanid: 20
-                     addresses:
-                        -  address: 10.0.20.1
-                           ipv4_netmask: 255.255.255.0
-                  -  name: ecu1_controller1_iface1_viface3
-                     vlanid: 30
-                     addresses:
-                        -  address: 10.0.30.1
-                           ipv4_netmask: 255.255.255.0
-
-
-
-.. dropdown:: 📄 ``ecu1_switch1.flync.yaml``
-
-   .. code-block:: yaml
-
-         meta:
-            author: Developer1
-            compatible_flync_version:
-               version_schema: semver
-               version: 0.11.0
-         name: ecu1_switch1
-         ports:
-            -  name: switch1_port1
-               silicon_port_no: 1
-               default_vlan_id: 1
-               mii_config:
-                  type: rmii
-                  speed: 100
-                  mode: mac
-            -  name: switch1_port2
-               silicon_port_no: 2
-               default_vlan_id: 1
-               mii_config:
-                  type: rmii
-                  speed: 100
-                  mode: mac
-            -  name: switch1_port0
-               silicon_port_no: 0
-               default_vlan_id: 1
-               mii_config:
-                  type: rmii
-                  speed: 100
-                  mode: mac
-         vlans:
-            -  name: vlan10
-               id: 10
-               default_priority: 0
-               ports:
-                  - switch1_port0
-                  - switch1_port1
-                  - switch1_port2
-            -  name: vlan20
-               id: 20
-               default_priority: 0
-               ports:
-                  - switch1_port1
-                  - switch1_port2
-            -  name: vlan30
-               id: 30
-               default_priority: 0
-               ports:
-                  - switch1_port0
-         host_controller:
-            name: ecu1_switch1_controlleriface1
-            mac_address: 00:11:22:33:44:66
-            virtual_interfaces:
-            -  name: vlan30
-               vlanid: 30
-               addresses:
-                  -  address: 10.0.30.100
-                     ipv4_netmask: 255.255.255.0
-
-.. note:: The MII ``mode`` of the ``switch1_port0`` must oppose the one of the ``ecu1_controller1_iface1``.
+.. note:: The MII ``mode`` of the ``switch1_port0`` must **oppose** the one of the ``ecu1_controller1_iface1``.
 
 .. note:: The Host controller of the switch will have the same configuration as any Controller Interface.
-
-.. dropdown:: 📄 ``ecu1_internal_topology.flync.yaml``
-
-   .. code-block:: yaml
-
-      connections:
-         -  type: ecu_port_to_switch_port
-            id: conn1
-            ecu_port: ecu1_port1
-            switch_port: switch1_port1
-         -  type: ecu_port_to_switch_port
-            id: conn2
-            ecu_port: ecu1_port2
-            switch_port: switch1_port2
-         -  type: switch_port_to_controller_interface
-            id: conn3
-            switch_port: switch1_port0
-            controller_interface: ecu1_controller1_iface1
 
 
 --------------
