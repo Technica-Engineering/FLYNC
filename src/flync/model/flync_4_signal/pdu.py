@@ -79,22 +79,12 @@ class MuxGroup(FLYNCBaseModel):
     ----------
     selector_value : int
         The value of the selector signal that activates this group.
-    signals : list of :class:`SignalInstance`
-        Signal instances active for this mux value.
-    signal_groups : list of :class:`SignalGroupInstance`
-        Signal group instances active for this mux value.
+    pdu : :class:`StandardPDU`
+        The PDU that is active for this selector_value.
     """
 
     selector_value: int = Field(ge=0)
-    signals: List[SignalInstance] = Field(default_factory=list)
-    signal_groups: List[SignalGroupInstance] = Field(default_factory=list)
-
-    @model_validator(mode="after")
-    def validate_intra_group_overlap(self) -> "MuxGroup":
-        """Ensure signals within this mux group do not overlap each other."""
-        ranges = _collect_placed_ranges(self.signals, self.signal_groups)
-        _check_overlap(f"MuxGroup(selector={self.selector_value})", ranges)
-        return self
+    pdu: StandardPDU = Field()
 
 
 # ---------------------------------------------------------------------------
@@ -118,7 +108,7 @@ class MultiplexedPDU(PDU):
 
     type: Literal["multiplexed"] = Field(default="multiplexed")
     selector_signal: SignalInstance = Field()
-    static_signals: List[SignalInstance] = Field(default_factory=list)
+    static_group: Optional[StandardPDU] = Field(default=None)
     mux_groups: List[MuxGroup] = Field(default_factory=list, min_length=1)
 
     @model_validator(mode="after")
@@ -164,15 +154,18 @@ class MultiplexedPDU(PDU):
             sel_bp + self.selector_signal.signal.bit_length,
         )
         for group in self.mux_groups:
-            group_ranges = _collect_placed_ranges(group.signals, group.signal_groups)
+            group_signals = getattr(group.pdu, "signals", [])
+            group_signal_groups = getattr(group.pdu, "signal_groups", [])
+            group_ranges = _collect_placed_ranges(group_signals, group_signal_groups)
             _check_overlap(
-                f"MultiplexedPDU '{self.name}' " f"mux_group(selector={group.selector_value}) vs selector",
+                f"MultiplexedPDU '{self.name}' mux_group(selector={group.selector_value}) vs selector",
                 [sel_range, *group_ranges],
             )
-        if self.static_signals:
-            static_ranges = _collect_placed_ranges(self.static_signals, [])
+        if self.static_group is not None:
+            static_signals = getattr(self.static_group, "signals", [])
+            static_ranges = _collect_placed_ranges(static_signals, [])
             _check_overlap(
-                f"MultiplexedPDU '{self.name}' static_signals vs selector",
+                f"MultiplexedPDU '{self.name}' static_group vs selector",
                 [sel_range, *static_ranges],
             )
         return self
