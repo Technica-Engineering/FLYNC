@@ -168,19 +168,26 @@ def test_negative_standard_pdu_zero_length():
 
 
 def test_positive_mux_group_empty():
-    mg = MuxGroup(selector_value=0)
+    mg = MuxGroup(
+        selector_value=0,
+        pdu=StandardPDU(name="mg_empty_pdu", length=1),
+    )
     assert mg.selector_value == 0
-    assert mg.signals == []
+    assert mg.pdu.signals == []
 
 
 def test_positive_mux_group_with_signal():
     sig = Signal(name="mux_s1", bit_length=8, data_type=SignalDataType.UINT8)
     mg = MuxGroup(
         selector_value=1,
-        signals=[SignalInstance(signal=sig, bit_position=0)],
+        pdu=StandardPDU(
+            name="mg_sig_pdu",
+            length=1,
+            signals=[SignalInstance(signal=sig, bit_position=0)],
+        ),
     )
     assert mg.selector_value == 1
-    assert len(mg.signals) == 1
+    assert len(mg.pdu.signals) == 1
 
 
 def test_positive_mux_group_two_signals_no_overlap():
@@ -188,12 +195,16 @@ def test_positive_mux_group_two_signals_no_overlap():
     s2 = Signal(name="mg_s2", bit_length=8, data_type=SignalDataType.UINT8)
     mg = MuxGroup(
         selector_value=0,
-        signals=[
-            SignalInstance(signal=s1, bit_position=0),
-            SignalInstance(signal=s2, bit_position=8),
-        ],
+        pdu=StandardPDU(
+            name="mg_two_sig_pdu",
+            length=2,
+            signals=[
+                SignalInstance(signal=s1, bit_position=0),
+                SignalInstance(signal=s2, bit_position=8),
+            ],
+        ),
     )
-    assert len(mg.signals) == 2
+    assert len(mg.pdu.signals) == 2
 
 
 # ---------------------------------------------------------------------------
@@ -207,16 +218,23 @@ def test_negative_mux_group_signals_overlap():
     with pytest.raises(ValidationError):
         MuxGroup(
             selector_value=0,
-            signals=[
-                SignalInstance(signal=s1, bit_position=0),
-                SignalInstance(signal=s2, bit_position=4),
-            ],
+            pdu=StandardPDU(
+                name="mg_olap_pdu",
+                length=2,
+                signals=[
+                    SignalInstance(signal=s1, bit_position=0),
+                    SignalInstance(signal=s2, bit_position=4),
+                ],
+            ),
         )
 
 
 def test_negative_mux_group_negative_selector_value():
     with pytest.raises(ValidationError):
-        MuxGroup(selector_value=-1)
+        MuxGroup(
+            selector_value=-1,
+            pdu=StandardPDU(name="mg_neg_pdu", length=1),
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -231,9 +249,14 @@ def _make_selector_signal(name="mux_sel", bit_length=4):
 
 def _make_mux_group(selector_value, signal_name="mux_payload", bit_position=8):
     sig = Signal(name=signal_name, bit_length=8, data_type=SignalDataType.UINT8)
+    length = (bit_position + 8 + 7) // 8  # minimum bytes to hold signal
     return MuxGroup(
         selector_value=selector_value,
-        signals=[SignalInstance(signal=sig, bit_position=bit_position)],
+        pdu=StandardPDU(
+            name=f"mg_pdu_{signal_name}",
+            length=length,
+            signals=[SignalInstance(signal=sig, bit_position=bit_position)],
+        ),
     )
 
 
@@ -272,9 +295,13 @@ def test_positive_multiplexed_pdu_with_static_signals():
         length=4,
         selector_signal=sel,
         mux_groups=[mg],
-        static_signals=[SignalInstance(signal=static_sig, bit_position=16)],
+        static_group=StandardPDU(
+            name="mp_pdu_3_static",
+            length=3,
+            signals=[SignalInstance(signal=static_sig, bit_position=16)],
+        ),
     )
-    assert len(pdu.static_signals) == 1
+    assert len(pdu.static_group.signals) == 1
 
 
 def test_positive_multiplexed_pdu_selector_no_position():
@@ -283,7 +310,11 @@ def test_positive_multiplexed_pdu_selector_no_position():
     mg_sig = Signal(name="mp_pay_nopos", bit_length=8, data_type=SignalDataType.UINT8)
     mg = MuxGroup(
         selector_value=0,
-        signals=[SignalInstance(signal=mg_sig, bit_position=0)],
+        pdu=StandardPDU(
+            name="mg_nopos_pdu",
+            length=1,
+            signals=[SignalInstance(signal=mg_sig, bit_position=0)],
+        ),
     )
     pdu = MultiplexedPDU(
         name="mp_nopos_pdu",
@@ -317,7 +348,11 @@ def test_negative_multiplexed_pdu_selector_value_out_of_range():
     sig = Signal(name="oor_pay", bit_length=8, data_type=SignalDataType.UINT8)
     mg = MuxGroup(
         selector_value=16,
-        signals=[SignalInstance(signal=sig, bit_position=8)],
+        pdu=StandardPDU(
+            name="mg_oor_pdu",
+            length=2,
+            signals=[SignalInstance(signal=sig, bit_position=8)],
+        ),
     )
     with pytest.raises(ValidationError):
         MultiplexedPDU(
@@ -334,7 +369,11 @@ def test_negative_multiplexed_pdu_mux_group_overlaps_selector():
     pay_sig = Signal(name="ov_pay", bit_length=8, data_type=SignalDataType.UINT8)
     mg = MuxGroup(
         selector_value=0,
-        signals=[SignalInstance(signal=pay_sig, bit_position=0)],
+        pdu=StandardPDU(
+            name="mg_ov_pdu",
+            length=1,
+            signals=[SignalInstance(signal=pay_sig, bit_position=0)],
+        ),
     )
     with pytest.raises(ValidationError):
         MultiplexedPDU(
@@ -356,7 +395,11 @@ def test_negative_multiplexed_pdu_static_overlaps_selector():
             length=4,
             selector_signal=sel,
             mux_groups=[mg],
-            static_signals=[SignalInstance(signal=static_sig, bit_position=0)],
+            static_group=StandardPDU(
+                name="stat_ov_pdu_static",
+                length=1,
+                signals=[SignalInstance(signal=static_sig, bit_position=0)],
+            ),
         )
 
 

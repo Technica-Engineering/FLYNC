@@ -117,15 +117,18 @@ class Frame(UniqueName):
     ----------
     name : str
         Unique name of the frame.
-    description : str, optional
-        Optional human-readable description.
     length : int
         Length of the frame payload in bytes.
+    frame_usage : str, optional
+        Optional string describing the usage of the frame.
+    description : str, optional
+        Optional human-readable description.
     """
 
     name: str = Field()
-    description: Optional[str] = Field(default=None)
     length: int = Field()
+    frame_usage: Optional[str] = Field(default=None)
+    description: Optional[str] = Field(default=None)
 
 
 # ---------------------------------------------------------------------------
