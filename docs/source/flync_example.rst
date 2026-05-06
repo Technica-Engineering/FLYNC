@@ -456,7 +456,7 @@ Single controller, single (physical) interface, external PHY, Multiple VMs
 --------------
 
 
-Single controller, multiple (physical) interface, external PHY no VMs, L2 bridge
+Single controller, multiple (physical) interface, external PHY no VMs, Virtual Switch
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. image:: ./_static/images/ecu_variants/single_controller_multiple_iface_physical_ext_phy.svg

@@ -35,8 +35,8 @@ def test_controller_with_bridge_and_compute_nodes_valid():
     bridge = VirtualSwitch(
         name="br0",
         ports=[
-            L2BridgePort(name="p1", node_connected="eth0"),
-            L2BridgePort(name="p2", node_connected="vm1"),
+            VirtualSwitchPort(name="p1", node_connected="eth0"),
+            VirtualSwitchPort(name="p2", node_connected="vm1"),
         ],
         vlans=[VLANEntry(name="test", id=10, default_priority=0, ports=["p1", "p2"])],
     )
@@ -94,8 +94,8 @@ def test_multiple_interfaces_layer2_connectivity():
     bridge = VirtualSwitch(
         name="br0",
         ports=[
-            L2BridgePort(name="p1", node_connected="eth0"),
-            L2BridgePort(name="p2", node_connected="eth1"),
+            VirtualSwitchPort(name="p1", node_connected="eth0"),
+            VirtualSwitchPort(name="p2", node_connected="eth1"),
         ],
         vlans=[VLANEntry(name="test", id=1, default_priority=0, ports=["p1", "p2"])],
     )

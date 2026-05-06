@@ -131,7 +131,7 @@ class ComputeNodes(FLYNCBaseModel):
     Compute nodes are VMs that run on the same SoC as the controller.
     Each compute node has its own MAC address and one or more virtual interfaces (VLANs).
     Traffic between a compute node and the physical network is forwarded through the :class:`VirtualSwitch` defined on the parent
-    :class:`Controller` — the L2 bridge acts as a software MAC bridge that connects compute nodes to the controller interface and to each other.
+    :class:`Controller` — the Virtual Switch acts as a software MAC bridge that connects compute nodes to the controller interface and to each other.
 
     Network features such as PTP, MACsec, ingress stream policing, and traffic shaping can be configured either on the
     parent :class:`ControllerInterface` or offloaded to individual compute nodes, but not on both simultaneously.
@@ -204,7 +204,7 @@ class ComputeNodes(FLYNCBaseModel):
         return self
 
 
-class L2BridgePort(FLYNCBaseModel):
+class VirtualSwitchPort(FLYNCBaseModel):
     """
     A port on the :class:`VirtualSwitch`, referencing a connected node by name.
 
@@ -214,7 +214,7 @@ class L2BridgePort(FLYNCBaseModel):
     Parameters
     ----------
     name : str
-        Name of the bridge port.
+        Name of the port.
 
     node_connected : str
         Name of the connected :class:`ControllerInterface` or :class:`ComputeNodes`.
@@ -230,26 +230,26 @@ class VirtualSwitch(FLYNCBaseModel):
 
     A software MAC bridge inside a controller.
 
-    The L2 bridge is the connectivity fabric that ties together the controller's physical interfaces and their compute nodes.
+    The Virtual Switch is the connectivity fabric that ties together the controller's physical interfaces and their compute nodes.
     It must be defined on the :class:`Controller` whenever compute nodes are present or when multiple interfaces need to exchange traffic at Layer 2.
 
-    Each :class:`L2BridgePort` references either a :class:`ControllerInterface` or a :class:`ComputeNodes` by name.
+    Each :class:`VirtualSwitchPort` references either a :class:`ControllerInterface` or a :class:`ComputeNodes` by name.
     VLANs defined on the bridge control which ports share broadcast domains, mirroring the role of VLANs on a hardware switch.
 
     Parameters
     ----------
     name : str
-        Name of the L2 bridge instance.
+        Name of the Virtual Switch instance.
 
-    ports : list of :class:`L2BridgePort`
-        Bridge ports, each referencing a controller interface or compute node.
+    ports : list of :class:`VirtualSwitchPort`
+        Ports of the virtual switch, each referencing a controller interface or compute node.
 
     vlans : list of :class:`~flync.model.flync_4_ecu.vlan_entry.VLANEntry`
         VLAN membership table: defines which ports belong to each VLAN and therefore which nodes can communicate at Layer 2.
     """
 
     name: str = Field()
-    ports: List[L2BridgePort] = Field()
+    ports: List[VirtualSwitchPort] = Field()
     vlans: List[VLANEntry] = Field()
 
     @model_validator(mode="before")
@@ -265,7 +265,7 @@ class ControllerInterface(NamedDictInstances):
 
     A controller interface is the hardware-level network endpoint of the controller. It can be used in two ways:
 
-    * **Direct mode** — virtual interfaces (VLANs) are stacked directly on the physical interface. No compute nodes or L2 bridge are needed.
+    * **Direct mode** — virtual interfaces (VLANs) are stacked directly on the physical interface. No compute nodes or Virtual Switch are needed.
 
     * **Bridge mode** — one or more :class:`ComputeNodes` (VMs) are attached to the interface. In this case the :class:`VirtualSwitch` defined on the
       parent :class:`Controller` acts as a software MAC bridge: it connects the physical interface and each compute node together, and can also
