@@ -141,7 +141,7 @@ class ComputeNodes(FLYNCBaseModel):
     name : str
         Name of the compute node / VM.
 
-    mac_address : :class:`MacAddress`
+    mac_address : :class:`MacAddress`, optional
         MAC address of the compute node in standard notation.
 
     virtual_interfaces : list of :class:`VirtualControllerInterface`
@@ -168,7 +168,7 @@ class ComputeNodes(FLYNCBaseModel):
     """
 
     name: str = Field()
-    mac_address: MacAddress = Field()
+    mac_address: Optional[MacAddress] = Field(default=None)
     virtual_interfaces: Annotated[
         List[VirtualControllerInterface],
         BeforeValidator(
@@ -279,7 +279,7 @@ class ControllerInterface(NamedDictInstances):
     name : str
         Interface name.
 
-    mac_address : :class:`MacAddress`
+    mac_address : :class:`MacAddress`, optional
         MAC address of the physical interface in standard notation.
 
     mii_config : :class:`~flync.model.flync_4_ecu.phy.MII` or :class:`~flync.model.flync_4_ecu.phy.RMII` or \
@@ -324,7 +324,7 @@ class ControllerInterface(NamedDictInstances):
     """
 
     name: str = Field()
-    mac_address: MacAddress = Field()
+    mac_address: Optional[MacAddress] = Field(default=None)
     mii_config: Optional[MII | RMII | SGMII | RGMII | XFI] = Field(default=None, discriminator="type")
     compute_nodes: Optional[List[ComputeNodes]] = Field(default_factory=list)
     virtual_interfaces: Annotated[
@@ -508,9 +508,11 @@ class ControllerInterface(NamedDictInstances):
 
     def get_all_macs(self):
         macs = []
-        macs.append(self.mac_address)
+        if self.mac_address is not None:
+            macs.append(self.mac_address)
         for node in self.compute_nodes:
-            macs.append(node.mac_address)
+            if node is not None:
+                macs.append(node.mac_address)
 
         return macs
 
