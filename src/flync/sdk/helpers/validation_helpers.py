@@ -65,7 +65,7 @@ def validate_external_node(
     Args:
         node (str | type[FLYNCBaseModel]): The model class to validate, or its string name.
         node_path (Path | str): Path to the directory containing the node's FLYNC configuration files.
-        workspace_config (WorkspaceConfiguration | None): Optional workspace configuration.
+        workspace_config (WorkspaceConfiguration | None): Optional workspace configuration. \
             Uses defaults if ``None``. The ``root_model`` field is always overwritten with ``node``.
 
     Returns:
