@@ -22,8 +22,8 @@ class ListObjectsMode(IntFlag):
 
     Attributes:
         INDEX: Register each list item under its zero-based integer index (e.g. ``controllers.0``).
-        NAME: Register each list item under its name — the file/directory stem for folder-based lists, or the model's ``name`` attribute for
-            inline YAML lists. Items without a name are skipped.
+        NAME: Register each list item under its name — the file/directory stem for folder-based lists, or the model's ``name`` attribute for \
+              inline YAML lists. Items without a name are skipped.
     """
 
     INDEX = 1
@@ -60,7 +60,7 @@ class WorkspaceConfiguration:
 
         Args:
             existing_config (WorkspaceConfiguration): The base configuration to copy from.
-            **configs: Field names and new values to override.
+            configs: Field names and new values to override.
 
         Returns:
             WorkspaceConfiguration: A new instance with the overrides applied.

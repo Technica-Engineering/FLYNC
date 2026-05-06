@@ -77,8 +77,10 @@ controls which IDs are generated via
 .. autoclass:: flync.sdk.context.workspace_config.ListObjectsMode
    :members:
    :undoc-members:
+   :no-index:
 
 .. automethod:: flync.sdk.workspace.flync_workspace.FLYNCWorkspace.add_list_item_object_path
+   :no-index:
 
 Modes
 -----
@@ -198,6 +200,7 @@ List all object IDs
 -------------------
 
 .. automethod:: flync.sdk.workspace.flync_workspace.FLYNCWorkspace.list_objects
+   :no-index:
 
 .. code-block:: python
 
@@ -216,6 +219,7 @@ Retrieve a semantic object
 --------------------------
 
 .. automethod:: flync.sdk.workspace.flync_workspace.FLYNCWorkspace.get_object
+   :no-index:
 
 .. code-block:: python
 
@@ -227,6 +231,7 @@ Retrieve the source location
 ----------------------------
 
 .. automethod:: flync.sdk.workspace.flync_workspace.FLYNCWorkspace.get_source
+   :no-index:
 
 .. code-block:: python
 
@@ -246,6 +251,7 @@ Look up objects by file position
 ---------------------------------
 
 .. automethod:: flync.sdk.workspace.flync_workspace.FLYNCWorkspace.objects_at
+   :no-index:
 
 This is the primary entry point for language-server features such as hover and
 go-to-definition. Given a document URI and a cursor position, it returns every
@@ -280,12 +286,16 @@ These utility methods are used internally during loading but are also available
 for tooling that needs to build or resolve object paths at runtime.
 
 .. automethod:: flync.sdk.workspace.flync_workspace.FLYNCWorkspace.document_id_from_path
+   :no-index:
 
 .. automethod:: flync.sdk.workspace.flync_workspace.FLYNCWorkspace.new_object_path
+   :no-index:
 
 .. automethod:: flync.sdk.workspace.flync_workspace.FLYNCWorkspace.update_objects_path
+   :no-index:
 
 .. automethod:: flync.sdk.workspace.flync_workspace.FLYNCWorkspace.fill_path_from_object
+   :no-index:
 
 ----
 

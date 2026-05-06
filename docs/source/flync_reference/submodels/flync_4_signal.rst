@@ -125,6 +125,9 @@ Multiplexed PDU
 
 .. autoclass:: flync.model.flync_4_signal.MuxGroup()
 
+
+.. _container_pdu:
+
 Container PDU
 =============
 

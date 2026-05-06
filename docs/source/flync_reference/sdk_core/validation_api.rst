@@ -85,6 +85,7 @@ to list every node reachable from a root model together with the dot-separated
 paths through which they can be accessed.
 
 .. autofunction:: flync.sdk.helpers.nodes_helpers.available_flync_nodes
+    :no-index:
 
 Example
 -------
@@ -135,6 +136,7 @@ Validating a Full Workspace
 entire workspace directory against the default :class:`~flync.model.flync_model.FLYNCModel`.
 
 .. autofunction:: flync.sdk.helpers.validation_helpers.validate_workspace
+    :no-index:
 
 Example
 -------
@@ -166,6 +168,7 @@ want to validate a subtree in isolation — for example, a single ECU directory
 — without loading the entire workspace.
 
 .. autofunction:: flync.sdk.helpers.validation_helpers.validate_external_node
+    :no-index:
 
 The ``node`` argument can be either the model class itself or its string name
 as returned by :func:`~flync.sdk.helpers.validation_helpers.available_flync_nodes`.
@@ -205,6 +208,7 @@ Use this when you already have a workspace loaded and want to focus on a
 single node — for instance in a language server hover or diagnostic request.
 
 .. autofunction:: flync.sdk.helpers.validation_helpers.validate_node
+    :no-index:
 
 The ``node_path`` is the dot-separated object path within the workspace. You
 can discover valid paths with :func:`~flync.sdk.helpers.validation_helpers.available_flync_nodes`
