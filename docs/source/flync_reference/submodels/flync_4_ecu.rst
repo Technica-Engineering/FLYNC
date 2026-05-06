@@ -95,20 +95,20 @@ Ethernet Interfaces
 .. autoclass:: flync.model.flync_4_ecu.controller.VirtualControllerInterface()
 .. autoclass:: flync.model.flync_4_ecu.controller.ComputeNodes()
 
-L2 Bridge
-==========
+Virtual Switch
+==============
 
 .. admonition:: Expand for a YAML example - 📄 ``virtual_switch.flync.yaml``
    :collapsible: closed
 
    .. note::
-      A Layer2 Bridge is defined in a separate file per Controller.
+      A Virtual Switch is defined in a separate file per Controller.
 
    .. literalinclude:: ../../_static/flync_example/ecus/eth_ecu/controllers/eth_ecu_controller1/virtual_switch.flync.yaml
       :language: yaml
 
 .. autoclass:: flync.model.flync_4_ecu.VirtualSwitch()
-.. autoclass:: flync.model.flync_4_ecu.L2BridgePort()
+.. autoclass:: flync.model.flync_4_ecu.VirtualSwitchPort()
 
 
 .. _socket:

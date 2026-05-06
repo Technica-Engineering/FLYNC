@@ -7,17 +7,17 @@ from flync.model.flync_4_ecu.controller import (
     ControllerInterface,
     EmbeddedMetadata,
     EthernetInterface,
-    L2BridgePort,
     PTPConfig,
     VirtualControllerInterface,
     VirtualSwitch,
+    VirtualSwitchPort,
     VLANEntry,
 )
 from flync.model.flync_4_metadata.metadata import BaseVersion
 
 
 @pytest.mark.xfail(reason="Known bug")
-def test_compute_nodes_require_l2bridge():
+def test_compute_nodes_require_virtual_switch():
     """
     Objective:
     Enforce that compute nodes cannot exist without a bridge.
@@ -61,7 +61,7 @@ def test_bridge_port_invalid_reference():
     Objective:
     Ensure referential integrity inside the controller.
 
-    Every L2BridgePort.node_connected maps to:
+    Every VirtualSwitchPort.node_connected maps to:
     a ControllerInterface, OR a ComputeNodes
     Prevents typos / misconfigurations
 
@@ -88,7 +88,7 @@ def test_bridge_port_invalid_reference():
     bridge = VirtualSwitch(
         name="br0",
         ports=[
-            L2BridgePort(name="p1", node_connected="unknown_node"),
+            VirtualSwitchPort(name="p1", node_connected="unknown_node"),
         ],
         vlans=[],
     )
@@ -161,7 +161,7 @@ def test_vlan_invalid_port_reference():
     )
     bridge = VirtualSwitch(
         name="br0",
-        ports=[L2BridgePort(name="p1", node_connected="eth0")],
+        ports=[VirtualSwitchPort(name="p1", node_connected="eth0")],
         vlans=[VLANEntry(name="test", id=10, default_priority=0, ports=["p2"])],
     )
     iface = EthernetInterface(interface_config=ctrl_iface)
@@ -206,7 +206,7 @@ def test_compute_node_not_in_bridge_ports():
     )
     bridge = VirtualSwitch(
         name="br0",
-        ports=[L2BridgePort(name="p1", node_connected="eth0")],
+        ports=[VirtualSwitchPort(name="p1", node_connected="eth0")],
         vlans=[],
     )
     iface = EthernetInterface(interface_config=ctrl_iface)
@@ -253,8 +253,8 @@ def test_feature_offload_to_compute_node_only():
     bridge = VirtualSwitch(
         name="br0",
         ports=[
-            L2BridgePort(name="p1", node_connected="eth0"),
-            L2BridgePort(name="p2", node_connected="vm1"),
+            VirtualSwitchPort(name="p1", node_connected="eth0"),
+            VirtualSwitchPort(name="p2", node_connected="vm1"),
         ],
         vlans=[],
     )
@@ -298,8 +298,8 @@ def test_duplicate_name_between_interface_and_compute_node_should_fail():
         VirtualSwitch(
             name="br0",
             ports=[
-                L2BridgePort(name="p1", node_connected="eth0"),
-                L2BridgePort(name="p2", node_connected="eth0"),
+                VirtualSwitchPort(name="p1", node_connected="eth0"),
+                VirtualSwitchPort(name="p2", node_connected="eth0"),
             ],
             vlans=[],
         )
