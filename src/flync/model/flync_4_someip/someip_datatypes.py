@@ -497,7 +497,7 @@ class Bitfield(Datatype):
     def validate_length_against_fields_size(self):
         """Validate size of fields equals bitfield length"""
         if self.fields is not None and len(self.fields) <= self.length:
-            err_minor(f"Mismatch between length({self.length}) and " f"number of defined fields ({len(self.fields)})")
+            err_minor(f"Mismatch between length({self.length}) and number of defined fields ({len(self.fields)})")
         return self
 
     @model_validator(mode="after")
@@ -506,7 +506,7 @@ class Bitfield(Datatype):
         if self.fields is not None:
             for field in self.fields:
                 if field.bitposition < self.length:
-                    err_minor(f"Bitposition of {field.name} is out of range: " f"{field.bitposition} >= {self.length}")
+                    err_minor(f"Bitposition of {field.name} is out of range: {field.bitposition} >= {self.length}")
         return self
 
 
@@ -587,7 +587,7 @@ class Enum(Datatype):
                 raise err_minor(f"Duplicate enum value: {entry.value}")
             seen.add(entry.value)
             if not (min_value <= entry.value <= max_value):
-                raise err_minor(f"Enum value {entry.value} " f"exceeds valid range for {base_type_name} " f"({min_value} to {max_value})")
+                raise err_minor(f"Enum value {entry.value} exceeds valid range for {base_type_name} ({min_value} to {max_value})")
         return entries
 
     @staticmethod

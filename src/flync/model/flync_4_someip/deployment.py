@@ -170,7 +170,7 @@ class SOMEIPServiceDeployment(abc.ABC, FLYNCBaseModel):
             major = value
             registry: Registry = get_registry()
             service = registry.get_dict(SOMEIPServiceInterface).get((sid, major))
-            assert service, "did not find a service definition matching " f"the provided key (id = {sid:#06x}, major_version = {value})"
+            assert service, "did not find a service definition matching the provided key (id = {sid:#06x}, major_version = {value})"
             info.data["service"] = service
             return value
 

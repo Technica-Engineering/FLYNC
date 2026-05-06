@@ -87,7 +87,7 @@ class ECUPortToXConnection(InternalConnection):
         ecu_ports_instances = registry.get_dict(ECUPort)
         self._ecu_port = ecu_ports_instances.get(self.ecu_port_name, None)
         if self._ecu_port is None:
-            raise err_major(f"ECU port '{self.ecu_port_name}' referenced in connection" f" '{self.id}' was not found or was not validated")
+            raise err_major(f"ECU port '{self.ecu_port_name}' referenced in connection '{self.id}' was not found or was not validated")
         return self
 
 
@@ -127,7 +127,7 @@ class SwitchPortToXConnection(InternalConnection):
         switch_port_instances = registry.get_dict(SwitchPort)
         self._switch_port = switch_port_instances.get(self.switch_port_name, None)
         if self._switch_port is None:
-            raise err_major(f"Switch port '{self.switch_port_name}' referenced in connection" f" '{self.id}' was not found or was not validated")
+            raise err_major(f"Switch port '{self.switch_port_name}' referenced in connection '{self.id}' was not found or was not validated")
         return self
 
 
@@ -174,7 +174,7 @@ class ECUPortToSwitchPort(ECUPortToXConnection):
         switch_port_instances = registry.get_dict(SwitchPort)
         self._switch_port = switch_port_instances.get(self.switch_port_name, None)
         if self._switch_port is None:
-            raise err_major(f"Switch port '{self.switch_port_name}' referenced in connection" f" '{self.id}' was not found or was not validated")
+            raise err_major(f"Switch port '{self.switch_port_name}' referenced in connection '{self.id}' was not found or was not validated")
         # Add connected component to each other
         self.ecu_port._connected_components.append(self.switch_port)
         self.switch_port._connected_component = self.ecu_port
@@ -233,7 +233,7 @@ class ECUPortToControllerInterface(ECUPortToXConnection):
         controller_interface_instances = registry.get_dict(ControllerInterface)
         self._iface = controller_interface_instances.get(self.iface_name, None)
         if self._iface is None:
-            raise err_major(f"Controller interface '{self.iface_name}' referenced in" f" connection '{self.id}' was not found or was not validated")
+            raise err_major(f"Controller interface '{self.iface_name}' referenced in connection '{self.id}' was not found or was not validated")
         # Add connected component to each other
         self.ecu_port._connected_components.append(self.iface)
         self.iface._connected_component = self.ecu_port
@@ -287,7 +287,7 @@ class SwitchPortToControllerInterface(SwitchPortToXConnection):
         controller_interface_instances = registry.get_dict(ControllerInterface)
         self._iface = controller_interface_instances.get(self.iface_name, None)
         if self._iface is None:
-            raise err_major(f"Controller interface '{self.iface_name}' referenced in" f" connection '{self.id}' was not found or was not validated")
+            raise err_major(f"Controller interface '{self.iface_name}' referenced in connection '{self.id}' was not found or was not validated")
         # Add connected component to each other
         self.switch_port._connected_component = self.iface
         self.iface._connected_component = self.switch_port
@@ -347,7 +347,7 @@ class SwitchPortToSwitchPort(SwitchPortToXConnection):
         switch_port_instances = registry.get_dict(SwitchPort)
         self._switch2_port = switch_port_instances.get(self.switch2_port_name, None)
         if self._switch2_port is None:
-            raise err_major(f"Switch port '{self.switch2_port_name}' referenced in" f" connection '{self.id}' was not found or was not validated")
+            raise err_major(f"Switch port '{self.switch2_port_name}' referenced in connection '{self.id}' was not found or was not validated")
 
         # Add connected component to each other
         self.switch_port._connected_component = self.switch2_port
@@ -422,10 +422,10 @@ class ControllerInterfaceToControllerInterface(InternalConnection):
         controller_interfaces_instances = registry.get_dict(ControllerInterface)
         self._iface = controller_interfaces_instances.get(self.iface_name, None)
         if self._iface is None:
-            raise err_major(f"Controller interface '{self.iface_name}' referenced in" f" connection '{self.id}' was not found or was not validated")
+            raise err_major(f"Controller interface '{self.iface_name}' referenced in connection '{self.id}' was not found or was not validated")
         self._iface2 = controller_interfaces_instances.get(self.iface2_name, None)
         if self._iface2 is None:
-            raise err_major(f"Controller interface '{self.iface2_name}' referenced in" f" connection '{self.id}' was not found or was not validated")
+            raise err_major(f"Controller interface '{self.iface2_name}' referenced in connection '{self.id}' was not found or was not validated")
         # Add connected component to each other
         self.iface._connected_component = self.iface2
         self.iface2._connected_component = self.iface
