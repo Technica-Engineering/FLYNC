@@ -40,8 +40,8 @@ channel type.
      - :ref:`CAN / CAN FD <can_bus>` bus configurations. One file per bus.
    * - ``general/channels/lin/``
      - :ref:`LIN <lin_bus>` bus configurations. One file per bus.
-   * - ``general/channels/ethernet/``
-     - :ref:`Ethernet frame <ethernet_frame>` definitions.
+   * - ``general/channels/ethernet_pdu_containers/``
+     - :ref:`Ethernet <container_pdu>` definitions.
 
 .. autoclass:: flync.model.flync_4_general_configuration.FLYNCChannelConfig()
 

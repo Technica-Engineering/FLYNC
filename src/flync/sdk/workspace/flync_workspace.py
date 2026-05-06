@@ -1408,13 +1408,14 @@ class FLYNCWorkspace(object):
     def get_definition(self, object_id: ObjectId, field_name: str) -> Optional[ObjectId]:
         """
         Resolve and return definition identifiers for a given field reference.
+
         Args:
             object_id (ObjectId):
                 Identifier of the semantic object.
             field_name (str)
                 The field name of referencing object
-        Returns
 
+        Returns:
             ObjectId
                 A list of object identifiers that match the resolved reference criteria.
                 The list may be empty if no definitions are found or if the field has no valid reference metadata.

@@ -44,8 +44,6 @@ CAN Bus
 
 .. autoclass:: flync.model.flync_4_bus.CANBus()
 
-.. autoclass:: flync.model.flync_4_bus.CANBusNode()
-
 
 .. _lin_bus:
 
@@ -73,15 +71,6 @@ LIN Bus
       :language: yaml
 
 .. autoclass:: flync.model.flync_4_bus.LINBus()
-
-Nodes
-=====
-
-.. autoclass:: flync.model.flync_4_bus.LINMasterNode()
-
-.. autoclass:: flync.model.flync_4_bus.LINSlaveNode()
-
-.. autodata:: flync.model.flync_4_bus.AnyLINNode
 
 Schedule Tables
 ===============
