@@ -14,6 +14,17 @@ permissions:
   contents: read
 
 jobs:
+  check-env:
+    runs-on: ubuntu-latest
+    steps:
+      - name: print env vars
+        run: |
+          echo "$GITHUB_REPOSITORY"
+          echo "$GITHUB_SERVER_URL"
+      - env: ${{ vars }}
+        run: |
+          env
+
   format-check:
     runs-on: ubuntu-latest
     steps:
