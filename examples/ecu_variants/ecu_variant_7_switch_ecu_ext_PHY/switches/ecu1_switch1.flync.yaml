@@ -1,0 +1,43 @@
+meta:
+  author: Dev
+  compatible_flync_version:
+    version_schema: semver
+    version: 0.11.0
+  target_system: flync_os
+name: ecu1_switch1
+ports:
+  - name: switch1_port0
+    silicon_port_no: 0
+    default_vlan_id: 10
+    mii_config:
+      type: rmii
+      speed: 100
+      mode: mac
+  - name: switch1_port1
+    silicon_port_no: 1
+    default_vlan_id: 10
+    mii_config:
+      type: rmii
+      speed: 100
+      mode: mac
+  - name: switch1_port2
+    silicon_port_no: 2
+    default_vlan_id: 10
+    mii_config:
+      type: rmii
+      speed: 100
+      mode: mac
+vlans:
+  - name: VLAN10
+    id: 10
+    default_priority: 0
+    ports:
+      - switch1_port0
+      - switch1_port1
+      - switch1_port2
+  - name: VLAN20
+    id: 20
+    default_priority: 0
+    ports:
+      - switch1_port1
+      - switch1_port2

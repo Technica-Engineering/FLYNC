@@ -12,9 +12,22 @@ from sys import executable
 PROJECT_BASE = Path(__file__).resolve().parents[4]
 VALIDATE_WORKSPACE_SCRIPT = Path.joinpath(Path(__file__).resolve().parent, Path("validate_workspace.py"))
 EXAMPLES_DIR = PROJECT_BASE / "examples"
+WORKSPACE_EXAMPLE = EXAMPLES_DIR / "flync_example"
+ECU_VARIANTS = EXAMPLES_DIR / "ecu_variants"
 
+print("----- Validate Workspace Example -----")
+subprocess.run(
+    [
+        executable,
+        VALIDATE_WORKSPACE_SCRIPT,
+        WORKSPACE_EXAMPLE,
+        "--name",
+        WORKSPACE_EXAMPLE.name,
+    ]
+)
 
-for example_dir in list(EXAMPLES_DIR.iterdir()):
+print("----- Validate ECU Variants -----")
+for example_dir in list(ECU_VARIANTS.iterdir()):
     subprocess.run(
         [
             executable,
@@ -22,5 +35,7 @@ for example_dir in list(EXAMPLES_DIR.iterdir()):
             example_dir,
             "--name",
             example_dir.name,
+            "--node",
+            "ECU",
         ]
     )

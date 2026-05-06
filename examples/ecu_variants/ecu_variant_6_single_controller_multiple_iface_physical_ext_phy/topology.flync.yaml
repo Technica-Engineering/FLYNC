@@ -1,0 +1,9 @@
+connections:
+  - type: ecu_port_to_controller_interface
+    id: conn1
+    ecu_port: ecu1_port1
+    controller_interface: ecu1_controller1_iface1
+  - type: ecu_port_to_controller_interface
+    id: conn2
+    ecu_port: ecu1_port2
+    controller_interface: ecu1_controller1_iface2

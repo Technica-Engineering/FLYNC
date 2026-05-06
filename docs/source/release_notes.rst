@@ -22,6 +22,7 @@ Improvement
 - Redefined Controller Interfaces
 - Improved Socket Handling
 - SOME/IP Model improvements
+- Improve Documentation
 
 Bugfixes
 ''''''''

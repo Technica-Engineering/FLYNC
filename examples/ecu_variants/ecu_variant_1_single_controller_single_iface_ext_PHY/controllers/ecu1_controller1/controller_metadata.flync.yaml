@@ -1,0 +1,6 @@
+controller_metadata:
+   author: Developer1
+   compatible_flync_version:
+      version_schema: semver
+      version: 0.11.0
+   target_system: flync_os
