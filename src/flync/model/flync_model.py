@@ -151,7 +151,7 @@ class FLYNCModel(FLYNCBaseModel):
 
             for rx in rx_list:
                 if rx not in tx_list:
-                    warn("Invalid Multicast Configuration. There is a multicast rx configured for the address " f"{rx} but no tx.")
+                    warn("Invalid Multicast Configuration. There is a multicast rx configured for the address {rx} but no tx.")
         except PydanticCustomError as e:
             warn(str(e))
         return self
@@ -201,7 +201,7 @@ class FLYNCModel(FLYNCBaseModel):
                 key = str(mcast.group) + separ + str(mcast.vlan)
                 if (mcast.mode == "rx") and key not in paths:
 
-                    warn("Invalid Multicast Address Configuration. There are no TX endpoints for this address " f"{key} ")
+                    warn("Invalid Multicast Address Configuration. There are no TX endpoints for this address {key} ")
                 if (mcast.mode == "rx") and key in paths and not check_obj_in_list(mcast._interface, paths[key]):
                     warn(
                         "Invalid Multicast Address Configuration. The RX interface for address {key} "

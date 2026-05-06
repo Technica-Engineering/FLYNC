@@ -33,7 +33,7 @@ def validate_vlan_id(value):
 
     if value is not None:
         if value < VLAN_ID_MIN or value > VLAN_ID_MAX:
-            raise err_minor(f"VLAN ID must be in the range " f"{VLAN_ID_MIN}-{VLAN_ID_MAX - 1} " f"(use None for untagged); got {value}.")
+            raise err_minor(f"VLAN ID must be in the range {VLAN_ID_MIN}-{VLAN_ID_MAX - 1} (use None for untagged); got {value}.")
         if value == VLAN_ID_RESERVED:
             warn(f"VLAN ID {VLAN_ID_RESERVED} is reserved by IEEE 802.1Q and should not be used.")
     return value
@@ -115,7 +115,7 @@ def validate_or_remove(label: str, field_type: Any, severity: str = "minor"):
                     sub_errors=sub_errors,
                 )
             raise err_fn(
-                f"1 or more errors found while validating {label}. " f"Removing {label} {location}.",
+                f"1 or more errors found while validating {label}. Removing {label} {location}.",
                 sub_errors=sub_errors,
             )
         return data
@@ -182,7 +182,7 @@ def validate_list_items_and_remove(label: str, item_type: Any, severity: str = "
                     accumulated.append(
                         {
                             "type": severity,
-                            "msg": (f"1 or more errors found while validating" f" {label}. Removing {label} {location}."),
+                            "msg": (f"1 or more errors found while validating {label}. Removing {label} {location}."),
                             "loc": (field_name, idx),
                             "input": item,
                             "ctx": {"sub_errors": sub_errors},
@@ -445,11 +445,11 @@ def validate_optional_mii_config_compatibility(comp1, comp2, id):
     # External PHY is used for this connection
     if (mii_comp1 and mii_comp1 is not None) and (mii_comp2 and mii_comp2 is not None):
         if mii_comp1.mode == mii_comp2.mode:
-            raise err_major(f"Incompatible MII Mode: {comp1.name} " f"({mii_comp1.mode}) ↔ {comp2.name}" f"({mii_comp2.mode})")
+            raise err_major(f"Incompatible MII Mode: {comp1.name} ({mii_comp1.mode}) ↔ {comp2.name}({mii_comp2.mode})")
         if mii_comp1.speed != mii_comp2.speed:
-            raise err_major(f"Incompatible MII Speed: {comp1.name} " f"({mii_comp1.speed}) ↔ {comp2.name}" f"({mii_comp2.speed})")
+            raise err_major(f"Incompatible MII Speed: {comp1.name} ({mii_comp1.speed}) ↔ {comp2.name}({mii_comp2.speed})")
         if mii_comp1.type != mii_comp2.type:
-            raise err_major(f"Incompatible MII Type: {comp1.name} " f"({mii_comp1.type}) ↔ {comp2.name}" f"({mii_comp2.type})")
+            raise err_major(f"Incompatible MII Type: {comp1.name} ({mii_comp1.type}) ↔ {comp2.name}({mii_comp2.type})")
 
 
 def validate_compulsory_mii_config_compatibility(comp1, comp2, id):
@@ -470,7 +470,7 @@ def validate_compulsory_mii_config_compatibility(comp1, comp2, id):
     """
 
     if not comp1.mii_config or not comp2.mii_config:
-        raise err_major(f"Invalid MII config in connection {id}: " f"{comp1.name} ↔ {comp2.name} " f"(MII configuration missing).")
+        raise err_major(f"Invalid MII config in connection {id}: {comp1.name} ↔ {comp2.name} (MII configuration missing).")
     validate_optional_mii_config_compatibility(comp1, comp2, id)
 
 
@@ -496,7 +496,7 @@ def validate_htb(comp, speed):
                 sum_child_rates = sum_child_rates + child.rate
     if sum_child_rates > speed:
         raise err_major(
-            f"Incompatible HTB config for {comp.name}" f"Sum of all child classes {sum_child_rates} rates " f"should be less than link speed {speed}"
+            f"Incompatible HTB config for {comp.name}Sum of all child classes {sum_child_rates} rates should be less than link speed {speed}"
         )
 
 
@@ -525,13 +525,13 @@ def validate_macsec(comp1, comp2, id):
     macsec2 = comp2.macsec_config
 
     if (macsec1 and not macsec2) or (macsec2 and not macsec1):
-        raise err_major(f"Incomplete MACsec Config. " f"{comp1.name} and {comp2.name} " f"in connection {id} should have a macsec config")
+        raise err_major(f"Incomplete MACsec Config. {comp1.name} and {comp2.name} in connection {id} should have a macsec config")
     if macsec1 and macsec2:
         if (not macsec1.mka_enabled and macsec2.mka_enabled) or (macsec1.mka_enabled and not macsec2.mka_enabled):
-            raise err_major(f"MACsec should be enabled in both - " f"{comp1.name} and " f"{comp2.name} in connection {id} ")
+            raise err_major(f"MACsec should be enabled in both - {comp1.name} and {comp2.name} in connection {id} ")
 
         if macsec1.macsec_mode != macsec2.macsec_mode:
-            raise err_major(f"Both {comp1.name} and " f"{comp2.name} should have the same macsec_mode. " f"in connection {id} ")
+            raise err_major(f"Both {comp1.name} and {comp2.name} should have the same macsec_mode. in connection {id} ")
 
 
 def validate_gptp(comp1, comp2, id):
@@ -560,7 +560,7 @@ def validate_gptp(comp1, comp2, id):
     ptp2 = comp2.ptp_config
 
     if (ptp1 and ptp2 is None) or (ptp2 and ptp1 is None):
-        raise err_major(f"Incompatible PTP config. PTP config not present in " f"either {comp1.name} or  " f"{comp2.name} in connection {id} ")
+        raise err_major(f"Incompatible PTP config. PTP config not present in either {comp1.name} or  {comp2.name} in connection {id} ")
 
     if ptp1 and ptp2:
 
@@ -608,9 +608,9 @@ def validate_gptp_domains(comp1, comp2, ptp1, ptp2, id):
             None,
         )
         if ptp_port_iface2 is None:
-            raise err_major(f"Incompatible PTP Config: Domain {domain} " f"not present in {comp2.name}" f" in connection {id}")
+            raise err_major(f"Incompatible PTP Config: Domain {domain} not present in {comp2.name} in connection {id}")
         if ptp_port_iface.sync_config.type == ptp_port_iface2.sync_config.type:
-            raise err_major(f"Incompatible PTP Config: Domain ID {domain} " f"in {comp1.name} and " f" {comp2.name} in connection {id}")
+            raise err_major(f"Incompatible PTP Config: Domain ID {domain} in {comp1.name} and  {comp2.name} in connection {id}")
 
 
 def validate_elements_in(subset: Iterable[Any], superset: Iterable[Any], msg: Optional[str] = None):
@@ -661,9 +661,7 @@ def check_pcps_different(traffic_classes):
         if traffic_class.frame_priority_values is not None:
             for pcp in traffic_class.frame_priority_values:
                 if pcp in pcp_list:
-                    raise err_minor(
-                        f"The pcp value {pcp} is not unique for two " f"different traffic classes in controller interface" f"or switch port"
-                    )
+                    raise err_minor(f"The pcp value {pcp} is not unique for two different traffic classes in controller interfaceor switch port")
             pcp_list.extend(traffic_class.frame_priority_values)
 
 
@@ -679,9 +677,7 @@ def check_ipvs_unique(traffic_classes):
         if traffic_class.internal_priority_values is not None:
             for ipv in traffic_class.internal_priority_values:
                 if ipv in ipv_list:
-                    raise err_minor(
-                        f"The ipv value {ipv} is not unique for two" f" different traffic classes in controller interface." f" or switch port"
-                    )
+                    raise err_minor(f"The ipv value {ipv} is not unique for two different traffic classes in controller interface. or switch port")
             ipv_list.extend(traffic_class.internal_priority_values)
 
 

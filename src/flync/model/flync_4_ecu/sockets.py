@@ -127,7 +127,7 @@ class Socket(FLYNCBaseModel):
                     )
                     for err in e.errors()
                 )
-                raise err_minor(f"Validation error in deployment {idx}" f" of socket - {detail}. Skipping to the next deployment.")
+                raise err_minor(f"Validation error in deployment {idx} of socket - {detail}. Skipping to the next deployment.")
             idx = idx + 1
         return valid_deployment
 
