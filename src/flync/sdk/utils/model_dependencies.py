@@ -7,7 +7,6 @@ Provides functions and classes to build, traverse, and query the dependency grap
 import hashlib
 import importlib
 import shelve
-import threading
 import types
 from functools import lru_cache
 from os import listdir, makedirs, remove, stat, walk
@@ -16,14 +15,13 @@ from types import NoneType
 from typing import Annotated, Union, get_args, get_origin
 
 import platformdirs
+from filelock import FileLock
 from pydantic import BaseModel
 
 from flync.core.annotations import External, Implied, OutputStrategy, Reference
 from flync.sdk.context.node_info import NodeInfo
 
 from .field_utils import get_metadata
-
-_shelve_lock = threading.Lock()
 
 
 def _collect_union_options(args):
@@ -117,6 +115,9 @@ def extract_model_dependencies(model: type[BaseModel]) -> dict:
     return _extract_model_dependencies(model, visited=set())
 
 
+_rebuilt_models: set[type[BaseModel]] = set()
+
+
 def _extract_model_dependencies(model: type[BaseModel], visited: set[type[BaseModel]]) -> dict:
     """
     Recursively extract model dependencies, guarding against cycles.
@@ -133,8 +134,10 @@ def _extract_model_dependencies(model: type[BaseModel], visited: set[type[BaseMo
     if model in visited:
         return {"__cycle__": True}
     visited.add(model)
-    # Ensure forward refs are resolved
-    model.model_rebuild(force=True)
+    # Ensure forward refs are resolved (only once per model class per process)
+    if model not in _rebuilt_models:
+        model.model_rebuild(force=True)
+        _rebuilt_models.add(model)
     deps = {}
 
     for name, field in model.model_fields.items():
@@ -641,7 +644,8 @@ def get_model_dependency_graph(root: type[BaseModel]) -> ModelDependencyGraph:
 
     key = str(root)
     shelv_location, shelv_file_name = cleanup_old_caches()
-    with _shelve_lock:
+    lock_path = join(shelv_location, shelv_file_name + ".lock")
+    with FileLock(lock_path):
         with shelve.open(join(shelv_location, shelv_file_name)) as cache:
             if key not in cache:
                 cache[key] = ModelDependencyGraph(root)
