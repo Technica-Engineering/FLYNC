@@ -585,8 +585,7 @@ class HTBInstance(FLYNCBaseModel):
                     break
             if not exists:
                 raise err_minor(
-                    f"Validation Error in HTB Config. Removing config from the interface. "
-                    f"Default class {default} should exist in the HTB config."
+                    f"Validation Error in HTB Config. Removing config from the interface. Default class {default} should exist in the HTB config."
                 )
 
         # Prio of child classes are unique
@@ -636,10 +635,8 @@ class HTBInstance(FLYNCBaseModel):
         if child_class.classid == default:
             if child_class.child_classes:
                 raise err_minor(
-                    f"Validation Error in HTB Config. "
-                    f"Removing config from the interface. "
-                    f"Default class {default} must be a"
-                    f"leaf class in HTB config."
+                    f"Validation Error in HTB Config. Removing config from the interface. Default class {default} "
+                    "must be a leaf class in HTB config."
                 )
             return True
         exists = False
@@ -676,8 +673,8 @@ class HTBInstance(FLYNCBaseModel):
 
         if child.ceil < child.rate:
             raise err_minor(
-                f"Validation Error in HTB Config. Removing config from the interface. Incompatible "
-                f" HTB config.Ceil cannot be less than  rate. Class {child.classid}."
+                "Validation Error in HTB Config. Removing config from the interface. Incompatible HTB config. "
+                f"Ceil cannot be less than  rate. Class {child.classid}."
             )
         else:
             if child.child_classes:
@@ -751,8 +748,7 @@ class HTBInstance(FLYNCBaseModel):
         for child in child_classes:
             if child.classid in names:
                 raise err_minor(
-                    f"Validation Error in HTB Config. Removing config"
-                    f"from the interface. "
+                    "Validation Error in HTB Config. Removing config from the interface. "
                     f"All classids must be unique, classid {child.classid}."
                 )
             else:
