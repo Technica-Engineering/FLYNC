@@ -3,6 +3,8 @@
 import pydantic
 from pydantic import PrivateAttr
 
+from flync.core.utils.exceptions import err_major
+
 from .base_model import FLYNCBaseModel
 from .instances_registery import Registry, get_registry
 
@@ -20,9 +22,12 @@ class UniqueName(FLYNCBaseModel):
         if val is None:
             return val
         name = val.get_key()
-        # if this object already exists, then something is wrong.
         tracked_reg: Registry = get_registry()
-        assert name not in tracked_reg.names
+        if name in tracked_reg.names:
+            raise err_major(
+                f"Duplicate {val.__class__.__name__} name {val.name!r} "
+                f"(registry key {name!r}) — names must be unique within the workspace."
+            )
         tracked_reg.names.add(name)
         val._unique_name_validated = True
         return val
