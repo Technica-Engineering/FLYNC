@@ -21,8 +21,12 @@ CENTRAL_REGISTRIES = [
 from flync.sdk.utils.model_dependencies import cleanup_old_caches
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _cleanup_old_caches_once():
+    cleanup_old_caches()
+
+
 @pytest.fixture(autouse=True)
 def reset_global_registery():
-    cleanup_old_caches()
     with registry_context(Registry()):
         yield
