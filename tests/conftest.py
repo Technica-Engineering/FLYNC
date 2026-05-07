@@ -35,11 +35,6 @@ def pytest_configure(config):
     FLYNCWorkspace.load_workspace("flync_example", example_path)
 
 
-@pytest.fixture(scope="session", autouse=True)
-def _cleanup_old_caches_once():
-    cleanup_old_caches()
-
-
 @pytest.fixture(autouse=True)
 def reset_global_registery():
     with registry_context(Registry()):
