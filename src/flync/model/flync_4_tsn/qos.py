@@ -711,9 +711,7 @@ class HTBInstance(FLYNCBaseModel):
         for child in child_classes:
             if child.priority in class_priority:
                 raise err_minor(
-                    f"Validation Error in HTB Config. Removing config"
-                    f"from the interface. "
-                    f"All priorities must be unique, prio {child.priority}."
+                    f"Validation Error in HTB Config. Removing config from the interface. All priorities must be unique, prio {child.priority}."
                 )
             else:
                 class_priority.append(child.priority)
@@ -748,8 +746,7 @@ class HTBInstance(FLYNCBaseModel):
         for child in child_classes:
             if child.classid in names:
                 raise err_minor(
-                    "Validation Error in HTB Config. Removing config from the interface. "
-                    f"All classids must be unique, classid {child.classid}."
+                    f"Validation Error in HTB Config. Removing config from the interface. All classids must be unique, classid {child.classid}."
                 )
             else:
                 names.append(child.classid)

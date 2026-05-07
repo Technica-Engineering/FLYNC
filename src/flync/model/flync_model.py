@@ -151,9 +151,7 @@ class FLYNCModel(FLYNCBaseModel):
 
             for rx in rx_list:
                 if rx not in tx_list:
-                    warn(
-                        f"Invalid Multicast Configuration. There is a multicast rx configured for the address {rx} but no tx."
-                    )
+                    warn(f"Invalid Multicast Configuration. There is a multicast rx configured for the address {rx} but no tx.")
         except PydanticCustomError as e:
             warn(str(e))
         return self
