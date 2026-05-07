@@ -556,8 +556,6 @@ class ModelDependencyGraph:
 
 _cache_cleaned = False
 _cache_name = ""
-_graph_memo: dict[str, "ModelDependencyGraph"] = {}
-_CACHE_SIGNATURE_FILE = "dependency_graph_cache_signature"
 
 
 def hash_directory_fast(directory: str, ext=".py") -> str:
@@ -610,65 +608,23 @@ def delete_unwanted_cache_files(cache_location: str, cache_file_name: str):
     """
 
     for f in listdir(cache_location):
-        if cache_file_name not in f and f != _CACHE_SIGNATURE_FILE:
+        if cache_file_name not in f:
             remove(join(cache_location, f))
-
-
-def _read_cached_signature(shelv_location: str, package_root: str) -> str | None:
-    """
-    Return the persisted package hash if the package directory's mtime matches.
-
-    Falling back when the signature file is missing, malformed, or when the
-    package directory's mtime has shifted since the last write. The directory
-    mtime catches structural changes (files added/removed); for in-place edits
-    in editable installs, run ``rm -rf $(python -c 'import platformdirs;
-    print(platformdirs.user_cache_dir("FLYNC"))')`` to force a rehash.
-    """
-
-    sig_path = join(shelv_location, _CACHE_SIGNATURE_FILE)
-    try:
-        with open(sig_path, "r", encoding="utf-8") as f:
-            stored_root, stored_mtime, stored_hash = f.read().strip().split("\t")
-        if stored_root != package_root:
-            return None
-        if stored_mtime != str(stat(package_root).st_mtime):
-            return None
-        return stored_hash
-    except (OSError, ValueError):
-        return None
-
-
-def _write_cached_signature(shelv_location: str, package_root: str, hash_value: str) -> None:
-    """Persist the package hash + directory mtime so future processes can skip the walk."""
-
-    sig_path = join(shelv_location, _CACHE_SIGNATURE_FILE)
-    try:
-        mtime = str(stat(package_root).st_mtime)
-        with open(sig_path, "w", encoding="utf-8") as f:
-            f.write(f"{package_root}\t{mtime}\t{hash_value}")
-    except OSError:
-        pass
 
 
 def cleanup_old_caches():
     """Resets the cache of the library if the current version is different."""
     global _cache_cleaned, _cache_name
     shelv_location = platformdirs.user_cache_dir("FLYNC")
-    if _cache_name:
-        return shelv_location, _cache_name
-    makedirs(shelv_location, exist_ok=True)
-    package_root = get_package_root()
-    cached_hash = _read_cached_signature(shelv_location, package_root)
-    if cached_hash is not None:
-        shelv_file_name = "dependency_graph_cache_" + cached_hash
-    else:
-        new_hash = hash_directory_fast(package_root)
-        shelv_file_name = "dependency_graph_cache_" + new_hash
-        _write_cached_signature(shelv_location, package_root, new_hash)
+    if not _cache_name:
+        # only keep official version cache
+        makedirs(shelv_location, exist_ok=True)
+        shelv_file_name = "dependency_graph_cache"
+        shelv_file_name += "_" + hash_directory_fast(get_package_root())
         if not _cache_cleaned:
             delete_unwanted_cache_files(shelv_location, shelv_file_name)
             _cache_cleaned = True
-    _cache_name = shelv_file_name
+            _cache_name = shelv_file_name
     return shelv_location, _cache_name
 
 
@@ -687,14 +643,10 @@ def get_model_dependency_graph(root: type[BaseModel]) -> ModelDependencyGraph:
     """
 
     key = str(root)
-    if key in _graph_memo:
-        return _graph_memo[key]
     shelv_location, shelv_file_name = cleanup_old_caches()
     lock_path = join(shelv_location, shelv_file_name + ".lock")
     with FileLock(lock_path):
         with shelve.open(join(shelv_location, shelv_file_name)) as cache:
             if key not in cache:
                 cache[key] = ModelDependencyGraph(root)
-            graph = cache[key]
-    _graph_memo[key] = graph
-    return graph
+            return cache[key]
