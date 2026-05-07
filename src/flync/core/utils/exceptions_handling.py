@@ -157,6 +157,27 @@ def _fallback_position(node: Any) -> Tuple[int | None, int | None]:
     )
 
 
+def _parse_first_sub_error_loc(sub_errors: str) -> tuple:
+    """Extract the loc path from the first line of a sub_errors string.
+
+    sub_errors lines have the format ``"dot.path: message"``.  The path is
+    split on ``.`` and integer-looking parts are converted to ``int`` so the
+    result can be appended to a Pydantic loc tuple for YAML navigation.
+    """
+    first_line = sub_errors.split("\n")[0]
+    colon_idx = first_line.find(": ")
+    if colon_idx <= 0:
+        return ()
+    parts: list[int | str] = []
+    for part in first_line[:colon_idx].split("."):
+        if part:
+            try:
+                parts.append(int(part))
+            except ValueError:
+                parts.append(part)
+    return tuple(parts)
+
+
 def errors_to_init_errors(
     errors: List[ErrorDetails],
     model: Optional[type[BaseModel]] = None,
@@ -193,6 +214,13 @@ def errors_to_init_errors(
             ctx["yaml_path"] = str(yaml_path)
         if model is not None and yaml_data and "yaml_location" not in ctx:
             line, col = safe_yaml_position(yaml_data, e["loc"], model=model)
+            sub_errors = ctx.get("sub_errors", "")
+            if sub_errors:
+                sub_loc = _parse_first_sub_error_loc(sub_errors)
+                if sub_loc:
+                    deep_line, deep_col = safe_yaml_position(yaml_data, e["loc"] + sub_loc)
+                    if deep_line is not None:
+                        line, col = deep_line, deep_col
             if line:
                 ctx["line"] = line
             if col:
@@ -318,12 +346,17 @@ def _wrap_native_error(err: ErrorDetails) -> ErrorDetails:
     loc = err.get("loc", ())
     field_name = loc[-1] if loc else "field"
     sub_errors = f"{original_type}: {original_msg}"
+    original_ctx = err.get("ctx") or {}
+    ctx: dict = {"sub_errors": sub_errors}
+    for key in ("yaml_path", "line", "col"):
+        if key in original_ctx:
+            ctx[key] = original_ctx[key]
     return {
         "type": "major",
         "msg": (f"1 or more errors found while validating {field_name}. Removing {field_name}."),
         "loc": loc,
         "input": err.get("input"),
-        "ctx": {"sub_errors": sub_errors},
+        "ctx": ctx,
         "url": "",
     }  # type: ignore[return-value]
 
