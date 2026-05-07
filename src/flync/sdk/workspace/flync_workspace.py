@@ -859,7 +859,7 @@ class FLYNCWorkspace(object):
         # if no type is passed, then this is the starting point
         if current_type is None:
             current_type = self.configuration.root_model
-        current_type.model_rebuild(force=True)
+        current_type.model_rebuild()
         if isinstance(path, str):
             path = Path(path)
         if not current_object_paths:
