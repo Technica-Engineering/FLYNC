@@ -25,8 +25,7 @@ class UniqueName(FLYNCBaseModel):
         tracked_reg: Registry = get_registry()
         if name in tracked_reg.names:
             raise err_major(
-                f"Duplicate {val.__class__.__name__} name {val.name!r} "
-                f"(registry key {name!r}) — names must be unique within the workspace."
+                f"Duplicate {val.__class__.__name__} name {val.name!r} (registry key {name!r}) — names must be unique within the workspace."
             )
         tracked_reg.names.add(name)
         val._unique_name_validated = True
