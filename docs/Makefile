@@ -32,3 +32,5 @@ html: generate_pictures
 	rm -r $(EXAMPLE_DST)$(EXAMPLE_NAME)
 # remove mermaid files again
 	rm -r $(EXAMPLE_DST)/mermaid
+# remove ecu_variant diagrams
+	rm -r $(EXAMPLE_DST)/images/ecu_variants
