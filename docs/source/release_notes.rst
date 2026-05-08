@@ -15,6 +15,7 @@ Features
 - Model: Support for IP Router
 - Model: Support for Virtual Switch and Compute Node (experimental)
 - Model: Added MAC layer Multicast endpoints
+- Doc: Show ECU variants as examples
 
 Improvement
 '''''''''''
@@ -23,6 +24,11 @@ Improvement
 - Improved Socket Handling
 - SOME/IP Model improvements
 - Improve Documentation
+- Improved Validation and Validation Results
+- Improved Performance
+- Improved modelling of Multiplex PDUs
 
 Bugfixes
 ''''''''
+
+- Virtual Switch naming more consistent
