@@ -91,36 +91,36 @@ trio = ["trio (>=0.31.0) ; python_version < \"3.10\"", "trio (>=0.32.0) ; python
 
 [[package]]
 name = "approval-utilities"
-version = "18.0.1"
+version = "18.0.5"
 description = "Utilities for your production code that work well with approvaltests"
 optional = false
 python-versions = ">=3.10"
 groups = ["test"]
 files = [
-    {file = "approval_utilities-18.0.1-py3-none-any.whl", hash = "sha256:0f1aff648c5195c90629c5d6e444f2337c5b4d96e58c8ec5933a894e4128f905"},
-    {file = "approval_utilities-18.0.1.tar.gz", hash = "sha256:03dcd84ed19e76a713d782c16caf12f4f6b5c29eb06de31cbb868bb446bf7ee8"},
+    {file = "approval_utilities-18.0.5-py3-none-any.whl", hash = "sha256:aaaf58a5f2c8cf6e0b06b91a49a72e3e25839ae16214e12b2ac2d6994702812c"},
+    {file = "approval_utilities-18.0.5.tar.gz", hash = "sha256:e1a74f1dac8006508a1c0df17137da11e33def718b8989b2e523ff4e29191d4f"},
 ]
 
 [[package]]
 name = "approvaltests"
-version = "18.0.1"
+version = "18.0.5"
 description = "Assertion/verification library to aid testing"
 optional = false
 python-versions = ">=3.10"
 groups = ["test"]
 files = [
-    {file = "approvaltests-18.0.1-py3-none-any.whl", hash = "sha256:e57e6756f5adfdf4a766b2322769661a74cf7847c4ece24b13024d2d51650ae0"},
-    {file = "approvaltests-18.0.1.tar.gz", hash = "sha256:ed8f363f04e22c4d8d26a6fdc617bf8b0933180704f91d28a1e01a1f004b164a"},
+    {file = "approvaltests-18.0.5-py3-none-any.whl", hash = "sha256:ca78572b9b4ee83d8322a7b0651a541b52468669038de93e4ed8b64a6e58496d"},
+    {file = "approvaltests-18.0.5.tar.gz", hash = "sha256:29bdbac1f47ecab1d543fb8920b35311dcc771f5ac869c13ed450c954e207c47"},
 ]
 
 [package.dependencies]
 allpairspy = ">=2.1.0"
-approval_utilities = "18.0.1"
+approval_utilities = "18.0.5"
 beautifulsoup4 = ">=4.4.0"
 empty-files = ">=0.0.3"
 mock = ">=5.1.0"
 pyperclip = ">=1.5.29"
-pytest = ">=4.0.0"
+pytest = ">=9.0.3"
 testfixtures = ">=7.1.0"
 typing_extensions = ">=3.6.2"
 
