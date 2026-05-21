@@ -461,7 +461,7 @@ class TrafficClass(FLYNCBaseModel):
     def validate_priority_values(cls, v):
         """Priority values in list must be in range 0 - 7."""
         if not v:
-            return
+            return []
 
         invalid = [num for num in v if not (0 <= num <= 7)]
         if invalid:
