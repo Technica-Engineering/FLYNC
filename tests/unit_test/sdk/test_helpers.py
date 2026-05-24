@@ -66,7 +66,7 @@ TEST_REFERENCES_PATHS = {
     "ecus.high_performance_compute.topology.connections.3": ["controller_interface"],
     "ecus.high_performance_compute.topology.connections.4": ["switch_port"],
     "ecus.zonal_platform2.topology.connections.3": [
-        "controller_interface1",
+        "controller_interface",
         "controller_interface2",
     ],
 }

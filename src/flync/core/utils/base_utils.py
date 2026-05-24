@@ -231,6 +231,8 @@ def check_obj_in_list(obj, list):
 
     flag = False
     for c in list:
+        if c is None:
+            continue
         if (c.type == obj.type) and (
             (c.type == "switch_port" and obj.name == c.name and obj.get_switch().name == c.get_switch().name)
             or (c.type == "controller_interface" and obj.name == c.name and obj.get_controller().name == c.get_controller().name)

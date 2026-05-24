@@ -13,5 +13,5 @@ connections:
     controller_interface: z2_c2_iface2
   - type: controller_interface_to_controller_interface
     id: conn4
-    controller_interface1: z2_c1_iface1
-    controller_interface2: z2_c2_iface1 
+    controller_interface: z2_c1_iface1
+    controller_interface2: z2_c2_iface1

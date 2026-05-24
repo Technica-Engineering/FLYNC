@@ -1,6 +1,6 @@
 """Defines the Controller and ControllerInterface models for FLYNC."""
 
-from typing import Annotated, List, Literal, Optional
+from typing import Annotated, Any, List, Literal, Optional
 
 from pydantic import (
     AfterValidator,
@@ -22,11 +22,7 @@ from flync.core.annotations import (
     NamingStrategy,
     OutputStrategy,
 )
-from flync.core.base_models import (
-    FLYNCBaseModel,
-    NamedDictInstances,
-    NamedListInstances,
-)
+from flync.core.base_models import FLYNCBaseModel, NamedListInstances
 from flync.core.utils.exceptions import err_fatal, err_major, err_minor, warn
 from flync.core.version_migrators.legacy_controller_check import (
     reject_legacy_controller,
@@ -259,7 +255,7 @@ class VirtualSwitch(FLYNCBaseModel):
         return self
 
 
-class ControllerInterface(NamedDictInstances):
+class ControllerInterface(FLYNCBaseModel):
     """
     A physical Ethernet interface on a controller.
 
@@ -347,7 +343,7 @@ class ControllerInterface(NamedDictInstances):
         Optional[List[RouteEntry]],
         BeforeValidator(common_validators.none_to_empty_list),
     ] = Field(default=[])
-    _connected_component = PrivateAttr(default=None)
+    _connected_component: Optional[Any] = PrivateAttr(default=None)
     _type: Literal["controller_interface"] = PrivateAttr(default="controller_interface")
     _controller: Optional["Controller"] = PrivateAttr(default=None)
 
@@ -630,6 +626,15 @@ class Controller(NamedListInstances):
         return self
 
     @model_validator(mode="after")
+    def validate_unique_interface_names(self):
+        """Validate that controller interface names are unique within this controller."""
+        common_validators.validate_list_items_unique(
+            [eth.interface_config.name for eth in self.ethernet_interfaces if eth.interface_config],
+            "Controller Interfaces (name)",
+        )
+        return self
+
+    @model_validator(mode="after")
     def check_ports_virtual_switch_are_interfaces_or_compute_nodes(self):
         interface_names = []
         compute_node_names = []
@@ -667,6 +672,12 @@ class Controller(NamedListInstances):
         for eth_iface in self.ethernet_interfaces:
             all_macs.extend(eth_iface.interface_config.get_all_macs())
         return all_macs
+
+    def get_interfaces(self) -> list[ControllerInterface]:
+        return [eth.interface_config for eth in (self.ethernet_interfaces or []) if eth.interface_config is not None]
+
+    def find_controller_interface(self, interface_name: str) -> ControllerInterface:
+        return next(i.interface_config for i in (self.ethernet_interfaces or []) if i.interface_config.name == interface_name)
 
     def model_post_init(self, __context):
         for interface in self.ethernet_interfaces:

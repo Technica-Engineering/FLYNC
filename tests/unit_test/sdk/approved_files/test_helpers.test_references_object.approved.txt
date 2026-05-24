@@ -14,7 +14,7 @@
         "ecus.high_performance_compute.topology.connections.4.switch_port"
     ],
     "ecus.zonal_platform2.controllers.z2_controller1.ethernet_interfaces.z2_c1_iface1.interface_config": [
-        "ecus.zonal_platform2.topology.connections.3.controller_interface1"
+        "ecus.zonal_platform2.topology.connections.3.controller_interface"
     ],
     "ecus.zonal_platform2.controllers.z2_controller2.ethernet_interfaces.z2_c2_iface1.interface_config": [
         "ecus.zonal_platform2.topology.connections.3.controller_interface2"

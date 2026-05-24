@@ -1313,10 +1313,15 @@ class FLYNCWorkspace(object):
             if isinstance(model, dict):
                 model_value = model[key_node.value]
             else:
-                model_value = getattr(model, key_node.value, None)
-                if model_value is None:
-                    field_alias = get_name_by_alias(type(model), key_node.value)
-                    model_value = getattr(model, field_alias)
+                model_fields = getattr(type(model), "model_fields", {})
+                if key_node.value in model_fields:
+                    field_name = key_node.value
+                else:
+                    try:
+                        field_name = get_name_by_alias(type(model), key_node.value)
+                    except KeyError:
+                        field_name = key_node.value
+                model_value = getattr(model, field_name, None)
             self._update_objects(
                 path,
                 model_value,

@@ -12,7 +12,7 @@ from flync.core.annotations import (
     NamingStrategy,
     OutputStrategy,
 )
-from flync.core.base_models import UniqueName
+from flync.core.base_models import NamedListInstances
 from flync.core.utils.base_utils import find_all
 from flync.core.utils.exceptions import err_major, err_minor
 from flync.model.flync_4_ecu.controller import (
@@ -37,7 +37,7 @@ from flync.model.flync_4_someip import (  # type: ignore  # noqa: F401
 _T_Service = TypeVar("_T_Service", bound=SOMEIPServiceDeployment)
 
 
-class ECU(UniqueName):
+class ECU(NamedListInstances):
     """
     Represents an Electronic Control Unit (ECU) in the network.
 
@@ -148,6 +148,14 @@ class ECU(UniqueName):
             if broken_controllers or broken_switches:
                 raise err_major("ECU has invalid components. Check controller and switch errors for details.")
         return data
+
+    @model_validator(mode="after")
+    def resolve_topology_connections(self):
+        for conn_union in self.topology.connections:
+            conn = conn_union.root
+            conn.bind(self.switches or [], self.controllers, self.ports)
+            conn.validate_compatibility()
+        return self
 
     @model_validator(mode="after")
     def validate_vlans_in_sockets(self):
@@ -311,13 +319,8 @@ class ECU(UniqueName):
 
     def get_all_interfaces(self):
         """Return a list of all physical interfaces of the ECU."""
-        interfaces = []
-        for controller in self.controllers:
-            for eth_iface in controller.ethernet_interfaces:
-                iface = eth_iface.interface_config
-                if iface:
-                    interfaces.append(iface)
-        return interfaces if interfaces else None
+
+        return [i for c in self.controllers for i in c.get_interfaces()]
 
     def get_all_switch_ports(self) -> List["SwitchPort"]:
         """Return a list of all ports of the ECU switch."""

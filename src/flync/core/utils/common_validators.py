@@ -609,8 +609,8 @@ def validate_gptp_domains(comp1, comp2, ptp1, ptp2, id):
         )
         if ptp_port_iface2 is None:
             raise err_major(f"Incompatible PTP Config: Domain {domain} not present in {comp2.name} in connection {id}")
-        if ptp_port_iface.sync_config.type == ptp_port_iface2.sync_config.type:
-            raise err_major(f"Incompatible PTP Config: Domain ID {domain} in {comp1.name} and  {comp2.name} in connection {id}")
+        if ptp_port_iface.sync_config and ptp_port_iface2.sync_config and ptp_port_iface.sync_config.type == ptp_port_iface2.sync_config.type:
+            raise err_major(f"Incompatible PTP Config: Domain ID {domain} in {comp1.name} and {comp2.name} in connection {id}")
 
 
 def validate_elements_in(subset: Iterable[Any], superset: Iterable[Any], msg: Optional[str] = None):
