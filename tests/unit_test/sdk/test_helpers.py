@@ -90,9 +90,9 @@ def test_workspace_validator_api(get_flync_example_path):
     assert validation_result.model.ecus
     assert validation_result.model.topology
     assert validation_result.model.topology.system_topology
-    assert validation_result.model.general
-    assert validation_result.model.general.someip_config
-    assert validation_result.model.general.tcp_profiles
+    assert validation_result.model.communication
+    assert validation_result.model.communication.someip_config
+    assert validation_result.model.communication.tcp_profiles
     assert validation_result.model.metadata
     assert model_has_socket(validation_result.model)
 
@@ -184,9 +184,9 @@ def test_load_workspace_from_flync_object_relative_path(
     assert loaded_ws.flync_model.ecus
     assert loaded_ws.flync_model.topology
     assert loaded_ws.flync_model.topology.system_topology
-    assert loaded_ws.flync_model.general
-    assert loaded_ws.flync_model.general.someip_config
-    assert loaded_ws.flync_model.general.tcp_profiles
+    assert loaded_ws.flync_model.communication
+    assert loaded_ws.flync_model.communication.someip_config
+    assert loaded_ws.flync_model.communication.tcp_profiles
     assert loaded_ws.flync_model.metadata
     assert model_has_socket(loaded_ws.flync_model)
 
@@ -340,3 +340,24 @@ def test_references_object(
         received[path] = sorted(loaded_ws.get_references_of(path))
 
     verify(json.dumps(received, indent=4, sort_keys=True))
+
+
+def test_load_workspace_with_old_field_name(get_relative_flync_example_path):
+    ws_name_obj = Path(get_relative_flync_example_path).name + "_with_old_fied_name"
+    output_path = current_dir / "generated" / ws_name_obj
+    if output_path.exists():
+        shutil.rmtree(output_path)
+    shutil.copytree(get_relative_flync_example_path, output_path, dirs_exist_ok=True)
+    communication_path = output_path / "communication"
+    general_dir = communication_path.with_name("general")
+    communication_path.rename(general_dir)
+    loaded_ws = FLYNCWorkspace.load_workspace(
+        workspace_name=ws_name_obj,
+        workspace_path=output_path,
+    )
+    expected_warning = "The 'general' attribute is deprecated. Please use 'communication' instead."
+    assert loaded_ws.flync_model
+    assert loaded_ws.flync_model.communication is not None
+    assert loaded_ws.flync_model.communication is loaded_ws.flync_model.general
+    assert any(loaded_ws.flync_model.communication.tcp_profiles)
+    assert [e for e in loaded_ws.load_errors if e.get("type") == "warning" and e.get("msg", "") == expected_warning]

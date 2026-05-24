@@ -4,6 +4,7 @@ Top-level system model aggregating ECUs, topology, metadata, and general configu
 
 from typing import Annotated, Dict, List, Optional, Tuple
 
+import typing_extensions
 from pydantic import Field, model_validator
 from pydantic_core import PydanticCustomError
 
@@ -46,17 +47,17 @@ class FLYNCModel(FLYNCBaseModel):
     metadata : :class:`~flync.model.flync_4_metadata.SystemMetadata`
         System-level metadata including OEM, platform, and hardware/software information.
 
-    general : :class:`~flync.model.flync_4_general_configuration.FLYNCGeneralConfig`, optional
+    communication : :class:`~flync.model.flync_4_general_configuration.FLYNCGeneralConfig`, optional
         Optional general configuration settings applicable system-wide.
     """
 
-    general: Annotated[
+    communication: Annotated[
         Optional[FLYNCGeneralConfig],
         External(
             output_structure=OutputStrategy.FOLDER,
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
-    ] = Field(default=None)
+    ] = Field(alias="general", default=None)
     ecus: Annotated[
         List[ECU],
         External(
@@ -84,6 +85,18 @@ class FLYNCModel(FLYNCBaseModel):
         VirtualControllerInterface,
         VLANEntry,
     )
+
+    @model_validator(mode="before")
+    def warn_deprecated(cls, data):
+        if "general" in data:
+            warn("The 'general' attribute is deprecated. Please use 'communication' instead.")
+        return data
+
+    @property
+    @typing_extensions.deprecated("The `general` attribute is deprecated, use `communication` instead.")
+    def general(self) -> Optional[FLYNCGeneralConfig]:
+        warn("The 'general' attribute is deprecated. Please use 'communication' instead.")
+        return self.communication
 
     @model_validator(mode="before")
     @classmethod

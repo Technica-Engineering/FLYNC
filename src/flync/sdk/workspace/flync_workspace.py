@@ -458,6 +458,7 @@ class FLYNCWorkspace(object):
                 external,
                 sub_item_path.name,
                 field_name,
+                field_name,
                 item_info,
                 item_dir,
                 list_paths,
@@ -557,6 +558,7 @@ class FLYNCWorkspace(object):
                 external_path=external_path,
                 module_load_info=single_info,
                 field_name=field_name,
+                storage_key=field_name,
                 current_object_paths=current_object_paths,
             )
             module_load_info.update(single_info)
@@ -622,6 +624,7 @@ class FLYNCWorkspace(object):
                 external_path=external_path,
                 module_load_info=dict_info,
                 field_name=field_name,
+                storage_key=field_name,
                 current_object_paths=current_object_paths,
             )
             module_load_info.update(dict_info)
@@ -673,6 +676,7 @@ class FLYNCWorkspace(object):
         external,
         external_path: str,
         field_name: str,
+        storage_key: str,
         module_load_info: dict,
         path: Path,
         current_object_paths: list[str],
@@ -687,6 +691,8 @@ class FLYNCWorkspace(object):
             external: The ``External`` annotation for this field.
             external_path (str): Relative path segment for this field.
             field_name (str): Field name on the parent model.
+            storage_key (str): The key under which the successfully loaded field value.
+            Typically corresponds to the field name or its alias.
             module_load_info (dict): Accumulator for loaded field values; updated in place.
             path (Path): Absolute path of the current directory.
             current_object_paths (list[str]): Dot-path contexts for object tracking.
@@ -712,7 +718,7 @@ class FLYNCWorkspace(object):
                     )
                     if result is None:
                         continue
-                    module_load_info[field_name] = result
+                    module_load_info[storage_key] = result
                 else:
                     self.__handle_generic_types(
                         possible_type,
@@ -723,6 +729,7 @@ class FLYNCWorkspace(object):
                         external_path,
                         module_load_info,
                         field_name,
+                        storage_key,
                         current_object_paths,
                     )
                 success_union = True
@@ -742,6 +749,7 @@ class FLYNCWorkspace(object):
         external_path: str,
         module_load_info: dict,
         field_name: str,
+        storage_key: str,
         current_object_paths: list[str],
     ):  # noqa # nosonar
         """
@@ -799,6 +807,7 @@ class FLYNCWorkspace(object):
                 external,
                 external_path,
                 field_name,
+                storage_key,
                 module_load_info,
                 path,
                 current_object_paths,
@@ -944,11 +953,12 @@ class FLYNCWorkspace(object):
                 raise ValueError("Attribute {} has an invalid type.", field_name)
             base_type: type | None = get_origin(attribute_type)
             base_type_args = get_args(attribute_type)
-            external_path = (
-                external.path if ((external.naming_strategy == NamingStrategy.FIXED_PATH) and (external.path is not None)) else field_name
-            )
+            storage_key = field_name
+            external_path = self.__get_external_path(path, external, field_name)
+            if not external_path.exists() and field_info.alias is not None:
+                external_path = self.__get_external_path(path, external, field_info.alias)
+                storage_key = field_info.alias
             if OutputStrategy.SINGLE_FILE in external.output_structure:
-                external_path += self.configuration.flync_file_extension
                 if OutputStrategy.OMMIT_ROOT not in external.output_structure:
                     # the output file is a dictionary
                     # we need to load it accordingly
@@ -965,6 +975,7 @@ class FLYNCWorkspace(object):
                 external_path,
                 module_load_info,
                 field_name,
+                storage_key,
                 new_paths,
             )
 
@@ -1034,6 +1045,26 @@ class FLYNCWorkspace(object):
                 return field
 
         return None
+
+    def __get_external_path(self, base_path: Path, external: External, field_name: str) -> Path:
+        """
+        Resolve the filesystem path for an external field.
+
+        Constructs the path to an external file or directory based on the provided `External` configuration and naming strategy.
+        If the `External` specifies a fixed path, that path is used; otherwise, the field name is used as the base.
+        A file extension is appended if the output structure requires a single file.
+
+        Args:
+            base_path (Path): The root directory path where external files are located.
+            external (External): The external configuration annotation for the field.
+            field_name (str): The name of the field on the parent model.
+
+        Returns:
+            Path: The resolved absolute path to the external resource.
+        """
+        ext = self.configuration.flync_file_extension if OutputStrategy.SINGLE_FILE in external.output_structure else ""
+        path = external.path if ((external.naming_strategy == NamingStrategy.FIXED_PATH) and (external.path is not None)) else field_name
+        return base_path / (path + ext)
 
     def generate_configs(self, uri: PathType | None = None):
         """

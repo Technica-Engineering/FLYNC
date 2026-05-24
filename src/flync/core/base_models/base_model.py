@@ -14,7 +14,7 @@ class FLYNCBaseModel(BaseModel):
     """Base Model that is used by FLYNC Model classes."""
 
     _logger: Optional[logging.Logger] = pydantic.PrivateAttr(default=None)
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", validate_by_name=True)
 
     @property
     def logger(self):

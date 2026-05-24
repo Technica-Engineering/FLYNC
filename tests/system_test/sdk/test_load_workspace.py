@@ -37,9 +37,9 @@ def test_load_workspace_valid_absolute_path():
     assert workspace.flync_model.ecus
     assert workspace.flync_model.topology
     assert workspace.flync_model.topology.system_topology
-    assert workspace.flync_model.general
-    assert workspace.flync_model.general.someip_config
-    assert workspace.flync_model.general.tcp_profiles
+    assert workspace.flync_model.communication
+    assert workspace.flync_model.communication.someip_config
+    assert workspace.flync_model.communication.tcp_profiles
     assert workspace.flync_model.metadata
     assert model_has_socket(workspace)
 
@@ -55,9 +55,9 @@ def test_load_workspace_valid_relative_path():
     assert workspace.flync_model.ecus
     assert workspace.flync_model.topology
     assert workspace.flync_model.topology.system_topology
-    assert workspace.flync_model.general
-    assert workspace.flync_model.general.someip_config
-    assert workspace.flync_model.general.tcp_profiles
+    assert workspace.flync_model.communication
+    assert workspace.flync_model.communication.someip_config
+    assert workspace.flync_model.communication.tcp_profiles
     assert workspace.flync_model.metadata
     assert model_has_socket(workspace)
 
@@ -69,9 +69,9 @@ def test_load_workspace_valid_str_path():
     assert workspace.flync_model.ecus
     assert workspace.flync_model.topology
     assert workspace.flync_model.topology.system_topology
-    assert workspace.flync_model.general
-    assert workspace.flync_model.general.someip_config
-    assert workspace.flync_model.general.tcp_profiles
+    assert workspace.flync_model.communication
+    assert workspace.flync_model.communication.someip_config
+    assert workspace.flync_model.communication.tcp_profiles
     assert workspace.flync_model.metadata
     assert model_has_socket(workspace)
 
@@ -409,9 +409,9 @@ def _assert_workspace_valid(ws: FLYNCWorkspace):
     assert ws.flync_model.ecus
     assert ws.flync_model.topology
     assert ws.flync_model.topology.system_topology
-    assert ws.flync_model.general
-    assert ws.flync_model.general.someip_config
-    assert ws.flync_model.general.tcp_profiles
+    assert ws.flync_model.communication
+    assert ws.flync_model.communication.someip_config
+    assert ws.flync_model.communication.tcp_profiles
     assert ws.flync_model.metadata
     assert model_has_socket(ws)
 

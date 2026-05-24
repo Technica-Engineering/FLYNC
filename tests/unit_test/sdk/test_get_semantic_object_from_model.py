@@ -4,13 +4,13 @@ from flync.sdk.workspace.objects import SemanticObject
 
 STORED_MODELS = [
     pytest.param(
-        lambda ws: ws.flync_model.general,
-        "general",
+        lambda ws: ws.flync_model.communication,
+        "communication",
         id="FLYNCGeneralConfig",
     ),
     pytest.param(
-        lambda ws: ws.flync_model.general.someip_config,
-        "general.someip_config",
+        lambda ws: ws.flync_model.communication.someip_config,
+        "communication.someip_config",
         id="SOMEIPConfig",
     ),
 ]
