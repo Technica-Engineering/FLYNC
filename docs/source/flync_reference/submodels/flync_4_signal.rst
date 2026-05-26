@@ -101,7 +101,7 @@ Standard PDU
       ``general/channels/pdus/``.  This directory is **optional** and
       may be omitted when no PDUs are defined.
 
-   .. literalinclude:: ../../../../examples/flync_example/general/channels/pdus/PDU_EngineStatus.flync.yaml
+   .. literalinclude:: ../../../../examples/flync_example/communication/channels/pdus/PDU_EngineStatus.flync.yaml
       :language: yaml
 
 .. autoclass:: flync.model.flync_4_signal.StandardPDU()
@@ -118,7 +118,7 @@ Multiplexed PDU
       transmission cycle.  This corresponds to the DBC ``M``/``mN``
       multiplexer notation.
 
-   .. literalinclude:: ../../../../examples/flync_example/general/channels/pdus/PDU_TransmissionStatus.flync.yaml
+   .. literalinclude:: ../../../../examples/flync_example/communication/channels/pdus/PDU_TransmissionStatus.flync.yaml
       :language: yaml
 
 .. autoclass:: flync.model.flync_4_signal.MultiplexedPDU()
@@ -141,7 +141,7 @@ Container PDU
       payload.  The per-slot header format is configured via the ``header``
       block, which specifies ``id_length_bits`` and ``length_field_bits``.
 
-   .. literalinclude:: ../../../../examples/flync_example/general/channels/ethernet_pdu_containers/eth_powertrain_container.flync.yaml
+   .. literalinclude:: ../../../../examples/flync_example/communication/channels/ethernet_pdu_containers/eth_powertrain_container.flync.yaml
       :language: yaml
 
 .. autoclass:: flync.model.flync_4_signal.ContainerPDUHeader()

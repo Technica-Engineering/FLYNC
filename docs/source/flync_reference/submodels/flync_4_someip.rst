@@ -25,7 +25,7 @@ Service Discovery
       This file contains the list of SOME/IP-SD timing profiles that can be imported
       and used when deploying a service on an ECU socket.
 
-   .. literalinclude:: ../../_static/flync_example/general/someip/sd_config.flync.yaml
+   .. literalinclude:: ../../_static/flync_example/communication/someip/sd_config.flync.yaml
 
 .. autoclass:: flync.model.flync_4_someip.SDConfig()
 .. autoclass:: flync.model.flync_4_someip.SDTimings()
@@ -57,7 +57,7 @@ Service Interface
 
       The example file below shows the Enhanced Testability from TC8.
 
-   .. literalinclude:: ../../_static/flync_example/general/someip/services/ets.flync.yaml
+   .. literalinclude:: ../../_static/flync_example/communication/someip/services/ets.flync.yaml
 
 
 .. autoclass:: flync.model.flync_4_someip.SOMEIPServiceInterface()
