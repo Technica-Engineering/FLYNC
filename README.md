@@ -1,5 +1,9 @@
 # FLYNC Library
 
+[![CI](https://github.com/Technica-Engineering/FLYNC/actions/workflows/push_and_pr.yaml/badge.svg)](https://github.com/Technica-Engineering/FLYNC/actions/workflows/push_and_pr.yaml)
+[![Coverage badge](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Technica-Engineering/FLYNC/python-coverage-comment-action-data/endpoint.json)](https://github.com/Technica-Engineering/FLYNC/tree/python-coverage-comment-action-data)
+[![Python](https://img.shields.io/badge/python-3.12%2B-blue)](pyproject.toml)
+[![License](https://img.shields.io/github/license/Technica-Engineering/FLYNC)](LICENSE)
 
 ## Description
 FLYNC (FLexible Yaml-based Network Configuration), an open-source, repository-native solution that turns vehicle network configuration into clean, version-controlled code.
