@@ -2710,14 +2710,14 @@ theme-sbt = ["sphinx-book-theme (>=1.1,<2.0)"]
 
 [[package]]
 name = "sphinx-needs"
-version = "8.0.0"
+version = "8.1.1"
 description = "Sphinx needs extension for managing needs/requirements and specifications"
 optional = false
 python-versions = "<4,>=3.10"
 groups = ["docs"]
 files = [
-    {file = "sphinx_needs-8.0.0-py3-none-any.whl", hash = "sha256:540c380c074d4088a557ea353e91513bfc1cb7712b10925c13ac9e5ebb7be091"},
-    {file = "sphinx_needs-8.0.0.tar.gz", hash = "sha256:c4336ee0e3c949eff9eb11a14910f7b6b68cb8284d731cfddf97694037337674"},
+    {file = "sphinx_needs-8.1.1-py3-none-any.whl", hash = "sha256:bd5bb71aa01726e1e1b5ac4ac7ce6b1e81acb8b519b480fae2faf7553a1271c5"},
+    {file = "sphinx_needs-8.1.1.tar.gz", hash = "sha256:fd72d22c958ece9a90aea517fd276197d7f602fc6ecf9fd48c1840b85cb96574"},
 ]
 
 [package.dependencies]
@@ -3311,4 +3311,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<4.0"
-content-hash = "bcb1c9c6bde92c6f18e7dc6f64dd0b5c01970c3b5523045f6b0161a1c1261d5f"
+content-hash = "1782b174a1c6b77e4bbcfcfb7903c6d0cdc72d21548cb823dc06bd32e17214b9"
