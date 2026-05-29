@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-FLYNC — Configuration Platform for SDV
+FLYNC - Configuration Platform for SDV
 =======================================
 
 Welcome to the official documentation hub for **FLYNC (FLexible Yaml-based Network Configuration)**, an open-source, repository-native solution that turns
@@ -13,7 +13,7 @@ The heart of FLYNC is a single, human-readable model schema together with a comp
 
 By organizing system definitions in a central, version-controlled repository, this tool helps engineering teams manage complexity, enable reuse, and maintain consistency across domains.
 
-.. important:: **FLYNC bridges Architecture, Development, and Testing** — A clear, extensible modeling foundation that supports communication design, ECU software allocation, and system architecture — enabling collaboration across the full E/E development lifecycle.
+.. important:: **FLYNC bridges Architecture, Development, and Testing** with a clear, extensible modeling foundation that supports communication design, ECU software allocation, and system architecture. This enables collaboration across the full E/E development lifecycle.
 
 ----
 
@@ -32,7 +32,7 @@ Key Features
    Optimized validation and parsing logic make the library suitable for large-scale configurations with high performance.
 
 - **Developer-Friendly Design**
-   Easy to learn and integrate, with intuitive syntax and clear documentation — ideal for both domain experts and software engineers.
+   Easy to learn and integrate, with intuitive syntax and clear documentation. Ideal for both domain experts and software engineers.
 
 - **Open Source & Collaborative**
    Licensed openly to encourage community contributions, integrations, and extensions. Your feedback and contributions are welcome!
@@ -116,5 +116,7 @@ Resources
    installation
    flync_reference
    flync_example
+   flync_cli/index
+   flync_converter/index
    license
    contact
