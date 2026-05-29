@@ -123,12 +123,20 @@ class Frame(UniqueName):
         Optional string describing the usage of the frame.
     description : str, optional
         Optional human-readable description.
+    packed_pdus : list of :class:`PDUInstance`
+        PDU instances placed at fixed bit offsets within this frame.
     """
 
     name: str = Field()
     length: int = Field()
     frame_usage: Optional[str] = Field(default=None)
     description: Optional[str] = Field(default=None)
+    packed_pdus: List[PDUInstance] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _validate_pdu_placements(self) -> "Frame":
+        _check_pdu_bit_positions(self.name, self.packed_pdus)
+        return self
 
 
 # ---------------------------------------------------------------------------
@@ -146,21 +154,13 @@ class CANFrameBase(Frame):
         CAN message identifier.
     id_format : Literal["standard_11bit", "extended_29bit"]
         Identifier format.
-    packed_pdus : list of :class:`PDUInstance`
-        PDU instances placed at fixed bit offsets within this frame.
     timing : :class:`FrameTransmissionTiming`, optional
         Transmission timing for this frame.
     """
 
     can_id: int = Field()
     id_format: Literal["standard_11bit", "extended_29bit"] = Field()
-    packed_pdus: List[PDUInstance] = Field(default_factory=list)
     timing: Optional[FrameTransmissionTiming] = Field(default=None)
-
-    @model_validator(mode="after")
-    def _validate_pdu_placements(self) -> "CANFrameBase":
-        _check_pdu_bit_positions(self.name, self.packed_pdus)
-        return self
 
 
 # ---------------------------------------------------------------------------
@@ -252,8 +252,6 @@ class LINFrame(Frame):
         6-bit LIN frame identifier in the range [0, 0x3F].
     checksum_type : Literal["classic", "enhanced"]
         LIN checksum model.  Defaults to ``"enhanced"``.
-    packed_pdus : list of :class:`PDUInstance`
-        PDU instances placed at fixed bit offsets within this frame.
     timing : :class:`FrameTransmissionTiming`, optional
         Transmission timing for this frame.
     """
@@ -262,13 +260,7 @@ class LINFrame(Frame):
     lin_id: Annotated[int, Field(ge=0, le=0x3F)] = Field()
     checksum_type: Literal["classic", "enhanced"] = Field(default="enhanced")
     length: int = Field(ge=1, le=8)
-    packed_pdus: List[PDUInstance] = Field(default_factory=list)
     timing: Optional[FrameTransmissionTiming] = Field(default=None)
-
-    @model_validator(mode="after")
-    def _validate_pdu_placements(self) -> "LINFrame":
-        _check_pdu_bit_positions(self.name, self.packed_pdus)
-        return self
 
 
 # ---------------------------------------------------------------------------

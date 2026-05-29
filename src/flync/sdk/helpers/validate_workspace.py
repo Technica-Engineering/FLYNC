@@ -15,6 +15,7 @@ from pathlib import Path
 from rich.console import Console
 from rich.table import Table
 
+from flync.core.utils.exceptions_handling import is_semantic_validation_error
 from flync.sdk.context.diagnostics_result import DiagnosticsResult, WorkspaceState
 from flync.sdk.helpers.validation_helpers import validate_external_node, validate_workspace
 
@@ -76,13 +77,17 @@ def _classify_errors(errors_by_doc: dict) -> tuple[list, list]:
     The workspace loads documents in two structural roles:
     - ``.flync.yaml`` files   — validated against their own YAML content; any error
       here is a genuine problem in that file (root cause).
-    - Directory documents     — assembled from child models that returned ``None``
-      when they failed; errors here exist *only* because a child document failed
-      (subsequent).
+    - Directory documents     — usually assembled from child models that returned
+      ``None`` when they failed (cascading errors), *but* a
+      ``@model_validator`` on the directory-assembled type can also raise its
+      own root-cause error (e.g. ``FLYNCChannelConfig.validate_pdu_refs``
+      validating PDU references across the whole channels tree).
 
     ``doc_uri`` is the workspace-relative POSIX path produced by
     ``document_id_from_path``.  File documents always carry a ``.yaml`` suffix;
-    directory documents have no suffix.
+    directory documents have no suffix. User-raised semantic errors
+    (``err_major`` / ``err_minor`` / ``err_fatal``) are treated as root causes
+    on either kind of document.
     """
 
     root_rows: list[tuple[str, dict]] = []
@@ -92,7 +97,10 @@ def _classify_errors(errors_by_doc: dict) -> tuple[list, list]:
         for err in errs:
             if err.get("type") == "warning":
                 continue
-            (root_rows if is_file_doc else subsequent_rows).append((doc_uri, err))
+            if is_file_doc or is_semantic_validation_error(err):
+                root_rows.append((doc_uri, err))
+            else:
+                subsequent_rows.append((doc_uri, err))
     return root_rows, subsequent_rows
 
 

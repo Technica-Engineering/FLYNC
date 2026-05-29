@@ -25,12 +25,14 @@ signals:
       description: Cabin light operating mode.
       bit_length: 2
       data_type: uint8
-      value_descriptions:
-        - value: 0
-          description: Disabled
-        - value: 1
-          description: Manual
-        - value: 2
-          description: Auto
-        - value: 3
-          description: Error
+      value_encoding:
+        type: text_table
+        entries:
+          - value: 0
+            label: Disabled
+          - value: 1
+            label: Manual
+          - value: 2
+            label: Auto
+          - value: 3
+            label: Error

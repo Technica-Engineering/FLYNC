@@ -17,9 +17,11 @@ signals:
       lower_limit: 0.0
       upper_limit: 655.35
       unit: km/h
-      value_descriptions:
-        - value: 65535
-          description: Signal_Not_Available
+      value_encoding:
+        type: text_table
+        entries:
+          - value: 65535
+            label: Signal_Not_Available
   - bit_position: 16
     endianness: LE
 

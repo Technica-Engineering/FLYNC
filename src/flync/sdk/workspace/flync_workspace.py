@@ -30,6 +30,7 @@ from flync.core.base_models.instances_registery import (
 from flync.core.utils.exceptions_handling import (
     errors_to_init_errors,
     get_name_by_alias,
+    is_semantic_validation_error,
     validate_with_policy,
 )
 from flync.model.flync_model import FLYNCModel
@@ -657,6 +658,7 @@ class FLYNCWorkspace(object):
         doc_id = self.document_id_from_path(attempt_path)
         diags_existed = doc_id in self.documents_diags
         saved_diags = list(self.documents_diags.get(doc_id, []))
+        saved_count = len(saved_diags)
         result = self.__load_from_path(
             path / external_path,
             possible_type,
@@ -664,10 +666,17 @@ class FLYNCWorkspace(object):
             current_object_paths,
         )
         if result is None:
-            if diags_existed:
-                self.documents_diags[doc_id] = saved_diags
-            elif doc_id in self.documents_diags:
-                del self.documents_diags[doc_id]
+            new_diags = self.documents_diags.get(doc_id, [])[saved_count:]
+            # If the failed attempt produced a user-raised semantic error
+            # (err_major / err_minor / err_fatal on the matched type), keep
+            # the diags so the user sees them. Discard only purely structural
+            # mismatches, which signal "wrong union member".
+            has_semantic_error = any(is_semantic_validation_error(d) for d in new_diags)
+            if not has_semantic_error:
+                if diags_existed:
+                    self.documents_diags[doc_id] = saved_diags
+                elif doc_id in self.documents_diags:
+                    del self.documents_diags[doc_id]
         return result
 
     def __handle_generic_types_union(  # noqa

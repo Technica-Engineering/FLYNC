@@ -27,21 +27,23 @@ mux_groups:
             description: Currently engaged gear.
             bit_length: 8
             data_type: uint8
-            value_descriptions:
-              - value: 0
-                description: Park
-              - value: 1
-                description: Reverse
-              - value: 2
-                description: Neutral
-              - value: 3
-                description: Drive_D1
-              - value: 4
-                description: Drive_D2
-              - value: 5
-                description: Drive_D3
-              - value: 6
-                description: Drive_D4
+            value_encoding:
+              type: text_table
+              entries:
+                - value: 0
+                  label: Park
+                - value: 1
+                  label: Reverse
+                - value: 2
+                  label: Neutral
+                - value: 3
+                  label: Drive_D1
+                - value: 4
+                  label: Drive_D2
+                - value: 5
+                  label: Drive_D3
+                - value: 6
+                  label: Drive_D4
         - bit_position: 16
           endianness: LE
 
@@ -50,13 +52,15 @@ mux_groups:
             description: Automatic / manual / sport shift mode.
             bit_length: 4
             data_type: uint8
-            value_descriptions:
-              - value: 0
-                description: Automatic
-              - value: 1
-                description: Manual
-              - value: 2
-                description: Sport
+            value_encoding:
+              type: text_table
+              entries:
+                - value: 0
+                  label: Automatic
+                - value: 1
+                  label: Manual
+                - value: 2
+                  label: Sport
   - selector_value: 1
     pdu:
       name: PDU_TransmissionStatus_Torque
@@ -82,12 +86,14 @@ mux_groups:
             description: Torque converter lock-up clutch state.
             bit_length: 2
             data_type: uint8
-            value_descriptions:
-              - value: 0
-                description: Open
-              - value: 1
-                description: Slipping
-              - value: 2
-                description: Locked
-              - value: 3
-                description: Error
+            value_encoding:
+              type: text_table
+              entries:
+                - value: 0
+                  label: Open
+                - value: 1
+                  label: Slipping
+                - value: 2
+                  label: Locked
+                - value: 3
+                  label: Error

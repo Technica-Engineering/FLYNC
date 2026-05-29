@@ -19,9 +19,11 @@ signals:
       lower_limit: 0.0
       upper_limit: 16383.75
       unit: rpm
-      value_descriptions:
-        - value: 65535
-          description: Signal_Not_Available
+      value_encoding:
+        type: text_table
+        entries:
+          - value: 65535
+            label: Signal_Not_Available
   - bit_position: 16
     endianness: LE
 
@@ -48,11 +50,13 @@ signals:
       lower_limit: -40.0
       upper_limit: 215.0
       unit: degC
-      value_descriptions:
-        - value: 254
-          description: Sensor_Error
-        - value: 255
-          description: Signal_Not_Available
+      value_encoding:
+        type: text_table
+        entries:
+          - value: 254
+            label: Sensor_Error
+          - value: 255
+            label: Signal_Not_Available
   - bit_position: 40
     endianness: LE
 
@@ -61,14 +65,16 @@ signals:
       description: Engine operating state.
       bit_length: 4
       data_type: uint8
-      value_descriptions:
-        - value: 0
-          description: Stopped
-        - value: 1
-          description: Cranking
-        - value: 2
-          description: Running
-        - value: 3
-          description: Stall
-        - value: 15
-          description: Error
+      value_encoding:
+        type: text_table
+        entries:
+          - value: 0
+            label: Stopped
+          - value: 1
+            label: Cranking
+          - value: 2
+            label: Running
+          - value: 3
+            label: Stall
+          - value: 15
+            label: Error

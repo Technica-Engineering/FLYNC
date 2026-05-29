@@ -35,8 +35,8 @@ def uint16_signal_instance(uint16_signal):
 
 
 @pytest.fixture
-def uint8_signal_group(uint8_signal):
-    yield SignalGroup(name="grp_uint8", signals=[uint8_signal])
+def uint8_signal_group(uint8_signal_instance):
+    yield SignalGroup(name="grp_uint8", signals=[uint8_signal_instance])
 
 
 @pytest.fixture

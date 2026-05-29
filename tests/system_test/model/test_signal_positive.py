@@ -52,7 +52,9 @@ def test_standard_pdu_with_signalgroup():
     """
     temp_signal = Signal(name="EngineTemp", bit_length=8, data_type=SignalDataType.UINT8, unit="°C")
     speed_signal = Signal(name="VehicleSpeed", bit_length=16, data_type=SignalDataType.UINT16, unit="km/h")
-    group = SignalGroup(name="EngineSensors", signals=[speed_signal, temp_signal])
+    speed_instance = SignalInstance(signal=speed_signal, bit_position=0)
+    temp_instance = SignalInstance(signal=temp_signal, bit_position=16)
+    group = SignalGroup(name="EngineSensors", signals=[speed_instance, temp_instance])
     group_instance = SignalGroupInstance(signal_group=group, bit_position=0)
     pdu = StandardPDU(name="PDU_EngineSensors", length=4, signal_groups=[group_instance])
     pdu_inst = PDUInstance(pdu_ref=pdu.name)

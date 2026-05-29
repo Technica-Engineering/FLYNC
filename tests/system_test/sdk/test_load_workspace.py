@@ -447,3 +447,28 @@ def test_load_multiple_workspaces_async(tmpdir):
 
     for ws in workspaces:
         _assert_workspace_valid(ws)
+
+
+# Regression for the union-type diagnostics swallow:
+# __try_load_union_type used to delete diagnostics whenever a union member
+# returned None, including for legitimate semantic errors raised by
+# @model_validator on the matched type. With Optional[FLYNCChannelConfig]
+# wrapping the channels field, the cross-PDU-reference major error from
+# FLYNCChannelConfig.validate_pdu_refs disappeared entirely from the result.
+def test_validate_workspace_surfaces_unknown_pdu_ref(tmpdir):
+    from flync.sdk.helpers.validation_helpers import validate_workspace
+
+    destination_folder = Path(tmpdir) / "copy"
+    shutil.copytree(absolute_path, destination_folder)
+    # Target the Frame_EngineDiagResponse line; its PDU ref name only appears
+    # once in this file and is independent of the LightDiagRequest content.
+    diag_can = destination_folder / "communication" / "channels" / "can" / "diag_can.flync.yaml"
+    update_yaml_content(diag_can, "pdu_ref: PDU_EngineStatus", "pdu_ref: nonexistent_pdu")
+
+    result = validate_workspace(destination_folder)
+
+    surfaced = [e for errs in result.errors.values() for e in errs if e.get("type") == "major" and "nonexistent_pdu" in (e.get("msg") or "")]
+    assert surfaced, f"Expected major error about unknown PDU 'nonexistent_pdu', got: {dict(result.errors)}"
+
+    if destination_folder.exists():
+        shutil.rmtree(destination_folder)
