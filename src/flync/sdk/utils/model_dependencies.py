@@ -7,13 +7,12 @@ Provides functions and classes to build, traverse, and query the dependency grap
 import hashlib
 import importlib
 import shelve
-import time
 import types
 from functools import lru_cache
 from os import listdir, makedirs, remove, stat, walk
 from os.path import abspath, dirname, join
 from types import NoneType
-from typing import Annotated, Literal, Union, get_args, get_origin
+from typing import Annotated, Union, get_args, get_origin
 
 import platformdirs
 from filelock import FileLock
@@ -326,10 +325,7 @@ class ModelDependencyGraph:
 
         field_info: dict[str, NodeInfo] = {}
         # add root to info
-        root_discriminators = {
-            field_name for field_name, field_info_obj in self.root.model_fields.items() if get_origin(field_info_obj.annotation) is Literal
-        }
-        field_info[self.root.__name__] = NodeInfo(self.root.__name__, self.root, discriminator_fields=root_discriminators)
+        field_info[self.root.__name__] = NodeInfo(self.root.__name__, self.root)
 
         def walk(current_model, subtree, path=(), container_chain=()):
             """
@@ -392,8 +388,7 @@ class ModelDependencyGraph:
                 new_path = path + ((child_model, field_name, container_chain),)
                 model_field_key = child_model.__name__
                 if child_model not in field_info:
-                    child_discriminators = {fname for fname, finfo in child_model.model_fields.items() if get_origin(finfo.annotation) is Literal}
-                    field_info[model_field_key] = NodeInfo(child_model.__name__, child_model, discriminator_fields=child_discriminators)
+                    field_info[model_field_key] = NodeInfo(child_model.__name__, child_model)
                 field_info[model_field_key].flync_paths.append(ModelDependencyGraph.complex_path_to_string_path(new_path))
 
                 # recurse into children
@@ -628,13 +623,6 @@ def cleanup_old_caches():
         shelv_file_name += "_" + hash_directory_fast(get_package_root())
         if not _cache_cleaned:
             delete_unwanted_cache_files(shelv_location, shelv_file_name)
-            # Clean up stale lock files (older than 1 hour)
-            lock_path = join(shelv_location, shelv_file_name + ".lock")
-            try:
-                if abspath(lock_path) and stat(lock_path).st_mtime < (time.time() - 3600):
-                    remove(lock_path)
-            except Exception:
-                pass
             _cache_cleaned = True
             _cache_name = shelv_file_name
     return shelv_location, _cache_name
