@@ -14,7 +14,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent"
 ]
-requires-python = ">=3.12,<3.15"
+requires-python = ">=3.12,<4.0"
 dependencies = [
     "importlib-metadata>=8.6.1",
     "click==8.4.1",
@@ -27,23 +27,12 @@ dependencies = [
     "pydantic-yaml==1.6.0",
     "pyyaml==6.0.3",
     "myst-parser>=5.0.0,<6.0.0",
-    "pydantic-extra-types>=2.11.0,!=2.11.2,<3.0.0",
-    "cantools>=41.3.1,<42.0.0",
+    "pydantic-extra-types>=2.11.0,<3.0.0",
     "semver>=3.0,<4.0",
     "platformdirs (>=4.9.4,<5.0.0)",
     "polyfactory==3.3.0",
-    "filelock>=3.13,<4.0",
-    "pluggy>=1.6.0,<2.0.0",
-    "textual>=0.80.0",
-    "PySide6>=6.6.0"
+    "filelock>=3.13,<4.0"
 ]
-
-[project.scripts]
-flync = "flync_cli:app"
-puml-to-html = "flync_cli.convert_puml:main"
-flync-converter = "flync_converter.cli:main"
-flync-converter-interactive = "flync_converter.cli:main_interactive"
-flync-converter-gui = "flync_converter.cli:main_gui"
 
 [project.urls]
 Homepage = "https://flync-language.com"
@@ -52,9 +41,7 @@ Documentation = "https://github.com/Technica-Engineering/FLYNC"
 
 [tool.poetry]
 packages = [
-    { include = "flync", from = "src" },
-    { include = "flync_cli", from = "src" },
-    { include = "flync_converter", from = "src" }
+    { include = "flync", from = "src" }
 ]
 version = "0.0.0"
 
@@ -85,7 +72,6 @@ black = "^26.1.0"
 mypy = "^1.18.2"
 pytest-xdist = "^3.8.0"
 approvaltests = "^18.0.0"
-pytest-qt = "^4.0"
 
 [tool.poetry.group.static-analysis.dependencies]
 black = "^26.1.0"
@@ -100,7 +86,7 @@ types-pyyaml = "^6.0.12.20250915"
 twine = "^6.2.0"
 
 [tool.pytest.ini_options]
-addopts = "-n auto --cov=flync --cov=flync_cli --cov=flync_converter --cov-report=term --cov-report=xml --junitxml=report.xml"
+addopts = "-n auto --cov=flync --cov-report=term --cov-report=xml --junitxml=report.xml"
 testpaths = ["tests"]
 
 [tool.poetry-dynamic-versioning]

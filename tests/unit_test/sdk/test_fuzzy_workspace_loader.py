@@ -114,8 +114,9 @@ def __run_script(
     workspace: Path,
     fuzzed_fies: list[Path],
 ):
+    script_path = str(package_root / "src" / "flync" / "sdk" / "helpers" / "validate_workspace.py")
     result = subprocess.run(
-        ["flync", "validate", str(input_dir)],
+        [sys.executable, script_path, str(input_dir)],
         capture_output=True,
         text=True,
         env={**os.environ, "TERM": "dumb"},
