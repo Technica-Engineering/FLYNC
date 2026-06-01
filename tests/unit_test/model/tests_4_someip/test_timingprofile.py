@@ -70,7 +70,7 @@ def test_implemented_timing_profile(
         events=[e],
         fields=[f],
         methods=[m],
-        eventgroups=[SOMEIPEventgroup(name="eg", id=1, events=[f, e], multicast_threshold=10)],
+        eventgroups=[SOMEIPEventgroup(name="eg", id=1, events=[f, e])],
     )
     sd_config = SDConfig(
         ip_address="224.224.224.255",
@@ -139,7 +139,7 @@ def test_field_not_implemented_timing_profile(
         id=1,
         events=[e],
         fields=[f],
-        eventgroups=[SOMEIPEventgroup(name="eg", id=1, events=[f, e], multicast_threshold=10)],
+        eventgroups=[SOMEIPEventgroup(name="eg", id=1, events=[f, e])],
     )
     sd_config = someip_sdconfig
 
@@ -193,7 +193,7 @@ def test_event_not_implemented_timing_profile(
         id=1,
         events=[e],
         fields=[f],
-        eventgroups=[SOMEIPEventgroup(name="eg", id=1, events=[f, e], multicast_threshold=10)],
+        eventgroups=[SOMEIPEventgroup(name="eg", id=1, events=[f, e])],
     )
     sd_config = someip_sdconfig
 
@@ -272,7 +272,7 @@ def test_method_not_implemented_timing_profile(
         events=[e],
         fields=[f],
         methods=[m],
-        eventgroups=[SOMEIPEventgroup(name="eg", id=1, events=[f, e], multicast_threshold=10)],
+        eventgroups=[SOMEIPEventgroup(name="eg", id=1, events=[f, e])],
     )
     sd_config = someip_sdconfig
 

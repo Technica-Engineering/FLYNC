@@ -128,7 +128,6 @@ events:
 eventgroups:
 - name: eg2_all
   id: 2
-  multicast_threshold: 2
   events:
   - *event_0x8001
   - *event_0x8002
@@ -141,7 +140,6 @@ eventgroups:
   - *event_0x800b
 - name: eg5_events_and_fields_unreliable
   id: 5
-  multicast_threshold: 2
   events:
   - *event_0x8001
   - *event_0x8002
@@ -152,7 +150,6 @@ eventgroups:
   - *field_0x8007
 - name: eg6_events_multicast
   id: 6
-  multicast_threshold: 2
   events:
   - *event_0x800b
 methods:

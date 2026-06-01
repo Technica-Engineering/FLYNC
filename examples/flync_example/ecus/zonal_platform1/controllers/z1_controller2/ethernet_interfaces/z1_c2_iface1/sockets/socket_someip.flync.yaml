@@ -27,9 +27,15 @@ sockets:
         instance_id: 1
         major_version: 1
         someip_sd_timings_profile: server_default
+        multicast_config:
+          - ip_address: 224.0.0.15
+            port: 30510
+            threshold: 2
+            eventgroups:
+            - eg6_events_multicast
   - name: someip_tcp_socket_1
     endpoint_address: 10.0.20.2
-    endpoint_type: multicast
+    endpoint_type: unicast
     port_no: 30502
     protocol: tcp
     tcp_profile: 1

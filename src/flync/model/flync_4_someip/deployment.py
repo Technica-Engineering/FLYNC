@@ -6,6 +6,7 @@ import abc
 from typing import Annotated, List, Literal, Optional
 
 from pydantic import (
+    AfterValidator,
     Field,
     IPvAnyAddress,
     ValidationInfo,
@@ -13,6 +14,7 @@ from pydantic import (
     field_validator,
 )
 
+import flync.core.utils.common_validators as common_validators
 from flync.core.base_models import FLYNCBaseModel, Registry, get_registry
 from flync.core.utils.base_utils import is_ip_multicast
 from flync.model.flync_4_someip.service_interface import (
@@ -236,6 +238,36 @@ class SOMEIPServiceConsumer(SOMEIPServiceDeployment):
         return value
 
 
+class SOMEIPEventgroupMulticastConfig(FLYNCBaseModel):
+    """
+    Multicast Configuration for a SOME/IP Eventgroup.
+
+    Parameters
+    ----------
+    ip_address : IPvAnyAddress
+        Multicast IP address.
+
+    port : int
+        Multicast port.
+        Must be greater than 0 and less than 0xFFFF.
+
+    threshold : int
+        Multicast threshold: number of consumers needed to switch to multicast.
+        Must be greater than 0
+
+    eventgroups : List[str], optional
+        Eventgroup names for which this config should apply.
+        If not set, config applies for all eventgroups of the provider.
+    """
+
+    ip_address: Annotated[IPvAnyAddress, AfterValidator(common_validators.validate_ip_multicast)] = Field(
+        description="identifies the multicast address"
+    )
+    port: Annotated[int, Field(gt=0, lt=0xFFFF)] = Field(description="identifies the multicast port")
+    threshold: Annotated[int, Field(gt=0)] = Field(description="identifies the multicast threshold")
+    eventgroups: Optional[List[str]] = Field(default=None)
+
+
 class SOMEIPServiceProvider(SOMEIPServiceDeployment):
     """
     Defines the provider of a SOME/IP service instance (like offering & sending responses, events).
@@ -253,10 +285,13 @@ class SOMEIPServiceProvider(SOMEIPServiceDeployment):
         The minor version of this service interface.
         Must be greater than 0 and less than 0xFFFFFFFF.
 
-
     provided_eventgroups : List[str], optional
         If set, only the named eventgroups are offered/sent on this socket.
         None means all eventgroups of the service are provided.
+
+    multicast_config : List[:class:`~SOMEIPEventgroupMulticastConfig`], optional
+        If set, only the defined eventgroups are configured for multicast.
+        None means no eventgroups of the service are configured for multicast.
     """
 
     deployment_type: Literal["someip_provider"] = Field(default="someip_provider")
@@ -269,6 +304,7 @@ class SOMEIPServiceProvider(SOMEIPServiceDeployment):
     )
 
     provided_eventgroups: Optional[List[str]] = Field(default=None)
+    multicast_config: Optional[List[SOMEIPEventgroupMulticastConfig]] = Field(default=None)
 
     def model_post_init(self, __context):
         return super().model_post_init(__context)

@@ -199,6 +199,65 @@ class FLYNCModel(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
+    def validate_multicast_someip(self):
+        """
+        Validate multicast configuration for SOME/IP consumers and providers
+
+        For provider: check if the parent socket has a multicast_tx entry
+        For consumer: check if the parent interface is member of the appropriate multicast group
+        """
+
+        deployments = [
+            (deployment.root, socket, ecu)
+            for ecu in self.ecus
+            for ctrl in ecu.controllers
+            for iface in ctrl.ethernet_interfaces
+            for sock_con in iface.sockets
+            for socket in sock_con.sockets
+            for deployment in socket.deployments
+            if deployment.root.deployment_type.startswith("someip_") and socket.endpoint_type == "multicast" and socket.protocol == "udp"
+        ]
+
+        providers = [dpl for dpl in deployments if dpl[0].deployment_type == "someip_provider"]
+        consumers = [dpl for dpl in deployments if dpl[0].deployment_type == "someip_consumer"]
+
+        # Providers need to have multicast_tx in socket
+        for provider, socket, _ecu in providers:
+            for mcast_config in provider.multicast_config or []:
+                if mcast_config.ip_address not in socket.multicast_tx:
+                    raise err_major(
+                        f"Deployed provided service ({provider.service.name}, {provider.service.id:#06x}, {provider.service.major_version}) "
+                        f"has multicast configuration for eventgroups ({mcast_config.eventgroups}/{mcast_config.ip_address}), "
+                        f"but socket ({socket.name}) does not indicate by multicast_tx entry ({socket.multicast_tx})"
+                    )
+
+        #  Consumers need to have multicast membership in interface
+        for consumer, socket, ecu in consumers:
+            if consumer.consumed_eventgroups is not None:
+                eventgroups = consumer.consumed_eventgroups
+            else:
+                eventgroups = [eg.name for eg in consumer.service.eventgroups]
+            provider = [prv for prv, socket, ecu in providers if prv.service == consumer.service][0]
+            for mcast_config in provider.multicast_config:
+                if mcast_config.eventgroups is not None:
+                    provider_mcast_eventgroups = mcast_config.eventgroups
+                else:
+                    provider_mcast_eventgroups = [eg.name for eg in provider.service.eventgroups]
+                consumed_mcast_eventgroups = set(eventgroups).intersection(set(provider_mcast_eventgroups))
+                if consumed_mcast_eventgroups:
+                    interface = ecu.get_interface_for_ip(str(socket.endpoint_address))
+                    print(f"{[(vi.name, vi.multicast) for vi in interface.virtual_interfaces]}")
+                    if not any(mcast_config.ip_address == mcast for vi in interface.virtual_interfaces for mcast in vi.multicast):
+                        raise err_major(
+                            f"Deployed consumed service "
+                            f"({consumer.service.name}, {consumer.service.id:#06x}, {consumer.service.major_version}) "
+                            f"has multicast consumed eventgroup "
+                            f"({consumed_mcast_eventgroups}, but interface ({interface.name}) is not multicast member"
+                        )
+
+        return self
+
+    @model_validator(mode="after")
     def validate_unique_macs(self):
         """
         Validate all MACs are unique system wide
