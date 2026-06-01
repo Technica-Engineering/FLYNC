@@ -29,7 +29,7 @@ sockets:
         someip_sd_timings_profile: server_default
         multicast_config:
           - ip_address: 224.0.0.15
-            port: 30510
+            port: 30511
             threshold: 2
             eventgroups:
             - eg6_events_multicast

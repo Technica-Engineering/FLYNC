@@ -255,9 +255,8 @@ class SOMEIPEventgroupMulticastConfig(FLYNCBaseModel):
         Multicast threshold: number of consumers needed to switch to multicast.
         Must be greater than 0
 
-    eventgroups : List[str], optional
+    eventgroups : List[str]
         Eventgroup names for which this config should apply.
-        If not set, config applies for all eventgroups of the provider.
     """
 
     ip_address: Annotated[IPvAnyAddress, AfterValidator(common_validators.validate_ip_multicast)] = Field(
@@ -265,7 +264,7 @@ class SOMEIPEventgroupMulticastConfig(FLYNCBaseModel):
     )
     port: Annotated[int, Field(gt=0, lt=0xFFFF)] = Field(description="identifies the multicast port")
     threshold: Annotated[int, Field(gt=0)] = Field(description="identifies the multicast threshold")
-    eventgroups: Optional[List[str]] = Field(default=None)
+    eventgroups: List[str] = Field(description="identfies the eventgroups which can be sent via multicast")
 
 
 class SOMEIPServiceProvider(SOMEIPServiceDeployment):

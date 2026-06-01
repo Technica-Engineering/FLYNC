@@ -30,7 +30,7 @@ sockets:
 - name: someip_client_socket_udp2
   endpoint_address: 10.0.20.5
   endpoint_type: multicast
-  port_no: 30510
+  port_no: 30511
   protocol: udp
   deployments:
   - deployment_type: someip_consumer
@@ -74,8 +74,6 @@ sockets:
   port_no: 30501
   protocol: tcp
   tcp_profile: 1
-  multicast_tx:
-  - 224.0.0.15
   deployments:
   - deployment_type: someip_provider
     service: 0x0101
