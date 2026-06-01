@@ -1,5 +1,12 @@
 """Top-level package for flync-4-signal."""
 
+from flync.model.flync_4_signal.forwarder import (
+    CANFrameEgress,
+    CANFrameForwarder,
+    EthSocketEgress,
+    ForwarderEgress,
+    PDUForwarder,
+)
 from flync.model.flync_4_signal.frame import (
     CANFDFrame,
     CANFrame,
@@ -79,4 +86,10 @@ __all__ = [
     "CANFrame",
     "CANFDFrame",
     "LINFrame",
+    # forwarder
+    "PDUForwarder",
+    "CANFrameForwarder",
+    "ForwarderEgress",
+    "CANFrameEgress",
+    "EthSocketEgress",
 ]

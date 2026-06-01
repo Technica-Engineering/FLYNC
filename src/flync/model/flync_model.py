@@ -12,6 +12,11 @@ from flync.core.annotations import External, NamingStrategy, OutputStrategy
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.base_utils import check_obj_in_list
 from flync.core.utils.exceptions import err_major, warn
+from flync.core.utils.forwarder_validators import (
+    detect_forwarder_cycles,
+    validate_forwarder_locality,
+    validate_forwarder_refs,
+)
 from flync.core.utils.multicast import (
     collect_ipv6_solicited_node_rx,
     collect_ipv6_solicited_node_tx,
@@ -27,6 +32,7 @@ from flync.model.flync_4_ecu import (
 )
 from flync.model.flync_4_general_configuration import FLYNCGeneralConfig
 from flync.model.flync_4_metadata import SystemMetadata
+from flync.model.flync_4_signal.forwarder import CANFrameForwarder, PDUForwarder
 from flync.model.flync_4_topology import FLYNCTopology
 
 
@@ -208,6 +214,15 @@ class FLYNCModel(FLYNCBaseModel):
                     raise err_major(f"The MAC {mac} is repeated in ECU {ecu.name}")
         return self
 
+    @model_validator(mode="after")
+    def validate_forwarders(self):
+        """Workspace-level forwarder pass: ref resolution, same-controller locality + direction safety, and cycle detection."""
+
+        validate_forwarder_refs(self)  # Verifies all PDU and frame references resolve and the forwarded payload fits the egress CAN frame.
+        validate_forwarder_locality(self)  # Verifies each egress targets a same-controller carrier with a compatible pdu_sender or sender_frames.
+        detect_forwarder_cycles(self)  # Verifies the forwarder graph is acyclic.
+        return self
+
     def check_rx_are_reached(self, separ, paths, vlans_dict):
         for ecu in self.ecus:
             for mcast in ecu.multicast_groups:
@@ -323,3 +338,28 @@ class FLYNCModel(FLYNCBaseModel):
     def get_system_topology_info(self):
         """Return system topology details."""
         return self.topology.system_topology.model_dump()
+
+    def _iter_all_sockets(self):
+        """Yield every :class:`Socket` across every controller / ethernet interface / VLAN container."""
+        for controller in self.get_all_controllers():
+            for eth_iface in controller.ethernet_interfaces or []:
+                for socket_container in eth_iface.sockets or []:
+                    yield from socket_container.sockets or []
+
+    def get_all_pdu_forwarders(self) -> List[PDUForwarder]:
+        """Return every PDUForwarder declared on any socket across all ECUs."""
+        out: List[PDUForwarder] = []
+        for socket in self._iter_all_sockets():
+            for dep_root in socket.deployments or []:
+                dep = dep_root.root
+                if isinstance(dep, PDUForwarder):
+                    out.append(dep)
+        return out
+
+    def get_all_can_frame_forwarders(self) -> List[CANFrameForwarder]:
+        """Return every CANFrameForwarder declared on any CAN interface across all ECUs."""
+        out: List[CANFrameForwarder] = []
+        for controller in self.get_all_controllers():
+            for can_iface in controller.can_interfaces or []:
+                out.extend(can_iface.forwarder_frames or [])
+        return out

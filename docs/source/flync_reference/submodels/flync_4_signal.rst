@@ -32,8 +32,12 @@ Signals are not placed directly into PDUs; instead a
 with its placement information (bit offset and byte order).
 
 .. autoclass:: flync.model.flync_4_signal.SignalDataType()
-   :members:
-   :undoc-members:
+
+   Enumeration of valid signal data types: ``UINT8``, ``UINT16``, ``UINT32``,
+   ``UINT64``, ``INT8``, ``INT16``, ``INT32``, ``INT64``, ``FLOAT32``,
+   ``FLOAT64``, ``CHAR``, ``BYTEARRAY``. Each variant exposes the helpers
+   ``natural_bit_width()``, ``is_float()``, ``is_unsigned_integer()``,
+   ``is_signed_integer()``, and ``is_complex_datatype()``.
 
 .. autoclass:: flync.model.flync_4_signal.Signal()
 
@@ -434,6 +438,63 @@ PDU Sender / Receiver Deployments
 .. autoclass:: flync.model.flync_4_signal.PDUSender()
 
 .. autoclass:: flync.model.flync_4_signal.PDUReceiver()
+
+PDU Forwarder Deployments
+==========================
+
+A **PDU Forwarder** is a third per-PDU role (alongside ``pdu_sender``
+and ``pdu_receiver``) that consumes a PDU on its parent carrier and re-emits
+it on one or more **egresses**. The same primitive exists on both sides of the
+modelled network:
+
+* :class:`~flync.model.flync_4_signal.PDUForwarder` is an Ethernet-side
+  deployment that lives inside a socket's ``deployments`` block.
+* :class:`~flync.model.flync_4_signal.CANFrameForwarder` is a CAN-interface
+  list entry under ``forwarder_frames`` on
+  :class:`~flync.model.flync_4_ecu.CANInterfaceConfig`.
+
+Each forwarder lists one or more
+:class:`~flync.model.flync_4_signal.ForwarderEgress` items — a discriminated
+union of :class:`~flync.model.flync_4_signal.CANFrameEgress` (re-emit on a CAN
+frame) and :class:`~flync.model.flync_4_signal.EthSocketEgress` (re-emit on an
+Ethernet socket). Optional ``extract_pdu_ref`` on an egress selects a single
+inner PDU when the ingress is a
+:class:`~flync.model.flync_4_signal.ContainerPDU`.
+
+.. admonition:: Expand for a YAML example - 📄 ``ecus/high_performance_compute/controllers/hpc_controller1/can_interfaces/powertrain_can_interface.flync.yaml``
+   :collapsible: closed
+
+   .. note::
+      A ``forwarder_frames`` entry consumes ``frame_ref`` from the parent
+      interface's bus and re-emits it on one or more egresses. The example
+      below fans ``Frame_EngineStatus`` to a CAN frame on ``DiagCAN`` (CAN →
+      CAN) and to an Ethernet socket (CAN → Ethernet).
+
+   .. literalinclude:: ../../../../examples/flync_example/ecus/high_performance_compute/controllers/hpc_controller1/can_interfaces/powertrain_can_interface.flync.yaml
+      :language: yaml
+
+.. admonition:: Expand for a YAML example - 📄 ``ecus/high_performance_compute/controllers/hpc_controller1/ethernet_interfaces/hpc_c1_iface1/sockets/socket_pdu.flync.yaml``
+   :collapsible: closed
+
+   .. note::
+      A ``pdu_forwarder`` deployment consumes ``pdu_ref`` on the parent
+      socket. The forwarder on ``pdu_powertrain_rx`` extracts
+      ``PDU_EngineStatus`` from the inbound container and emits it on the
+      ``DiagCAN`` diagnostic frame (Ethernet → CAN), and also re-bridges the
+      whole container to a peer Ethernet socket (Ethernet → Ethernet).
+
+   .. literalinclude:: ../../../../examples/flync_example/ecus/high_performance_compute/controllers/hpc_controller1/ethernet_interfaces/hpc_c1_iface1/sockets/socket_pdu.flync.yaml
+      :language: yaml
+
+.. autoclass:: flync.model.flync_4_signal.PDUForwarder()
+
+.. autoclass:: flync.model.flync_4_signal.CANFrameForwarder()
+
+.. autoclass:: flync.model.flync_4_signal.ForwarderEgress()
+
+.. autoclass:: flync.model.flync_4_signal.CANFrameEgress()
+
+.. autoclass:: flync.model.flync_4_signal.EthSocketEgress()
 
 Frame Timing
 ============

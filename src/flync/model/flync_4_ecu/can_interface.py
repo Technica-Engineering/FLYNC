@@ -2,9 +2,11 @@
 
 from typing import List
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from flync.core.base_models import FLYNCBaseModel
+from flync.core.utils.exceptions import err_major
+from flync.model.flync_4_signal.forwarder import CANFrameForwarder
 
 
 class CANFrameRef(FLYNCBaseModel):
@@ -23,7 +25,7 @@ class CANFrameRef(FLYNCBaseModel):
 
 class CANInterfaceConfig(FLYNCBaseModel):
     """
-    CAN interface of a controller, declaring which frames the controller sends and receives on a CAN bus.
+    CAN interface of a controller, declaring which frames the controller sends, receives, and forwards on a CAN bus.
 
     Parameters
     ----------
@@ -33,8 +35,31 @@ class CANInterfaceConfig(FLYNCBaseModel):
         Frames transmitted by this controller on the bus.
     receiver_frames : list of :class:`CANFrameRef`
         Frames received by this controller from the bus.
+    forwarder_frames : list of \
+:class:`~flync.model.flync_4_signal.frame.CANFrameForwarder`
+        Frames received by this controller and re-emitted on one or more
+        egresses.
     """
 
     bus_ref: str = Field()
     sender_frames: List[CANFrameRef] = Field(default_factory=list)
     receiver_frames: List[CANFrameRef] = Field(default_factory=list)
+    forwarder_frames: List[CANFrameForwarder] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_forwarder_frame_uniqueness(self) -> "CANInterfaceConfig":
+        """Raise ``err_major`` if the same ``frame_ref`` appears twice in ``forwarder_frames``."""
+
+        seen: set = set()
+        duplicates: set = set()
+        for fwd in self.forwarder_frames:
+            if fwd.frame_ref in seen:
+                duplicates.add(fwd.frame_ref)
+            seen.add(fwd.frame_ref)
+        if duplicates:
+            raise err_major(
+                "CANInterfaceConfig(bus_ref={bus}): duplicate frame_ref(s) in forwarder_frames: {dups}",
+                bus=self.bus_ref,
+                dups=sorted(duplicates),
+            )
+        return self

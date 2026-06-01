@@ -4,3 +4,12 @@ receiver_frames:
   - frame_ref: Frame_EngineStatus
   - frame_ref: Frame_VehicleDynamics
   - frame_ref: Frame_TransmissionStatus
+
+forwarder_frames:
+  - frame_ref: Frame_EngineStatus
+    egresses:
+      - egress_type: can_frame
+        bus_ref: DiagCAN
+        frame_ref: Frame_EngineDiagResponse
+      - egress_type: eth_socket
+        socket_ref: pdu_engine_status_tx
