@@ -21,10 +21,6 @@ selected by the ``type`` discriminator:
   on/off flags, each identified by a disjoint :class:`BitmaskFlag` mask.
   Use this for partial-network relevance masks and similar feature-flag
   registers where multiple flags can be active simultaneously.
-
-All four variants are deliberately AUTOSAR-agnostic and map cleanly to the
-corresponding ``CompuMethod`` categories as well as to equivalent
-constructs in DBC, LDF, and FIBEX.
 """
 
 from typing import Annotated, List, Literal, Union
