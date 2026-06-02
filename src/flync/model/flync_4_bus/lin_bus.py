@@ -91,7 +91,7 @@ class LINBus(UniqueName):
     * ``frames`` → ``Frames`` section
     * ``schedule_tables`` → ``Schedule_tables`` section
     * Signal encoding types and ``Signal_representation`` are derived from the ``Signal.factor``, ``Signal.offset``,
-      ``Signal.lower_limit``, ``Signal.upper_limit``, ``Signal.unit``, and ``Signal.value_descriptions`` fields during LDF export.
+      ``Signal.lower_limit``, ``Signal.upper_limit``, ``Signal.unit``, and ``Signal.value_encoding`` fields during LDF export.
 
     Parameters
     ----------

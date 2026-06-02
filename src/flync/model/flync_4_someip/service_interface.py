@@ -395,11 +395,6 @@ class SOMEIPEventgroup(FLYNCBaseModel):
         Identifies the Eventgroup.
         Must be greater than 0 and lower or equal than 0xFFFF.
 
-    multicast_threshold : int, optional
-        Identifies the multicast threshold.
-        Must be greater than 0.
-        Defaults to 0.
-
     events: list[:class:`~SOMEIPEvent` | :class:`~SOMEIPField`]
         The events and fields this eventgroup contains.
     """
@@ -408,12 +403,6 @@ class SOMEIPEventgroup(FLYNCBaseModel):
     name: str = Field(description="name of the eventgroup")
     description: Optional[str] = Field(default="")
     id: Annotated[int, Field(gt=0, le=0xFFFF, strict=True)] = Field(description="identifies the eventgroup")
-    multicast_threshold: Optional[int] = Field(
-        default=0,
-        gt=0,
-        strict=True,
-        description="identifies the multicast threshold",
-    )
     events: Annotated[
         List[SOMEIPEvent | SOMEIPField],
         conset(item_type=SOMEIPEvent | SOMEIPField, min_length=1),

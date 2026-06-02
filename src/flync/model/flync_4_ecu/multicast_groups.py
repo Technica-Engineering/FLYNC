@@ -5,15 +5,17 @@ Defines :class:`MulticastGroupMembership`, describing participation of a virtual
 MAC) along with the direction (tx/rx), VLAN and optional source IP.
 """
 
+from ipaddress import IPv4Address, IPv6Address
 from typing import Annotated, Literal, Optional
 
-from pydantic import AfterValidator, Field, PrivateAttr
+from pydantic import AfterValidator, Field, PrivateAttr, model_validator
 from pydantic.networks import IPvAnyAddress
-from pydantic_extra_types.mac_address import MacAddress
 
 import flync.core.utils.common_validators as common_validators
 from flync.core.base_models import FLYNCBaseModel
+from flync.core.datatypes.macaddress import FLYNCMacAddress
 from flync.core.utils.common_validators import validate_vlan_id
+from flync.core.utils.exceptions import err_minor
 from flync.model.flync_4_ecu.controller import ControllerInterface
 
 
@@ -37,15 +39,24 @@ class MulticastGroupMembership(FLYNCBaseModel):
     """
 
     group: Annotated[
-        IPvAnyAddress | MacAddress,
+        IPvAnyAddress | FLYNCMacAddress,
         AfterValidator(common_validators.validate_any_multicast_address),
     ] = Field()
     description: Optional[str] = Field(default="")
-    mode: Literal["tx"] | Literal["rx"] = Field(default="tx")
+    mode: Literal["tx"] | Literal["rx"] = Field(default="rx")
     vlan: Annotated[Optional[int], AfterValidator(validate_vlan_id)] = Field(default=0)
     src_ip: Optional[IPvAnyAddress] = Field(default=None)
     solicited_node_multicast: Optional[bool] = Field(default=False)
     _interface: ControllerInterface = PrivateAttr()
+
+    @model_validator(mode="after")
+    def validate_src_ip_set_on_tx_ip_groups(self):
+        if (isinstance(self.group, (IPv4Address | IPv6Address))) and self.mode == "tx" and not self.src_ip:
+            raise err_minor(
+                f"Multicast group membership for {self.group} ({self.mode} / VLAN {self.vlan} ) could not be defined."
+                "The field 'src_ip' must be defined for IP multicast senders!"
+            )
+        return self
 
     @property
     def interface(self):

@@ -43,19 +43,6 @@ def read_yaml(path: str | os.PathLike | Path):
         rprint(f"[red]{e}[/red]")
 
 
-def write_to_file(obj, file_to_update):
-    """
-    Read a YAML file.
-
-    Args:
-        obj : FLYNC object to write
-        file_to_update : Path of the file for output
-    """
-
-    with open(file_to_update, "w") as f:
-        yaml.safe_dump(obj.model_dump(), f, sort_keys=False)
-
-
 def get_yaml_paths(base_path: str | os.PathLike) -> list:
     """
     Collect absolute paths to yaml files from a base_path.
@@ -92,6 +79,8 @@ def is_mac_address(input: str) -> Tuple[bool, str]:
     """
 
     try:
+        if not isinstance(input, str):
+            return False, f"{input!r} is not a MAC address."
         MacAddress.validate_mac_address(input.encode())
         is_mac = True
         msg = f"{input} is a MAC address."
@@ -231,6 +220,8 @@ def check_obj_in_list(obj, list):
 
     flag = False
     for c in list:
+        if c is None:
+            continue
         if (c.type == obj.type) and (
             (c.type == "switch_port" and obj.name == c.name and obj.get_switch().name == c.get_switch().name)
             or (c.type == "controller_interface" and obj.name == c.name and obj.get_controller().name == c.get_controller().name)

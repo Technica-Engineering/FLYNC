@@ -4,6 +4,7 @@ from typing import Annotated, List, Literal, Optional, Union
 
 from pydantic import Field
 
+from flync.core.annotations import Implied, ImpliedStrategy
 from flync.core.base_models import FLYNCBaseModel
 
 _LINProtocol = Literal["1.3", "2.0", "2.1", "2.2A"]
@@ -30,6 +31,9 @@ class LINMasterInterfaceConfig(FLYNCBaseModel):
 
     Parameters
     ----------
+    name : str
+        Name of the LIN interface, implied from the folder name on disk.
+
     node_type : Literal["master"]
         Discriminator field.  Always ``"master"``.
     bus_ref : str
@@ -46,6 +50,7 @@ class LINMasterInterfaceConfig(FLYNCBaseModel):
         Frames transmitted (scheduled) by this master controller.
     """
 
+    name: Annotated[str, Implied(strategy=ImpliedStrategy.FILE_NAME)] = Field()
     node_type: Literal["master"] = Field(default="master")
     bus_ref: str = Field()
     lin_protocol: _LINProtocol = Field()
@@ -62,6 +67,9 @@ class LINSlaveInterfaceConfig(FLYNCBaseModel):
 
     Parameters
     ----------
+    name : str
+        Name of the LIN interface, implied from the folder name on disk.
+
     node_type : Literal["slave"]
         Discriminator field.  Always ``"slave"``.
     bus_ref : str
@@ -84,6 +92,7 @@ class LINSlaveInterfaceConfig(FLYNCBaseModel):
         Frames received by this slave controller from the bus.
     """
 
+    name: Annotated[str, Implied(strategy=ImpliedStrategy.FILE_NAME)] = Field()
     node_type: Literal["slave"] = Field(default="slave")
     bus_ref: str = Field()
     lin_protocol: _LINProtocol = Field()

@@ -2,13 +2,21 @@ import pytest
 from pydantic import ValidationError
 
 from flync.model.flync_4_signal.signal import (
+    BitfieldGroup,
+    BitfieldState,
+    BitfieldTextTable,
+    BitmaskFlag,
+    BitmaskFlags,
     InstancePlacement,
+    RangeTextEntry,
+    RangeTextTable,
     Signal,
     SignalDataType,
     SignalGroup,
     SignalGroupInstance,
     SignalInstance,
-    ValueDescription,
+    TextEntry,
+    TextTable,
 )
 
 # ---------------------------------------------------------------------------
@@ -92,24 +100,78 @@ def test_positive_signal_data_type_is_signed_integer():
 
 
 # ---------------------------------------------------------------------------
-# ValueDescription
+# TextEntry / TextTable / RangeTextEntry / RangeTextTable
 # ---------------------------------------------------------------------------
 
 
-def test_positive_value_description_basic():
-    vd = ValueDescription(value=0, description="Off")
-    assert vd.value == 0
-    assert vd.description == "Off"
+def test_positive_text_entry_basic():
+    entry = TextEntry(value=0, label="Off")
+    assert entry.value == 0
+    assert entry.label == "Off"
 
 
-def test_positive_value_description_negative_value():
-    vd = ValueDescription(value=-1, description="Error")
-    assert vd.value == -1
+def test_positive_text_entry_negative_value():
+    entry = TextEntry(value=-1, label="Error")
+    assert entry.value == -1
 
 
-def test_positive_value_description_model_validate():
-    vd = ValueDescription.model_validate({"value": 3, "description": "Active"})
-    assert isinstance(vd, ValueDescription)
+def test_positive_range_text_entry_basic():
+    entry = RangeTextEntry(from_value=10, to_value=20, label="MidRange")
+    assert entry.from_value == 10
+    assert entry.to_value == 20
+
+
+def test_positive_text_table_model_validate():
+    table = TextTable.model_validate(
+        {
+            "type": "text_table",
+            "entries": [{"value": 3, "label": "Active"}],
+        }
+    )
+    assert isinstance(table, TextTable)
+    assert table.entries[0].label == "Active"
+
+
+def test_positive_range_text_table_model_validate():
+    table = RangeTextTable.model_validate(
+        {
+            "type": "range_text_table",
+            "entries": [{"from_value": 0, "to_value": 9, "label": "Low"}],
+        }
+    )
+    assert isinstance(table, RangeTextTable)
+    assert table.entries[0].to_value == 9
+
+
+def test_positive_bitfield_text_table_model_validate():
+    table = BitfieldTextTable.model_validate(
+        {
+            "type": "bitfield_text_table",
+            "groups": [
+                {
+                    "name": "Problem",
+                    "mask": 0xFF,
+                    "states": [{"label": "None", "from_value": 0, "to_value": 0}],
+                },
+            ],
+        }
+    )
+    assert isinstance(table, BitfieldTextTable)
+    assert table.groups[0].mask == 0xFF
+
+
+def test_positive_bitmask_flags_model_validate():
+    table = BitmaskFlags.model_validate(
+        {
+            "type": "bitmask_flags",
+            "flags": [
+                {"mask": 0x01, "label": "MirrorLeft"},
+                {"mask": 0x02, "label": "MirrorRight"},
+            ],
+        }
+    )
+    assert isinstance(table, BitmaskFlags)
+    assert len(table.flags) == 2
 
 
 # ---------------------------------------------------------------------------
@@ -179,18 +241,164 @@ def test_positive_signal_float64():
     assert sig.data_type == SignalDataType.FLOAT64
 
 
-def test_positive_signal_with_value_descriptions():
+def test_positive_signal_with_text_table_single_values():
     sig = Signal(
         name="gear",
         bit_length=4,
         data_type=SignalDataType.UINT8,
-        value_descriptions=[
-            ValueDescription(value=0, description="Neutral"),
-            ValueDescription(value=1, description="First"),
-            ValueDescription(value=2, description="Second"),
-        ],
+        value_encoding=TextTable(
+            entries=[
+                TextEntry(value=0, label="Neutral"),
+                TextEntry(value=1, label="First"),
+                TextEntry(value=2, label="Second"),
+            ],
+        ),
     )
-    assert len(sig.value_descriptions) == 3
+    assert isinstance(sig.value_encoding, TextTable)
+    assert len(sig.value_encoding.entries) == 3
+
+
+def test_positive_signal_with_range_text_table():
+    sig = Signal(
+        name="severity",
+        bit_length=8,
+        data_type=SignalDataType.UINT8,
+        value_encoding=RangeTextTable(
+            entries=[
+                RangeTextEntry(from_value=0, to_value=9, label="Low"),
+                RangeTextEntry(from_value=10, to_value=99, label="Medium"),
+                RangeTextEntry(from_value=100, to_value=200, label="High"),
+                RangeTextEntry(from_value=255, to_value=255, label="Signal_Not_Available"),
+            ],
+        ),
+    )
+    assert isinstance(sig.value_encoding, RangeTextTable)
+    assert len(sig.value_encoding.entries) == 4
+
+
+def test_positive_signal_with_range_text_table_signed():
+    sig = Signal(
+        name="signed_codes",
+        bit_length=8,
+        data_type=SignalDataType.INT8,
+        value_encoding=RangeTextTable(
+            entries=[
+                RangeTextEntry(from_value=-128, to_value=-128, label="Invalid"),
+                RangeTextEntry(from_value=-127, to_value=-1, label="Negative_Range"),
+                RangeTextEntry(from_value=0, to_value=127, label="Valid"),
+            ],
+        ),
+    )
+    assert len(sig.value_encoding.entries) == 3
+
+
+def test_positive_signal_text_table_combined_with_linear():
+    sig = Signal(
+        name="VehicleSpeed",
+        bit_length=16,
+        data_type=SignalDataType.UINT16,
+        factor=0.01,
+        offset=0.0,
+        lower_limit=0.0,
+        upper_limit=655.35,
+        unit="km/h",
+        value_encoding=TextTable(
+            entries=[
+                TextEntry(value=65535, label="Signal_Not_Available"),
+            ],
+        ),
+    )
+    assert sig.factor == 0.01
+    assert isinstance(sig.value_encoding, TextTable)
+
+
+def test_positive_signal_with_bitmask_flags():
+    sig = Signal(
+        name="PartialNetworkRelevance",
+        bit_length=8,
+        data_type=SignalDataType.UINT8,
+        value_encoding=BitmaskFlags(
+            flags=[
+                BitmaskFlag(mask=0x01, label="MirrorLeft"),
+                BitmaskFlag(mask=0x02, label="MirrorRight"),
+                BitmaskFlag(mask=0x04, label="CabinLight"),
+                BitmaskFlag(mask=0x08, label="EngineStatus"),
+                BitmaskFlag(mask=0x10, label="TransmissionStatus"),
+                BitmaskFlag(mask=0x20, label="VehicleDynamics"),
+            ],
+        ),
+    )
+    assert isinstance(sig.value_encoding, BitmaskFlags)
+    assert len(sig.value_encoding.flags) == 6
+
+
+def test_positive_signal_with_bitmask_flags_multi_bit_mask():
+    """A single flag may span several bits (e.g. 0x03 = 'front mirrors')."""
+    sig = Signal(
+        name="GroupedFlags",
+        bit_length=8,
+        data_type=SignalDataType.UINT8,
+        value_encoding=BitmaskFlags(
+            flags=[
+                BitmaskFlag(mask=0x03, label="FrontMirrors"),
+                BitmaskFlag(mask=0x04, label="CabinLight"),
+            ],
+        ),
+    )
+    assert sig.value_encoding.flags[0].mask == 0x03
+
+
+def test_positive_signal_with_bitfield_text_table():
+    sig = Signal(
+        name="States",
+        bit_length=16,
+        data_type=SignalDataType.UINT16,
+        value_encoding=BitfieldTextTable(
+            groups=[
+                BitfieldGroup(
+                    name="Problem",
+                    mask=0xFF,
+                    states=[
+                        BitfieldState(label="ProblemNone", from_value=0x00, to_value=0x00),
+                        BitfieldState(label="ProblemFailure", from_value=0x08, to_value=0x08),
+                        BitfieldState(label="ProblemMajor", from_value=0x18, to_value=0x18),
+                    ],
+                ),
+            ],
+        ),
+    )
+    assert isinstance(sig.value_encoding, BitfieldTextTable)
+    assert sig.value_encoding.groups[0].mask == 0xFF
+    assert len(sig.value_encoding.groups[0].states) == 3
+
+
+def test_positive_signal_with_bitfield_text_table_multiple_groups():
+    sig = Signal(
+        name="StatusWord",
+        bit_length=16,
+        data_type=SignalDataType.UINT16,
+        value_encoding=BitfieldTextTable(
+            groups=[
+                BitfieldGroup(
+                    name="Problem",
+                    mask=0x00FF,
+                    states=[
+                        BitfieldState(label="ProblemNone", from_value=0x00, to_value=0x00),
+                        BitfieldState(label="ProblemFailure", from_value=0x08, to_value=0x08),
+                    ],
+                ),
+                BitfieldGroup(
+                    name="Mode",
+                    mask=0xFF00,
+                    states=[
+                        BitfieldState(label="ModeIdle", from_value=0x0000, to_value=0x0000),
+                        BitfieldState(label="ModeActive", from_value=0x0100, to_value=0x0100),
+                    ],
+                ),
+            ],
+        ),
+    )
+    assert len(sig.value_encoding.groups) == 2
 
 
 def test_positive_signal_with_negative_factor():
@@ -416,17 +624,69 @@ def test_negative_signal_limits_inverted():
         )
 
 
-def test_negative_signal_duplicate_value_descriptions():
-    with pytest.raises(ValidationError):
+def test_negative_text_table_duplicate_value():
+    with pytest.raises(ValidationError, match="Duplicate value"):
         Signal(
-            name="dup_vd",
+            name="dup_val",
             bit_length=8,
             data_type=SignalDataType.UINT8,
-            value_descriptions=[
-                ValueDescription(value=1, description="First"),
-                ValueDescription(value=1, description="Also first"),
-            ],
+            value_encoding=TextTable(
+                entries=[
+                    TextEntry(value=1, label="First"),
+                    TextEntry(value=1, label="Also first"),
+                ],
+            ),
         )
+
+
+def test_negative_text_table_duplicate_label():
+    with pytest.raises(ValidationError, match="Duplicate label"):
+        Signal(
+            name="dup_label",
+            bit_length=8,
+            data_type=SignalDataType.UINT8,
+            value_encoding=TextTable(
+                entries=[
+                    TextEntry(value=1, label="First"),
+                    TextEntry(value=2, label="First"),
+                ],
+            ),
+        )
+
+
+def test_negative_range_text_table_overlapping_entries():
+    with pytest.raises(ValidationError, match="overlap"):
+        Signal(
+            name="olap",
+            bit_length=8,
+            data_type=SignalDataType.UINT8,
+            value_encoding=RangeTextTable(
+                entries=[
+                    RangeTextEntry(from_value=0, to_value=10, label="A"),
+                    RangeTextEntry(from_value=5, to_value=15, label="B"),
+                ],
+            ),
+        )
+
+
+def test_negative_range_text_table_duplicate_label():
+    with pytest.raises(ValidationError, match="Duplicate label"):
+        Signal(
+            name="dup_range_label",
+            bit_length=8,
+            data_type=SignalDataType.UINT8,
+            value_encoding=RangeTextTable(
+                entries=[
+                    RangeTextEntry(from_value=0, to_value=10, label="X"),
+                    RangeTextEntry(from_value=11, to_value=20, label="X"),
+                ],
+            ),
+        )
+
+
+def test_negative_range_text_entry_reversed_bounds():
+    with pytest.raises(ValidationError, match="must not be less than"):
+        RangeTextEntry(from_value=10, to_value=5, label="bad")
 
 
 @pytest.mark.parametrize(
@@ -438,13 +698,180 @@ def test_negative_signal_duplicate_value_descriptions():
         pytest.param(SignalDataType.INT8, 8, -129, id="int8_value_neg129"),
     ],
 )
-def test_negative_signal_value_description_out_of_range(data_type, bit_length, bad_value):
+def test_negative_text_table_out_of_range(data_type, bit_length, bad_value):
     with pytest.raises(ValidationError):
         Signal(
             name=f"vd_range_{data_type.value}",
             bit_length=bit_length,
             data_type=data_type,
-            value_descriptions=[ValueDescription(value=bad_value, description="Out")],
+            value_encoding=TextTable(
+                entries=[TextEntry(value=bad_value, label="Out")],
+            ),
+        )
+
+
+@pytest.mark.parametrize(
+    "data_type, bit_length, bad_from, bad_to",
+    [
+        pytest.param(SignalDataType.UINT8, 4, 16, 16, id="uint8_4bit_range_16"),
+        pytest.param(SignalDataType.UINT8, 8, 250, 260, id="uint8_range_overflow"),
+        pytest.param(SignalDataType.INT8, 8, -129, -1, id="int8_range_underflow"),
+    ],
+)
+def test_negative_range_text_table_out_of_range(data_type, bit_length, bad_from, bad_to):
+    with pytest.raises(ValidationError):
+        Signal(
+            name=f"rg_range_{data_type.value}",
+            bit_length=bit_length,
+            data_type=data_type,
+            value_encoding=RangeTextTable(
+                entries=[RangeTextEntry(from_value=bad_from, to_value=bad_to, label="Out")],
+            ),
+        )
+
+
+@pytest.mark.parametrize(
+    "data_type, bit_length",
+    [
+        pytest.param(SignalDataType.FLOAT32, 32, id="float32"),
+        pytest.param(SignalDataType.FLOAT64, 64, id="float64"),
+        pytest.param(SignalDataType.CHAR, 8, id="char"),
+        pytest.param(SignalDataType.BYTEARRAY, 8, id="bytearray"),
+    ],
+)
+def test_negative_value_encoding_unsupported_data_type(data_type, bit_length):
+    with pytest.raises(ValidationError, match="not supported"):
+        Signal(
+            name="bad_dt",
+            bit_length=bit_length,
+            data_type=data_type,
+            value_encoding=TextTable(
+                entries=[TextEntry(value=0, label="X")],
+            ),
+        )
+
+
+def test_negative_bitmask_flags_overlapping_masks():
+    with pytest.raises(ValidationError, match="overlaps another flag"):
+        BitmaskFlags(
+            flags=[
+                BitmaskFlag(mask=0x03, label="A"),
+                BitmaskFlag(mask=0x06, label="B"),
+            ],
+        )
+
+
+def test_negative_bitmask_flags_duplicate_label():
+    with pytest.raises(ValidationError, match="duplicate flag label"):
+        BitmaskFlags(
+            flags=[
+                BitmaskFlag(mask=0x01, label="Dup"),
+                BitmaskFlag(mask=0x02, label="Dup"),
+            ],
+        )
+
+
+def test_negative_bitmask_flags_zero_mask():
+    with pytest.raises(ValidationError):
+        BitmaskFlag(mask=0, label="ZeroMask")
+
+
+def test_negative_bitmask_flags_mask_exceeds_bit_length():
+    with pytest.raises(ValidationError, match="exceeds the representable range"):
+        Signal(
+            name="bm_overflow",
+            bit_length=8,
+            data_type=SignalDataType.UINT8,
+            value_encoding=BitmaskFlags(
+                flags=[BitmaskFlag(mask=0x100, label="TooBig")],
+            ),
+        )
+
+
+def test_negative_bitfield_mask_exceeds_bit_length():
+    with pytest.raises(ValidationError, match="exceeds the representable range"):
+        Signal(
+            name="mask_overflow",
+            bit_length=8,
+            data_type=SignalDataType.UINT8,
+            value_encoding=BitfieldTextTable(
+                groups=[
+                    BitfieldGroup(
+                        name="G",
+                        mask=0x1FF,
+                        states=[BitfieldState(label="S", from_value=0, to_value=0)],
+                    ),
+                ],
+            ),
+        )
+
+
+def test_negative_bitfield_overlapping_group_masks():
+    with pytest.raises(ValidationError, match="overlaps another group"):
+        BitfieldTextTable(
+            groups=[
+                BitfieldGroup(
+                    name="A",
+                    mask=0xF0,
+                    states=[BitfieldState(label="SA", from_value=0, to_value=0)],
+                ),
+                BitfieldGroup(
+                    name="B",
+                    mask=0x30,
+                    states=[BitfieldState(label="SB", from_value=0, to_value=0)],
+                ),
+            ],
+        )
+
+
+def test_negative_bitfield_duplicate_group_name():
+    with pytest.raises(ValidationError, match="duplicate group name"):
+        BitfieldTextTable(
+            groups=[
+                BitfieldGroup(
+                    name="G",
+                    mask=0x0F,
+                    states=[BitfieldState(label="A", from_value=0, to_value=0)],
+                ),
+                BitfieldGroup(
+                    name="G",
+                    mask=0xF0,
+                    states=[BitfieldState(label="B", from_value=0, to_value=0)],
+                ),
+            ],
+        )
+
+
+def test_negative_bitfield_state_outside_mask():
+    with pytest.raises(ValidationError, match="outside mask"):
+        BitfieldGroup(
+            name="G",
+            mask=0x0F,
+            states=[BitfieldState(label="OutOfMask", from_value=0x10, to_value=0x10)],
+        )
+
+
+def test_negative_bitfield_overlapping_states_within_group():
+    with pytest.raises(ValidationError, match="overlap"):
+        BitfieldGroup(
+            name="G",
+            mask=0xFF,
+            states=[
+                BitfieldState(label="A", from_value=0x08, to_value=0x18),
+                BitfieldState(label="B", from_value=0x10, to_value=0x20),
+            ],
+        )
+
+
+def test_negative_bitfield_duplicate_state_label():
+    with pytest.raises(ValidationError, match="duplicate state label"):
+        BitfieldGroup(
+            name="G",
+            mask=0xFF,
+            states=[
+                BitfieldState(label="Dup", from_value=0x01, to_value=0x01),
+                BitfieldState(label="Dup", from_value=0x02, to_value=0x02),
+            ],
         )
 
 
@@ -538,26 +965,86 @@ def test_positive_signal_instance_without_bit_position(uint8_signal):
 # ---------------------------------------------------------------------------
 
 
-def test_positive_signal_group_single_signal(uint8_signal):
-    sg = SignalGroup(name="grp_single", signals=[uint8_signal])
+def test_positive_signal_group_single_signal(uint8_signal_instance):
+    sg = SignalGroup(name="grp_single", signals=[uint8_signal_instance])
     assert len(sg.signals) == 1
 
 
 def test_positive_signal_group_multiple_signals():
     s1 = Signal(name="grp_s1", bit_length=8, data_type=SignalDataType.UINT8)
     s2 = Signal(name="grp_s2", bit_length=16, data_type=SignalDataType.UINT16)
-    sg = SignalGroup(name="grp_multi", signals=[s1, s2])
+    sg = SignalGroup(
+        name="grp_multi",
+        signals=[
+            SignalInstance(signal=s1, bit_position=0),
+            SignalInstance(signal=s2, bit_position=8),
+        ],
+    )
     assert len(sg.signals) == 2
 
 
-def test_positive_signal_group_with_description(uint8_signal):
-    sg = SignalGroup(name="grp_desc", signals=[uint8_signal], description="Test group")
+def test_positive_signal_group_with_description(uint8_signal_instance):
+    sg = SignalGroup(
+        name="grp_desc",
+        signals=[uint8_signal_instance],
+        description="Test group",
+    )
     assert sg.description == "Test group"
+
+
+def test_positive_signal_group_adjacent_no_overlap():
+    """Signal instances whose ranges touch at the boundary are not overlapping."""
+    s1 = Signal(name="grp_adj_s1", bit_length=4, data_type=SignalDataType.UINT8)
+    s2 = Signal(name="grp_adj_s2", bit_length=4, data_type=SignalDataType.UINT8)
+    sg = SignalGroup(
+        name="grp_adj",
+        signals=[
+            SignalInstance(signal=s1, bit_position=0),
+            SignalInstance(signal=s2, bit_position=4),
+        ],
+    )
+    assert len(sg.signals) == 2
+
+
+def test_positive_signal_group_unplaced_instance():
+    """Signal instances without a bit_position are accepted and skipped by checks."""
+    s = Signal(name="grp_unplaced_sig", bit_length=8, data_type=SignalDataType.UINT8)
+    sg = SignalGroup(name="grp_unplaced", signals=[SignalInstance(signal=s)])
+    assert len(sg.signals) == 1
+    assert sg.signals[0].bit_position is None
 
 
 def test_negative_signal_group_empty_signals():
     with pytest.raises(ValidationError):
         SignalGroup(name="grp_empty", signals=[])
+
+
+def test_negative_signal_group_signals_overlap():
+    """Two signal instances whose ranges intersect inside a group must be rejected."""
+    s1 = Signal(name="grp_olap_s1", bit_length=8, data_type=SignalDataType.UINT8)
+    s2 = Signal(name="grp_olap_s2", bit_length=8, data_type=SignalDataType.UINT8)
+    with pytest.raises(ValidationError, match="overlap"):
+        SignalGroup(
+            name="grp_olap",
+            signals=[
+                SignalInstance(signal=s1, bit_position=0),
+                SignalInstance(signal=s2, bit_position=4),
+            ],
+        )
+
+
+def test_negative_signal_group_signals_identical_position():
+    """Two signal instances at the same bit_position inside a group must overlap."""
+    s1 = Signal(name="grp_same_s1", bit_length=8, data_type=SignalDataType.UINT8)
+    s2 = Signal(name="grp_same_s2", bit_length=8, data_type=SignalDataType.UINT8)
+    with pytest.raises(ValidationError, match="overlap"):
+        SignalGroup(
+            name="grp_same_pos",
+            signals=[
+                SignalInstance(signal=s1, bit_position=0),
+                SignalInstance(signal=s2, bit_position=0),
+            ],
+        )
 
 
 # ---------------------------------------------------------------------------

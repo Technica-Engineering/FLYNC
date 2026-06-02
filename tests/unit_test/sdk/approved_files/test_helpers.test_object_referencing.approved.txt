@@ -3,6 +3,6 @@
     "ecus.high_performance_compute.topology.connections.2.ecu_port": "ecus.high_performance_compute.ports.ports.hpc1_p3",
     "ecus.high_performance_compute.topology.connections.3.controller_interface": "ecus.high_performance_compute.controllers.hpc_controller1.ethernet_interfaces.hpc_c1_iface1.interface_config",
     "ecus.high_performance_compute.topology.connections.4.switch_port": "ecus.high_performance_compute.switches.hpc_switch1.ports.hpc_s1_p2",
-    "ecus.zonal_platform2.topology.connections.3.controller_interface1": "ecus.zonal_platform2.controllers.z2_controller1.ethernet_interfaces.z2_c1_iface1.interface_config",
+    "ecus.zonal_platform2.topology.connections.3.controller_interface": "ecus.zonal_platform2.controllers.z2_controller1.ethernet_interfaces.z2_c1_iface1.interface_config",
     "ecus.zonal_platform2.topology.connections.3.controller_interface2": "ecus.zonal_platform2.controllers.z2_controller2.ethernet_interfaces.z2_c2_iface1.interface_config"
 }

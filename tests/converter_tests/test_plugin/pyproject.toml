@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "test_plugin"
+authors = ["Dummy Author <dummy.email@example.com>"]
+description = "A test plugin for flync_converter"
+version = "0.1.0"
+[tool.poetry.dependencies]
+python = "^3.11"
+flync_converter= "*"
+
+[tool.poetry.plugins."flync_converter"]
+example = "test_plugin.plugin"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

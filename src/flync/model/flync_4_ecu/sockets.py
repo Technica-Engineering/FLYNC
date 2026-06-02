@@ -29,7 +29,8 @@ from flync.core.datatypes.ipaddress import (
     IPv4AddressEntry,
     IPv6AddressEntry,
 )
-from flync.core.utils.exceptions import err_minor, warn
+from flync.core.utils.exceptions import err_major, err_minor, warn
+from flync.model.flync_4_signal.forwarder import PDUForwarder
 from flync.model.flync_4_signal.frame import PDUReceiver, PDUSender
 from flync.model.flync_4_someip import (
     SOMEIPSDDeployment,
@@ -54,10 +55,14 @@ class DeploymentUnion(RootModel):
     :class:`~flync.model.flync_4_signal.frame.PDUSender`
     or
     :class:`~flync.model.flync_4_signal.frame.PDUReceiver`
+    or
+    :class:`~flync.model.flync_4_signal.frame.PDUForwarder`
 
     """
 
-    root: SOMEIPServiceConsumer | SOMEIPServiceProvider | SOMEIPSDDeployment | PDUSender | PDUReceiver = Field(discriminator="deployment_type")
+    root: SOMEIPServiceConsumer | SOMEIPServiceProvider | SOMEIPSDDeployment | PDUSender | PDUReceiver | PDUForwarder = Field(
+        discriminator="deployment_type"
+    )
 
 
 def get_endpoint_type_from_address(
@@ -130,6 +135,28 @@ class Socket(FLYNCBaseModel):
                 raise err_minor(f"Validation error in deployment {idx} of socket - {detail}. Skipping to the next deployment.")
             idx = idx + 1
         return valid_deployment
+
+    @model_validator(mode="after")
+    def validate_unique_forwarder_per_pdu(self) -> "Socket":
+        """
+        Raise ``err_major`` if two ``PDUForwarder`` deployments on this socket target the same ``pdu_ref``.
+        """
+
+        seen: set = set()
+        duplicates: set = set()
+        for dep_root in self.deployments or []:
+            dep = dep_root.root
+            if isinstance(dep, PDUForwarder):
+                if dep.pdu_ref in seen:
+                    duplicates.add(dep.pdu_ref)
+                seen.add(dep.pdu_ref)
+        if duplicates:
+            raise err_major(
+                "Socket '{name}': duplicate PDUForwarder deployment(s) for pdu_ref(s): {dups}",
+                name=self.name,
+                dups=sorted(duplicates),
+            )
+        return self
 
     @field_serializer("endpoint_address")
     def serialize_endpoint_address(self, endpoint):

@@ -1,5 +1,12 @@
 """Top-level package for flync-4-signal."""
 
+from flync.model.flync_4_signal.forwarder import (
+    CANFrameEgress,
+    CANFrameForwarder,
+    EthSocketEgress,
+    ForwarderEgress,
+    PDUForwarder,
+)
 from flync.model.flync_4_signal.frame import (
     CANFDFrame,
     CANFrame,
@@ -23,19 +30,37 @@ from flync.model.flync_4_signal.pdu import (
     StandardPDU,
 )
 from flync.model.flync_4_signal.signal import (
+    BitfieldGroup,
+    BitfieldState,
+    BitfieldTextTable,
+    BitmaskFlag,
+    BitmaskFlags,
     InstancePlacement,
+    RangeTextEntry,
+    RangeTextTable,
     Signal,
     SignalDataType,
     SignalGroup,
     SignalGroupInstance,
     SignalInstance,
-    ValueDescription,
+    TextEntry,
+    TextTable,
+    ValueEncoding,
 )
 
 __all__ = [
     # signal
     "SignalDataType",
-    "ValueDescription",
+    "TextEntry",
+    "TextTable",
+    "RangeTextEntry",
+    "RangeTextTable",
+    "BitfieldState",
+    "BitfieldGroup",
+    "BitfieldTextTable",
+    "BitmaskFlag",
+    "BitmaskFlags",
+    "ValueEncoding",
     "InstancePlacement",
     "Signal",
     "SignalInstance",
@@ -61,4 +86,10 @@ __all__ = [
     "CANFrame",
     "CANFDFrame",
     "LINFrame",
+    # forwarder
+    "PDUForwarder",
+    "CANFrameForwarder",
+    "ForwarderEgress",
+    "CANFrameEgress",
+    "EthSocketEgress",
 ]

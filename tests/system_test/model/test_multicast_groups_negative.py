@@ -102,16 +102,14 @@ def test_rx_with_src_ip(ci):
             raise ValueError("RX mode cannot have src_ip defined.")
 
 
-@pytest.mark.xfail(reason="Known bug")
-def test_tx_without_src_ip(ci):
+def test_tx_without_src_ip():
     """TX mode must define a source IP."""
+    with pytest.raises(ValidationError) as exc:
+        MulticastGroupMembership(group="239.1.1.11", mode="tx", src_ip=None, vlan=20)
 
-    tx_group = MulticastGroupMembership(group="239.1.1.11", mode="tx", vlan=10)
-    tx_group._interface = ci
-
-    with pytest.raises(ValueError):
-        if tx_group.mode == "tx" and tx_group.src_ip is None:
-            raise ValueError("TX mode requires a source IP.")
+    errors = exc.value.errors()
+    err = errors[0]
+    assert "The field 'src_ip' must be defined for IP multicast senders!" in err["msg"]
 
 
 @pytest.mark.xfail(reason="Known bug")

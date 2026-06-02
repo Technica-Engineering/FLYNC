@@ -92,12 +92,13 @@ def test_controller_model_validate_accepts_new_payload(embedded_metadata_entry, 
             "controller_metadata": embedded_metadata_entry,
             "ethernet_interfaces": [
                 {
+                    "name": "iface",
                     "interface_config": {
                         "name": "iface",
                         "mac_address": "aa:bb:cc:dd:ee:ff",
                         "virtual_interfaces": [virtual_controller_interface],
                         "ptp_config": None,
-                    }
+                    },
                 }
             ],
         }

@@ -16,6 +16,24 @@ FATAL_ERROR_TYPES = {"extra_forbid", "extra_forbidden", "fatal", "missing"}
 FLYNC_ERROR_TYPES = FATAL_ERROR_TYPES | {"minor", "major", "warning"}
 
 
+def is_semantic_validation_error(err: ErrorDetails) -> bool:
+    """
+    Return ``True`` if ``err`` is a user-raised semantic validation error.
+
+    User code raises semantic errors via :func:`err_major`, :func:`err_minor`,
+    or :func:`err_fatal`; their ``type`` is exactly ``"major"`` / ``"minor"`` /
+    ``"fatal"`` and ``ctx`` carries the formatter kwargs only.  A native
+    Pydantic mismatch rewrapped by :func:`_wrap_native_error` shares the
+    ``"major"`` type but always sets ``ctx["sub_errors"]`` — that key
+    distinguishes structural mismatches from semantic failures.
+    """
+
+    if err.get("type") not in {"major", "minor", "fatal"}:
+        return False
+    ctx = err.get("ctx") or {}
+    return "sub_errors" not in ctx
+
+
 def resolve_alias(model: type[BaseModel], field_name: str) -> str:
     """
     Return the YAML key used for a Pydantic field, considering alias.

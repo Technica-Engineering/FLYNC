@@ -112,7 +112,10 @@ def test_positive_standard_pdu_two_signals_no_overlap():
 
 def test_positive_standard_pdu_with_signal_group():
     s1 = Signal(name="grp_s1_pdu", bit_length=8, data_type=SignalDataType.UINT8)
-    sg = SignalGroup(name="pdu_grp1", signals=[s1])
+    sg = SignalGroup(
+        name="pdu_grp1",
+        signals=[SignalInstance(signal=s1, bit_position=0)],
+    )
     pdu = StandardPDU(
         name="grp_pdu",
         length=1,
@@ -160,6 +163,182 @@ def test_negative_standard_pdu_signal_overlap():
 def test_negative_standard_pdu_zero_length():
     with pytest.raises(ValidationError):
         StandardPDU(name="zero_len_pdu", length=0)
+
+
+# ---------------------------------------------------------------------------
+# StandardPDU — signal/group placement edge cases (overlap / overflow)
+# ---------------------------------------------------------------------------
+
+
+def test_positive_standard_pdu_signals_adjacent_no_overlap():
+    """Two signals whose ranges touch at the boundary must not be flagged as overlapping."""
+    s1 = Signal(name="adj_s1", bit_length=4, data_type=SignalDataType.UINT8)
+    s2 = Signal(name="adj_s2", bit_length=4, data_type=SignalDataType.UINT8)
+    pdu = StandardPDU(
+        name="adjacent_pdu",
+        length=1,
+        signals=[
+            SignalInstance(signal=s1, bit_position=0),
+            SignalInstance(signal=s2, bit_position=4),
+        ],
+    )
+    assert len(pdu.signals) == 2
+
+
+def test_positive_standard_pdu_signal_fits_exactly_at_end():
+    """A signal ending exactly at the last PDU bit must be accepted."""
+    sig = Signal(name="boundary_sig", bit_length=8, data_type=SignalDataType.UINT8)
+    pdu = StandardPDU(
+        name="boundary_pdu",
+        length=2,
+        signals=[SignalInstance(signal=sig, bit_position=8)],
+    )
+    assert pdu.signals[0].bit_position == 8
+
+
+def test_positive_standard_pdu_mixed_placed_and_unplaced_signals():
+    """Unplaced signals (bit_position=None) must be skipped during overlap/overflow checks."""
+    placed = Signal(name="placed_mix", bit_length=8, data_type=SignalDataType.UINT8)
+    unplaced = Signal(name="unplaced_mix", bit_length=8, data_type=SignalDataType.UINT8)
+    pdu = StandardPDU(
+        name="mixed_placement_pdu",
+        length=1,
+        signals=[
+            SignalInstance(signal=placed, bit_position=0),
+            SignalInstance(signal=unplaced),
+        ],
+    )
+    assert len(pdu.signals) == 2
+
+
+def test_positive_standard_pdu_signal_and_signal_group_no_overlap():
+    """A signal and a signal group placed side by side must not be flagged as overlapping."""
+    sig = Signal(name="mix_sig", bit_length=8, data_type=SignalDataType.UINT8)
+    grp_sig = Signal(name="mix_grp_inner", bit_length=8, data_type=SignalDataType.UINT8)
+    grp = SignalGroup(
+        name="mix_grp",
+        signals=[SignalInstance(signal=grp_sig, bit_position=0)],
+    )
+    pdu = StandardPDU(
+        name="mix_pdu",
+        length=2,
+        signals=[SignalInstance(signal=sig, bit_position=0)],
+        signal_groups=[SignalGroupInstance(signal_group=grp, bit_position=8)],
+    )
+    assert len(pdu.signals) == 1
+    assert len(pdu.signal_groups) == 1
+
+
+def test_negative_standard_pdu_signals_identical_position():
+    """Two signals at the same bit_position must be flagged as overlapping."""
+    s1 = Signal(name="same_pos_s1", bit_length=8, data_type=SignalDataType.UINT8)
+    s2 = Signal(name="same_pos_s2", bit_length=8, data_type=SignalDataType.UINT8)
+    with pytest.raises(ValidationError, match="overlap"):
+        StandardPDU(
+            name="same_pos_pdu",
+            length=1,
+            signals=[
+                SignalInstance(signal=s1, bit_position=0),
+                SignalInstance(signal=s2, bit_position=0),
+            ],
+        )
+
+
+def test_negative_standard_pdu_signal_range_contained_in_other():
+    """A signal whose range is fully contained inside another signal's range must overlap."""
+    outer = Signal(name="outer_sig", bit_length=16, data_type=SignalDataType.UINT16)
+    inner = Signal(name="inner_sig", bit_length=4, data_type=SignalDataType.UINT8)
+    with pytest.raises(ValidationError, match="overlap"):
+        StandardPDU(
+            name="contained_pdu",
+            length=2,
+            signals=[
+                SignalInstance(signal=outer, bit_position=0),
+                SignalInstance(signal=inner, bit_position=4),
+            ],
+        )
+
+
+def test_negative_standard_pdu_signal_starts_at_pdu_end():
+    """A signal placed exactly at the PDU's last bit must overflow (length is half-open)."""
+    sig = Signal(name="at_end_sig", bit_length=1, data_type=SignalDataType.UINT8)
+    with pytest.raises(ValidationError, match="overflows"):
+        StandardPDU(
+            name="at_end_pdu",
+            length=1,
+            signals=[SignalInstance(signal=sig, bit_position=8)],
+        )
+
+
+def test_negative_standard_pdu_signal_group_overflows_pdu():
+    """A signal group whose footprint exceeds the PDU must overflow."""
+    s1 = Signal(name="grp_over_s1", bit_length=8, data_type=SignalDataType.UINT8)
+    s2 = Signal(name="grp_over_s2", bit_length=8, data_type=SignalDataType.UINT8)
+    grp = SignalGroup(
+        name="grp_over",
+        signals=[
+            SignalInstance(signal=s1, bit_position=0),
+            SignalInstance(signal=s2, bit_position=8),
+        ],
+    )
+    with pytest.raises(ValidationError, match="overflows"):
+        StandardPDU(
+            name="grp_over_pdu",
+            length=1,
+            signal_groups=[SignalGroupInstance(signal_group=grp, bit_position=0)],
+        )
+
+
+def test_negative_standard_pdu_signal_overlaps_signal_group():
+    """A signal placed inside a signal-group's range must be flagged as overlapping."""
+    sig = Signal(name="mix_overlap_sig", bit_length=8, data_type=SignalDataType.UINT8)
+    grp_s1 = Signal(name="mix_overlap_grp_s1", bit_length=8, data_type=SignalDataType.UINT8)
+    grp_s2 = Signal(name="mix_overlap_grp_s2", bit_length=8, data_type=SignalDataType.UINT8)
+    grp = SignalGroup(
+        name="mix_overlap_grp",
+        signals=[
+            SignalInstance(signal=grp_s1, bit_position=0),
+            SignalInstance(signal=grp_s2, bit_position=8),
+        ],
+    )
+    with pytest.raises(ValidationError, match="overlap"):
+        StandardPDU(
+            name="mix_overlap_pdu",
+            length=2,
+            signals=[SignalInstance(signal=sig, bit_position=8)],
+            signal_groups=[SignalGroupInstance(signal_group=grp, bit_position=0)],
+        )
+
+
+def test_negative_standard_pdu_signal_groups_overlap_each_other():
+    """Two signal groups whose ranges intersect must be flagged as overlapping."""
+    a1 = Signal(name="grp_a_s1", bit_length=8, data_type=SignalDataType.UINT8)
+    a2 = Signal(name="grp_a_s2", bit_length=8, data_type=SignalDataType.UINT8)
+    b1 = Signal(name="grp_b_s1", bit_length=8, data_type=SignalDataType.UINT8)
+    b2 = Signal(name="grp_b_s2", bit_length=8, data_type=SignalDataType.UINT8)
+    grp_a = SignalGroup(
+        name="grp_a",
+        signals=[
+            SignalInstance(signal=a1, bit_position=0),
+            SignalInstance(signal=a2, bit_position=8),
+        ],
+    )
+    grp_b = SignalGroup(
+        name="grp_b",
+        signals=[
+            SignalInstance(signal=b1, bit_position=0),
+            SignalInstance(signal=b2, bit_position=8),
+        ],
+    )
+    with pytest.raises(ValidationError, match="overlap"):
+        StandardPDU(
+            name="two_groups_overlap_pdu",
+            length=3,
+            signal_groups=[
+                SignalGroupInstance(signal_group=grp_a, bit_position=0),
+                SignalGroupInstance(signal_group=grp_b, bit_position=8),
+            ],
+        )
 
 
 # ---------------------------------------------------------------------------

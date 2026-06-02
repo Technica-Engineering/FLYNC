@@ -65,7 +65,7 @@ def check_vlan_conn_valid(comp, list1, list2, vlan):
 
     flag = True
     if not comp:
-        flag = False
+        return False
     if check_obj_in_list(comp, list1):
         flag = False
     if check_obj_in_list(comp, list2):

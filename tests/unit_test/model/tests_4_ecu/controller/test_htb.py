@@ -30,10 +30,10 @@ def test_htb(tmpdir):
 
     result = subprocess.run(
         [
-            executable,
-            VALIDATE_WORKSPACE_SCRIPT,
+            "flync",
+            "validate",
             str(destination_folder),
-            "--name",
+            "--config",
             "flync_example",
         ],
         capture_output=True,

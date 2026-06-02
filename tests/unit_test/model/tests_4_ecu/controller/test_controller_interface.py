@@ -22,7 +22,7 @@ def test_positive_controller_interface_config(
         {
             "controller_metadata": embedded_metadata_entry,
             "name": "controller_test",
-            "ethernet_interfaces": [{"interface_config": ctrl_interface}],
+            "ethernet_interfaces": [{"name": "interface_test", "interface_config": ctrl_interface}],
         }
     )
     assert isinstance(ctrl.ethernet_interfaces[0].interface_config, ControllerInterface)
@@ -43,7 +43,7 @@ def test_negative_controller_interface_wrong_mac(
             {
                 "controller_metadata": embedded_metadata_entry,
                 "name": "controller_test",
-                "ethernet_interfaces": [{"interface_config": ctrl_interface}],
+                "ethernet_interfaces": [{"name": "interface_test", "interface_config": ctrl_interface}],
             }
         )
 
@@ -61,7 +61,7 @@ def test_negative_controller_interface_missing_vifaces(
             {
                 "controller_metadata": embedded_metadata_entry,
                 "name": "controller_test",
-                "ethernet_interfaces": [{"interface_config": ctrl_interface}],
+                "ethernet_interfaces": [{"name": "interface_test", "interface_config": ctrl_interface}],
             }
         )
 
@@ -78,6 +78,6 @@ def test_negative_controller_interface_empty_vifaces(embedded_metadata_entry):
             {
                 "controller_metadata": embedded_metadata_entry,
                 "name": "controller_test",
-                "ethernet_interfaces": [{"interface_config": ctrl_interface}],
+                "ethernet_interfaces": [{"name": "interface_test", "interface_config": ctrl_interface}],
             }
         )

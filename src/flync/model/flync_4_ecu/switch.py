@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import (
     Annotated,
+    Any,
     List,
     Literal,
     Optional,
@@ -20,10 +21,7 @@ from pydantic import (
 )
 
 import flync.core.utils.common_validators as common_validators
-from flync.core.base_models import (
-    NamedDictInstances,
-    NamedListInstances,
-)
+from flync.core.base_models import NamedListInstances
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.common_validators import validate_vlan_id
 from flync.core.utils.exceptions import err_minor
@@ -49,7 +47,7 @@ from flync.model.flync_4_tsn import (
 )
 
 
-class SwitchPort(NamedDictInstances):
+class SwitchPort(FLYNCBaseModel):
     """
     Represents a Switch Port and its configuration.
 
@@ -119,7 +117,7 @@ class SwitchPort(NamedDictInstances):
         BeforeValidator(common_validators.validate_or_remove("MACsec config", MACsecConfig)),
     ] = Field(default=None)
     _mdi_config: BASET1 | BASET1S | BASET | None = PrivateAttr(default=None)
-    _connected_component = PrivateAttr(default=None)
+    _connected_component: Optional[Any] = PrivateAttr(default=None)
     _type: Literal["switch_port"] = PrivateAttr(default="switch_port")
     _switch: Optional["Switch"] = PrivateAttr(default=None)
 
@@ -134,6 +132,10 @@ class SwitchPort(NamedDictInstances):
     @property
     def connected_component(self):
         return self._connected_component
+
+    @property
+    def switch(self) -> Optional["Switch"]:
+        return self._switch
 
     @model_validator(mode="after")
     def validate_traffic_classes(self):
@@ -158,6 +160,8 @@ class SwitchPort(NamedDictInstances):
         Returns the switch that the port is a part of.
         """
 
+        if self._switch is None:
+            raise err_minor(f"The switch port {self.name} is not a part of any switch")
         return self._switch
 
     def get_vlan_connected_ports(self, vlan):
@@ -166,15 +170,12 @@ class SwitchPort(NamedDictInstances):
         Returns the switch ports that are part of the same VLAN as that port.
         """
 
-        ports_names = set()
         ports = []
         for vlan_entry in self.get_switch().vlans:
             if vlan_entry.id == vlan:
-                ports_names.update(set(vlan_entry.ports))
-        for port in self.get_switch().ports:
-            if port.name in ports_names:
-                ports.append(port)
-        return ports
+                ports.extend(vlan_entry.ports)
+        ports_obj = [sp for sport in ports for sp in self.get_switch().ports if sp.name == sport]
+        return ports_obj
 
     def is_part_of_vlan(self, vlan):
         for vlan_entry in self.get_switch().vlans:
@@ -412,6 +413,15 @@ class Switch(NamedListInstances):
         return self
 
     @model_validator(mode="after")
+    def validate_unique_port_names(self):
+        """Validate port names are unique across this switch's ports."""
+        common_validators.validate_list_items_unique(
+            [p.name for p in self.ports],
+            "Switch Ports (name)",
+        )
+        return self
+
+    @model_validator(mode="after")
     def validate_ipv_mapping(self) -> Self:
         """
         Check if internal priority value of traffic classes is defined in ingress streams
@@ -514,6 +524,9 @@ class Switch(NamedListInstances):
 
     def get_mac(self):
         return self.host_controller.mac_address
+
+    def find_switch_port(self, port_name: str) -> SwitchPort:
+        return next(p for p in self.ports if p.name == port_name)
 
     def model_post_init(self, __context):
         for port in self.ports:

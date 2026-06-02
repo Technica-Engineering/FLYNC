@@ -1,12 +1,20 @@
-from typing import List, Literal, Optional, Tuple
+from typing import List, Literal, Optional
 
 from pydantic import Field, field_validator, model_validator
 
 from flync.core.base_models import FLYNCBaseModel, UniqueName
-from flync.core.utils.exceptions import err_minor
+from flync.core.utils.common_validators import (
+    BitRange,
+    check_bit_ranges_no_overlap,
+    check_bit_ranges_within,
+    collect_bit_ranges,
+)
+from flync.core.utils.exceptions import err_major, err_minor
 from flync.model.flync_4_signal.signal import (
     SignalGroupInstance,
     SignalInstance,
+    _signal_group_footprint,
+    _signal_instance_range,
 )
 
 # ---------------------------------------------------------------------------
@@ -61,8 +69,9 @@ class StandardPDU(PDU):
     def validate_signals_fit_in_pdu(self) -> "StandardPDU":
         """Check all placed signals are within bounds and do not overlap."""
         ranges = _collect_placed_ranges(self.signals, self.signal_groups)
-        _check_overflow(self.name, ranges, self.length * 8)
-        _check_overlap(f"PDU '{self.name}'", ranges)
+        context = f"PDU '{self.name}'"
+        check_bit_ranges_within(context, ranges, self.length * 8)
+        check_bit_ranges_no_overlap(context, ranges)
         return self
 
 
@@ -148,7 +157,7 @@ class MultiplexedPDU(PDU):
         sel_bp = self.selector_signal.bit_position
         if sel_bp is None:
             return self
-        sel_range: Tuple[str, int, int] = (
+        sel_range: BitRange = (
             self.selector_signal.signal.name,
             sel_bp,
             sel_bp + self.selector_signal.signal.bit_length,
@@ -157,14 +166,14 @@ class MultiplexedPDU(PDU):
             group_signals = getattr(group.pdu, "signals", [])
             group_signal_groups = getattr(group.pdu, "signal_groups", [])
             group_ranges = _collect_placed_ranges(group_signals, group_signal_groups)
-            _check_overlap(
+            check_bit_ranges_no_overlap(
                 f"MultiplexedPDU '{self.name}' mux_group(selector={group.selector_value}) vs selector",
                 [sel_range, *group_ranges],
             )
         if self.static_group is not None:
             static_signals = getattr(self.static_group, "signals", [])
             static_ranges = _collect_placed_ranges(static_signals, [])
-            _check_overlap(
+            check_bit_ranges_no_overlap(
                 f"MultiplexedPDU '{self.name}' static_group vs selector",
                 [sel_range, *static_ranges],
             )
@@ -240,7 +249,7 @@ class ContainerPDUHeader(FLYNCBaseModel):
     @classmethod
     def must_be_byte_aligned(cls, v: int) -> int:
         if v % 8 != 0:
-            raise ValueError(f"must be a multiple of 8, got {v}")
+            raise err_major("must be a multiple of 8, got {value}", value=v)
         return v
 
 
@@ -291,70 +300,31 @@ class ContainerPDU(PDU):
 # ---------------------------------------------------------------------------
 
 
+def _signal_group_instance_range(sgi: SignalGroupInstance) -> Optional[BitRange]:
+    """Return the bit range of a placed :class:`SignalGroupInstance` or ``None``.
+
+    The group's footprint is the largest end-bit reached by any of its placed
+    signal instances; ``None`` is returned when the group itself is unplaced
+    or none of its signal instances have a ``bit_position``.
+    """
+    if sgi.bit_position is None:
+        return None
+    footprint = _signal_group_footprint(sgi.signal_group)
+    if footprint <= 0:
+        return None
+    return (
+        sgi.signal_group.name,
+        sgi.bit_position,
+        sgi.bit_position + footprint,
+    )
+
+
 def _collect_placed_ranges(
     signals: List[SignalInstance],
     signal_groups: List[SignalGroupInstance],
-) -> List[Tuple[str, int, int]]:
+) -> List[BitRange]:
     """Return ``(name, start_bit, end_bit_exclusive)`` for all placed items."""
-    ranges: List[Tuple[str, int, int]] = []
-    for si in signals:
-        if si.bit_position is not None:
-            ranges.append(
-                (
-                    si.signal.name,
-                    si.bit_position,
-                    si.bit_position + si.signal.bit_length,
-                )
-            )
-    for sgi in signal_groups:
-        if sgi.bit_position is None:
-            continue
-        total_bits = sum(s.bit_length for s in sgi.signal_group.signals)
-        if total_bits > 0:
-            ranges.append(
-                (
-                    sgi.signal_group.name,
-                    sgi.bit_position,
-                    sgi.bit_position + total_bits,
-                )
-            )
-    return ranges
-
-
-def _check_overflow(
-    pdu_name: str,
-    ranges: List[Tuple[str, int, int]],
-    pdu_bits: int,
-) -> None:
-    """Raise ``err_minor`` when any range exceeds ``pdu_bits``."""
-    for item_name, start, end in ranges:
-        if end > pdu_bits:
-            raise err_minor(
-                "PDU '{pdu_name}': signal/group '{item}' bit range [{start}, {end}) overflows PDU length of {bits} bits",
-                pdu_name=pdu_name,
-                item=item_name,
-                start=start,
-                end=end,
-                bits=pdu_bits,
-            )
-
-
-def _check_overlap(
-    context: str,
-    ranges: List[Tuple[str, int, int]],
-) -> None:
-    """Raise ``err_minor`` when any two ranges intersect."""
-    for i, (name_a, start_a, end_a) in enumerate(ranges):
-        for j in range(i + 1, len(ranges)):
-            name_b, start_b, end_b = ranges[j]
-            if start_a < end_b and start_b < end_a:
-                raise err_minor(
-                    "{context}: '{a}' [{sa}, {ea}) and '{b}' [{sb}, {eb}) overlap",
-                    context=context,
-                    a=name_a,
-                    sa=start_a,
-                    ea=end_a,
-                    b=name_b,
-                    sb=start_b,
-                    eb=end_b,
-                )
+    return [
+        *collect_bit_ranges(signals, _signal_instance_range),
+        *collect_bit_ranges(signal_groups, _signal_group_instance_range),
+    ]

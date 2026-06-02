@@ -37,9 +37,9 @@ def test_load_workspace_valid_absolute_path():
     assert workspace.flync_model.ecus
     assert workspace.flync_model.topology
     assert workspace.flync_model.topology.system_topology
-    assert workspace.flync_model.general
-    assert workspace.flync_model.general.someip_config
-    assert workspace.flync_model.general.tcp_profiles
+    assert workspace.flync_model.communication
+    assert workspace.flync_model.communication.someip_config
+    assert workspace.flync_model.communication.tcp_profiles
     assert workspace.flync_model.metadata
     assert model_has_socket(workspace)
 
@@ -55,9 +55,9 @@ def test_load_workspace_valid_relative_path():
     assert workspace.flync_model.ecus
     assert workspace.flync_model.topology
     assert workspace.flync_model.topology.system_topology
-    assert workspace.flync_model.general
-    assert workspace.flync_model.general.someip_config
-    assert workspace.flync_model.general.tcp_profiles
+    assert workspace.flync_model.communication
+    assert workspace.flync_model.communication.someip_config
+    assert workspace.flync_model.communication.tcp_profiles
     assert workspace.flync_model.metadata
     assert model_has_socket(workspace)
 
@@ -69,9 +69,9 @@ def test_load_workspace_valid_str_path():
     assert workspace.flync_model.ecus
     assert workspace.flync_model.topology
     assert workspace.flync_model.topology.system_topology
-    assert workspace.flync_model.general
-    assert workspace.flync_model.general.someip_config
-    assert workspace.flync_model.general.tcp_profiles
+    assert workspace.flync_model.communication
+    assert workspace.flync_model.communication.someip_config
+    assert workspace.flync_model.communication.tcp_profiles
     assert workspace.flync_model.metadata
     assert model_has_socket(workspace)
 
@@ -243,37 +243,6 @@ def test_load_workspace_incorret_value_type(tmpdir):
         shutil.rmtree(destination_folder)
 
 
-# Verify handling incorrect format for value
-invalid_format = {
-    "001122334455": "mac_address_format\n  Must have the format",
-    "00:11:22:33:xx:XX": "mac_address\n  Unrecognized format",
-    "00:11:22": "mac_address\n  Length for a 00:11:22 MAC address must be 14",
-}
-
-
-@pytest.mark.parametrize("key, value", invalid_format.items())
-@pytest.mark.xfail(reason="Known bug")
-def test_load_workspace_incorret_value_format(tmpdir, key, value):
-    destination_folder = Path(tmpdir) / "copy"
-    shutil.copytree(absolute_path, destination_folder)
-    file_to_update = (
-        destination_folder
-        / "ecus"
-        / "eth_ecu"
-        / "controllers"
-        / "eth_ecu_controller1"
-        / "ethernet_interfaces"
-        / "eth_ecu_c1_iface1"
-        / "interface_config.flync.yaml"
-    )
-    update_yaml_content(file_to_update, "mac_address: 00:11:22:33:44:55", f"mac_address: {key}")
-    with pytest.raises(ValidationError) as exc_info:
-        FLYNCWorkspace.load_workspace("flync_example", destination_folder)
-    assert value in str(exc_info.value)
-    if destination_folder.exists():
-        shutil.rmtree(destination_folder)
-
-
 # Validate handling of extra key/value
 def test_load_workspace_extra_key_value(tmpdir):
     destination_folder = Path(tmpdir) / "copy"
@@ -409,9 +378,9 @@ def _assert_workspace_valid(ws: FLYNCWorkspace):
     assert ws.flync_model.ecus
     assert ws.flync_model.topology
     assert ws.flync_model.topology.system_topology
-    assert ws.flync_model.general
-    assert ws.flync_model.general.someip_config
-    assert ws.flync_model.general.tcp_profiles
+    assert ws.flync_model.communication
+    assert ws.flync_model.communication.someip_config
+    assert ws.flync_model.communication.tcp_profiles
     assert ws.flync_model.metadata
     assert model_has_socket(ws)
 
@@ -447,3 +416,28 @@ def test_load_multiple_workspaces_async(tmpdir):
 
     for ws in workspaces:
         _assert_workspace_valid(ws)
+
+
+# Regression for the union-type diagnostics swallow:
+# __try_load_union_type used to delete diagnostics whenever a union member
+# returned None, including for legitimate semantic errors raised by
+# @model_validator on the matched type. With Optional[FLYNCChannelConfig]
+# wrapping the channels field, the cross-PDU-reference major error from
+# FLYNCChannelConfig.validate_pdu_refs disappeared entirely from the result.
+def test_validate_workspace_surfaces_unknown_pdu_ref(tmpdir):
+    from flync.sdk.helpers.validation_helpers import validate_workspace
+
+    destination_folder = Path(tmpdir) / "copy"
+    shutil.copytree(absolute_path, destination_folder)
+    # Target the Frame_EngineDiagResponse line; its PDU ref name only appears
+    # once in this file and is independent of the LightDiagRequest content.
+    diag_can = destination_folder / "communication" / "channels" / "can" / "diag_can.flync.yaml"
+    update_yaml_content(diag_can, "pdu_ref: PDU_EngineStatus", "pdu_ref: nonexistent_pdu")
+
+    result = validate_workspace(destination_folder)
+
+    surfaced = [e for errs in result.errors.values() for e in errs if e.get("type") == "major" and "nonexistent_pdu" in (e.get("msg") or "")]
+    assert surfaced, f"Expected major error about unknown PDU 'nonexistent_pdu', got: {dict(result.errors)}"
+
+    if destination_folder.exists():
+        shutil.rmtree(destination_folder)

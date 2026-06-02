@@ -4,6 +4,7 @@ Top-level system model aggregating ECUs, topology, metadata, and general configu
 
 from typing import Annotated, Dict, List, Optional, Tuple
 
+import typing_extensions
 from pydantic import Field, model_validator
 from pydantic_core import PydanticCustomError
 
@@ -11,6 +12,11 @@ from flync.core.annotations import External, NamingStrategy, OutputStrategy
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.base_utils import check_obj_in_list
 from flync.core.utils.exceptions import err_major, warn
+from flync.core.utils.forwarder_validators import (
+    detect_forwarder_cycles,
+    validate_forwarder_locality,
+    validate_forwarder_refs,
+)
 from flync.core.utils.multicast import (
     collect_ipv6_solicited_node_rx,
     collect_ipv6_solicited_node_tx,
@@ -26,6 +32,7 @@ from flync.model.flync_4_ecu import (
 )
 from flync.model.flync_4_general_configuration import FLYNCGeneralConfig
 from flync.model.flync_4_metadata import SystemMetadata
+from flync.model.flync_4_signal.forwarder import CANFrameForwarder, PDUForwarder
 from flync.model.flync_4_topology import FLYNCTopology
 
 
@@ -46,17 +53,17 @@ class FLYNCModel(FLYNCBaseModel):
     metadata : :class:`~flync.model.flync_4_metadata.SystemMetadata`
         System-level metadata including OEM, platform, and hardware/software information.
 
-    general : :class:`~flync.model.flync_4_general_configuration.FLYNCGeneralConfig`, optional
+    communication : :class:`~flync.model.flync_4_general_configuration.FLYNCGeneralConfig`, optional
         Optional general configuration settings applicable system-wide.
     """
 
-    general: Annotated[
+    communication: Annotated[
         Optional[FLYNCGeneralConfig],
         External(
             output_structure=OutputStrategy.FOLDER,
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
-    ] = Field(default=None)
+    ] = Field(alias="general", default=None)
     ecus: Annotated[
         List[ECU],
         External(
@@ -84,6 +91,18 @@ class FLYNCModel(FLYNCBaseModel):
         VirtualControllerInterface,
         VLANEntry,
     )
+
+    @model_validator(mode="before")
+    def warn_deprecated(cls, data):
+        if "general" in data:
+            warn("The 'general' attribute is deprecated. Please use 'communication' instead.")
+        return data
+
+    @property
+    @typing_extensions.deprecated("The `general` attribute is deprecated, use `communication` instead.")
+    def general(self) -> Optional[FLYNCGeneralConfig]:
+        warn("The 'general' attribute is deprecated. Please use 'communication' instead.")
+        return self.communication
 
     @model_validator(mode="before")
     @classmethod
@@ -180,6 +199,39 @@ class FLYNCModel(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
+    def validate_multicast_someip(self):
+        """
+        Validate multicast configuration for SOME/IP consumers and providers
+
+        For provider: check if the parent socket has a multicast_tx entry
+        """
+
+        deployments = [
+            (deployment.root, socket, ecu)
+            for ecu in self.ecus
+            for ctrl in ecu.controllers
+            for iface in ctrl.ethernet_interfaces
+            for sock_con in iface.sockets
+            for socket in sock_con.sockets
+            for deployment in socket.deployments
+            if deployment.root.deployment_type.startswith("someip_") and socket.endpoint_type == "multicast" and socket.protocol == "udp"
+        ]
+
+        providers = [dpl for dpl in deployments if dpl[0].deployment_type == "someip_provider"]
+
+        # Providers need to have multicast_tx in socket
+        for provider, socket, _ecu in providers:
+            for mcast_config in provider.multicast_config or []:
+                if mcast_config.ip_address not in socket.multicast_tx:
+                    raise err_major(
+                        f"Deployed provided service ({provider.service.name}, {provider.service.id:#06x}, {provider.service.major_version}) "
+                        f"has multicast configuration for eventgroups ({mcast_config.eventgroups}/{mcast_config.ip_address}), "
+                        f"but socket ({socket.name}) does not indicate by multicast_tx entry ({socket.multicast_tx})"
+                    )
+
+        return self
+
+    @model_validator(mode="after")
     def validate_unique_macs(self):
         """
         Validate all MACs are unique system wide
@@ -193,6 +245,15 @@ class FLYNCModel(FLYNCBaseModel):
                     all_macs.append(mac)
                 else:
                     raise err_major(f"The MAC {mac} is repeated in ECU {ecu.name}")
+        return self
+
+    @model_validator(mode="after")
+    def validate_forwarders(self):
+        """Workspace-level forwarder pass: ref resolution, same-controller locality + direction safety, and cycle detection."""
+
+        validate_forwarder_refs(self)  # Verifies all PDU and frame references resolve and the forwarded payload fits the egress CAN frame.
+        validate_forwarder_locality(self)  # Verifies each egress targets a same-controller carrier with a compatible pdu_sender or sender_frames.
+        detect_forwarder_cycles(self)  # Verifies the forwarder graph is acyclic.
         return self
 
     def check_rx_are_reached(self, separ, paths, vlans_dict):
@@ -310,3 +371,28 @@ class FLYNCModel(FLYNCBaseModel):
     def get_system_topology_info(self):
         """Return system topology details."""
         return self.topology.system_topology.model_dump()
+
+    def _iter_all_sockets(self):
+        """Yield every :class:`Socket` across every controller / ethernet interface / VLAN container."""
+        for controller in self.get_all_controllers():
+            for eth_iface in controller.ethernet_interfaces or []:
+                for socket_container in eth_iface.sockets or []:
+                    yield from socket_container.sockets or []
+
+    def get_all_pdu_forwarders(self) -> List[PDUForwarder]:
+        """Return every PDUForwarder declared on any socket across all ECUs."""
+        out: List[PDUForwarder] = []
+        for socket in self._iter_all_sockets():
+            for dep_root in socket.deployments or []:
+                dep = dep_root.root
+                if isinstance(dep, PDUForwarder):
+                    out.append(dep)
+        return out
+
+    def get_all_can_frame_forwarders(self) -> List[CANFrameForwarder]:
+        """Return every CANFrameForwarder declared on any CAN interface across all ECUs."""
+        out: List[CANFrameForwarder] = []
+        for controller in self.get_all_controllers():
+            for can_iface in controller.can_interfaces or []:
+                out.extend(can_iface.forwarder_frames or [])
+        return out

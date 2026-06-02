@@ -79,6 +79,23 @@ class Registry(object):
 
         return self.list_by_class.get(cls, [])
 
+    def get_list_by_class_name(self, class_name: str) -> list:
+        """
+        Return all registered instances whose class ``__name__`` matches ``class_name``.
+
+        Args:
+            class_name: The ``__name__`` of the target class (e.g. ``"ECU"``).
+
+        Returns:
+            A flat list of all matching instances, or an empty list if none are found.
+        """
+
+        result = []
+        for cls, instances in self.list_by_class.items():
+            if cls.__name__ == class_name:
+                result.extend(instances)
+        return result
+
 
 @contextmanager
 def registry_context(registry: Registry):
