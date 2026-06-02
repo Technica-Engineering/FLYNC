@@ -8,7 +8,7 @@ from .ipaddress import (
     IPv6AddressEntry,
     IPv6Multicast,
 )
-from .macaddress import MACAddressEntry, MACAddressMulticast, MACAddressUnicast
+from .macaddress import FLYNCMacAddress, MACAddressEntry, MACAddressMulticast, MACAddressUnicast
 from .value_range import ValueRange
 from .value_table import ValueTable
 
@@ -19,6 +19,7 @@ __all__ = [
     "IPv6AddressEntry",
     "IPv4Multicast",
     "IPv6Multicast",
+    "FLYNCMacAddress",
     "MACAddressEntry",
     "MACAddressUnicast",
     "MACAddressMulticast",

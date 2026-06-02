@@ -14,10 +14,10 @@ from pydantic import (
     field_validator,
 )
 from pydantic.networks import IPvAnyAddress
-from pydantic_extra_types.mac_address import MacAddress
 
 import flync.core.utils.common_validators as common_validators
 from flync.core.base_models.base_model import FLYNCBaseModel
+from flync.core.datatypes.macaddress import FLYNCMacAddress
 
 
 class MulticastGroup(FLYNCBaseModel):
@@ -35,7 +35,7 @@ class MulticastGroup(FLYNCBaseModel):
         A list of switch port names that are part of the multicast group.
     """
 
-    address: IPvAnyAddress | MacAddress = Field()
+    address: IPvAnyAddress | FLYNCMacAddress = Field()
     ports: List[str] = Field()
 
     @field_validator("address", mode="after")

@@ -12,7 +12,6 @@ from pydantic import (
     model_validator,
 )
 from pydantic.networks import IPvAnyAddress
-from pydantic_extra_types.mac_address import MacAddress
 
 import flync.core.utils.common_validators as common_validators
 from flync.core.annotations import (
@@ -23,6 +22,7 @@ from flync.core.annotations import (
     OutputStrategy,
 )
 from flync.core.base_models import FLYNCBaseModel, NamedListInstances
+from flync.core.datatypes.macaddress import FLYNCMacAddress
 from flync.core.utils.exceptions import err_fatal, err_major, err_minor, warn
 from flync.core.version_migrators.legacy_controller_check import (
     reject_legacy_controller,
@@ -107,7 +107,7 @@ class VirtualControllerInterface(FLYNCBaseModel):
     ] = Field(default=None)
     addresses: List[IPv6AddressEndpoint | IPv4AddressEndpoint] = Field()
     multicast: Annotated[
-        Optional[List[IPvAnyAddress | MacAddress]],
+        Optional[List[IPvAnyAddress | FLYNCMacAddress]],
         AfterValidator(common_validators.validate_multicast_list),
         BeforeValidator(common_validators.none_to_empty_list),
     ] = Field(default=[])
@@ -164,7 +164,7 @@ class ComputeNodes(FLYNCBaseModel):
     """
 
     name: str = Field()
-    mac_address: Optional[MacAddress] = Field(default=None)
+    mac_address: Optional[FLYNCMacAddress] = Field(default=None)
     virtual_interfaces: Annotated[
         List[VirtualControllerInterface],
         BeforeValidator(
@@ -320,7 +320,7 @@ class ControllerInterface(FLYNCBaseModel):
     """
 
     name: str = Field()
-    mac_address: Optional[MacAddress] = Field(default=None)
+    mac_address: Optional[FLYNCMacAddress] = Field(default=None)
     mii_config: Optional[MII | RMII | SGMII | RGMII | XFI] = Field(default=None, discriminator="type")
     compute_nodes: Optional[List[ComputeNodes]] = Field(default_factory=list)
     virtual_interfaces: Annotated[

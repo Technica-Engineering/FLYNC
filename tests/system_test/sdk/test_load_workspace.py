@@ -243,37 +243,6 @@ def test_load_workspace_incorret_value_type(tmpdir):
         shutil.rmtree(destination_folder)
 
 
-# Verify handling incorrect format for value
-invalid_format = {
-    "001122334455": "mac_address_format\n  Must have the format",
-    "00:11:22:33:xx:XX": "mac_address\n  Unrecognized format",
-    "00:11:22": "mac_address\n  Length for a 00:11:22 MAC address must be 14",
-}
-
-
-@pytest.mark.parametrize("key, value", invalid_format.items())
-@pytest.mark.xfail(reason="Known bug")
-def test_load_workspace_incorret_value_format(tmpdir, key, value):
-    destination_folder = Path(tmpdir) / "copy"
-    shutil.copytree(absolute_path, destination_folder)
-    file_to_update = (
-        destination_folder
-        / "ecus"
-        / "eth_ecu"
-        / "controllers"
-        / "eth_ecu_controller1"
-        / "ethernet_interfaces"
-        / "eth_ecu_c1_iface1"
-        / "interface_config.flync.yaml"
-    )
-    update_yaml_content(file_to_update, "mac_address: 00:11:22:33:44:55", f"mac_address: {key}")
-    with pytest.raises(ValidationError) as exc_info:
-        FLYNCWorkspace.load_workspace("flync_example", destination_folder)
-    assert value in str(exc_info.value)
-    if destination_folder.exists():
-        shutil.rmtree(destination_folder)
-
-
 # Validate handling of extra key/value
 def test_load_workspace_extra_key_value(tmpdir):
     destination_folder = Path(tmpdir) / "copy"

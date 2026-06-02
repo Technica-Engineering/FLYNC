@@ -2,7 +2,7 @@
 
 from typing import Annotated, Optional
 
-from pydantic import AfterValidator, ConfigDict, Field
+from pydantic import AfterValidator, BeforeValidator, ConfigDict, Field
 from pydantic_extra_types.mac_address import MacAddress
 
 from flync.core.base_models.base_model import FLYNCBaseModel
@@ -10,6 +10,9 @@ from flync.core.utils.common_validators import (
     validate_mac_multicast,
     validate_mac_unicast,
 )
+from flync.core.validators.address_validators import before_validate_mac_address
+
+FLYNCMacAddress = Annotated[MacAddress, BeforeValidator(before_validate_mac_address)]
 
 
 def mac_to_int(mac: MacAddress) -> int:
@@ -40,7 +43,7 @@ class MACAddressEntry(FLYNCBaseModel):
     """
 
     model_config = ConfigDict(extra="forbid")
-    address: MacAddress = Field()
+    address: FLYNCMacAddress = Field()
     macmask: Optional[str] = Field(default="xx:xx:xx:xx:xx:xx")
 
 
@@ -51,6 +54,7 @@ class MACAddressUnicast(MACAddressEntry):
 
     address: Annotated[
         MacAddress,
+        BeforeValidator(before_validate_mac_address),
         AfterValidator(validate_mac_unicast),
     ] = Field()
 
@@ -62,5 +66,6 @@ class MACAddressMulticast(MACAddressEntry):
 
     address: Annotated[
         MacAddress,
+        BeforeValidator(before_validate_mac_address),
         AfterValidator(validate_mac_multicast),
     ] = Field()

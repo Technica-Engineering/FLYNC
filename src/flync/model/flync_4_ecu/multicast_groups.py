@@ -10,10 +10,10 @@ from typing import Annotated, Literal, Optional
 
 from pydantic import AfterValidator, Field, PrivateAttr, model_validator
 from pydantic.networks import IPvAnyAddress
-from pydantic_extra_types.mac_address import MacAddress
 
 import flync.core.utils.common_validators as common_validators
 from flync.core.base_models import FLYNCBaseModel
+from flync.core.datatypes.macaddress import FLYNCMacAddress
 from flync.core.utils.common_validators import validate_vlan_id
 from flync.core.utils.exceptions import err_minor
 from flync.model.flync_4_ecu.controller import ControllerInterface
@@ -39,7 +39,7 @@ class MulticastGroupMembership(FLYNCBaseModel):
     """
 
     group: Annotated[
-        IPvAnyAddress | MacAddress,
+        IPvAnyAddress | FLYNCMacAddress,
         AfterValidator(common_validators.validate_any_multicast_address),
     ] = Field()
     description: Optional[str] = Field(default="")

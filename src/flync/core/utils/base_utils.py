@@ -79,6 +79,8 @@ def is_mac_address(input: str) -> Tuple[bool, str]:
     """
 
     try:
+        if not isinstance(input, str):
+            return False, f"{input!r} is not a MAC address."
         MacAddress.validate_mac_address(input.encode())
         is_mac = True
         msg = f"{input} is a MAC address."
