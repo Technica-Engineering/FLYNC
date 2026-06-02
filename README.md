@@ -70,7 +70,7 @@
 | src/flync/model/flync\_4\_signal/frame.py                           |       74 |        0 |    100% |           |
 | src/flync/model/flync\_4\_signal/pdu.py                             |       99 |        2 |     98% |  311, 314 |
 | src/flync/model/flync\_4\_signal/signal.py                          |      166 |        0 |    100% |           |
-| src/flync/model/flync\_4\_signal/value\_encoding.py                 |      107 |        1 |     99% |       183 |
+| src/flync/model/flync\_4\_signal/value\_encoding.py                 |      107 |        1 |     99% |       179 |
 | src/flync/model/flync\_4\_someip/\_\_init\_\_.py                    |        6 |        0 |    100% |           |
 | src/flync/model/flync\_4\_someip/deployment.py                      |       97 |        0 |    100% |           |
 | src/flync/model/flync\_4\_someip/service\_interface.py              |      235 |       10 |     96% |417-420, 440, 883-884, 894-895, 898 |
