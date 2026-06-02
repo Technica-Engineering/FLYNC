@@ -1,9 +1,10 @@
 """CAN interface configuration for ECU controllers."""
 
-from typing import List
+from typing import Annotated, List
 
 from pydantic import Field, model_validator
 
+from flync.core.annotations import Implied, ImpliedStrategy
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import err_major
 from flync.model.flync_4_signal.forwarder import CANFrameForwarder
@@ -29,6 +30,9 @@ class CANInterfaceConfig(FLYNCBaseModel):
 
     Parameters
     ----------
+    name : str
+        Name of the CAN interface, implied from the folder name on disk.
+
     bus_ref : str
         Name of the :class:`~flync.model.flync_4_bus.can_bus.CANBus` this interface connects to.
     sender_frames : list of :class:`CANFrameRef`
@@ -41,6 +45,7 @@ class CANInterfaceConfig(FLYNCBaseModel):
         egresses.
     """
 
+    name: Annotated[str, Implied(strategy=ImpliedStrategy.FILE_NAME)] = Field()
     bus_ref: str = Field()
     sender_frames: List[CANFrameRef] = Field(default_factory=list)
     receiver_frames: List[CANFrameRef] = Field(default_factory=list)

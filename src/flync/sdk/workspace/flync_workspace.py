@@ -47,6 +47,7 @@ from flync.sdk.utils.model_dependencies import (
     ModelDependencyGraph,
     get_model_dependency_graph,
 )
+from flync.sdk.utils.model_dumper import dump_model_with_discriminators
 from flync.sdk.utils.sdk_types import PathType
 
 from .document import Document
@@ -322,7 +323,7 @@ class FLYNCWorkspace(object):
             ):
                 exclude.add(field_name)
 
-        content = flync_model.model_dump(exclude=exclude, exclude_unset=self.configuration.exclude_unset)
+        content = dump_model_with_discriminators(flync_model, exclude=exclude, exclude_unset=self.configuration.exclude_unset)
         return content
 
     def __handle_load_external_types(  # noqa # nosonar

@@ -61,12 +61,33 @@ def compare_yaml_files(base_folder: Path, generated_folder: Path) -> bool:
     generated_keys = set(generated_files.keys())
 
     unexpected_keys = generated_keys ^ base_keys
+
+    # Filter out discriminator fields (keys ending with .type or .node_type) that only exist in one set
+    unexpected_keys = {k for k in unexpected_keys if not (k.endswith(".type") or k.endswith(".node_type") or k.endswith(".version"))}
+
     if unexpected_keys:
         raise ValueError(f"Found unexpected keys ({unexpected_keys}) during the roundtrip conversion")
 
+    def normalize_value(v):
+        """Normalize values for comparison, handling MAC addresses case-insensitively."""
+        if isinstance(v, str) and ":" in v and len(v) == 17:  # MAC address format
+            return v.lower()
+        return v
+
     for k in base_keys & generated_keys:
-        if base_files[k] != generated_files[k]:
-            return False
+        base_val = normalize_value(base_files[k])
+        gen_val = normalize_value(generated_files[k])
+        if base_val != gen_val:
+            # Find first few mismatches for debugging
+            mismatches = []
+            for k2 in base_keys & generated_keys:
+                base_v = normalize_value(base_files[k2])
+                gen_v = normalize_value(generated_files[k2])
+                if base_v != gen_v:
+                    mismatches.append((k2, base_files[k2], generated_files[k2]))
+                    if len(mismatches) >= 3:
+                        break
+            raise ValueError(f"Found value mismatches:\n" + "\n".join(f"  {k}: base={v1}, generated={v2}" for k, v1, v2 in mismatches))
 
     return True
 

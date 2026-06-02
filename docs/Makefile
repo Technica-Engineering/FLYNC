@@ -17,13 +17,15 @@ help:
 
 .PHONY: help Makefile
 
-generate_pictures:
+generations:
 # create mermaid schematics
 	poetry run python3 ./source/_scripts/create_mermaid.py
 	poetry run python3 ./source/_scripts/generate_ecu_diagram.py $(EXAMPLE_SOURCE)/ecu_variants -o $(EXAMPLE_DST)/images/ecu_variants
+# create cli docu
+	poetry run typer flync_cli.main utils docs --name flync --title Usage --output $(SOURCEDIR)/flync_cli/usage.md
 
 
-html: generate_pictures
+html: generations
 # copy flync_example for yaml references during runtime of docs build
 	cp -a $(EXAMPLE_SOURCE)$(EXAMPLE_NAME) $(EXAMPLE_DST)
 # build html docs
@@ -34,3 +36,5 @@ html: generate_pictures
 	rm -r $(EXAMPLE_DST)/mermaid
 # remove ecu_variant diagrams
 	rm -r $(EXAMPLE_DST)/images/ecu_variants
+# remove generated cli usage page
+	rm $(SOURCEDIR)/flync_cli/usage.md

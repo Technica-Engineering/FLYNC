@@ -39,7 +39,7 @@ def test_positive_eth_eth_socket_egress_fields_exact():
 
 
 def test_positive_can_interface_config_fields_exact():
-    assert list(CANInterfaceConfig.model_fields) == ["bus_ref", "sender_frames", "receiver_frames", "forwarder_frames"]
+    assert list(CANInterfaceConfig.model_fields) == ["name", "bus_ref", "sender_frames", "receiver_frames", "forwarder_frames"]
 
 
 def test_positive_pdu_forwarder_constructs_without_registry():
@@ -151,7 +151,7 @@ def test_negative_can_interface_duplicate_forwarder_frames():
     fwd_a = CANFrameForwarder(frame_ref="Frame_X", egresses=[_can_egress(bus_ref="DiagCAN", frame_ref="F1")])
     fwd_b = CANFrameForwarder(frame_ref="Frame_X", egresses=[_can_egress(bus_ref="DiagCAN", frame_ref="F2")])
     with pytest.raises(ValidationError) as exc:
-        CANInterfaceConfig(bus_ref="PowertrainCAN", forwarder_frames=[fwd_a, fwd_b])
+        CANInterfaceConfig(name="can0", bus_ref="PowertrainCAN", forwarder_frames=[fwd_a, fwd_b])
     assert "duplicate" in str(exc.value).lower()
 
 
@@ -160,6 +160,7 @@ def test_positive_can_interface_receiver_and_forwarder_coexist():
 
     fwd = CANFrameForwarder(frame_ref="Frame_X", egresses=[_can_egress(bus_ref="DiagCAN", frame_ref="F1")])
     iface = CANInterfaceConfig(
+        name="can0",
         bus_ref="PowertrainCAN",
         receiver_frames=[CANFrameRef(frame_ref="Frame_X")],
         forwarder_frames=[fwd],

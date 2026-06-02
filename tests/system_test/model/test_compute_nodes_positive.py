@@ -40,7 +40,7 @@ def test_controller_with_bridge_and_compute_nodes_valid():
         ],
         vlans=[VLANEntry(name="test", id=10, default_priority=0, ports=["p1", "p2"])],
     )
-    iface = EthernetInterface(interface_config=ctrl_iface)
+    iface = EthernetInterface(name="eth0", interface_config=ctrl_iface)
     controller = Controller(
         name="ctrl1",
         controller_metadata=embedded_metadata,
@@ -99,8 +99,8 @@ def test_multiple_interfaces_layer2_connectivity():
         ],
         vlans=[VLANEntry(name="test", id=1, default_priority=0, ports=["p1", "p2"])],
     )
-    iface1 = EthernetInterface(interface_config=ctrl_iface1)
-    iface2 = EthernetInterface(interface_config=ctrl_iface2)
+    iface1 = EthernetInterface(name="eth0", interface_config=ctrl_iface1)
+    iface2 = EthernetInterface(name="eth1", interface_config=ctrl_iface2)
     controller = Controller(
         name="ctrl1",
         controller_metadata=embedded_metadata,

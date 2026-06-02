@@ -63,7 +63,7 @@ def test_firewall_config_positive_multiple_rules(virtual_controller_interface, e
         {
             "controller_metadata": embedded_metadata_entry,
             "name": "controller_example",
-            "ethernet_interfaces": [{"interface_config": controller_iface}],
+            "ethernet_interfaces": [{"name": "eth0", "interface_config": controller_iface}],
         }
     )
     assert isinstance(controller.ethernet_interfaces[0].interface_config.firewall, Firewall)
@@ -144,7 +144,7 @@ def test_positive_only_dst_ipv4_in_frame_filter(virtual_controller_interface, em
         {
             "controller_metadata": embedded_metadata_entry,
             "name": "controller_example",
-            "ethernet_interfaces": [{"interface_config": controller_iface}],
+            "ethernet_interfaces": [{"name": "eth0", "interface_config": controller_iface}],
         }
     )
     assert isinstance(controller.ethernet_interfaces[0].interface_config.firewall, Firewall)
@@ -182,7 +182,7 @@ def test_positive_only_dst_ipv6_in_frame_filter(virtual_controller_interface, em
         {
             "controller_metadata": embedded_metadata_entry,
             "name": "controller_example",
-            "ethernet_interfaces": [{"interface_config": controller_iface}],
+            "ethernet_interfaces": [{"name": "eth0", "interface_config": controller_iface}],
         }
     )
     assert isinstance(controller.ethernet_interfaces[0].interface_config.firewall, Firewall)

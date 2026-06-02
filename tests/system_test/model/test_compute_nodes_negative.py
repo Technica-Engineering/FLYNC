@@ -45,7 +45,7 @@ def test_compute_nodes_require_virtual_switch():
             )
         ],
     )
-    iface = EthernetInterface(interface_config=ctrl_iface)
+    iface = EthernetInterface(name="eth0", interface_config=ctrl_iface)
 
     with pytest.raises(ValidationError):
         Controller(
@@ -92,7 +92,7 @@ def test_bridge_port_invalid_reference():
         ],
         vlans=[],
     )
-    iface = EthernetInterface(interface_config=ctrl_iface)
+    iface = EthernetInterface(name="eth0", interface_config=ctrl_iface)
 
     with pytest.raises(ValidationError):
         Controller(
@@ -164,7 +164,7 @@ def test_vlan_invalid_port_reference():
         ports=[VirtualSwitchPort(name="p1", node_connected="eth0")],
         vlans=[VLANEntry(name="test", id=10, default_priority=0, ports=["p2"])],
     )
-    iface = EthernetInterface(interface_config=ctrl_iface)
+    iface = EthernetInterface(name="eth0", interface_config=ctrl_iface)
 
     with pytest.raises(ValidationError):
         Controller(
@@ -209,7 +209,7 @@ def test_compute_node_not_in_bridge_ports():
         ports=[VirtualSwitchPort(name="p1", node_connected="eth0")],
         vlans=[],
     )
-    iface = EthernetInterface(interface_config=ctrl_iface)
+    iface = EthernetInterface(name="eth0", interface_config=ctrl_iface)
 
     with pytest.raises(ValidationError):
         Controller(
@@ -258,7 +258,7 @@ def test_feature_offload_to_compute_node_only():
         ],
         vlans=[],
     )
-    iface = EthernetInterface(interface_config=ctrl_iface)
+    iface = EthernetInterface(name="eth0", interface_config=ctrl_iface)
     controller = Controller(
         name="ctrl1",
         controller_metadata=embedded_metadata,

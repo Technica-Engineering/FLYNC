@@ -173,12 +173,13 @@ def test_ecu_internal_topology_ambiguous_controller_interface_name_across_contro
                 controller_metadata=embedded_metadata_entry,
                 ethernet_interfaces=[
                     dict(
+                        name="shared_iface",
                         interface_config=dict(
                             name="shared_iface",
                             mac_address="10:10:10:11:11:11",
                             mii_config=MII(mode="mac"),
                             virtual_interfaces=[virtual_controller_interface],
-                        )
+                        ),
                     )
                 ],
             ),
@@ -187,12 +188,13 @@ def test_ecu_internal_topology_ambiguous_controller_interface_name_across_contro
                 controller_metadata=embedded_metadata_entry,
                 ethernet_interfaces=[
                     dict(
+                        name="shared_iface",
                         interface_config=dict(
                             name="shared_iface",
                             mac_address="20:20:20:22:22:22",
                             mii_config=MII(mode="mac"),
                             virtual_interfaces=[virtual_controller_interface],
-                        )
+                        ),
                     )
                 ],
             ),

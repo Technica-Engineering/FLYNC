@@ -138,3 +138,4 @@ fuzzed/
 generated/
 tests/unit_test/sdk/approved_files/*.received.txt
 dependency_graph_cache*
+tests/converter_tests/generated_test_output/

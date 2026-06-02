@@ -42,7 +42,7 @@ def _controller(name: str, iface: ControllerInterface):
     return Controller(
         name=name,
         controller_metadata=_embedded_metadata(),
-        ethernet_interfaces=[EthernetInterface(interface_config=iface)],
+        ethernet_interfaces=[EthernetInterface(name=iface.name, interface_config=iface)],
     )
 
 

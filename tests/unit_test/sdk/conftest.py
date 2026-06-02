@@ -2,13 +2,19 @@ import pytest
 from approvaltests import set_default_reporter
 from approvaltests.reporters.diff_reporter import DiffReporter
 
-from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
+from flync.sdk.context.workspace_config import ListObjectsMode
+from flync.sdk.workspace.flync_workspace import FLYNCWorkspace, WorkspaceConfiguration
 
 
 @pytest.fixture
 def get_flync_example_path(pytestconfig):
     project_root = pytestconfig.rootpath
     return str((project_root / "examples" / "flync_example"))
+
+
+@pytest.fixture
+def get_flync_workspace_minimal_config():
+    return WorkspaceConfiguration(list_objects_mode=ListObjectsMode.INDEX)
 
 
 @pytest.fixture

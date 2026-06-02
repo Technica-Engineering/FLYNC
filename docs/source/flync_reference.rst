@@ -241,8 +241,8 @@ This is a **non-mandatory** directory for the FLYNC configuration.
 Validate your configuration
 ****************************
 
-After writing your FLYNC config you can use this helper script from the FLYNC SDK to **validate** it.
+After writing your FLYNC config you can use the CLI to **validate** it.
 
 .. code-block::
 
-   python3 src/flync/sdk/helpers/validate_workspace.py --help
+   flync validate --help

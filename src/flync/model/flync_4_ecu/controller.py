@@ -520,6 +520,9 @@ class EthernetInterface(FLYNCBaseModel):
     Parameters
     ==========
 
+    name : str
+        Name of the ethernet interface, implied from the folder name on disk.
+
     interface_config: :class:`~ControllerInterface`
         Configuration of the Controller Interface.
 
@@ -527,6 +530,7 @@ class EthernetInterface(FLYNCBaseModel):
         :class:`~flync.model.flync_4_ecu.socket_container.SocketContainer`
     """
 
+    name: Annotated[str, Implied(strategy=ImpliedStrategy.FOLDER_NAME)] = Field()
     interface_config: Annotated[
         ControllerInterface,
         External(
@@ -540,7 +544,7 @@ class EthernetInterface(FLYNCBaseModel):
             output_structure=OutputStrategy.FOLDER,
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
-    ] = Field(default_factory=list, exclude=True)
+    ] = Field(default_factory=list)
 
 
 class Controller(NamedListInstances):

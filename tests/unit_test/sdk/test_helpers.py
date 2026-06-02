@@ -191,20 +191,15 @@ def test_load_workspace_from_flync_object_relative_path(
     assert model_has_socket(loaded_ws.flync_model)
 
 
-@pytest.mark.skip(
-    reason="Sockets in ECU are not dumped correctly. False positive on local execution. "
-    "Generated folder is not cleaned up after test execution, making it pass on local execution but fail in CI. To be fixed."
-)
-def test_roundtrip_conversion(get_flync_example_path):
+def test_roundtrip_conversion(get_flync_example_path, get_flync_workspace_minimal_config):
+
     workspace_name_object = "flync_workspace_from_folder"
-    loaded_ws = FLYNCWorkspace.load_workspace(workspace_name_object, get_flync_example_path)
+    loaded_ws = FLYNCWorkspace.load_workspace(workspace_name_object, get_flync_example_path, workspace_config=get_flync_workspace_minimal_config)
     assert loaded_ws is not None
     assert loaded_ws.flync_model is not None
     output_path = current_dir / "generated" / Path(get_flync_example_path).name
     dump_flync_workspace(
-        loaded_ws.flync_model,
-        output_path,
-        workspace_name=workspace_name_object,
+        loaded_ws.flync_model, output_path, workspace_name=workspace_name_object, workspace_config=get_flync_workspace_minimal_config
     )
     assert compare_yaml_files(Path(get_flync_example_path), Path(output_path))
 

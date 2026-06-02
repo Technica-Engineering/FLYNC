@@ -43,19 +43,6 @@ def read_yaml(path: str | os.PathLike | Path):
         rprint(f"[red]{e}[/red]")
 
 
-def write_to_file(obj, file_to_update):
-    """
-    Read a YAML file.
-
-    Args:
-        obj : FLYNC object to write
-        file_to_update : Path of the file for output
-    """
-
-    with open(file_to_update, "w") as f:
-        yaml.safe_dump(obj.model_dump(), f, sort_keys=False)
-
-
 def get_yaml_paths(base_path: str | os.PathLike) -> list:
     """
     Collect absolute paths to yaml files from a base_path.

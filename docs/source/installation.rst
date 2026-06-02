@@ -69,7 +69,7 @@ All installation methods use **Poetry** as the dependency and environment manage
 
 
 
-Option 1 — Standard Installation (Recommended for Most Users)
+Option 1 - Standard Installation (Recommended for Most Users)
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 **Use this if:** You want to use the FLYNC SDK to create and validate configurations.
@@ -104,7 +104,7 @@ If successful, you should see the list of FLYNC runtime dependencies with their 
 
 -------
 
-Option 2 — Full Developer Installation
+Option 2 - Full Developer Installation
 ''''''''''''''''''''''''''''''''''''''''''''
 
 **Use this if:** You plan to contribute to FLYNC, modify the SDK, or run tests and linters.
@@ -128,7 +128,7 @@ Optional but recommended:
 
 ------
 
-Option 3 — Documentation-Only Environment
+Option 3 - Documentation-Only Environment
 ''''''''''''''''''''''''''''''''''''''''''''
 
 **Use this if:** You only want to build or edit the documentation.
@@ -141,14 +141,14 @@ Option 3 — Documentation-Only Environment
    cd flync-library
    poetry install --with docs
 
-Build docs — Linux and macOS users:
+Build docs - Linux and macOS users:
 
 .. code-block:: bash
 
    cd docs
    make html
 
-Build docs — Windows users:
+Build docs - Windows users:
 
 .. code-block:: powershell
 
@@ -157,7 +157,7 @@ Build docs — Windows users:
 
 -------
 
-Option 4 — Testing Environment
+Option 4 - Testing Environment
 ''''''''''''''''''''''''''''''''''''''''''''
 
 **Use this if:** You only want to run the test suite.
@@ -202,4 +202,34 @@ If you have multiple Python versions, use ``python3.12`` or create a virtual env
    .\.venv\Scripts\Activate.ps1
 
 
-Happy coding! For issues, contributions, or questions, reach out to the authors listed in the project metadata.
+
+Verify Installation
+--------------------
+
+After installation, the following console commands are available:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 40 30
+
+   * - Command
+     - Entry point
+     - Origin
+   * - ``flync``
+     - ``flync_cli:app``
+     - flync_cli
+   * - ``puml-to-html``
+     - ``flync_cli.convert_puml:main``
+     - flync_cli
+   * - ``flync-converter``
+     - ``flync_converter.cli:main``
+     - flync_converter
+   * - ``flync-converter-interactive``
+     - ``flync_converter.cli:main_interactive``
+     - flync_converter
+   * - ``flync-converter-gui``
+     - ``flync_converter.cli:main_gui``
+     - flync_converter
+
+
+Happy coding! For issues, contributions, or questions, reach out to the authors listed in :doc:`contact`.
