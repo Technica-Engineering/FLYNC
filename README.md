@@ -68,7 +68,7 @@
 | src/flync/model/flync\_4\_signal/\_\_init\_\_.py                    |        5 |        0 |    100% |           |
 | src/flync/model/flync\_4\_signal/forwarder.py                       |       40 |        0 |    100% |           |
 | src/flync/model/flync\_4\_signal/frame.py                           |       74 |        0 |    100% |           |
-| src/flync/model/flync\_4\_signal/pdu.py                             |       99 |        2 |     98% |  311, 314 |
+| src/flync/model/flync\_4\_signal/pdu.py                             |      106 |        2 |     98% |  325, 328 |
 | src/flync/model/flync\_4\_signal/signal.py                          |      166 |        0 |    100% |           |
 | src/flync/model/flync\_4\_signal/value\_encoding.py                 |      107 |        1 |     99% |       179 |
 | src/flync/model/flync\_4\_someip/\_\_init\_\_.py                    |        6 |        0 |    100% |           |
@@ -144,7 +144,7 @@
 | src/flync\_converter/hookspec.py                                    |        4 |        0 |    100% |           |
 | src/flync\_converter/registry.py                                    |       32 |        5 |     84% | 29, 55-58 |
 | src/flync\_converter/utils.py                                       |       75 |        4 |     95% |63-64, 93-94 |
-| **TOTAL**                                                           | **7412** |  **878** | **88%** |           |
+| **TOTAL**                                                           | **7419** |  **878** | **88%** |           |
 
 
 ## Setup coverage badge
