@@ -295,6 +295,19 @@ class ContainerPDU(PDU):
             )
         return self
 
+    @model_validator(mode="after")
+    def validate_one_pdu_if_header_length_is_one(self) -> "ContainerPDU":
+        """Ensure container length covers the per-slot header overhead."""
+
+        if self.header.id_length_bits == 0 and self.header.length_field_bits == 0 and len(self.contained_pdus) != 1:
+            raise err_minor("If header length is 0, there should be only one contained PDU")
+        if (self.header.id_length_bits == 0 and self.header.length_field_bits != 0) or (
+            self.header.id_length_bits != 0 and self.header.length_field_bits == 0
+        ):
+            raise err_minor("Both or None of the fields id_length_bits, and  length_field_bits should be zero")
+
+        return self
+
 
 # ---------------------------------------------------------------------------
 # Bit-range helpers

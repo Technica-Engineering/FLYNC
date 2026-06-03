@@ -721,3 +721,69 @@ def test_negative_container_pdu_zero_length():
             length=0,
             header=ContainerPDUHeader(id_length_bits=16, length_field_bits=8),
         )
+
+
+# ---------------------------------------------------------------------------
+# ContainerPDU — validate_one_pdu_if_header_length_is_one
+# ---------------------------------------------------------------------------
+
+
+def test_positive_container_pdu_headerless_with_one_pdu():
+    """Header-less (both fields 0) with exactly one contained PDU must be accepted."""
+    pdu = ContainerPDU(
+        name="ctr_headerless_one",
+        pdu_id=20,
+        length=4,
+        header=ContainerPDUHeader(id_length_bits=0, length_field_bits=0),
+        contained_pdus=[ContainedPDURef(pdu_id=1, pdu_ref="inner_hl")],
+    )
+    assert len(pdu.contained_pdus) == 1
+
+
+def test_positive_container_pdu_headerless_no_contained_pdus_raises():
+    """Header-less with zero contained PDUs must be rejected (not exactly one)."""
+    with pytest.raises(ValidationError, match="one contained PDU"):
+        ContainerPDU(
+            name="ctr_headerless_empty",
+            pdu_id=21,
+            length=4,
+            header=ContainerPDUHeader(id_length_bits=0, length_field_bits=0),
+            contained_pdus=[],
+        )
+
+
+def test_negative_container_pdu_headerless_multiple_contained_pdus():
+    """Header-less with more than one contained PDU must be rejected."""
+    with pytest.raises(ValidationError, match="one contained PDU"):
+        ContainerPDU(
+            name="ctr_headerless_multi",
+            pdu_id=22,
+            length=4,
+            header=ContainerPDUHeader(id_length_bits=0, length_field_bits=0),
+            contained_pdus=[
+                ContainedPDURef(pdu_id=1, pdu_ref="inner_a"),
+                ContainedPDURef(pdu_id=2, pdu_ref="inner_b"),
+            ],
+        )
+
+
+def test_negative_container_pdu_only_id_length_zero():
+    """id_length_bits=0 with non-zero length_field_bits must be rejected."""
+    with pytest.raises(ValidationError, match="Both or None"):
+        ContainerPDU(
+            name="ctr_id_zero_only",
+            pdu_id=23,
+            length=4,
+            header=ContainerPDUHeader(id_length_bits=0, length_field_bits=8),
+        )
+
+
+def test_negative_container_pdu_only_length_field_zero():
+    """length_field_bits=0 with non-zero id_length_bits must be rejected."""
+    with pytest.raises(ValidationError, match="Both or None"):
+        ContainerPDU(
+            name="ctr_len_zero_only",
+            pdu_id=24,
+            length=4,
+            header=ContainerPDUHeader(id_length_bits=16, length_field_bits=0),
+        )
