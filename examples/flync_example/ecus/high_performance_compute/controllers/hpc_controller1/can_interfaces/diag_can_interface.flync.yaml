@@ -1,5 +1,6 @@
 bus_ref: DiagCAN
 sender_frames:
   - frame_ref: Frame_EngineDiagResponse
+  - frame_ref: Frame_NmMessage
 receiver_frames:
   - frame_ref: Frame_LightDiagRequest

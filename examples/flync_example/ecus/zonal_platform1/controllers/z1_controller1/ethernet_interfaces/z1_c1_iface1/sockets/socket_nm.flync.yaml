@@ -1,0 +1,10 @@
+vlan_id: 40
+sockets:
+- name: nm_rx_socket
+  endpoint_address: 10.0.40.1
+  endpoint_type: multicast
+  port_no: 1200
+  protocol: udp
+  deployments:
+  - deployment_type: pdu_receiver
+    pdu_ref: EthNmContainerA

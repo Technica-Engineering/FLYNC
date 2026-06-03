@@ -23,6 +23,8 @@ The configuration includes the following key components:
 
 - **Quality of Service (QoS), Layer 2 TSN, and TCAM Usage** - Provides sample configurations for traffic prioritization and deterministic networking using Time-Sensitive Networking (TSN) features. It also illustrates how TCAM rules can be allocated and used for traffic classification and filtering. You can use this configuration as a starting point, adapting interface mappings, policies, and feature parameters to match the specific requirements of your hardware platform and application.
 
+- **Network Management (NM)** - Shows how an NM message is modelled vendor-agnostic as an ordinary PDU with ordinary signals, tagged via the ``pdu_usage`` / ``frame_usage`` fields, and bound to both Ethernet and CAN transports.
+
 
 
 Example Configuration
@@ -449,3 +451,38 @@ A socket in FLYNC represents a logical endpoint on a virtual network interface o
 
 .. note:: Sockets must be defined in a separate folder for each ECU for better readability.
 .. note:: Multiple sockets may be defined in a single file for different address endpoints, but they must belong to the same VLAN.
+
+-------
+
+Network Management (NM)
+""""""""""""""""""""""""""
+
+The example illustrates a vendor-agnostic Network Management configuration that exercises both Ethernet and CAN transports with a single PDU definition.
+
+The NM message is modelled as an ordinary PDU (``PDU_NmMessage``) with ordinary signals:
+
+- ``sender_id`` (uint8) - identifies the sending node.
+- ``relevance_vector`` (uint8) - a partial-network relevance bitmask. The
+  bit-to-function mapping uses the ``bitmask_flags`` value encoding, so
+  each bit carries a named label (``MirrorLeft``, ``MirrorRight``,
+  ``CabinLight``, ``EngineStatus``, ``TransmissionStatus``,
+  ``VehicleDynamics``) that matches a real application PDU in this
+  workspace.
+- ``user_data`` (bytearray, 6 bytes) - opaque OEM/application extension area.
+
+The PDU is flagged ``pdu_usage: network_management``, so any tool processing the catalog can recognize it as the NM message regardless of which transport carries it.
+
+**Ethernet NM**
+
+This example NM PDU (``PDU_NmMessage``) is wrapped in an Ethernet Container PDU (``eth_nm_container_a``) and bound to a UDP socket via the ``pdu_sender`` / ``pdu_receiver`` deployment types:
+
+- **Sender** - ``high_performance_compute`` transmits the NM container multicast on VLAN 40, group ``224.0.0.1``, UDP port 1200 (its existing ``network_management_socket``).
+- **Receivers** - ``zonal_platform1`` and ``zonal_platform2`` subscribe via ``pdu_receiver`` sockets on the same VLAN and multicast group.
+
+
+As an alternative way, the NM PDU (``PDU_NmMessage``) can be attached to a Ethernet Container PDU (available as example ``eth_nm_container_b``) **which does not carry a PDU Header**, as ``header/id_length_bits`` & ``length_field_bits`` are configured with length zero (``0``), to be sent as a raw UDP payload as example Use-Case.
+
+**CAN NM**
+
+On the CAN side, the same PDU is carried by ``Frame_NmMessage`` on the ``DiagCAN`` bus, tagged ``frame_usage: network_management``. The frame is bound to ``high_performance_compute`` as a ``sender_frames`` entry. ``high_performance_compute`` is the only ECU connected to ``DiagCAN`` in this workspace, so no ``receiver_frames`` entry exists; in a multi-ECU CAN setup, peer ECUs would add ``Frame_NmMessage`` under ``receiver_frames`` on their own ``DiagCAN`` interface — mirroring the Ethernet ``pdu_receiver`` pattern.
+

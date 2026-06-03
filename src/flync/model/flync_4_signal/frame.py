@@ -119,8 +119,9 @@ class Frame(UniqueName):
         Unique name of the frame.
     length : int
         Length of the frame payload in bytes.
-    frame_usage : str, optional
-        Optional string describing the usage of the frame.
+    frame_usage : Literal["network_management"], optional
+        Tag identifying special usage of the frame.
+        ``"network_management"`` marks the frame as carrying Network Management traffic.
     description : str, optional
         Optional human-readable description.
     packed_pdus : list of :class:`PDUInstance`
@@ -129,7 +130,7 @@ class Frame(UniqueName):
 
     name: str = Field()
     length: int = Field()
-    frame_usage: Optional[str] = Field(default=None)
+    frame_usage: Optional[Literal["network_management"]] = Field(default=None)
     description: Optional[str] = Field(default=None)
     packed_pdus: List[PDUInstance] = Field(default_factory=list)
 

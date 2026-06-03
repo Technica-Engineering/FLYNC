@@ -32,15 +32,16 @@ class PDU(UniqueName):
         Unique name of the PDU.
     length : int
         Length of the PDU payload in bytes.
-    pdu_usage : str, optional
-        Optional string describing the usage of the PDU.
+    pdu_usage : Literal["network_management"], optional
+        Tag identifying special usage of the PDU.
+        ``"network_management"`` marks the PDU as a Network Management message.
     description : str, optional
         Optional human-readable description.
     """
 
     name: str = Field()
     length: int = Field(gt=0)
-    pdu_usage: Optional[str] = Field(default=None)
+    pdu_usage: Optional[Literal["network_management"]] = Field(default=None)
     description: Optional[str] = Field(default=None)
 
 
@@ -242,8 +243,8 @@ class ContainerPDUHeader(FLYNCBaseModel):
         Bit length of the payload-length field
     """
 
-    id_length_bits: int = Field(gt=0)
-    length_field_bits: int = Field(gt=0)
+    id_length_bits: int = Field()
+    length_field_bits: int = Field()
 
     @field_validator("id_length_bits", "length_field_bits")
     @classmethod

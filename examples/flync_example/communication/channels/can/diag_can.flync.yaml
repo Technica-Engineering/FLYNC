@@ -30,3 +30,29 @@ frames:
     packed_pdus:
       - pdu_ref: PDU_EngineStatus
         bit_position: 0
+
+  # --------------------------------------------------------------------------
+  # Frame: NmMessage (0x500, 8 bytes, sent cyclically by HPC, the sole modelled
+  # NM-sending ECU on this bus). Tagged frame_usage: network_management;
+  # carries PDU_NmMessage. Receivers are implicit external NM peers because HPC
+  # is the only DiagCAN-connected ECU in this workspace; in a multi-ECU CAN
+  # setup, peer ECUs would add Frame_NmMessage under receiver_frames on their
+  # own DiagCAN interface.
+  # --------------------------------------------------------------------------
+  - name: Frame_NmMessage
+    type: can
+    frame_usage: network_management
+    description: >-
+      Network Management frame on DiagCAN. Sent cyclically by HPC, the sole
+      NM-sending ECU modelled in this workspace. Carries the ordinary NM PDU
+      (PDU_NmMessage) as its payload.
+    length: 8
+    can_id: 1280         # 0x500
+    id_format: standard_11bit
+    packed_pdus:
+      - pdu_ref: PDU_NmMessage
+        bit_position: 0
+    timing:
+      cyclic_timings:
+        - cycle: 0.5
+      event_timings: []

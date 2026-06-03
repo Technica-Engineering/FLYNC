@@ -7,3 +7,6 @@ sockets:
   protocol: udp
   multicast_tx:
   - 224.0.0.1
+  deployments:
+  - deployment_type: pdu_sender
+    pdu_ref: EthNmContainerA

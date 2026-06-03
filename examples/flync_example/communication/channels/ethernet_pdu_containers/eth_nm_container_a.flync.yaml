@@ -1,0 +1,15 @@
+name: EthNmContainerA
+type: container
+pdu_usage: network_management
+pdu_id: 100
+length: 11
+header:
+  id_length_bits: 16
+  length_field_bits: 8
+description: >-
+  Ethernet Container PDU that carries the NM message so it can be bound to a
+  UDP socket via a pdu_sender / pdu_receiver deployment.
+contained_pdus:
+  - pdu_id: 1
+    pdu_ref: PDU_NmMessage
+    offset: 0
