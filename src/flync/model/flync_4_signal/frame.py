@@ -119,9 +119,31 @@ class Frame(UniqueName):
         Unique name of the frame.
     length : int
         Length of the frame payload in bytes.
-    frame_usage : Literal["network_management"], optional
+    frame_usage : Literal[
+                    "application",
+                    "bap",
+                    "diag_request",
+                    "diag_response",
+                    "diag_state",
+                    "network_management",
+                    "other",
+                    "service",
+                    "tpl",
+                    "xcp_pre_configured",
+                    "xcp_runtime_configured",
+                ], optional
         Tag identifying special usage of the frame.
+        ``"application"`` marks the frame as carrying regular application traffic.
+        ``"bap"`` marks the frame as carrying BAP (FIBEX compatibility).
+        ``"diag_request"`` marks the frame as diagnostics request.
+        ``"diag_response"`` marks the frame as diagnostics response.
+        ``"diag_state"`` marks the frame as diagnostics state.
         ``"network_management"`` marks the frame as carrying Network Management traffic.
+        ``"other"`` marks the frame as other usage.
+        ``"service"`` marks the frame as service.
+        ``"tpl"`` marks the frame as carrying a transport protocol.
+        ``"xcp_pre_configured"`` marks the frame as static XCP.
+        ``"xcp_runtime_configured"`` marks the frame as dynamic XCP.
     description : str, optional
         Optional human-readable description.
     packed_pdus : list of :class:`PDUInstance`
@@ -130,7 +152,21 @@ class Frame(UniqueName):
 
     name: str = Field()
     length: int = Field()
-    frame_usage: Optional[Literal["network_management"]] = Field(default=None)
+    frame_usage: Optional[
+        Literal[
+            "application",
+            "bap",
+            "diag_request",
+            "diag_response",
+            "diag_state",
+            "network_management",
+            "other",
+            "service",
+            "tpl",
+            "xcp_pre_configured",
+            "xcp_runtime_configured",
+        ]
+    ] = Field(default=None)
     description: Optional[str] = Field(default=None)
     packed_pdus: List[PDUInstance] = Field(default_factory=list)
 

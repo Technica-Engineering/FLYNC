@@ -32,16 +32,53 @@ class PDU(UniqueName):
         Unique name of the PDU.
     length : int
         Length of the PDU payload in bytes.
-    pdu_usage : Literal["network_management"], optional
+    pdu_usage : Literal[
+                    "application",
+                    "bap",
+                    "diag_request",
+                    "diag_response",
+                    "diag_state",
+                    "network_management",
+                    "other",
+                    "service",
+                    "tpl",
+                    "xcp_pre_configured",
+                    "xcp_runtime_configured",
+                ], optional
         Tag identifying special usage of the PDU.
-        ``"network_management"`` marks the PDU as a Network Management message.
+        ``"application"`` marks the PDU as regular application.
+        ``"bap"`` marks the PDU as BAP (FIBEX compatibility).
+        ``"diag_request"`` marks the PDU as diagnostics request.
+        ``"diag_response"`` marks the PDU as diagnostics response.
+        ``"diag_state"`` marks the PDU as diagnostics state.
+        ``"network_management"`` marks the PDU as Network Management.
+        ``"other"`` marks the PDU as other usage.
+        ``"service"`` marks the PDU as service.
+        ``"tpl"`` marks the PDU as transport protocol PDU.
+        ``"xcp_pre_configured"`` marks the PDU as static XCP PDU.
+        ``"xcp_runtime_configured"`` marks the PDU as dynamic XCP PDU.
+
     description : str, optional
         Optional human-readable description.
     """
 
     name: str = Field()
     length: int = Field(gt=0)
-    pdu_usage: Optional[Literal["network_management"]] = Field(default=None)
+    pdu_usage: Optional[
+        Literal[
+            "application",
+            "bap",
+            "diag_request",
+            "diag_response",
+            "diag_state",
+            "network_management",
+            "other",
+            "service",
+            "tpl",
+            "xcp_pre_configured",
+            "xcp_runtime_configured",
+        ]
+    ] = Field(default=None)
     description: Optional[str] = Field(default=None)
 
 
