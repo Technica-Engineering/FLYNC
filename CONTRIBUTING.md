@@ -18,7 +18,7 @@ Before contributing, familiarize yourself with the project:
 
 To contribute, you will need:
 
-- **Python 3.11** or higher
+- **Python 3.12 to 3.15**
 - Git for version control
 - A code editor (e.g., VS Code, PyCharm)
 - Familiarity with the project dependencies (e.g., ``pydantic``, ``pyyaml``, ``pytest``)
@@ -128,7 +128,7 @@ The FLYNC project follows [PEP 8](https://www.python.org/dev/peps/pep-0008/) for
 Key guidelines include:
 
 - **Indentation**: Use 4 spaces per indentation level. Do not use tabs.
-- **Line Length**: Limit lines to 79 characters for readability.
+- **Line Length**: Limit lines to 149 characters for readability.
 - **Imports**:
     - Group imports in the following order: standard library, third-party, local project modules.
     - Use explicit imports (e.g., ``from typing import List`` instead of ``import typing``).
@@ -263,7 +263,7 @@ When introducing new parts to the model (e.g., new classes or fields), adhere to
 
 When introducing new model components, ensure they align with the project's directory structure:
 
-- Place new model classes in the appropriate module (e.g., ``flync/flync_4_ecu/`` for ECU-related models, ``flync/flync_4_tsn/`` for TSN-related models).
+- Place new model classes in the appropriate module (e.g., ``src/flync/model/flync_4_ecu/`` for ECU-related models, ``src/flync/model/flync_4_tsn/`` for TSN-related models).
 - Use descriptive file names in **snake_case** (e.g., ``feature1_part1.py``).
 - Maintain a consistent module hierarchy, mirroring the configuration structure (e.g., ``controllers/``, ``ports/``).
 
@@ -298,8 +298,8 @@ Update documentation for any changes that affect usage or contribution guideline
 
 - **Project Documentation**:
     - Update any RST file to reflect new model components or changes to existing ones.
-    - Update ``docs/source/contributing.rst`` if new contribution processes are introduced.
-    - Use reStructuredText (RST) for all documentation files.
+    - Use reStructuredText (RST) for all documentation files deployed to the documentation.
+    - Update this ``CONTRIBUTING.md`` if new contribution processes are introduced.
 
 > **NOTE**: Preview RST files using a tool like Sphinx or an RST viewer to ensure correct rendering.
 
