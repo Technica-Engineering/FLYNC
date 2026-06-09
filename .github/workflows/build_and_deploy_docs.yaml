@@ -42,6 +42,7 @@ jobs:
         uses: actions/upload-pages-artifact@v5
         with:
           path: docs/build/html
+          retention-days: 7
 
       - name: Deploy to GitHub Pages
         if: |
