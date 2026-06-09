@@ -68,7 +68,7 @@
 | src/flync/model/flync\_4\_signal/\_\_init\_\_.py                    |        5 |        0 |    100% |           |
 | src/flync/model/flync\_4\_signal/forwarder.py                       |       40 |        0 |    100% |           |
 | src/flync/model/flync\_4\_signal/frame.py                           |       74 |        0 |    100% |           |
-| src/flync/model/flync\_4\_signal/pdu.py                             |      106 |        2 |     98% |  325, 328 |
+| src/flync/model/flync\_4\_signal/pdu.py                             |      106 |        2 |     98% |  362, 365 |
 | src/flync/model/flync\_4\_signal/signal.py                          |      166 |        0 |    100% |           |
 | src/flync/model/flync\_4\_signal/value\_encoding.py                 |      107 |        1 |     99% |       179 |
 | src/flync/model/flync\_4\_someip/\_\_init\_\_.py                    |        6 |        0 |    100% |           |
