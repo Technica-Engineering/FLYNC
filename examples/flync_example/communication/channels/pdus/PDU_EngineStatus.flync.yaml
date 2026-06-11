@@ -22,7 +22,7 @@ signals:
       value_encoding:
         type: text_table
         entries:
-          - value: 65535
+          - from_value: 65535
             label: Signal_Not_Available
   - bit_position: 16
     endianness: LE
@@ -53,9 +53,9 @@ signals:
       value_encoding:
         type: text_table
         entries:
-          - value: 254
+          - from_value: 254
             label: Sensor_Error
-          - value: 255
+          - from_value: 255
             label: Signal_Not_Available
   - bit_position: 40
     endianness: LE
@@ -68,13 +68,13 @@ signals:
       value_encoding:
         type: text_table
         entries:
-          - value: 0
+          - from_value: 0
             label: Stopped
-          - value: 1
+          - from_value: 1
             label: Cranking
-          - value: 2
+          - from_value: 2
             label: Running
-          - value: 3
+          - from_value: 3
             label: Stall
-          - value: 15
+          - from_value: 15
             label: Error

@@ -20,7 +20,7 @@ signals:
       value_encoding:
         type: text_table
         entries:
-          - value: 255
+          - from_value: 255
             label: Position_Unknown
   - bit_position: 8
     endianness: LE
@@ -38,5 +38,5 @@ signals:
       value_encoding:
         type: text_table
         entries:
-          - value: 255
+          - from_value: 255
             label: Position_Unknown

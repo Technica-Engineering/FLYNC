@@ -1,16 +1,14 @@
 """Value-encoding models for :class:`~flync.model.flync_4_signal.Signal`.
 
 A :class:`ValueEncoding` describes how raw integer values transmitted on the
-wire are converted into human-readable labels.  Four variants are supported,
+wire are converted into human-readable labels.  Three variants are supported,
 selected by the ``type`` discriminator:
 
-* :class:`TextTable` — single raw value to label.  Use this for ordinary
-  enumerated signals (gear position, operating mode) and for reserved
-  sentinel codes such as ``Signal_Not_Available``.
-
-* :class:`RangeTextTable` — inclusive raw value range to label.  Use this
-  when one label covers many contiguous raw values
-  (e.g. ``0..9 = Low``).
+* :class:`TextTable` — maps inclusive raw value ranges to labels.  Use this
+  for ordinary enumerated signals (gear position, operating mode), for
+  reserved sentinel codes such as ``Signal_Not_Available`` (a single value
+  is expressed by omitting ``to_value``, which defaults to ``from_value``),
+  and when one label covers many contiguous raw values (e.g. ``0..9 = Low``).
 
 * :class:`BitfieldTextTable` — decodes the signal as a set of independent
   :class:`BitfieldGroup` regions, each with its own enum of mutually
@@ -37,78 +35,31 @@ from flync.core.utils.exceptions import err_major
 
 class TextEntry(FLYNCBaseModel):
     """
-    Mapping from a single raw integer value to a label.
-
-    Parameters
-    ----------
-    value : int
-        The raw integer value of the signal.
-    label : str
-        Human-readable label for this value (e.g. ``"Off"``,
-        ``"Signal_Not_Available"``).
-    """
-
-    value: int = Field()
-    label: str = Field()
-
-
-class TextTable(FLYNCBaseModel):
-    """
-    Maps individual raw signal values to text labels.
-
-    Use :class:`RangeTextTable` instead when one label spans an inclusive
-    range of raw values.
-
-    Parameters
-    ----------
-    type : Literal["text_table"]
-        Discriminator selecting this value-encoding variant.
-    entries : list of :class:`TextEntry`
-        Non-empty list of single-value mappings.  Values must be unique
-        and labels must be unique within the table.
-    """
-
-    type: Literal["text_table"] = "text_table"
-    entries: List[TextEntry] = Field(min_length=1)
-
-    @model_validator(mode="after")
-    def _validate_unique(self) -> "TextTable":
-        seen_values: set[int] = set()
-        seen_labels: set[str] = set()
-        for e in self.entries:
-            if e.value in seen_values:
-                raise err_major("Duplicate value {value!r} in TextTable; each value must appear at most once", value=e.value)
-            seen_values.add(e.value)
-            if e.label in seen_labels:
-                raise err_major("Duplicate label {label!r} in TextTable; each label must appear at most once", label=e.label)
-            seen_labels.add(e.label)
-        return self
-
-
-class RangeTextEntry(FLYNCBaseModel):
-    """
     Mapping from an inclusive raw value range to a label.
+
+    Omit ``to_value`` for single-value mappings; it defaults to ``from_value``.
 
     Parameters
     ----------
     from_value : int
         Inclusive lower bound of the raw value range.
     to_value : int
-        Inclusive upper bound of the raw value range.
+        Inclusive upper bound of the raw value range.  Optional; defaults to
+        ``from_value`` for a single-value mapping.
     label : str
         Human-readable label for this range (e.g. ``"Low"``,
         ``"Medium"``).
     """
 
     from_value: int = Field()
-    to_value: int = Field()
+    to_value: int = Field(default_factory=lambda data: data.get("from_value", 0))
     label: str = Field()
 
     @model_validator(mode="after")
-    def _validate_bounds(self) -> "RangeTextEntry":
+    def _validate_bounds(self) -> "TextEntry":
         if self.to_value < self.from_value:
             raise err_major(
-                "RangeTextEntry '{label}': to_value ({to_value}) must not be less than from_value ({from_value})",
+                "TextEntry '{label}': to_value ({to_value}) must not be less than from_value ({from_value})",
                 label=self.label,
                 to_value=self.to_value,
                 from_value=self.from_value,
@@ -116,39 +67,42 @@ class RangeTextEntry(FLYNCBaseModel):
         return self
 
 
-class RangeTextTable(FLYNCBaseModel):
+class TextTable(FLYNCBaseModel):
     """
     Maps inclusive raw value ranges to text labels.
 
-    Use :class:`TextTable` instead for plain single-value enumerations.
+    A single raw value is expressed by omitting ``to_value`` (it defaults to
+    ``from_value``), or by explicitly setting both equal (e.g. a reserved
+    ``Signal_Not_Available`` code); a wider range covers many contiguous raw
+    values with one label.
 
     Parameters
     ----------
-    type : Literal["range_text_table"]
+    type : Literal["text_table"]
         Discriminator selecting this value-encoding variant.
-    entries : list of :class:`RangeTextEntry`
+    entries : list of :class:`TextEntry`
         Non-empty list of range-to-label mappings.  Ranges must not
         overlap and labels must be unique within the table.
     """
 
-    type: Literal["range_text_table"] = "range_text_table"
-    entries: List[RangeTextEntry] = Field(min_length=1)
+    type: Literal["text_table"] = "text_table"
+    entries: List[TextEntry] = Field(min_length=1)
 
     @model_validator(mode="after")
-    def _validate_no_overlap(self) -> "RangeTextTable":
+    def _validate_no_overlap(self) -> "TextTable":
         ranges = collect_bit_ranges(
             self.entries,
             lambda e: (e.label, e.from_value, e.to_value + 1),
         )
-        check_bit_ranges_no_overlap("RangeTextTable", ranges)
+        check_bit_ranges_no_overlap("TextTable", ranges)
         return self
 
     @model_validator(mode="after")
-    def _validate_unique_labels(self) -> "RangeTextTable":
+    def _validate_unique_labels(self) -> "TextTable":
         seen: set[str] = set()
         for e in self.entries:
             if e.label in seen:
-                raise err_major("Duplicate label {label!r} in RangeTextTable; each label must appear at most once", label=e.label)
+                raise err_major("Duplicate label {label!r} in TextTable; each label must appear at most once", label=e.label)
             seen.add(e.label)
         return self
 
@@ -165,13 +119,13 @@ class BitfieldState(FLYNCBaseModel):
     from_value : int
         Inclusive lower bound for ``(raw & group.mask)``.
     to_value : int
-        Inclusive upper bound for ``(raw & group.mask)``.  Equal to
-        ``from_value`` for an exact-match state.
+        Inclusive upper bound for ``(raw & group.mask)``.  Optional; defaults
+        to ``from_value`` for an exact-match state.
     """
 
     label: str = Field()
     from_value: int = Field(ge=0)
-    to_value: int = Field(ge=0)
+    to_value: int = Field(ge=0, default_factory=lambda data: data.get("from_value", 0))
 
     @model_validator(mode="after")
     def _validate_bounds(self) -> "BitfieldState":
@@ -342,6 +296,6 @@ class BitmaskFlags(FLYNCBaseModel):
 
 
 ValueEncoding = Annotated[
-    Union[TextTable, RangeTextTable, BitfieldTextTable, BitmaskFlags],
+    Union[TextTable, BitfieldTextTable, BitmaskFlags],
     Field(discriminator="type"),
 ]
