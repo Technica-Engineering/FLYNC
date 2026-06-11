@@ -28,7 +28,6 @@ ports:
       speed: 100
       mode: mac
 host_controller:
-  name: ecu1_switch1_controlleriface1
   mac_address: 00:11:22:33:44:60
   virtual_interfaces:
     - name: ecu1_switch1_controlleriface1_viface1
