@@ -55,13 +55,11 @@ Four variants are supported and selected by the ``type`` discriminator:
    * - ``type``
      - Description
    * - ``text_table``
-     - Maps single raw values to text labels.  Use this for ordinary
-       enumerated signals and for reserved sentinel codes such as
-       ``Signal_Not_Available``.
-   * - ``range_text_table``
-     - Maps inclusive raw value ranges to text labels.  Use this when
-       one label spans many contiguous raw values (e.g.
-       ``0..9 = Low``).
+     - Maps single raw values as well as inclusive raw value ranges to text labels.
+       Use this for ordinary enumerated signals, for reserved sentinel codes such as
+       ``Signal_Not_Available`` or when one label spans many contiguous raw values
+       (e.g. ``0..9 = Low``).  For single values, ``to_value`` may be omitted;
+       it defaults to ``from_value``.
    * - ``bitfield_text_table``
      - Decodes the signal as a set of named bit-region groups, each with
        its own enum of mutually exclusive states.  Use this when several
@@ -81,10 +79,6 @@ raw ``65535`` mapped to ``Signal_Not_Available``).
 .. autoclass:: flync.model.flync_4_signal.TextTable()
 
 .. autoclass:: flync.model.flync_4_signal.TextEntry()
-
-.. autoclass:: flync.model.flync_4_signal.RangeTextTable()
-
-.. autoclass:: flync.model.flync_4_signal.RangeTextEntry()
 
 .. autoclass:: flync.model.flync_4_signal.BitfieldTextTable()
 
@@ -114,13 +108,13 @@ Examples
         value_encoding:
           type: text_table
           entries:
-            - value: 0
+            - from_value: 0
               label: Park
-            - value: 1
+            - from_value: 1
               label: Reverse
-            - value: 2
+            - from_value: 2
               label: Neutral
-            - value: 3
+            - from_value: 3
               label: Drive
 
 .. admonition:: Expand for a YAML example — linear signal with reserved codes (``text_table``)
@@ -147,16 +141,16 @@ Examples
         value_encoding:
           type: text_table
           entries:
-            - value: 254
+            - from_value: 254
               label: Sensor_Error
-            - value: 255
+            - from_value: 255
               label: Signal_Not_Available
 
-.. admonition:: Expand for a YAML example — value ranges (``range_text_table``)
+.. admonition:: Expand for a YAML example — value ranges (``text_table``)
    :collapsible: closed
 
-   When one label covers many contiguous raw values, use
-   ``range_text_table`` with inclusive ``from_value``/``to_value``
+   When one label covers many contiguous raw values, give the
+   ``text_table`` entry distinct inclusive ``from_value``/``to_value``
    bounds.  Ranges must not overlap.
 
    .. code-block:: yaml
@@ -167,7 +161,7 @@ Examples
         bit_length: 8
         data_type: uint8
         value_encoding:
-          type: range_text_table
+          type: text_table
           entries:
             - from_value: 0
               to_value: 9
@@ -179,7 +173,6 @@ Examples
               to_value: 200
               label: High
             - from_value: 255
-              to_value: 255
               label: Signal_Not_Available
 
 .. admonition:: Expand for a YAML example — packed status word (``bitfield_text_table``)
