@@ -109,7 +109,7 @@
 | src/flync\_cli/commands/validate.py                                 |       33 |        6 |     82% |36-37, 47, 54-55, 57 |
 | src/flync\_cli/commands/vlan\_info.py                               |       67 |        2 |     97% |    87, 94 |
 | src/flync\_cli/convert\_puml.py                                     |       71 |        1 |     99% |       283 |
-| src/flync\_cli/main.py                                              |       24 |        5 |     79% | 37-40, 44 |
+| src/flync\_cli/main.py                                              |       24 |        5 |     79% | 38-41, 45 |
 | src/flync\_cli/utils/error\_table.py                                |       87 |       22 |     75% |108-121, 134-149 |
 | src/flync\_cli/utils/mapping.py                                     |        3 |        0 |    100% |           |
 | src/flync\_cli/utils/run\_validation.py                             |       14 |        6 |     57% |     17-23 |
