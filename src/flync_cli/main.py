@@ -13,7 +13,8 @@ from flync_cli.commands.vlan_info import app as display_vlan_info
 app = typer.Typer(
     help="FLYNC CLI tool for validating the model, visually displaying the relevant information and generating system UML diagrams",
     context_settings={"allow_extra_args": True},
-    add_completion=False,
+    add_completion=True,
+    no_args_is_help=True,
 )
 logger = logging.getLogger(__name__)
 
