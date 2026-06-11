@@ -16,8 +16,6 @@ from flync.model.flync_4_signal.value_encoding import (
     BitfieldTextTable,
     BitmaskFlag,
     BitmaskFlags,
-    RangeTextEntry,
-    RangeTextTable,
     TextEntry,
     TextTable,
     ValueEncoding,
@@ -32,8 +30,6 @@ __all__ = [
     "SignalGroupInstance",
     "TextEntry",
     "TextTable",
-    "RangeTextEntry",
-    "RangeTextTable",
     "BitfieldState",
     "BitfieldGroup",
     "BitfieldTextTable",
@@ -162,8 +158,8 @@ class Signal(FLYNCBaseModel):
         signals pass a ``str``; for ``bytearray`` signals pass ``bytes``.
     value_encoding : :class:`ValueEncoding`, optional
         Optional conversion from raw values to text labels.  One of
-        :class:`TextTable` (single value → label),
-        :class:`RangeTextTable` (inclusive range → label),
+        :class:`TextTable` (inclusive range → label; omit ``to_value``
+        for a single value, it defaults to ``from_value``),
         :class:`BitfieldTextTable` (named bitfield groups, one active
         state per group), or :class:`BitmaskFlags` (independent on/off
         flags, multiple may be active simultaneously).  May be combined
@@ -253,8 +249,6 @@ class Signal(FLYNCBaseModel):
             )
         if isinstance(self.value_encoding, TextTable):
             self._check_text_table_in_range(self.value_encoding)
-        elif isinstance(self.value_encoding, RangeTextTable):
-            self._check_range_text_table_in_range(self.value_encoding)
         elif isinstance(self.value_encoding, BitfieldTextTable):
             self._check_bitfield_text_table_in_range(self.value_encoding)
         elif isinstance(self.value_encoding, BitmaskFlags):
@@ -270,24 +264,9 @@ class Signal(FLYNCBaseModel):
     def _check_text_table_in_range(self, table: TextTable) -> None:
         lo, hi = self._raw_value_bounds()
         for entry in table.entries:
-            if not (lo <= entry.value <= hi):
-                raise err_major(
-                    "TextTable entry '{label}' value {value} is outside the representable range "
-                    "[{lo}, {hi}] for {data_type} with bit_length={bit_length}",
-                    label=entry.label,
-                    value=entry.value,
-                    lo=lo,
-                    hi=hi,
-                    data_type=self.data_type.value,
-                    bit_length=self.bit_length,
-                )
-
-    def _check_range_text_table_in_range(self, table: RangeTextTable) -> None:
-        lo, hi = self._raw_value_bounds()
-        for entry in table.entries:
             if not (lo <= entry.from_value <= hi and lo <= entry.to_value <= hi):
                 raise err_major(
-                    "RangeTextTable entry '{label}' range [{from_value}, {to_value}] is outside "
+                    "TextTable entry '{label}' range [{from_value}, {to_value}] is outside "
                     "the representable range [{lo}, {hi}] for {data_type} with bit_length={bit_length}",
                     label=entry.label,
                     from_value=entry.from_value,

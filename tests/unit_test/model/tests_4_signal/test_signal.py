@@ -8,8 +8,6 @@ from flync.model.flync_4_signal.signal import (
     BitmaskFlag,
     BitmaskFlags,
     InstancePlacement,
-    RangeTextEntry,
-    RangeTextTable,
     Signal,
     SignalDataType,
     SignalGroup,
@@ -100,32 +98,66 @@ def test_positive_signal_data_type_is_signed_integer():
 
 
 # ---------------------------------------------------------------------------
-# TextEntry / TextTable / RangeTextEntry / RangeTextTable
+# TextEntry / TextTable
 # ---------------------------------------------------------------------------
 
 
-def test_positive_text_entry_basic():
-    entry = TextEntry(value=0, label="Off")
-    assert entry.value == 0
+def test_positive_text_entry_single_value_explicit():
+    """Explicit form: both from_value and to_value provided."""
+    entry = TextEntry(from_value=0, to_value=0, label="Off")
+    assert entry.from_value == 0
+    assert entry.to_value == 0
     assert entry.label == "Off"
+
+
+def test_positive_text_entry_single_value_terse():
+    """Terse form: use 'value' alias for a single value."""
+    entry = TextEntry(value=5, label="X")
+    assert entry.from_value == 5
+    assert entry.to_value == 5
+
+
+def test_positive_text_entry_terse_via_dict():
+    """Terse form via model_validate (YAML path) using 'value' alias."""
+    entry = TextEntry.model_validate({"value": 7, "label": "Y"})
+    assert entry.from_value == 7
+    assert entry.to_value == 7
+
+
+def test_positive_text_entry_terse_dump_omits_to_value():
+    """Terse entries round-trip tersely: unset to_value is not serialized."""
+    entry = TextEntry.model_validate({"value": 7, "label": "Y"})
+    assert entry.to_value == 7
+    assert "to_value" not in entry.model_dump(exclude_unset=True)
 
 
 def test_positive_text_entry_negative_value():
     entry = TextEntry(value=-1, label="Error")
-    assert entry.value == -1
+    assert entry.from_value == -1
+    assert entry.to_value == -1
 
 
 def test_positive_range_text_entry_basic():
-    entry = RangeTextEntry(from_value=10, to_value=20, label="MidRange")
+    entry = TextEntry(from_value=10, to_value=20, label="MidRange")
     assert entry.from_value == 10
     assert entry.to_value == 20
+
+
+def test_negative_text_entry_value_and_to_value_together():
+    with pytest.raises(ValidationError, match="cannot use both 'value' and 'to_value'"):
+        TextEntry.model_validate({"value": 5, "to_value": 10, "label": "Invalid"})
+
+
+def test_negative_text_entry_from_value_alone():
+    with pytest.raises(ValidationError, match="'from_value' must be paired with 'to_value'"):
+        TextEntry.model_validate({"from_value": 5, "label": "Invalid"})
 
 
 def test_positive_text_table_model_validate():
     table = TextTable.model_validate(
         {
             "type": "text_table",
-            "entries": [{"value": 3, "label": "Active"}],
+            "entries": [{"from_value": 3, "to_value": 3, "label": "Active"}],
         }
     )
     assert isinstance(table, TextTable)
@@ -133,13 +165,13 @@ def test_positive_text_table_model_validate():
 
 
 def test_positive_range_text_table_model_validate():
-    table = RangeTextTable.model_validate(
+    table = TextTable.model_validate(
         {
-            "type": "range_text_table",
+            "type": "text_table",
             "entries": [{"from_value": 0, "to_value": 9, "label": "Low"}],
         }
     )
-    assert isinstance(table, RangeTextTable)
+    assert isinstance(table, TextTable)
     assert table.entries[0].to_value == 9
 
 
@@ -250,7 +282,7 @@ def test_positive_signal_with_text_table_single_values():
             entries=[
                 TextEntry(value=0, label="Neutral"),
                 TextEntry(value=1, label="First"),
-                TextEntry(value=2, label="Second"),
+                TextEntry(from_value=2, to_value=2, label="Second"),
             ],
         ),
     )
@@ -263,16 +295,16 @@ def test_positive_signal_with_range_text_table():
         name="severity",
         bit_length=8,
         data_type=SignalDataType.UINT8,
-        value_encoding=RangeTextTable(
+        value_encoding=TextTable(
             entries=[
-                RangeTextEntry(from_value=0, to_value=9, label="Low"),
-                RangeTextEntry(from_value=10, to_value=99, label="Medium"),
-                RangeTextEntry(from_value=100, to_value=200, label="High"),
-                RangeTextEntry(from_value=255, to_value=255, label="Signal_Not_Available"),
+                TextEntry(from_value=0, to_value=9, label="Low"),
+                TextEntry(from_value=10, to_value=99, label="Medium"),
+                TextEntry(from_value=100, to_value=200, label="High"),
+                TextEntry(from_value=255, to_value=255, label="Signal_Not_Available"),
             ],
         ),
     )
-    assert isinstance(sig.value_encoding, RangeTextTable)
+    assert isinstance(sig.value_encoding, TextTable)
     assert len(sig.value_encoding.entries) == 4
 
 
@@ -281,15 +313,44 @@ def test_positive_signal_with_range_text_table_signed():
         name="signed_codes",
         bit_length=8,
         data_type=SignalDataType.INT8,
-        value_encoding=RangeTextTable(
+        value_encoding=TextTable(
             entries=[
-                RangeTextEntry(from_value=-128, to_value=-128, label="Invalid"),
-                RangeTextEntry(from_value=-127, to_value=-1, label="Negative_Range"),
-                RangeTextEntry(from_value=0, to_value=127, label="Valid"),
+                TextEntry(from_value=-128, to_value=-128, label="Invalid"),
+                TextEntry(from_value=-127, to_value=-1, label="Negative_Range"),
+                TextEntry(from_value=0, to_value=127, label="Valid"),
             ],
         ),
     )
     assert len(sig.value_encoding.entries) == 3
+
+
+def test_positive_signal_text_table_mixed_terse_and_range():
+    """Terse single values (using 'value' alias) and explicit ranges coexist in one table."""
+    sig = Signal(
+        name="mixed_terse_range",
+        bit_length=8,
+        data_type=SignalDataType.UINT8,
+        value_encoding=TextTable(
+            entries=[
+                TextEntry(from_value=0, to_value=9, label="Low"),
+                TextEntry(from_value=10, to_value=99, label="Medium"),
+                TextEntry(value=255, label="Signal_Not_Available"),
+            ],
+        ),
+    )
+    assert len(sig.value_encoding.entries) == 3
+    assert sig.value_encoding.entries[2].to_value == 255
+
+
+def test_negative_text_table_terse_value_overlaps_range():
+    """Overlap detection fires between a terse single value and a covering range."""
+    with pytest.raises(ValidationError, match="overlap"):
+        TextTable(
+            entries=[
+                TextEntry(from_value=0, to_value=9, label="Low"),
+                TextEntry(value=5, label="Five"),
+            ],
+        )
 
 
 def test_positive_signal_text_table_combined_with_linear():
@@ -304,7 +365,7 @@ def test_positive_signal_text_table_combined_with_linear():
         unit="km/h",
         value_encoding=TextTable(
             entries=[
-                TextEntry(value=65535, label="Signal_Not_Available"),
+                TextEntry(from_value=65535, to_value=65535, label="Signal_Not_Available"),
             ],
         ),
     )
@@ -348,6 +409,13 @@ def test_positive_signal_with_bitmask_flags_multi_bit_mask():
     assert sig.value_encoding.flags[0].mask == 0x03
 
 
+def test_positive_bitfield_state_terse_form():
+    """BitfieldState with terse form (to_value defaults to from_value)."""
+    state = BitfieldState(label="Test", from_value=5)
+    assert state.from_value == 5
+    assert state.to_value == 5
+
+
 def test_positive_signal_with_bitfield_text_table():
     sig = Signal(
         name="States",
@@ -359,9 +427,9 @@ def test_positive_signal_with_bitfield_text_table():
                     name="Problem",
                     mask=0xFF,
                     states=[
-                        BitfieldState(label="ProblemNone", from_value=0x00, to_value=0x00),
+                        BitfieldState(label="ProblemNone", from_value=0x00),
                         BitfieldState(label="ProblemFailure", from_value=0x08, to_value=0x08),
-                        BitfieldState(label="ProblemMajor", from_value=0x18, to_value=0x18),
+                        BitfieldState(label="ProblemMajor", from_value=0x18),
                     ],
                 ),
             ],
@@ -625,15 +693,15 @@ def test_negative_signal_limits_inverted():
 
 
 def test_negative_text_table_duplicate_value():
-    with pytest.raises(ValidationError, match="Duplicate value"):
+    with pytest.raises(ValidationError, match="overlap"):
         Signal(
             name="dup_val",
             bit_length=8,
             data_type=SignalDataType.UINT8,
             value_encoding=TextTable(
                 entries=[
-                    TextEntry(value=1, label="First"),
-                    TextEntry(value=1, label="Also first"),
+                    TextEntry(from_value=1, to_value=1, label="First"),
+                    TextEntry(from_value=1, to_value=1, label="Also first"),
                 ],
             ),
         )
@@ -647,8 +715,8 @@ def test_negative_text_table_duplicate_label():
             data_type=SignalDataType.UINT8,
             value_encoding=TextTable(
                 entries=[
-                    TextEntry(value=1, label="First"),
-                    TextEntry(value=2, label="First"),
+                    TextEntry(from_value=1, to_value=1, label="First"),
+                    TextEntry(from_value=2, to_value=2, label="First"),
                 ],
             ),
         )
@@ -660,10 +728,10 @@ def test_negative_range_text_table_overlapping_entries():
             name="olap",
             bit_length=8,
             data_type=SignalDataType.UINT8,
-            value_encoding=RangeTextTable(
+            value_encoding=TextTable(
                 entries=[
-                    RangeTextEntry(from_value=0, to_value=10, label="A"),
-                    RangeTextEntry(from_value=5, to_value=15, label="B"),
+                    TextEntry(from_value=0, to_value=10, label="A"),
+                    TextEntry(from_value=5, to_value=15, label="B"),
                 ],
             ),
         )
@@ -675,10 +743,10 @@ def test_negative_range_text_table_duplicate_label():
             name="dup_range_label",
             bit_length=8,
             data_type=SignalDataType.UINT8,
-            value_encoding=RangeTextTable(
+            value_encoding=TextTable(
                 entries=[
-                    RangeTextEntry(from_value=0, to_value=10, label="X"),
-                    RangeTextEntry(from_value=11, to_value=20, label="X"),
+                    TextEntry(from_value=0, to_value=10, label="X"),
+                    TextEntry(from_value=11, to_value=20, label="X"),
                 ],
             ),
         )
@@ -686,7 +754,7 @@ def test_negative_range_text_table_duplicate_label():
 
 def test_negative_range_text_entry_reversed_bounds():
     with pytest.raises(ValidationError, match="must not be less than"):
-        RangeTextEntry(from_value=10, to_value=5, label="bad")
+        TextEntry(from_value=10, to_value=5, label="bad")
 
 
 @pytest.mark.parametrize(
@@ -705,7 +773,7 @@ def test_negative_text_table_out_of_range(data_type, bit_length, bad_value):
             bit_length=bit_length,
             data_type=data_type,
             value_encoding=TextTable(
-                entries=[TextEntry(value=bad_value, label="Out")],
+                entries=[TextEntry(from_value=bad_value, to_value=bad_value, label="Out")],
             ),
         )
 
@@ -724,8 +792,8 @@ def test_negative_range_text_table_out_of_range(data_type, bit_length, bad_from,
             name=f"rg_range_{data_type.value}",
             bit_length=bit_length,
             data_type=data_type,
-            value_encoding=RangeTextTable(
-                entries=[RangeTextEntry(from_value=bad_from, to_value=bad_to, label="Out")],
+            value_encoding=TextTable(
+                entries=[TextEntry(from_value=bad_from, to_value=bad_to, label="Out")],
             ),
         )
 
@@ -746,7 +814,7 @@ def test_negative_value_encoding_unsupported_data_type(data_type, bit_length):
             bit_length=bit_length,
             data_type=data_type,
             value_encoding=TextTable(
-                entries=[TextEntry(value=0, label="X")],
+                entries=[TextEntry(from_value=0, to_value=0, label="X")],
             ),
         )
 
