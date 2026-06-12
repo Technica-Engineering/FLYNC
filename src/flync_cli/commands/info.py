@@ -157,5 +157,5 @@ def info(  # NOSONAR
     elif component == InfoLevel.IPS:
         print_ips(loaded_ws.flync_model, ecu_name)
     elif component == InfoLevel.SERVICES:
-        services = [s.name for s in loaded_ws.flync_model.general.someip_config.services]
+        services = [s.name for s in loaded_ws.flync_model.communication.someip_config.services]
         print_list_ecu(services, " Service Interface")

@@ -1,5 +1,5 @@
 """
-Top-level system model aggregating ECUs, topology, metadata, and general configuration in FLYNC.
+Top-level system model aggregating ECUs, topology, metadata, and communication configuration in FLYNC.
 """
 
 from typing import Annotated, Dict, List, Optional, Tuple
@@ -23,6 +23,7 @@ from flync.core.utils.multicast import (
     compute_path,
     serialize_components,
 )
+from flync.model.flync_4_communication import FLYNCCommunicationConfig
 from flync.model.flync_4_ecu import (
     ECU,
     ECUPort,
@@ -30,7 +31,6 @@ from flync.model.flync_4_ecu import (
     VirtualControllerInterface,
     VLANEntry,
 )
-from flync.model.flync_4_general_configuration import FLYNCGeneralConfig
 from flync.model.flync_4_metadata import SystemMetadata
 from flync.model.flync_4_signal.forwarder import CANFrameForwarder, PDUForwarder
 from flync.model.flync_4_topology import FLYNCTopology
@@ -40,7 +40,7 @@ class FLYNCModel(FLYNCBaseModel):
     """
     Represents the top-level FLYNC configuration model for a system.
 
-    This model aggregates all ECUs, system topology, metadata, and general configuration settings for the entire system.
+    This model aggregates all ECUs, system topology, metadata, and communication configuration settings for the entire system.
 
     Parameters
     ----------
@@ -53,12 +53,12 @@ class FLYNCModel(FLYNCBaseModel):
     metadata : :class:`~flync.model.flync_4_metadata.SystemMetadata`
         System-level metadata including OEM, platform, and hardware/software information.
 
-    communication : :class:`~flync.model.flync_4_general_configuration.FLYNCGeneralConfig`, optional
-        Optional general configuration settings applicable system-wide.
+    communication : :class:`~flync.model.flync_4_communication.FLYNCCommunicationConfig`, optional
+        Optional communication configuration settings applicable system-wide.
     """
 
     communication: Annotated[
-        Optional[FLYNCGeneralConfig],
+        Optional[FLYNCCommunicationConfig],
         External(
             output_structure=OutputStrategy.FOLDER,
             naming_strategy=NamingStrategy.FIELD_NAME,
@@ -100,7 +100,7 @@ class FLYNCModel(FLYNCBaseModel):
 
     @property
     @typing_extensions.deprecated("The `general` attribute is deprecated, use `communication` instead.")
-    def general(self) -> Optional[FLYNCGeneralConfig]:
+    def general(self) -> Optional[FLYNCCommunicationConfig]:
         warn("The 'general' attribute is deprecated. Please use 'communication' instead.")
         return self.communication
 
