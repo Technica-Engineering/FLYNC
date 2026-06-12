@@ -203,17 +203,36 @@ One interface directory consists of:
    - :ref:`Controller Config <controller>`
    - :ref:`Sockets <socket>`
 
-General
-*******
+Communication
+*************
 
-This directory contains several sub-directories and files that describe assets and configurations for the whole system, such as TCP profiles or SOME/IP services.
+This directory contains several sub-directories and files that describe assets and configurations for communication protocols, such as CAN, LIN, PDU and SOME/IP.
 This is a **non-mandatory** directory for the FLYNC configuration.
+Omit the corresponding sub-folder entirely when the system does not use that channel type.
 
 .. code-block::
 
-   📂 general
+   📂 communication
    │
    ├── 📄 tcp_profiles.flync.yaml
+   │
+   ├── 📂 channels
+   |  |
+   |  ├── 📂 can
+   |  │   ├── 📄 example_can.flync.yaml
+   |  │   └── 📄 ...
+   |  |
+   |  ├── 📂 lin
+   |  │   ├── 📄 example_lin.flync.yaml
+   |  │   └── 📄 ...
+   |  |
+   |  ├── 📂 ethernet_pdu_containers
+   |  │   ├── 📄 example_container.flync.yaml
+   |  │   └── 📄 ...
+   |  |
+   |  ├── 📂 pdu
+   |  │   ├── 📄 example_pdu.flync.yaml
+   |  │   └── 📄 ...
    │
    └── 📂 someip
       |
@@ -227,14 +246,22 @@ This is a **non-mandatory** directory for the FLYNC configuration.
 
    ✔ If this directory is added, namings of sub-directories must be respected.
 
+   ✔ Each CAN or CAN-FD bus is defined in its own file inside ``channels/can``.
+
+   ✔ Each LIN Bus is defined in its own file inside ``channels/lin``.
+
 .. seealso::
 
-   Explore the whole ECU config further:
+   Explore the whole communication config further:
 
-   - :ref:`General Config <general>`
+   - :ref:`Communication<communication>`
    - :ref:`TCPOptions <tcp_option>`
    - :ref:`SOME/IP Config <someip>`
-   - :ref:`ServiceInterface <someip_serviceinterface>`
+   - :ref:`Channel Config<channel_config>`
+   - :ref:`CAN & LIN Bus<bus>`
+   - :ref:`Signals & PDU<signal>`
+
+
 
 
 ****************************

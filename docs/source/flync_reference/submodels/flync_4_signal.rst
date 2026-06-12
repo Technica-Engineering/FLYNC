@@ -40,13 +40,16 @@ with its placement information (bit offset and byte order).
    ``is_signed_integer()``, and ``is_complex_datatype()``.
 
 .. autoclass:: flync.model.flync_4_signal.Signal()
+.. autoclass:: flync.model.flync_4_signal.SignalInstance()
+.. autoclass:: flync.model.flync_4_signal.InstancePlacement()
+
 
 Value Encodings
 ===============
 
-A :class:`~flync.model.flync_4_signal.Signal` may carry an optional
-``value_encoding`` that converts raw integer values into text labels.
-Four variants are supported and selected by the ``type`` discriminator:
+A :class:`~flync.model.flync_4_signal.Signal` may carry an optional :class:`ValueEncoding` that converts raw integer values into text labels.
+
+Three variants are supported, selected by the ``type`` discriminator:
 
 .. list-table::
    :header-rows: 1
@@ -58,16 +61,14 @@ Four variants are supported and selected by the ``type`` discriminator:
      - Maps single raw values as well as inclusive raw value ranges to text labels.
        Use this for ordinary enumerated signals, for reserved sentinel codes such as
        ``Signal_Not_Available`` or when one label spans many contiguous raw values
-       (e.g. ``0..9 = Low``).  For single values, ``to_value`` may be omitted;
-       it defaults to ``from_value``.
+       (e.g. ``0..9 = Low``).
    * - ``bitfield_text_table``
      - Decodes the signal as a set of named bit-region groups, each with
-       its own enum of mutually exclusive states.  Use this when several
-       unrelated small enums are packed into one signal (status / fault
-       words).
+       its own enum of mutually exclusive states. Use this when several
+       unrelated small enums are packed into one signal.
    * - ``bitmask_flags``
      - Decodes the signal as a set of independent on/off flags, each
-       identified by a disjoint mask.  Multiple flags may be active
+       identified by a disjoint :class:`BitmaskFlag` mask. Multiple flags may be active
        simultaneously.  Use this for partial-network relevance vectors
        and similar feature-flag registers.
 
@@ -76,22 +77,8 @@ text-table encodings to express the common "linear conversion plus
 reserved sentinel values" pattern (e.g. a speed signal in ``km/h`` with
 raw ``65535`` mapped to ``Signal_Not_Available``).
 
-.. autoclass:: flync.model.flync_4_signal.TextTable()
 
-.. autoclass:: flync.model.flync_4_signal.TextEntry()
-
-.. autoclass:: flync.model.flync_4_signal.BitfieldTextTable()
-
-.. autoclass:: flync.model.flync_4_signal.BitfieldGroup()
-
-.. autoclass:: flync.model.flync_4_signal.BitfieldState()
-
-.. autoclass:: flync.model.flync_4_signal.BitmaskFlags()
-
-.. autoclass:: flync.model.flync_4_signal.BitmaskFlag()
-
-Examples
---------
+**Examples**
 
 .. admonition:: Expand for a YAML example — enumerated signal (``text_table``)
    :collapsible: closed
@@ -108,13 +95,13 @@ Examples
         value_encoding:
           type: text_table
           entries:
-            - from_value: 0
+            - value: 0
               label: Park
-            - from_value: 1
+            - value: 1
               label: Reverse
-            - from_value: 2
+            - value: 2
               label: Neutral
-            - from_value: 3
+            - value: 3
               label: Drive
 
 .. admonition:: Expand for a YAML example — linear signal with reserved codes (``text_table``)
@@ -141,9 +128,9 @@ Examples
         value_encoding:
           type: text_table
           entries:
-            - from_value: 254
+            - value: 254
               label: Sensor_Error
-            - from_value: 255
+            - value: 255
               label: Signal_Not_Available
 
 .. admonition:: Expand for a YAML example — value ranges (``text_table``)
@@ -172,7 +159,7 @@ Examples
             - from_value: 100
               to_value: 200
               label: High
-            - from_value: 255
+            - value: 255
               label: Signal_Not_Available
 
 .. admonition:: Expand for a YAML example — packed status word (``bitfield_text_table``)
@@ -200,23 +187,18 @@ Examples
               mask: 0x00FF
               states:
                 - label: ProblemNone
-                  from_value: 0x0000
-                  to_value: 0x0000
+                  value: 0x0000
                 - label: ProblemFailure
-                  from_value: 0x0008
-                  to_value: 0x0008
+                  value: 0x0008
                 - label: ProblemMajor
-                  from_value: 0x0018
-                  to_value: 0x0018
+                  value: 0x0018
             - name: Mode
               mask: 0xFF00
               states:
                 - label: ModeIdle
-                  from_value: 0x0000
-                  to_value: 0x0000
+                  value: 0x0000
                 - label: ModeActive
-                  from_value: 0x0100
-                  to_value: 0x0100
+                  value: 0x0100
 
 .. admonition:: Expand for a YAML example — partial-network bitmask (``bitmask_flags``)
    :collapsible: closed
@@ -254,9 +236,21 @@ Examples
             - mask: 0x20
               label: VehicleDynamics
 
-.. autoclass:: flync.model.flync_4_signal.InstancePlacement()
 
-.. autoclass:: flync.model.flync_4_signal.SignalInstance()
+.. autoclass:: flync.model.flync_4_signal.TextTable()
+
+.. autoclass:: flync.model.flync_4_signal.TextEntry()
+
+.. autoclass:: flync.model.flync_4_signal.BitfieldTextTable()
+
+.. autoclass:: flync.model.flync_4_signal.BitfieldGroup()
+
+.. autoclass:: flync.model.flync_4_signal.BitfieldState()
+
+.. autoclass:: flync.model.flync_4_signal.BitmaskFlags()
+
+.. autoclass:: flync.model.flync_4_signal.BitmaskFlag()
+
 
 Signal Groups
 =============
@@ -291,8 +285,7 @@ PDU
 ###
 
 A **PDU** (Protocol Data Unit) is the container that groups signals
-for transmission.  PDUs are defined independently of any specific bus
-and stored in ``general/channels/pdus/``.  A
+for transmission.  PDUs are defined independently of any specific bus.  A
 :class:`~flync.model.flync_4_signal.PDUInstance` then places a named
 PDU at a given bit offset inside a :ref:`frame <frame_model>`.
 
@@ -318,26 +311,30 @@ There are three PDU types, distinguished by the ``type`` discriminator field:
 
 .. autoclass:: flync.model.flync_4_signal.PDU()
 
+
+.. _standard_pdu:
+
 Standard PDU
 ============
 
-.. admonition:: Expand for a YAML example - 📄 ``general/channels/pdus/PDU_EngineStatus.flync.yaml``
+.. admonition:: Expand for a YAML example - 📄 ``communication/channels/pdus/PDU_EngineStatus.flync.yaml``
    :collapsible: closed
 
    .. note::
-      Each PDU is stored in its own ``.flync.yaml`` file under
-      ``general/channels/pdus/``.  This directory is **optional** and
-      may be omitted when no PDUs are defined.
+      Each PDU is stored in its own ``.flync.yaml``.
 
    .. literalinclude:: ../../../../examples/flync_example/communication/channels/pdus/PDU_EngineStatus.flync.yaml
       :language: yaml
 
 .. autoclass:: flync.model.flync_4_signal.StandardPDU()
 
+
+.. _multiplexed_pdu:
+
 Multiplexed PDU
 ===============
 
-.. admonition:: Expand for a YAML example - 📄 ``general/channels/pdus/PDU_TransmissionStatus.flync.yaml``
+.. admonition:: Expand for a YAML example - 📄 ``communication/channels/pdus/PDU_TransmissionStatus.flync.yaml``
    :collapsible: closed
 
    .. note::
@@ -359,15 +356,13 @@ Multiplexed PDU
 Container PDU
 =============
 
-.. admonition:: Expand for a YAML example - 📄 ``general/channels/ethernet_pdu_containers/eth_powertrain_container.flync.yaml``
+.. admonition:: Expand for a YAML example - 📄 ``communication/channels/ethernet_pdu_containers/eth_powertrain_container.flync.yaml``
    :collapsible: closed
 
    .. note::
-      An Ethernet Container PDU is stored in its own ``.flync.yaml``
-      file under ``general/channels/pdus/``, alongside all other PDU
-      types.  It bundles several application PDUs into one Ethernet
-      payload.  The per-slot header format is configured via the ``header``
-      block, which specifies ``id_length_bits`` and ``length_field_bits``.
+      An Ethernet Container PDU is stored in its own ``.flync.yaml`` file, alongside all other PDU types.
+      It bundles several application PDUs into one Ethernet payload.
+      The per-slot header format is configured via the ``header`` block, which specifies ``id_length_bits`` and ``length_field_bits``.
 
    .. literalinclude:: ../../../../examples/flync_example/communication/channels/ethernet_pdu_containers/eth_powertrain_container.flync.yaml
       :language: yaml
@@ -387,9 +382,7 @@ Frame
 #####
 
 A **Frame** is the protocol-specific transport unit that carries one
-or more PDUs on a physical bus.  CAN and CAN FD frames are defined
-inside ``general/channels/can/``; LIN frames inside
-``general/channels/lin/``.  All frame types reference PDUs by
+or more PDUs on a physical bus.  All frame types reference PDUs by
 name via :class:`~flync.model.flync_4_signal.PDUInstance`.
 
 For Ethernet, there is no frame layer — sockets reference a
