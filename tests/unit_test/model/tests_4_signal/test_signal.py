@@ -37,7 +37,6 @@ class Test_SignalDataTypeHelper:
         }
         assert {dt.value for dt in SignalDataType} == expected
 
-
     def test_positive_signal_data_type_natural_bit_width(self):
         assert SignalDataType.UINT8.natural_bit_width() == 8
         assert SignalDataType.UINT16.natural_bit_width() == 16
@@ -52,14 +51,12 @@ class Test_SignalDataTypeHelper:
         assert SignalDataType.CHAR.natural_bit_width() == 8
         assert SignalDataType.BYTEARRAY.natural_bit_width() == 8
 
-
     def test_positive_signal_data_type_is_float(self):
         assert SignalDataType.FLOAT32.is_float() is True
         assert SignalDataType.FLOAT64.is_float() is True
         assert SignalDataType.UINT8.is_float() is False
         assert SignalDataType.INT32.is_float() is False
         assert SignalDataType.CHAR.is_float() is False
-
 
     def test_positive_signal_data_type_is_unsigned_integer(self):
         for dt in (
@@ -76,7 +73,6 @@ class Test_SignalDataTypeHelper:
             SignalDataType.BYTEARRAY,
         ):
             assert dt.is_unsigned_integer() is False
-
 
     def test_positive_signal_data_type_is_signed_integer(self):
         for dt in (
@@ -100,13 +96,13 @@ class Test_TextEntry:
     @pytest.mark.parametrize(
         "from_value, to_value, label",
         [
-            pytest.param(0,0,"Off", id="single_value_explicit"),
-            pytest.param(10,20,"MidRange", id="range"),
-        ]
+            pytest.param(0, 0, "Off", id="single_value_explicit"),
+            pytest.param(10, 20, "MidRange", id="range"),
+        ],
     )
     def test_positive_text_entry_range(self, from_value, to_value, label):
         """Test positive scenarios for TextEntry"""
-        entry = TextEntry(from_value=from_value, to_value= to_value, label=label)
+        entry = TextEntry(from_value=from_value, to_value=to_value, label=label)
         assert entry.from_value == from_value
         assert entry.to_value == to_value
         assert entry.label == label
@@ -114,10 +110,10 @@ class Test_TextEntry:
     @pytest.mark.parametrize(
         "value, label",
         [
-            pytest.param(1,"X", id="single_value"),
-            pytest.param(10,"MidRange", id="range"),
-            pytest.param(-1,"Neg", id="negative_value"),
-        ]
+            pytest.param(1, "X", id="single_value"),
+            pytest.param(10, "MidRange", id="range"),
+            pytest.param(-1, "Neg", id="negative_value"),
+        ],
     )
     def test_positive_text_entry_value(self, value, label):
         """Terse form: use 'value' alias for a single value."""
@@ -131,9 +127,9 @@ class Test_TextEntry:
         [
             pytest.param({"value": 7, "label": "X"}, id="single_value"),
             pytest.param({"from_value": 7, "to_value": 10, "label": "Y"}, id="range"),
-        ]
+        ],
     )
-    def test_positive_text_entry_dict(self,dict_input):
+    def test_positive_text_entry_dict(self, dict_input):
         """Terse form via model_validate (YAML path) using 'value' alias."""
         entry = TextEntry.model_validate(dict_input)
         lower = dict_input["value"] if "value" in dict_input.keys() else dict_input["from_value"]
@@ -142,18 +138,18 @@ class Test_TextEntry:
         assert entry.to_value == upper
         assert entry.label == dict_input["label"]
 
-
     @pytest.mark.parametrize(
         "dict_input, error_message",
         [
             pytest.param({"value": 5, "to_value": 10, "label": "Invalid"}, "cannot use both 'value' and 'to_value'", id="single_value"),
-            pytest.param( {"from_value": 5, "label": "Invalid"},"'from_value' must be paired with 'to_value'", id="single_value"),
-            pytest.param( {"from_value": 10, "to_value": 5, "label": "Invalid"},"must not be less than", id="reversed_bounds"),
-        ]
+            pytest.param({"from_value": 5, "label": "Invalid"}, "'from_value' must be paired with 'to_value'", id="single_value"),
+            pytest.param({"from_value": 10, "to_value": 5, "label": "Invalid"}, "must not be less than", id="reversed_bounds"),
+        ],
     )
     def test_negative_text_entry_dict(self, dict_input, error_message):
         with pytest.raises(ValidationError, match=error_message):
             TextEntry.model_validate(dict_input)
+
 
 class Test_TextTable:
     @pytest.mark.parametrize(
@@ -162,13 +158,12 @@ class Test_TextTable:
             pytest.param([{"value": 3, "label": "Active"}], id="single_value"),
             pytest.param([{"from_value": 0, "to_value": 9, "label": "Low"}], id="range"),
             pytest.param([{"value": 10, "label": "Active"}, {"from_value": 0, "to_value": 9, "label": "Low"}], id="mix"),
-        ]
+        ],
     )
     def test_positive_text_table(self, entries):
-        table = TextTable.model_validate({"type": "text_table","entries": entries})
+        table = TextTable.model_validate({"type": "text_table", "entries": entries})
         assert isinstance(table, TextTable)
         assert table.entries[0].label == entries[0]["label"]
-
 
     def test_negative_text_table_overlap(self):
         """Overlap detection between a single value and a covering range."""
@@ -199,7 +194,6 @@ class Test_BitfieldTextTable:
         assert isinstance(table, BitfieldTextTable)
         assert table.groups[0].mask == 0xFF
 
-
     def test_negative_bitfield_overlapping_states_within_group(self):
         with pytest.raises(ValidationError, match="overlap"):
             BitfieldGroup(
@@ -210,7 +204,6 @@ class Test_BitfieldTextTable:
                     BitfieldState(label="B", from_value=0x10, to_value=0x20),
                 ],
             )
-
 
     def test_negative_bitfield_overlapping_group_masks(self):
         with pytest.raises(ValidationError, match="overlaps another group"):
@@ -229,7 +222,6 @@ class Test_BitfieldTextTable:
                 ],
             )
 
-
     def test_negative_bitfield_duplicate_group_name(self):
         with pytest.raises(ValidationError, match="duplicate group name"):
             BitfieldTextTable(
@@ -247,7 +239,6 @@ class Test_BitfieldTextTable:
                 ],
             )
 
-
     def test_negative_bitfield_state_outside_mask(self):
         with pytest.raises(ValidationError, match="outside mask"):
             BitfieldGroup(
@@ -255,7 +246,6 @@ class Test_BitfieldTextTable:
                 mask=0x0F,
                 states=[BitfieldState(label="OutOfMask", from_value=0x10, to_value=0x10)],
             )
-
 
     def test_negative_bitfield_duplicate_state_label(self):
         with pytest.raises(ValidationError, match="duplicate state label"):
@@ -284,7 +274,6 @@ class Test_BitmaskFlags:
         assert isinstance(table, BitmaskFlags)
         assert len(table.flags) == 2
 
-
     def test_negative_bitmask_flags_overlapping_masks(self):
         with pytest.raises(ValidationError, match="overlaps another flag"):
             BitmaskFlags(
@@ -294,7 +283,6 @@ class Test_BitmaskFlags:
                 ],
             )
 
-
     def test_negative_bitmask_flags_duplicate_label(self):
         with pytest.raises(ValidationError, match="duplicate flag label"):
             BitmaskFlags(
@@ -303,7 +291,6 @@ class Test_BitmaskFlags:
                     BitmaskFlag(mask=0x02, label="Dup"),
                 ],
             )
-
 
     def test_negative_bitmask_flags_zero_mask(self):
         with pytest.raises(ValidationError):
@@ -320,7 +307,6 @@ class Test_Signal:
         assert sig.factor == 1.0
         assert sig.offset == 0.0
 
-
     def test_positive_signal_with_optional_fields(self):
         sig = Signal(
             name="speed",
@@ -335,7 +321,6 @@ class Test_Signal:
         )
         assert sig.unit == "km/h"
         assert sig.factor == 0.1
-
 
     @pytest.mark.parametrize(
         "data_type, bit_length",
@@ -363,16 +348,13 @@ class Test_Signal:
         )
         assert isinstance(sig, Signal)
 
-
     def test_positive_signal_float32(self):
         sig = Signal(name="torque", bit_length=32, data_type=SignalDataType.FLOAT32)
         assert sig.data_type == SignalDataType.FLOAT32
 
-
     def test_positive_signal_float64(self):
         sig = Signal(name="latitude", bit_length=64, data_type=SignalDataType.FLOAT64)
         assert sig.data_type == SignalDataType.FLOAT64
-
 
     def test_positive_signal_with_text_table_single_values(self):
         sig = Signal(
@@ -389,7 +371,6 @@ class Test_Signal:
         )
         assert isinstance(sig.value_encoding, TextTable)
         assert len(sig.value_encoding.entries) == 3
-
 
     def test_positive_signal_with_range_text_table(self):
         sig = Signal(
@@ -408,7 +389,6 @@ class Test_Signal:
         assert isinstance(sig.value_encoding, TextTable)
         assert len(sig.value_encoding.entries) == 4
 
-
     def test_positive_signal_with_range_text_table_signed(self):
         sig = Signal(
             name="signed_codes",
@@ -423,7 +403,6 @@ class Test_Signal:
             ),
         )
         assert len(sig.value_encoding.entries) == 3
-
 
     def test_positive_signal_text_table_mixed_terse_and_range(self):
         """Terse single values (using 'value' alias) and explicit ranges coexist in one table."""
@@ -441,7 +420,6 @@ class Test_Signal:
         )
         assert len(sig.value_encoding.entries) == 3
         assert sig.value_encoding.entries[2].to_value == 255
-
 
     def test_positive_signal_text_table_combined_with_linear(self):
         sig = Signal(
@@ -462,7 +440,6 @@ class Test_Signal:
         assert sig.factor == 0.01
         assert isinstance(sig.value_encoding, TextTable)
 
-
     def test_positive_signal_with_bitmask_flags(self):
         sig = Signal(
             name="PartialNetworkRelevance",
@@ -482,7 +459,6 @@ class Test_Signal:
         assert isinstance(sig.value_encoding, BitmaskFlags)
         assert len(sig.value_encoding.flags) == 6
 
-
     def test_positive_signal_with_bitmask_flags_multi_bit_mask(self):
         """A single flag may span several bits (e.g. 0x03 = 'front mirrors')."""
         sig = Signal(
@@ -497,7 +473,6 @@ class Test_Signal:
             ),
         )
         assert sig.value_encoding.flags[0].mask == 0x03
-
 
     def test_positive_signal_with_bitfield_text_table(self):
         sig = Signal(
@@ -522,7 +497,6 @@ class Test_Signal:
         assert isinstance(sig.value_encoding, BitfieldTextTable)
         assert sig.value_encoding.groups[0].mask == 0xFF
         assert len(sig.value_encoding.groups[0].states) == 4
-
 
     def test_positive_signal_with_bitfield_text_table_multiple_groups(self):
         sig = Signal(
@@ -552,7 +526,6 @@ class Test_Signal:
         )
         assert len(sig.value_encoding.groups) == 2
 
-
     def test_positive_signal_with_negative_factor(self):
         sig = Signal(
             name="inverted",
@@ -561,7 +534,6 @@ class Test_Signal:
             factor=-1.0,
         )
         assert sig.factor == -1.0
-
 
     def test_positive_signal_limits_equal(self):
         sig = Signal(
@@ -573,7 +545,6 @@ class Test_Signal:
         )
         assert sig.lower_limit == sig.upper_limit
 
-
     def test_positive_signal_only_lower_limit(self):
         sig = Signal(
             name="lower_only",
@@ -583,7 +554,6 @@ class Test_Signal:
         )
         assert sig.upper_limit is None
 
-
     def test_positive_signal_only_upper_limit(self):
         sig = Signal(
             name="upper_only",
@@ -592,7 +562,6 @@ class Test_Signal:
             upper_limit=100.0,
         )
         assert sig.lower_limit is None
-
 
     @pytest.mark.parametrize(
         "data_type, bit_length, initial_value",
@@ -615,7 +584,6 @@ class Test_Signal:
         )
         assert sig.initial_value == initial_value
 
-
     def test_positive_signal_initial_value_float(self):
         sig = Signal(
             name="iv_float",
@@ -624,7 +592,6 @@ class Test_Signal:
             initial_value=3.14,
         )
         assert sig.initial_value == 3.14
-
 
     def test_positive_signal_initial_value_int_for_float(self):
         sig = Signal(
@@ -635,7 +602,6 @@ class Test_Signal:
         )
         assert sig.initial_value == 0
 
-
     def test_positive_signal_initial_value_char(self):
         sig = Signal(
             name="iv_char",
@@ -645,7 +611,6 @@ class Test_Signal:
         )
         assert sig.initial_value == "A"
 
-
     def test_positive_signal_initial_value_bytearray(self):
         sig = Signal(
             name="iv_bytes",
@@ -654,7 +619,6 @@ class Test_Signal:
             initial_value=b"\x00\xff",
         )
         assert sig.initial_value == b"\x00\xff"
-
 
     def test_positive_signal_model_validate(self):
         data = {
@@ -667,7 +631,6 @@ class Test_Signal:
         sig = Signal.model_validate(data)
         assert isinstance(sig, Signal)
         assert sig.factor == 0.5
-
 
     def test_positive_signal_data_type_roundtrip(self):
         """Test that SignalDataType serializes to string and deserializes back to enum."""
@@ -702,7 +665,6 @@ class Test_Signal:
         assert sig_roundtrip.offset == sig_original.offset
         assert sig_roundtrip.unit == sig_original.unit
 
-
     def test_negative_signal_zero_factor(self):
         with pytest.raises(ValidationError):
             Signal(
@@ -712,16 +674,13 @@ class Test_Signal:
                 factor=0,
             )
 
-
     def test_negative_signal_bit_length_zero(self):
         with pytest.raises(ValidationError):
             Signal(name="zero_len", bit_length=0, data_type=SignalDataType.UINT8)
 
-
     def test_negative_signal_bit_length_negative(self):
         with pytest.raises(ValidationError):
             Signal(name="neg_len", bit_length=-1, data_type=SignalDataType.UINT8)
-
 
     @pytest.mark.parametrize(
         "data_type, bit_length",
@@ -758,7 +717,6 @@ class Test_Signal:
                 data_type=data_type,
             )
 
-
     def test_negative_signal_limits_inverted(self):
         with pytest.raises(ValidationError):
             Signal(
@@ -768,7 +726,6 @@ class Test_Signal:
                 lower_limit=100.0,
                 upper_limit=50.0,
             )
-
 
     def test_negative_text_table_duplicate_value(self):
         with pytest.raises(ValidationError, match="overlap"):
@@ -784,7 +741,6 @@ class Test_Signal:
                 ),
             )
 
-
     def test_negative_text_table_duplicate_label(self):
         with pytest.raises(ValidationError, match="Duplicate label"):
             Signal(
@@ -798,7 +754,6 @@ class Test_Signal:
                     ],
                 ),
             )
-
 
     def test_negative_range_text_table_overlapping_entries(self):
         with pytest.raises(ValidationError, match="overlap"):
@@ -814,7 +769,6 @@ class Test_Signal:
                 ),
             )
 
-
     def test_negative_range_text_table_duplicate_label(self):
         with pytest.raises(ValidationError, match="Duplicate label"):
             Signal(
@@ -828,7 +782,6 @@ class Test_Signal:
                     ],
                 ),
             )
-
 
     @pytest.mark.parametrize(
         "data_type, bit_length, bad_value",
