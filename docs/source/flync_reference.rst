@@ -33,7 +33,7 @@ The built-in loaders and validators expect a specific repository structure that 
 Repository Structure for FLYNC configs
 ############################################
 
-The root of a FLYNC config repository holds four main parts: System Metadata, Topology, ECUs, and General.
+The root of a FLYNC config repository holds four main parts: System Metadata, Topology, ECUs, and Communication.
 
 .. rubric:: Guidelines
 
@@ -254,7 +254,7 @@ Omit the corresponding sub-folder entirely when the system does not use that cha
 
    Explore the whole communication config further:
 
-   - :ref:`Communication<communication>`
+   - :ref:`Communication Config <communication>`
    - :ref:`TCPOptions <tcp_option>`
    - :ref:`SOME/IP Config <someip>`
    - :ref:`Channel Config<channel_config>`

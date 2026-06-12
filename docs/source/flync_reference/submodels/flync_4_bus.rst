@@ -8,6 +8,7 @@ The ``flync_4_bus`` module defines the physical communication buses
 that carry :ref:`Frames <frame_model>` across the vehicle network.
 Each bus configuration file lives in its own sub-folder under
 ``communication/channels/`` and contains the bus-level parameters, the
+``communication/channels/`` and contains the bus-level parameters, the
 participating nodes, and the full list of frames transmitted on that
 bus.
 
@@ -16,6 +17,7 @@ bus.
    Frames referenced inside a bus configuration are defined inline
    within the bus YAML file.  They reference PDUs by name
    (``pdu_ref``) — the PDU definitions themselves live in
+   ``communication/channels/pdus/`` (see :ref:`pdu_model`).
    ``communication/channels/pdus/`` (see :ref:`pdu_model`).
 
 
@@ -29,6 +31,7 @@ CAN Bus
 
    .. mermaid:: ../../_static/mermaid/can.mmd
 
+.. admonition:: Expand for a YAML example - 📄 ``communication/channels/can/<bus_name>.flync.yaml``
 .. admonition:: Expand for a YAML example - 📄 ``communication/channels/can/<bus_name>.flync.yaml``
    :collapsible: closed
 
@@ -52,6 +55,7 @@ LIN Bus
 
    .. mermaid:: ../../_static/mermaid/lin.mmd
 
+.. admonition:: Expand for a YAML example - 📄 ``communication/channels/lin/<bus_name>.flync.yaml``
 .. admonition:: Expand for a YAML example - 📄 ``communication/channels/lin/<bus_name>.flync.yaml``
    :collapsible: closed
 

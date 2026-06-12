@@ -318,6 +318,7 @@ Standard PDU
 ============
 
 .. admonition:: Expand for a YAML example - 📄 ``communication/channels/pdus/PDU_EngineStatus.flync.yaml``
+.. admonition:: Expand for a YAML example - 📄 ``communication/channels/pdus/PDU_EngineStatus.flync.yaml``
    :collapsible: closed
 
    .. note::
@@ -334,6 +335,7 @@ Standard PDU
 Multiplexed PDU
 ===============
 
+.. admonition:: Expand for a YAML example - 📄 ``communication/channels/pdus/PDU_TransmissionStatus.flync.yaml``
 .. admonition:: Expand for a YAML example - 📄 ``communication/channels/pdus/PDU_TransmissionStatus.flync.yaml``
    :collapsible: closed
 
@@ -356,6 +358,7 @@ Multiplexed PDU
 Container PDU
 =============
 
+.. admonition:: Expand for a YAML example - 📄 ``communication/channels/ethernet_pdu_containers/eth_powertrain_container.flync.yaml``
 .. admonition:: Expand for a YAML example - 📄 ``communication/channels/ethernet_pdu_containers/eth_powertrain_container.flync.yaml``
    :collapsible: closed
 

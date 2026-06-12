@@ -6,7 +6,7 @@ STORED_MODELS = [
     pytest.param(
         lambda ws: ws.flync_model.communication,
         "communication",
-        id="FLYNCGeneralConfig",
+        id="FLYNCCommunicationConfig",
     ),
     pytest.param(
         lambda ws: ws.flync_model.communication.someip_config,

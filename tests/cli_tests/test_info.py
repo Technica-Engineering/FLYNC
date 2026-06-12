@@ -30,7 +30,7 @@ def _make_ws():
     ws.flync_model.ecus = [ecu]
     service = MagicMock()
     service.name = "TestService"
-    ws.flync_model.general.someip_config.services = [service]
+    ws.flync_model.communication.someip_config.services = [service]
     return ws, ecu
 
 
