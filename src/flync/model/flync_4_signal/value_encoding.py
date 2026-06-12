@@ -1,24 +1,5 @@
-"""Value-encoding models for :class:`~flync.model.flync_4_signal.Signal`.
-
-A :class:`ValueEncoding` describes how raw integer values transmitted on the
-wire are converted into human-readable labels.  Three variants are supported,
-selected by the ``type`` discriminator:
-
-* :class:`TextTable` — maps inclusive raw value ranges to labels.  Use this
-  for ordinary enumerated signals (gear position, operating mode), for
-  reserved sentinel codes such as ``Signal_Not_Available`` (a single value
-  is expressed by omitting ``to_value``, which defaults to ``from_value``),
-  and when one label covers many contiguous raw values (e.g. ``0..9 = Low``).
-
-* :class:`BitfieldTextTable` — decodes the signal as a set of independent
-  :class:`BitfieldGroup` regions, each with its own enum of mutually
-  exclusive states.  Use this when several unrelated small enums are
-  packed into one signal.
-
-* :class:`BitmaskFlags` — decodes the signal as a set of independent
-  on/off flags, each identified by a disjoint :class:`BitmaskFlag` mask.
-  Use this for partial-network relevance masks and similar feature-flag
-  registers where multiple flags can be active simultaneously.
+"""
+A Signal may carry an optional Value Encoding that converts raw integer values into text labels.
 """
 
 from typing import Annotated, List, Literal, Union
@@ -35,7 +16,7 @@ from flync.core.utils.exceptions import err_major
 
 class TextEntry(FLYNCBaseModel):
     """
-    Mapping from an inclusive raw value range to a label.
+    Mapping of an inclusive raw value range to a label.
 
     - For a **value range**:
       Use the keys ``from_value:`` and ``to_value:`` to define upper and lower bounds.
@@ -96,12 +77,7 @@ class TextEntry(FLYNCBaseModel):
 
 class TextTable(FLYNCBaseModel):
     """
-    Maps inclusive raw value ranges to text labels.
-
-    A single raw value is expressed by omitting ``to_value`` (it defaults to
-    ``from_value``), or by explicitly setting both equal (e.g. a reserved
-    ``Signal_Not_Available`` code); a wider range covers many contiguous raw
-    values with one label.
+    Decodes the signal as a set of TextEntries.
 
     Parameters
     ----------
@@ -136,8 +112,14 @@ class TextTable(FLYNCBaseModel):
 
 class BitfieldState(FLYNCBaseModel):
     """
-    One named state within a :class:`BitfieldGroup`, compared against the
-    raw value **after** the group's mask has been applied.
+    Mapping of an inclusive bitfield range to a label of states.
+
+    - For a **bitfield range**:
+      Use the keys ``from_value:`` and ``to_value:`` to define upper and lower bounds.
+
+    - For a **single bit**:
+      Either define ``from_value`` and ``to_value`` with the same value or simply use the key ``value:``.
+
 
     Parameters
     ----------
@@ -146,8 +128,7 @@ class BitfieldState(FLYNCBaseModel):
     from_value : int
         Inclusive lower bound for ``(raw & group.mask)``.
     to_value : int
-        Inclusive upper bound for ``(raw & group.mask)``.  Optional; defaults
-        to ``from_value`` for an exact-match state.
+        Inclusive upper bound for ``(raw & group.mask)``. Optional; defaults to `from_value` for exact-match states.
     """
 
     label: str = Field()
@@ -203,11 +184,11 @@ class BitfieldGroup(FLYNCBaseModel):
     name : str
         Name of the bitfield group (e.g. ``"Problem"``).
     mask : int
-        Bitmask selecting the bits that belong to this group.  Must be
+        Bitmask selecting the bits that belong to this group. Must be
         strictly positive and fit within the owning signal's
         ``bit_length`` (checked at signal level).
     states : list of :class:`BitfieldState`
-        Non-empty list of states defined for this group.  State values
+        Non-empty list of states defined for this group. State values
         must lie inside ``mask`` and may not overlap; labels must be
         unique within the group.
     """
@@ -306,7 +287,7 @@ class BitmaskFlags(FLYNCBaseModel):
     """
     Decodes a signal as a set of independent on/off flags.
 
-    Each :class:`BitmaskFlag` is active iff ``(raw & flag.mask) == flag.mask``;
+    Each :class:`BitmaskFlag` is active if ``(raw & flag.mask) == flag.mask``;
     the decoded value of the signal is the **set** of active flag labels.
     Several flags can be active at the same time.
 
