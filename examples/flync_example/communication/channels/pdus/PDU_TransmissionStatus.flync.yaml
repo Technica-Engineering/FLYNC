@@ -30,19 +30,19 @@ mux_groups:
             value_encoding:
               type: text_table
               entries:
-                - from_value: 0
+                - value: 0
                   label: Park
-                - from_value: 1
+                - value: 1
                   label: Reverse
-                - from_value: 2
+                - value: 2
                   label: Neutral
-                - from_value: 3
+                - value: 3
                   label: Drive_D1
-                - from_value: 4
+                - value: 4
                   label: Drive_D2
-                - from_value: 5
+                - value: 5
                   label: Drive_D3
-                - from_value: 6
+                - value: 6
                   label: Drive_D4
         - bit_position: 16
           endianness: LE
@@ -55,11 +55,11 @@ mux_groups:
             value_encoding:
               type: text_table
               entries:
-                - from_value: 0
+                - value: 0
                   label: Automatic
-                - from_value: 1
+                - value: 1
                   label: Manual
-                - from_value: 2
+                - value: 2
                   label: Sport
   - selector_value: 1
     pdu:
@@ -89,11 +89,11 @@ mux_groups:
             value_encoding:
               type: text_table
               entries:
-                - from_value: 0
+                - value: 0
                   label: Open
-                - from_value: 1
+                - value: 1
                   label: Slipping
-                - from_value: 2
+                - value: 2
                   label: Locked
-                - from_value: 3
+                - value: 3
                   label: Error

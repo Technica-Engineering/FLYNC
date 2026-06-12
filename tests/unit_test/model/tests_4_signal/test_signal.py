@@ -111,28 +111,28 @@ def test_positive_text_entry_single_value_explicit():
 
 
 def test_positive_text_entry_single_value_terse():
-    """Terse form: to_value defaults to from_value."""
-    entry = TextEntry(from_value=5, label="X")
+    """Terse form: use 'value' alias for a single value."""
+    entry = TextEntry(value=5, label="X")
     assert entry.from_value == 5
     assert entry.to_value == 5
 
 
 def test_positive_text_entry_terse_via_dict():
-    """Terse form via model_validate (YAML path)."""
-    entry = TextEntry.model_validate({"from_value": 7, "label": "Y"})
+    """Terse form via model_validate (YAML path) using 'value' alias."""
+    entry = TextEntry.model_validate({"value": 7, "label": "Y"})
     assert entry.from_value == 7
     assert entry.to_value == 7
 
 
 def test_positive_text_entry_terse_dump_omits_to_value():
     """Terse entries round-trip tersely: unset to_value is not serialized."""
-    entry = TextEntry.model_validate({"from_value": 7, "label": "Y"})
+    entry = TextEntry.model_validate({"value": 7, "label": "Y"})
     assert entry.to_value == 7
     assert "to_value" not in entry.model_dump(exclude_unset=True)
 
 
 def test_positive_text_entry_negative_value():
-    entry = TextEntry(from_value=-1, label="Error")
+    entry = TextEntry(value=-1, label="Error")
     assert entry.from_value == -1
     assert entry.to_value == -1
 
@@ -141,6 +141,16 @@ def test_positive_range_text_entry_basic():
     entry = TextEntry(from_value=10, to_value=20, label="MidRange")
     assert entry.from_value == 10
     assert entry.to_value == 20
+
+
+def test_negative_text_entry_value_and_to_value_together():
+    with pytest.raises(ValidationError, match="cannot use both 'value' and 'to_value'"):
+        TextEntry.model_validate({"value": 5, "to_value": 10, "label": "Invalid"})
+
+
+def test_negative_text_entry_from_value_alone():
+    with pytest.raises(ValidationError, match="'from_value' must be paired with 'to_value'"):
+        TextEntry.model_validate({"from_value": 5, "label": "Invalid"})
 
 
 def test_positive_text_table_model_validate():
@@ -270,9 +280,9 @@ def test_positive_signal_with_text_table_single_values():
         data_type=SignalDataType.UINT8,
         value_encoding=TextTable(
             entries=[
-                TextEntry(from_value=0, label="Neutral"),
-                TextEntry(from_value=1, label="First"),
-                TextEntry(from_value=2, to_value=2, label="Second"),  # explicit form for backward compat
+                TextEntry(value=0, label="Neutral"),
+                TextEntry(value=1, label="First"),
+                TextEntry(from_value=2, to_value=2, label="Second"),
             ],
         ),
     )
@@ -315,7 +325,7 @@ def test_positive_signal_with_range_text_table_signed():
 
 
 def test_positive_signal_text_table_mixed_terse_and_range():
-    """Terse single values and explicit ranges coexist in one table."""
+    """Terse single values (using 'value' alias) and explicit ranges coexist in one table."""
     sig = Signal(
         name="mixed_terse_range",
         bit_length=8,
@@ -324,7 +334,7 @@ def test_positive_signal_text_table_mixed_terse_and_range():
             entries=[
                 TextEntry(from_value=0, to_value=9, label="Low"),
                 TextEntry(from_value=10, to_value=99, label="Medium"),
-                TextEntry(from_value=255, label="Signal_Not_Available"),
+                TextEntry(value=255, label="Signal_Not_Available"),
             ],
         ),
     )
@@ -338,7 +348,7 @@ def test_negative_text_table_terse_value_overlaps_range():
         TextTable(
             entries=[
                 TextEntry(from_value=0, to_value=9, label="Low"),
-                TextEntry(from_value=5, label="Five"),
+                TextEntry(value=5, label="Five"),
             ],
         )
 

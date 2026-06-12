@@ -28,11 +28,11 @@ signals:
       value_encoding:
         type: text_table
         entries:
-          - from_value: 0
+          - value: 0
             label: Disabled
-          - from_value: 1
+          - value: 1
             label: Manual
-          - from_value: 2
+          - value: 2
             label: Auto
-          - from_value: 3
+          - value: 3
             label: Error
