@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from flync.model.flync_4_general_configuration.flync_channels import (
+from flync.model.flync_4_communication.flync_channels import (
     FLYNCChannelConfig,
 )
 

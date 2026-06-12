@@ -47,7 +47,7 @@ targets = {
     "mac_multicast_endpoint.mmd": base_model.flync_4_ecu.mac_multicast_endpoint,
     "switch.mmd": base_model.flync_4_ecu.switch,
     "ecu_topology.mmd": base_model.flync_4_ecu.internal_topology,
-    "general_configs.mmd": base_model.flync_4_general_configuration.flync_general,
+    "communication_configs.mmd": base_model.flync_4_communication.flync_communication,
     "metadata.mmd": base_model.flync_4_metadata.metadata,
     "macsec.mmd": base_model.flync_4_security.macsec,
     "firewall.mmd": base_model.flync_4_security.firewall,

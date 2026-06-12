@@ -16,7 +16,7 @@ _MULTICAST_REASON = (
     "during validation; multicast_groups (the source data) is excluded from "
     "model_dump (Field(exclude=True)) and only partially restored during "
     "model_validate because SOME/IP deployment validators need ECU registry "
-    "entries that don't exist yet when general config is validated. Result: "
+    "entries that don't exist yet when communication config is validated. Result: "
     "decoded multicast data differs from the original. Requires FLYNC SDK fix."
 )
 
