@@ -357,22 +357,22 @@ class TestBuildCanMessages:
 class TestWriteDbcFiles:
     def test_no_general_warns(self, caplog):
         model = MagicMock()
-        model.general = None
+        model.communication = None
         with caplog.at_level(logging.WARNING, logger="flync_converter.converters.dbc_converter"):
             write_dbc_files(model, "/tmp")
-        assert "Could not find general/channels" in caplog.text
+        assert "Could not find communication/channels" in caplog.text
 
     def test_no_channels_warns(self, caplog):
         model = MagicMock()
-        model.general.channels = None
+        model.communication.channels = None
         with caplog.at_level(logging.WARNING, logger="flync_converter.converters.dbc_converter"):
             write_dbc_files(model, "/tmp")
-        assert "Could not find general/channels" in caplog.text
+        assert "Could not find communication/channels" in caplog.text
 
     def test_no_can_buses_no_output(self, tmp_path):
         model = MagicMock()
-        model.general.channels.pdus = []
-        model.general.channels.can_buses = []
+        model.communicationcation.channels.pdus = []
+        model.communication.channels.can_buses = []
         model.ecus = []
         write_dbc_files(model, str(tmp_path))
         assert list(tmp_path.glob("*.dbc")) == []
@@ -382,8 +382,8 @@ class TestWriteDbcFiles:
         bus.name = "CAN1"
         bus.frames = []
         model = MagicMock()
-        model.general.channels.pdus = []
-        model.general.channels.can_buses = [bus]
+        model.communication.channels.pdus = []
+        model.communication.channels.can_buses = [bus]
         model.ecus = []
         with patch("cantools.database.dump_file") as mock_dump:
             write_dbc_files(model, str(tmp_path))
@@ -432,8 +432,8 @@ class TestDbcConverter:
     def test_encode_with_empty_model(self, tmp_path):
         conv = DbcConverter(ConverterConfig(config_path=str(tmp_path)))
         model = MagicMock()
-        model.general.channels.can_buses = []
-        model.general.channels.pdus = []
+        model.communication.channels.can_buses = []
+        model.communication.channels.pdus = []
         model.ecus = []
         conv.encode(model)
         assert list(tmp_path.glob("*.dbc")) == []

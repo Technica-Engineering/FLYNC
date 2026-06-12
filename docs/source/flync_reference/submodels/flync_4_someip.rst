@@ -8,7 +8,7 @@ SOME/IP Configuration
 ######################
 
 .. note::
-   Any SOME/IP related configuration such as service descriptions or timings profiles are placed in the directory 📁 ``general/someip/``.
+   Any SOME/IP related configuration such as service descriptions or timings profiles are placed in the directory 📁 ``communication/someip/``.
    This is a **non-mandatory** directory for the FLYNC configuration.
 
 .. autoclass:: flync.model.flync_4_someip.SOMEIPConfig()
