@@ -100,15 +100,6 @@ class TextTable(FLYNCBaseModel):
         check_bit_ranges_no_overlap("TextTable", ranges)
         return self
 
-    @model_validator(mode="after")
-    def _validate_unique_labels(self) -> "TextTable":
-        seen: set[str] = set()
-        for e in self.entries:
-            if e.label in seen:
-                raise err_major("Duplicate label {label!r} in TextTable; each label must appear at most once", label=e.label)
-            seen.add(e.label)
-        return self
-
 
 class BitfieldState(FLYNCBaseModel):
     """
