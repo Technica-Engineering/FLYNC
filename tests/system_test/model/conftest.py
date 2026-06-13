@@ -30,7 +30,6 @@ def vci():
 @pytest.fixture(scope="session")
 def ci(vci):
     ci = ControllerInterface(
-        name="ci",
         mac_address=MacAddress("3a:7f:1c:9b:4e:02"),
         virtual_interfaces=[vci],
     )

@@ -272,9 +272,6 @@ class ControllerInterface(FLYNCBaseModel):
 
     Parameters
     ----------
-    name : str
-        Interface name.
-
     mac_address : :class:`MacAddress`, optional
         MAC address of the physical interface in standard notation.
 
@@ -319,7 +316,6 @@ class ControllerInterface(FLYNCBaseModel):
         Fixed to ``"controller_interface"``.
     """
 
-    name: str = Field()
     mac_address: Optional[FLYNCMacAddress] = Field(default=None)
     mii_config: Optional[MII | RMII | SGMII | RGMII | XFI] = Field(default=None, discriminator="type")
     compute_nodes: Optional[List[ComputeNodes]] = Field(default_factory=list)
@@ -346,6 +342,12 @@ class ControllerInterface(FLYNCBaseModel):
     _connected_component: Optional[Any] = PrivateAttr(default=None)
     _type: Literal["controller_interface"] = PrivateAttr(default="controller_interface")
     _controller: Optional["Controller"] = PrivateAttr(default=None)
+    _name: Optional[str] = PrivateAttr(default=None)
+
+    @property
+    def name(self):
+        """Interface name, propagated from the parent :class:`EthernetInterface` (implied from the folder name)."""
+        return self._name
 
     @property
     def type(self):
@@ -633,7 +635,7 @@ class Controller(NamedListInstances):
     def validate_unique_interface_names(self):
         """Validate that controller interface names are unique within this controller."""
         common_validators.validate_list_items_unique(
-            [eth.interface_config.name for eth in self.ethernet_interfaces if eth.interface_config],
+            [eth.name for eth in self.ethernet_interfaces if eth.interface_config],
             "Controller Interfaces (name)",
         )
         return self
@@ -644,7 +646,7 @@ class Controller(NamedListInstances):
         compute_node_names = []
         for eth_iface in self.ethernet_interfaces:
             iface = eth_iface.interface_config
-            interface_names.append(iface.name)
+            interface_names.append(eth_iface.name)
             if iface.compute_nodes:
                 for compute_node in iface.compute_nodes:
                     compute_node_names.append(compute_node.name)
@@ -681,9 +683,11 @@ class Controller(NamedListInstances):
         return [eth.interface_config for eth in (self.ethernet_interfaces or []) if eth.interface_config is not None]
 
     def find_controller_interface(self, interface_name: str) -> ControllerInterface:
-        return next(i.interface_config for i in (self.ethernet_interfaces or []) if i.interface_config.name == interface_name)
+        return next(i.interface_config for i in (self.ethernet_interfaces or []) if i.name == interface_name)
 
     def model_post_init(self, __context):
         for interface in self.ethernet_interfaces:
-            interface.interface_config._controller = self
+            if interface.interface_config is not None:
+                interface.interface_config._controller = self
+                interface.interface_config._name = interface.name
         return super().model_post_init(__context)

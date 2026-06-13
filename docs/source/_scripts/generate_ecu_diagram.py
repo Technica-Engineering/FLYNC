@@ -638,7 +638,7 @@ def render_switch(ecu: ECU, *, with_host: bool = False) -> str:
         hc_iface_x = sw_x + 20
         hc_iface_y = sw_y + 80
         svg.rect(hc_iface_x, hc_iface_y, hc_iface_w, hc_iface_h, fill=IFACE_FILL, stroke=IFACE_STROKE, sw=1, rx=4)
-        svg.text(hc_iface_x + hc_iface_w / 2, hc_iface_y + 14, hc.name, size=11, anchor="middle", bold=True)
+        svg.text(hc_iface_x + hc_iface_w / 2, hc_iface_y + 14, hc.name or "host_controller", size=11, anchor="middle", bold=True)
         if hc.virtual_interfaces:
             v0 = hc.virtual_interfaces[0]
             svg.viface(hc_iface_x + 10, hc_iface_y + 25, hc_iface_w - 20, v0.name, v0.addresses, v0.vlanid, with_oval=True)

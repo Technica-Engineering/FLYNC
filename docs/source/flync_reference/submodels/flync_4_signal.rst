@@ -285,7 +285,8 @@ PDU
 ###
 
 A **PDU** (Protocol Data Unit) is the container that groups signals
-for transmission.  PDUs are defined independently of any specific bus.  A
+for transmission.  PDUs are defined independently of any specific bus
+and stored in ``communication/channels/pdus/``.  A
 :class:`~flync.model.flync_4_signal.PDUInstance` then places a named
 PDU at a given bit offset inside a :ref:`frame <frame_model>`.
 
@@ -318,11 +319,12 @@ Standard PDU
 ============
 
 .. admonition:: Expand for a YAML example - 📄 ``communication/channels/pdus/PDU_EngineStatus.flync.yaml``
-.. admonition:: Expand for a YAML example - 📄 ``communication/channels/pdus/PDU_EngineStatus.flync.yaml``
    :collapsible: closed
 
    .. note::
-      Each PDU is stored in its own ``.flync.yaml``.
+      Each PDU is stored in its own ``.flync.yaml`` file under
+      ``communication/channels/pdus/``.  This directory is **optional** and
+      may be omitted when no PDUs are defined.
 
    .. literalinclude:: ../../../../examples/flync_example/communication/channels/pdus/PDU_EngineStatus.flync.yaml
       :language: yaml
@@ -335,7 +337,6 @@ Standard PDU
 Multiplexed PDU
 ===============
 
-.. admonition:: Expand for a YAML example - 📄 ``communication/channels/pdus/PDU_TransmissionStatus.flync.yaml``
 .. admonition:: Expand for a YAML example - 📄 ``communication/channels/pdus/PDU_TransmissionStatus.flync.yaml``
    :collapsible: closed
 
@@ -359,13 +360,14 @@ Container PDU
 =============
 
 .. admonition:: Expand for a YAML example - 📄 ``communication/channels/ethernet_pdu_containers/eth_powertrain_container.flync.yaml``
-.. admonition:: Expand for a YAML example - 📄 ``communication/channels/ethernet_pdu_containers/eth_powertrain_container.flync.yaml``
    :collapsible: closed
 
    .. note::
-      An Ethernet Container PDU is stored in its own ``.flync.yaml`` file, alongside all other PDU types.
-      It bundles several application PDUs into one Ethernet payload.
-      The per-slot header format is configured via the ``header`` block, which specifies ``id_length_bits`` and ``length_field_bits``.
+      An Ethernet Container PDU is stored in its own ``.flync.yaml``
+      file under ``communication/channels/pdus/``, alongside all other PDU
+      types.  It bundles several application PDUs into one Ethernet
+      payload.  The per-slot header format is configured via the ``header``
+      block, which specifies ``id_length_bits`` and ``length_field_bits``.
 
    .. literalinclude:: ../../../../examples/flync_example/communication/channels/ethernet_pdu_containers/eth_powertrain_container.flync.yaml
       :language: yaml
@@ -385,7 +387,9 @@ Frame
 #####
 
 A **Frame** is the protocol-specific transport unit that carries one
-or more PDUs on a physical bus.  All frame types reference PDUs by
+or more PDUs on a physical bus.  CAN and CAN FD frames are defined
+inside ``communication/channels/can/``; LIN frames inside
+``communication/channels/lin/``.  All frame types reference PDUs by
 name via :class:`~flync.model.flync_4_signal.PDUInstance`.
 
 For Ethernet, there is no frame layer — sockets reference a

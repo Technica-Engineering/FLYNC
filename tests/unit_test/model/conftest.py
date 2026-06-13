@@ -227,7 +227,6 @@ def switch_port():
 @pytest.fixture
 def switch_host_controller_example(virtual_controller_interface):
     host_ctrl = {
-        "name": "iface1",
         "mac_address": "10:10:10:22:22:22",
         "virtual_interfaces": [virtual_controller_interface],
     }
