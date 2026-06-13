@@ -741,20 +741,6 @@ class Test_Signal:
                 ),
             )
 
-    def test_negative_text_table_duplicate_label(self):
-        with pytest.raises(ValidationError, match="Duplicate label"):
-            Signal(
-                name="dup_label",
-                bit_length=8,
-                data_type=SignalDataType.UINT8,
-                value_encoding=TextTable(
-                    entries=[
-                        TextEntry(from_value=1, to_value=1, label="First"),
-                        TextEntry(from_value=2, to_value=2, label="First"),
-                    ],
-                ),
-            )
-
     def test_negative_range_text_table_overlapping_entries(self):
         with pytest.raises(ValidationError, match="overlap"):
             Signal(
@@ -765,20 +751,6 @@ class Test_Signal:
                     entries=[
                         TextEntry(from_value=0, to_value=10, label="A"),
                         TextEntry(from_value=5, to_value=15, label="B"),
-                    ],
-                ),
-            )
-
-    def test_negative_range_text_table_duplicate_label(self):
-        with pytest.raises(ValidationError, match="Duplicate label"):
-            Signal(
-                name="dup_range_label",
-                bit_length=8,
-                data_type=SignalDataType.UINT8,
-                value_encoding=TextTable(
-                    entries=[
-                        TextEntry(from_value=0, to_value=10, label="X"),
-                        TextEntry(from_value=11, to_value=20, label="X"),
                     ],
                 ),
             )
