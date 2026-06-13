@@ -1,4 +1,3 @@
-name: eth_ecu_c1_iface1
 mac_address: 00:11:01:01:01:01
 mii_config:
   type: sgmii

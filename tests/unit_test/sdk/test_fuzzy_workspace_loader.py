@@ -120,6 +120,7 @@ def __run_script(
         text=True,
         env={**os.environ, "TERM": "dumb"},
         encoding="utf-8",
+        errors="replace",
     )
 
     output_file.write_text(

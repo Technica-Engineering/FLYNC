@@ -330,7 +330,6 @@ vlans:
 
 
 host_controller:
-  name: hpc_sw_host_iface
   mac_address: 00:11:02:03:01:01
   virtual_interfaces:
     - name: hpc_sw_host_viface1

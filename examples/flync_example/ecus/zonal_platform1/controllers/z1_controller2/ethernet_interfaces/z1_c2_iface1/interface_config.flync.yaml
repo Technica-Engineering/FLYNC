@@ -1,4 +1,3 @@
-name: z1_c2_iface1
 mac_address: 00:11:03:02:01:01
 mii_config:
   type: rmii
