@@ -115,7 +115,6 @@ def test_positive_xfi_config_ecu_port(virtual_controller_interface):
 
     ctrl_iface_1 = ControllerInterface.model_validate(
         {
-            "name": "test_ecu_port2",
             "mii_config": mii_config2,
             "mac_address": "10:10:10:22:22:22",
             "virtual_interfaces": [virtual_controller_interface],

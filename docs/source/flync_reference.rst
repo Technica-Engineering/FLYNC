@@ -33,7 +33,7 @@ The built-in loaders and validators expect a specific repository structure that 
 Repository Structure for FLYNC configs
 ############################################
 
-The root of a FLYNC config repository holds four main parts: System Metadata, Topology, ECUs, and General.
+The root of a FLYNC config repository holds four main parts: System Metadata, Topology, ECUs, and Communication.
 
 .. rubric:: Guidelines
 
@@ -203,15 +203,15 @@ One interface directory consists of:
    - :ref:`Controller Config <controller>`
    - :ref:`Sockets <socket>`
 
-General
-*******
+Communication
+*************
 
 This directory contains several sub-directories and files that describe assets and configurations for the whole system, such as TCP profiles or SOME/IP services.
 This is a **non-mandatory** directory for the FLYNC configuration.
 
 .. code-block::
 
-   📂 general
+   📂 communication
    │
    ├── 📄 tcp_profiles.flync.yaml
    │
@@ -231,7 +231,7 @@ This is a **non-mandatory** directory for the FLYNC configuration.
 
    Explore the whole ECU config further:
 
-   - :ref:`General Config <general>`
+   - :ref:`Communication Config <communication>`
    - :ref:`TCPOptions <tcp_option>`
    - :ref:`SOME/IP Config <someip>`
    - :ref:`ServiceInterface <someip_serviceinterface>`

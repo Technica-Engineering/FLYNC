@@ -26,7 +26,6 @@ def test_macsec_positive_vlan_bypass_entry(virtual_controller_interface):
 
     controller_iface = ControllerInterface.model_validate(
         {
-            "name": "iface1",
             "mac_address": "00:11:22:33:44:55",
             "mii_config": None,
             "virtual_interfaces": [virtual_controller_interface],
@@ -54,7 +53,6 @@ def test_negative_vlan_bypass_entry(virtual_controller_interface):
     with pytest.raises(ValidationError) as e:
         controller_iface = ControllerInterface.model_validate(
             {
-                "name": "iface1",
                 "mac_address": "00:11:22:33:44:55",
                 "mii_config": None,
                 "virtual_interfaces": [virtual_controller_interface],
@@ -80,7 +78,6 @@ def test_positive_cipher_preference_integrity_without_confidentiality(integrity_
     }
     controller_iface = ControllerInterface.model_validate(
         {
-            "name": "iface1",
             "mac_address": "00:11:22:33:44:55",
             "mii_config": None,
             "virtual_interfaces": [virtual_controller_interface],
@@ -108,7 +105,6 @@ def test_positive_cipher_preference_integrity_with_confidentiality(integrity_wit
 
     controller_iface = ControllerInterface.model_validate(
         {
-            "name": "iface1",
             "mac_address": "00:11:22:33:44:55",
             "mii_config": None,
             "virtual_interfaces": [virtual_controller_interface],
@@ -143,7 +139,6 @@ def test_positive_cipher_preference_mix(
 
     controller_iface = ControllerInterface.model_validate(
         {
-            "name": "iface1",
             "mac_address": "00:11:22:33:44:55",
             "mii_config": None,
             "virtual_interfaces": [virtual_controller_interface],

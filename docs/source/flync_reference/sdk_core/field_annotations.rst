@@ -30,7 +30,7 @@ Using ``External`` in a model
     from flync.core.base_models import External, NamingStrategy, OutputStrategy
     from flync.model.base_model import FLYNCBaseModel
 
-    class FLYNCGeneralConfig(FLYNCBaseModel):
+    class FLYNCCommunicationConfig(FLYNCBaseModel):
         someip_config: Annotated[
                 Optional[SOMEIPConfig],
                 External(

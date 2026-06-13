@@ -26,7 +26,6 @@ def test_positive_ptp_config_controller_time_transmitter(
 
     controller_iface = ControllerInterface.model_validate(
         {
-            "name": "iface1",
             "mac_address": "00:11:22:33:44:55",
             "mii_config": None,
             "virtual_interfaces": [virtual_controller_interface],
@@ -57,7 +56,6 @@ def test_positive_ptp_config_controller_time_receiver(
 
     controller_iface = ControllerInterface.model_validate(
         {
-            "name": "iface1",
             "mac_address": "00:11:22:33:44:55",
             "mii_config": None,
             "virtual_interfaces": [virtual_controller_interface],
@@ -99,7 +97,6 @@ def test_positive_two_domain_different_roles(
 
     controller_iface = ControllerInterface.model_validate(
         {
-            "name": "iface1",
             "mac_address": "00:11:22:33:44:55",
             "mii_config": None,
             "virtual_interfaces": [virtual_controller_interface],

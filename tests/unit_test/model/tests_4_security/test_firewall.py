@@ -20,7 +20,6 @@ def test_firewall_config_positive_(virtual_controller_interface):
 
     controller_iface = ControllerInterface.model_validate(
         {
-            "name": "iface1",
             "mac_address": "00:11:22:33:44:55",
             "mii_config": None,
             "virtual_interfaces": [virtual_controller_interface],
@@ -51,7 +50,6 @@ def test_firewall_config_positive_multiple_rules(virtual_controller_interface, e
 
     controller_iface = ControllerInterface.model_validate(
         {
-            "name": "iface1",
             "mac_address": "00:11:22:33:44:55",
             "mii_config": None,
             "virtual_interfaces": [virtual_controller_interface],
@@ -99,7 +97,6 @@ def test_negative_firewall_config_multiple_rules_same_filter(
                     {
                         "interface_config": ControllerInterface.model_validate(
                             {
-                                "name": "iface1",
                                 "mac_address": "00:11:22:33:44:55",
                                 "mii_config": None,
                                 "virtual_interfaces": [virtual_controller_interface],
@@ -132,7 +129,6 @@ def test_positive_only_dst_ipv4_in_frame_filter(virtual_controller_interface, em
 
     controller_iface = ControllerInterface.model_validate(
         {
-            "name": "iface1",
             "mac_address": "00:11:22:33:44:55",
             "mii_config": None,
             "virtual_interfaces": [virtual_controller_interface],
@@ -170,7 +166,6 @@ def test_positive_only_dst_ipv6_in_frame_filter(virtual_controller_interface, em
 
     controller_iface = ControllerInterface.model_validate(
         {
-            "name": "iface1",
             "mac_address": "00:11:22:33:44:55",
             "mii_config": None,
             "virtual_interfaces": [virtual_controller_interface],
@@ -216,7 +211,6 @@ def test_negative_both_dst_ipv4_and_dst_ipv6_in_frame_filter(
                     {
                         "interface_config": ControllerInterface.model_validate(
                             {
-                                "name": "iface1",
                                 "mac_address": "00:11:22:33:44:55",
                                 "mii_config": None,
                                 "virtual_interfaces": [virtual_controller_interface],

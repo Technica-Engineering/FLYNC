@@ -1,4 +1,3 @@
-name: ecu1_controller1_iface2
 mac_address: 00:11:22:33:44:56
 mii_config:
   type: rmii
