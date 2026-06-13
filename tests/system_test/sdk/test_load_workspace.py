@@ -236,7 +236,7 @@ def test_load_workspace_incorret_value_type(tmpdir):
         / "eth_ecu_c1_iface1"
         / "interface_config.flync.yaml"
     )
-    update_yaml_content(file_to_update, "name: eth_ecu_c1_iface1", "name: 123")
+    update_yaml_content(file_to_update, "name: eth_ecu_vm2_viface1", "name: 123")
     workspace = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
     assert "Input should be a valid string" in str(workspace.load_errors)
     if destination_folder.exists():

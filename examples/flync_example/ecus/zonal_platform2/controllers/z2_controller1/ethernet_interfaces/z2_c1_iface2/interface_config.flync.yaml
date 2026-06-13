@@ -1,4 +1,3 @@
-name: z2_c1_iface2
 mac_address: 00:11:04:01:02:01
 mii_config:
   type: sgmii

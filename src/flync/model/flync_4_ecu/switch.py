@@ -531,4 +531,6 @@ class Switch(NamedListInstances):
     def model_post_init(self, __context):
         for port in self.ports:
             port._switch = self
+        if self.host_controller is not None:
+            self.host_controller._name = f"{self.name}_host"
         return super().model_post_init(__context)
