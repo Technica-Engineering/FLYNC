@@ -1,7 +1,7 @@
 import json
 import logging
 import shutil
-from os import sep
+from os import sep, sync
 from pathlib import Path
 
 import pytest
@@ -337,15 +337,25 @@ def test_references_object(
     verify(json.dumps(received, indent=4, sort_keys=True))
 
 
-def test_load_workspace_with_old_field_name(get_relative_flync_example_path):
-    ws_name_obj = Path(get_relative_flync_example_path).name + "_with_old_fied_name"
+def test_load_workspace_with_old_folder_name(get_relative_flync_example_path):
+    ws_name_obj = Path(get_relative_flync_example_path).name + "_with_old_folder_name"
     output_path = current_dir / "generated" / ws_name_obj
     if output_path.exists():
         shutil.rmtree(output_path)
     shutil.copytree(get_relative_flync_example_path, output_path, dirs_exist_ok=True)
+    sync()
+
     communication_path = output_path / "communication"
-    general_dir = communication_path.with_name("general")
-    communication_path.rename(general_dir)
+    general_path = output_path / "general"
+    # rename fails on macOS and should not be used!
+    # communication_path.rename(general_dir)
+
+    # make sure that general_path does not exist
+    if general_path.exists():
+        shutil.rmtree(general_path)
+    shutil.move(communication_path, general_path)
+    sync()
+
     loaded_ws = FLYNCWorkspace.load_workspace(
         workspace_name=ws_name_obj,
         workspace_path=output_path,
