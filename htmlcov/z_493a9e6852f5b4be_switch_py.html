@@ -54,8 +54,8 @@
             </div>
         </aside>
         <h2>
-            <span class="text">182 statements &nbsp;</span>
-            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">179<span class="text"> run</span></button>
+            <span class="text">184 statements &nbsp;</span>
+            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">181<span class="text"> run</span></button>
             <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">3<span class="text"> missing</span></button>
             <button type="button" class="exc show_exc button_toggle_exc" value="exc" data-shortcut="x" title="Toggle lines excluded">0<span class="text"> excluded</span></button>
         </h2>
@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_493a9e6852f5b4be_vlan_entry_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.14.1">coverage.py v7.14.1</a>,
-            created at 2026-06-11 08:57 +0000
+            created at 2026-06-13 19:29 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -613,7 +613,9 @@
     <p class="run"><span class="n"><a id="t531" href="#t531">531</a></span><span class="t">    <span class="key">def</span> <span class="nam">model_post_init</span><span class="op">(</span><span class="nam">self</span><span class="op">,</span> <span class="nam">__context</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t532" href="#t532">532</a></span><span class="t">        <span class="key">for</span> <span class="nam">port</span> <span class="key">in</span> <span class="nam">self</span><span class="op">.</span><span class="nam">ports</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t533" href="#t533">533</a></span><span class="t">            <span class="nam">port</span><span class="op">.</span><span class="nam">_switch</span> <span class="op">=</span> <span class="nam">self</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t534" href="#t534">534</a></span><span class="t">        <span class="key">return</span> <span class="nam">super</span><span class="op">(</span><span class="op">)</span><span class="op">.</span><span class="nam">model_post_init</span><span class="op">(</span><span class="nam">__context</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t534" href="#t534">534</a></span><span class="t">        <span class="key">if</span> <span class="nam">self</span><span class="op">.</span><span class="nam">host_controller</span> <span class="key">is</span> <span class="key">not</span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t535" href="#t535">535</a></span><span class="t">            <span class="nam">self</span><span class="op">.</span><span class="nam">host_controller</span><span class="op">.</span><span class="nam">_name</span> <span class="op">=</span> <span class="fst">f"</span><span class="op">{</span><span class="nam">self</span><span class="op">.</span><span class="nam">name</span><span class="op">}</span><span class="fst">_host</span><span class="fst">"</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t536" href="#t536">536</a></span><span class="t">        <span class="key">return</span> <span class="nam">super</span><span class="op">(</span><span class="op">)</span><span class="op">.</span><span class="nam">model_post_init</span><span class="op">(</span><span class="nam">__context</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
 </main>
 <footer>
     <div class="content">
@@ -623,7 +625,7 @@
             <a class="nav" href="z_493a9e6852f5b4be_vlan_entry_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.14.1">coverage.py v7.14.1</a>,
-            created at 2026-06-11 08:57 +0000
+            created at 2026-06-13 19:29 +0000
         </p>
     </div>
 </footer>

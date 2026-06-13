@@ -27,7 +27,7 @@
 | src/flync/core/utils/base\_utils.py                                 |      118 |       16 |     86% |31, 33, 36, 42-43, 57-65, 83, 224, 264 |
 | src/flync/core/utils/common\_validators.py                          |      246 |       37 |     85% |55, 113, 163, 211-214, 294-296, 324, 331, 370, 395, 397, 406, 438, 448, 450, 452, 473, 491, 498, 528, 531, 534, 563, 571, 602, 611, 613, 643, 649, 658, 664, 674, 680 |
 | src/flync/core/utils/exceptions.py                                  |       14 |        0 |    100% |           |
-| src/flync/core/utils/exceptions\_handling.py                        |      223 |       18 |     92% |43, 73, 95-96, 117, 126, 128, 188, 278-281, 479-482, 547-549 |
+| src/flync/core/utils/exceptions\_handling.py                        |      223 |       16 |     93% |43, 73, 95-96, 117, 126, 128, 188, 281, 479-482, 547-549 |
 | src/flync/core/utils/forwarder\_validators.py                       |      270 |       11 |     96% |54, 203, 205, 224, 262, 377, 406, 498, 501, 548, 570 |
 | src/flync/core/utils/multicast/\_\_init\_\_.py                      |        3 |        0 |    100% |           |
 | src/flync/core/utils/multicast/group\_membership\_handlers.py       |       44 |        0 |    100% |           |
@@ -42,7 +42,7 @@
 | src/flync/model/flync\_4\_bus/lin\_bus.py                           |       39 |        0 |    100% |           |
 | src/flync/model/flync\_4\_ecu/\_\_init\_\_.py                       |       13 |        0 |    100% |           |
 | src/flync/model/flync\_4\_ecu/can\_interface.py                     |       25 |        0 |    100% |           |
-| src/flync/model/flync\_4\_ecu/controller.py                         |      233 |        8 |     97% |361, 427, 431, 445, 450, 452, 464, 684 |
+| src/flync/model/flync\_4\_ecu/controller.py                         |      238 |        8 |     97% |363, 429, 433, 447, 452, 454, 466, 686 |
 | src/flync/model/flync\_4\_ecu/ecu.py                                |      189 |       17 |     91% |149, 175, 204, 306, 310, 314, 318, 327-333, 341, 374-377 |
 | src/flync/model/flync\_4\_ecu/internal\_topology.py                 |      184 |       25 |     86% |50, 127-128, 140-143, 201-202, 214-217, 374-375, 379-380, 385-387, 390-392, 440-441 |
 | src/flync/model/flync\_4\_ecu/lin\_interface.py                     |       27 |        0 |    100% |           |
@@ -53,7 +53,7 @@
 | src/flync/model/flync\_4\_ecu/router.py                             |       15 |        1 |     93% |        69 |
 | src/flync/model/flync\_4\_ecu/socket\_container.py                  |       10 |        0 |    100% |           |
 | src/flync/model/flync\_4\_ecu/sockets.py                            |      105 |        0 |    100% |           |
-| src/flync/model/flync\_4\_ecu/switch.py                             |      182 |        3 |     98% |126, 164, 529 |
+| src/flync/model/flync\_4\_ecu/switch.py                             |      184 |        3 |     98% |126, 164, 529 |
 | src/flync/model/flync\_4\_ecu/vlan\_entry.py                        |       26 |        1 |     96% |        56 |
 | src/flync/model/flync\_4\_general\_configuration/\_\_init\_\_.py    |        3 |        0 |    100% |           |
 | src/flync/model/flync\_4\_general\_configuration/flync\_channels.py |       46 |        1 |     98% |       145 |
@@ -144,7 +144,7 @@
 | src/flync\_converter/hookspec.py                                    |        4 |        0 |    100% |           |
 | src/flync\_converter/registry.py                                    |       32 |        5 |     84% | 29, 55-58 |
 | src/flync\_converter/utils.py                                       |       75 |        4 |     95% |63-64, 93-94 |
-| **TOTAL**                                                           | **7419** |  **878** | **88%** |           |
+| **TOTAL**                                                           | **7426** |  **876** | **88%** |           |
 
 
 ## Setup coverage badge
