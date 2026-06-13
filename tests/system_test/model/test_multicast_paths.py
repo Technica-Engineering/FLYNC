@@ -21,7 +21,7 @@ def test_multicast_paths_no_tx(tmpdir):
         / "controllers"
         / "hpc_controller2"
         / "ethernet_interfaces"
-        / "hpc_c1_iface1"
+        / "hpc_c2_iface1"
         / "sockets"
         / "socket_nm.flync.yaml"
     )

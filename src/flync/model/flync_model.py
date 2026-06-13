@@ -365,7 +365,7 @@ class FLYNCModel(FLYNCBaseModel):
         """Return a list of all interfaces for a given ECU."""
         ecu = self.get_ecu_by_name(ecu_name)
         if ecu:
-            return [eth_iface.interface_config.name for controller in ecu.controllers for eth_iface in controller.ethernet_interfaces]
+            return [eth_iface.name for controller in ecu.controllers for eth_iface in controller.ethernet_interfaces]
         return []
 
     def get_system_topology_info(self):

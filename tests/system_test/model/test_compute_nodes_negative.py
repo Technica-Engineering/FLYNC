@@ -35,7 +35,6 @@ def test_compute_nodes_require_virtual_switch():
         target_system="my_system",
     )
     ctrl_iface = ControllerInterface(
-        name="eth0",
         mac_address="00:11:22:33:44:55",
         compute_nodes=[
             ComputeNodes(
@@ -75,7 +74,6 @@ def test_bridge_port_invalid_reference():
         target_system="my_system",
     )
     ctrl_iface = ControllerInterface(
-        name="eth0",
         mac_address="00:11:22:33:44:55",
         compute_nodes=[
             ComputeNodes(
@@ -116,7 +114,6 @@ def test_ptp_conflict_between_interface_and_compute_node():
     """
     with pytest.raises(ValidationError):
         ControllerInterface(
-            name="eth0",
             mac_address="00:11:22:33:44:55",
             ptp_config=PTPConfig(),
             compute_nodes=[
@@ -149,7 +146,6 @@ def test_vlan_invalid_port_reference():
         target_system="my_system",
     )
     ctrl_iface = ControllerInterface(
-        name="eth0",
         mac_address="00:11:22:33:44:55",
         compute_nodes=[
             ComputeNodes(
@@ -194,7 +190,6 @@ def test_compute_node_not_in_bridge_ports():
         target_system="my_system",
     )
     ctrl_iface = ControllerInterface(
-        name="eth0",
         mac_address="00:11:22:33:44:55",
         compute_nodes=[
             ComputeNodes(
@@ -238,7 +233,6 @@ def test_feature_offload_to_compute_node_only():
         target_system="my_system",
     )
     ctrl_iface = ControllerInterface(
-        name="eth0",
         mac_address="00:11:22:33:44:55",
         ptp_config=None,
         compute_nodes=[
@@ -282,7 +276,6 @@ def test_duplicate_name_between_interface_and_compute_node_should_fail():
     This prevents undefined behavior in VirtualSwitch connectivity resolution.
     """
     ControllerInterface(
-        name="eth0",
         mac_address="00:11:22:33:44:55",
         ptp_config=None,
         compute_nodes=[

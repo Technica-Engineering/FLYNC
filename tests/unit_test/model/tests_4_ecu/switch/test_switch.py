@@ -61,6 +61,27 @@ def test_get_mac_returns_host_controller_mac(
     assert switch.get_mac() == "10:10:10:22:22:22"
 
 
+def test_host_controller_name_derived_from_switch_name(
+    embedded_metadata_entry,
+    vlan_entry,
+    switch_port,
+    switch_host_controller_example,
+):
+    """The switch host_controller is an inline ControllerInterface with no folder/wrapper to
+    imply a name, so its name is propagated as ``<switch_name>_host``."""
+    switch = Switch.model_validate(
+        {
+            "meta": embedded_metadata_entry,
+            "name": "switch_example",
+            "vlans": [vlan_entry],
+            "ports": [switch_port],
+            "host_controller": switch_host_controller_example,
+        }
+    )
+
+    assert switch.host_controller.name == "switch_example_host"
+
+
 @pytest.mark.parametrize("invalid_vlan_id", [-1, 4096])
 def test_switch_port_default_vlan_id_out_of_range_rejected(invalid_vlan_id):
     with pytest.raises(ValidationError):

@@ -22,7 +22,6 @@ def test_positive_controller_viface_single_ipv4(
     }
     controller_iface = ControllerInterface.model_validate(
         {
-            "name": "controller_iface",
             "mac_address": "00:11:22:33:44:55",
             "virtual_interfaces": [virtual_iface],
         }
@@ -41,7 +40,6 @@ def test_positive_controller_viface_single_ipv6(
     }
     controller_iface = ControllerInterface.model_validate(
         {
-            "name": "controller_iface",
             "mac_address": "00:11:22:33:44:55",
             "virtual_interfaces": [virtual_iface],
         }
@@ -61,7 +59,6 @@ def test_positive_controller_viface_mixed_ipv4_ipv6(
     }
     controller_iface = ControllerInterface.model_validate(
         {
-            "name": "controller_iface",
             "mac_address": "00:11:22:33:44:55",
             "virtual_interfaces": [virtual_iface],
         }
@@ -99,7 +96,6 @@ def test_positive_controller_viface_empty_addresses():
 
     controller_iface = ControllerInterface.model_validate(
         {
-            "name": "controller_iface",
             "mac_address": "00:11:22:33:44:55",
             "virtual_interfaces": [virtual_iface],
         }

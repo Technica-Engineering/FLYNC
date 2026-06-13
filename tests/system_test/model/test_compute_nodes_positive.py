@@ -22,7 +22,6 @@ def test_controller_with_bridge_and_compute_nodes_valid():
         target_system="my_system",
     )
     ctrl_iface = ControllerInterface(
-        name="eth0",
         mac_address="00:11:22:33:44:55",
         compute_nodes=[
             ComputeNodes(
@@ -70,7 +69,6 @@ def test_multiple_interfaces_layer2_connectivity():
         target_system="my_system",
     )
     ctrl_iface1 = ControllerInterface(
-        name="eth0",
         mac_address="00:11:22:33:44:55",
         compute_nodes=[
             ComputeNodes(
@@ -81,7 +79,6 @@ def test_multiple_interfaces_layer2_connectivity():
         ],
     )
     ctrl_iface2 = ControllerInterface(
-        name="eth1",
         mac_address="00:11:22:33:44:56",
         compute_nodes=[
             ComputeNodes(

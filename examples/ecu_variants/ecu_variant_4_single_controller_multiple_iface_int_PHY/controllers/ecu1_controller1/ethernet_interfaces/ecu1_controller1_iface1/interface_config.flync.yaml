@@ -1,4 +1,3 @@
-name: ecu1_controller1_iface1
 mac_address: 00:11:22:33:44:55
 virtual_interfaces:
   - name: ecu1_controller1_iface1_viface1
