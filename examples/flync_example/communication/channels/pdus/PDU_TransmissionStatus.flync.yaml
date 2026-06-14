@@ -30,19 +30,26 @@ mux_groups:
             value_encoding:
               type: text_table
               entries:
-                - value: 0
+                - from_value: 0
+                  to_value: 0
                   label: Park
-                - value: 1
+                - from_value: 1
+                  to_value: 1
                   label: Reverse
-                - value: 2
+                - from_value: 2
+                  to_value: 2
                   label: Neutral
-                - value: 3
+                - from_value: 3
+                  to_value: 3
                   label: Drive_D1
-                - value: 4
+                - from_value: 4
+                  to_value: 4
                   label: Drive_D2
-                - value: 5
+                - from_value: 5
+                  to_value: 5
                   label: Drive_D3
-                - value: 6
+                - from_value: 6
+                  to_value: 6
                   label: Drive_D4
         - bit_position: 16
           endianness: LE
@@ -55,11 +62,14 @@ mux_groups:
             value_encoding:
               type: text_table
               entries:
-                - value: 0
+                - from_value: 0
+                  to_value: 0
                   label: Automatic
-                - value: 1
+                - from_value: 1
+                  to_value: 1
                   label: Manual
-                - value: 2
+                - from_value: 2
+                  to_value: 2
                   label: Sport
   - selector_value: 1
     pdu:
@@ -89,11 +99,15 @@ mux_groups:
             value_encoding:
               type: text_table
               entries:
-                - value: 0
+                - from_value: 0
+                  to_value: 0
                   label: Open
-                - value: 1
+                - from_value: 1
+                  to_value: 1
                   label: Slipping
-                - value: 2
+                - from_value: 2
+                  to_value: 2
                   label: Locked
-                - value: 3
+                - from_value: 3
+                  to_value: 3
                   label: Error

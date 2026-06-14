@@ -30,33 +30,15 @@ class PDU(UniqueName):
     ----------
     name : str
         Unique name of the PDU.
+
     length : int
         Length of the PDU payload in bytes.
-    pdu_usage : Literal[
-                    "application",
-                    "bap",
-                    "diag_request",
-                    "diag_response",
-                    "diag_state",
-                    "network_management",
-                    "other",
-                    "service",
-                    "tpl",
-                    "xcp_pre_configured",
-                    "xcp_runtime_configured",
-                ], optional
-        Tag identifying special usage of the PDU.
-        ``"application"`` marks the PDU as regular application.
-        ``"bap"`` marks the PDU as BAP (FIBEX compatibility).
-        ``"diag_request"`` marks the PDU as diagnostics request.
-        ``"diag_response"`` marks the PDU as diagnostics response.
-        ``"diag_state"`` marks the PDU as diagnostics state.
-        ``"network_management"`` marks the PDU as Network Management.
-        ``"other"`` marks the PDU as other usage.
-        ``"service"`` marks the PDU as service.
-        ``"tpl"`` marks the PDU as transport protocol PDU.
-        ``"xcp_pre_configured"`` marks the PDU as static XCP PDU.
-        ``"xcp_runtime_configured"`` marks the PDU as dynamic XCP PDU.
+
+    pdu_usage : Literal[str], optional
+        Tag identifying special usage of the PDU. One of: "application",
+        "bap", "diag_request", "diag_response", "diag_state",
+        "network_management", "other", "service", "tpl",
+        "xcp_pre_configured", "xcp_runtime_configured".
 
     description : str, optional
         Optional human-readable description.
