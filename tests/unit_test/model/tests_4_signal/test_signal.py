@@ -117,15 +117,14 @@ class Test_TextEntry:
     )
     def test_positive_text_entry_value(self, value, label):
         """Terse form: use 'value' alias for a single value."""
-        entry = TextEntry(value=value, label=label)
+        entry = TextEntry(from_value=value, to_value=value, label=label)
         assert entry.from_value == value
         assert entry.to_value == value
-        assert "to_value" not in entry.model_dump(exclude_unset=True)
 
     @pytest.mark.parametrize(
         "dict_input",
         [
-            pytest.param({"value": 7, "label": "X"}, id="single_value"),
+            pytest.param({"from_value": 7, "to_value": 7, "label": "X"}, id="single_value"),
             pytest.param({"from_value": 7, "to_value": 10, "label": "Y"}, id="range"),
         ],
     )
@@ -141,8 +140,6 @@ class Test_TextEntry:
     @pytest.mark.parametrize(
         "dict_input, error_message",
         [
-            pytest.param({"value": 5, "to_value": 10, "label": "Invalid"}, "cannot use both 'value' and 'to_value'", id="single_value"),
-            pytest.param({"from_value": 5, "label": "Invalid"}, "'from_value' must be paired with 'to_value'", id="single_value"),
             pytest.param({"from_value": 10, "to_value": 5, "label": "Invalid"}, "must not be less than", id="reversed_bounds"),
         ],
     )
@@ -155,9 +152,9 @@ class Test_TextTable:
     @pytest.mark.parametrize(
         "entries",
         [
-            pytest.param([{"value": 3, "label": "Active"}], id="single_value"),
+            pytest.param([{"from_value": 3, "to_value": 3,  "label": "Active"}], id="single_value"),
             pytest.param([{"from_value": 0, "to_value": 9, "label": "Low"}], id="range"),
-            pytest.param([{"value": 10, "label": "Active"}, {"from_value": 0, "to_value": 9, "label": "Low"}], id="mix"),
+            pytest.param([{"from_value": 10, "to_value": 10, "label": "Active"}, {"from_value": 0, "to_value": 9, "label": "Low"}], id="mix"),
         ],
     )
     def test_positive_text_table(self, entries):
@@ -171,7 +168,7 @@ class Test_TextTable:
             TextTable(
                 entries=[
                     TextEntry(from_value=0, to_value=9, label="Low"),
-                    TextEntry(value=5, label="Five"),
+                    TextEntry(from_value=5, to_value=5, label="Five"),
                 ],
             )
 
@@ -363,8 +360,8 @@ class Test_Signal:
             data_type=SignalDataType.UINT8,
             value_encoding=TextTable(
                 entries=[
-                    TextEntry(value=0, label="Neutral"),
-                    TextEntry(value=1, label="First"),
+                    TextEntry(from_value=0, to_value=0, label="Neutral"),
+                    TextEntry(from_value=1, to_value=1, label="First"),
                     TextEntry(from_value=2, to_value=2, label="Second"),
                 ],
             ),
@@ -404,17 +401,17 @@ class Test_Signal:
         )
         assert len(sig.value_encoding.entries) == 3
 
-    def test_positive_signal_text_table_mixed_terse_and_range(self):
-        """Terse single values (using 'value' alias) and explicit ranges coexist in one table."""
+    def test_positive_signal_text_table_mixed_single_value_and_range(self):
+        """Single values and explicit ranges coexist in one table."""
         sig = Signal(
-            name="mixed_terse_range",
+            name="mixed_single_value_range",
             bit_length=8,
             data_type=SignalDataType.UINT8,
             value_encoding=TextTable(
                 entries=[
                     TextEntry(from_value=0, to_value=9, label="Low"),
                     TextEntry(from_value=10, to_value=99, label="Medium"),
-                    TextEntry(value=255, label="Signal_Not_Available"),
+                    TextEntry(from_value=255, to_value=255, label="Signal_Not_Available"),
                 ],
             ),
         )

@@ -20,7 +20,8 @@ signals:
       value_encoding:
         type: text_table
         entries:
-          - value: 65535
+          - from_value: 65535
+            to_value: 65535
             label: Signal_Not_Available
   - bit_position: 16
     endianness: LE

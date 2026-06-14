@@ -95,13 +95,17 @@ raw ``65535`` mapped to ``Signal_Not_Available``).
         value_encoding:
           type: text_table
           entries:
-            - value: 0
+            - from_value: 0
+              to_value: 0
               label: Park
-            - value: 1
+            - from_value: 1
+              to_value: 1
               label: Reverse
-            - value: 2
+            - from_value: 2
+              to_value: 2
               label: Neutral
-            - value: 3
+            - from_value: 3
+              to_value: 3
               label: Drive
 
 .. admonition:: Expand for a YAML example — linear signal with reserved codes (``text_table``)
@@ -128,9 +132,11 @@ raw ``65535`` mapped to ``Signal_Not_Available``).
         value_encoding:
           type: text_table
           entries:
-            - value: 254
+            - from_value: 254
+              to_value: 254
               label: Sensor_Error
-            - value: 255
+            - from_value: 255
+              to_value: 255
               label: Signal_Not_Available
 
 .. admonition:: Expand for a YAML example — value ranges (``text_table``)
@@ -159,7 +165,8 @@ raw ``65535`` mapped to ``Signal_Not_Available``).
             - from_value: 100
               to_value: 200
               label: High
-            - value: 255
+            - from_value: 255
+              to_value: 255
               label: Signal_Not_Available
 
 .. admonition:: Expand for a YAML example — packed status word (``bitfield_text_table``)
