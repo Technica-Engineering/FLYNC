@@ -2,15 +2,12 @@
 A Signal may carry an optional Value Encoding that converts raw integer values into text labels.
 """
 
-from typing import Annotated, List, Literal, Union
+from typing import Annotated, List, Literal, Optional, Union
 
 from pydantic import Field, model_validator
 
 from flync.core.base_models import FLYNCBaseModel
-from flync.core.utils.common_validators import (
-    check_bit_ranges_no_overlap,
-    collect_bit_ranges,
-)
+from flync.core.utils.common_validators import check_bit_ranges_no_overlap, collect_bit_ranges, validate_value_input_format
 from flync.core.utils.exceptions import err_major
 
 
@@ -26,42 +23,26 @@ class TextEntry(FLYNCBaseModel):
 
     Parameters
     ----------
+    value : int
+        Single value.
     from_value : int
-        Inclusive lower bound of the raw value range. Alias `value`
+        Inclusive lower bound of the raw value range. Optional; defaults to `value` for single-value entries.
     to_value : int
-        Inclusive upper bound of the raw value range. Optional; defaults to `from_value` for single-value entries.
+        Inclusive upper bound of the raw value range. Optional; defaults to `value` for single-value entries.
     label : str
         Human-readable label for this range (e.g. ``"Low"``,
         ``"Medium"``).
     """
 
-    from_value: int = Field(alias="value")
-    to_value: int = Field(default_factory=lambda data: data.get("from_value", 0))
+    value: Optional[int] = Field(default=None)
+    from_value: Optional[int] = Field(default_factory=lambda data: data.get("value", 0))
+    to_value: Optional[int] = Field(default_factory=lambda data: data.get("value", 0))
     label: str = Field()
 
     @model_validator(mode="before")
     @classmethod
     def _validate_value_input_format(cls, data: dict) -> dict:
-        if not isinstance(data, dict):
-            return data
-
-        has_value = "value" in data
-        has_from_value = "from_value" in data
-        has_to_value = "to_value" in data
-
-        if has_value and has_to_value:
-            raise err_major(
-                "TextEntry: cannot use both 'value' and 'to_value' — either use 'value' for a single value, "
-                "or 'from_value' and 'to_value' for a range"
-            )
-
-        if has_from_value and not has_to_value:
-            raise err_major(
-                "TextEntry: 'from_value' must be paired with 'to_value' — either use 'value' for a single value, "
-                "or 'from_value' and 'to_value' for a range"
-            )
-
-        return data
+        return validate_value_input_format(data)
 
     @model_validator(mode="after")
     def _validate_bounds(self) -> "TextEntry":

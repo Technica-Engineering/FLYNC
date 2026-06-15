@@ -779,3 +779,36 @@ def check_bit_ranges_no_overlap(context: str, ranges: List[BitRange]) -> None:
                     sb=start_b,
                     eb=end_b,
                 )
+
+
+def validate_value_input_format(data: dict) -> dict:
+    """Validating combinations of 'value', 'from_value' and 'to_value'."""
+    if not isinstance(data, dict):
+        return data
+
+    has_value = "value" in data
+    has_from_value = "from_value" in data
+    has_to_value = "to_value" in data
+
+    if not has_value and not has_to_value and not has_from_value:
+        raise err_major("Field required: Either the field 'value' or the pair of 'from_value' and 'to_value' has to be defined.")
+
+    if has_value and has_to_value:
+        raise err_major(
+            "Invalid Combination: cannot use both 'value' and 'to_value' — either use 'value' for a single value, "
+            "or 'from_value' and 'to_value' in a pair."
+        )
+
+    if has_value and has_from_value:
+        raise err_major(
+            "Invalid Combination: cannot use both 'value' and 'from_value' — either use 'value' for a single value, "
+            "or 'from_value' and 'to_value' in a pair."
+        )
+
+    if (has_from_value and not has_to_value) or (has_to_value and not has_from_value):
+        raise err_major(
+            "Invalid Combination: 'from_value' and 'to_value' must be paired — either use 'value' for a single value, "
+            "or 'from_value' and 'to_value' in a pair."
+        )
+
+    return data
