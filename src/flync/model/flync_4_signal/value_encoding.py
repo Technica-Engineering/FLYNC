@@ -97,39 +97,23 @@ class BitfieldState(FLYNCBaseModel):
     ----------
     label : str
         Symbolic name of this state (e.g. ``"ProblemFailure"``).
+    value : int
+        Single bit.
     from_value : int
         Inclusive lower bound for ``(raw & group.mask)``.
     to_value : int
-        Inclusive upper bound for ``(raw & group.mask)``. Optional; defaults to `from_value` for exact-match states.
+        Inclusive upper bound for ``(raw & group.mask)``.
     """
 
     label: str = Field()
-    from_value: int = Field(ge=0, alias="value")
-    to_value: int = Field(ge=0, default_factory=lambda data: data.get("from_value", 0))
+    value: Optional[int] = Field(default=None)
+    from_value: Optional[int]= Field(ge=0, default_factory=lambda data: data.get("value", 0))
+    to_value: Optional[int] = Field(ge=0, default_factory=lambda data: data.get("value", 0))
 
     @model_validator(mode="before")
     @classmethod
     def validate_value_input_format(cls, data: dict) -> dict:
-        if not isinstance(data, dict):
-            return data
-
-        has_value = "value" in data
-        has_from_value = "from_value" in data
-        has_to_value = "to_value" in data
-
-        if has_value and has_to_value:
-            raise err_major(
-                "BitFieldState: cannot use both 'value' and 'to_value' — either use 'value' for a single value, "
-                "or 'from_value' and 'to_value' for a range"
-            )
-
-        if has_from_value and not has_to_value:
-            raise err_major(
-                "BitFieldState: 'from_value' must be paired with 'to_value' — either use 'value' for a single value, "
-                "or 'from_value' and 'to_value' for a range"
-            )
-
-        return data
+        return validate_value_input_format(data)
 
     @model_validator(mode="after")
     def _validate_bounds(self) -> "BitfieldState":
