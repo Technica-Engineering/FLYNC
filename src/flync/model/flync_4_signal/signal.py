@@ -264,6 +264,7 @@ class Signal(FLYNCBaseModel):
     def _check_text_table_in_range(self, table: TextTable) -> None:
         lo, hi = self._raw_value_bounds()
         for entry in table.entries:
+            assert entry.from_value is not None and entry.to_value is not None
             if not (lo <= entry.from_value <= hi and lo <= entry.to_value <= hi):
                 raise err_major(
                     "TextTable entry '{label}' range [{from_value}, {to_value}] is outside "

@@ -46,6 +46,7 @@ class TextEntry(FLYNCBaseModel):
 
     @model_validator(mode="after")
     def _validate_bounds(self) -> "TextEntry":
+        assert self.from_value is not None and self.to_value is not None
         if self.to_value < self.from_value:
             raise err_major(
                 "TextEntry '{label}': to_value ({to_value}) must not be less than from_value ({from_value})",
@@ -107,7 +108,7 @@ class BitfieldState(FLYNCBaseModel):
 
     label: str = Field()
     value: Optional[int] = Field(default=None)
-    from_value: Optional[int]= Field(ge=0, default_factory=lambda data: data.get("value", 0))
+    from_value: Optional[int] = Field(ge=0, default_factory=lambda data: data.get("value", 0))
     to_value: Optional[int] = Field(ge=0, default_factory=lambda data: data.get("value", 0))
 
     @model_validator(mode="before")
@@ -117,6 +118,7 @@ class BitfieldState(FLYNCBaseModel):
 
     @model_validator(mode="after")
     def _validate_bounds(self) -> "BitfieldState":
+        assert self.from_value is not None and self.to_value is not None
         if self.to_value < self.from_value:
             raise err_major(
                 "BitfieldState '{label}': to_value ({to_value}) must not be less than from_value ({from_value})",
@@ -160,6 +162,7 @@ class BitfieldGroup(FLYNCBaseModel):
             if s.label in seen:
                 raise err_major("BitfieldGroup '{name}': duplicate state label {label!r}", name=self.name, label=s.label)
             seen.add(s.label)
+            assert s.from_value is not None and s.to_value is not None
             if (s.from_value | s.to_value) & ~self.mask:
                 raise err_major(
                     "BitfieldGroup '{name}': state '{label}' range [{from_value}, {to_value}] has bits outside mask {mask}",
