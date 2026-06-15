@@ -203,6 +203,9 @@ One interface directory consists of:
    - :ref:`Controller Config <controller>`
    - :ref:`Sockets <socket>`
 
+
+.. _communication_ref:
+
 Communication
 *************
 
@@ -249,6 +252,10 @@ Omit the corresponding sub-folder entirely when the system does not use that cha
    ✔ Each CAN or CAN-FD bus is defined in its own file inside ``channels/can``.
 
    ✔ Each LIN Bus is defined in its own file inside ``channels/lin``.
+
+   ✔ Each Eth PDU Container is defined in its own file inside ``channels/ethernet_pdu_containers``.
+
+   ✔ Each PDU is defined in its own file inside ``channels/pdu``.
 
 .. seealso::
 

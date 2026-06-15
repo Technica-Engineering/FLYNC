@@ -16,15 +16,15 @@ class TextEntry(FLYNCBaseModel):
     Mapping of an inclusive raw value range to a label.
 
     - For a **value range**:
-      Use the keys ``from_value:`` and ``to_value:`` to define upper and lower bounds.
+      Use the keys ``from_value`` and ``to_value`` to define upper and lower bounds.
 
     - For a **single value**:
-      Either define ``from_value`` and ``to_value`` with the same value or simply use the key ``value:``.
+      Either define ``from_value`` and ``to_value`` with the same value or simply use the key ``value``.
 
     Parameters
     ----------
     value : int
-        Single value.
+        Single value. Optional; defaults to None for range entries.
     from_value : int
         Inclusive lower bound of the raw value range. Optional; defaults to `value` for single-value entries.
     to_value : int
@@ -88,10 +88,10 @@ class BitfieldState(FLYNCBaseModel):
     Mapping of an inclusive bitfield range to a label of states.
 
     - For a **bitfield range**:
-      Use the keys ``from_value:`` and ``to_value:`` to define upper and lower bounds.
+      Use the keys ``from_value`` and ``to_value`` to define upper and lower bounds.
 
     - For a **single bit**:
-      Either define ``from_value`` and ``to_value`` with the same value or simply use the key ``value:``.
+      Either define ``from_value`` and ``to_value`` with the same value or simply use the key ``value``.
 
 
     Parameters
@@ -99,11 +99,11 @@ class BitfieldState(FLYNCBaseModel):
     label : str
         Symbolic name of this state (e.g. ``"ProblemFailure"``).
     value : int
-        Single bit.
+        Single bit. Optional; defaults to None for range entries.
     from_value : int
-        Inclusive lower bound for ``(raw & group.mask)``.
+        Inclusive lower bound for ``(raw & group.mask)``. Optional; defaults to `value` for single-bit entries.
     to_value : int
-        Inclusive upper bound for ``(raw & group.mask)``.
+        Inclusive upper bound for ``(raw & group.mask)``. Optional; defaults to `value` for single-bit entries.
     """
 
     label: str = Field()
