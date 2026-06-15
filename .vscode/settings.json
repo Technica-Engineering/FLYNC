@@ -1,20 +1,15 @@
 
 {
-    // Enable pytest
     "python.testing.pytestEnabled": true,
     "python.testing.unittestEnabled": false,
     "python.testing.nosetestsEnabled": false,
-
-    // Tell VSCode EXACTLY how to run pytest
     "python.testing.pytestArgs": [
         "--cov=flync",
         "--cov=utils",
         "--cov-report=xml",
         "tests"
     ],
-    "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true,
-    "editor.formatOnSave": true,
+
     "editor.defaultFormatter": "ms-python.black-formatter",
     "black-formatter.args": [
         "--line-length=149"
