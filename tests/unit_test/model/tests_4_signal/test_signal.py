@@ -141,9 +141,12 @@ class Test_TextEntry:
     @pytest.mark.parametrize(
         "dict_input, error_message",
         [
-            pytest.param({"value": 5, "to_value": 10, "label": "Invalid"}, "cannot use both 'value' and 'to_value'", id="single_value"),
-            pytest.param({"from_value": 5, "label": "Invalid"}, "'from_value' must be paired with 'to_value'", id="single_value"),
-            pytest.param({"from_value": 10, "to_value": 5, "label": "Invalid"}, "must not be less than", id="reversed_bounds"),
+            pytest.param({"value": 5, "to_value": 10, "label": "single_value_with_to"}, "cannot use both 'value' and 'to_value'", id="single_value_with_to"),
+            pytest.param({"value": 5, "from_value": 10, "label": "single_value_with_from"}, "cannot use both 'value' and 'from_value'", id="single_value_with_from"),
+            pytest.param({"from_value": 5, "label": "missing_field_to"}, "'from_value' and 'to_value' must be paired", id="missing_field_to"),
+            pytest.param({"to_value": 5, "label": "missing_field_from"}, "'from_value' and 'to_value' must be paired", id="missing_field_from"),
+            pytest.param({"from_value": 10, "to_value": 5, "label": "reverse_bounds"}, "must not be less than", id="reversed_bounds"),
+            pytest.param({"label": "no_value"},"'value' or the pair of 'from_value' and 'to_value' has to be defined.",id="no_value",),
         ],
     )
     def test_negative_text_entry_dict(self, dict_input, error_message):
