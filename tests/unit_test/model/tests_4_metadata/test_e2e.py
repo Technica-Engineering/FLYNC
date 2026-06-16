@@ -48,7 +48,7 @@ def test_e2e_duplicate_data_id_in_profiles(metadata_entry):
             name="a",
             id=1,
             events=[e1, e2],
-            eventgroups=[SOMEIPEventgroup(name="eg", id=1, events=[e1, e2], multicast_threshold=10)],
+            eventgroups=[SOMEIPEventgroup(name="eg", id=1, events=[e1, e2])],
         )
 
         ETS_02 = SOMEIPServiceInterface(
@@ -56,7 +56,7 @@ def test_e2e_duplicate_data_id_in_profiles(metadata_entry):
             name="a",
             id=2,
             events=[e3],
-            eventgroups=[SOMEIPEventgroup(name="eg", id=1, events=[e3], multicast_threshold=10)],
+            eventgroups=[SOMEIPEventgroup(name="eg", id=1, events=[e3])],
         )
 
         SOMEIPConfig(services=[ETS_01, ETS_02])

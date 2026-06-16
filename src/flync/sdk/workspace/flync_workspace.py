@@ -67,17 +67,21 @@ class FLYNCWorkspace(object):
     Attributes:
         name (str): Name of the workspace.
 
+        configuration (WorkspaceConfiguration): Configuration object for workspace behavior.
+
         documents (Dict[str, Document]): Mapping of document URIs to Document objects.
+
+        documents_diags (Dict[str, list[ErrorDetails]]): Validation errors indexed by document URI.
 
         objects (Dict[ObjectId, SemanticObject]): Semantic objects indexed by ObjectId.
 
         sources (Dict[ObjectId, SourceRef]): Source references indexed by ObjectId.
 
-        dependencies (Dict[ObjectId, Set[ObjectId]]): Dependency graph.
+        flync_model (FLYNCModel | FLYNCBaseModel | None): The root FLYNC model instance, if loaded.
 
-        reverse_deps (Dict[ObjectId, Set[ObjectId]]): Reverse dependency graph.
+        registry (Registry): Instance registry for tracking model instances across the workspace.
 
-        _diagnostics (list[Diagnostic]): Collected diagnostics.
+        workspace_root (Path | None): Absolute path to the workspace root directory.
     """
 
     def __init__(  # noqa # nosonar
@@ -395,7 +399,7 @@ class FLYNCWorkspace(object):
 
         list_content = []
         for attr in flync_attribute:
-            if external.output_structure == OutputStrategy.SINGLE_FILE:
+            if OutputStrategy.SINGLE_FILE in external.output_structure:
                 list_content.append(self.__get_model_content(attr, next_path))
             else:
                 self.load_flync_model(

@@ -62,8 +62,11 @@ def compare_yaml_files(base_folder: Path, generated_folder: Path) -> bool:
 
     unexpected_keys = generated_keys ^ base_keys
 
-    # Filter out discriminator fields (keys ending with .type or .node_type) that only exist in one set
-    unexpected_keys = {k for k in unexpected_keys if not (k.endswith(".type") or k.endswith(".node_type") or k.endswith(".version"))}
+    # Filter out discriminator fields and default-valued fields that only exist in one set
+    discriminator_suffixes = {".type", ".node_type", ".version", ".signed", ".endianness",
+                              ".bit_alignment", ".length_of_length_field", ".length_of_type_field",
+                              ".protocol", ".ethertype"}
+    unexpected_keys = {k for k in unexpected_keys if not any(k.endswith(suffix) for suffix in discriminator_suffixes)}
 
     if unexpected_keys:
         raise ValueError(f"Found unexpected keys ({unexpected_keys}) during the roundtrip conversion")

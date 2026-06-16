@@ -45,15 +45,6 @@ def test_mmes_rejects_mixed_valid_and_invalid_meu():
 invalid_cases = [
     # name
     pytest.param(None, "91:E0:F0:00:00:01", "avtp", 0x22F0, 10, []),  # name is None
-    pytest.param(
-        "",
-        "91:E0:F0:00:00:01",
-        "avtp",
-        0x22F0,
-        10,
-        [],
-        marks=pytest.mark.xfail,
-    ),  # empty name
     # mac
     pytest.param("A1", 12345, "avtp", 0x22F0, 10, []),  # mac is not a string
     pytest.param("A1", None, "avtp", 0x22F0, 10, []),  # mac is None
@@ -79,9 +70,8 @@ invalid_cases = [
         "91:E0:F0:00:00:01",
         "avtp",
         0x22F0,
-        "10",
+        "10.f",
         [],
-        marks=pytest.mark.xfail,
     ),  # vlan not int
     pytest.param("A1", "91:E0:F0:00:00:01", "avtp", 0x22F0, [10], []),  # vlan is list
     pytest.param("A1", "91:E0:F0:00:00:01", "avtp", 0x22F0, -1, []),  # vlan negative

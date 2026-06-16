@@ -404,7 +404,7 @@ class ControllerInterfaceToControllerInterface(ControllerInterfaceToXConnection)
 
     iface_name : str
         Name of the first controller
-        interface (alias: ``controller_interface1``).
+        interface (alias: ``controller_interface``).
 
     iface2_name : str
         Name of the second controller
