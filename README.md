@@ -46,7 +46,7 @@
 | src/flync/model/flync\_4\_ecu/\_\_init\_\_.py                   |       13 |        0 |    100% |           |
 | src/flync/model/flync\_4\_ecu/can\_interface.py                 |       25 |        0 |    100% |           |
 | src/flync/model/flync\_4\_ecu/controller.py                     |      238 |        8 |     97% |363, 429, 433, 447, 452, 454, 466, 686 |
-| src/flync/model/flync\_4\_ecu/ecu.py                            |      189 |       17 |     91% |149, 175, 204, 306, 310, 314, 318, 327-333, 341, 374-377 |
+| src/flync/model/flync\_4\_ecu/ecu.py                            |      189 |       16 |     92% |149, 175, 204, 306, 314, 318, 327-333, 341, 374-377 |
 | src/flync/model/flync\_4\_ecu/internal\_topology.py             |      184 |       25 |     86% |50, 127-128, 140-143, 201-202, 214-217, 374-375, 379-380, 385-387, 390-392, 440-441 |
 | src/flync/model/flync\_4\_ecu/lin\_interface.py                 |       27 |        0 |    100% |           |
 | src/flync/model/flync\_4\_ecu/mac\_multicast\_endpoint.py       |       27 |        1 |     96% |        89 |
@@ -80,11 +80,11 @@
 | src/flync/model/flync\_4\_tsn/\_\_init\_\_.py                   |        3 |        0 |    100% |           |
 | src/flync/model/flync\_4\_tsn/qos.py                            |      226 |       18 |     92% |331-336, 345, 354, 360, 464, 468, 478, 587, 637, 675, 713, 748, 785, 822 |
 | src/flync/model/flync\_4\_tsn/timesync.py                       |       23 |        0 |    100% |           |
-| src/flync/model/flync\_model.py                                 |      209 |       30 |     86% |121, 153-154, 174-175, 197-198, 226, 247, 322, 326-329, 340-343, 346, 349, 355, 359-362, 366-369, 373 |
+| src/flync/model/flync\_model.py                                 |      209 |       14 |     93% |121, 153-154, 174-175, 197-198, 226, 247, 329, 346, 349, 355, 369 |
 | src/flync/sdk/\_\_init\_\_.py                                   |        0 |        0 |    100% |           |
 | src/flync/sdk/context/\_\_init\_\_.py                           |        0 |        0 |    100% |           |
 | src/flync/sdk/context/diagnostics\_result.py                    |       24 |        2 |     92% |     71-72 |
-| src/flync/sdk/context/node\_info.py                             |        9 |        0 |    100% |           |
+| src/flync/sdk/context/node\_info.py                             |        9 |        1 |     89% |        41 |
 | src/flync/sdk/context/workspace\_config.py                      |       21 |        3 |     86% |     69-71 |
 | src/flync/sdk/helpers/\_\_init\_\_.py                           |        0 |        0 |    100% |           |
 | src/flync/sdk/helpers/generation\_helpers.py                    |      244 |      169 |     31% |44-52, 60, 73-80, 84, 88-103, 107-123, 137, 146-151, 165-173, 189-201, 220-226, 240-246, 255-283, 287-307, 319-322, 334-337, 378-388, 393-397, 418-422, 430-448, 460-480 |
@@ -93,12 +93,12 @@
 | src/flync/sdk/helpers/validation\_helpers.py                    |       48 |       12 |     75% |81, 129-149 |
 | src/flync/sdk/utils/\_\_init\_\_.py                             |        0 |        0 |    100% |           |
 | src/flync/sdk/utils/field\_utils.py                             |       16 |        0 |    100% |           |
-| src/flync/sdk/utils/model\_dependencies.py                      |      258 |       13 |     95% |95-97, 405, 444, 528-532, 601, 617, 635 |
-| src/flync/sdk/utils/model\_dumper.py                            |       13 |        0 |    100% |           |
+| src/flync/sdk/utils/model\_dependencies.py                      |      258 |       17 |     93% |69, 95-97, 195, 229, 405, 444, 528-532, 556, 601, 618, 636 |
+| src/flync/sdk/utils/model\_dumper.py                            |       32 |        6 |     81% | 35, 52-56 |
 | src/flync/sdk/utils/sdk\_types.py                               |        4 |        0 |    100% |           |
 | src/flync/sdk/workspace/\_\_init\_\_.py                         |        0 |        0 |    100% |           |
 | src/flync/sdk/workspace/document.py                             |       19 |        2 |     89% |     69-70 |
-| src/flync/sdk/workspace/flync\_workspace.py                     |      505 |       69 |     86% |161, 249, 266, 287, 361, 366, 374, 421-426, 469-473, 568, 601-616, 634, 678, 847, 909, 963, 1022-1023, 1028, 1030-1035, 1095, 1102, 1127, 1142, 1181-1196, 1332-1333, 1474, 1552, 1594, 1613-1622 |
+| src/flync/sdk/workspace/flync\_workspace.py                     |      505 |       69 |     86% |165, 253, 270, 291, 365, 370, 378, 425-430, 473-477, 572, 605-620, 638, 682, 851, 913, 967, 1026-1027, 1032, 1034-1039, 1099, 1106, 1131, 1146, 1185-1200, 1336-1337, 1478, 1556, 1598, 1617-1626 |
 | src/flync/sdk/workspace/ids.py                                  |        3 |        0 |    100% |           |
 | src/flync/sdk/workspace/objects.py                              |        6 |        0 |    100% |           |
 | src/flync/sdk/workspace/source.py                               |        7 |        0 |    100% |           |
@@ -144,7 +144,7 @@
 | src/flync\_converter/hookspec.py                                |        4 |        0 |    100% |           |
 | src/flync\_converter/registry.py                                |       32 |       19 |     41% |22-29, 36-48, 55-58 |
 | src/flync\_converter/utils.py                                   |       75 |        4 |     95% |63-64, 93-94 |
-| **TOTAL**                                                       | **7426** |  **894** | **88%** |           |
+| **TOTAL**                                                       | **7445** |  **888** | **88%** |           |
 
 
 ## Setup coverage badge
