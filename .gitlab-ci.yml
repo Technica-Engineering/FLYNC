@@ -109,7 +109,6 @@ pytest:
   script:
     - apt-get update && apt-get install -y libglib2.0-0 libgl1 libegl1 libdbus-1-3 libfontconfig1 libxcb1 libxkbcommon0
     - poetry install --with test
-    - poetry run pip install -e tests/converter_tests/test_plugin/ --no-deps
     - poetry run pytest --durations=0
     - poetry run coverage xml
     - poetry run coverage report
