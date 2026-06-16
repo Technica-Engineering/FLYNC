@@ -3,7 +3,7 @@
 from pydantic import BaseModel
 
 
-def dump_model_with_discriminators(model: BaseModel, **kwargs) -> dict:
+def dump_model_with_discriminators(model: BaseModel, **kwargs) -> dict: # NOSONAR python:S3776
     """
     Dump a model to a dictionary, ensuring Literal discriminator fields are included.
 
