@@ -118,7 +118,6 @@ jobs:
           pip install --upgrade pip
           pip install "poetry>=2.0.0,<3.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
           poetry install --with test
-          poetry run pip install -e tests/converter_tests/test_plugin/ --no-deps
 
       - name: Run Pytest
         run: |
