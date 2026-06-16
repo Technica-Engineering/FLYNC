@@ -11,7 +11,7 @@ def dump_model_with_discriminators(model: BaseModel, **kwargs) -> dict:
     may exclude them from the dump if they weren't explicitly set during model creation.
     This function ensures they are included in the output by looking up discriminator info
     from the ModelDependencyGraph (built once at startup) and marking them as set before
-    dumping.
+    dumping. Recursively applies this to all nested models.
 
     Uses the pre-built ModelDependencyGraph for O(1) lookup efficiency. Falls back to no-op
     if the graph is not available (e.g., during early initialization).
@@ -28,9 +28,34 @@ def dump_model_with_discriminators(model: BaseModel, **kwargs) -> dict:
         from flync.sdk.utils.model_dependencies import get_model_dependency_graph
 
         graph = get_model_dependency_graph(FLYNCModel)
-        node_info = graph.fields_info.get(model.__class__.__name__)
-        if node_info and node_info.discriminator_fields:
-            model.model_fields_set.update(node_info.discriminator_fields)
+
+        def mark_discriminators_recursive(m: BaseModel):
+            """Recursively mark discriminator fields as set for this model and all nested models."""
+            if not isinstance(m, BaseModel):
+                return
+
+            node_info = graph.fields_info.get(m.__class__.__name__)
+            if node_info and node_info.discriminator_fields:
+                m.model_fields_set.update(node_info.discriminator_fields)
+
+            # Recursively process nested models
+            for field_name in type(m).model_fields:
+                try:
+                    field_value = getattr(m, field_name, None)
+                    if isinstance(field_value, BaseModel):
+                        mark_discriminators_recursive(field_value)
+                    elif isinstance(field_value, list):
+                        for item in field_value:
+                            if isinstance(item, BaseModel):
+                                mark_discriminators_recursive(item)
+                    elif isinstance(field_value, dict):
+                        for v in field_value.values():
+                            if isinstance(v, BaseModel):
+                                mark_discriminators_recursive(v)
+                except Exception:
+                    pass
+
+        mark_discriminators_recursive(model)
     except Exception:
         # Graph not available or model not in graph, skip marking
         pass
