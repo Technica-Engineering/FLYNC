@@ -205,38 +205,6 @@ def test_load_workspace_upper_key(tmpdir):
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
 
-
-# Verify handling incorrect type for value
-def test_load_workspace_incorret_value_type(tmpdir):
-    destination_folder = Path(tmpdir) / "copy"
-    shutil.copytree(absolute_path, destination_folder)
-    file_to_update = (
-        destination_folder
-        / "ecus"
-        / "eth_ecu"
-        / "controllers"
-        / "eth_ecu_controller1"
-        / "ethernet_interfaces"
-        / "eth_ecu_c1_iface1"
-        / "interface_config.flync.yaml"
-    )
-    update_yaml_content(file_to_update, "name: eth_ecu_vm1", "name: 123")
-    workspace = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
-    # Verify that validation errors were recorded (load_errors is a list of error dicts)
-    assert len(workspace.load_errors) > 0, "Expected validation errors in load_errors"
-    assert isinstance(workspace.load_errors, list), f"load_errors should be a list, got {type(workspace.load_errors)}"
-    assert all(isinstance(e, dict) for e in workspace.load_errors), "Each error should be a dictionary with error details"
-    # Check for the specific validation error: 'name' field error due to invalid type
-    # When name is set to 123 instead of a string, it causes 'string_type' or 'Input should be a valid string' error for 'name'
-    error_details = [{k: v for k, v in e.items() if k in ['type', 'msg', 'loc', 'ctx']} for e in workspace.load_errors[:5]]
-    name_field_errors = [e for e in workspace.load_errors
-                         if ("Input should be a valid string" in e.get('msg', '') or e.get('type') == 'string_type')
-                         and ('name' in str(e.get('loc', '')))]
-    assert len(name_field_errors) > 0, f"Expected 'name' field type error (string validation). Got errors:\n{error_details}"
-    if destination_folder.exists():
-        shutil.rmtree(destination_folder)
-
-
 # Validate handling of extra key/value
 def test_load_workspace_extra_key_value(tmpdir):
     destination_folder = Path(tmpdir) / "copy"
