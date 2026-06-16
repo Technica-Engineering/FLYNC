@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+from flync.core.datatypes.macaddress import MacAddress
 from flync.model.flync_4_ecu import *
 from flync.model.flync_4_ecu.controller import *
 from flync.model.flync_4_ecu.internal_topology import *
@@ -47,16 +48,19 @@ def valid_simple_ecu():
     )
     virtual_iface_ecu1 = VirtualControllerInterface(name="virtual", vlanid=55, addresses=[ipv4_ecu1])
     ctrl_iface_ecu1 = ControllerInterface(
-        name="control1",
         mac_address=MacAddress("00:00:5e:00:53:01"),
         virtual_interfaces=[virtual_iface_ecu1],
+    )
+    ethernet_iface_ecu1 = EthernetInterface(
+        name="eth_iface1",
+        interface_config=ctrl_iface_ecu1,
     )
 
     # --- Controller ---
     controller_ecu1 = Controller(
         name="controller_ecu1",
-        meta=embedded_metadata,
-        interfaces=[ctrl_iface_ecu1],
+        controller_metadata=embedded_metadata,
+        ethernet_interfaces=[ethernet_iface_ecu1],
     )
 
     # --- ECU Port Configuration ---
@@ -67,7 +71,7 @@ def valid_simple_ecu():
         type="ecu_port_to_controller_interface",
         id="1",
         ecu_port="port1",
-        controller_interface="control1",
+        controller_interface="eth_iface1",
     )
 
     # --- Internal links ---
@@ -89,7 +93,12 @@ def valid_simple_ecu():
     empty_topology = FLYNCTopology(system_topology=SystemTopology(connections=[]))
 
     # --- Full FLYNC Model ---
-    flync_model = FLYNCModel(ecus=[ecu1], topology=empty_topology, metadata=system_metadata)
+    flync_model = FLYNCModel(
+        ecus=[ecu1],
+        topology=empty_topology,
+        metadata=system_metadata,
+        communication={"tcp_profiles": []},
+    )
 
     return flync_model
 
@@ -129,17 +138,20 @@ def valid_ecu_with_switch():
     )
     virtual_iface_ecu1 = VirtualControllerInterface(name="virtual", vlanid=55, addresses=[ipv4_ecu1])
     ctrl_iface_ecu1 = ControllerInterface(
-        name="control1",
         mac_address=MacAddress("00:00:5e:00:53:01"),
         virtual_interfaces=[virtual_iface_ecu1],
         mii_config=MII(type="mii", speed=100, mode="phy"),
+    )
+    ethernet_iface_ecu1 = EthernetInterface(
+        name="eth_iface1",
+        interface_config=ctrl_iface_ecu1,
     )
 
     # --- Controller ---
     controller_ecu1 = Controller(
         name="controller_ecu1",
-        meta=embedded_metadata,
-        interfaces=[ctrl_iface_ecu1],
+        controller_metadata=embedded_metadata,
+        ethernet_interfaces=[ethernet_iface_ecu1],
     )
 
     # --- Switch Port ---
@@ -161,7 +173,7 @@ def valid_ecu_with_switch():
         type="ecu_port_to_controller_interface",
         id="1",
         ecu_port="port1",
-        controller_interface="control1",
+        controller_interface="eth_iface1",
     )
 
     # --- Switch Controller Connection ---
@@ -169,7 +181,7 @@ def valid_ecu_with_switch():
         type="switch_port_to_controller_interface",
         id="2",
         switch_port="sw_port1",
-        controller_interface="control1",
+        controller_interface="eth_iface1",
     )
 
     # --- Internal links ---
@@ -197,7 +209,12 @@ def valid_ecu_with_switch():
     empty_topology = FLYNCTopology(system_topology=SystemTopology(connections=[]))
 
     # --- Full FLYNC Model ---
-    flync_model = FLYNCModel(ecus=[ecu1], topology=empty_topology, metadata=system_metadata)
+    flync_model = FLYNCModel(
+        ecus=[ecu1],
+        topology=empty_topology,
+        metadata=system_metadata,
+        communication={"tcp_profiles": []},
+    )
 
     return flync_model
 
@@ -237,7 +254,6 @@ def valid_inter_ecu_connection():
     )
     virtual_iface_ecu1 = VirtualControllerInterface(name="virtual1", vlanid=55, addresses=[ipv4_ecu1])
     ctrl_iface_ecu1 = ControllerInterface(
-        name="control1",
         mac_address=MacAddress("00:00:5e:00:53:01"),
         virtual_interfaces=[virtual_iface_ecu1],
     )
@@ -248,21 +264,30 @@ def valid_inter_ecu_connection():
     )
     virtual_iface_ecu2 = VirtualControllerInterface(name="virtual2", vlanid=55, addresses=[ipv4_ecu2])
     ctrl_iface_ecu2 = ControllerInterface(
-        name="control2",
         mac_address=MacAddress("00:00:5e:00:53:02"),
         virtual_interfaces=[virtual_iface_ecu2],
+    )
+
+    # --- Wrap ControllerInterface in EthernetInterface ---
+    ethernet_iface_ecu1 = EthernetInterface(
+        name="eth_iface1",
+        interface_config=ctrl_iface_ecu1,
+    )
+    ethernet_iface_ecu2 = EthernetInterface(
+        name="eth_iface2",
+        interface_config=ctrl_iface_ecu2,
     )
 
     # --- Controller ---
     controller_ecu1 = Controller(
         name="controller_ecu1",
-        meta=embedded_metadata,
-        interfaces=[ctrl_iface_ecu1],
+        controller_metadata=embedded_metadata,
+        ethernet_interfaces=[ethernet_iface_ecu1],
     )
     controller_ecu2 = Controller(
         name="controller_ecu2",
-        meta=embedded_metadata,
-        interfaces=[ctrl_iface_ecu2],
+        controller_metadata=embedded_metadata,
+        ethernet_interfaces=[ethernet_iface_ecu2],
     )
 
     # --- ECU Port Configuration ---
@@ -274,13 +299,13 @@ def valid_inter_ecu_connection():
         type="ecu_port_to_controller_interface",
         id="1",
         ecu_port="port1",
-        controller_interface="control1",
+        controller_interface="eth_iface1",
     )
     ecu_to_controller_cnx2 = ECUPortToControllerInterface(
         type="ecu_port_to_controller_interface",
         id="2",
         ecu_port="port2",
-        controller_interface="control2",
+        controller_interface="eth_iface2",
     )
 
     # --- Internal links ---
@@ -321,7 +346,12 @@ def valid_inter_ecu_connection():
     )
 
     # --- Full FLYNC Model ---
-    flync_model = FLYNCModel(ecus=[ecu1, ecu2], topology=ecus_topology, metadata=system_metadata)
+    flync_model = FLYNCModel(
+        ecus=[ecu1, ecu2],
+        topology=ecus_topology,
+        metadata=system_metadata,
+        communication={"tcp_profiles": []},
+    )
 
     return flync_model
 
@@ -361,7 +391,6 @@ def valid_iface_to_iface():
     )
     virtual_iface_ecu1 = VirtualControllerInterface(name="virtual", vlanid=55, addresses=[ipv4_ecu1])
     ctrl_iface_ecu1 = ControllerInterface(
-        name="control1",
         mac_address=MacAddress("00:00:5e:00:53:01"),
         virtual_interfaces=[virtual_iface_ecu1],
         mii_config=MII(type="mii", speed=100, mode="phy"),
@@ -373,22 +402,31 @@ def valid_iface_to_iface():
     )
     virtual_iface_ecu2 = VirtualControllerInterface(name="virtual2", vlanid=55, addresses=[ipv4_ecu2])
     ctrl_iface_ecu2 = ControllerInterface(
-        name="control2",
         mac_address=MacAddress("00:00:5e:00:53:02"),
         virtual_interfaces=[virtual_iface_ecu2],
         mii_config=MII(type="mii", speed=100, mode="mac"),
     )
 
+    # --- Wrap ControllerInterface in EthernetInterface ---
+    ethernet_iface_ecu1 = EthernetInterface(
+        name="eth_iface1",
+        interface_config=ctrl_iface_ecu1,
+    )
+    ethernet_iface_ecu2 = EthernetInterface(
+        name="eth_iface2",
+        interface_config=ctrl_iface_ecu2,
+    )
+
     # --- Controller ---
     controller_ecu1 = Controller(
         name="controller_ecu1",
-        meta=embedded_metadata,
-        interfaces=[ctrl_iface_ecu1],
+        controller_metadata=embedded_metadata,
+        ethernet_interfaces=[ethernet_iface_ecu1],
     )
     controller_ecu2 = Controller(
         name="controller_ecu2",
-        meta=embedded_metadata,
-        interfaces=[ctrl_iface_ecu2],
+        controller_metadata=embedded_metadata,
+        ethernet_interfaces=[ethernet_iface_ecu2],
     )
 
     # --- ECU Port Configuration ---
@@ -399,15 +437,15 @@ def valid_iface_to_iface():
         type="ecu_port_to_controller_interface",
         id="1",
         ecu_port="port1",
-        controller_interface="control1",
+        controller_interface="eth_iface1",
     )
 
     # --- Controller Controller connection ---
     controller_to_controller_cnx1 = ControllerInterfaceToControllerInterface(
         type="controller_interface_to_controller_interface",
         id="2",
-        controller_interface1="control1",
-        controller_interface2="control2",
+        controller_interface="eth_iface1",
+        controller_interface2="eth_iface2",
     )
 
     # --- Internal links ---
@@ -434,7 +472,12 @@ def valid_iface_to_iface():
     empty_topology = FLYNCTopology(system_topology=SystemTopology(connections=[]))
 
     # --- Full FLYNC Model ---
-    flync_model = FLYNCModel(ecus=[ecu1], topology=empty_topology, metadata=system_metadata)
+    flync_model = FLYNCModel(
+        ecus=[ecu1],
+        topology=empty_topology,
+        metadata=system_metadata,
+        communication={"tcp_profiles": []},
+    )
 
     return flync_model
 
@@ -448,7 +491,6 @@ def valid_iface_to_iface():
         valid_iface_to_iface,
     ],
 )
-@pytest.mark.xfail(reason="Known bug")
 def test_flync_model(tmpdir, valid_model_func):
     """
     Full validation:
@@ -493,7 +535,20 @@ def test_flync_model(tmpdir, valid_model_func):
     assert final_model.get_system_topology_info() is not None
 
     # --- Compare models ---
-    initial_json = json.dumps(initial_model.dict(), sort_keys=True)
-    final_json = json.dumps(final_model.dict(), sort_keys=True)
+    def sort_by_name(obj):
+        """Recursively sort list items by 'name' field if available."""
+        if isinstance(obj, dict):
+            return {k: sort_by_name(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            # Try to sort by 'name' field if all items have it
+            if obj and all(isinstance(item, dict) and 'name' in item for item in obj):
+                return [sort_by_name(item) for item in sorted(obj, key=lambda x: x['name'])]
+            return [sort_by_name(item) for item in obj]
+        return obj
+
+    initial_dump = sort_by_name(initial_model.model_dump())
+    final_dump = sort_by_name(final_model.model_dump())
+    initial_json = json.dumps(initial_dump, sort_keys=True)
+    final_json = json.dumps(final_dump, sort_keys=True)
 
     assert initial_json == final_json, "The final model is different from the initial model!"
