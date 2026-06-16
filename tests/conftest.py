@@ -12,7 +12,7 @@ def pytest_configure(config):
     # workers start with a warm cache and don't serialise on the FileLock.
     if hasattr(config, "workerinput"):
         return
-    cleanup_old_caches()
+    cleanup_old_caches(force=True)
     from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 
     example_path = Path(__file__).parent.parent / "examples" / "flync_example"

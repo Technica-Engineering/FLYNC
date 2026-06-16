@@ -391,7 +391,7 @@ class ModelDependencyGraph:
                 child_model = t
                 new_path = path + ((child_model, field_name, container_chain),)
                 model_field_key = child_model.__name__
-                if child_model not in field_info:
+                if model_field_key not in field_info:
                     child_discriminators = {fname for fname, finfo in child_model.model_fields.items() if get_origin(finfo.annotation) is Literal}
                     field_info[model_field_key] = NodeInfo(child_model.__name__, child_model, discriminator_fields=child_discriminators)
                 field_info[model_field_key].flync_paths.append(ModelDependencyGraph.complex_path_to_string_path(new_path))
@@ -603,22 +603,23 @@ def get_package_root(package_name: str | None = None) -> str:
     return dirname(package_path)
 
 
-def delete_unwanted_cache_files(cache_location: str, cache_file_name: str):
+def delete_unwanted_cache_files(cache_location: str, cache_file_name: str, force: bool = False):
     """
     deletes the cache files of the library when different.
 
     Args:
         cache_location (str): The location of the cache files.
         cache_file_name (str): The name of the cache file to keep.
+        force (bool): force clean all cache files.
     """
 
     for f in listdir(cache_location):
-        if cache_file_name not in f:
+        if force or cache_file_name not in f:
             remove(join(cache_location, f))
 
 
-def cleanup_old_caches():
-    """Resets the cache of the library if the current version is different."""
+def cleanup_old_caches(force: bool = False):
+    """Resets the cache of the library if the current version is different or if forced."""
     global _cache_cleaned, _cache_name
     shelv_location = platformdirs.user_cache_dir("FLYNC")
     if not _cache_name:
@@ -627,7 +628,7 @@ def cleanup_old_caches():
         shelv_file_name = "dependency_graph_cache"
         shelv_file_name += "_" + hash_directory_fast(get_package_root())
         if not _cache_cleaned:
-            delete_unwanted_cache_files(shelv_location, shelv_file_name)
+            delete_unwanted_cache_files(shelv_location, shelv_file_name, force=force)
             # Clean up stale lock files (older than 1 hour)
             lock_path = join(shelv_location, shelv_file_name + ".lock")
             try:

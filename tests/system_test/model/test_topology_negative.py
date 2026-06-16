@@ -653,8 +653,7 @@ def invalid_cross_ecu_internal_connection():
     )
     ecu1_to_ecu2_controller_cnx = ControllerInterfaceToControllerInterface(
         type="controller_interface_to_controller_interface",
-        id="cross",
-        controller_interface1="control1",
+        controller_interface="control1",
         controller_interface2="control2",
     )
 
@@ -980,12 +979,12 @@ def undeclared_switch_reference():
     [
         pytest.param(invalid_interface_missing),
         pytest.param(invalid_ecu_no_port),
-        pytest.param(invalid_controller_isolated, marks=pytest.mark.xfail),
+        pytest.param(invalid_controller_isolated),
         pytest.param(invalid_wrong_connection_type),
         pytest.param(invalid_undeclared_switch),
         pytest.param(invalid_loop_connection),
-        pytest.param(invalid_cross_ecu_internal_connection, marks=pytest.mark.xfail),
-        pytest.param(invalid_shared_internal_switch, marks=pytest.mark.xfail),
+        pytest.param(invalid_cross_ecu_internal_connection),
+        pytest.param(invalid_shared_internal_switch),
         pytest.param(undeclared_switch_reference),
     ],
 )

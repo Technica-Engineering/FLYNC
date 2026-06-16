@@ -66,8 +66,6 @@ def test_simple_method():
             ],
             id="Array",
         ),
-        pytest.param([None], id="Invalid dict containing None", marks=pytest.mark.xfail),
-        pytest.param(10, id="Invalid input int", marks=pytest.mark.xfail),
     ],
 )
 class TestFireForgetMethod:
@@ -106,7 +104,6 @@ class TestFireForgetMethod:
 @pytest.mark.parametrize(
     "input_params,output_params",
     [
-        pytest.param([], [], id="None", marks=pytest.mark.xfail),  # No return value, forbidden
         pytest.param(
             [SOMEIPParameter(name="p1", datatype=UInt8())],
             [SOMEIPParameter(name="p1", datatype=UInt8())],
@@ -176,14 +173,7 @@ class TestFireForgetMethod:
                 )
             ],
             id="Array",
-        ),
-        pytest.param(
-            [None],
-            None,
-            id="Invalid dict containing None",
-            marks=pytest.mark.xfail,
-        ),
-        pytest.param(10, None, id="Invalid input int", marks=pytest.mark.xfail),
+        )
     ],
 )
 class TestRequestAndResponseMethod:

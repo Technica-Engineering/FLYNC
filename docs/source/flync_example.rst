@@ -266,7 +266,7 @@ The internal topology file of each configured ECU must contain the description o
             controller_interface: ecu1_controller2_iface1
          -  type: controller_interface_to_controller_interface
             id: conn8
-            controller_interface1: ecu1_controller1_iface2
+            controller_interface: ecu1_controller1_iface2
             controller_interface2: ecu1_controller2_iface1
          -  type: switch_port_to_switch_port
             id: conn9
