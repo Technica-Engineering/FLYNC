@@ -136,15 +136,15 @@
 | src/flync\_converter/cli/tui/widgets/log\_handler.py            |       17 |       17 |      0% |      3-34 |
 | src/flync\_converter/cli/types.py                               |       32 |        0 |    100% |           |
 | src/flync\_converter/converters/\_\_init\_\_.py                 |        5 |        0 |    100% |           |
-| src/flync\_converter/converters/dbc\_converter.py               |      115 |        0 |    100% |           |
-| src/flync\_converter/converters/flync\_converter.py             |       28 |        0 |    100% |           |
+| src/flync\_converter/converters/dbc\_converter.py               |      115 |        1 |     99% |       286 |
+| src/flync\_converter/converters/flync\_converter.py             |       28 |        1 |     96% |        66 |
 | src/flync\_converter/converters/helpers.py                      |        4 |        0 |    100% |           |
-| src/flync\_converter/converters/json\_converter.py              |       49 |        4 |     92% |41, 57, 69, 84 |
-| src/flync\_converter/converters/yaml\_converter.py              |       49 |        4 |     92% |42, 58, 70, 85 |
+| src/flync\_converter/converters/json\_converter.py              |       49 |        5 |     90% |41, 57, 69, 84, 99 |
+| src/flync\_converter/converters/yaml\_converter.py              |       49 |        5 |     90% |42, 58, 70, 85, 100 |
 | src/flync\_converter/hookspec.py                                |        4 |        0 |    100% |           |
-| src/flync\_converter/registry.py                                |       32 |        5 |     84% | 29, 55-58 |
+| src/flync\_converter/registry.py                                |       32 |       19 |     41% |22-29, 36-48, 55-58 |
 | src/flync\_converter/utils.py                                   |       75 |        4 |     95% |63-64, 93-94 |
-| **TOTAL**                                                       | **7426** |  **876** | **88%** |           |
+| **TOTAL**                                                       | **7426** |  **894** | **88%** |           |
 
 
 ## Setup coverage badge
