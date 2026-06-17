@@ -25,7 +25,7 @@
 | src/flync/core/datatypes/value\_table.py                        |        5 |        0 |    100% |           |
 | src/flync/core/utils/\_\_init\_\_.py                            |        0 |        0 |    100% |           |
 | src/flync/core/utils/base\_utils.py                             |      118 |       16 |     86% |31, 33, 36, 42-43, 57-65, 83, 224, 264 |
-| src/flync/core/utils/common\_validators.py                      |      246 |       37 |     85% |55, 113, 163, 211-214, 294-296, 324, 331, 370, 395, 397, 406, 438, 448, 450, 452, 473, 491, 498, 528, 531, 534, 563, 571, 602, 611, 613, 643, 649, 658, 664, 674, 680 |
+| src/flync/core/utils/common\_validators.py                      |      261 |       38 |     85% |55, 113, 163, 211-214, 294-296, 324, 331, 370, 395, 397, 406, 438, 448, 450, 452, 473, 491, 498, 528, 531, 534, 563, 571, 602, 611, 613, 643, 649, 658, 664, 674, 680, 787 |
 | src/flync/core/utils/exceptions.py                              |       14 |        0 |    100% |           |
 | src/flync/core/utils/exceptions\_handling.py                    |      223 |       16 |     93% |43, 73, 95-96, 117, 126, 128, 188, 281, 479-482, 547-549 |
 | src/flync/core/utils/forwarder\_validators.py                   |      270 |       11 |     96% |54, 203, 205, 224, 262, 377, 406, 498, 501, 548, 570 |
@@ -68,9 +68,9 @@
 | src/flync/model/flync\_4\_signal/\_\_init\_\_.py                |        5 |        0 |    100% |           |
 | src/flync/model/flync\_4\_signal/forwarder.py                   |       40 |        0 |    100% |           |
 | src/flync/model/flync\_4\_signal/frame.py                       |       74 |        0 |    100% |           |
-| src/flync/model/flync\_4\_signal/pdu.py                         |      106 |        2 |     98% |  362, 365 |
-| src/flync/model/flync\_4\_signal/signal.py                      |      166 |        0 |    100% |           |
-| src/flync/model/flync\_4\_signal/value\_encoding.py             |      107 |        1 |     99% |       179 |
+| src/flync/model/flync\_4\_signal/pdu.py                         |      106 |        2 |     98% |  344, 347 |
+| src/flync/model/flync\_4\_signal/signal.py                      |      160 |        0 |    100% |           |
+| src/flync/model/flync\_4\_signal/value\_encoding.py             |       94 |        1 |     99% |       123 |
 | src/flync/model/flync\_4\_someip/\_\_init\_\_.py                |        6 |        0 |    100% |           |
 | src/flync/model/flync\_4\_someip/deployment.py                  |       97 |        0 |    100% |           |
 | src/flync/model/flync\_4\_someip/service\_interface.py          |      235 |       10 |     96% |417-420, 440, 883-884, 894-895, 898 |
@@ -144,7 +144,7 @@
 | src/flync\_converter/hookspec.py                                |        4 |        0 |    100% |           |
 | src/flync\_converter/registry.py                                |       32 |       19 |     41% |22-29, 36-48, 55-58 |
 | src/flync\_converter/utils.py                                   |       75 |        4 |     95% |63-64, 93-94 |
-| **TOTAL**                                                       | **7445** |  **888** | **88%** |           |
+| **TOTAL**                                                       | **7441** |  **889** | **88%** |           |
 
 
 ## Setup coverage badge
