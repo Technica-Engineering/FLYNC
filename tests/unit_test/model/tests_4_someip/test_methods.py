@@ -173,7 +173,7 @@ class TestFireForgetMethod:
                 )
             ],
             id="Array",
-        )
+        ),
     ],
 )
 class TestRequestAndResponseMethod:

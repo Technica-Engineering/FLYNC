@@ -83,7 +83,6 @@ required_attributes = [
     "objects",
     "sources",
     "flync_model",
-    "registry",
     "workspace_root",
 ]
 
@@ -185,6 +184,7 @@ def test_load_workspace_invalid_format(tmpdir, file):
 # Verify workspace loading with added image (schema/diagram)
 directories = [absolute_path] + [path for path in absolute_path.rglob("*") if path.is_dir()]
 
+
 # Verify handling case sensitivity for keys
 def test_load_workspace_upper_key(tmpdir):
     destination_folder = Path(tmpdir) / "copy"
@@ -204,6 +204,7 @@ def test_load_workspace_upper_key(tmpdir):
     assert "Field required" in str(workspace.load_errors)
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
+
 
 # Validate handling of extra key/value
 def test_load_workspace_extra_key_value(tmpdir):
@@ -252,7 +253,6 @@ def test_load_workspace_key_value_misplaced(tmpdir):
         assert "mode\n  Extra inputs are not permitted" in str(exc_info)
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
-
 
 
 # Verify handling missing dashe in list items

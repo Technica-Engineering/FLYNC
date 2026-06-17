@@ -23,10 +23,6 @@ from flync.core.annotations import (
 )
 from flync.core.annotations.reference import Reference, ReferenceStrategy
 from flync.core.base_models.base_model import FLYNCBaseModel
-from flync.core.base_models.instances_registery import (
-    Registry,
-    registry_context,
-)
 from flync.core.utils.exceptions_handling import (
     errors_to_init_errors,
     get_name_by_alias,
@@ -79,8 +75,6 @@ class FLYNCWorkspace(object):
 
         flync_model (FLYNCModel | FLYNCBaseModel | None): The root FLYNC model instance, if loaded.
 
-        registry (Registry): Instance registry for tracking model instances across the workspace.
-
         workspace_root (Path | None): Absolute path to the workspace root directory.
     """
 
@@ -116,16 +110,13 @@ class FLYNCWorkspace(object):
         self.sources: Dict[ObjectId, SourceRef] = {}
         # root information (if any)
         self.flync_model: Optional[FLYNCModel | FLYNCBaseModel] = None
-        self.registry: Registry = Registry()
         self.workspace_root: Optional[Path] = None
         if not workspace_path:
             raise ValueError(
                 "Passed an invalid value for workspace root {}",
                 workspace_path,
             )
-        if isinstance(workspace_path, str):
-            workspace_path = Path(workspace_path).absolute()
-        self.workspace_root = workspace_path
+        self.workspace_root = Path(workspace_path).absolute()
 
     @property
     def load_errors(self):
@@ -198,11 +189,7 @@ class FLYNCWorkspace(object):
             workspace_path=workspace_path,
             configuration=workspace_config,
         )
-        # since all the objects created need to have a shared registry
-        # ensure new registry here
-        model = None
-        with registry_context(output.registry):
-            model = output.__load_from_path(workspace_path)
+        model = output.__load_from_path(output.workspace_root)  # type: ignore[arg-type]
 
         if not isinstance(model, FLYNCBaseModel):
             logger.error("Unable to load the workspace %s", workspace_path)

@@ -85,9 +85,11 @@ def test_workspace_validator_api(get_flync_example_path):
     assert validation_result.model.metadata
     assert model_has_socket(validation_result.model)
 
+
 params = [pytest.param(cls, path, id=name) for cls, path, name in zip(TEST_MODEL_TYPES, TEST_MODEL_PATHS, TEST_MODEL_TYPES_NAMES)]
 
 partial_params = [pytest.param(cls, path, id=name) for cls, path, name in zip(TEST_MODEL_TYPES, TEST_MODEL_FLYNC_PATHS, TEST_MODEL_TYPES_NAMES)]
+
 
 def test_load_workspace_from_flync_object_relative_path(
     get_relative_flync_example_path,

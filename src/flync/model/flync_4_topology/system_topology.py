@@ -5,12 +5,12 @@ within the system.
 
 from typing import Annotated, List, Literal, Optional
 
-from pydantic import Field, PrivateAttr, model_serializer, model_validator
+from pydantic import Field, PrivateAttr, model_serializer
 
 import flync.core.utils.common_validators as common_validators
 from flync.core.annotations.external import External, OutputStrategy
 from flync.core.annotations.reference import Reference
-from flync.core.base_models import FLYNCBaseModel, Registry, get_registry
+from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import err_major
 from flync.model.flync_4_ecu.port import ECUPort
 
@@ -72,92 +72,67 @@ class ExternalConnection(FLYNCBaseModel):
             "ecu2_port": self.ecu2_port_name,
         }
 
-    @model_validator(mode="after")
-    def validate_external_connection(self):
-        """
-        Verify that the two ECU ports connected by this object are compatible.
-
-        The check includes compatibility of MDI, MACsec and gPTP.
-
-        err_major: If any of the MDI parameters are missing or do not match
-                    between the two ports, or if the port roles are not
-                    complementary.
-        """
-
-        registery: Registry = get_registry()
-        self._ecu1_port = registery.get_dict(ECUPort).get(self.ecu1_port_name)
-        if self._ecu1_port is None:
+    def bind(self, ports_by_name: dict) -> None:
+        """Resolve port references and run all MDI/MACsec/gPTP compatibility checks."""
+        port1 = ports_by_name.get(self.ecu1_port_name)
+        if port1 is None:
             raise err_major(f"ECU port name {self.ecu1_port_name} in connection {self.id} does not exist")
-
-        self._ecu2_port = registery.get_dict(ECUPort).get(self.ecu2_port_name)
-        if self._ecu2_port is None:
+        port2 = ports_by_name.get(self.ecu2_port_name)
+        if port2 is None:
             raise err_major(f"ECU port name {self.ecu2_port_name} in connection {self.id} does not exist")
 
+        self._ecu1_port = port1
+        self._ecu2_port = port2
+
         # Add connected component to each other
-        self.ecu1_port._connected_components.append(self.ecu2_port)
-        self.ecu2_port._connected_components.append(self.ecu1_port)
+        port1._connected_components.append(port2)
+        port2._connected_components.append(port1)
 
-        mdi_ecu1_port = self.ecu1_port.mdi_config
-        mdi_ecu2_port = self.ecu2_port.mdi_config
+        mdi_ecu1_port = port1.mdi_config
+        mdi_ecu2_port = port2.mdi_config
 
-        # If no MDI config exists, error
         if not mdi_ecu1_port or not mdi_ecu2_port:
-            raise err_major(
-                f"One or both ports missing MDI config: "
-                f"{self.ecu1_port.ecu.name}:{self.ecu1_port_name}, "
-                f"{self.ecu2_port.ecu.name}:{self.ecu2_port_name}"
-            )
-        # Check mdi mode
+            raise err_major(f"One or both ports missing MDI config: {port1.ecu.name}:{self.ecu1_port_name}, {port2.ecu.name}:{self.ecu2_port_name}")
         if mdi_ecu1_port.mode != mdi_ecu2_port.mode:
             raise err_major(
                 f"Incompatible MDI Mode: "
-                f"{self.ecu1_port.ecu.name}:{self.ecu1_port_name} "
-                f"({mdi_ecu1_port.mode}) ↔ {self.ecu2_port.ecu.name}:"
+                f"{port1.ecu.name}:{self.ecu1_port_name} "
+                f"({mdi_ecu1_port.mode}) ↔ {port2.ecu.name}:"
                 f"{self.ecu2_port_name} ({mdi_ecu2_port.mode})"
             )
-        # Check mdi speed
         if mdi_ecu1_port.speed != mdi_ecu2_port.speed:
             raise err_major(
                 f"Incompatible MDI Speed: "
-                f"{self.ecu1_port.ecu.name}:{self.ecu1_port_name} "
-                f"({mdi_ecu1_port.speed}) ↔ {self.ecu2_port.ecu.name}:"
+                f"{port1.ecu.name}:{self.ecu1_port_name} "
+                f"({mdi_ecu1_port.speed}) ↔ {port2.ecu.name}:"
                 f"{self.ecu2_port_name} ({mdi_ecu2_port.speed})"
             )
-
-        # Check mdi duplex mode
         if mdi_ecu1_port.duplex != mdi_ecu2_port.duplex:
             raise err_major(
                 f"Incompatible MDI Duplex Mode: "
-                f"{self.ecu1_port.ecu.name}:{self.ecu1_port_name} "
-                f"({mdi_ecu1_port.duplex}) ↔ {self.ecu2_port.ecu.name}:"
+                f"{port1.ecu.name}:{self.ecu1_port_name} "
+                f"({mdi_ecu1_port.duplex}) ↔ {port2.ecu.name}:"
                 f"{self.ecu2_port_name} ({mdi_ecu2_port.duplex})"
             )
-
-        # Check mdi role (should be complementary, e.g., MASTER ↔ SLAVE)
         if mdi_ecu1_port.role == mdi_ecu2_port.role:
             raise err_major(
                 f"Incompatible MDI Roles: "
-                f"{self.ecu1_port.ecu.name}:{self.ecu1_port_name} "
-                f"({mdi_ecu1_port.role}) ↔ {self.ecu2_port.ecu.name}:"
+                f"{port1.ecu.name}:{self.ecu1_port_name} "
+                f"({mdi_ecu1_port.role}) ↔ {port2.ecu.name}:"
                 f"{self.ecu2_port_name} ({mdi_ecu2_port.role})"
             )
-
-        # Check mdi autonegotiation
         if mdi_ecu1_port.autonegotiation != mdi_ecu2_port.autonegotiation:
             raise err_major(
                 f"Incompatible MDI Autonegotiation: "
-                f"{self.ecu1_port.ecu.name}:{self.ecu1_port_name} "
+                f"{port1.ecu.name}:{self.ecu1_port_name} "
                 f"({mdi_ecu1_port.autonegotiation}) ↔ "
-                f"{self.ecu2_port.ecu.name}:{self.ecu2_port_name} "
+                f"{port2.ecu.name}:{self.ecu2_port_name} "
                 f"({mdi_ecu2_port.autonegotiation})"
             )
-        # Check mdi speed
-        comp1 = self.ecu1_port.get_internal_connected_component([self.ecu1_port.ecu])
-        comp2 = self.ecu2_port.get_internal_connected_component([self.ecu2_port.ecu])
-        # Check timesync validity
+        comp1 = port1.get_internal_connected_component([port1.ecu])
+        comp2 = port2.get_internal_connected_component([port2.ecu])
         common_validators.validate_macsec(comp1, comp2, self.id)
         common_validators.validate_gptp(comp1, comp2, self.id)
-        return self
 
 
 class SystemTopology(FLYNCBaseModel):

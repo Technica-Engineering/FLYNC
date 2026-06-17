@@ -29,6 +29,7 @@ def eq_patch(self, other):
         return False
     return self.model_dump() == other.model_dump()
 
+
 def test_json_encode(flync_object, tmp_path):
     converter = JsonConverter(ConverterConfig(config_path=str(tmp_path)))
     converter.encode(flync_object)

@@ -11,7 +11,7 @@ def test_consumed_services():
     for ecu in ecus:
         if ecu.name == "high_performance_compute":
             consumed_services = ecu.get_consumed_services()
-    assert consumed_services[0].service.name == "Enhanced Testability Services"
+    assert consumed_services[0]._service_ref.name == "Enhanced Testability Services"
     assert consumed_services[0].instance_id == int("0xf4", 16)
 
 
@@ -24,5 +24,5 @@ def test_provided_services():
         if ecu.name == "high_performance_compute":
             provided_services = ecu.get_provided_services()
 
-    assert provided_services[0].service.name == "Enhanced Testability Services"
+    assert provided_services[0]._service_ref.name == "Enhanced Testability Services"
     assert provided_services[0].instance_id == int("1", 16)

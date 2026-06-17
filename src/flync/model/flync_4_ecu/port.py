@@ -9,7 +9,7 @@ from pydantic import Field, PrivateAttr, model_validator
 if TYPE_CHECKING:
     from flync.model.flync_4_ecu.ecu import ECU
 
-from flync.core.base_models import NamedDictInstances
+from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import err_major
 from flync.model.flync_4_ecu.phy import (
     BASET,
@@ -23,7 +23,7 @@ from flync.model.flync_4_ecu.phy import (
 )
 
 
-class ECUPort(NamedDictInstances):
+class ECUPort(FLYNCBaseModel):
     """
     Represents an ECU port and its configuration.
 

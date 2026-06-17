@@ -19,12 +19,7 @@ from pydantic import (
 )
 from pydantic.networks import IPvAnyAddress
 
-from flync.core.base_models import (
-    DictInstances,
-    FLYNCBaseModel,
-    Registry,
-    get_registry,
-)
+from flync.core.base_models import FLYNCBaseModel
 from flync.core.datatypes.ipaddress import (
     IPv4AddressEntry,
     IPv6AddressEntry,
@@ -169,7 +164,7 @@ class Socket(FLYNCBaseModel):
             return [str(endpoint).upper() for endpoint in multicast_tx]
 
 
-class TCPOption(DictInstances):
+class TCPOption(FLYNCBaseModel):
     """
     TCP options that can be enabled for a connection.
 
@@ -223,9 +218,6 @@ class TCPOption(DictInstances):
     tcp_quickack: Optional[StrictBool] = Field(default=False)
     tcp_syncnt: Optional[int] = Field(default=6)
 
-    def get_dict_key(self):
-        return self.tcp_profile_id
-
 
 class UDPOption(FLYNCBaseModel):
     """
@@ -255,22 +247,9 @@ class SocketTCP(Socket):
     protocol: Literal["tcp"] = Field(default="tcp")
     tcp_profile: int = Field()
 
-    @field_validator("tcp_profile", mode="after")
-    @classmethod
-    def _lookup_tcp_profile_from_id(cls, value):
-        """
-        Resolve the integer ``tcp_profile`` identifier to a registered ``TCPOption`` instance.
-
-        If no profile with the given ID exists, a default ``TCPOption`` is created and registered using only the
-        provided ID — all other fields use their defaults, and a warning is emitted.
-        """
-
-        registry: Registry = get_registry()
-        tcp_options_instances = registry.get_dict(TCPOption)
-        if value not in tcp_options_instances:
-            TCPOption(tcp_profile_id=value)
-            warn(f"TCP Socket with TCP Option profile ID {value} does not exist. Creating a profile with default options.")
-        return value
+    def bind(self, tcp_by_id: dict) -> None:
+        if self.tcp_profile not in tcp_by_id:
+            warn(f"TCP Socket with TCP Option profile ID {self.tcp_profile} does not exist. Creating a profile with default options.")
 
 
 class SocketUDP(Socket):

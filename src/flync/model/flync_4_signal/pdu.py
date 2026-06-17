@@ -2,7 +2,7 @@ from typing import List, Literal, Optional
 
 from pydantic import Field, field_validator, model_validator
 
-from flync.core.base_models import FLYNCBaseModel, UniqueName
+from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.common_validators import (
     BitRange,
     check_bit_ranges_no_overlap,
@@ -22,7 +22,7 @@ from flync.model.flync_4_signal.signal import (
 # ---------------------------------------------------------------------------
 
 
-class PDU(UniqueName):
+class PDU(FLYNCBaseModel):
     """
     Protocol Data Unit base class.
 

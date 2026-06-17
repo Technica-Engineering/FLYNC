@@ -11,6 +11,7 @@ from pydantic_core import PydanticCustomError
 from flync.core.annotations import External, NamingStrategy, OutputStrategy
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.base_utils import check_obj_in_list
+from flync.core.utils.common_validators import validate_list_items_unique
 from flync.core.utils.exceptions import err_major, warn
 from flync.core.utils.forwarder_validators import (
     detect_forwarder_cycles,
@@ -33,6 +34,7 @@ from flync.model.flync_4_ecu import (
 )
 from flync.model.flync_4_metadata import SystemMetadata
 from flync.model.flync_4_signal.forwarder import CANFrameForwarder, PDUForwarder
+from flync.model.flync_4_someip.deployment import SOMEIPServiceDeployment
 from flync.model.flync_4_topology import FLYNCTopology
 
 
@@ -134,6 +136,27 @@ class FLYNCModel(FLYNCBaseModel):
 
         self.__populate_ipv6_solicited_node_multicasts_rx()
         self.__populate_ipv6_solicited_node_multicasts_tx()
+
+    @model_validator(mode="after")
+    def validate_unique_ecu_names(self):
+        validate_list_items_unique([ecu.name for ecu in self.ecus], "ECU names")
+        return self
+
+    @model_validator(mode="after")
+    def validate_unique_port_names(self):
+        all_ports = [port.name for ecu in self.ecus for port in ecu.get_all_ports()]
+        validate_list_items_unique(all_ports, "ECU port names")
+        return self
+
+    @model_validator(mode="after")
+    def resolve_external_connections(self):
+        ports_by_name = self.get_all_ecu_ports_by_name()
+        for conn in self.topology.system_topology.connections:
+            try:
+                conn.bind(ports_by_name)
+            except PydanticCustomError as e:
+                warn(str(e))
+        return self
 
     @model_validator(mode="after")
     def validate_unique_ips(self):
@@ -371,6 +394,34 @@ class FLYNCModel(FLYNCBaseModel):
     def get_system_topology_info(self):
         """Return system topology details."""
         return self.topology.system_topology.model_dump()
+
+    def _bind_tcp_profiles(self, tcp_by_id):
+        for sock in self._iter_all_sockets():
+            if hasattr(sock, "bind"):
+                sock.bind(tcp_by_id)
+
+    @model_validator(mode="after")
+    def resolve_tcp_profiles(self):
+        if self.communication:
+            tcp_by_id = {t.tcp_profile_id: t for t in (self.communication.tcp_profiles or [])}
+            self._bind_tcp_profiles(tcp_by_id)
+        return self
+
+    def _bind_someip_sockets(self, services_by_key, sd_timings_by_id):
+        for sock in self._iter_all_sockets():
+            for dep_union in sock.deployments or []:
+                dep = dep_union.root
+                if isinstance(dep, SOMEIPServiceDeployment):
+                    dep.bind(services_by_key, sd_timings_by_id)
+
+    @model_validator(mode="after")
+    def resolve_someip_deployments(self):
+        if self.communication and self.communication.someip_config:
+            someip = self.communication.someip_config
+            services_by_key = {(s.id, s.major_version): s for s in someip.services}
+            sd_timings_by_id = {t.profile_id: t for t in someip.sd_config.sd_timings} if someip.sd_config else {}
+            self._bind_someip_sockets(services_by_key, sd_timings_by_id)
+        return self
 
     def _iter_all_sockets(self):
         """Yield every :class:`Socket` across every controller / ethernet interface / VLAN container."""

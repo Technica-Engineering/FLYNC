@@ -14,6 +14,7 @@ from flync.core.utils.common_validators import (
     BitRange,
     check_bit_ranges_no_overlap,
     check_bit_ranges_within,
+    validate_list_items_unique,
 )
 from flync.core.utils.exceptions import err_major
 from flync.model.flync_4_bus.can_bus import CANBus
@@ -94,6 +95,31 @@ class FLYNCChannelConfig(FLYNCBaseModel):
         default=None,
         description="Ethernet Container PDU definitions.",
     )
+
+    @model_validator(mode="after")
+    def validate_pdus_name_unique(self):
+        validate_list_items_unique([p.name for p in (self.pdus or [])], "PDUs")
+        return self
+
+    @model_validator(mode="after")
+    def validate_canbus_name_unique(self):
+        validate_list_items_unique([can.name for can in (self.can_buses or [])], "CANBus")
+        return self
+
+    @model_validator(mode="after")
+    def validate_linbus_name_unique(self):
+        validate_list_items_unique([lin.name for lin in (self.lin_buses or [])], "LINBus")
+        return self
+
+    @model_validator(mode="after")
+    def validate_frame_names_unique(self):
+        frames = []
+        for bus in self.can_buses or []:
+            frames.extend(f.name for f in bus.frames)
+        for bus in self.lin_buses or []:
+            frames.extend(f.name for f in bus.frames)
+        validate_list_items_unique(frames, "Frames")
+        return self
 
     @model_validator(mode="after")
     def validate_pdu_refs(self) -> "FLYNCChannelConfig":

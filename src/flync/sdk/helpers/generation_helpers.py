@@ -13,9 +13,6 @@ from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
 from pydantic_extra_types.mac_address import MacAddress
 
-from flync.core.base_models import Registry, get_registry
-from flync.core.base_models.instances_registery import registry_context
-from flync.core.base_models.unique_name import UniqueName
 from flync.core.datatypes.ipaddress import IPv4AddressEntry
 from flync.model.flync_4_ecu.phy import BASET1
 from flync.model.flync_4_ecu.port import ECUPort
@@ -70,14 +67,9 @@ class Factory(object):
 
     @staticmethod
     def build_name(model: type[BaseModel], idx: int = 1):
-        if not issubclass(model, UniqueName):
+        if "name" not in model.model_fields:
             return model.__name__.lower()
-
-        name = f"{model.__name__.lower()}_{idx}"
-        key = f"{model.__name__}.{name}"
-        if key in get_registry().names:
-            return Factory.build_name(model, idx + 1)
-        return name
+        return f"{model.__name__.lower()}_{idx}"
 
     @classmethod
     def factory_model_defined(cls, model: type[FLYNCBaseModel]) -> bool:
@@ -316,9 +308,8 @@ class ExternalConnectionFactory(FLYNCFactory):
 
     @classmethod
     def build(cls, **kwargs):
-        insts = list(get_registry().get_dict(ECUPort).keys())
-        kwargs["ecu1_port"] = insts[0]
-        kwargs["ecu2_port"] = insts[1]
+        kwargs.setdefault("ecu1_port", "port1")
+        kwargs.setdefault("ecu2_port", "port2")
         return super().build(**kwargs)
 
 
@@ -331,9 +322,6 @@ class BASET1Factory(FLYNCFactory):
 
     @classmethod
     def build(cls, **kwargs):
-        insts = list(get_registry().get_dict(ECUPort).values())
-        if len(insts) > 0:
-            kwargs["role"] = "slave" if insts[0].mdi_config.role == "master" else "master"
         return super().build(**kwargs)
 
 
@@ -378,10 +366,9 @@ def generate_external_node(
     node = type_from_input(node)
     # generate object from type
     model_factory = Factory.get_factory(node)
-    with registry_context(Registry()):
-        flync_obj = model_factory.build(
-            **override_values,
-        )
+    flync_obj = model_factory.build(
+        **override_values,
+    )
     # dump to output
     if not isinstance(node_path, Path):
         node_path = Path(node_path)
@@ -464,10 +451,9 @@ def generate_node(
     for node_info in nodes.values():
         if flync_path in node_info.flync_paths or valid_path == node_info.flync_paths:
             model_factory = Factory.get_factory(node_info.python_type)
-            with registry_context(ws.registry):
-                generated_node = model_factory.build(
-                    **override_values,
-                )
+            generated_node = model_factory.build(
+                **override_values,
+            )
             break
 
     if isinstance(generated_node, FLYNCModel):

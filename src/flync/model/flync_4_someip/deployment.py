@@ -9,13 +9,12 @@ from pydantic import (
     AfterValidator,
     Field,
     IPvAnyAddress,
-    ValidationInfo,
+    PrivateAttr,
     field_serializer,
-    field_validator,
 )
 
 import flync.core.utils.common_validators as common_validators
-from flync.core.base_models import FLYNCBaseModel, Registry, get_registry
+from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.base_utils import is_ip_multicast
 from flync.model.flync_4_someip.service_interface import (
     SDTimings,
@@ -153,43 +152,26 @@ class SOMEIPServiceDeployment(abc.ABC, FLYNCBaseModel):
     instance_id: Annotated[int, Field(gt=0, lt=0xFFFF)] = Field(description="The id of the service instance")
     someip_sd_timings_profile: str = Field(description="The SOME/IP timings profile ussed for the deployment.")
 
+    _service_ref: Optional[SOMEIPServiceInterface] = PrivateAttr(default=None)
+    _sd_timing_ref: Optional[SDTimings] = PrivateAttr(default=None)
+
     @abc.abstractmethod
     def model_post_init(self, __context):
         return super().model_post_init(__context)
 
-    @field_validator(
-        "service",
-        "major_version",
-        mode="after",
-    )
-    @classmethod
-    def _lookup_service_from_id(cls, value, info: ValidationInfo):
-        if info.field_name == "service":
-            assert isinstance(value, int), "service must be int"
-            return value
-        elif info.field_name == "major_version":
-            sid = info.data["service"]
-            major = value
-            registry: Registry = get_registry()
-            service = registry.get_dict(SOMEIPServiceInterface).get((sid, major))
-            assert service, "did not find a service definition matching the provided key (id = {sid:#06x}, major_version = {value})"
-            info.data["service"] = service
-            return value
-
-    @field_validator("someip_sd_timings_profile", mode="after")
-    @classmethod
-    def _lookup_some_ip_sd_timing_profile_from_id(cls, value):
-
-        profile_id = value
-        registery: Registry = get_registry()
-        profile_found = registery.get_dict(SDTimings).get((profile_id))
-        assert profile_found, "did not find a SOME/IP SD timings profile"
-        " with the provided key '{value}'"
-        return value
+    def bind(self, services_by_key: dict, sd_timings_by_id: dict) -> None:
+        svc = services_by_key.get((self.service, self.major_version))
+        assert svc, f"No service found for id={self.service:#06x}, major_version={self.major_version}"
+        self._service_ref = svc
+        sd = sd_timings_by_id.get(self.someip_sd_timings_profile)
+        assert sd, f"No SD timings profile '{self.someip_sd_timings_profile}'"
+        self._sd_timing_ref = sd
 
     @field_serializer("service")
-    def _serialize_field_as_service(self, service: "SOMEIPServiceInterface"):
-        return service.id
+    def _serialize_field_as_service(self, service):
+        if isinstance(service, SOMEIPServiceInterface):
+            return service.id
+        return service
 
 
 class SOMEIPServiceConsumer(SOMEIPServiceDeployment):
@@ -217,25 +199,13 @@ class SOMEIPServiceConsumer(SOMEIPServiceDeployment):
     def model_post_init(self, __context):
         return super().model_post_init(__context)
 
-    @field_validator("consumed_eventgroups", mode="after")
-    @classmethod
-    def _check_consumed_eventgroups_are_provided(cls, value, info: ValidationInfo):
-        consumed_eventgroups = value
-
-        service = info.data["service"]
-        if isinstance(service, int):
-            sid = service
-            major = info.data["major_version"]
-            reigstery: Registry = get_registry()
-            service = reigstery.get_dict(SOMEIPServiceInterface).get((sid, major))
-
-        if consumed_eventgroups is not None:
-            consumed = set(consumed_eventgroups)
-            provided = set(eg.name for eg in service.eventgroups)
+    def bind(self, services_by_key: dict, sd_timings_by_id: dict) -> None:
+        super().bind(services_by_key, sd_timings_by_id)
+        if self.consumed_eventgroups is not None and self._service_ref is not None:
+            consumed = set(self.consumed_eventgroups)
+            provided = set(eg.name for eg in (self._service_ref.eventgroups or []))
             found = consumed.intersection(provided)
             assert found == consumed, f"Did not find eventgroups with names {consumed - found}"
-
-        return value
 
 
 class SOMEIPEventgroupMulticastConfig(FLYNCBaseModel):

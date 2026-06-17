@@ -14,6 +14,7 @@ from flync.model.flync_4_ecu.controller import (
 )
 from flync.model.flync_4_metadata.metadata import BaseVersion
 
+
 def test_bridge_port_invalid_reference():
     """
     Objective:
@@ -84,6 +85,8 @@ def test_ptp_conflict_between_interface_and_compute_node():
                 )
             ],
         )
+
+
 def test_feature_offload_to_compute_node_only():
     """
     Objective:

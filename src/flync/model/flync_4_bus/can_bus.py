@@ -3,7 +3,7 @@ from typing import Annotated, List, Optional, Union
 
 from pydantic import Field, field_validator, model_validator
 
-from flync.core.base_models import UniqueName
+from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import err_major, err_minor
 from flync.model.flync_4_signal.frame import CANFDFrame, CANFrame
 
@@ -30,7 +30,7 @@ _ALLOWED_CAN_FD_DATA_RATES = frozenset(
 )
 
 
-class CANBus(UniqueName):
+class CANBus(FLYNCBaseModel):
     """
     CAN bus configuration.
 

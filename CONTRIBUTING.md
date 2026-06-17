@@ -175,12 +175,30 @@ When introducing new parts to the model (e.g., new classes or fields), adhere to
 - **Class Definition**:
     - Inherit from ``FLYNCBaseModel`` (a project-specific base class) to ensure consistent validation and configuration.
     - Use **PascalCase** for class names (e.g., ``SwitchPort``, ``VLANEntry``).
-    - Include ``UniqueName`` as a mixin if the model requires unique naming within its scope:
+    - Declare a ``name`` field directly when the model needs a name; uniqueness, if required, is enforced at the owning parent model:
 
     ```python
-    class SwitchPort(FLYNCBaseModel, UniqueName):
+    class SwitchPort(FLYNCBaseModel):
         name: str
         # ... other fields
+    ```
+
+    The owning parent model enforces uniqueness via a ``@model_validator``:
+
+    ```python
+    from pydantic import model_validator
+
+    class Switch(FLYNCBaseModel):
+        ports: List[SwitchPort]
+        # ... other fields
+
+        @model_validator(mode="after")
+        def validate_unique_port_names(self):
+            common_validators.validate_list_items_unique(
+                [p.name for p in self.ports],
+                "Switch Ports (name)",
+            )
+            return self
     ```
 
 - **Model Configuration**:

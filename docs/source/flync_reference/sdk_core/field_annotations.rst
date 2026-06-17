@@ -58,7 +58,7 @@ Using ``Implied`` in a model
     from flync.core.base_models import Implied, ImpliedStrategy
     from flync.model.base_model import BaseModel
 
-    class ECU(FLYNCBaseModel, UniqueName):
+    class ECU(FLYNCBaseModel):
         name: Annotated[
             str,
             Implied(strategy=ImpliedStrategy.FOLDER_NAME)
@@ -83,7 +83,7 @@ Example model
     from flync.core.base_models import External, Implied, NamingStrategy, OutputStrategy, ImpliedStrategy
     from flync.model.base_model import BaseModel
 
-    class ECU(FLYNCBaseModel, UniqueName):
+    class ECU(FLYNCBaseModel):
         name: Annotated[str, Implied(ImpliedStrategy.FOLDER_NAME)]
         ports: Annotated[List["ECUPort"], External()] = pydantic.Field(min_length=1)
         controllers: Annotated[List["Controller"], External()] = pydantic.Field()

@@ -151,7 +151,7 @@ def test_negative_can_interface_duplicate_forwarder_frames():
     fwd_a = CANFrameForwarder(frame_ref="Frame_X", egresses=[_can_egress(bus_ref="DiagCAN", frame_ref=0x101)])
     fwd_b = CANFrameForwarder(frame_ref="Frame_X", egresses=[_can_egress(bus_ref="DiagCAN", frame_ref=0x102)])
     with pytest.raises(ValidationError) as exc:
-        CANInterfaceConfig(name="can0", bus_ref="PowertrainCAN", forwarder_frames=[fwd_a, fwd_b])
+        CANInterfaceConfig(name="CAN1", bus_ref="PowertrainCAN", forwarder_frames=[fwd_a, fwd_b])
     assert "duplicate" in str(exc.value).lower()
 
 
@@ -160,7 +160,7 @@ def test_positive_can_interface_receiver_and_forwarder_coexist():
 
     fwd = CANFrameForwarder(frame_ref="Frame_X", egresses=[_can_egress(bus_ref="DiagCAN", frame_ref=0x101)])
     iface = CANInterfaceConfig(
-        name="can0",
+        name="CAN1",
         bus_ref="PowertrainCAN",
         receiver_frames=[CANFrameRef(bus_ref="PowertrainCAN", frame_ref=0x101)],
         forwarder_frames=[fwd],

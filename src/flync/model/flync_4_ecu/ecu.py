@@ -12,7 +12,7 @@ from flync.core.annotations import (
     NamingStrategy,
     OutputStrategy,
 )
-from flync.core.base_models import NamedListInstances
+from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.base_utils import find_all
 from flync.core.utils.exceptions import err_major, err_minor
 from flync.model.flync_4_ecu.controller import (
@@ -37,7 +37,7 @@ from flync.model.flync_4_someip import (  # type: ignore  # noqa: F401
 _T_Service = TypeVar("_T_Service", bound=SOMEIPServiceDeployment)
 
 
-class ECU(NamedListInstances):
+class ECU(FLYNCBaseModel):
     """
     Represents an Electronic Control Unit (ECU) in the network.
 

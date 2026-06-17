@@ -21,7 +21,6 @@ from pydantic import (
 )
 
 import flync.core.utils.common_validators as common_validators
-from flync.core.base_models import NamedListInstances
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.common_validators import validate_vlan_id
 from flync.core.utils.exceptions import err_minor
@@ -357,7 +356,7 @@ class TCAMRule(FLYNCBaseModel):
         return self
 
 
-class Switch(NamedListInstances):
+class Switch(FLYNCBaseModel):
     """
     Represents an automotive Ethernet network switch configuration.
 

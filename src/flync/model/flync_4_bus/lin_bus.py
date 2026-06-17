@@ -2,7 +2,7 @@ from typing import Annotated, List, Literal, Optional
 
 from pydantic import Field, field_validator, model_validator
 
-from flync.core.base_models import FLYNCBaseModel, UniqueName
+from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import err_major, err_minor
 from flync.model.flync_4_signal.frame import LINFrame
 
@@ -45,7 +45,7 @@ class LINScheduleEntry(FLYNCBaseModel):
     period: Annotated[float, Field(gt=0)] = Field()
 
 
-class LINScheduleTable(UniqueName):
+class LINScheduleTable(FLYNCBaseModel):
     """
     LIN schedule table.
 
@@ -72,7 +72,7 @@ class LINScheduleTable(UniqueName):
 # ---------------------------------------------------------------------------
 
 
-class LINBus(UniqueName):
+class LINBus(FLYNCBaseModel):
     """
     LIN bus configuration.
 

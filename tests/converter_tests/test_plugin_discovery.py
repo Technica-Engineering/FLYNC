@@ -25,11 +25,7 @@ def _get_registered_converters(flync_converter_exe: Path) -> list[str]:
     )
 
     if result.returncode != 0:
-        raise AssertionError(
-            f"CLI command failed with exit code {result.returncode}\n"
-            f"stdout:\n{result.stdout}\n"
-            f"stderr:\n{result.stderr}"
-        )
+        raise AssertionError(f"CLI command failed with exit code {result.returncode}\n" f"stdout:\n{result.stdout}\n" f"stderr:\n{result.stderr}")
 
     return result.stdout
 
@@ -70,9 +66,7 @@ def test_plugin_discovery_via_cli():
         assert len(converters_before) > 0, "Expected at least some converters to be registered"
 
         # Verify dummy plugin is NOT in the list before installation
-        assert "dummy" not in converters_before, (
-            f"Expected 'dummy' converter NOT in output before plugin install, got:\n{converters_before}"
-        )
+        assert "dummy" not in converters_before, f"Expected 'dummy' converter NOT in output before plugin install, got:\n{converters_before}"
 
         # Install the dummy plugin in the venv
         subprocess.run(
@@ -84,6 +78,4 @@ def test_plugin_discovery_via_cli():
 
         # Verify the dummy plugin is now in the list after installation
         converters_after = _get_registered_converters(flync_converter_exe)
-        assert "dummy" in converters_after, (
-            f"Expected 'dummy' converter in output after plugin install, got:\n{converters_after}"
-        )
+        assert "dummy" in converters_after, f"Expected 'dummy' converter in output after plugin install, got:\n{converters_after}"

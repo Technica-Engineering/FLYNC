@@ -1,7 +1,6 @@
 """Main module."""
 
 import abc
-import logging
 import warnings
 from collections import defaultdict
 from typing import (
@@ -21,25 +20,19 @@ from pydantic import (
     IPvAnyAddress,
     conset,
     field_serializer,
-    field_validator,
     model_validator,
 )
 
 import flync.core.utils.common_validators as common_validators
 from flync.core.annotations.external import External, OutputStrategy
-from flync.core.base_models import (
-    DictInstances,
-    FLYNCBaseModel,
-    Registry,
-    get_registry,
-)
+from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import err_minor
 from flync.model.flync_4_metadata import SOMEIPServiceMetadata
 from flync.model.flync_4_safety.e2e import E2EConfig
 from flync.model.flync_4_someip.someip_datatypes import AllTypes
 
 
-class SOMEIPFieldTimings(DictInstances):
+class SOMEIPFieldTimings(FLYNCBaseModel):
     """
     Timings for field.
 
@@ -114,11 +107,8 @@ class SOMEIPFieldTimings(DictInstances):
         default=0,
     )
 
-    def get_dict_key(self):
-        return self.profile_id
 
-
-class SOMEIPEventTimings(DictInstances):
+class SOMEIPEventTimings(FLYNCBaseModel):
     """
     Timings for event.
 
@@ -149,11 +139,8 @@ class SOMEIPEventTimings(DictInstances):
         default=0,
     )
 
-    def get_dict_key(self):
-        return self.profile_id
 
-
-class SOMEIPMethodTimings(DictInstances):
+class SOMEIPMethodTimings(FLYNCBaseModel):
     """
     Timings for method invocation.
 
@@ -190,9 +177,6 @@ class SOMEIPMethodTimings(DictInstances):
         description="Maximum time in milliseconds indicating how long a response may be withheld.",
         default=0,
     )
-
-    def get_dict_key(self):
-        return self.profile_id
 
 
 SOMEIPEvenTimingsProfilesUnion = Annotated[Union[SOMEIPEventTimings | SOMEIPFieldTimings | SOMEIPMethodTimings], Field(discriminator="type")]
@@ -329,7 +313,7 @@ class SOMEIPParameter(FLYNCBaseModel):
     #    return v
 
 
-class SOMEIPEvent(DictInstances):
+class SOMEIPEvent(FLYNCBaseModel):
     """
     Defines a SOME/IP event definition.
 
@@ -374,10 +358,6 @@ class SOMEIPEvent(DictInstances):
         Field(description="name of the parameter"),
     ] = Field(default=[])
     someip_timing: Optional[str] = Field(default="event_default")
-    _allow_duplicate: bool = True
-
-    def get_dict_key(self):
-        return self.name
 
 
 class SOMEIPEventgroup(FLYNCBaseModel):
@@ -407,32 +387,6 @@ class SOMEIPEventgroup(FLYNCBaseModel):
         List[SOMEIPEvent | SOMEIPField],
         conset(item_type=SOMEIPEvent | SOMEIPField, min_length=1),
     ] = Field(description="the events this eventgroup contains")
-
-    # should only be called in validator
-    @classmethod
-    def __lookup_event_by_name(cls, value: SOMEIPEvent | SOMEIPField):
-        """looks up a single event if just the name was provided"""
-        if type(value) is not str:
-            return value
-        lookup_event: Optional[SOMEIPEvent] = get_registry(SOMEIPEvent).get(value)
-        if not lookup_event:
-            logging.info(f"!!!!did not find event by name {value}")
-        return lookup_event
-
-    @field_validator("events", mode="before")
-    @classmethod
-    def _lookup_events_by_name(cls, value: List[SOMEIPEvent | SOMEIPField]):
-        """
-        _lookup_events_by_name Look up events by name .
-
-        [extended_summary]
-
-        :param value: [description]
-        :type value: List[Event | Field | Str]
-        """
-
-        new_value = list(map(cls.__lookup_event_by_name, value))
-        return new_value
 
     @property
     def fields(self) -> List[SOMEIPField]:
@@ -552,7 +506,7 @@ class SOMEIPFireAndForgetMethod(SOMEIPMethod):
         super().__init__(*args, **kwargs)
 
 
-class SOMEIPServiceInterface(DictInstances):
+class SOMEIPServiceInterface(FLYNCBaseModel):
     """
     Class to create a SOME/IP service interface definition.
 
@@ -621,8 +575,17 @@ class SOMEIPServiceInterface(DictInstances):
     ] = Field(default=[], description="methods of the service")
     meta: SOMEIPServiceMetadata = Field()
 
-    def get_dict_key(self):
-        return (self.id, self.major_version)
+    @model_validator(mode="before")
+    @classmethod
+    def resolve_eventgroup_event_refs(cls, data):
+        """Resolve event/field name strings in eventgroups before child validation."""
+        if not isinstance(data, dict):
+            return data
+        all_by_name = {e["name"]: e for e in (data.get("events") or []) + (data.get("fields") or []) if isinstance(e, dict)}
+        for eg in data.get("eventgroups") or []:
+            if isinstance(eg, dict):
+                eg["events"] = [all_by_name.get(e, e) if isinstance(e, str) else e for e in eg.get("events", [])]
+        return data
 
     @model_validator(mode="after")
     def validate_for_notifiers_without_eventgroup(self):
@@ -678,7 +641,7 @@ class SOMEIPServiceInterface(DictInstances):
         return self
 
 
-class SDTimings(DictInstances):
+class SDTimings(FLYNCBaseModel):
     """
     Configurations for SOME/IP-SD Timings.
 
@@ -802,9 +765,6 @@ class SDTimings(DictInstances):
         default=3000,
     )
 
-    def get_dict_key(self):
-        return self.profile_id
-
 
 class SDConfig(FLYNCBaseModel):
     """
@@ -901,25 +861,28 @@ class SOMEIPConfig(FLYNCBaseModel):
 
     @model_validator(mode="after")
     def validate_timing_exist(self):
-        registery: Registry = get_registry()
+        all_timings = self.someip_timings.profiles + self.someip_timings.defaults
+        field_ids = {t.profile_id for t in all_timings if isinstance(t, SOMEIPFieldTimings)}
+        event_ids = {t.profile_id for t in all_timings if isinstance(t, SOMEIPEventTimings)}
+        method_ids = {t.profile_id for t in all_timings if isinstance(t, SOMEIPMethodTimings)}
         for service_inst in self.services:
             for service_element in service_inst.events + service_inst.fields + service_inst.methods:
                 if service_element.someip_timing is not None:
-                    if service_element.someip_timing not in registery.get_dict(SOMEIPFieldTimings) and isinstance(service_element, SOMEIPField):
+                    if isinstance(service_element, SOMEIPField) and service_element.someip_timing not in field_ids:
                         raise ValueError(
                             f"{service_element.id} - "
                             f"{service_element.name}.someip_timing "
                             f'"{service_element.someip_timing}" '
                             "dont exist in SOMEIPFieldTimings"
                         )
-                    elif service_element.someip_timing not in registery.get_dict(SOMEIPEventTimings) and isinstance(service_element, SOMEIPEvent):
+                    elif isinstance(service_element, SOMEIPEvent) and service_element.someip_timing not in event_ids:
                         raise ValueError(
                             f"{service_element.id} - "
                             f"{service_element.name}.someip_timing "
                             f'"{service_element.someip_timing}" '
                             "dont exist in SOMEIPEventTimings"
                         )
-                    elif service_element.someip_timing not in registery.get_dict(SOMEIPMethodTimings) and isinstance(service_element, SOMEIPMethod):
+                    elif isinstance(service_element, SOMEIPMethod) and service_element.someip_timing not in method_ids:
                         raise ValueError(
                             f"{service_element.id} - "
                             f"{service_element.name}.someip_timing "

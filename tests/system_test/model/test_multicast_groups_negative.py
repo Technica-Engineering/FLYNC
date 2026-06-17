@@ -75,13 +75,11 @@ def test_invalid_src_ip():
         MulticastGroupMembership(group="239.1.1.1", mode="tx", src_ip="invalid_ip")
 
 
-
 def test_interface_property():
     """Test that accessing the interface property without assignment raises AttributeError."""
     m = MulticastGroupMembership(group="239.1.1.1")
     with pytest.raises(AttributeError):
         _ = m.interface
-
 
 
 def test_tx_without_src_ip():

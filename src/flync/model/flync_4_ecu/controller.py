@@ -21,7 +21,7 @@ from flync.core.annotations import (
     NamingStrategy,
     OutputStrategy,
 )
-from flync.core.base_models import FLYNCBaseModel, NamedListInstances
+from flync.core.base_models import FLYNCBaseModel
 from flync.core.datatypes.macaddress import FLYNCMacAddress
 from flync.core.utils.exceptions import err_fatal, err_major, err_minor, warn
 from flync.core.version_migrators.legacy_controller_check import (
@@ -549,7 +549,7 @@ class EthernetInterface(FLYNCBaseModel):
     ] = Field(default_factory=list)
 
 
-class Controller(NamedListInstances):
+class Controller(FLYNCBaseModel):
     """
     Represents a controller device that contains multiple interfaces.
 

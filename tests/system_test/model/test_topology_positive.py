@@ -541,8 +541,8 @@ def test_flync_model(tmpdir, valid_model_func):
             return {k: sort_by_name(v) for k, v in obj.items()}
         elif isinstance(obj, list):
             # Try to sort by 'name' field if all items have it
-            if obj and all(isinstance(item, dict) and 'name' in item for item in obj):
-                return [sort_by_name(item) for item in sorted(obj, key=lambda x: x['name'])]
+            if obj and all(isinstance(item, dict) and "name" in item for item in obj):
+                return [sort_by_name(item) for item in sorted(obj, key=lambda x: x["name"])]
             return [sort_by_name(item) for item in obj]
         return obj
 
