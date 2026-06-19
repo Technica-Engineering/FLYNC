@@ -162,10 +162,10 @@ def test_positive_can_interface_receiver_and_forwarder_coexist():
     iface = CANInterfaceConfig(
         name="can0",
         bus_ref="PowertrainCAN",
-        receiver_frames=[CANFrameRef(frame_ref="Frame_X")],
+        receiver_frames=[CANFrameRef(bus_ref="PowertrainCAN", frame_ref=0x101)],
         forwarder_frames=[fwd],
     )
-    assert iface.receiver_frames[0].frame_ref == "Frame_X"
+    assert iface.receiver_frames[0].frame_ref == 0x101
     assert iface.forwarder_frames[0].frame_ref == "Frame_X"
 
 

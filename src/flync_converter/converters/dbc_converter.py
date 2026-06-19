@@ -166,15 +166,15 @@ def decode_pdu(  # NOSONAR
 
 def _collect_frame_participants(flync_model: FLYNCModel):
     """Return (frame_senders, frame_receivers) dicts built from all ECU CAN interfaces."""
-    frame_senders: dict[str, list] = {}
-    frame_receivers: dict[str, list] = {}
+    frame_senders: dict[tuple, list] = {}
+    frame_receivers: dict[tuple, list] = {}
     for ecu in flync_model.ecus:
         for ctrl in ecu.controllers:
             for iface in ctrl.can_interfaces or []:
                 for f in iface.sender_frames:
-                    frame_senders.setdefault(f.frame_ref, []).append(ecu.name)
+                    frame_senders.setdefault((f.bus_ref, f.frame_ref), []).append(ecu.name)
                 for f in iface.receiver_frames:
-                    frame_receivers.setdefault(f.frame_ref, []).append(ecu.name)
+                    frame_receivers.setdefault((f.bus_ref, f.frame_ref), []).append(ecu.name)
     return frame_senders, frame_receivers
 
 
@@ -189,7 +189,7 @@ def _build_can_messages(flync_model: FLYNCModel, can_bus, pdus: dict, frame_send
                 flync_model,
                 pdu_obj,  # type: ignore[arg-type]
                 pdu_inst.bit_position or 0,
-                frame_receivers.get(frame.name, None),
+                frame_receivers.get((can_bus.name, frame.can_id), None),
             )
         messages.append(
             Message(
@@ -198,7 +198,7 @@ def _build_can_messages(flync_model: FLYNCModel, can_bus, pdus: dict, frame_send
                 length=frame.length,
                 signals=sigs,
                 comment=frame.description,
-                senders=frame_senders.get(frame.name, None),
+                senders=frame_senders.get((can_bus.name, frame.can_id), None),
                 is_extended_frame=frame.id_format == "extended_29bit",
                 is_fd=frame.type == "can_fd",
             )
