@@ -30,7 +30,7 @@ sockets:
         egresses:
           - egress_type: can_frame
             bus_ref: DiagCAN
-            frame_ref: Frame_EngineDiagResponse
+            frame_ref: 2024  # Frame_EngineDiagResponse (0x7E8)
             extract_pdu_ref: PDU_EngineStatus
 
           - egress_type: eth_socket
