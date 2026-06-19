@@ -112,7 +112,7 @@ def test_invalid_lin_frame_in_can_interface():
                 compatible_flync_version=BaseVersion(version_schema="semver", version="0.11.0"),
                 target_system="my_system",
             ),
-            can_interfaces=[CANInterfaceConfig(bus_ref="CAN0", receiver_frames=[CANFrameRef(frame_ref=lin_frame.name)])],
+            can_interfaces=[CANInterfaceConfig(bus_ref="CAN0", receiver_frames=[CANFrameRef(bus_ref="CAN0", frame_ref=lin_frame.lin_id)])],
         )
 
 
@@ -140,7 +140,7 @@ def test_invalid_can_frame_in_lin_interface():
                     lin_protocol="2.0A",
                     p2_min=0.001,
                     st_min=0.001,
-                    sender_frames=[CANFrameRef(frame_ref=can_frame.name)],  # invalid
+                    sender_frames=[CANFrameRef(bus_ref="LIN0", frame_ref=can_frame.can_id)],  # invalid
                 )
             ],
             can_interfaces=[],

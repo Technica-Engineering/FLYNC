@@ -12,16 +12,19 @@ from flync.model.flync_4_signal.forwarder import CANFrameForwarder
 
 class CANFrameRef(FLYNCBaseModel):
     """
-    Reference to a CAN frame by name.
+    Reference to a CAN frame by bus and CAN ID.
 
     Parameters
     ----------
-    frame_ref : str
-        Name of the :class:`~flync.model.flync_4_signal.frame.CANFrame` or
-        :class:`~flync.model.flync_4_signal.frame.CANFDFrame` defined in the referenced CAN bus.
+    bus_ref : str
+        Name of the :class:`~flync.model.flync_4_bus.can_bus.CANBus` that owns the frame.
+    frame_ref : int
+        CAN ID of the :class:`~flync.model.flync_4_signal.frame.CANFrame` or
+        :class:`~flync.model.flync_4_signal.frame.CANFDFrame` on the referenced bus.
     """
 
-    frame_ref: str = Field()
+    bus_ref: str = Field()
+    frame_ref: int = Field()
 
 
 class CANInterfaceConfig(FLYNCBaseModel):

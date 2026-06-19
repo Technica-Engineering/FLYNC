@@ -233,9 +233,11 @@ class TestCollectFrameParticipants:
 
     def test_single_ecu(self):
         sf = MagicMock()
-        sf.frame_ref = "FX"
+        sf.frame_ref = 0x100
+        sf.bus_ref = "BUS_A"
         rf = MagicMock()
-        rf.frame_ref = "FY"
+        rf.frame_ref = 0x200
+        rf.bus_ref = "BUS_A"
         iface = MagicMock()
         iface.sender_frames = [sf]
         iface.receiver_frames = [rf]
@@ -247,8 +249,8 @@ class TestCollectFrameParticipants:
         model = MagicMock()
         model.ecus = [ecu]
         senders, receivers = _collect_frame_participants(model)
-        assert senders == {"FX": ["ECU_A"]}
-        assert receivers == {"FY": ["ECU_A"]}
+        assert senders == {("BUS_A", 0x100): ["ECU_A"]}
+        assert receivers == {("BUS_A", 0x200): ["ECU_A"]}
 
     def test_no_can_interfaces(self):
         ctrl = MagicMock()
@@ -262,9 +264,10 @@ class TestCollectFrameParticipants:
         assert senders == {} and receivers == {}
 
     def test_multiple_ecus_same_frame(self):
-        def _ecu(name, frame_ref):
+        def _ecu(name, frame_ref, bus_ref="BUS_X"):
             sf = MagicMock()
             sf.frame_ref = frame_ref
+            sf.bus_ref = bus_ref
             iface = MagicMock()
             iface.sender_frames = [sf]
             iface.receiver_frames = []
@@ -276,9 +279,9 @@ class TestCollectFrameParticipants:
             return e
 
         model = MagicMock()
-        model.ecus = [_ecu("E1", "F1"), _ecu("E2", "F1")]
+        model.ecus = [_ecu("E1", 0x100), _ecu("E2", 0x100)]
         senders, _ = _collect_frame_participants(model)
-        assert senders == {"F1": ["E1", "E2"]}
+        assert senders == {("BUS_X", 0x100): ["E1", "E2"]}
 
 
 class TestBuildCanMessages:
