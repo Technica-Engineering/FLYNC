@@ -2,7 +2,7 @@ from typing import Annotated, FrozenSet, List, Literal, Optional
 
 from pydantic import Field, model_validator
 
-from flync.core.base_models import FLYNCBaseModel, UniqueName
+from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import err_minor
 from flync.model.flync_4_signal.pdu import (
     PDUInstance,
