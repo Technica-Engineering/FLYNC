@@ -136,19 +136,22 @@ def _build_socket_indexes(model: "FLYNCModel"):
     return socket_by_controller_name, pdu_forwarder_by_controller_socket_pdu
 
 
-def _build_can_indexes(model: "FLYNCModel"):
-    """Build indexes for CAN interface lookup ``(controller, bus)`` and CAN forwarder lookup ``(bus, frame)``."""
+def _build_can_indexes(model: "FLYNCModel", can_frame_catalogue: Optional[Dict[str, CANAnyFrame]] = None):
+    """Build indexes for CAN interface lookup ``(controller, bus)`` and CAN forwarder lookup ``(bus, can_id)``."""
 
     can_iface_by_controller_bus: Dict[Tuple[str, str], CANInterfaceConfig] = {}
-    can_forwarder_by_bus_frame: Dict[Tuple[str, str], CANFrameForwarder] = {}
+    can_forwarder_by_bus_id: Dict[Tuple[str, int], CANFrameForwarder] = {}
 
     for ecu in model.ecus:
         for controller in ecu.controllers:
             for can_iface in controller.can_interfaces or []:
                 can_iface_by_controller_bus[(controller.name, can_iface.bus_ref)] = can_iface
-                for fwd in can_iface.forwarder_frames or []:
-                    can_forwarder_by_bus_frame[(can_iface.bus_ref, fwd.frame_ref)] = fwd
-    return can_iface_by_controller_bus, can_forwarder_by_bus_frame
+                if can_frame_catalogue is not None:
+                    for fwd in can_iface.forwarder_frames or []:
+                        frame = can_frame_catalogue.get(fwd.frame_ref)
+                        if frame is not None:
+                            can_forwarder_by_bus_id[(can_iface.bus_ref, frame.can_id)] = fwd
+    return can_iface_by_controller_bus, can_forwarder_by_bus_id
 
 
 # ---------------------------------------------------------------------------
@@ -180,6 +183,19 @@ def _build_can_frame_catalogue(model: "FLYNCModel") -> Dict[str, CANAnyFrame]:
     for bus in channels.can_buses:
         for frame in bus.frames or []:
             out[frame.name] = frame
+    return out
+
+
+def _build_can_frame_catalogue_by_bus_id(model: "FLYNCModel") -> Dict[Tuple[str, int], CANAnyFrame]:
+    """Return a ``(bus_name, can_id)``-keyed dict of every CAN / CAN FD frame, for egress lookups by CAN ID."""
+
+    out: Dict[Tuple[str, int], CANAnyFrame] = {}
+    channels = getattr(model.communication, "channels", None) if model.communication else None
+    if channels is None or channels.can_buses is None:
+        return out
+    for bus in channels.can_buses:
+        for frame in bus.frames or []:
+            out[(bus.name, frame.can_id)] = frame
     return out
 
 
@@ -234,7 +250,7 @@ def _resolve_egress_pdu(
 def _validate_pdu_forwarder_refs_for(
     fwd: PDUForwarder,
     pdu_catalogue: Dict[str, PDU],
-    can_frame_catalogue: Dict[str, CANAnyFrame],
+    can_frame_by_bus_id: Dict[Tuple[str, int], CANAnyFrame],
 ) -> None:
     """Resolve and payload-check one ``PDUForwarder`` against the workspace PDU / CAN-frame catalogues."""
 
@@ -246,13 +262,14 @@ def _validate_pdu_forwarder_refs_for(
             owner=owner,
             ref=fwd.pdu_ref,
         )
-    _resolve_sinks_for(fwd.egresses, ingress_pdu, pdu_catalogue, can_frame_catalogue, owner)
+    _resolve_sinks_for(fwd.egresses, ingress_pdu, pdu_catalogue, can_frame_by_bus_id, owner)
 
 
 def _validate_can_frame_forwarder_refs_for(
     fwd: CANFrameForwarder,
     pdu_catalogue: Dict[str, PDU],
     can_frame_catalogue: Dict[str, CANAnyFrame],
+    can_frame_by_bus_id: Dict[Tuple[str, int], CANAnyFrame],
 ) -> None:
     """Resolve and payload-check one ``CANFrameForwarder`` (ingress PDU is the single packed PDU of its ingress frame)."""
 
@@ -267,14 +284,14 @@ def _validate_can_frame_forwarder_refs_for(
     ingress_pdu: Optional[PDU] = None
     if ingress_frame.packed_pdus and len(ingress_frame.packed_pdus) == 1:
         ingress_pdu = pdu_catalogue.get(ingress_frame.packed_pdus[0].pdu_ref)
-    _resolve_sinks_for(fwd.egresses, ingress_pdu, pdu_catalogue, can_frame_catalogue, owner)
+    _resolve_sinks_for(fwd.egresses, ingress_pdu, pdu_catalogue, can_frame_by_bus_id, owner)
 
 
 def _resolve_sinks_for(
     egresses,
     ingress_pdu: Optional[PDU],
     pdu_catalogue: Dict[str, PDU],
-    can_frame_catalogue: Dict[str, CANAnyFrame],
+    can_frame_by_bus_id: Dict[Tuple[str, int], CANAnyFrame],
     owner: str,
 ) -> None:
     """Per-egress resolution + payload-fit (CAN egresses only)."""
@@ -284,13 +301,14 @@ def _resolve_sinks_for(
         egress_label = f"egresses[{idx}]"
         egress_pdu = _resolve_egress_pdu(ingress_pdu, egress.extract_pdu_ref, pdu_catalogue, egress_label, owner)
         if isinstance(egress, CANFrameEgress):
-            egress_frame = can_frame_catalogue.get(egress.frame_ref)
+            egress_frame = can_frame_by_bus_id.get((egress.bus_ref, egress.frame_ref))
             if egress_frame is None:
                 raise err_major(
-                    "{owner}: {egress}: frame_ref '{ref}' does not name any CAN or CAN FD frame.",
+                    "{owner}: {egress}: frame_ref id={ref} on bus '{bus}' does not name any CAN or CAN FD frame.",
                     owner=owner,
                     egress=egress_label,
                     ref=egress.frame_ref,
+                    bus=egress.bus_ref,
                 )
             if egress_pdu is not None and egress_pdu.length > egress_frame.length:
                 raise err_minor(
@@ -309,16 +327,17 @@ def validate_forwarder_refs(model: "FLYNCModel") -> None:
 
     pdu_catalogue = _build_pdu_catalogue(model)
     can_frame_catalogue = _build_can_frame_catalogue(model)
+    can_frame_by_bus_id = _build_can_frame_catalogue_by_bus_id(model)
 
     for ctrl, socket, fwd in _collect_pdu_forwarders(model):
         try:
-            _validate_pdu_forwarder_refs_for(fwd, pdu_catalogue, can_frame_catalogue)
+            _validate_pdu_forwarder_refs_for(fwd, pdu_catalogue, can_frame_by_bus_id)
         except PydanticCustomError as err:
             raise _with_source(err, _pdu_forwarder_locator(ctrl, socket, fwd)) from None
 
     for ctrl, iface, fwd in _collect_can_frame_forwarders(model):
         try:
-            _validate_can_frame_forwarder_refs_for(fwd, pdu_catalogue, can_frame_catalogue)
+            _validate_can_frame_forwarder_refs_for(fwd, pdu_catalogue, can_frame_catalogue, can_frame_by_bus_id)
         except PydanticCustomError as err:
             raise _with_source(err, _can_forwarder_locator(ctrl, iface, fwd)) from None
 
@@ -369,6 +388,7 @@ def _check_can_frame_egress(
     owner: str,
     forwarder_controller: "Controller",
     can_iface_by_controller_bus: Dict[Tuple[str, str], CANInterfaceConfig],
+    can_frame_by_bus_id: Dict[Tuple[str, int], CANAnyFrame],
 ) -> None:
     """Assert a ``can_frame`` egress targets a CAN interface on the forwarder's controller that is set up to send the egress frame."""
 
@@ -380,9 +400,10 @@ def _check_can_frame_egress(
             bus=egress.bus_ref,
             ctrl=forwarder_controller.name,
         )
-    if not any(s.frame_ref == egress.frame_ref for s in iface.sender_frames):
+    egress_frame = can_frame_by_bus_id.get((egress.bus_ref, egress.frame_ref))
+    if egress_frame is None or not any(s.frame_ref == egress_frame.name for s in iface.sender_frames):
         raise err_major(
-            "{owner}: can_frame egress targets frame '{frame}' on bus '{bus}', "
+            "{owner}: can_frame egress targets frame id={frame} on bus '{bus}', "
             "but controller '{ctrl}' does not list it in sender_frames of that interface.",
             owner=owner,
             frame=egress.frame_ref,
@@ -398,6 +419,7 @@ def _check_forwarder_egress_locality(
     controller: "Controller",
     socket_by_controller_name: Dict[Tuple[str, str], Tuple["Controller", "Socket"]],
     can_iface_by_controller_bus: Dict[Tuple[str, str], CANInterfaceConfig],
+    can_frame_by_bus_id: Dict[Tuple[str, int], CANAnyFrame],
 ) -> None:
     """Dispatch a single egress to its locality check; raise on an unresolvable eth_socket egress PDU."""
 
@@ -409,7 +431,7 @@ def _check_forwarder_egress_locality(
             )
         _check_eth_socket_egress(egress, egress_owner, egress_pdu_ref, controller, socket_by_controller_name)
     else:
-        _check_can_frame_egress(egress, egress_owner, controller, can_iface_by_controller_bus)
+        _check_can_frame_egress(egress, egress_owner, controller, can_iface_by_controller_bus, can_frame_by_bus_id)
 
 
 def _validate_pdu_forwarder_locality(
@@ -418,6 +440,7 @@ def _validate_pdu_forwarder_locality(
     fwd: PDUForwarder,
     socket_by_controller_name: Dict[Tuple[str, str], Tuple["Controller", "Socket"]],
     can_iface_by_controller_bus: Dict[Tuple[str, str], CANInterfaceConfig],
+    can_frame_by_bus_id: Dict[Tuple[str, int], CANAnyFrame],
 ) -> None:
     """Locality + direction safety for every egress of one ``PDUForwarder``."""
 
@@ -432,6 +455,7 @@ def _validate_pdu_forwarder_locality(
             controller,
             socket_by_controller_name,
             can_iface_by_controller_bus,
+            can_frame_by_bus_id,
         )
 
 
@@ -442,6 +466,7 @@ def _validate_can_frame_forwarder_locality(
     socket_by_controller_name: Dict[Tuple[str, str], Tuple["Controller", "Socket"]],
     can_iface_by_controller_bus: Dict[Tuple[str, str], CANInterfaceConfig],
     can_frame_catalogue: Dict[str, CANAnyFrame],
+    can_frame_by_bus_id: Dict[Tuple[str, int], CANAnyFrame],
 ) -> None:
     """Locality + direction safety for every egress of one ``CANFrameForwarder``."""
 
@@ -457,6 +482,7 @@ def _validate_can_frame_forwarder_locality(
             controller,
             socket_by_controller_name,
             can_iface_by_controller_bus,
+            can_frame_by_bus_id,
         )
 
 
@@ -466,10 +492,11 @@ def validate_forwarder_locality(model: "FLYNCModel") -> None:
     socket_by_controller_name, _ = _build_socket_indexes(model)
     can_iface_by_controller_bus, _ = _build_can_indexes(model)
     can_frame_catalogue = _build_can_frame_catalogue(model)
+    can_frame_by_bus_id = _build_can_frame_catalogue_by_bus_id(model)
 
     for controller, socket, fwd in _collect_pdu_forwarders(model):
         try:
-            _validate_pdu_forwarder_locality(controller, socket, fwd, socket_by_controller_name, can_iface_by_controller_bus)
+            _validate_pdu_forwarder_locality(controller, socket, fwd, socket_by_controller_name, can_iface_by_controller_bus, can_frame_by_bus_id)
         except PydanticCustomError as err:
             raise _with_source(err, _pdu_forwarder_locator(controller, socket, fwd)) from None
 
@@ -482,6 +509,7 @@ def validate_forwarder_locality(model: "FLYNCModel") -> None:
                 socket_by_controller_name,
                 can_iface_by_controller_bus,
                 can_frame_catalogue,
+                can_frame_by_bus_id,
             )
         except PydanticCustomError as err:
             raise _with_source(err, _can_forwarder_locator(controller, parent_iface, fwd)) from None
@@ -514,8 +542,8 @@ class _ForwarderCycleDetector(object):
 
     def __init__(self, model: "FLYNCModel") -> None:
         _, self._pdu_forwarder_idx = _build_socket_indexes(model)
-        _, self._can_forwarder_idx = _build_can_indexes(model)
         self._can_frame_catalogue = _build_can_frame_catalogue(model)
+        _, self._can_forwarder_idx = _build_can_indexes(model, self._can_frame_catalogue)
 
         pdu_fwds = _collect_pdu_forwarders(model)
         can_fwds = _collect_can_frame_forwarders(model)
