@@ -154,7 +154,7 @@ def _hpc_eth_socket_pdu(ws: Path) -> Path:
 def test_negative_can_egress_not_in_sender_frames(workspace_copy):
     """Drop Frame_EngineDiagResponse from DiagCAN sender_frames -> locality check fires."""
 
-    _mutate_file(_diag_ifc(workspace_copy), {"- frame_ref: Frame_EngineDiagResponse\n": ""})
+    _mutate_file(_diag_ifc(workspace_copy), {"  - bus_ref: DiagCAN\n    frame_ref: 2024  # Frame_EngineDiagResponse (0x7E8)\n": ""})
     _assert_message_contains(
         _load_or_capture(workspace_copy),
         ["2024", "sender_frames"],
@@ -259,12 +259,12 @@ def test_negative_two_bus_cycle(workspace_copy):
 
     _mutate_file(
         _pwrtr_ifc(workspace_copy),
-        {"sender_frames: []": "sender_frames:\n  - frame_ref: Frame_EngineStatus"},
+        {"sender_frames: []": "sender_frames:\n  - bus_ref: PowertrainCAN\n    frame_ref: 257"},
     )
     _mutate_file(
         _diag_ifc(workspace_copy),
         {
-            "receiver_frames:\n  - frame_ref: Frame_LightDiagRequest": "receiver_frames:\n  - frame_ref: Frame_LightDiagRequest\nforwarder_frames:\n  - frame_ref: Frame_EngineDiagResponse\n    egresses:\n      - egress_type: can_frame\n        bus_ref: PowertrainCAN\n        frame_ref: 257",
+            "receiver_frames:\n  - bus_ref: DiagCAN\n    frame_ref: 2015  # Frame_LightDiagRequest (0x7DF)": "receiver_frames:\n  - bus_ref: DiagCAN\n    frame_ref: 2015  # Frame_LightDiagRequest (0x7DF)\nforwarder_frames:\n  - frame_ref: Frame_EngineDiagResponse\n    egresses:\n      - egress_type: can_frame\n        bus_ref: PowertrainCAN\n        frame_ref: 257",
         },
     )
     _assert_message_contains(

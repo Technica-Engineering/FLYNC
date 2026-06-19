@@ -12,15 +12,18 @@ _LINProtocol = Literal["1.3", "2.0", "2.1", "2.2A"]
 
 class LINFrameRef(FLYNCBaseModel):
     """
-    Reference to a LIN frame by name.
+    Reference to a LIN frame by bus and LIN ID.
 
     Parameters
     ----------
-    frame_ref : str
-        Name of the :class:`~flync.model.flync_4_signal.frame.LINFrame` defined in the referenced LIN bus.
+    bus_ref : str
+        Name of the :class:`~flync.model.flync_4_bus.lin_bus.LINBus` that owns the frame.
+    frame_ref : int
+        LIN ID of the :class:`~flync.model.flync_4_signal.frame.LINFrame` on the referenced bus.
     """
 
-    frame_ref: str = Field()
+    bus_ref: str = Field()
+    frame_ref: int = Field()
 
 
 class LINMasterInterfaceConfig(FLYNCBaseModel):
