@@ -1,6 +1,9 @@
 bus_ref: DiagCAN
 sender_frames:
-  - frame_ref: Frame_EngineDiagResponse
-  - frame_ref: Frame_NmMessage
+  - bus_ref: DiagCAN
+    frame_ref: 2024  # Frame_EngineDiagResponse (0x7E8)
+  - bus_ref: DiagCAN
+    frame_ref: 1280  # Frame_NmMessage (0x500)
 receiver_frames:
-  - frame_ref: Frame_LightDiagRequest
+  - bus_ref: DiagCAN
+    frame_ref: 2015  # Frame_LightDiagRequest (0x7DF)

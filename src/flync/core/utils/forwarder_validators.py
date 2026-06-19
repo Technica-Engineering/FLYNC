@@ -401,7 +401,7 @@ def _check_can_frame_egress(
             ctrl=forwarder_controller.name,
         )
     egress_frame = can_frame_by_bus_id.get((egress.bus_ref, egress.frame_ref))
-    if egress_frame is None or not any(s.frame_ref == egress_frame.name for s in iface.sender_frames):
+    if egress_frame is None or not any(s.bus_ref == egress.bus_ref and s.frame_ref == egress.frame_ref for s in iface.sender_frames):
         raise err_major(
             "{owner}: can_frame egress targets frame id={frame} on bus '{bus}', "
             "but controller '{ctrl}' does not list it in sender_frames of that interface.",

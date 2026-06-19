@@ -106,17 +106,6 @@ class CANBus(UniqueName):
         return self
 
     @model_validator(mode="after")
-    def validate_unique_frame_names(self) -> "CANBus":
-        duplicates = sorted(n for n, c in Counter(f.name for f in self.frames).items() if c > 1)
-        if duplicates:
-            raise err_minor(
-                "CANBus '{name}' has duplicate frame name(s): {duplicates}",
-                name=self.name,
-                duplicates=duplicates,
-            )
-        return self
-
-    @model_validator(mode="after")
     def validate_unique_can_ids(self) -> "CANBus":
         keys = [(f.can_id, f.id_format) for f in self.frames]
         duplicates = sorted(f"{cid:#x}/{fmt}" for (cid, fmt), c in Counter(keys).items() if c > 1)
