@@ -10,6 +10,6 @@ forwarder_frames:
     egresses:
       - egress_type: can_frame
         bus_ref: DiagCAN
-        frame_ref: Frame_EngineDiagResponse
+        frame_ref: 2024  # Frame_EngineDiagResponse (0x7E8)
       - egress_type: eth_socket
         socket_ref: pdu_engine_status_tx

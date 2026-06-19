@@ -13,7 +13,7 @@ class CANFrameEgress(FLYNCBaseModel):
 
     egress_type: Literal["can_frame"] = Field(default="can_frame")
     bus_ref: str = Field()
-    frame_ref: str = Field()
+    frame_ref: int = Field()
     extract_pdu_ref: Optional[str] = Field(default=None)
 
 

@@ -42,7 +42,7 @@ def test_canonical_scenario_1_can_to_can_egress_present(loaded_canonical_workspa
 
     fwd = loaded_canonical_workspace.flync_model.get_all_can_frame_forwarders()[0]
     can_sinks = [s.root for s in fwd.egresses if isinstance(s.root, CANFrameEgress)]
-    assert any(s.bus_ref == "DiagCAN" and s.frame_ref == "Frame_EngineDiagResponse" for s in can_sinks)
+    assert any(s.bus_ref == "DiagCAN" and s.frame_ref == 2024 for s in can_sinks)
 
 
 def test_canonical_scenario_2_can_to_eth_sink_present(loaded_canonical_workspace):
@@ -68,7 +68,7 @@ def test_canonical_scenario_3_eth_to_can_with_extraction(loaded_canonical_worksp
 
     fwd = loaded_canonical_workspace.flync_model.get_all_pdu_forwarders()[0]
     can_sinks = [s.root for s in fwd.egresses if isinstance(s.root, CANFrameEgress)]
-    assert any(s.bus_ref == "DiagCAN" and s.frame_ref == "Frame_EngineDiagResponse" and s.extract_pdu_ref == "PDU_EngineStatus" for s in can_sinks)
+    assert any(s.bus_ref == "DiagCAN" and s.frame_ref == 2024 and s.extract_pdu_ref == "PDU_EngineStatus" for s in can_sinks)
 
 
 def test_canonical_scenario_4_eth_to_eth_rebridge(loaded_canonical_workspace):
@@ -157,7 +157,7 @@ def test_negative_can_egress_not_in_sender_frames(workspace_copy):
     _mutate_file(_diag_ifc(workspace_copy), {"- frame_ref: Frame_EngineDiagResponse\n": ""})
     _assert_message_contains(
         _load_or_capture(workspace_copy),
-        ["Frame_EngineDiagResponse", "sender_frames"],
+        ["2024", "sender_frames"],
     )
 
 
@@ -193,15 +193,15 @@ def test_negative_eth_socket_egress_target_has_no_pdu_sender(workspace_copy):
 
 
 def test_negative_unknown_pdu_ref(workspace_copy):
-    """A CANFrameForwarder targeting an unknown frame triggers err_major."""
+    """A CANFrameEgress targeting an unknown CAN ID triggers err_major."""
 
     _mutate_file(
         _pwrtr_ifc(workspace_copy),
-        {"frame_ref: Frame_EngineDiagResponse": "frame_ref: Frame_DoesNotExist"},
+        {"frame_ref: 2024  # Frame_EngineDiagResponse (0x7E8)": "frame_ref: 9999"},
     )
     _assert_message_contains(
         _load_or_capture(workspace_copy),
-        ["Frame_DoesNotExist"],
+        ["9999"],
     )
 
 
@@ -264,7 +264,7 @@ def test_negative_two_bus_cycle(workspace_copy):
     _mutate_file(
         _diag_ifc(workspace_copy),
         {
-            "receiver_frames:\n  - frame_ref: Frame_LightDiagRequest": "receiver_frames:\n  - frame_ref: Frame_LightDiagRequest\nforwarder_frames:\n  - frame_ref: Frame_EngineDiagResponse\n    egresses:\n      - egress_type: can_frame\n        bus_ref: PowertrainCAN\n        frame_ref: Frame_EngineStatus",
+            "receiver_frames:\n  - frame_ref: Frame_LightDiagRequest": "receiver_frames:\n  - frame_ref: Frame_LightDiagRequest\nforwarder_frames:\n  - frame_ref: Frame_EngineDiagResponse\n    egresses:\n      - egress_type: can_frame\n        bus_ref: PowertrainCAN\n        frame_ref: 257",
         },
     )
     _assert_message_contains(
@@ -304,7 +304,7 @@ def test_positive_scenario_3_eth_container_extracted_to_can(workspace_copy):
     _mutate_file(
         _hpc_eth_socket_pdu(workspace_copy),
         {
-            "  - name: pdu_powertrain_tx\n    endpoint_address: 10.0.20.5\n    endpoint_type: unicast\n    port_no: 30800\n    protocol: udp\n    deployments:\n      - deployment_type: pdu_sender\n        pdu_ref: EthPowertrainContainer": "  - name: pdu_powertrain_tx\n    endpoint_address: 10.0.20.5\n    endpoint_type: unicast\n    port_no: 30800\n    protocol: udp\n    deployments:\n      - deployment_type: pdu_sender\n        pdu_ref: EthPowertrainContainer\n      - deployment_type: pdu_forwarder\n        pdu_ref: EthPowertrainContainer\n        egresses:\n          - egress_type: can_frame\n            bus_ref: DiagCAN\n            frame_ref: Frame_EngineDiagResponse\n            extract_pdu_ref: PDU_EngineStatus",
+            "  - name: pdu_powertrain_tx\n    endpoint_address: 10.0.20.5\n    endpoint_type: unicast\n    port_no: 30800\n    protocol: udp\n    deployments:\n      - deployment_type: pdu_sender\n        pdu_ref: EthPowertrainContainer": "  - name: pdu_powertrain_tx\n    endpoint_address: 10.0.20.5\n    endpoint_type: unicast\n    port_no: 30800\n    protocol: udp\n    deployments:\n      - deployment_type: pdu_sender\n        pdu_ref: EthPowertrainContainer\n      - deployment_type: pdu_forwarder\n        pdu_ref: EthPowertrainContainer\n        egresses:\n          - egress_type: can_frame\n            bus_ref: DiagCAN\n            frame_ref: 2024\n            extract_pdu_ref: PDU_EngineStatus",
         },
     )
     ws = FLYNCWorkspace.load_workspace("flync_example", workspace_copy)
@@ -323,7 +323,7 @@ def test_negative_extract_pdu_ref_not_in_container(workspace_copy):
     _mutate_file(
         _hpc_eth_socket_pdu(workspace_copy),
         {
-            "  - name: pdu_powertrain_tx\n    endpoint_address: 10.0.20.5\n    endpoint_type: unicast\n    port_no: 30800\n    protocol: udp\n    deployments:\n      - deployment_type: pdu_sender\n        pdu_ref: EthPowertrainContainer": "  - name: pdu_powertrain_tx\n    endpoint_address: 10.0.20.5\n    endpoint_type: unicast\n    port_no: 30800\n    protocol: udp\n    deployments:\n      - deployment_type: pdu_sender\n        pdu_ref: EthPowertrainContainer\n      - deployment_type: pdu_forwarder\n        pdu_ref: EthPowertrainContainer\n        egresses:\n          - egress_type: can_frame\n            bus_ref: DiagCAN\n            frame_ref: Frame_EngineDiagResponse\n            extract_pdu_ref: PDU_DoesNotExist",
+            "  - name: pdu_powertrain_tx\n    endpoint_address: 10.0.20.5\n    endpoint_type: unicast\n    port_no: 30800\n    protocol: udp\n    deployments:\n      - deployment_type: pdu_sender\n        pdu_ref: EthPowertrainContainer": "  - name: pdu_powertrain_tx\n    endpoint_address: 10.0.20.5\n    endpoint_type: unicast\n    port_no: 30800\n    protocol: udp\n    deployments:\n      - deployment_type: pdu_sender\n        pdu_ref: EthPowertrainContainer\n      - deployment_type: pdu_forwarder\n        pdu_ref: EthPowertrainContainer\n        egresses:\n          - egress_type: can_frame\n            bus_ref: DiagCAN\n            frame_ref: 2024\n            extract_pdu_ref: PDU_DoesNotExist",
         },
     )
     _assert_message_contains(
