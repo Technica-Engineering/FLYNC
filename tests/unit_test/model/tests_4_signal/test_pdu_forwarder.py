@@ -14,7 +14,7 @@ from flync.model.flync_4_signal.forwarder import (
 )
 
 
-def _can_egress(bus_ref: str, frame_ref: str, extract_pdu_ref: str | None = None) -> ForwarderEgress:
+def _can_egress(bus_ref: str, frame_ref: int, extract_pdu_ref: str | None = None) -> ForwarderEgress:
     return ForwarderEgress(root=CANFrameEgress(bus_ref=bus_ref, frame_ref=frame_ref, extract_pdu_ref=extract_pdu_ref))
 
 
@@ -47,7 +47,7 @@ def test_positive_pdu_forwarder_constructs_without_registry():
 
     fwd = PDUForwarder(
         pdu_ref="PDU_Anything",
-        egresses=[_can_egress(bus_ref="DiagCAN", frame_ref="Frame_X")],
+        egresses=[_can_egress(bus_ref="DiagCAN", frame_ref=0x100)],
     )
     assert fwd.pdu_ref == "PDU_Anything"
     assert len(fwd.egresses) == 1
@@ -60,7 +60,7 @@ def test_negative_extra_field_rejected_on_pdu_forwarder():
 
 def test_negative_extra_field_rejected_on_can_frame_sink():
     with pytest.raises(ValidationError):
-        CANFrameEgress.model_validate({"bus_ref": "B", "frame_ref": "F", "unknown_field": 1})
+        CANFrameEgress.model_validate({"bus_ref": "B", "frame_ref": 1, "unknown_field": 1})
 
 
 def test_negative_extra_field_rejected_on_eth_eth_socket_egress():
@@ -94,8 +94,8 @@ def test_negative_pdu_forwarder_duplicate_can_egresss():
         PDUForwarder(
             pdu_ref="PDU_X",
             egresses=[
-                _can_egress(bus_ref="DiagCAN", frame_ref="Frame_X"),
-                _can_egress(bus_ref="DiagCAN", frame_ref="Frame_X"),
+                _can_egress(bus_ref="DiagCAN", frame_ref=0x200),
+                _can_egress(bus_ref="DiagCAN", frame_ref=0x200),
             ],
         )
     assert "duplicates" in str(exc.value).lower()
@@ -117,8 +117,8 @@ def test_positive_pdu_forwarder_different_egress_targets_ok():
     fwd = PDUForwarder(
         pdu_ref="PDU_X",
         egresses=[
-            _can_egress(bus_ref="A", frame_ref="F"),
-            _can_egress(bus_ref="B", frame_ref="F"),
+            _can_egress(bus_ref="A", frame_ref=0x100),
+            _can_egress(bus_ref="B", frame_ref=0x100),
             _eth_socket_egress(socket_ref="sock_a"),
         ],
     )
@@ -140,16 +140,16 @@ def test_negative_can_frame_forwarder_duplicate_sinks():
         CANFrameForwarder(
             frame_ref="Frame_X",
             egresses=[
-                _can_egress(bus_ref="DiagCAN", frame_ref="F1"),
-                _can_egress(bus_ref="DiagCAN", frame_ref="F1"),
+                _can_egress(bus_ref="DiagCAN", frame_ref=0x101),
+                _can_egress(bus_ref="DiagCAN", frame_ref=0x101),
             ],
         )
     assert "duplicates" in str(exc.value).lower()
 
 
 def test_negative_can_interface_duplicate_forwarder_frames():
-    fwd_a = CANFrameForwarder(frame_ref="Frame_X", egresses=[_can_egress(bus_ref="DiagCAN", frame_ref="F1")])
-    fwd_b = CANFrameForwarder(frame_ref="Frame_X", egresses=[_can_egress(bus_ref="DiagCAN", frame_ref="F2")])
+    fwd_a = CANFrameForwarder(frame_ref="Frame_X", egresses=[_can_egress(bus_ref="DiagCAN", frame_ref=0x101)])
+    fwd_b = CANFrameForwarder(frame_ref="Frame_X", egresses=[_can_egress(bus_ref="DiagCAN", frame_ref=0x102)])
     with pytest.raises(ValidationError) as exc:
         CANInterfaceConfig(name="can0", bus_ref="PowertrainCAN", forwarder_frames=[fwd_a, fwd_b])
     assert "duplicate" in str(exc.value).lower()
@@ -158,7 +158,7 @@ def test_negative_can_interface_duplicate_forwarder_frames():
 def test_positive_can_interface_receiver_and_forwarder_coexist():
     """A frame can legitimately appear in receiver_frames AND forwarder_frames (dual-consume)."""
 
-    fwd = CANFrameForwarder(frame_ref="Frame_X", egresses=[_can_egress(bus_ref="DiagCAN", frame_ref="F1")])
+    fwd = CANFrameForwarder(frame_ref="Frame_X", egresses=[_can_egress(bus_ref="DiagCAN", frame_ref=0x101)])
     iface = CANInterfaceConfig(
         name="can0",
         bus_ref="PowertrainCAN",

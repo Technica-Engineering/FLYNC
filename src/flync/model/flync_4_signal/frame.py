@@ -109,7 +109,7 @@ class FrameTransmissionTiming(FLYNCBaseModel):
 # ---------------------------------------------------------------------------
 
 
-class Frame(UniqueName):
+class Frame(FLYNCBaseModel):
     """
     Protocol-agnostic frame base class.
 
