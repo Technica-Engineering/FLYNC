@@ -16,9 +16,9 @@
             "name": "Validate flync example",
             "type": "debugpy",
             "request": "launch",
-            "program": "src/flync/sdk/helpers/validate_workspace.py",
+            "program": "src/flync_cli/main.py",
             "console": "integratedTerminal",
-            "args": ["${cwd}/examples/flync_example/", "-a"]
+            "args": ["validate", "${cwd}/examples/flync_example/"]
         }
     ]
 }
