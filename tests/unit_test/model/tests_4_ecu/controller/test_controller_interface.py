@@ -24,7 +24,7 @@ def test_positive_controller_interface_config(
             "ethernet_interfaces": [{"name": "interface_test", "interface_config": ctrl_interface}],
         }
     )
-    assert isinstance(ctrl.ethernet_interfaces[0], ControllerInterface)
+    assert isinstance(ctrl.ethernet_interfaces[0].interface_config, ControllerInterface)
 
 
 def test_interface_name_propagated_from_ethernet_interface(

@@ -7,7 +7,6 @@ from pydantic import Field, model_validator
 from flync.core.annotations import Implied, ImpliedStrategy
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import err_major
-from flync.model.flync_4_ecu.controller_interface import ControllerInterface
 from flync.model.flync_4_signal.forwarder import CANFrameForwarder
 
 
@@ -28,14 +27,14 @@ class CANFrameRef(FLYNCBaseModel):
     frame_ref: int = Field()
 
 
-class CANInterface(ControllerInterface):
+class CANInterfaceConfig(FLYNCBaseModel):
     """
     CAN interface of a controller, declaring which frames the controller sends, receives, and forwards on a CAN bus.
 
     Parameters
     ----------
     name : str
-        Name of the CAN interface, implied from the file name on disk.
+        Name of the CAN interface, implied from the folder name on disk.
 
     bus_ref : str
         Name of the :class:`~flync.model.flync_4_bus.can_bus.CANBus` this interface connects to.
@@ -56,7 +55,7 @@ class CANInterface(ControllerInterface):
     forwarder_frames: List[CANFrameForwarder] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def validate_forwarder_frame_uniqueness(self) -> "CANInterface":
+    def validate_forwarder_frame_uniqueness(self) -> "CANInterfaceConfig":
         """Raise ``err_major`` if the same ``frame_ref`` appears twice in ``forwarder_frames``."""
 
         seen: set = set()
@@ -67,7 +66,7 @@ class CANInterface(ControllerInterface):
             seen.add(fwd.frame_ref)
         if duplicates:
             raise err_major(
-                "CANInterface(bus_ref={bus}): duplicate frame_ref(s) in forwarder_frames: {dups}",
+                "CANInterfaceConfig(bus_ref={bus}): duplicate frame_ref(s) in forwarder_frames: {dups}",
                 bus=self.bus_ref,
                 dups=sorted(duplicates),
             )

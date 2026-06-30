@@ -8,8 +8,7 @@ import flync.core.utils.common_validators as common_validators
 from flync.core.annotations.reference import Reference
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.exceptions import err_major
-from flync.model.flync_4_ecu.controller import Controller
-from flync.model.flync_4_ecu.controller_interface import ControllerInterface
+from flync.model.flync_4_ecu.controller import Controller, ControllerInterface
 from flync.model.flync_4_ecu.port import ECUPort
 from flync.model.flync_4_ecu.switch import Switch, SwitchPort
 
@@ -203,9 +202,7 @@ class ControllerInterfaceToXConnection(InternalConnection):
         return self._controller
 
     @staticmethod
-    def _find_controller_interface(
-        iface_name: str, controller_name: Optional[str], controllers: list, connection_id: str
-    ) -> "tuple[ControllerInterface, Controller]":
+    def _find_controller_interface(iface_name: str, controller_name: Optional[str], controllers: list, connection_id: str) -> "ControllerInterface":
         """Locate a controller interface by name within the ECU's controllers, with optional scoping to a named controller.
 
         Raises:
@@ -219,22 +216,23 @@ class ControllerInterfaceToXConnection(InternalConnection):
                 raise err_major(f"Controller '{controller_name}' referenced in connection '{connection_id}' was not found in the current ECU.")
             iface = next((i for i in ctrl.get_interfaces() if i.name == iface_name), None)
         else:
-            matches = [(i, c) for c in controllers for i in c.get_interfaces() if i.name == iface_name]
+            matches = [i for c in controllers for i in c.get_interfaces() if i.name == iface_name]
             if len(matches) > 1:
-                owners = [c.name for _, c in matches]
+                owners = [i.get_controller().name for i in matches]
                 raise err_major(
                     f"Controller interface '{iface_name}' referenced in connection '{connection_id}' is ambiguous — "
                     f"multiple controllers ({', '.join(owners)}) in the same ECU define an interface with this name. "
                     f"Add an explicit 'controller:' reference (e.g. controller: {owners[0]}) to the connection to disambiguate. "
                     f"Controller interface names are only unique within a single controller."
                 )
-            iface, ctrl = matches[0] if matches else (None, None)
+            iface = matches[0] if matches else None
         if iface is None:
             raise err_major(f"Controller interface '{iface_name}' referenced in connection '{connection_id}' was not found or was not validated")
-        return iface, ctrl
+        return iface
 
     def resolve_controller_interface(self, controllers: list) -> None:
-        self._iface, self._controller = self._find_controller_interface(self.iface_name, self.controller_name, controllers, self.id)
+        self._iface = self._find_controller_interface(self.iface_name, self.controller_name, controllers, self.id)
+        self._controller = self._iface.get_controller()
 
 
 class ECUPortToSwitchPort(ECUPortToXConnection, SwitchPortToXConnection):
@@ -444,7 +442,8 @@ class ControllerInterfaceToControllerInterface(ControllerInterfaceToXConnection)
 
     def bind(self, switches: list, controllers: list, ports: list) -> None:
         self.resolve_controller_interface(controllers)
-        self._iface2, self._controller2 = self._find_controller_interface(self.iface2_name, self.controller2_name, controllers, self.id)
+        self._iface2 = self._find_controller_interface(self.iface2_name, self.controller2_name, controllers, self.id)
+        self._controller2 = self._iface2.get_controller()
         self.iface._connected_component = self.iface2
         self.iface2._connected_component = self.iface
 

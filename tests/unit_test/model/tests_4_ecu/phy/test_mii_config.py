@@ -3,8 +3,7 @@ from pydantic import ValidationError
 
 from flync.model.flync_4_ecu.phy import BASET1, MII, RGMII, RMII, SGMII, XFI
 from flync.model.flync_4_ecu.port import ECUPort
-from flync.model.flync_4_ecu.controller import EthernetInterface
-from flync.model.flync_4_ecu.switch import SwitchPort
+from flync.model.flync_4_ecu.switch import ControllerInterface, SwitchPort
 
 # Positive Tests for MII Config in ECU Ports
 
@@ -114,18 +113,15 @@ def test_positive_xfi_config_ecu_port(virtual_controller_interface):
         }
     )
 
-    eth_iface_1 = EthernetInterface.model_validate(
+    ctrl_iface_1 = ControllerInterface.model_validate(
         {
-            "name": "iface1",
-            "interface_config": {
-                "mii_config": mii_config2,
-                "mac_address": "10:10:10:22:22:22",
-                "virtual_interfaces": [virtual_controller_interface],
-            },
+            "mii_config": mii_config2,
+            "mac_address": "10:10:10:22:22:22",
+            "virtual_interfaces": [virtual_controller_interface],
         }
     )
     assert isinstance(switch_port_1.mii_config, XFI)
-    assert isinstance(eth_iface_1.interface_config.mii_config, XFI)
+    assert isinstance(ctrl_iface_1.mii_config, XFI)
 
 
 # Negative Tests for MII Config in ECU Ports

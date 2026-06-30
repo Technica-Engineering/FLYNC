@@ -17,7 +17,7 @@ from flync.core.utils.base_utils import find_all
 from flync.core.utils.exceptions import err_major, err_minor
 from flync.model.flync_4_ecu.controller import (
     Controller,
-    EthernetInterfaceConfig,
+    ControllerInterface,
 )
 from flync.model.flync_4_ecu.internal_topology import InternalTopology
 from flync.model.flync_4_ecu.mac_multicast_endpoint import (
@@ -249,7 +249,7 @@ class ECU(FLYNCBaseModel):
         Add Multicast RX entries from virtual interfaces to multicast group memberships.
         """
 
-        for interface in find_all(self.controllers, EthernetInterfaceConfig):
+        for interface in find_all(self.controllers, ControllerInterface):
             for viface in interface.virtual_interfaces:
                 for multicast_addr in viface.multicast:
                     group = MulticastGroupMembership(
