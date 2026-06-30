@@ -121,9 +121,12 @@ jobs:
 
       - name: Run Pytest
         run: |
-          poetry run pytest --durations=0
+          COVERAGE_FILE=.coverage.unit poetry run pytest -m "not performance" --cov=flync --cov-report= --junitxml=report_not_performance.xml --durations=0
+          COVERAGE_FILE=.coverage.performance poetry run pytest -m performance --cov=flync --cov-report= --junitxml=report_performance.xml --durations=0
+          poetry run coverage combine .coverage.unit .coverage.performance
           poetry run coverage xml
           poetry run coverage report
+          poetry run python -m junitparser merge report_not_performance.xml report_performance.xml report.xml
 
       - name: Coverage comment
         id: coverage_comment
@@ -144,8 +147,12 @@ jobs:
           name: pytest-artifacts
           path: |
             .coverage
+            .coverage.unit
+            .coverage.performance
             report.xml
             coverage.xml
+            report_not_performance.xml
+            report_performance.xml
             tests/unit_test/sdk/fuzzed
             tests/unit_test/sdk/generated
           retention-days: 28

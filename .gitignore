@@ -43,7 +43,6 @@ htmlcov/
 .cache
 nosetests.xml
 coverage.xml
-pytest.ini
 *.cover
 .hypothesis/
 .pytest_cache/
@@ -115,6 +114,8 @@ ENV/
 
 docs/_autosummary
 report.xml
+report_not_performance.xml
+report_performance.xml
 
 __flync_generated__
 

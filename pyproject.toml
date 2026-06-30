@@ -86,6 +86,8 @@ mypy = "^1.18.2"
 pytest-xdist = "^3.8.0"
 approvaltests = "^18.0.0"
 pytest-qt = "^4.0"
+pytest-benchmark = "^5.2.3"
+junitparser = "^5.0.1"
 
 [tool.poetry.group.static-analysis.dependencies]
 black = "^26.1.0"
