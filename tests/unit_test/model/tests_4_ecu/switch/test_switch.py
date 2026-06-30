@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from flync.model.flync_4_ecu import ControllerInterface, Switch, SwitchPort
+from flync.model.flync_4_ecu import EthernetInterfaceConfig, Switch, SwitchPort
 
 
 def test_unique_silicon_port_number(embedded_metadata_entry, vlan_entry, switch_host_controller_example):
@@ -38,7 +38,7 @@ def test_switch_host(
         }
     )
 
-    assert isinstance(switch_example.host_controller, ControllerInterface)
+    assert isinstance(switch_example.host_controller, EthernetInterfaceConfig)
 
 
 def test_get_mac_returns_host_controller_mac(

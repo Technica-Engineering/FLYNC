@@ -2,7 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from flync.model.flync_4_ecu.controller import (
-    ControllerInterface,
+    EthernetInterface,
     VirtualControllerInterface,
 )
 from flync.model.flync_4_ecu.switch import SwitchPort
@@ -24,20 +24,23 @@ def test_positive_ptp_config_controller_time_transmitter(
         "pdelay_config": {"log_tx_period": 0},
     }
 
-    controller_iface = ControllerInterface.model_validate(
+    eth_iface = EthernetInterface.model_validate(
         {
-            "mac_address": "00:11:22:33:44:55",
-            "mii_config": None,
-            "virtual_interfaces": [virtual_controller_interface],
-            "ptp_config": {
-                "cmlds_linkport_enabled": False,
-                "ptp_ports": [ptp_port],
+            "name": "iface1",
+            "interface_config": {
+                "mac_address": "00:11:22:33:44:55",
+                "mii_config": None,
+                "virtual_interfaces": [virtual_controller_interface],
+                "ptp_config": {
+                    "cmlds_linkport_enabled": False,
+                    "ptp_ports": [ptp_port],
+                },
             },
         }
     )
 
-    assert isinstance(controller_iface.ptp_config, PTPConfig)
-    assert isinstance(controller_iface.ptp_config.ptp_ports[0], PTPPort)
+    assert isinstance(eth_iface.interface_config.ptp_config, PTPConfig)
+    assert isinstance(eth_iface.interface_config.ptp_config.ptp_ports[0], PTPPort)
 
 
 def test_positive_ptp_config_controller_time_receiver(
@@ -54,20 +57,23 @@ def test_positive_ptp_config_controller_time_receiver(
         "pdelay_config": {"log_tx_period": 0},
     }
 
-    controller_iface = ControllerInterface.model_validate(
+    eth_iface = EthernetInterface.model_validate(
         {
-            "mac_address": "00:11:22:33:44:55",
-            "mii_config": None,
-            "virtual_interfaces": [virtual_controller_interface],
-            "ptp_config": {
-                "cmlds_linkport_enabled": False,
-                "ptp_ports": [ptp_port],
+            "name": "iface1",
+            "interface_config": {
+                "mac_address": "00:11:22:33:44:55",
+                "mii_config": None,
+                "virtual_interfaces": [virtual_controller_interface],
+                "ptp_config": {
+                    "cmlds_linkport_enabled": False,
+                    "ptp_ports": [ptp_port],
+                },
             },
         }
     )
 
-    assert isinstance(controller_iface.ptp_config, PTPConfig)
-    assert isinstance(controller_iface.ptp_config.ptp_ports[0], PTPPort)
+    assert isinstance(eth_iface.interface_config.ptp_config, PTPConfig)
+    assert isinstance(eth_iface.interface_config.ptp_config.ptp_ports[0], PTPPort)
 
 
 def test_positive_two_domain_different_roles(
@@ -95,21 +101,24 @@ def test_positive_two_domain_different_roles(
         "pdelay_config": {"log_tx_period": 0},
     }
 
-    controller_iface = ControllerInterface.model_validate(
+    eth_iface = EthernetInterface.model_validate(
         {
-            "mac_address": "00:11:22:33:44:55",
-            "mii_config": None,
-            "virtual_interfaces": [virtual_controller_interface],
-            "ptp_config": {
-                "cmlds_linkport_enabled": False,
-                "ptp_ports": [ptp_port1, ptp_port2],
+            "name": "iface1",
+            "interface_config": {
+                "mac_address": "00:11:22:33:44:55",
+                "mii_config": None,
+                "virtual_interfaces": [virtual_controller_interface],
+                "ptp_config": {
+                    "cmlds_linkport_enabled": False,
+                    "ptp_ports": [ptp_port1, ptp_port2],
+                },
             },
         }
     )
 
     all_domains_valid = False
-    if controller_iface.ptp_config is not None:
-        for port in controller_iface.ptp_config.ptp_ports:
+    if eth_iface.interface_config.ptp_config is not None:
+        for port in eth_iface.interface_config.ptp_config.ptp_ports:
             if isinstance(port, PTPPort):
                 all_domains_valid = True
 
@@ -131,15 +140,17 @@ def test_negative_missing_domain_id_controller(
     }
 
     with pytest.raises(ValidationError) as e:
-        controller_iface = ControllerInterface.model_validate(
+        EthernetInterface.model_validate(
             {
                 "name": "iface1",
-                "mac_address": "00:11:22:33:44:55",
-                "mii_config": None,
-                "virtual_interfaces": [virtual_controller_interface],
-                "ptp_config": {
-                    "cmlds_linkport_enabled": False,
-                    "ptp_ports": [ptp_port],
+                "interface_config": {
+                    "mac_address": "00:11:22:33:44:55",
+                    "mii_config": None,
+                    "virtual_interfaces": [virtual_controller_interface],
+                    "ptp_config": {
+                        "cmlds_linkport_enabled": False,
+                        "ptp_ports": [ptp_port],
+                    },
                 },
             }
         )
@@ -161,15 +172,17 @@ def test_negative_wrong_src_port_identity_controller(
     }
 
     with pytest.raises(ValidationError) as e:
-        controller_iface = ControllerInterface.model_validate(
+        EthernetInterface.model_validate(
             {
                 "name": "iface1",
-                "mac_address": "00:11:22:33:44:55",
-                "mii_config": None,
-                "virtual_interfaces": [virtual_controller_interface],
-                "ptp_config": {
-                    "cmlds_linkport_enabled": False,
-                    "ptp_ports": [ptp_port],
+                "interface_config": {
+                    "mac_address": "00:11:22:33:44:55",
+                    "mii_config": None,
+                    "virtual_interfaces": [virtual_controller_interface],
+                    "ptp_config": {
+                        "cmlds_linkport_enabled": False,
+                        "ptp_ports": [ptp_port],
+                    },
                 },
             }
         )
@@ -190,15 +203,17 @@ def test_negative_time_transmitter_no_sync_interval_controller(
     }
 
     with pytest.raises(ValidationError) as e:
-        controller_iface = ControllerInterface.model_validate(
+        EthernetInterface.model_validate(
             {
                 "name": "iface1",
-                "mac_address": "00:11:22:33:44:55",
-                "mii_config": None,
-                "virtual_interfaces": [virtual_controller_interface],
-                "ptp_config": {
-                    "cmlds_linkport_enabled": False,
-                    "ptp_ports": [ptp_port],
+                "interface_config": {
+                    "mac_address": "00:11:22:33:44:55",
+                    "mii_config": None,
+                    "virtual_interfaces": [virtual_controller_interface],
+                    "ptp_config": {
+                        "cmlds_linkport_enabled": False,
+                        "ptp_ports": [ptp_port],
+                    },
                 },
             }
         )
@@ -220,15 +235,17 @@ def test_negative_time_transmitter_wrong_sync_interval_controller(
     }
 
     with pytest.raises(ValidationError) as e:
-        controller_iface = ControllerInterface.model_validate(
+        EthernetInterface.model_validate(
             {
                 "name": "iface1",
-                "mac_address": "00:11:22:33:44:55",
-                "mii_config": None,
-                "virtual_interfaces": [virtual_controller_interface],
-                "ptp_config": {
-                    "cmlds_linkport_enabled": False,
-                    "ptp_ports": [ptp_port],
+                "interface_config": {
+                    "mac_address": "00:11:22:33:44:55",
+                    "mii_config": None,
+                    "virtual_interfaces": [virtual_controller_interface],
+                    "ptp_config": {
+                        "cmlds_linkport_enabled": False,
+                        "ptp_ports": [ptp_port],
+                    },
                 },
             }
         )
@@ -250,15 +267,17 @@ def test_negative_time_transmitter_wrong_role_controller(
     }
 
     with pytest.raises(ValidationError) as e:
-        controller_iface = ControllerInterface.model_validate(
+        EthernetInterface.model_validate(
             {
                 "name": "iface1",
-                "mac_address": "00:11:22:33:44:55",
-                "mii_config": None,
-                "virtual_interfaces": [virtual_controller_interface],
-                "ptp_config": {
-                    "cmlds_linkport_enabled": False,
-                    "ptp_ports": [ptp_port],
+                "interface_config": {
+                    "mac_address": "00:11:22:33:44:55",
+                    "mii_config": None,
+                    "virtual_interfaces": [virtual_controller_interface],
+                    "ptp_config": {
+                        "cmlds_linkport_enabled": False,
+                        "ptp_ports": [ptp_port],
+                    },
                 },
             }
         )
@@ -279,15 +298,17 @@ def test_negative_time_receiver_wrong_role_controller(
     }
 
     with pytest.raises(ValidationError) as e:
-        controller_iface = ControllerInterface.model_validate(
+        EthernetInterface.model_validate(
             {
                 "name": "iface1",
-                "mac_address": "00:11:22:33:44:55",
-                "mii_config": None,
-                "virtual_interfaces": [virtual_controller_interface],
-                "ptp_config": {
-                    "cmlds_linkport_enabled": False,
-                    "ptp_ports": [ptp_port],
+                "interface_config": {
+                    "mac_address": "00:11:22:33:44:55",
+                    "mii_config": None,
+                    "virtual_interfaces": [virtual_controller_interface],
+                    "ptp_config": {
+                        "cmlds_linkport_enabled": False,
+                        "ptp_ports": [ptp_port],
+                    },
                 },
             }
         )
@@ -303,15 +324,17 @@ def test_negative_no_sync_config_controller(
     }
 
     with pytest.raises(ValidationError) as e:
-        controller_iface = ControllerInterface.model_validate(
+        EthernetInterface.model_validate(
             {
                 "name": "iface1",
-                "mac_address": "00:11:22:33:44:55",
-                "mii_config": None,
-                "virtual_interfaces": [virtual_controller_interface],
-                "ptp_config": {
-                    "cmlds_linkport_enabled": False,
-                    "ptp_ports": [ptp_port],
+                "interface_config": {
+                    "mac_address": "00:11:22:33:44:55",
+                    "mii_config": None,
+                    "virtual_interfaces": [virtual_controller_interface],
+                    "ptp_config": {
+                        "cmlds_linkport_enabled": False,
+                        "ptp_ports": [ptp_port],
+                    },
                 },
             }
         )
@@ -333,15 +356,17 @@ def test_negative_wrong_pdelay_config_controller(
     }
 
     with pytest.raises(ValidationError) as e:
-        controller_iface = ControllerInterface.model_validate(
+        EthernetInterface.model_validate(
             {
                 "name": "iface1",
-                "mac_address": "00:11:22:33:44:55",
-                "mii_config": None,
-                "virtual_interfaces": [virtual_controller_interface],
-                "ptp_config": {
-                    "cmlds_linkport_enabled": False,
-                    "ptp_ports": [ptp_port],
+                "interface_config": {
+                    "mac_address": "00:11:22:33:44:55",
+                    "mii_config": None,
+                    "virtual_interfaces": [virtual_controller_interface],
+                    "ptp_config": {
+                        "cmlds_linkport_enabled": False,
+                        "ptp_ports": [ptp_port],
+                    },
                 },
             }
         )

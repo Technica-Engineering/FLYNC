@@ -4,10 +4,12 @@ import pytest
 from pydantic_extra_types.mac_address import MacAddress
 
 from flync.model.flync_4_ecu.controller import (
-    ControllerInterface,
+    EthernetInterface,
     VirtualControllerInterface,
+    EthernetInterfaceConfig
 )
 from flync.model.flync_4_ecu.sockets import IPv4AddressEndpoint
+
 
 
 @pytest.fixture(scope="session")
@@ -29,8 +31,9 @@ def vci():
 
 @pytest.fixture(scope="session")
 def ci(vci):
-    ci = ControllerInterface(
+    ei = EthernetInterfaceConfig(
         mac_address=MacAddress("3a:7f:1c:9b:4e:02"),
         virtual_interfaces=[vci],
     )
+    ci = EthernetInterface(name = "ei",interface_config=ei) 
     return ci

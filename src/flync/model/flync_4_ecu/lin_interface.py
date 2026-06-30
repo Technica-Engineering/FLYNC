@@ -6,6 +6,7 @@ from pydantic import Field
 
 from flync.core.annotations import Implied, ImpliedStrategy
 from flync.core.base_models import FLYNCBaseModel
+from flync.model.flync_4_ecu.controller_interface import ControllerInterface
 
 _LINProtocol = Literal["1.3", "2.0", "2.1", "2.2A"]
 
@@ -26,7 +27,7 @@ class LINFrameRef(FLYNCBaseModel):
     frame_ref: int = Field()
 
 
-class LINMasterInterfaceConfig(FLYNCBaseModel):
+class LINMasterInterface(ControllerInterface):
     """
     LIN interface for a controller acting as LIN master on a bus.
 
@@ -35,7 +36,7 @@ class LINMasterInterfaceConfig(FLYNCBaseModel):
     Parameters
     ----------
     name : str
-        Name of the LIN interface, implied from the folder name on disk.
+        Name of the LIN interface, implied from the file name on disk.
 
     node_type : Literal["master"]
         Discriminator field.  Always ``"master"``.
@@ -62,7 +63,7 @@ class LINMasterInterfaceConfig(FLYNCBaseModel):
     sender_frames: List[LINFrameRef] = Field(default_factory=list)
 
 
-class LINSlaveInterfaceConfig(FLYNCBaseModel):
+class LINSlaveInterface(ControllerInterface):
     """
     LIN interface for a controller acting as LIN slave on a bus.
 
@@ -71,7 +72,7 @@ class LINSlaveInterfaceConfig(FLYNCBaseModel):
     Parameters
     ----------
     name : str
-        Name of the LIN interface, implied from the folder name on disk.
+        Name of the LIN interface, implied from the file name on disk.
 
     node_type : Literal["slave"]
         Discriminator field.  Always ``"slave"``.
@@ -106,8 +107,13 @@ class LINSlaveInterfaceConfig(FLYNCBaseModel):
     receiver_frames: List[LINFrameRef] = Field(default_factory=list)
 
 
-AnyLINInterfaceConfig = Annotated[
-    Union[LINMasterInterfaceConfig, LINSlaveInterfaceConfig],
+AnyLINInterface = Annotated[
+    Union[LINMasterInterface, LINSlaveInterface],
     Field(discriminator="node_type"),
 ]
 """Discriminated union of LIN master and slave interface configs, keyed on ``node_type``."""
+
+# Backward-compatible aliases — use the new names in new code.
+LINMasterInterfaceConfig = LINMasterInterface
+LINSlaveInterfaceConfig = LINSlaveInterface
+AnyLINInterfaceConfig = AnyLINInterface

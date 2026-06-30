@@ -6,12 +6,13 @@ and internal topology definitions.
 from .controller import (
     ComputeNodes,
     Controller,
-    ControllerInterface,
     EthernetInterface,
+    EthernetInterfaceConfig,
     VirtualControllerInterface,
     VirtualSwitch,
     VirtualSwitchPort,
 )
+from .controller_interface import ControllerInterface
 from .ecu import ECU
 from .internal_topology import InternalTopology
 from .mac_multicast_endpoint import (
@@ -46,6 +47,7 @@ __all__ = [
     "Controller",
     "ControllerInterface",
     "EthernetInterface",
+    "EthernetInterfaceConfig",
     "VirtualSwitch",
     "VirtualSwitchPort",
     "VirtualControllerInterface",

@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from flync.model.flync_4_ecu.controller import ControllerInterface
+from flync.model.flync_4_ecu.controller import EthernetInterface
 from flync.model.flync_4_security.macsec import (
     IntegrityWithConfidentiality,
     IntegrityWithoutConfidentiality,
@@ -24,16 +24,19 @@ def test_macsec_positive_vlan_bypass_entry(virtual_controller_interface):
         "participant_activation": "always",
     }
 
-    controller_iface = ControllerInterface.model_validate(
+    eth_iface = EthernetInterface.model_validate(
         {
-            "mac_address": "00:11:22:33:44:55",
-            "mii_config": None,
-            "virtual_interfaces": [virtual_controller_interface],
-            "macsec_config": macsec_example,
+            "name": "iface1",
+            "interface_config": {
+                "mac_address": "00:11:22:33:44:55",
+                "mii_config": None,
+                "virtual_interfaces": [virtual_controller_interface],
+                "macsec_config": macsec_example,
+            },
         }
     )
 
-    assert isinstance(controller_iface.macsec_config, MACsecConfig)
+    assert isinstance(eth_iface.interface_config.macsec_config, MACsecConfig)
 
 
 def test_negative_vlan_bypass_entry(virtual_controller_interface):
@@ -51,12 +54,15 @@ def test_negative_vlan_bypass_entry(virtual_controller_interface):
         "participant_activation": "always",
     }
     with pytest.raises(ValidationError) as e:
-        controller_iface = ControllerInterface.model_validate(
+        EthernetInterface.model_validate(
             {
-                "mac_address": "00:11:22:33:44:55",
-                "mii_config": None,
-                "virtual_interfaces": [virtual_controller_interface],
-                "macsec_config": macsec_example,
+                "name": "iface1",
+                "interface_config": {
+                    "mac_address": "00:11:22:33:44:55",
+                    "mii_config": None,
+                    "virtual_interfaces": [virtual_controller_interface],
+                    "macsec_config": macsec_example,
+                },
             }
         )
 
@@ -76,15 +82,18 @@ def test_positive_cipher_preference_integrity_without_confidentiality(integrity_
         "participant_activation": "always",
         "cipher_preference": [integrity_without_confidentiality_entry],
     }
-    controller_iface = ControllerInterface.model_validate(
+    eth_iface = EthernetInterface.model_validate(
         {
-            "mac_address": "00:11:22:33:44:55",
-            "mii_config": None,
-            "virtual_interfaces": [virtual_controller_interface],
-            "macsec_config": macsec_example,
+            "name": "iface1",
+            "interface_config": {
+                "mac_address": "00:11:22:33:44:55",
+                "mii_config": None,
+                "virtual_interfaces": [virtual_controller_interface],
+                "macsec_config": macsec_example,
+            },
         }
     )
-    assert isinstance(controller_iface.macsec_config, MACsecConfig)
+    assert isinstance(eth_iface.interface_config.macsec_config, MACsecConfig)
 
 
 def test_positive_cipher_preference_integrity_with_confidentiality(integrity_with_confidentiality_entry, virtual_controller_interface):
@@ -103,15 +112,18 @@ def test_positive_cipher_preference_integrity_with_confidentiality(integrity_wit
         "cipher_preference": [integrity_with_confidentiality_entry],
     }
 
-    controller_iface = ControllerInterface.model_validate(
+    eth_iface = EthernetInterface.model_validate(
         {
-            "mac_address": "00:11:22:33:44:55",
-            "mii_config": None,
-            "virtual_interfaces": [virtual_controller_interface],
-            "macsec_config": macsec_example,
+            "name": "iface1",
+            "interface_config": {
+                "mac_address": "00:11:22:33:44:55",
+                "mii_config": None,
+                "virtual_interfaces": [virtual_controller_interface],
+                "macsec_config": macsec_example,
+            },
         }
     )
-    assert isinstance(controller_iface.macsec_config, MACsecConfig)
+    assert isinstance(eth_iface.interface_config.macsec_config, MACsecConfig)
 
 
 def test_positive_cipher_preference_mix(
@@ -137,15 +149,18 @@ def test_positive_cipher_preference_mix(
         ],
     }
 
-    controller_iface = ControllerInterface.model_validate(
+    eth_iface = EthernetInterface.model_validate(
         {
-            "mac_address": "00:11:22:33:44:55",
-            "mii_config": None,
-            "virtual_interfaces": [virtual_controller_interface],
-            "macsec_config": macsec_example,
+            "name": "iface1",
+            "interface_config": {
+                "mac_address": "00:11:22:33:44:55",
+                "mii_config": None,
+                "virtual_interfaces": [virtual_controller_interface],
+                "macsec_config": macsec_example,
+            },
         }
     )
-    assert isinstance(controller_iface.macsec_config, MACsecConfig)
+    assert isinstance(eth_iface.interface_config.macsec_config, MACsecConfig)
 
 
 def test_positive_integrity_with_confidentiality():

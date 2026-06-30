@@ -4,9 +4,9 @@ from pydantic import ValidationError
 from flync.model.flync_4_ecu.controller import (
     ComputeNodes,
     Controller,
-    ControllerInterface,
     EmbeddedMetadata,
     EthernetInterface,
+    EthernetInterfaceConfig,
     PTPConfig,
     VirtualControllerInterface,
     VirtualSwitch,
@@ -33,7 +33,8 @@ def test_bridge_port_invalid_reference():
         compatible_flync_version=system_version,
         target_system="my_system",
     )
-    ctrl_iface = ControllerInterface(
+    ctrl_iface = EthernetInterfaceConfig(
+        
         mac_address="00:11:22:33:44:55",
         compute_nodes=[
             ComputeNodes(
@@ -73,7 +74,7 @@ def test_ptp_conflict_between_interface_and_compute_node():
     This protects against undefined runtime behavior (who actually handles PTP?).
     """
     with pytest.raises(ValidationError):
-        ControllerInterface(
+        EthernetInterfaceConfig(
             mac_address="00:11:22:33:44:55",
             ptp_config=PTPConfig(),
             compute_nodes=[
@@ -104,7 +105,7 @@ def test_feature_offload_to_compute_node_only():
         compatible_flync_version=system_version,
         target_system="my_system",
     )
-    ctrl_iface = ControllerInterface(
+    ctrl_iface = EthernetInterfaceConfig(
         mac_address="00:11:22:33:44:55",
         ptp_config=None,
         compute_nodes=[
