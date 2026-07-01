@@ -91,38 +91,41 @@ trio = ["trio (>=0.31.0) ; python_version < \"3.10\"", "trio (>=0.32.0) ; python
 
 [[package]]
 name = "approval-utilities"
-version = "18.0.5"
+version = "18.2.0"
 description = "Utilities for your production code that work well with approvaltests"
 optional = false
 python-versions = ">=3.10"
 groups = ["test"]
 files = [
-    {file = "approval_utilities-18.0.5-py3-none-any.whl", hash = "sha256:aaaf58a5f2c8cf6e0b06b91a49a72e3e25839ae16214e12b2ac2d6994702812c"},
-    {file = "approval_utilities-18.0.5.tar.gz", hash = "sha256:e1a74f1dac8006508a1c0df17137da11e33def718b8989b2e523ff4e29191d4f"},
+    {file = "approval_utilities-18.2.0-py3-none-any.whl", hash = "sha256:67343b3a70f276219ffa93763e940c96fd527c1b463e13e8502d455d578754ea"},
+    {file = "approval_utilities-18.2.0.tar.gz", hash = "sha256:96458dedcbacce90ed0f4aa457b43d1a453b9e8ec1483935199ae4fedadbc042"},
 ]
+
+[package.dependencies]
+typing_extensions = ">=4.12.0"
 
 [[package]]
 name = "approvaltests"
-version = "18.0.5"
+version = "18.2.0"
 description = "Assertion/verification library to aid testing"
 optional = false
 python-versions = ">=3.10"
 groups = ["test"]
 files = [
-    {file = "approvaltests-18.0.5-py3-none-any.whl", hash = "sha256:ca78572b9b4ee83d8322a7b0651a541b52468669038de93e4ed8b64a6e58496d"},
-    {file = "approvaltests-18.0.5.tar.gz", hash = "sha256:29bdbac1f47ecab1d543fb8920b35311dcc771f5ac869c13ed450c954e207c47"},
+    {file = "approvaltests-18.2.0-py3-none-any.whl", hash = "sha256:9465bcc0a288acc5894337fbb7e8a4264a2621de7c94971638f262d44825b3af"},
+    {file = "approvaltests-18.2.0.tar.gz", hash = "sha256:a7aa2c989c742610f664aa32c6e5153f763e5aa6fa038491d8aa5a6a26d9f89a"},
 ]
 
 [package.dependencies]
 allpairspy = ">=2.1.0"
-approval_utilities = "18.0.5"
-beautifulsoup4 = ">=4.4.0"
+approval_utilities = "18.2.0"
+beautifulsoup4 = ">=4.9.0"
 empty-files = ">=0.0.3"
 mock = ">=5.1.0"
 pyperclip = ">=1.5.29"
 pytest = ">=9.0.3"
-testfixtures = ">=7.1.0"
-typing_extensions = ">=3.6.2"
+testfixtures = ">=7.1.0,<12"
+typing_extensions = ">=4.12.0"
 
 [[package]]
 name = "argparse-addons"
