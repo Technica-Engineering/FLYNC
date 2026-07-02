@@ -55,10 +55,12 @@ def extract_container_model(annotation):  # noqa
     if get_origin(annotation) is Annotated:
         annotation = get_args(annotation)[0]
 
+    if isinstance(annotation, type) and issubclass(annotation, BaseModel):
+        return {"container": "model", "model": annotation}
+
     origin = get_origin(annotation)
     args = get_args(annotation)
     result = None
-
     if origin is list:
         items = extract_container_model(args[0])
         if items:
@@ -71,8 +73,6 @@ def extract_container_model(annotation):  # noqa
         models = _collect_union_options(args)
         if models:
             result = {"container": "union", "options": models}
-    elif isinstance(annotation, type) and issubclass(annotation, BaseModel):
-        result = {"container": "model", "model": annotation}
 
     return result
 
@@ -100,6 +100,13 @@ def unwrap_annotated(annotation):
 
 
 @lru_cache(maxsize=None)
+def model_force_rebuild(model: type[BaseModel]):
+    """Force rebuild of a Pydantic model class, regenerating schema and validators.
+    Cached with lru_cache to avoid redundant rebuilds for the same model."""
+    return model.model_rebuild(force=True)
+
+
+@lru_cache(maxsize=None)
 def extract_model_dependencies(model: type[BaseModel]) -> dict:
     """
     Return the cached dependency tree for a Pydantic model.
@@ -114,9 +121,6 @@ def extract_model_dependencies(model: type[BaseModel]) -> dict:
     """
 
     return _extract_model_dependencies(model, visited=set())
-
-
-_rebuilt_models: set[type[BaseModel]] = set()
 
 
 def _extract_model_dependencies(model: type[BaseModel], visited: set[type[BaseModel]]) -> dict:
@@ -135,22 +139,20 @@ def _extract_model_dependencies(model: type[BaseModel], visited: set[type[BaseMo
     if model in visited:
         return {"__cycle__": True}
     visited.add(model)
-    # Ensure forward refs are resolved (only once per model class per process)
-    if model not in _rebuilt_models:
-        model.model_rebuild(force=True)
-        _rebuilt_models.add(model)
+    model_force_rebuild(model)
+
     deps = {}
 
     for name, field in model.model_fields.items():
         annotation, _ = unwrap_annotated(field.annotation)
-        external = get_metadata(field.metadata, External)
-        reference = get_metadata(field.metadata, Reference)
-        implied = get_metadata(field.metadata, Implied)
-        if reference or implied:
-            continue
         container_info = extract_container_model(annotation)
 
         if container_info:
+            external = get_metadata(field.metadata, External)
+            reference = get_metadata(field.metadata, Reference)
+            implied = get_metadata(field.metadata, Implied)
+            if reference or implied:
+                continue
             structure_info = build_dependency_structure(container_info, visited)
             deps[name] = {
                 "external": external,
@@ -220,7 +222,7 @@ def walk_structure(parent_model, structure, edges, visited=None):
             infinite recursion on cycles.
     """
 
-    if not visited:
+    if visited is None:
         visited = set()
     if structure["type"] == "list":
         walk_structure(parent_model, structure["items"], edges, visited=visited)

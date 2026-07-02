@@ -1,7 +1,8 @@
 from dataclasses import dataclass
+from functools import lru_cache
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Position:
     """
     Represents a position in a text document.
@@ -21,7 +22,7 @@ class Position:
     character: int
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Range:
     """
     Represents a range between two positions in a document.
@@ -35,7 +36,7 @@ class Range:
     end: Position
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class SourceRef:
     """
     Reference to the source location of a semantic object.
@@ -47,3 +48,17 @@ class SourceRef:
 
     uri: str
     range: Range
+
+
+@lru_cache(maxsize=None)
+def get_range(start_line, start_column, end_line, end_column):
+    """
+    Build a reusable LSP Range object.
+
+    Creates a Range with start and end Positions from the given line/column
+    coordinates. Cached with lru_cache to avoid reconstructing identical ranges.
+    """
+    return Range(
+        start=Position(start_line, start_column),
+        end=Position(end_line, end_column),
+    )

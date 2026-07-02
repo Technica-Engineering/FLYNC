@@ -12,6 +12,8 @@ class SemanticObject(object):
         model (BaseModel): The validated Pydantic model.
     """
 
+    __slots__ = ("id", "model")
+
     def __init__(self, id: ObjectId, model: BaseModel):
         """
         Initialize a SemanticObject.

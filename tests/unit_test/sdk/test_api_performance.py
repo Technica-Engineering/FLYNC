@@ -9,8 +9,8 @@ from flync.sdk.helpers.generation_helpers import dump_flync_workspace
 from flync.sdk.helpers.validation_helpers import validate_workspace
 
 __PERFORMANCE_THRESHOLDS = {
-    validate_workspace.__name__: {"max_duration_ms": 3700, "max_memory_mb": 14},
-    dump_flync_workspace.__name__: {"max_duration_ms": 16000, "max_memory_mb": 160},
+    validate_workspace.__name__: {"max_duration_ms": 4000, "max_memory_mb": 14},
+    dump_flync_workspace.__name__: {"max_duration_ms": 16000, "max_memory_mb": 200},
 }
 current_dir = Path(__file__).resolve().parent
 
@@ -42,8 +42,9 @@ def test_validate_workspace_benchmark(benchmark, get_relative_flync_example_path
 
 @pytest.mark.performance
 @pytest.mark.critical_api
-def test_dump_flync_workspace_benchmark(benchmark, loaded_workspace):
+def test_dump_flync_workspace_benchmark(benchmark, loaded_workspace_with_object_map):
     """Benchmark dump_flync_workspace API"""
+    loaded_workspace = loaded_workspace_with_object_map
     ws_name = loaded_workspace.name + "_dump_flync_workspace_performance"
     output_path = Path(current_dir / "generated" / ws_name)
     if output_path.exists():

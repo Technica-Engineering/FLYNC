@@ -5,6 +5,8 @@ Provides classes and functions to manage workspace operations.
 """
 
 import logging
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Dict, Optional, Union, get_args, get_origin
 
@@ -42,14 +44,15 @@ from flync.sdk.utils.field_utils import (
 from flync.sdk.utils.model_dependencies import (
     ModelDependencyGraph,
     get_model_dependency_graph,
+    model_force_rebuild,
 )
 from flync.sdk.utils.model_dumper import dump_model_with_discriminators
 from flync.sdk.utils.sdk_types import PathType
 
-from .document import Document
+from .document import Document, parse_document, read_file
 from .ids import ObjectId
 from .objects import SemanticObject
-from .source import Position, Range, SourceRef
+from .source import SourceRef, get_range
 
 logger = logging.getLogger(__name__)
 
@@ -189,6 +192,7 @@ class FLYNCWorkspace(object):
             workspace_path=workspace_path,
             configuration=workspace_config,
         )
+        output._open_documents()
         model = output.__load_from_path(output.workspace_root)  # type: ignore[arg-type]
 
         if not isinstance(model, FLYNCBaseModel):
@@ -224,7 +228,42 @@ class FLYNCWorkspace(object):
 
     # endregion
     # region ingestion
-    def _open_document(self, uri: PathType, text: str):  # noqa # nosonar
+
+    def _open_documents(self):
+        """
+        Open all documents in the workspace matching the configured file extension.
+        Each file is processed concurrently using a thread pool for efficiency.
+
+        Returns:
+            None
+
+        Raises:
+            OSError: If a file is temporarily locked or inaccessible. Such files
+            are skipped and retried later in synchronous mode.
+        """
+        files = [p for p in self.workspace_root.rglob(f"*{self.configuration.flync_file_extension}") if p.is_file()]
+        if len(files) == 0:
+            return
+
+        contents = []
+        with ThreadPoolExecutor() as tpool:
+            contents = tpool.map(read_file, files)
+
+        with ProcessPoolExecutor() as ppool:
+            futures = []
+            for item in contents:
+                if item is None:
+                    continue
+                path, text = item
+                futures.append(ppool.submit(parse_document, path, text, self.workspace_root, self.configuration.map_objects))
+
+            for future in as_completed(futures):
+                uri, ast, compose_ast, text = future.result()
+                doc = Document(uri, text, self.configuration.map_objects)
+                doc.assign_ast(ast, compose_ast)
+                self.documents[doc.uri] = doc
+
+    def _open_document(self, uri: PathType):  # noqa # nosonar
         """
         Open a document, parse it, and add it to the workspace.
 
@@ -235,12 +274,14 @@ class FLYNCWorkspace(object):
 
         Returns: None
         """
+        result = read_file(uri)
+        if result is None:
+            # handle missing file case
+            text = ""
+        else:
+            _, text = result
 
-        if isinstance(uri, str):
-            uri = Path(uri)
-        if uri.is_absolute():
-            uri = uri.relative_to(self.workspace_root)  # type: ignore[arg-type]
-        uri = uri.as_posix()
+        uri = Document.normalize_uri(uri, self.workspace_root)
         doc = Document(uri, text, self.configuration.map_objects)
         doc.parse()
         self.documents[uri] = doc
@@ -869,7 +910,7 @@ class FLYNCWorkspace(object):
         # if no type is passed, then this is the starting point
         if current_type is None:
             current_type = self.configuration.root_model
-        current_type.model_rebuild(force=True)
+        model_force_rebuild(current_type)
         if isinstance(path, str):
             path = Path(path)
         if not current_object_paths:
@@ -1012,19 +1053,20 @@ class FLYNCWorkspace(object):
             if not self.is_flync_file(path):
                 logger.error("trying to load an unsupported file: %s", str(path))
                 return
-            with open(path, "r", encoding="utf-8") as direct_data:
-                self._open_document(path, direct_data.read())
-                content = self.documents[self.document_id_from_path(path)].ast
-                if content is None:
+            uri: str = self.document_id_from_path(path)
+            if uri not in self.documents:
+                self._open_document(path)
+            content = self.documents[uri].ast
+            if content is None:
+                return
+            if output_strategy:
+                if OutputStrategy.OMMIT_ROOT in output_strategy:
+                    model_load_info[field_name] = content
                     return
-                if output_strategy:
-                    if OutputStrategy.OMMIT_ROOT in output_strategy:
-                        model_load_info[field_name] = content
-                        return
-                    elif OutputStrategy.FIXED_ROOT in output_strategy:
-                        model_load_info[field_name] = content[fixed_name]
-                        return
-                model_load_info.update(content)
+                elif OutputStrategy.FIXED_ROOT in output_strategy:
+                    model_load_info[field_name] = content[fixed_name]
+                    return
+            model_load_info.update(content)
 
     @staticmethod
     def __get_field_filename(model: FLYNCBaseModel):  # noqa # nosonar
@@ -1186,22 +1228,19 @@ class FLYNCWorkspace(object):
                 current_parent = getattr(current_parent, part)
         return ".".join(parts)
 
-    __cached_uris: dict[Path, Path] = {}
-
-    def document_id_from_path(self, doc_path: Path) -> str:
+    @lru_cache(maxsize=None)
+    def document_id_from_path(self, doc_path: str) -> str:
         """
         Return the workspace-relative string identifier for a document path.
 
         Args:
-            doc_path (Path): An absolute path to a document file.
+            doc_path (str): An absolute path to a document file.
 
         Returns:
             str: The path relative to the workspace root, as a string.
         """
 
-        if doc_path not in self.__cached_uris:
-            self.__cached_uris[doc_path] = doc_path.absolute().relative_to(self.workspace_root)  # type: ignore[arg-type]
-        return self.__cached_uris[doc_path].as_posix()
+        return Path(doc_path).absolute().relative_to(self.workspace_root).as_posix()  # type: ignore[arg-type]
 
     @staticmethod
     def new_object_path(current_path: str, new_object_name: int | str) -> str:
@@ -1264,7 +1303,7 @@ class FLYNCWorkspace(object):
         end_column = 0
         if isinstance(model, RootModel):
             model = model.root
-        path_id = self.document_id_from_path(path)
+        path_id = self.document_id_from_path(str(path))
         if model is not None and path_id in self.documents:
             # object is all external fields
             # should already be updated
@@ -1387,19 +1426,26 @@ class FLYNCWorkspace(object):
             start_column (int): 1-based start column.
             end_column (int): 1-based end column.
         """
+        if not self.configuration.map_objects:
+            return
 
+        objects: Dict[ObjectId, SemanticObject] = {}
+        sources: Dict[ObjectId, SourceRef] = {}
+        src_ref: SourceRef | None = None
         for object_path in current_object_paths:
             object_id = ObjectId(object_path.strip("."))
             if object_id in self.objects:
                 return
             self.objects[object_id] = SemanticObject(object_id, model)
-            self.sources[object_id] = SourceRef(
-                self.document_id_from_path(path),
-                Range(
-                    start=Position(start_line, start_column),
-                    end=Position(end_line, end_column),
-                ),
-            )
+            if src_ref is None:
+                src_ref = SourceRef(
+                    self.document_id_from_path(str(path)),
+                    get_range(start_line, start_column, end_line, end_column),
+                )
+            sources[object_id] = src_ref
+
+        self.objects.update(objects)
+        self.sources.update(sources)
 
     def get_object(self, id: ObjectId) -> SemanticObject:
         """

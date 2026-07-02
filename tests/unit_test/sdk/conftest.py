@@ -18,8 +18,13 @@ def get_flync_workspace_minimal_config():
 
 
 @pytest.fixture
-def loaded_workspace(get_flync_example_path):
-    return FLYNCWorkspace.load_workspace("test_workspace", get_flync_example_path)
+def loaded_workspace_with_object_map(get_flync_example_path):
+    return FLYNCWorkspace.load_workspace("test_workspace", get_flync_example_path, WorkspaceConfiguration(map_objects=True))
+
+
+@pytest.fixture
+def loaded_workspace_without_object_map(get_flync_example_path):
+    return FLYNCWorkspace.load_workspace("test_workspace", get_flync_example_path, WorkspaceConfiguration(map_objects=False))
 
 
 @pytest.fixture

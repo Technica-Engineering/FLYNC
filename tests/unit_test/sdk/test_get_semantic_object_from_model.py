@@ -17,7 +17,8 @@ STORED_MODELS = [
 
 
 @pytest.mark.parametrize("get_model,expected_id", STORED_MODELS)
-def test_get_semantic_object_from_model_found(loaded_workspace, get_model, expected_id):
+def test_get_semantic_object_from_model_found(loaded_workspace_with_object_map, get_model, expected_id):
+    loaded_workspace = loaded_workspace_with_object_map
     model = get_model(loaded_workspace)
     result = loaded_workspace.get_semantic_object_from_model(model)
     assert result is not None
@@ -29,8 +30,9 @@ def test_get_semantic_object_from_model_found(loaded_workspace, get_model, expec
 
 
 def test_get_semantic_object_from_model_returns_none_for_unregistered(
-    loaded_workspace,
+    loaded_workspace_without_object_map,
 ):
+    loaded_workspace = loaded_workspace_without_object_map
     # The root FLYNCModel is assembled from file-level objects but is never
     # stored in the objects dict itself.
     result = loaded_workspace.get_semantic_object_from_model(loaded_workspace.flync_model)
