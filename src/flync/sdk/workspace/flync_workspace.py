@@ -15,6 +15,7 @@ from pydantic import RootModel
 from pydantic.fields import FieldInfo
 from pydantic_core import ErrorDetails, ValidationError
 from ruamel.yaml.nodes import MappingNode, Node, SequenceNode
+from typing_extensions import deprecated
 
 from flync.core.annotations import (
     External,
@@ -51,7 +52,7 @@ from flync.sdk.utils.sdk_types import PathType
 
 from .document import Document, parse_document, read_file
 from .ids import ObjectId
-from .objects import SemanticObject
+from .objects import ObjectMetadata, SemanticObject
 from .source import SourceRef, get_range
 
 logger = logging.getLogger(__name__)
@@ -120,6 +121,13 @@ class FLYNCWorkspace(object):
                 workspace_path,
             )
         self.workspace_root = Path(workspace_path).absolute()
+        self._model_to_object_ids: dict[int, list[ObjectId]] = {}
+        # Immediate-parent object-id -> ordered immediate child ids, recorded as
+        # child paths are built during load (parent + separator + segment) so
+        # child lookups never destructure the dot-separated id. ``_linked_child_ids``
+        # dedups so a child is registered under its parent at most once.
+        self._children_by_parent: dict[str, list[str]] = {}
+        self._linked_child_ids: set[str] = set()
 
     @property
     def load_errors(self):
@@ -1007,7 +1015,7 @@ class FLYNCWorkspace(object):
                     attribute_type = dict[str, attribute_type]  # type: ignore[valid-type]
                     base_type = get_origin(attribute_type)
                     base_type_args = get_args(attribute_type)
-            new_paths = [self.new_object_path(current, field_name) for current in current_object_paths]
+            new_paths = self.update_objects_path(current_object_paths, field_name)
             self.__handle_generic_types(
                 attribute_type,
                 base_type,
@@ -1269,7 +1277,34 @@ class FLYNCWorkspace(object):
             list[str]: New list of extended path strings.
         """
 
-        return [self.new_object_path(current_path, new_object_name) for current_path in current_paths]
+        child_paths = [self.new_object_path(current_path, new_object_name) for current_path in current_paths]
+        if self.configuration.map_objects:
+            # Each child path is its parent path with one appended segment, so the
+            # parent/child pair is known here without ever splitting the id. Index
+            # alignment holds because both lists are built from ``current_paths``.
+            for parent_path, child_path in zip(current_paths, child_paths):
+                self._link_child_path(parent_path, child_path)
+        return child_paths
+
+    def _link_child_path(self, parent_path: str, child_path: str) -> None:
+        """
+        Record a parent -> child edge in the child index.
+
+        ``parent_path``/``child_path`` are raw (possibly leading-dot) traversal
+        paths; they are normalized with the same ``strip(".")`` used when objects
+        are registered, so the recorded ids match :attr:`objects` keys. Root-level
+        ids (which normalize to an empty parent) are skipped, preserving the
+        "root has no children" behaviour.
+        """
+
+        parent_id = parent_path.strip(".")
+        if not parent_id:
+            return
+        child_id = child_path.strip(".")
+        if child_id in self._linked_child_ids:
+            return
+        self._linked_child_ids.add(child_id)
+        self._children_by_parent.setdefault(parent_id, []).append(child_id)
 
     # endregion
 
@@ -1443,6 +1478,11 @@ class FLYNCWorkspace(object):
                     get_range(start_line, start_column, end_line, end_column),
                 )
             sources[object_id] = src_ref
+            if model is not None:
+                model_key = id(model)
+                if model_key not in self._model_to_object_ids:
+                    self._model_to_object_ids[model_key] = []
+                self._model_to_object_ids[model_key].append(object_id)
 
         self.objects.update(objects)
         self.sources.update(sources)
@@ -1477,6 +1517,29 @@ class FLYNCWorkspace(object):
 
         return id in self.objects.keys()
 
+    def get_metadata(self, id: ObjectId) -> ObjectMetadata:
+        """
+        Retrieve metadata about a semantic object without exposing the full model.
+
+        Provides type information, field details, relationships, and source location.
+        The model itself is stored privately and not exposed in serialization.
+
+        Args:
+            id (ObjectId):
+                Identifier of the semantic object.
+
+        Returns:
+            ObjectMetadata:
+                Metadata object with type, fields, annotations, parents, children, and source.
+
+        Raises:
+            KeyError:
+                If the object does not exist in the workspace.
+        """
+
+        semantic_obj = self.get_object(id)
+        return ObjectMetadata(semantic_obj, self)
+
     def list_objects(self) -> list[ObjectId]:
         """
         Return a list of all ObjectIds present in the workspace.
@@ -1487,6 +1550,23 @@ class FLYNCWorkspace(object):
         """
 
         return list(self.objects.keys())
+
+    def get_child_ids(self, id: ObjectId) -> list[str]:
+        """
+        Return the immediate child ObjectId strings of a given object.
+
+        Backed by the ``_children_by_parent`` index built during object
+        mapping, so this is an O(1) lookup rather than a full scan of the
+        workspace.
+
+        Args:
+            id (ObjectId): Identifier of the parent object.
+
+        Returns:
+            list[str]: Immediate child id strings (empty if none / not mapped).
+        """
+
+        return [child for child in self._children_by_parent.get(str(id), []) if child in self.objects]
 
     def get_definition(self, object_id: ObjectId, field_name: str) -> Optional[ObjectId]:
         """
@@ -1592,9 +1672,48 @@ class FLYNCWorkspace(object):
             )
         refs.append(path_candidate)
 
+    def get_semantic_objects_ids_from_model(self, model: FLYNCBaseModel) -> list[ObjectId]:
+        """
+        Find and return ObjectIds for all semantic objects that correspond to a model.
+
+        A single model instance may be registered under multiple ObjectIds (e.g., a list item
+        indexed by both numeric position and name).
+
+        Args:
+            model (FLYNCBaseModel):
+                Validated Flync model.
+
+        Returns:
+            list[ObjectId]:
+                List of ObjectIds that correspond to the Flync object. Empty if none found.
+        """
+
+        return self._model_to_object_ids.get(id(model), []).copy()
+
+    def get_semantic_objects_from_model(self, model: FLYNCBaseModel) -> list[SemanticObject]:
+        """
+        Find and return all semantic objects that correspond to a validated Flync object.
+
+        A single model instance may be registered under multiple ObjectIds (e.g., a list item
+        indexed by both numeric position and name).
+
+        Args:
+            model (FLYNCBaseModel):
+                Validated Flync model.
+
+        Returns:
+            list[SemanticObject]:
+                List of semantic objects that correspond to the Flync object. Empty if none found.
+        """
+
+        return [self.objects[oid] for oid in self._model_to_object_ids.get(id(model), [])]
+
+    @deprecated("Use get_semantic_objects_from_model() instead, which returns all matches")
     def get_semantic_object_from_model(self, model: FLYNCBaseModel) -> SemanticObject | None:
         """
-        Find and return the semantic object that corresponds to a validated Flync object.
+        Find and return the first semantic object that corresponds to a validated Flync object.
+
+        This method maintains backward compatibility by returning only the first result.
 
         Args:
             model (FLYNCBaseModel):
@@ -1602,14 +1721,11 @@ class FLYNCWorkspace(object):
 
         Returns:
             SemanticObject | None:
-                Optional semantic object that corresponds to Flync object.
+                First semantic object that corresponds to Flync object, or None if not found.
         """
 
-        for semantic_object in self.objects.values():
-            if model is semantic_object.model:
-                return semantic_object
-
-        return None
+        results = self.get_semantic_objects_from_model(model)
+        return results[0] if results else None
 
     # endregion
 

@@ -563,6 +563,12 @@ class ModelDependencyGraph:
 
 _cache_cleaned = False
 _cache_name = ""
+# In-process cache of built dependency graphs, keyed by ``str(root)``. The shelve
+# below persists graphs across process runs; this avoids re-acquiring the file
+# lock and re-unpickling the shelve on every call within a single process (the
+# graph is deterministic per root type, and this factory is called many times
+# per dump/load).
+_graph_cache: dict[str, "ModelDependencyGraph"] = {}
 
 
 def hash_directory_fast(directory: str, ext=".py") -> str:
@@ -658,10 +664,15 @@ def get_model_dependency_graph(root: type[BaseModel]) -> ModelDependencyGraph:
     """
 
     key = str(root)
+    cached = _graph_cache.get(key)
+    if cached is not None:
+        return cached
     shelv_location, shelv_file_name = cleanup_old_caches()
     lock_path = join(shelv_location, shelv_file_name + ".lock")
     with FileLock(lock_path):
         with shelve.open(join(shelv_location, shelv_file_name)) as cache:
             if key not in cache:
                 cache[key] = ModelDependencyGraph(root)
-            return cache[key]
+            graph = cache[key]
+    _graph_cache[key] = graph
+    return graph

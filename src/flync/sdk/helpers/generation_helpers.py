@@ -15,7 +15,6 @@ from pydantic_extra_types.mac_address import MacAddress
 
 from flync.core.datatypes.ipaddress import IPv4AddressEntry
 from flync.model.flync_4_ecu.phy import BASET1
-from flync.model.flync_4_ecu.port import ECUPort
 from flync.model.flync_4_ecu.sockets import IPv4AddressEndpoint
 from flync.model.flync_4_topology.system_topology import ExternalConnection
 from flync.model.flync_model import FLYNCBaseModel, FLYNCModel
@@ -165,6 +164,29 @@ class FLYNCFactory(ModelFactory[FLYNCBaseModel]):
         return arg
 
     @staticmethod
+    def __list_element_flync_type(annotation) -> type[FLYNCBaseModel] | None:
+        """
+        Return the element type when ``annotation`` is a list of FLYNCBaseModel subclasses.
+
+        Handles both bare ``List[X]`` and ``Optional[List[X]]`` (whose origin is a Union), returning ``X`` when it is a FLYNCBaseModel
+        subclass and ``None`` otherwise.
+
+        Args:
+            annotation: The field type annotation.
+
+        Returns:
+            type | None: The list element type, or ``None`` if the annotation is not a list of FLYNC models.
+        """
+
+        candidates = [a for a in get_args(annotation) if a is not type(None)] if is_union(annotation) else [annotation]
+        for candidate in candidates:
+            if (get_origin(candidate) or candidate) is list:
+                arg_type = FLYNCFactory.__default_arg_type(candidate)
+                if arg_type and inspect.isclass(arg_type) and issubclass(arg_type, FLYNCBaseModel):
+                    return arg_type
+        return None
+
+    @staticmethod
     def __get_field_default_value(field_info: FieldInfo) -> tuple[bool, Any]:
         """
         Determine the default value for a Pydantic field.
@@ -180,6 +202,10 @@ class FLYNCFactory(ModelFactory[FLYNCBaseModel]):
 
         args = get_args(field_info.annotation)
         is_optional = type(None) in args
+        # Lists of FLYNC models are scaffolded with generated elements rather than left at their (empty) default, so nested structures such as
+        # a controller's interfaces appear in the template and cross-field validators (e.g. "at least one interface") are satisfied.
+        if FLYNCFactory.__list_element_flync_type(field_info.annotation) is not None:
+            return (False, None)
         valid, result = (False, None)
         if field_info.default is not PydanticUndefined:
             valid, result = (True, field_info.default)
@@ -209,12 +235,31 @@ class FLYNCFactory(ModelFactory[FLYNCBaseModel]):
                 - `Any`: The generated list of model instances.
         """
 
-        if arg_type and inspect.isclass(arg_type) and issubclass(arg_type, FLYNCBaseModel) and origin_type is list:
-            min_length: int = 2 if arg_type == ECUPort else FLYNCFactory.__min_length_list(field_info)
-            return True, Factory.get_factory(arg_type).batch(
-                size=min_length,
-                **kwargs,
-            )
+        elem_type = FLYNCFactory.__list_element_flync_type(field_info.annotation)
+        if elem_type is not None:
+            min_length: int = FLYNCFactory.__min_length_list(field_info)
+            try:
+                factory = Factory.get_factory(elem_type)
+                # ``batch`` would call ``build`` repeatedly, and every element's name defaults to index 1, producing duplicate names that break
+                # uniqueness validation on reload. Build each element with a distinct index so batched named nodes stay unique.
+                assign_names = "name" in elem_type.model_fields and "name" not in kwargs
+                items = []
+                for idx in range(1, min_length + 1):
+                    item_kwargs = dict(kwargs)
+                    if assign_names:
+                        item_kwargs["name"] = Factory.build_name(elem_type, idx=idx)
+                    items.append(factory.build(**item_kwargs))
+                return True, items
+            except Exception:
+                # Optional nested collections that cannot be scaffolded validly fall back to their declared default (typically an empty list) so
+                # template generation still succeeds. Required collections have no default and re-raise so genuine problems remain visible.
+                if field_info.default is not PydanticUndefined:
+                    fallback = field_info.default
+                elif field_info.default_factory is not None:
+                    fallback = field_info.default_factory()  # type: ignore[call-arg]
+                else:
+                    raise
+                return True, fallback
         return False, None
 
     @staticmethod

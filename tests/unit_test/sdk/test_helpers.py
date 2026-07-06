@@ -16,6 +16,7 @@ from flync.sdk.context.workspace_config import (
 )
 from flync.sdk.helpers.generation_helpers import (
     dump_flync_workspace,
+    generate_external_node,
 )
 from flync.sdk.helpers.validation_helpers import (
     WorkspaceState,
@@ -221,3 +222,14 @@ def test_load_workspace_with_old_field_name(get_relative_flync_example_path, tmp
     assert loaded_ws.flync_model.communication is loaded_ws.flync_model.general
     assert any(loaded_ws.flync_model.communication.tcp_profiles)
     assert [e for e in loaded_ws.load_errors if e.get("type") == "warning" and e.get("msg", "") == expected_warning]
+
+
+@pytest.mark.parametrize("node_type", [ECU, Controller], ids=["ECU", "Controller"])
+def test_generate_external_node_scaffold(node_type, tmp_path):
+    """Scaffolding a node exercises the factory/generate path (Factory.build,
+    list-field generation, name assignment) and writes it to disk."""
+    output_path = tmp_path / f"generated_{node_type.__name__}"
+    generate_external_node(node_type, output_path)
+
+    produced = list(output_path.rglob("*.yaml")) + list(output_path.rglob("*.yml"))
+    assert produced, f"expected generate_external_node to write files for {node_type.__name__}"

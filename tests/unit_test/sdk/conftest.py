@@ -6,7 +6,11 @@ from flync.sdk.context.workspace_config import ListObjectsMode
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace, WorkspaceConfiguration
 
 
-@pytest.fixture
+# These fixtures load the example workspace, which is comparatively expensive
+# (especially ``map_objects=True``). All consumers use the workspace read-only,
+# so they are session-scoped and loaded once per worker instead of once per test.
+# Do NOT mutate the workspace/model in tests that use these fixtures.
+@pytest.fixture(scope="session")
 def get_flync_example_path(pytestconfig):
     project_root = pytestconfig.rootpath
     return str((project_root / "examples" / "flync_example"))
@@ -17,12 +21,12 @@ def get_flync_workspace_minimal_config():
     return WorkspaceConfiguration(list_objects_mode=ListObjectsMode.INDEX)
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def loaded_workspace_with_object_map(get_flync_example_path):
     return FLYNCWorkspace.load_workspace("test_workspace", get_flync_example_path, WorkspaceConfiguration(map_objects=True))
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def loaded_workspace_without_object_map(get_flync_example_path):
     return FLYNCWorkspace.load_workspace("test_workspace", get_flync_example_path, WorkspaceConfiguration(map_objects=False))
 
