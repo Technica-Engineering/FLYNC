@@ -3,6 +3,7 @@ from rich import box
 from rich.console import Console
 from rich.table import Table
 
+from flync.core.annotations.reference import resolve_reference
 from flync_cli.utils.run_validation import run_validation
 
 app = typer.Typer()
@@ -47,7 +48,7 @@ def add_consumers_and_providers(socket, ecu, service, someip_list):
     """Append consumer and provider deployment rows for the named service from this socket to someip_list."""
     for deployment in socket.deployments:
         ctrl = get_ctrl_for_address(ecu, str(socket.endpoint_address))
-        if deployment.root.deployment_type == "someip_consumer" and deployment.root.service.name == service:
+        if deployment.root.deployment_type == "someip_consumer" and resolve_reference(deployment.root, "service").name == service:
             someip_list.append(
                 [
                     ecu.name,
@@ -59,7 +60,7 @@ def add_consumers_and_providers(socket, ecu, service, someip_list):
                     deployment.root.major_version,
                 ]
             )
-        if deployment.root.deployment_type == "someip_provider" and deployment.root.service.name == service:
+        if deployment.root.deployment_type == "someip_provider" and resolve_reference(deployment.root, "service").name == service:
             someip_list.append(
                 [
                     ecu.name,

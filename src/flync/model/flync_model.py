@@ -244,10 +244,11 @@ class FLYNCModel(FLYNCBaseModel):
 
         # Providers need to have multicast_tx in socket
         for provider, socket, _ecu in providers:
+            svc = provider._service_ref
             for mcast_config in provider.multicast_config or []:
                 if mcast_config.ip_address not in socket.multicast_tx:
                     raise err_major(
-                        f"Deployed provided service ({provider.service.name}, {provider.service.id:#06x}, {provider.service.major_version}) "
+                        f"Deployed provided service ({svc.name}, {svc.id:#06x}, {svc.major_version}) "
                         f"has multicast configuration for eventgroups ({mcast_config.eventgroups}/{mcast_config.ip_address}), "
                         f"but socket ({socket.name}) does not indicate by multicast_tx entry ({socket.multicast_tx})"
                     )

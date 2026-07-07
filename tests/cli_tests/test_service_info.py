@@ -1,5 +1,6 @@
 """Tests for the service_info CLI command and helper functions."""
 
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from typer.testing import CliRunner
@@ -47,7 +48,6 @@ class TestAddConsumersAndProviders:
         socket.port_no = port
         dep = MagicMock()
         dep.root.deployment_type = deployment_type
-        dep.root.service.name = service_name
         dep.root.instance_id = 1
         dep.root.major_version = 1
         socket.deployments = [dep]
@@ -57,7 +57,8 @@ class TestAddConsumersAndProviders:
         ecu = make_ecu()
         socket = self._make_socket("someip_consumer", "MyService")
         someip_list = []
-        add_consumers_and_providers(socket, ecu, "MyService", someip_list)
+        with patch("flync_cli.commands.service_info.resolve_reference", return_value=SimpleNamespace(name="MyService")):
+            add_consumers_and_providers(socket, ecu, "MyService", someip_list)
         assert len(someip_list) == 1
         assert someip_list[0][2] == "Consumer"
 
@@ -65,7 +66,8 @@ class TestAddConsumersAndProviders:
         ecu = make_ecu()
         socket = self._make_socket("someip_provider", "MyService")
         someip_list = []
-        add_consumers_and_providers(socket, ecu, "MyService", someip_list)
+        with patch("flync_cli.commands.service_info.resolve_reference", return_value=SimpleNamespace(name="MyService")):
+            add_consumers_and_providers(socket, ecu, "MyService", someip_list)
         assert len(someip_list) == 1
         assert someip_list[0][2] == "Provider"
 
@@ -73,7 +75,8 @@ class TestAddConsumersAndProviders:
         ecu = make_ecu()
         socket = self._make_socket("someip_consumer", "OtherService")
         someip_list = []
-        add_consumers_and_providers(socket, ecu, "MyService", someip_list)
+        with patch("flync_cli.commands.service_info.resolve_reference", return_value=SimpleNamespace(name="OtherService")):
+            add_consumers_and_providers(socket, ecu, "MyService", someip_list)
         assert len(someip_list) == 0
 
 

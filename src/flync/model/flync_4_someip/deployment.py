@@ -14,6 +14,7 @@ from pydantic import (
 )
 
 import flync.core.utils.common_validators as common_validators
+from flync.core.annotations.reference import Reference
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.base_utils import is_ip_multicast
 from flync.model.flync_4_someip.service_interface import (
@@ -147,7 +148,7 @@ class SOMEIPServiceDeployment(abc.ABC, FLYNCBaseModel):
     """
 
     deployment_type: DeploymentTypes
-    service: int = Field(description="identifies the service", gt=0, lt=0xFFFF, strict=True)
+    service: Annotated[int, Reference(source="_service_ref")] = Field(description="identifies the service", gt=0, lt=0xFFFF, strict=True)
     major_version: Annotated[int, Field(gt=0, le=255, strict=True)] = Field(description="the major version of this service interface", default=0)
     instance_id: Annotated[int, Field(gt=0, lt=0xFFFF)] = Field(description="The id of the service instance")
     someip_sd_timings_profile: str = Field(description="The SOME/IP timings profile ussed for the deployment.")
