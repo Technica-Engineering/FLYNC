@@ -7,10 +7,9 @@ from flync.model.flync_4_signal.frame import (
     FrameEventTiming,
     FrameTransmissionTiming,
     LINFrame,
-    PDUReceiver,
-    PDUSender,
 )
 from flync.model.flync_4_signal.pdu import ContainedPDURef, ContainerPDU, ContainerPDUHeader, MultiplexedPDU, MuxGroup, PDUInstance, StandardPDU
+from flync.model.flync_4_signal.pdu_deployment import PDUReceiver, PDUSender
 from flync.model.flync_4_signal.signal import Signal, SignalDataType, SignalGroup, SignalGroupInstance, SignalInstance
 
 

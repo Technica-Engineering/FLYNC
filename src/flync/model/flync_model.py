@@ -17,6 +17,7 @@ from flync.core.utils.forwarder_validators import (
     detect_forwarder_cycles,
     validate_forwarder_locality,
     validate_forwarder_refs,
+    validate_pdu_deployment_refs,
 )
 from flync.core.utils.multicast import (
     collect_ipv6_solicited_node_rx,
@@ -273,8 +274,11 @@ class FLYNCModel(FLYNCBaseModel):
 
     @model_validator(mode="after")
     def validate_forwarders(self):
-        """Workspace-level forwarder pass: ref resolution, same-controller locality + direction safety, and cycle detection."""
+        """Workspace-level forwarder/deployment pass: ref resolution, same-controller locality + direction safety, and cycle detection."""
 
+        validate_pdu_deployment_refs(
+            self
+        )  # Verifies every pdu_sender / pdu_receiver references a declared PDU of any kind, forwarder-involved or standalone.
         validate_forwarder_refs(self)  # Verifies all PDU and frame references resolve and the forwarded payload fits the egress CAN frame.
         validate_forwarder_locality(self)  # Verifies each egress targets a same-controller carrier with a compatible pdu_sender or sender_frames.
         detect_forwarder_cycles(self)  # Verifies the forwarder graph is acyclic.

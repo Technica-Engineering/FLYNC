@@ -148,6 +148,20 @@ def _hpc_eth_socket_pdu(ws: Path) -> Path:
     )
 
 
+def _z2_eth_socket_nm(ws: Path) -> Path:
+    return (
+        ws
+        / "ecus"
+        / "zonal_platform2"
+        / "controllers"
+        / "z2_controller2"
+        / "ethernet_interfaces"
+        / "z2_c2_iface2"
+        / "sockets"
+        / "socket_nm.flync.yaml"
+    )
+
+
 # Workspace-level: locality and direction safety.
 
 
@@ -202,6 +216,41 @@ def test_negative_unknown_pdu_ref(workspace_copy):
     _assert_message_contains(
         _load_or_capture(workspace_copy),
         ["9999"],
+    )
+
+
+# Workspace-level: pdu_sender / pdu_receiver reference resolution (forwarder-involved or standalone).
+
+
+def test_negative_pdu_sender_unknown_pdu_ref(workspace_copy):
+    """A pdu_sender whose pdu_ref names no declared PDU triggers err_major.
+
+    pdu_powertrain_tx is not targeted by any forwarder egress, so the failure
+    isolates to the deployment-ref check.
+    """
+
+    _mutate_file(
+        _hpc_eth_socket_pdu(workspace_copy),
+        {
+            "  - name: pdu_powertrain_tx\n    endpoint_address: 10.0.20.5\n    endpoint_type: unicast\n    port_no: 30800\n    protocol: udp\n    deployments:\n      - deployment_type: pdu_sender\n        pdu_ref: EthPowertrainContainer": "  - name: pdu_powertrain_tx\n    endpoint_address: 10.0.20.5\n    endpoint_type: unicast\n    port_no: 30800\n    protocol: udp\n    deployments:\n      - deployment_type: pdu_sender\n        pdu_ref: PDU_UnknownSenderTarget",
+        },
+    )
+    _assert_message_contains(
+        _load_or_capture(workspace_copy),
+        ["PDUSender", "PDU_UnknownSenderTarget", "does not name any PDU"],
+    )
+
+
+def test_negative_pdu_receiver_unknown_pdu_ref(workspace_copy):
+    """A standalone pdu_receiver (no forwarder anywhere in the chain) with a dangling pdu_ref triggers err_major."""
+
+    _mutate_file(
+        _z2_eth_socket_nm(workspace_copy),
+        {"pdu_ref: EthNmContainerA": "pdu_ref: EthGhostContainer"},
+    )
+    _assert_message_contains(
+        _load_or_capture(workspace_copy),
+        ["PDUReceiver", "EthGhostContainer", "does not name any PDU"],
     )
 
 

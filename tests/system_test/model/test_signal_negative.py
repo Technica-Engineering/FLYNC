@@ -5,8 +5,9 @@ from flync.model.flync_4_ecu.can_interface import CANFrameRef, CANInterface
 from flync.model.flync_4_ecu.controller import Controller
 from flync.model.flync_4_ecu.lin_interface import LINMasterInterface
 from flync.model.flync_4_metadata.metadata import BaseVersion, EmbeddedMetadata
-from flync.model.flync_4_signal.frame import CANFrame, FrameCyclicTiming, FrameEventTiming, FrameTransmissionTiming, LINFrame, PDUReceiver, PDUSender
+from flync.model.flync_4_signal.frame import CANFrame, FrameCyclicTiming, FrameEventTiming, FrameTransmissionTiming, LINFrame
 from flync.model.flync_4_signal.pdu import ContainedPDURef, ContainerPDU, ContainerPDUHeader, MultiplexedPDU, MuxGroup, PDUInstance, StandardPDU
+from flync.model.flync_4_signal.pdu_deployment import PDUReceiver, PDUSender
 from flync.model.flync_4_signal.signal import Signal, SignalDataType, SignalInstance
 
 

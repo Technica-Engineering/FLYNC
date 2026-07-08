@@ -26,7 +26,7 @@ from flync.core.datatypes.ipaddress import (
 )
 from flync.core.utils.exceptions import err_major, err_minor, warn
 from flync.model.flync_4_signal.forwarder import PDUForwarder
-from flync.model.flync_4_signal.frame import PDUReceiver, PDUSender
+from flync.model.flync_4_signal.pdu_deployment import PDUReceiver, PDUSender
 from flync.model.flync_4_someip import (
     SOMEIPSDDeployment,
     SOMEIPServiceConsumer,
@@ -47,9 +47,9 @@ class DeploymentUnion(RootModel):
     or
     :class:`~flync.model.flync_4_someip.SOMEIPSDDeployment`
     or
-    :class:`~flync.model.flync_4_signal.frame.PDUSender`
+    :class:`~flync.model.flync_4_signal.pdu_deployment.PDUSender`
     or
-    :class:`~flync.model.flync_4_signal.frame.PDUReceiver`
+    :class:`~flync.model.flync_4_signal.pdu_deployment.PDUReceiver`
     or
     :class:`~flync.model.flync_4_signal.frame.PDUForwarder`
 

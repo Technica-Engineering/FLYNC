@@ -16,8 +16,6 @@ from flync.model.flync_4_signal.frame import (
     FrameEventTiming,
     FrameTransmissionTiming,
     LINFrame,
-    PDUReceiver,
-    PDUSender,
 )
 from flync.model.flync_4_signal.pdu import (
     PDU,
@@ -28,6 +26,10 @@ from flync.model.flync_4_signal.pdu import (
     MuxGroup,
     PDUInstance,
     StandardPDU,
+)
+from flync.model.flync_4_signal.pdu_deployment import (
+    PDUReceiver,
+    PDUSender,
 )
 from flync.model.flync_4_signal.signal import (
     BitfieldGroup,
@@ -71,6 +73,7 @@ __all__ = [
     "ContainerPDUHeader",
     "PDUInstance",
     "ContainerPDU",
+    # pdu deployment
     "PDUSender",
     "PDUReceiver",
     # frame

@@ -8,7 +8,7 @@ from flync.model.flync_4_ecu.sockets import (
     SocketUDP,
     TCPOption,
 )
-from flync.model.flync_4_signal.frame import PDUSender
+from flync.model.flync_4_signal.pdu_deployment import PDUSender
 
 # ---------------------------------------------------------------------------
 # PDUSender via DeploymentUnion

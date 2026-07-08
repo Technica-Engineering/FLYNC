@@ -1,4 +1,4 @@
-"""Workspace-level validators for PDU forwarders."""
+"""Workspace-level validators for PDU forwarders and PDU sender/receiver socket deployments (forwarder-based or standalone)."""
 
 from __future__ import annotations
 
@@ -26,6 +26,7 @@ from flync.model.flync_4_signal.pdu import (
 if TYPE_CHECKING:
     from flync.model.flync_4_ecu.controller import Controller
     from flync.model.flync_4_ecu.sockets import Socket
+    from flync.model.flync_4_signal.pdu_deployment import PDUReceiver, PDUSender
     from flync.model.flync_model import FLYNCModel
 
 
@@ -68,6 +69,12 @@ def _pdu_forwarder_locator(controller: "Controller", socket: "Socket", fwd: PDUF
     return f"controllers/{controller.name}/sockets/{socket.name}/pdu_forwarder/{fwd.pdu_ref}"
 
 
+def _pdu_deployment_locator(controller: "Controller", socket: "Socket", dep: "Union[PDUSender, PDUReceiver]") -> str:
+    """Path-style Source locator for a ``PDUSender`` / ``PDUReceiver`` deployment (bracket-free, see above)."""
+
+    return f"controllers/{controller.name}/sockets/{socket.name}/{dep.deployment_type}/{dep.pdu_ref}"
+
+
 def _can_forwarder_locator(controller: "Controller", iface: CANInterface, fwd: CANFrameForwarder) -> str:
     """Path-style Source locator for a ``CANFrameForwarder`` deployment (``iface.bus_ref`` names the interface)."""
 
@@ -106,6 +113,33 @@ def _collect_pdu_forwarders(model: "FLYNCModel") -> List[Tuple["Controller", "So
             for socket in _iter_sockets_on_controller(controller):
                 for fwd in _iter_pdu_forwarders_on_socket(socket):
                     out.append((controller, socket, fwd))
+    return out
+
+
+def _iter_pdu_deployments_on_socket(socket: "Socket"):
+    """Yield every :class:`PDUSender` / :class:`PDUReceiver` deployment carried by *socket*."""
+
+    from flync.model.flync_4_signal.pdu_deployment import PDUReceiver, PDUSender  # local import — avoid module cycle
+
+    for dep_root in socket.deployments or []:
+        dep = dep_root.root
+        if isinstance(dep, (PDUSender, PDUReceiver)):
+            yield dep
+
+
+def _collect_pdu_deployments(model: "FLYNCModel") -> List[Tuple["Controller", "Socket", "Union[PDUSender, PDUReceiver]"]]:
+    """Collect every PDUSender / PDUReceiver in the workspace alongside its parent socket and owning controller.
+
+    Deployments are collected unconditionally — standalone senders/receivers (plain ECU-to-ECU
+    PDU exchange with no forwarder involved) are included exactly like forwarder-adjacent ones.
+    """
+
+    out: List[Tuple["Controller", "Socket", "Union[PDUSender, PDUReceiver]"]] = []
+    for ecu in model.ecus:
+        for controller in ecu.controllers:
+            for socket in _iter_sockets_on_controller(controller):
+                for dep in _iter_pdu_deployments_on_socket(socket):
+                    out.append((controller, socket, dep))
     return out
 
 
@@ -342,6 +376,24 @@ def validate_forwarder_refs(model: "FLYNCModel") -> None:
             raise _with_source(err, _can_forwarder_locator(ctrl, iface, fwd)) from None
 
 
+def validate_pdu_deployment_refs(model: "FLYNCModel") -> None:
+    """Workspace pass: every pdu_sender / pdu_receiver ``pdu_ref`` must name a PDU declared under ``communication.channels``.
+
+    Any PDU kind is a valid target (Standard, Multiplexed, or Container). The pass covers all
+    deployments, whether they take part in a forwarder chain or are standalone senders/receivers.
+    """
+
+    pdu_catalogue = _build_pdu_catalogue(model)
+    for controller, socket, dep in _collect_pdu_deployments(model):
+        if dep.pdu_ref not in pdu_catalogue:
+            err = err_major(
+                "{owner}: pdu_ref '{ref}' does not name any PDU declared under communication.channels.",
+                owner=f"{type(dep).__name__}(socket={socket.name}, pdu_ref={dep.pdu_ref})",
+                ref=dep.pdu_ref,
+            )
+            raise _with_source(err, _pdu_deployment_locator(controller, socket, dep)) from None
+
+
 # ---------------------------------------------------------------------------
 # Locality + direction safety
 # ---------------------------------------------------------------------------
@@ -362,7 +414,7 @@ def _check_eth_socket_egress(
 ) -> None:
     """Assert a ``eth_socket`` egress targets a same-controller socket carrying a matching PDUSender."""
 
-    from flync.model.flync_4_signal.frame import PDUSender  # local import — avoid module cycle
+    from flync.model.flync_4_signal.pdu_deployment import PDUSender  # local import — avoid module cycle
 
     entry = socket_by_controller_name.get((forwarder_controller.name, egress.socket_ref))
     if entry is None:
