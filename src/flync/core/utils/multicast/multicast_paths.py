@@ -49,8 +49,9 @@ def get_controller_interface_connected_component(comp, connected_components, new
     """
 
     conn = comp.connected_component
-    if check_vlan_conn_valid(conn, connected_components, new_connected_components, vlan):
-        new_list.append(conn)
+    for c1 in conn:
+        if check_vlan_conn_valid(c1, connected_components, new_connected_components, vlan):
+            new_list.append(c1)
     connected_interfaces = comp.get_other_interfaces()
 
     for iface in connected_interfaces:
@@ -87,8 +88,9 @@ def compute_path(vlan, interface):
     connected_components.append(interface)
 
     direct_conn = interface.get_connected_components()
-    if check_vlan_conn_valid(direct_conn, connected_components, new_connected_components, vlan):
-        new_connected_components.append(direct_conn)
+    for c1 in direct_conn:
+        if check_vlan_conn_valid(c1, connected_components, new_connected_components, vlan):
+            new_connected_components.append(c1)
 
     while len(new_connected_components) != 0:
 

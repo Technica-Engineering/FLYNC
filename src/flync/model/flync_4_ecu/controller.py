@@ -1,6 +1,6 @@
-"""Defines the Controller and ControllerInterface models for FLYNC."""
+"""Defines the Controller, EthernetInterfaceConfig, and EthernetInterface models for FLYNC."""
 
-from typing import Annotated, Any, List, Literal, Optional
+from typing import Annotated, List, Literal, Optional
 
 from pydantic import (
     AfterValidator,
@@ -27,8 +27,9 @@ from flync.core.utils.exceptions import err_fatal, err_major, err_minor, warn
 from flync.core.version_migrators.legacy_controller_check import (
     reject_legacy_controller,
 )
-from flync.model.flync_4_ecu.can_interface import CANInterfaceConfig
-from flync.model.flync_4_ecu.lin_interface import AnyLINInterfaceConfig
+from flync.model.flync_4_ecu.can_interface import CANInterface
+from flync.model.flync_4_ecu.controller_interface import ControllerInterface
+from flync.model.flync_4_ecu.lin_interface import AnyLINInterface
 from flync.model.flync_4_ecu.phy import MII, RGMII, RMII, SGMII, XFI
 from flync.model.flync_4_ecu.router import RouteEntry, gateway_in_subnet
 from flync.model.flync_4_ecu.socket_container import SocketContainer
@@ -130,7 +131,7 @@ class ComputeNodes(FLYNCBaseModel):
     :class:`Controller` — the Virtual Switch acts as a software MAC bridge that connects compute nodes to the controller interface and to each other.
 
     Network features such as PTP, MACsec, ingress stream policing, and traffic shaping can be configured either on the
-    parent :class:`ControllerInterface` or offloaded to individual compute nodes, but not on both simultaneously.
+    parent :class:`EthernetInterfaceConfig` or offloaded to individual compute nodes, but not on both simultaneously.
 
     Parameters
     ----------
@@ -204,7 +205,7 @@ class VirtualSwitchPort(FLYNCBaseModel):
     """
     A port on the :class:`VirtualSwitch`, referencing a connected node by name.
 
-    Each port is bound to either a :class:`ControllerInterface` or a :class:`ComputeNodes` instance. The ``node_connected`` name must match
+    Each port is bound to either an :class:`EthernetInterface` or a :class:`ComputeNodes` instance. The ``node_connected`` name must match
     the ``name`` field of one of those objects within the same controller.
 
     Parameters
@@ -213,7 +214,7 @@ class VirtualSwitchPort(FLYNCBaseModel):
         Name of the port.
 
     node_connected : str
-        Name of the connected :class:`ControllerInterface` or :class:`ComputeNodes`.
+        Name of the connected :class:`EthernetInterface` or :class:`ComputeNodes`.
     """
 
     name: str = Field()
@@ -229,7 +230,7 @@ class VirtualSwitch(FLYNCBaseModel):
     The Virtual Switch is the connectivity fabric that ties together the controller's physical interfaces and their compute nodes.
     It must be defined on the :class:`Controller` whenever compute nodes are present or when multiple interfaces need to exchange traffic at Layer 2.
 
-    Each :class:`VirtualSwitchPort` references either a :class:`ControllerInterface` or a :class:`ComputeNodes` by name.
+    Each :class:`VirtualSwitchPort` references either an :class:`EthernetInterface` or a :class:`ComputeNodes` by name.
     VLANs defined on the bridge control which ports share broadcast domains, mirroring the role of VLANs on a hardware switch.
 
     Parameters
@@ -255,9 +256,9 @@ class VirtualSwitch(FLYNCBaseModel):
         return self
 
 
-class ControllerInterface(FLYNCBaseModel):
+class EthernetInterfaceConfig(FLYNCBaseModel):
     """
-    A physical Ethernet interface on a controller.
+    Configuration for a physical Ethernet interface on a controller.
 
     A controller interface is the hardware-level network endpoint of the controller. It can be used in two ways:
 
@@ -308,12 +309,6 @@ class ControllerInterface(FLYNCBaseModel):
         When provided, this interface acts as an IP router.
         Each entry maps a destination network to a ``default_gateway`` IP and an ``egress_interface`` (VCI name).
 
-    Private Attributes
-    ------------------
-    _connected_component :
-        The switch port, controller interface, or ECU port connected to this interface. Managed internally; not part of the public API.
-    _type :
-        Fixed to ``"controller_interface"``.
     """
 
     mac_address: Optional[FLYNCMacAddress] = Field(default=None)
@@ -339,23 +334,12 @@ class ControllerInterface(FLYNCBaseModel):
         Optional[List[RouteEntry]],
         BeforeValidator(common_validators.none_to_empty_list),
     ] = Field(default=[])
-    _connected_component: Optional[Any] = PrivateAttr(default=None)
-    _type: Literal["controller_interface"] = PrivateAttr(default="controller_interface")
-    _controller: Optional["Controller"] = PrivateAttr(default=None)
     _name: Optional[str] = PrivateAttr(default=None)
 
     @property
     def name(self):
         """Interface name, propagated from the parent :class:`EthernetInterface` (implied from the folder name)."""
         return self._name
-
-    @property
-    def type(self):
-        return self._type
-
-    @property
-    def connected_component(self):
-        return self._connected_component
 
     @field_validator("ingress_streams", mode="after")
     def validate_ingress_streams(cls, value):
@@ -456,16 +440,6 @@ class ControllerInterface(FLYNCBaseModel):
                     )
         return self
 
-    def get_controller(self):
-        """
-        Helper function
-        Returns the controller that the interface is a part of
-        """
-
-        if not self._controller:
-            raise err_fatal("Fatal Error: The interface is not a part of any controller")
-        return self._controller
-
     def is_part_of_vlan(self, vlan):
         for node in self.compute_nodes:
             for vint in node.virtual_interfaces:
@@ -476,21 +450,6 @@ class ControllerInterface(FLYNCBaseModel):
                 return True
 
         return False
-
-    def get_other_interfaces(self):
-        """
-        Helper function. Returns all the controller interfaces of the controller that the interface is a part of
-        """
-
-        eth_interfaces = self.get_controller().ethernet_interfaces or []
-        return [ei.interface_config for ei in eth_interfaces]
-
-    def get_connected_components(self):
-        """
-        Return the component connected  to the controller interface.
-        """
-
-        return self._connected_component
 
     def get_all_ips(self):
         ips = []
@@ -515,7 +474,7 @@ class ControllerInterface(FLYNCBaseModel):
         return macs
 
 
-class EthernetInterface(FLYNCBaseModel):
+class EthernetInterface(ControllerInterface):
     """
     An Ethernet Interface of a Controller.
 
@@ -525,16 +484,25 @@ class EthernetInterface(FLYNCBaseModel):
     name : str
         Name of the ethernet interface, implied from the folder name on disk.
 
-    interface_config: :class:`~ControllerInterface`
-        Configuration of the Controller Interface.
+    interface_config: :class:`~EthernetInterfaceConfig`
+        Configuration of the Ethernet interface.
 
     sockets: optional list of \
         :class:`~flync.model.flync_4_ecu.socket_container.SocketContainer`
+
+    Private Attributes
+    ------------------
+    _connected_component :
+        The switch port, controller interface, or ECU port connected to this interface. Managed internally; not part of the public API.
+    _type :
+        Fixed to ``"controller_interface"``.
+    _controller :
+        The :class:`Controller` that owns this interface. Managed internally.
     """
 
     name: Annotated[str, Implied(strategy=ImpliedStrategy.FOLDER_NAME)] = Field()
     interface_config: Annotated[
-        ControllerInterface,
+        EthernetInterfaceConfig,
         External(
             output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT,
             naming_strategy=NamingStrategy.FIELD_NAME,
@@ -547,6 +515,42 @@ class EthernetInterface(FLYNCBaseModel):
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
     ] = Field(default_factory=list)
+    _connected_component: List = PrivateAttr(default_factory=list)
+    _type: Literal["controller_interface"] = PrivateAttr(default="controller_interface")
+    _controller: Optional["Controller"] = PrivateAttr(default=None)
+
+    @property
+    def type(self):
+        return self._type
+
+    @property
+    def connected_component(self):
+        return self._connected_component
+
+    @property
+    def macsec_config(self):
+        return self.interface_config.macsec_config
+
+    @property
+    def ptp_config(self):
+        return self.interface_config.ptp_config
+
+    def get_controller(self):
+        """Returns the controller that owns this interface."""
+        if not self._controller:
+            raise err_fatal("Fatal Error: The interface is not a part of any controller")
+        return self._controller
+
+    def get_connected_components(self):
+        """Return the component connected to this interface."""
+        return self._connected_component
+
+    def is_part_of_vlan(self, vlan):
+        return self.interface_config.is_part_of_vlan(vlan)
+
+    def get_other_interfaces(self):
+        """Return all EthernetInterfaces of the same controller."""
+        return list(self.get_controller().ethernet_interfaces or [])
 
 
 class Controller(FLYNCBaseModel):
@@ -597,14 +601,14 @@ class Controller(FLYNCBaseModel):
         ),
     ] = Field(default_factory=list)
     can_interfaces: Annotated[
-        Optional[List[CANInterfaceConfig]],
+        Optional[List[CANInterface]],
         External(
             output_structure=OutputStrategy.FOLDER,
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
     ] = Field(default_factory=list)
     lin_interfaces: Annotated[
-        Optional[List[AnyLINInterfaceConfig]],
+        Optional[List[AnyLINInterface]],
         External(
             output_structure=OutputStrategy.FOLDER,
             naming_strategy=NamingStrategy.FIELD_NAME,
@@ -679,15 +683,15 @@ class Controller(FLYNCBaseModel):
             all_macs.extend(eth_iface.interface_config.get_all_macs())
         return all_macs
 
-    def get_interfaces(self) -> list[ControllerInterface]:
-        return [eth.interface_config for eth in (self.ethernet_interfaces or []) if eth.interface_config is not None]
+    def get_interfaces(self) -> list["EthernetInterface"]:
+        return list(self.ethernet_interfaces or [])
 
-    def find_controller_interface(self, interface_name: str) -> ControllerInterface:
+    def find_controller_interface(self, interface_name: str) -> EthernetInterfaceConfig:
         return next(i.interface_config for i in (self.ethernet_interfaces or []) if i.name == interface_name)
 
     def model_post_init(self, __context):
         for interface in self.ethernet_interfaces:
             if interface.interface_config is not None:
-                interface.interface_config._controller = self
+                interface._controller = self
                 interface.interface_config._name = interface.name
         return super().model_post_init(__context)

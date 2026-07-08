@@ -286,7 +286,7 @@ class FLYNCModel(FLYNCBaseModel):
                 key = str(mcast.group) + separ + str(mcast.vlan)
                 if (mcast.mode == "rx") and key not in paths:
 
-                    warn("Invalid Multicast Address Configuration. There are no TX endpoints for this address {key} ")
+                    warn(f"Invalid Multicast Address Configuration. There are no TX endpoints for this address {key} ")
                 if (mcast.mode == "rx") and key in paths and not check_obj_in_list(mcast._interface, paths[key]):
                     warn(
                         f"Invalid Multicast Address Configuration. The RX interface for address {key} "

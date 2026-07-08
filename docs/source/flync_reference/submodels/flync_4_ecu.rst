@@ -95,6 +95,19 @@ Ethernet Interfaces
 .. autoclass:: flync.model.flync_4_ecu.controller.VirtualControllerInterface()
 .. autoclass:: flync.model.flync_4_ecu.controller.ComputeNodes()
 
+CAN Interfaces
+==============
+
+.. autoclass:: flync.model.flync_4_ecu.can_interface.CANInterface()
+.. autoclass:: flync.model.flync_4_ecu.can_interface.CANFrameRef()
+
+LIN Interfaces
+==============
+
+.. autoclass:: flync.model.flync_4_ecu.lin_interface.LINMasterInterface()
+.. autoclass:: flync.model.flync_4_ecu.lin_interface.LINSlaveInterface()
+.. autoclass:: flync.model.flync_4_ecu.lin_interface.LINFrameRef()
+
 Virtual Switch
 ==============
 

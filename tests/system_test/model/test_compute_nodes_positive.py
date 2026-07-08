@@ -21,7 +21,7 @@ def test_controller_with_bridge_and_compute_nodes_valid():
         compatible_flync_version=system_version,
         target_system="my_system",
     )
-    ctrl_iface = ControllerInterface(
+    ctrl_iface = EthernetInterfaceConfig(
         mac_address="00:11:22:33:44:55",
         compute_nodes=[
             ComputeNodes(
@@ -68,7 +68,7 @@ def test_multiple_interfaces_layer2_connectivity():
         compatible_flync_version=system_version,
         target_system="my_system",
     )
-    ctrl_iface1 = ControllerInterface(
+    ctrl_iface1 = EthernetInterfaceConfig(
         mac_address="00:11:22:33:44:55",
         compute_nodes=[
             ComputeNodes(
@@ -78,7 +78,7 @@ def test_multiple_interfaces_layer2_connectivity():
             )
         ],
     )
-    ctrl_iface2 = ControllerInterface(
+    ctrl_iface2 = EthernetInterfaceConfig(
         mac_address="00:11:22:33:44:56",
         compute_nodes=[
             ComputeNodes(

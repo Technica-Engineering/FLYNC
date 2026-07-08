@@ -17,7 +17,7 @@ from flync.core.utils.base_utils import find_all
 from flync.core.utils.exceptions import err_major, err_minor
 from flync.model.flync_4_ecu.controller import (
     Controller,
-    ControllerInterface,
+    EthernetInterface,
 )
 from flync.model.flync_4_ecu.internal_topology import InternalTopology
 from flync.model.flync_4_ecu.mac_multicast_endpoint import (
@@ -249,8 +249,8 @@ class ECU(FLYNCBaseModel):
         Add Multicast RX entries from virtual interfaces to multicast group memberships.
         """
 
-        for interface in find_all(self.controllers, ControllerInterface):
-            for viface in interface.virtual_interfaces:
+        for interface in find_all(self.controllers, EthernetInterface):
+            for viface in interface.interface_config.virtual_interfaces:
                 for multicast_addr in viface.multicast:
                     group = MulticastGroupMembership(
                         group=multicast_addr,
@@ -261,18 +261,6 @@ class ECU(FLYNCBaseModel):
                     )
                     group._interface = interface
                     self.multicast_groups.append(group)
-            for node in interface.compute_nodes:
-                for viface in node.virtual_interfaces:
-                    for multicast_addr in viface.multicast:
-                        group = MulticastGroupMembership(
-                            group=multicast_addr,
-                            description="",
-                            mode="rx",
-                            vlan=viface.vlanid,
-                            src_ip=None,
-                        )
-                        group._interface = interface
-                        self.multicast_groups.append(group)
         return self
 
     def _populate_multicast_tx_groups_from_mac_multicast_endpoints(self):
@@ -386,12 +374,12 @@ class ECU(FLYNCBaseModel):
 
     def get_interface_for_ip(self, ip):
         for iface in self.get_all_interfaces():
-            if ip in iface.get_all_ips():
+            if ip in iface.interface_config.get_all_ips():
                 return iface
 
     def get_interface_for_mac(self, mac):
         for iface in self.get_all_interfaces():
-            macs = [iface.mac_address] + [node.mac_address for node in iface.compute_nodes]
+            macs = [iface.interface_config.mac_address]
             if mac in macs:
                 return iface
 

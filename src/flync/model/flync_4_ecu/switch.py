@@ -24,7 +24,7 @@ import flync.core.utils.common_validators as common_validators
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.common_validators import validate_vlan_id
 from flync.core.utils.exceptions import err_minor
-from flync.model.flync_4_ecu.controller import ControllerInterface
+from flync.model.flync_4_ecu.controller import EthernetInterfaceConfig
 from flync.model.flync_4_ecu.phy import (
     BASET,
     BASET1,
@@ -374,7 +374,7 @@ class Switch(FLYNCBaseModel):
     vlans : list of :class:`~flync.model.flync_4_ecu.vlan_entry.VLANEntry`
         List of VLAN entries configured on the switch.
 
-    host_controller : :class:`~flync.model.flync_4_ecu.controller.ControllerInterface`, optional
+    host_controller : :class:`~flync.model.flync_4_ecu.controller.EthernetInterfaceConfig`, optional
         Internal controller interface that manages the switch.
 
     tcam_rules : list of :class:`TCAMRule`, optional
@@ -390,7 +390,7 @@ class Switch(FLYNCBaseModel):
     ] = Field(default=[])
     ports: List[SwitchPort] = Field()
     vlans: List[VLANEntry] = Field()
-    host_controller: Optional[ControllerInterface] = Field(default=None)
+    host_controller: Optional[EthernetInterfaceConfig] = Field(default=None)
     meta: EmbeddedMetadata = Field()
 
     @model_validator(mode="after")

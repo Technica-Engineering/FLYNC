@@ -1,9 +1,9 @@
 import pytest
 from pydantic import ValidationError
 
-from flync.model.flync_4_ecu.can_interface import CANFrameRef, CANInterfaceConfig
+from flync.model.flync_4_ecu.can_interface import CANFrameRef, CANInterface
 from flync.model.flync_4_ecu.controller import Controller
-from flync.model.flync_4_ecu.lin_interface import LINMasterInterfaceConfig
+from flync.model.flync_4_ecu.lin_interface import LINMasterInterface
 from flync.model.flync_4_metadata.metadata import BaseVersion, EmbeddedMetadata
 from flync.model.flync_4_signal.frame import CANFrame, FrameCyclicTiming, FrameEventTiming, FrameTransmissionTiming, LINFrame, PDUReceiver, PDUSender
 from flync.model.flync_4_signal.pdu import ContainedPDURef, ContainerPDU, ContainerPDUHeader, MultiplexedPDU, MuxGroup, PDUInstance, StandardPDU
@@ -103,7 +103,7 @@ def test_invalid_lin_frame_in_can_interface():
     lin_frame = LINFrame(name="LIN_EngineFrame", length=8, lin_id=0x12, packed_pdus=[pdu_inst])
 
     with pytest.raises(ValidationError):
-        LINMasterInterfaceConfig()
+        LINMasterInterface()
         Controller(
             name="EngineController",
             controller_metadata=EmbeddedMetadata(
@@ -112,7 +112,7 @@ def test_invalid_lin_frame_in_can_interface():
                 compatible_flync_version=BaseVersion(version_schema="semver", version="0.11.0"),
                 target_system="my_system",
             ),
-            can_interfaces=[CANInterfaceConfig(bus_ref="CAN0", receiver_frames=[CANFrameRef(bus_ref="CAN0", frame_ref=lin_frame.lin_id)])],
+            can_interfaces=[CANInterface(bus_ref="CAN0", receiver_frames=[CANFrameRef(bus_ref="CAN0", frame_ref=lin_frame.lin_id)])],
         )
 
 
@@ -134,7 +134,7 @@ def test_invalid_can_frame_in_lin_interface():
                 target_system="my_system",
             ),
             lin_interfaces=[
-                LINMasterInterfaceConfig(
+                LINMasterInterface(
                     node_type="master",
                     bus_ref="LIN0",
                     lin_protocol="2.0A",

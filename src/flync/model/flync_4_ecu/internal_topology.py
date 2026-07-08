@@ -8,7 +8,7 @@ import flync.core.utils.common_validators as common_validators
 from flync.core.annotations.reference import Reference
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.exceptions import err_major
-from flync.model.flync_4_ecu.controller import Controller, ControllerInterface
+from flync.model.flync_4_ecu.controller import Controller, EthernetInterface
 from flync.model.flync_4_ecu.port import ECUPort
 from flync.model.flync_4_ecu.switch import Switch, SwitchPort
 
@@ -188,11 +188,11 @@ class ControllerInterfaceToXConnection(InternalConnection):
 
     iface_name: Annotated[str, Reference(source="_iface")] = Field(alias="controller_interface")
     controller_name: Annotated[Optional[str], Reference(source="_controller")] = Field(default=None, alias="controller")
-    _iface: Optional["ControllerInterface"] = PrivateAttr(default=None)
+    _iface: Optional["EthernetInterface"] = PrivateAttr(default=None)
     _controller: Optional["Controller"] = PrivateAttr(default=None)
 
     @property
-    def iface(self) -> "ControllerInterface":
+    def iface(self) -> "EthernetInterface":
         assert self._iface is not None
         return self._iface
 
@@ -202,7 +202,9 @@ class ControllerInterfaceToXConnection(InternalConnection):
         return self._controller
 
     @staticmethod
-    def _find_controller_interface(iface_name: str, controller_name: Optional[str], controllers: list, connection_id: str) -> "ControllerInterface":
+    def _find_controller_interface(
+        iface_name: str, controller_name: Optional[str], controllers: list[Controller], connection_id: str
+    ) -> "tuple[EthernetInterface, Controller]":
         """Locate a controller interface by name within the ECU's controllers, with optional scoping to a named controller.
 
         Raises:
@@ -216,23 +218,22 @@ class ControllerInterfaceToXConnection(InternalConnection):
                 raise err_major(f"Controller '{controller_name}' referenced in connection '{connection_id}' was not found in the current ECU.")
             iface = next((i for i in ctrl.get_interfaces() if i.name == iface_name), None)
         else:
-            matches = [i for c in controllers for i in c.get_interfaces() if i.name == iface_name]
+            matches = [(i, c) for c in controllers for i in c.get_interfaces() if i.name == iface_name]
             if len(matches) > 1:
-                owners = [i.get_controller().name for i in matches]
+                owners = [c.name for _, c in matches]
                 raise err_major(
                     f"Controller interface '{iface_name}' referenced in connection '{connection_id}' is ambiguous — "
                     f"multiple controllers ({', '.join(owners)}) in the same ECU define an interface with this name. "
                     f"Add an explicit 'controller:' reference (e.g. controller: {owners[0]}) to the connection to disambiguate. "
                     f"Controller interface names are only unique within a single controller."
                 )
-            iface = matches[0] if matches else None
-        if iface is None:
+            iface, ctrl = matches[0] if matches else (None, None)
+        if iface is None or ctrl is None:
             raise err_major(f"Controller interface '{iface_name}' referenced in connection '{connection_id}' was not found or was not validated")
-        return iface
+        return iface, ctrl
 
     def resolve_controller_interface(self, controllers: list) -> None:
-        self._iface = self._find_controller_interface(self.iface_name, self.controller_name, controllers, self.id)
-        self._controller = self._iface.get_controller()
+        self._iface, self._controller = self._find_controller_interface(self.iface_name, self.controller_name, controllers, self.id)
 
 
 class ECUPortToSwitchPort(ECUPortToXConnection, SwitchPortToXConnection):
@@ -300,11 +301,11 @@ class ECUPortToControllerInterface(ECUPortToXConnection, ControllerInterfaceToXC
         self.resolve_controller_interface(controllers)
         if not any(c.name == self.iface.name for c in self.ecu_port._connected_components):
             self.ecu_port._connected_components.append(self.iface)
-        self.iface._connected_component = self.ecu_port
+        self.iface._connected_component.append(self.ecu_port)
 
     def validate_compatibility(self) -> None:
-        common_validators.validate_optional_mii_config_compatibility(self.ecu_port, self.iface, self.id)
-        common_validators.validate_htb(self.iface, self.ecu_port.mdi_config.speed if self.ecu_port.mdi_config else None)
+        common_validators.validate_optional_mii_config_compatibility(self.ecu_port, self.iface.interface_config, self.id)
+        common_validators.validate_htb(self.iface.interface_config, self.ecu_port.mdi_config.speed if self.ecu_port.mdi_config else None)
 
 
 class SwitchPortToControllerInterface(SwitchPortToXConnection, ControllerInterfaceToXConnection):
@@ -324,14 +325,14 @@ class SwitchPortToControllerInterface(SwitchPortToXConnection, ControllerInterfa
         self.resolve_switch_port(switches)
         self.resolve_controller_interface(controllers)
         self.switch_port._connected_component = self.iface
-        self.iface._connected_component = self.switch_port
+        self.iface._connected_component.append(self.switch_port)
 
     def validate_compatibility(self) -> None:
-        common_validators.validate_compulsory_mii_config_compatibility(self.switch_port, self.iface, self.id)
-        assert self.iface.mii_config is not None
-        common_validators.validate_htb(self.iface, self.iface.mii_config.speed)
-        common_validators.validate_macsec(self.switch_port, self.iface, self.id)
-        common_validators.validate_gptp(self.switch_port, self.iface, self.id)
+        common_validators.validate_compulsory_mii_config_compatibility(self.switch_port, self.iface.interface_config, self.id)
+        assert self.iface.interface_config.mii_config is not None
+        common_validators.validate_htb(self.iface.interface_config, self.iface.interface_config.mii_config.speed)
+        common_validators.validate_macsec(self.switch_port, self.iface.interface_config, self.id)
+        common_validators.validate_gptp(self.switch_port, self.iface.interface_config, self.id)
 
 
 class SwitchPortToSwitchPort(SwitchPortToXConnection):
@@ -427,11 +428,11 @@ class ControllerInterfaceToControllerInterface(ControllerInterfaceToXConnection)
 
     iface2_name: Annotated[str, Reference(source="_iface2")] = Field(alias="controller_interface2")
     controller2_name: Annotated[Optional[str], Reference(source="_controller2")] = Field(default=None, alias="controller2")
-    _iface2: Optional["ControllerInterface"] = PrivateAttr(default=None)
+    _iface2: Optional["EthernetInterface"] = PrivateAttr(default=None)
     _controller2: Optional["Controller"] = PrivateAttr(default=None)
 
     @property
-    def iface2(self) -> "ControllerInterface":
+    def iface2(self) -> "EthernetInterface":
         assert self._iface2 is not None
         return self._iface2
 
@@ -442,19 +443,18 @@ class ControllerInterfaceToControllerInterface(ControllerInterfaceToXConnection)
 
     def bind(self, switches: list, controllers: list, ports: list) -> None:
         self.resolve_controller_interface(controllers)
-        self._iface2 = self._find_controller_interface(self.iface2_name, self.controller2_name, controllers, self.id)
-        self._controller2 = self._iface2.get_controller()
-        self.iface._connected_component = self.iface2
-        self.iface2._connected_component = self.iface
+        self._iface2, self._controller2 = self._find_controller_interface(self.iface2_name, self.controller2_name, controllers, self.id)
+        self.iface._connected_component.append(self.iface2)
+        self.iface2._connected_component.append(self.iface)
 
     def validate_compatibility(self) -> None:
-        common_validators.validate_compulsory_mii_config_compatibility(self.iface, self.iface2, self.id)
-        assert self.iface.mii_config is not None
-        assert self.iface2.mii_config is not None
-        common_validators.validate_htb(self.iface, self.iface.mii_config.speed)
-        common_validators.validate_htb(self.iface2, self.iface2.mii_config.speed)
-        common_validators.validate_macsec(self.iface, self.iface2, self.id)
-        common_validators.validate_gptp(self.iface, self.iface2, self.id)
+        common_validators.validate_compulsory_mii_config_compatibility(self.iface.interface_config, self.iface2.interface_config, self.id)
+        assert self.iface.interface_config.mii_config is not None
+        assert self.iface2.interface_config.mii_config is not None
+        common_validators.validate_htb(self.iface.interface_config, self.iface.interface_config.mii_config.speed)
+        common_validators.validate_htb(self.iface2.interface_config, self.iface2.interface_config.mii_config.speed)
+        common_validators.validate_macsec(self.iface.interface_config, self.iface2.interface_config, self.id)
+        common_validators.validate_gptp(self.iface.interface_config, self.iface2.interface_config, self.id)
 
 
 class InternalConnectionUnion(RootModel):

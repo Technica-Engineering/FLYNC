@@ -17,12 +17,12 @@ Example:
 
 .. code-block:: python
 
-    class LINMasterInterfaceConfig(FLYNCBaseModel):
+    class LINMasterInterface(FLYNCBaseModel):
         node_type: Literal["master"] = Field(default="master")  # Has default
         bus_ref: str = Field()
 
     # When created, node_type is not in model_fields_set:
-    config = LINMasterInterfaceConfig(bus_ref="CAN1")
+    config = LINMasterInterface(bus_ref="lin1")
     # config.model_fields_set might not contain "node_type"
 
 

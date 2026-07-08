@@ -444,7 +444,7 @@ modelled network:
   deployment that lives inside a socket's ``deployments`` block.
 * :class:`~flync.model.flync_4_signal.CANFrameForwarder` is a CAN-interface
   list entry under ``forwarder_frames`` on
-  :class:`~flync.model.flync_4_ecu.CANInterfaceConfig`.
+  :class:`~flync.model.flync_4_ecu.CANInterface`.
 
 Each forwarder lists one or more
 :class:`~flync.model.flync_4_signal.ForwarderEgress` items — a discriminated

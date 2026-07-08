@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 from pydantic_core import PydanticCustomError
 
 from flync.core.utils.exceptions import err_major, err_minor
-from flync.model.flync_4_ecu.can_interface import CANInterfaceConfig
+from flync.model.flync_4_ecu.can_interface import CANInterface
 from flync.model.flync_4_signal.forwarder import (
     CANFrameEgress,
     CANFrameForwarder,
@@ -68,7 +68,7 @@ def _pdu_forwarder_locator(controller: "Controller", socket: "Socket", fwd: PDUF
     return f"controllers/{controller.name}/sockets/{socket.name}/pdu_forwarder/{fwd.pdu_ref}"
 
 
-def _can_forwarder_locator(controller: "Controller", iface: CANInterfaceConfig, fwd: CANFrameForwarder) -> str:
+def _can_forwarder_locator(controller: "Controller", iface: CANInterface, fwd: CANFrameForwarder) -> str:
     """Path-style Source locator for a ``CANFrameForwarder`` deployment (``iface.bus_ref`` names the interface)."""
 
     return f"controllers/{controller.name}/can_interfaces/{iface.bus_ref}/forwarder_frames/{fwd.frame_ref}"
@@ -139,7 +139,7 @@ def _build_socket_indexes(model: "FLYNCModel"):
 def _build_can_indexes(model: "FLYNCModel", can_frame_catalogue: Optional[Dict[str, CANAnyFrame]] = None):
     """Build indexes for CAN interface lookup ``(controller, bus)`` and CAN forwarder lookup ``(bus, can_id)``."""
 
-    can_iface_by_controller_bus: Dict[Tuple[str, str], CANInterfaceConfig] = {}
+    can_iface_by_controller_bus: Dict[Tuple[str, str], CANInterface] = {}
     can_forwarder_by_bus_id: Dict[Tuple[str, int], CANFrameForwarder] = {}
 
     for ecu in model.ecus:
@@ -387,7 +387,7 @@ def _check_can_frame_egress(
     egress: CANFrameEgress,
     owner: str,
     forwarder_controller: "Controller",
-    can_iface_by_controller_bus: Dict[Tuple[str, str], CANInterfaceConfig],
+    can_iface_by_controller_bus: Dict[Tuple[str, str], CANInterface],
     can_frame_by_bus_id: Dict[Tuple[str, int], CANAnyFrame],
 ) -> None:
     """Assert a ``can_frame`` egress targets a CAN interface on the forwarder's controller that is set up to send the egress frame."""
@@ -418,7 +418,7 @@ def _check_forwarder_egress_locality(
     egress_pdu_ref: Optional[str],
     controller: "Controller",
     socket_by_controller_name: Dict[Tuple[str, str], Tuple["Controller", "Socket"]],
-    can_iface_by_controller_bus: Dict[Tuple[str, str], CANInterfaceConfig],
+    can_iface_by_controller_bus: Dict[Tuple[str, str], CANInterface],
     can_frame_by_bus_id: Dict[Tuple[str, int], CANAnyFrame],
 ) -> None:
     """Dispatch a single egress to its locality check; raise on an unresolvable eth_socket egress PDU."""
@@ -439,7 +439,7 @@ def _validate_pdu_forwarder_locality(
     socket: "Socket",
     fwd: PDUForwarder,
     socket_by_controller_name: Dict[Tuple[str, str], Tuple["Controller", "Socket"]],
-    can_iface_by_controller_bus: Dict[Tuple[str, str], CANInterfaceConfig],
+    can_iface_by_controller_bus: Dict[Tuple[str, str], CANInterface],
     can_frame_by_bus_id: Dict[Tuple[str, int], CANAnyFrame],
 ) -> None:
     """Locality + direction safety for every egress of one ``PDUForwarder``."""
@@ -461,10 +461,10 @@ def _validate_pdu_forwarder_locality(
 
 def _validate_can_frame_forwarder_locality(
     controller: "Controller",
-    parent_iface: CANInterfaceConfig,
+    parent_iface: CANInterface,
     fwd: CANFrameForwarder,
     socket_by_controller_name: Dict[Tuple[str, str], Tuple["Controller", "Socket"]],
-    can_iface_by_controller_bus: Dict[Tuple[str, str], CANInterfaceConfig],
+    can_iface_by_controller_bus: Dict[Tuple[str, str], CANInterface],
     can_frame_catalogue: Dict[str, CANAnyFrame],
     can_frame_by_bus_id: Dict[Tuple[str, int], CANAnyFrame],
 ) -> None:

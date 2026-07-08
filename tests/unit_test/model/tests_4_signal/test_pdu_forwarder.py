@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from flync.model.flync_4_ecu.can_interface import CANFrameRef, CANInterfaceConfig
+from flync.model.flync_4_ecu.can_interface import CANFrameRef, CANInterface
 from flync.model.flync_4_ecu.sockets import DeploymentUnion, SocketUDP
 from flync.model.flync_4_signal.forwarder import (
     CANFrameEgress,
@@ -39,7 +39,7 @@ def test_positive_eth_eth_socket_egress_fields_exact():
 
 
 def test_positive_can_interface_config_fields_exact():
-    assert list(CANInterfaceConfig.model_fields) == ["name", "bus_ref", "sender_frames", "receiver_frames", "forwarder_frames"]
+    assert list(CANInterface.model_fields) == ["name", "bus_ref", "sender_frames", "receiver_frames", "forwarder_frames"]
 
 
 def test_positive_pdu_forwarder_constructs_without_registry():
@@ -151,7 +151,7 @@ def test_negative_can_interface_duplicate_forwarder_frames():
     fwd_a = CANFrameForwarder(frame_ref="Frame_X", egresses=[_can_egress(bus_ref="DiagCAN", frame_ref=0x101)])
     fwd_b = CANFrameForwarder(frame_ref="Frame_X", egresses=[_can_egress(bus_ref="DiagCAN", frame_ref=0x102)])
     with pytest.raises(ValidationError) as exc:
-        CANInterfaceConfig(name="CAN1", bus_ref="PowertrainCAN", forwarder_frames=[fwd_a, fwd_b])
+        CANInterface(name="CAN1", bus_ref="PowertrainCAN", forwarder_frames=[fwd_a, fwd_b])
     assert "duplicate" in str(exc.value).lower()
 
 
@@ -159,7 +159,7 @@ def test_positive_can_interface_receiver_and_forwarder_coexist():
     """A frame can legitimately appear in receiver_frames AND forwarder_frames (dual-consume)."""
 
     fwd = CANFrameForwarder(frame_ref="Frame_X", egresses=[_can_egress(bus_ref="DiagCAN", frame_ref=0x101)])
-    iface = CANInterfaceConfig(
+    iface = CANInterface(
         name="CAN1",
         bus_ref="PowertrainCAN",
         receiver_frames=[CANFrameRef(bus_ref="PowertrainCAN", frame_ref=0x101)],

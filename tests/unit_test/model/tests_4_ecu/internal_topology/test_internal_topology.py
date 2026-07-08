@@ -6,9 +6,9 @@ from flync.model.flync_4_ecu import (
     ECU,
     MII,
     Controller,
-    ControllerInterface,
     ECUPort,
     EthernetInterface,
+    EthernetInterfaceConfig,
     Switch,
     SwitchPort,
 )
@@ -38,7 +38,7 @@ def _switch(name: str, ports):
     return Switch(name=name, ports=ports, vlans=[], meta=_embedded_metadata())
 
 
-def _controller(name: str, iface_name: str, iface: ControllerInterface):
+def _controller(name: str, iface_name: str, iface: EthernetInterfaceConfig):
     return Controller(
         name=name,
         controller_metadata=_embedded_metadata(),
@@ -143,7 +143,7 @@ def test_negative_internal_topology_switch_port_to_controller_interface_missing_
     ctrl = _controller(
         "ctrl",
         "b",
-        ControllerInterface(
+        EthernetInterfaceConfig(
             mac_address="10:10:10:22:22:22",
             virtual_interfaces=[virtual_controller_interface],
             mii_config=MII(mode="phy"),
