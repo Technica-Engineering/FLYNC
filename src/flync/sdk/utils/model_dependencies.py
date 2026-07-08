@@ -465,15 +465,21 @@ class ModelDependencyGraph:
         # in case of omit root, we need to include a dictionary
         external = get_metadata(attribute.metadata, External)
         if external is not None and OutputStrategy.SINGLE_FILE in external.output_structure:
-            if NoneType not in get_args(attribute.annotation):
-                real_type = attribute.annotation
-                # Re-attach any pydantic validators (BeforeValidator, etc.)
-                # that live in the field metadata so they run on the raw file
-                # data during validate_with_policy. The External annotation
-                # itself is not a pydantic validator and must be excluded.
-                validator_metadata = [m for m in attribute.metadata if not isinstance(m, External)]
-                if validator_metadata:
-                    real_type = Annotated[real_type, *validator_metadata]  # type: ignore[assignment]
+            annotation = attribute.annotation
+            # Strip Optional/Union[..., None] so Optional[List[T]] still
+            # resolves to the underlying List[T] container.
+            if get_origin(annotation) in (Union, types.UnionType):
+                non_none_args = tuple(a for a in get_args(annotation) if a is not NoneType)
+                if len(non_none_args) == 1:
+                    annotation = non_none_args[0]
+            real_type = annotation
+            # Re-attach any pydantic validators (BeforeValidator, etc.)
+            # that live in the field metadata so they run on the raw file
+            # data during validate_with_policy. The External annotation
+            # itself is not a pydantic validator and must be excluded.
+            validator_metadata = [m for m in attribute.metadata if not isinstance(m, External)]
+            if validator_metadata:
+                real_type = Annotated[real_type, *validator_metadata]  # type: ignore[assignment]
             if OutputStrategy.OMMIT_ROOT not in external.output_structure:
                 real_type = dict[str, real_type]  # type: ignore[valid-type, assignment]
         return real_type

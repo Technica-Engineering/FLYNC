@@ -18,10 +18,11 @@ subprocess.run(
     [
         "flync",
         "validate",
-        WORKSPACE_EXAMPLE,
+        str(WORKSPACE_EXAMPLE),
         "--config",
         WORKSPACE_EXAMPLE.name,
-    ]
+    ],
+    shell=True,
 )
 
 print("----- Validate ECU Variants -----")
@@ -30,10 +31,11 @@ for example_dir in list(ECU_VARIANTS.iterdir()):
         [
             "flync",
             "validate",
-            example_dir,
+            str(example_dir),
             "--config",
             example_dir.name,
             "--node",
             "ECU",
-        ]
+        ],
+        shell=True,
     )

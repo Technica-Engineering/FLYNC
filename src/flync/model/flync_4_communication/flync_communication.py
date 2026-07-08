@@ -41,7 +41,7 @@ class FLYNCCommunicationConfig(FLYNCBaseModel):
     """
 
     tcp_profiles: Annotated[
-        List[TCPOption],
+        Optional[List[TCPOption]],
         External(output_structure=OutputStrategy.SINGLE_FILE),
         BeforeValidator(common_validators.validate_or_remove("TCP profiles", List[TCPOption])),
         BeforeValidator(common_validators.none_to_empty_list),
