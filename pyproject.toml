@@ -56,6 +56,9 @@ packages = [
     { include = "flync_cli", from = "src" },
     { include = "flync_converter", from = "src" }
 ]
+include = [
+    { path = "src/flync/py.typed", format = ["sdist", "wheel"] }
+]
 version = "0.0.0"
 
 [tool.poetry.group.docs.dependencies]
