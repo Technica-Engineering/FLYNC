@@ -57,7 +57,8 @@ packages = [
     { include = "flync_converter", from = "src" }
 ]
 include = [
-    { path = "src/flync/py.typed", format = ["sdist", "wheel"] }
+    { path = "src/flync/py.typed", format = ["sdist", "wheel"] },
+    { path = "src/flync_converter/py.typed", format = ["sdist", "wheel"] }
 ]
 version = "0.0.0"
 
