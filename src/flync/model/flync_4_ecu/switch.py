@@ -319,6 +319,16 @@ class TCAMRule(FLYNCBaseModel):
     action : list of :class:`Drop` or :class:`Mirror` or :class:`ForceEgress` or :class:`VLANOverwrite` or :class:`RemoveVLAN`
         One or more actions performed when the rule matches.
         The ``type`` field of each action class acts as the discriminating key for Pydantic.
+
+    vehicle_state : int, optional
+        Vehicle-state value (0-255) the rule is matched against. The rule applies
+        only when ``(current_state & vehicle_state_mask) == vehicle_state``.
+        ``None`` (default) means the rule is not gated on vehicle state.
+
+    vehicle_state_mask : int, optional
+        Bitmask (1-255) selecting which bits of the vehicle-state register are
+        significant. Defaults to ``0xFF`` (all bits) when ``vehicle_state`` is set
+        but no mask is given. Must not be set on its own without ``vehicle_state``.
     """
 
     name: str = Field()
@@ -326,12 +336,41 @@ class TCAMRule(FLYNCBaseModel):
     match_filter: FrameFilter = Field()
     match_ports: Optional[List[str]] = Field(default_factory=list)
     action: List[(Drop | Mirror | VLANOverwrite | ForceEgress | RemoveVLAN)] = Field()
+    vehicle_state: Optional[int] = Field(default=None, ge=0, le=255)
+    vehicle_state_mask: Optional[int] = Field(default=None, gt=0, le=255)
     _match_ports_autofilled: bool = PrivateAttr(default=False)
 
     @field_serializer("match_ports")
     def serialize_match_ports(self, match_ports: Optional[List[str]], _info):
         """Dump the user's original port list, not the runtime-expanded one."""
         return [] if self._match_ports_autofilled else match_ports
+
+    @model_validator(mode="after")
+    def validate_vehicle_state(self):
+        """
+        Validate the vehicle-state matching parameters:
+        - a mask without a value is invalid,
+        - a value without a mask defaults the mask to all bits (0xFF),
+        - the value must not set bits outside the mask.
+        """
+
+        if self.vehicle_state is None:
+            if self.vehicle_state_mask is not None:
+                raise err_minor(
+                    "TCAM Rule '{name}': vehicle_state_mask requires vehicle_state to be set.",
+                    name=self.name,
+                )
+            return self
+
+        if self.vehicle_state_mask is None:
+            self.vehicle_state_mask = 0xFF
+
+        if self.vehicle_state & (~self.vehicle_state_mask & 0xFF):
+            raise err_minor(
+                "TCAM Rule '{name}': vehicle_state has bits set outside vehicle_state_mask.",
+                name=self.name,
+            )
+        return self
 
     @model_validator(mode="after")
     def validate_exclusive_drop_force_mirror(self):

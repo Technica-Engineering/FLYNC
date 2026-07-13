@@ -210,3 +210,69 @@ def test_positive_remove_vlan_and_vlan_overwrite_on_different_ports(switch_port,
         }
     )
     assert isinstance(rule, TCAMRule)
+
+
+def _vehicle_state_rule(switch_port, tcam_match_filter, **vehicle_state_fields):
+    """Build a minimal valid TCAM rule dict, overlaying vehicle-state fields."""
+    rule = {
+        "name": "tcam_rule_1",
+        "id": 1,
+        "match_filter": tcam_match_filter,
+        "match_ports": [switch_port.name],
+        "action": [{"type": "drop", "ports": [switch_port.name]}],
+    }
+    rule.update(vehicle_state_fields)
+    return rule
+
+
+def test_positive_vehicle_state_with_mask(switch_port, tcam_match_filter):
+    """vehicle_state together with a valid mask is stored as given."""
+    rule = TCAMRule.model_validate(_vehicle_state_rule(switch_port, tcam_match_filter, vehicle_state=0x0F, vehicle_state_mask=0x0F))
+    assert rule.vehicle_state == 0x0F
+    assert rule.vehicle_state_mask == 0x0F
+
+
+def test_positive_vehicle_state_without_mask_defaults_to_all_bits(switch_port, tcam_match_filter):
+    """A vehicle_state without a mask defaults the mask to 0xFF (all bits)."""
+    rule = TCAMRule.model_validate(_vehicle_state_rule(switch_port, tcam_match_filter, vehicle_state=0x0F))
+    assert rule.vehicle_state == 0x0F
+    assert rule.vehicle_state_mask == 0xFF
+
+
+def test_positive_no_vehicle_state_fields(switch_port, tcam_match_filter):
+    """Omitting both vehicle-state fields leaves them as None (rule not gated)."""
+    rule = TCAMRule.model_validate(_vehicle_state_rule(switch_port, tcam_match_filter))
+    assert rule.vehicle_state is None
+    assert rule.vehicle_state_mask is None
+
+
+def test_negative_vehicle_state_mask_without_value(switch_port, tcam_match_filter):
+    """A mask without a vehicle_state value must raise."""
+    with pytest.raises(ValidationError) as e:
+        TCAMRule.model_validate(_vehicle_state_rule(switch_port, tcam_match_filter, vehicle_state_mask=0x0F))
+    assert "vehicle_state_mask requires vehicle_state" in str(e.value)
+
+
+def test_negative_vehicle_state_bits_outside_mask(switch_port, tcam_match_filter):
+    """A vehicle_state that sets bits the mask ignores must raise."""
+    with pytest.raises(ValidationError) as e:
+        TCAMRule.model_validate(_vehicle_state_rule(switch_port, tcam_match_filter, vehicle_state=0x10, vehicle_state_mask=0x0F))
+    assert "bits set outside vehicle_state_mask" in str(e.value)
+
+
+@pytest.mark.parametrize(
+    "vehicle_state, vehicle_state_mask, error",
+    [
+        (-1, 1, "Input should be greater than or equal to 0"),
+        (1, 0, "Input should be greater than 0"),
+        (256, 1, "Input should be less than or equal to 255"),
+        (1, 256, "Input should be less than or equal to 255"),
+    ],
+)
+def test_negative_vehicle_state_out_of_range(switch_port, tcam_match_filter, vehicle_state, vehicle_state_mask, error):
+    """vehicle_state must be within the 8-bit range 0-255."""
+    with pytest.raises(ValidationError) as e:
+        TCAMRule.model_validate(
+            _vehicle_state_rule(switch_port, tcam_match_filter, vehicle_state=vehicle_state, vehicle_state_mask=vehicle_state_mask)
+        )
+    assert error in str(e.value)

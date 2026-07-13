@@ -160,6 +160,8 @@ tcam_rules:
       pcp: [3, 4]
     match_ports:
       - z2_s1_p0
+    vehicle_state: 0x02
+    vehicle_state_mask: 0x0F
     action:
       - type: vlan_overwrite
         ports:
