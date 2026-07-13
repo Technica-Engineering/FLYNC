@@ -5,6 +5,8 @@ Provides classes and functions to manage workspace operations.
 """
 
 import logging
+import multiprocessing
+import sys
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from functools import lru_cache
 from pathlib import Path
@@ -256,7 +258,13 @@ class FLYNCWorkspace(object):
         with ThreadPoolExecutor() as tpool:
             contents = tpool.map(read_file, files)
 
-        with ProcessPoolExecutor() as ppool:
+        # A forking ProcessPoolExecutor is unsafe here: load_workspace is driven from
+        # asyncio.to_thread(...), so the default POSIX "fork" start method forks from a
+        # multi-threaded process and can deadlock the child. Use a non-fork context
+        # (forkserver on POSIX, spawn elsewhere); everything submitted (module-level
+        # parse_document, path/str/bool args) is picklable, so this is behaviour-neutral.
+        mp_context = multiprocessing.get_context("forkserver" if sys.platform != "win32" else "spawn")
+        with ProcessPoolExecutor(mp_context=mp_context) as ppool:
             futures = []
             for item in contents:
                 if item is None:
