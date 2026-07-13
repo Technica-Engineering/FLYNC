@@ -35,6 +35,7 @@ from .sockets import (
     UDPOption,
 )
 from .switch import (
+    FrameMask,
     Switch,
     SwitchPort,
     TCAMRule,
@@ -48,6 +49,7 @@ __all__ = [
     "ControllerInterface",
     "EthernetInterface",
     "EthernetInterfaceConfig",
+    "FrameMask",
     "VirtualSwitch",
     "VirtualSwitchPort",
     "VirtualControllerInterface",

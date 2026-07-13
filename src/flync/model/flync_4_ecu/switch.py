@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import (
     Annotated,
     Any,
@@ -18,6 +19,7 @@ from pydantic import (
     PrivateAttr,
     StrictInt,
     field_serializer,
+    field_validator,
     model_validator,
 )
 
@@ -297,6 +299,91 @@ class RemoveVLAN(PortScopedAction):
     ports: Optional[List[str]] = Field(default_factory=list)
 
 
+class FrameMask(FLYNCBaseModel):
+    """
+    Byte-level pattern matching of an Ethernet frame.
+    The inspectable frame window defaults to 96 bytes but may be overwritten with ``frame_window``.
+
+    The rule matches frames by comparing raw byte patterns at a specific offset.
+    The ``mask`` controls which bits are checked: only bits set to 1 in the mask
+    are significant for the comparison. Bits set to 0 in the mask are ignored.
+
+    For example, a frame at byte offset 12 matches if ``(frame[12:14] & mask) == (data & mask)``.
+
+    Parameters
+    ----------
+
+    offset : int
+        Byte position in the frame where the pattern match begins. Must be 0 to [frame_window - 1]
+        to stay within the inspectable window. For example, offset=12 starts matching
+        at the 13th byte (after MAC and EtherType headers).
+
+    data : str
+        Expected byte pattern. Input format must be a quoted string to prevent serialization mismatches and loss of leading zeros.
+        The string can represent either:
+
+        * a hexadecimal value ``"0x0800"`` (normalized to upper-case with a 0x prefix)
+        * binary representation like ``"0101010101010101"`` (stored in verbatim).
+
+    mask : str
+        Bitmask controlling which bits to check. Accepts the very same input
+        formats as ``data`` and must describe the same number of bytes.
+
+    frame_window : int, Optional
+        Maximum number of leading frame bytes a :class:`FrameMask` may inspect. Defaults to 96.
+    """
+
+    offset: int = Field(...)
+    data: str = Field(...)
+    mask: str = Field(...)
+    frame_window: int = Field(default=96)
+
+    @field_validator("data", "mask", mode="before")
+    @classmethod
+    def _require_string(cls, value, info):
+        # Unquoted YAML numbers arrive as int and lose their format/width.
+        if not isinstance(value, str):
+            raise err_minor(
+                f"{info.field_name} must be a quoted string: a hex literal like "
+                f'"0x0800" or a binary string like "100101010111". Got '
+                f"{type(value).__name__} {value!r}; wrap the value in quotes."
+            )
+        return value
+
+    @field_validator("data", "mask", mode="after")
+    @classmethod
+    def _normalize_format(cls, value, info):
+        hex_regex = re.compile(r"^0[xX][0-9a-fA-F]+$")
+        bin_regex = re.compile(r"^[01]+$")
+        v = value.strip().replace("_", "").replace(" ", "")
+        if hex_regex.match(v):
+            return "0x" + v[2:].upper()
+        if bin_regex.match(v):
+            return v
+        raise err_minor(f'{info.field_name} must be a 0x-hex literal (e.g. "0x0800") or a binary string of 0/1 (e.g. "100101010111"); got {value!r}')
+
+    @staticmethod
+    def _bit_width(v: str) -> int:
+        return 4 * len(v[2:]) if v[:2].lower() == "0x" else len(v)
+
+    @property
+    def bits(self) -> str:
+        """Canonical binary view of `data` (unified access for consumers)."""
+        return self.data if self.data[:2].lower() != "0x" else bin(int(self.data, 16))[2:].zfill(self._bit_width(self.data))
+
+    @model_validator(mode="after")
+    def validate_widths_and_window(self) -> Self:
+        d, m = self._bit_width(self.data), self._bit_width(self.mask)
+        if d != m:
+            raise err_minor("'data' and 'mask' must describe the same number of bits")
+        if not 0 <= self.offset < self.frame_window:
+            raise err_minor(f"offset must be between 0 and {self.frame_window - 1}, got {self.offset}")
+        byte_span = -(-d // 8)  # ceil(bits/8); patterns need not be byte-aligned
+        if self.offset + byte_span > self.frame_window:
+            raise err_minor(f"pattern at offset {self.offset} extends beyond byte {self.frame_window - 1} (max inspectable frame position)")
+        return self
+
+
 class TCAMRule(FLYNCBaseModel):
     """
     Definition of a TCAM (ternary content-addressable memory) rule for a
@@ -311,7 +398,12 @@ class TCAMRule(FLYNCBaseModel):
         Unique TCAM rule ID.
 
     match_filter : :class:`~flync.model.flync_4_tsn.FrameFilter`
-        Packet-matching filter used to decide whether the rule applies.
+        Packet-matching filter for layer-based matching on MAC/IP/VLAN/ports.
+        Mutually exclusive with ``frame_mask``. Either ``match_filter`` or ``frame_mask`` must be provided.
+
+    frame_mask : :class:`~FrameMask`, optional
+        Packet-matching criterion for byte-level pattern matching on raw frame data.
+        Mutually exclusive with ``match_filter``. Either ``match_filter`` or ``frame_mask`` must be provided.
 
     match_ports : list of str, Optional
         Ports to which the rule is bound. Defaults to all ports of the switch if kept empty or undefined.
@@ -333,7 +425,8 @@ class TCAMRule(FLYNCBaseModel):
 
     name: str = Field()
     id: StrictInt = Field()
-    match_filter: FrameFilter = Field()
+    match_filter: Optional[FrameFilter] = Field(default=None)
+    frame_mask: Optional[FrameMask] = Field(default=None)
     match_ports: Optional[List[str]] = Field(default_factory=list)
     action: List[(Drop | Mirror | VLANOverwrite | ForceEgress | RemoveVLAN)] = Field()
     vehicle_state: Optional[int] = Field(default=None, ge=0, le=255)
@@ -370,6 +463,23 @@ class TCAMRule(FLYNCBaseModel):
                 "TCAM Rule '{name}': vehicle_state has bits set outside vehicle_state_mask.",
                 name=self.name,
             )
+        return self
+
+    @model_validator(mode="after")
+    def validate_match_filter_or_mask_exclusive(self) -> Self:
+        """
+        Validate that exactly one of ``match_filter`` or ``frame_mask`` is provided, not both or neither.
+
+        Raises:
+            err_minor: If both or neither match criteria are provided.
+        """
+        has_filter = self.match_filter is not None
+        has_mask = self.frame_mask is not None
+
+        if has_filter and has_mask:
+            raise err_minor("Cannot specify both match_filter and frame_mask; use only one")
+        if not has_filter and not has_mask:
+            raise err_minor("Must specify either match_filter or frame_mask")
         return self
 
     @model_validator(mode="after")

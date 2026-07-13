@@ -213,6 +213,11 @@ TCAM
 =====
 
 .. autoclass:: flync.model.flync_4_ecu.switch.TCAMRule()
+.. autoclass:: flync.model.flync_4_ecu.switch.FrameMask()
+
+Actions
+-------
+
 .. autoclass:: flync.model.flync_4_ecu.switch.Drop()
 .. autoclass:: flync.model.flync_4_ecu.switch.Mirror()
 .. autoclass:: flync.model.flync_4_ecu.switch.ForceEgress()

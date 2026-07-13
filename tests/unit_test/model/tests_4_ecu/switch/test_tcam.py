@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from flync.model.flync_4_ecu.switch import Switch, TCAMRule
+from flync.model.flync_4_ecu.switch import FrameMask, Switch, TCAMRule
 
 
 def test_positive_tcam_entries(embedded_metadata_entry, vlan_entry, switch_port, two_good_tcam_rules):
@@ -276,3 +276,130 @@ def test_negative_vehicle_state_out_of_range(switch_port, tcam_match_filter, veh
             _vehicle_state_rule(switch_port, tcam_match_filter, vehicle_state=vehicle_state, vehicle_state_mask=vehicle_state_mask)
         )
     assert error in str(e.value)
+
+
+class Test_FrameMask_TCAM:
+
+    @pytest.mark.parametrize(
+        "data_in, mask_in, data_out, mask_out",
+        [
+            ("0x0800", "0xFFFF", "0x0800", "0xFFFF"),  # hex, already canonical
+            ("0xffff", "0xff00", "0xFFFF", "0xFF00"),  # hex lower-case -> upper
+            ("0x08_00", "0xFF FF", "0x0800", "0xFFFF"),  # separators stripped
+            ("0x08004500", "0xFFFFFFFF", "0x08004500", "0xFFFFFFFF"),  # multi-byte hex
+            ("100101010111", "111111111111", "100101010111", "111111111111"),  # binary, verbatim
+            ("0000100000000000", "1111111111111111", "0000100000000000", "1111111111111111"),  # binary leading zeros
+            ("0x0800", "0000100000000000", "0x0800", "0000100000000000"),  # mixed formats, equal bit width
+        ],
+    )
+    def test_positive_data_mask_normalization(self, data_in, mask_in, data_out, mask_out):
+        """Both formats are accepted; hex is upper-cased, binary kept as is."""
+        fm = FrameMask(offset=0, data=data_in, mask=mask_in)
+        assert (fm.data, fm.mask) == (data_out, mask_out)
+
+    @pytest.mark.parametrize(
+        "data_in, expected_bits",
+        [
+            ("0x0800", "0000100000000000"),
+            ("0xF", "1111"),
+            ("100101010111", "100101010111"),
+        ],
+    )
+    def test_positive_bits_property(self, data_in, expected_bits):
+        """``bits`` exposes a unified binary view regardless of input format."""
+        fm = FrameMask(offset=0, data=data_in, mask="1" * len(expected_bits))
+        assert fm.bits == expected_bits
+
+    @pytest.mark.parametrize("offset", [0, 10, 94])
+    def test_positive_valid_offsets(self, offset):
+        """Offsets anywhere inside the inspectable window are accepted."""
+        fm = FrameMask(offset=offset, data="0x0800", mask="0xFFFF")
+        assert fm.offset == offset
+
+    def test_positive_frame_mask_in_tcam_and_switch(self, embedded_metadata_entry, vlan_entry, switch_port, frame_mask_valid):
+        """A frame_mask is accepted as a TCAM rule's match criterion and validates at Switch level."""
+        switch = Switch.model_validate(
+            {
+                "meta": embedded_metadata_entry,
+                "name": "switch_example",
+                "vlans": [vlan_entry],
+                "ports": [switch_port],
+                "tcam_rules": [
+                    {
+                        "name": "tcam_mask_rule",
+                        "id": 1,
+                        "frame_mask": frame_mask_valid,
+                        "match_ports": [switch_port.name],
+                        "action": [{"type": "drop", "ports": [switch_port.name]}],
+                    }
+                ],
+            }
+        )
+        rule = switch.tcam_rules[0]
+        assert isinstance(rule.frame_mask, FrameMask)
+        assert rule.match_filter is None
+        assert (rule.frame_mask.data, rule.frame_mask.mask) == ("0x0800", "0xFFFF")
+
+    @pytest.mark.parametrize(
+        "kwargs, error",
+        [
+            ({"offset": -1, "data": "0x0800", "mask": "0xFFFF"}, "offset must be between"),
+            ({"offset": 96, "data": "0x0800", "mask": "0xFFFF"}, "offset must be between"),
+            ({"offset": 95, "data": "0x0000", "mask": "0xFFFF"}, "max inspectable frame position"),
+            ({"offset": 0, "data": 2048, "mask": "0xFFFF"}, "must be a quoted string"),
+            ({"offset": 0, "data": "0800", "mask": "0xFFFF"}, "0x-hex literal"),
+            ({"offset": 0, "data": "0xZZ", "mask": "0xFFFF"}, "0x-hex literal"),
+            ({"offset": 0, "data": "1021", "mask": "0x0FFF"}, "0x-hex literal"),
+            ({"offset": 0, "data": "0x0800", "mask": "0xFF"}, "same number of bits"),
+            ({"offset": 0, "data": "0x0800", "mask": "11111111"}, "same number of bits"),
+        ],
+    )
+    def test_negative_frame_mask_validation(self, kwargs, error):
+        """Invalid offsets, widths, types and formats are rejected with a clear error."""
+        with pytest.raises(ValidationError) as e:
+            FrameMask(**kwargs)
+        assert error in str(e.value)
+
+    @pytest.mark.parametrize(
+        "include_filter, include_mask, error",
+        [
+            (True, False, None),  # only match_filter -> valid
+            (False, True, None),  # only frame_mask -> valid
+            (True, True, "Cannot specify both match_filter and frame_mask"),  # both -> rejected
+            (False, False, "Must specify either match_filter or frame_mask"),  # neither -> rejected
+        ],
+    )
+    def test_match_filter_or_mask_exclusive(self, switch_port, tcam_match_filter, frame_mask_valid, include_filter, include_mask, error):
+        """TCAMRule.validate_match_filter_or_mask_exclusive: exactly one of
+        match_filter or frame_mask must be provided."""
+        rule = {
+            "name": "tcam_rule",
+            "id": 1,
+            "match_ports": [switch_port.name],
+            "action": [{"type": "drop", "ports": [switch_port.name]}],
+        }
+        if include_filter:
+            rule["match_filter"] = tcam_match_filter
+        if include_mask:
+            rule["frame_mask"] = frame_mask_valid
+
+        if error is None:
+            assert isinstance(TCAMRule.model_validate(rule), TCAMRule)
+        else:
+            with pytest.raises(ValidationError) as e:
+                TCAMRule.model_validate(rule)
+            assert error in str(e.value)
+
+    @pytest.mark.parametrize(
+        "data_in, mask_in",
+        [
+            ("0x0800", "0xFFFF"),
+            ("100101010111", "111111111111"),
+        ],
+    )
+    def test_positive_serialization_roundtrip(self, data_in, mask_in):
+        """model_dump emits the canonical strings and re-validating is idempotent."""
+        fm = FrameMask(offset=0, data=data_in, mask=mask_in)
+        dumped = fm.model_dump()
+        assert (dumped["data"], dumped["mask"]) == (fm.data, fm.mask)
+        assert FrameMask.model_validate(dumped).model_dump() == dumped

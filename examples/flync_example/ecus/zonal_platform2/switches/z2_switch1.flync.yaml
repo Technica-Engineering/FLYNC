@@ -173,8 +173,38 @@ tcam_rules:
       protocol: udp
       src_port: 1234
       dst_port: 1234
+    match_ports:
+      - z2_s1_p1
     action:
       - type: remove_vlan
+        ports:
+          - z2_s1_p1
+  - name: rule_4
+    id: 4
+    frame_mask:
+      offset: 0
+      data: "0x0800"
+      mask: "0xFFFF"
+    match_ports:
+      - z2_s1_p2
+    action:
+      - type: drop
+        ports:
+          - z2_s1_p2
+  - name: rule_5
+    id: 5
+    frame_mask:
+      offset: 0
+      data: "000101010111"
+      mask: "111111111111"
+    match_ports:
+      - z2_s1_p0
+    action:
+      - type: drop
+        ports:
+          - z2_s1_p1
+          - z2_s1_p2
+
 
 
 vlans:

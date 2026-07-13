@@ -1,6 +1,6 @@
 import pytest
 
-from flync.model.flync_4_ecu.switch import TCAMRule
+from flync.model.flync_4_ecu.switch import FrameMask, TCAMRule
 
 
 @pytest.fixture
@@ -158,3 +158,33 @@ def tcam_match_filter():
         "src_port": 40,
         "dst_port": {"from_value": 4, "to_value": 10},
     }
+
+
+@pytest.fixture
+def frame_mask_valid():
+    """Valid FrameMask with offset 0 and matching IPv4 ethertype."""
+    yield FrameMask(
+        offset=0,
+        data="0x0800",
+        mask="0xFFFF",
+    )
+
+
+@pytest.fixture
+def frame_mask_with_offset():
+    """Valid FrameMask with non-zero offset."""
+    yield FrameMask(
+        offset=10,
+        data="0x4500",
+        mask="0xFF00",
+    )
+
+
+@pytest.fixture
+def frame_mask_long_data():
+    """Valid FrameMask with longer data and mask."""
+    yield FrameMask(
+        offset=0,
+        data="0x08004500",
+        mask="0xFFFFFFFF",
+    )
