@@ -16,6 +16,7 @@ from .metadata import (
     SystemMetadata,
 )
 
+KEY = "MET"
 __all__ = [
     "BaseMetadata",
     "BaseVersion",

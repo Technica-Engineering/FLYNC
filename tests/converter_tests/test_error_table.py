@@ -168,9 +168,10 @@ class TestMakeErrorTable:
     def test_creates_table_with_all_columns(self):
         """Test that table has all expected columns."""
         table = _make_error_table()
-        assert len(table.columns) == 6
+        assert len(table.columns) == 7
         column_names = [col.header for col in table.columns]
         assert "#" in column_names
+        assert "ID" in column_names
         assert "Error Type" in column_names
         assert "Message" in column_names
         assert "Location" in column_names

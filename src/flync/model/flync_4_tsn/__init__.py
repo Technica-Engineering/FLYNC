@@ -25,6 +25,7 @@ from .timesync import (
     PTPTimeTransmitterConfig,
 )
 
+KEY = "TSN"
 __all__ = [
     "ATSInstance",
     "ATSShaper",

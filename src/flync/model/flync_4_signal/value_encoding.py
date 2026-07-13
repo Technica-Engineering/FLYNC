@@ -8,7 +8,7 @@ from pydantic import Field, model_validator
 
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.common_validators import check_bit_ranges_no_overlap, collect_bit_ranges, validate_value_input_format
-from flync.core.utils.exceptions import err_major
+from flync.core.utils.exceptions import Category, err_major
 
 
 class TextEntry(FLYNCBaseModel):
@@ -53,6 +53,8 @@ class TextEntry(FLYNCBaseModel):
                 label=self.label,
                 to_value=self.to_value,
                 from_value=self.from_value,
+                category=Category.CONSISTENCY,
+                error_number="127",
             )
         return self
 
@@ -125,6 +127,8 @@ class BitfieldState(FLYNCBaseModel):
                 label=self.label,
                 to_value=self.to_value,
                 from_value=self.from_value,
+                category=Category.CONSISTENCY,
+                error_number="128",
             )
         return self
 
@@ -160,7 +164,13 @@ class BitfieldGroup(FLYNCBaseModel):
         seen: set[str] = set()
         for s in self.states:
             if s.label in seen:
-                raise err_major("BitfieldGroup '{name}': duplicate state label {label!r}", name=self.name, label=s.label)
+                raise err_major(
+                    "BitfieldGroup '{name}': duplicate state label {label!r}",
+                    name=self.name,
+                    label=s.label,
+                    category=Category.UNIQUENESS,
+                    error_number="129",
+                )
             seen.add(s.label)
             assert s.from_value is not None and s.to_value is not None
             if (s.from_value | s.to_value) & ~self.mask:
@@ -171,6 +181,8 @@ class BitfieldGroup(FLYNCBaseModel):
                     from_value=s.from_value,
                     to_value=s.to_value,
                     mask=f"{self.mask:#x}",
+                    category=Category.VALUE_RANGE,
+                    error_number="130",
                 )
         ranges = collect_bit_ranges(
             self.states,
@@ -207,13 +219,15 @@ class BitfieldTextTable(FLYNCBaseModel):
         accumulated_mask = 0
         for g in self.groups:
             if g.name in seen:
-                raise err_major("BitfieldTextTable: duplicate group name {name!r}", name=g.name)
+                raise err_major("BitfieldTextTable: duplicate group name {name!r}", name=g.name, category=Category.UNIQUENESS, error_number="131")
             seen.add(g.name)
             if accumulated_mask & g.mask:
                 raise err_major(
                     "BitfieldTextTable: group '{name}' mask {mask} overlaps another group's mask",
                     name=g.name,
                     mask=f"{g.mask:#x}",
+                    category=Category.CONSISTENCY,
+                    error_number="132",
                 )
             accumulated_mask |= g.mask
         return self
@@ -274,13 +288,15 @@ class BitmaskFlags(FLYNCBaseModel):
         accumulated_mask = 0
         for f in self.flags:
             if f.label in seen:
-                raise err_major("BitmaskFlags: duplicate flag label {label!r}", label=f.label)
+                raise err_major("BitmaskFlags: duplicate flag label {label!r}", label=f.label, category=Category.UNIQUENESS, error_number="133")
             seen.add(f.label)
             if accumulated_mask & f.mask:
                 raise err_major(
                     "BitmaskFlags: flag '{label}' mask {mask} overlaps another flag's mask",
                     label=f.label,
                     mask=f"{f.mask:#x}",
+                    category=Category.CONSISTENCY,
+                    error_number="134",
                 )
             accumulated_mask |= f.mask
         return self

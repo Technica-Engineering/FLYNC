@@ -9,7 +9,7 @@ from flync.core.utils.common_validators import (
     check_bit_ranges_within,
     collect_bit_ranges,
 )
-from flync.core.utils.exceptions import err_major, err_minor
+from flync.core.utils.exceptions import Category, err_major, err_minor
 from flync.model.flync_4_signal.signal import (
     SignalGroupInstance,
     SignalInstance,
@@ -150,6 +150,8 @@ class MultiplexedPDU(PDU):
                 "MultiplexedPDU '{name}' has duplicate selector_value(s): {duplicates}",
                 name=self.name,
                 duplicates=sorted(set(duplicates)),
+                category=Category.UNIQUENESS,
+                error_number="107",
             )
         return self
 
@@ -168,6 +170,8 @@ class MultiplexedPDU(PDU):
                 bl=self.selector_signal.signal.bit_length,
                 max=max_value,
                 bad=out_of_range,
+                category=Category.VALUE_RANGE,
+                error_number="108",
             )
         return self
 
@@ -269,7 +273,7 @@ class ContainerPDUHeader(FLYNCBaseModel):
     @classmethod
     def must_be_byte_aligned(cls, v: int) -> int:
         if v % 8 != 0:
-            raise err_major("must be a multiple of 8, got {value}", value=v)
+            raise err_major("must be a multiple of 8, got {value}", value=v, category=Category.VALUE_RANGE, error_number="109")
         return v
 
 
@@ -311,6 +315,8 @@ class ContainerPDU(PDU):
                 count=len(self.contained_pdus),
                 overhead=overhead,
                 minimum=minimum,
+                category=Category.VALUE_RANGE,
+                error_number="110",
             )
         return self
 
@@ -319,11 +325,13 @@ class ContainerPDU(PDU):
         """Ensure container length covers the per-slot header overhead."""
 
         if self.header.id_length_bits == 0 and self.header.length_field_bits == 0 and len(self.contained_pdus) != 1:
-            raise err_minor("If header length is 0, there should be only one contained PDU")
+            raise err_minor("If header length is 0, there should be only one contained PDU", category=Category.CONSISTENCY, error_number="111")
         if (self.header.id_length_bits == 0 and self.header.length_field_bits != 0) or (
             self.header.id_length_bits != 0 and self.header.length_field_bits == 0
         ):
-            raise err_minor("Both or None of the fields id_length_bits, and  length_field_bits should be zero")
+            raise err_minor(
+                "Both or None of the fields id_length_bits, and  length_field_bits should be zero", category=Category.CONSISTENCY, error_number="112"
+            )
 
         return self
 

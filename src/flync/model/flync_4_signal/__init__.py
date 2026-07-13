@@ -48,6 +48,7 @@ from flync.model.flync_4_signal.signal import (
     ValueEncoding,
 )
 
+KEY = "SIG"
 __all__ = [
     # signal
     "SignalDataType",

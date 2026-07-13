@@ -10,7 +10,7 @@ from pydantic_extra_types.mac_address import MacAddress
 from rich import print as rprint
 
 from flync.core.base_models import FLYNCBaseModel
-from flync.core.utils.exceptions import err_fatal
+from flync.core.utils.exceptions import Category, err_fatal
 
 
 def read_yaml(path: str | os.PathLike | Path):
@@ -33,7 +33,7 @@ def read_yaml(path: str | os.PathLike | Path):
         raise FileNotFoundError(f"{path} not existent!")
 
     if path.suffix not in [".yaml", ".yml"]:
-        raise err_fatal("Not a YAML file!")
+        raise err_fatal("Not a YAML file!", category=Category.FORMAT, error_number="001")
     try:
         with open(path, "r", encoding="utf-8") as yml:
             file = yaml.safe_load(yml)

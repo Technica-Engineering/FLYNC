@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 from pydantic_core import PydanticCustomError
 
-from flync.core.utils.exceptions import err_major, err_minor
+from flync.core.utils.exceptions import Category, err_major, err_minor
 from flync.model.flync_4_ecu.can_interface import CANInterface
 from flync.model.flync_4_signal.forwarder import (
     CANFrameEgress,
@@ -259,6 +259,8 @@ def _resolve_egress_pdu(
             ref=extract_pdu_ref,
             ingress=ingress_pdu.name,
             kind=type(ingress_pdu).__name__,
+            category=Category.CONSISTENCY,
+            error_number="035",
         )
     inner_refs = [c.pdu_ref for c in ingress_pdu.contained_pdus]
     if extract_pdu_ref not in inner_refs:
@@ -269,6 +271,8 @@ def _resolve_egress_pdu(
             ref=extract_pdu_ref,
             ingress=ingress_pdu.name,
             inner=sorted(set(inner_refs)),
+            category=Category.REFERENCE,
+            error_number="036",
         )
     if inner_refs.count(extract_pdu_ref) > 1:
         raise err_major(
@@ -277,6 +281,8 @@ def _resolve_egress_pdu(
             egress=egress_label,
             ref=extract_pdu_ref,
             ingress=ingress_pdu.name,
+            category=Category.UNIQUENESS,
+            error_number="037",
         )
     return pdu_catalogue.get(extract_pdu_ref)
 
@@ -295,6 +301,8 @@ def _validate_pdu_forwarder_refs_for(
             "{owner}: pdu_ref '{ref}' does not name any PDU declared under communication.channels.",
             owner=owner,
             ref=fwd.pdu_ref,
+            category=Category.REFERENCE,
+            error_number="038",
         )
     _resolve_sinks_for(fwd.egresses, ingress_pdu, pdu_catalogue, can_frame_by_bus_id, owner)
 
@@ -314,6 +322,8 @@ def _validate_can_frame_forwarder_refs_for(
             "{owner}: frame_ref '{ref}' does not name any CAN or CAN FD frame declared under communication.channels.can_buses.",
             owner=owner,
             ref=fwd.frame_ref,
+            category=Category.REFERENCE,
+            error_number="039",
         )
     ingress_pdu: Optional[PDU] = None
     if ingress_frame.packed_pdus and len(ingress_frame.packed_pdus) == 1:
@@ -343,6 +353,8 @@ def _resolve_sinks_for(
                     egress=egress_label,
                     ref=egress.frame_ref,
                     bus=egress.bus_ref,
+                    category=Category.REFERENCE,
+                    error_number="040",
                 )
             if egress_pdu is not None and egress_pdu.length > egress_frame.length:
                 raise err_minor(
@@ -353,6 +365,8 @@ def _resolve_sinks_for(
                     pdu_len=egress_pdu.length,
                     frame=egress_frame.name,
                     frame_len=egress_frame.length,
+                    category=Category.CONSISTENCY,
+                    error_number="041",
                 )
 
 
@@ -390,6 +404,8 @@ def validate_pdu_deployment_refs(model: "FLYNCModel") -> None:
                 "{owner}: pdu_ref '{ref}' does not name any PDU declared under communication.channels.",
                 owner=f"{type(dep).__name__}(socket={socket.name}, pdu_ref={dep.pdu_ref})",
                 ref=dep.pdu_ref,
+                category=Category.REFERENCE,
+                error_number="175",
             )
             raise _with_source(err, _pdu_deployment_locator(controller, socket, dep)) from None
 
@@ -423,6 +439,8 @@ def _check_eth_socket_egress(
             owner=owner,
             ref=egress.socket_ref,
             ctrl=forwarder_controller.name,
+            category=Category.REFERENCE,
+            error_number="042",
         )
     _, target_socket = entry
     has_matching_sender = any(isinstance(d.root, PDUSender) and d.root.pdu_ref == egress_pdu_ref for d in (target_socket.deployments or []))
@@ -432,6 +450,8 @@ def _check_eth_socket_egress(
             owner=owner,
             ref=egress.socket_ref,
             pdu=egress_pdu_ref,
+            category=Category.CONSISTENCY,
+            error_number="043",
         )
 
 
@@ -451,6 +471,8 @@ def _check_can_frame_egress(
             owner=owner,
             bus=egress.bus_ref,
             ctrl=forwarder_controller.name,
+            category=Category.REFERENCE,
+            error_number="044",
         )
     egress_frame = can_frame_by_bus_id.get((egress.bus_ref, egress.frame_ref))
     if egress_frame is None or not any(s.bus_ref == egress.bus_ref and s.frame_ref == egress.frame_ref for s in iface.sender_frames):
@@ -461,6 +483,8 @@ def _check_can_frame_egress(
             frame=egress.frame_ref,
             bus=egress.bus_ref,
             ctrl=forwarder_controller.name,
+            category=Category.CONSISTENCY,
+            error_number="045",
         )
 
 
@@ -480,6 +504,8 @@ def _check_forwarder_egress_locality(
             raise err_major(
                 "{owner}: eth_socket egress cannot resolve egress PDU; ingress frame has no single packed PDU.",
                 owner=egress_owner,
+                category=Category.REFERENCE,
+                error_number="046",
             )
         _check_eth_socket_egress(egress, egress_owner, egress_pdu_ref, controller, socket_by_controller_name)
     else:
@@ -681,6 +707,8 @@ class _ForwarderCycleDetector(object):
                 err_major(
                     "Forwarder cycle detected: {path}",
                     path=" -> ".join(self._cycle_path(u, v)),
+                    category=Category.STRUCTURAL,
+                    error_number="047",
                 ),
                 self._cycle_source(u, v),
             )

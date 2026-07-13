@@ -118,5 +118,6 @@ Resources
    flync_example
    flync_cli/index
    flync_converter/index
+   error_catalogue
    license
    contact

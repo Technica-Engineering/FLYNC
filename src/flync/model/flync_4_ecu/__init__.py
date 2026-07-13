@@ -43,6 +43,7 @@ from .switch import (
 )
 from .vlan_entry import MulticastGroup, VLANEntry
 
+KEY = "ECU"
 __all__ = [
     "ComputeNodes",
     "Controller",

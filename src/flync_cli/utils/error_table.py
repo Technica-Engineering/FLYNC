@@ -78,6 +78,7 @@ def _make_error_table() -> Table:
     """Create a Rich Table for displaying validation errors with formatted columns."""
     table = Table(show_lines=True)
     table.add_column("#", justify="right")
+    table.add_column("ID", style="red", overflow="fold")
     table.add_column("Error Type", style="red", overflow="fold")
     table.add_column("Message", style="yellow", overflow="fold")
     table.add_column("Location", style="cyan", overflow="fold")
@@ -92,6 +93,7 @@ def _fill_error_table(table: Table, rows: list, start_idx: int) -> None:
         raw_ctx = err.get("ctx", {})
         table.add_row(
             str(idx),
+            raw_ctx.get("error_id", ""),
             err.get("type", ""),
             sanitize_error_message(err.get("msg", "")),
             ".".join(str(p) for p in err.get("loc", [])),
@@ -108,15 +110,18 @@ def render_warnings(result: DiagnosticsResult) -> None:
     console.print("\n[bold yellow]Warnings:[/bold yellow]")
     table = Table(show_lines=True)
     table.add_column("#", justify="right")
+    table.add_column("ID", style="yellow", overflow="fold")
     table.add_column("Warning Type", style="yellow", overflow="fold")
     table.add_column("Message", style="white", overflow="fold")
     table.add_column("Source", style="green", overflow="fold")
     for idx, (doc_uri, err) in enumerate(rows, 1):
+        raw_ctx = err.get("ctx", {})
         table.add_row(
             str(idx),
+            raw_ctx.get("error_id", ""),
             err.get("type", ""),
             sanitize_error_message(err.get("msg", "")),
-            _format_source(doc_uri, err.get("ctx", {})),
+            _format_source(doc_uri, raw_ctx),
         )
     console.print(table)
 

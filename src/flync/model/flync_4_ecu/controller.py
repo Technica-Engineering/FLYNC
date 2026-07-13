@@ -23,7 +23,7 @@ from flync.core.annotations import (
 )
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.datatypes.macaddress import FLYNCMacAddress
-from flync.core.utils.exceptions import err_fatal, err_major, err_minor, warn
+from flync.core.utils.exceptions import Category, err_fatal, err_major, err_minor, warn
 from flync.core.version_migrators.legacy_controller_check import (
     reject_legacy_controller,
 )
@@ -191,7 +191,7 @@ class ComputeNodes(FLYNCBaseModel):
     @model_validator(mode="before")
     def experimental_warning(self):
         """Experimental Class in v0.11.0"""
-        warn("Compute Nodes are currently experimental! Subject to change, please use with care.")
+        warn("Compute Nodes are currently experimental! Subject to change, please use with care.", category=Category.LIFECYCLE, error_number="059")
         return self
 
     @model_validator(mode="after")
@@ -252,7 +252,7 @@ class VirtualSwitch(FLYNCBaseModel):
     @model_validator(mode="before")
     def experimental_warning(self):
         """Experimental Class in v0.11.0"""
-        warn("VirtualSwitch is currently experimental! Subject to change, please use with care.")
+        warn("VirtualSwitch is currently experimental! Subject to change, please use with care.", category=Category.LIFECYCLE, error_number="060")
         return self
 
 
@@ -352,7 +352,7 @@ class EthernetInterfaceConfig(FLYNCBaseModel):
         has_direct = bool(self.virtual_interfaces)
         has_via_nodes = any(bool(node.virtual_interfaces) for node in (self.compute_nodes or []))
         if not has_direct and not has_via_nodes:
-            raise err_major("Interface should have at least 1 valid virtual interface.")
+            raise err_major("Interface should have at least 1 valid virtual interface.", category=Category.REQUIRED, error_number="061")
         return self
 
     @model_validator(mode="after")
@@ -395,7 +395,9 @@ class EthernetInterfaceConfig(FLYNCBaseModel):
                 if iface_set and node_has[feature]:
                     raise err_minor(
                         f"{feature} is configured on both controller interface {self.name} and compute node "
-                        f"{node.name}. It must be defined on either the interface or its compute nodes, not both."
+                        f"{node.name}. It must be defined on either the interface or its compute nodes, not both.",
+                        category=Category.CONSISTENCY,
+                        error_number="062",
                     )
         return self
 
@@ -414,7 +416,11 @@ class EthernetInterfaceConfig(FLYNCBaseModel):
             vci_names = [vci.name for vci in all_vcis]
             for route in self.routing_table:
                 if route.egress_interface not in vci_names:
-                    raise err_minor(f"RouteEntry egress_interface {route.egress_interface} is not a virtual interface of the controller interface.")
+                    raise err_minor(
+                        f"RouteEntry egress_interface {route.egress_interface} is not a virtual interface of the controller interface.",
+                        category=Category.REFERENCE,
+                        error_number="063",
+                    )
         return self
 
     @model_validator(mode="after")
@@ -436,7 +442,9 @@ class EthernetInterfaceConfig(FLYNCBaseModel):
                     continue
                 if not gateway_in_subnet(route, vci):
                     raise err_minor(
-                        f"RouteEntry default_gateway {route.default_gateway} is not within the subnet of egress_interface {route.egress_interface}."
+                        f"RouteEntry default_gateway {route.default_gateway} is not within the subnet of egress_interface {route.egress_interface}.",
+                        category=Category.CONSISTENCY,
+                        error_number="064",
                     )
         return self
 
@@ -538,7 +546,7 @@ class EthernetInterface(ControllerInterface):
     def get_controller(self):
         """Returns the controller that owns this interface."""
         if not self._controller:
-            raise err_fatal("Fatal Error: The interface is not a part of any controller")
+            raise err_fatal("Fatal Error: The interface is not a part of any controller", category=Category.STRUCTURAL, error_number="065")
         return self._controller
 
     def get_connected_components(self):
@@ -632,7 +640,9 @@ class Controller(FLYNCBaseModel):
     @model_validator(mode="after")
     def require_at_least_one_interface(self):
         if not self.ethernet_interfaces and not self.can_interfaces and not self.lin_interfaces:
-            raise err_major("Controller must declare at least one interface (ethernet, CAN, or LIN).")
+            raise err_major(
+                "Controller must declare at least one interface (ethernet, CAN, or LIN).", category=Category.REQUIRED, error_number="066"
+            )
         return self
 
     @model_validator(mode="after")
@@ -658,7 +668,9 @@ class Controller(FLYNCBaseModel):
         if self.virtual_switch is not None:
             for port in self.virtual_switch.ports:
                 if port.node_connected not in interface_names and port.node_connected not in compute_node_names:
-                    raise err_minor(f"{port.node_connected} is not a validcontroller interface or compute node")
+                    raise err_minor(
+                        f"{port.node_connected} is not a validcontroller interface or compute node", category=Category.REFERENCE, error_number="067"
+                    )
         return self
 
     def get_all_ips(self):

@@ -9,6 +9,7 @@ from .macsec import (
     MACsecConfig,
 )
 
+KEY = "SEC"
 __all__ = [
     "Firewall",
     "FirewallRule",

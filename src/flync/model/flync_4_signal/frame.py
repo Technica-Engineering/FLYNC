@@ -3,7 +3,7 @@ from typing import Annotated, FrozenSet, List, Literal, Optional
 from pydantic import Field, model_validator
 
 from flync.core.base_models import FLYNCBaseModel
-from flync.core.utils.exceptions import err_minor
+from flync.core.utils.exceptions import Category, err_minor
 from flync.model.flync_4_signal.pdu import (
     PDUInstance,
 )
@@ -181,6 +181,8 @@ class CANFrame(CANFrameBase):
                 "CANFrame '{name}': is_remote_frame=True requires length=0 (RTR frames carry no data payload); got length={length}",
                 name=self.name,
                 length=self.length,
+                category=Category.CONSISTENCY,
+                error_number="103",
             )
         return self
 
@@ -218,6 +220,8 @@ class CANFDFrame(CANFrameBase):
                 name=self.name,
                 length=self.length,
                 valid=sorted(_CAN_FD_VALID_LENGTHS),
+                category=Category.VALUE_RANGE,
+                error_number="104",
             )
         return self
 
@@ -266,6 +270,8 @@ def _check_pdu_bit_positions(frame_name: str, packed_pdus: List[PDUInstance]) ->
                 "Frame '{name}': multiple PDU instances share bit_position {pos}; overlapping placements are not permitted",
                 name=frame_name,
                 pos=pdu.bit_position,
+                category=Category.UNIQUENESS,
+                error_number="105",
             )
         seen.add(pdu.bit_position)
 
@@ -279,4 +285,6 @@ def _validate_can_id(can_id: int, id_format: str) -> None:
             can_id=can_id,
             id_format=id_format,
             limit=limit,
+            category=Category.VALUE_RANGE,
+            error_number="106",
         )

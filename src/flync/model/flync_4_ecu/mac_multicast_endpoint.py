@@ -9,7 +9,7 @@ from flync.core.utils.common_validators import (
     validate_mac_multicast,
     validate_vlan_id,
 )
-from flync.core.utils.exceptions import err_major
+from flync.core.utils.exceptions import Category, err_major
 
 
 class MACMulticastEndpoint(FLYNCBaseModel):
@@ -86,7 +86,11 @@ class AVTPMulticastEndpoint(MACMulticastEndpoint):
                 MacAddress("91:E0:F0:00:00:00"),
                 MacAddress("91:E0:F0:00:00:FF"),
             ):
-                raise err_major(f"AVTP multicast address {str(mac).upper()} is out of the valid range 91:E0:F0:00:00:00 - 91:E0:F0:00:00:FF.")
+                raise err_major(
+                    f"AVTP multicast address {str(mac).upper()} is out of the valid range 91:E0:F0:00:00:00 - 91:E0:F0:00:00:FF.",
+                    category=Category.VALUE_RANGE,
+                    error_number="079",
+                )
         return v
 
 

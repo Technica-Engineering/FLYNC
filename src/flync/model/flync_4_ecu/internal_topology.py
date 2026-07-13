@@ -7,7 +7,7 @@ from pydantic import Field, PrivateAttr, RootModel
 import flync.core.utils.common_validators as common_validators
 from flync.core.annotations.reference import Reference
 from flync.core.base_models.base_model import FLYNCBaseModel
-from flync.core.utils.exceptions import err_major
+from flync.core.utils.exceptions import Category, err_major
 from flync.model.flync_4_ecu.controller import Controller, EthernetInterface
 from flync.model.flync_4_ecu.port import ECUPort
 from flync.model.flync_4_ecu.switch import Switch, SwitchPort
@@ -83,7 +83,11 @@ class ECUPortToXConnection(InternalConnection):
     def resolve_ecu_port(self, ports: list) -> None:
         self._ecu_port = next((p for p in ports if p.name == self.ecu_port_name), None)
         if self._ecu_port is None:
-            raise err_major(f"ECU port '{self.ecu_port_name}' referenced in connection '{self.id}' was not found or was not validated")
+            raise err_major(
+                f"ECU port '{self.ecu_port_name}' referenced in connection '{self.id}' was not found or was not validated",
+                category=Category.REFERENCE,
+                error_number="072",
+            )
 
 
 class SwitchPortToXConnection(InternalConnection):
@@ -139,7 +143,11 @@ class SwitchPortToXConnection(InternalConnection):
         if switch_name is not None:
             switch = next((s for s in switches if s.name == switch_name), None)
             if switch is None:
-                raise err_major(f"Switch '{switch_name}' referenced in connection '{connection_id}' was not found in the current ECU.")
+                raise err_major(
+                    f"Switch '{switch_name}' referenced in connection '{connection_id}' was not found in the current ECU.",
+                    category=Category.REFERENCE,
+                    error_number="073",
+                )
             port = next((p for p in switch.ports if p.name == port_name), None)
         else:
             matches = [p for s in switches for p in s.ports if p.name == port_name]
@@ -149,11 +157,17 @@ class SwitchPortToXConnection(InternalConnection):
                     f"Switch port '{port_name}' referenced in connection '{connection_id}' is ambiguous — "
                     f"multiple switches ({', '.join(owners)}) in the same ECU define a port with this name. "
                     f"Add an explicit 'switch:' reference (e.g. switch: {owners[0]}) to the connection to disambiguate. "
-                    f"Switch port names are only unique within a single switch."
+                    f"Switch port names are only unique within a single switch.",
+                    category=Category.UNIQUENESS,
+                    error_number="074",
                 )
             port = matches[0] if matches else None
         if port is None:
-            raise err_major(f"Switch port '{port_name}' referenced in connection '{connection_id}' was not found or was not validated")
+            raise err_major(
+                f"Switch port '{port_name}' referenced in connection '{connection_id}' was not found or was not validated",
+                category=Category.REFERENCE,
+                error_number="075",
+            )
         return port
 
     def resolve_switch_port(self, switches: list) -> None:
@@ -215,7 +229,11 @@ class ControllerInterfaceToXConnection(InternalConnection):
         if controller_name is not None:
             ctrl = next((c for c in controllers if c.name == controller_name), None)
             if ctrl is None:
-                raise err_major(f"Controller '{controller_name}' referenced in connection '{connection_id}' was not found in the current ECU.")
+                raise err_major(
+                    f"Controller '{controller_name}' referenced in connection '{connection_id}' was not found in the current ECU.",
+                    category=Category.REFERENCE,
+                    error_number="076",
+                )
             iface = next((i for i in ctrl.get_interfaces() if i.name == iface_name), None)
         else:
             matches = [(i, c) for c in controllers for i in c.get_interfaces() if i.name == iface_name]
@@ -225,11 +243,17 @@ class ControllerInterfaceToXConnection(InternalConnection):
                     f"Controller interface '{iface_name}' referenced in connection '{connection_id}' is ambiguous — "
                     f"multiple controllers ({', '.join(owners)}) in the same ECU define an interface with this name. "
                     f"Add an explicit 'controller:' reference (e.g. controller: {owners[0]}) to the connection to disambiguate. "
-                    f"Controller interface names are only unique within a single controller."
+                    f"Controller interface names are only unique within a single controller.",
+                    category=Category.UNIQUENESS,
+                    error_number="077",
                 )
             iface, ctrl = matches[0] if matches else (None, None)
         if iface is None or ctrl is None:
-            raise err_major(f"Controller interface '{iface_name}' referenced in connection '{connection_id}' was not found or was not validated")
+            raise err_major(
+                f"Controller interface '{iface_name}' referenced in connection '{connection_id}' was not found or was not validated",
+                category=Category.REFERENCE,
+                error_number="078",
+            )
         return iface, ctrl
 
     def resolve_controller_interface(self, controllers: list) -> None:

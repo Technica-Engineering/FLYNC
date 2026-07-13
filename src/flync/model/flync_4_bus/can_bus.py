@@ -4,7 +4,7 @@ from typing import Annotated, List, Optional, Union
 from pydantic import Field, field_validator, model_validator
 
 from flync.core.base_models import FLYNCBaseModel
-from flync.core.utils.exceptions import err_major, err_minor
+from flync.core.utils.exceptions import Category, err_major, err_minor
 from flync.model.flync_4_signal.frame import CANFDFrame, CANFrame
 
 _ALLOWED_CAN_BAUD_RATES = frozenset(
@@ -69,6 +69,8 @@ class CANBus(FLYNCBaseModel):
                 "baud_rate {value} is not a valid CAN baud rate. Allowed values: {allowed}",
                 value=value,
                 allowed=sorted(_ALLOWED_CAN_BAUD_RATES),
+                category=Category.VALUE_RANGE,
+                error_number="049",
             )
         return value
 
@@ -78,11 +80,15 @@ class CANBus(FLYNCBaseModel):
             raise err_major(
                 "CANBus '{name}': fd_baud_rate must be set when fd_enabled is True",
                 name=self.name,
+                category=Category.REQUIRED,
+                error_number="050",
             )
         if not self.fd_enabled and self.fd_baud_rate is not None:
             raise err_major(
                 "CANBus '{name}': fd_baud_rate must be None when fd_enabled is False",
                 name=self.name,
+                category=Category.CONSISTENCY,
+                error_number="051",
             )
         if self.fd_baud_rate is not None and self.fd_baud_rate not in _ALLOWED_CAN_FD_DATA_RATES:
             raise err_minor(
@@ -90,6 +96,8 @@ class CANBus(FLYNCBaseModel):
                 name=self.name,
                 value=self.fd_baud_rate,
                 allowed=sorted(_ALLOWED_CAN_FD_DATA_RATES),
+                category=Category.VALUE_RANGE,
+                error_number="052",
             )
         return self
 
@@ -102,6 +110,8 @@ class CANBus(FLYNCBaseModel):
                     "CANBus '{name}' has CANFDFrame(s) {fd_frames} but fd_enabled is False",
                     name=self.name,
                     fd_frames=fd_frames,
+                    category=Category.CONSISTENCY,
+                    error_number="053",
                 )
         return self
 
@@ -114,5 +124,7 @@ class CANBus(FLYNCBaseModel):
                 "CANBus '{name}' has duplicate CAN identifier(s): {duplicates}",
                 name=self.name,
                 duplicates=duplicates,
+                category=Category.UNIQUENESS,
+                error_number="054",
             )
         return self

@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from flync.model.flync_4_ecu.ecu import ECU
 
 from flync.core.base_models import FLYNCBaseModel
-from flync.core.utils.exceptions import err_major
+from flync.core.utils.exceptions import Category, err_major
 from flync.model.flync_4_ecu.phy import (
     BASET,
     BASET1,
@@ -83,7 +83,9 @@ class ECUPort(FLYNCBaseModel):
         """
 
         if self.mii_config is not None and self.mii_config.speed != self.mdi_config.speed:
-            raise err_major(f"MII and MDI config should have the same speed in ECU Ports. Port {self.name}")
+            raise err_major(
+                f"MII and MDI config should have the same speed in ECU Ports. Port {self.name}", category=Category.CONSISTENCY, error_number="081"
+            )
         return self
 
     def get_internal_connected_component(self, ecus):

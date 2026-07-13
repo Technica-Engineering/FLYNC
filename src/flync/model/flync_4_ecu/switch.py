@@ -26,7 +26,7 @@ from pydantic import (
 import flync.core.utils.common_validators as common_validators
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.common_validators import validate_vlan_id
-from flync.core.utils.exceptions import err_minor
+from flync.core.utils.exceptions import Category, err_minor
 from flync.model.flync_4_ecu.controller import EthernetInterfaceConfig
 from flync.model.flync_4_ecu.phy import (
     BASET,
@@ -163,7 +163,7 @@ class SwitchPort(FLYNCBaseModel):
         """
 
         if self._switch is None:
-            raise err_minor(f"The switch port {self.name} is not a part of any switch")
+            raise err_minor(f"The switch port {self.name} is not a part of any switch", category=Category.STRUCTURAL, error_number="087")
         return self._switch
 
     def get_vlan_connected_ports(self, vlan):
@@ -503,6 +503,8 @@ class TCAMRule(FLYNCBaseModel):
         if len(all_ports) != len(set(all_ports)):
             raise err_minor(
                 "A TCAM Rule can either drop OR force egress OR mirror on one port.",
+                category=Category.CONSISTENCY,
+                error_number="088",
             )
         return self
 
@@ -527,6 +529,8 @@ class TCAMRule(FLYNCBaseModel):
         if len(all_ports) != len(set(all_ports)):
             raise err_minor(
                 "A TCAM Rule can either remove OR overwrite a vlan on one port.",
+                category=Category.CONSISTENCY,
+                error_number="089",
             )
         return self
 
@@ -614,7 +618,11 @@ class Switch(FLYNCBaseModel):
                                         if stream.ipv == iv:
                                             found_stream = True
                             if not found_stream:
-                                raise err_minor(f"Not able to find any streams with internal priority values {iv}. Traffic class {tr.name}")
+                                raise err_minor(
+                                    f"Not able to find any streams with internal priority values {iv}. Traffic class {tr.name}",
+                                    category=Category.REFERENCE,
+                                    error_number="090",
+                                )
         return self
 
     @model_validator(mode="after")
@@ -640,7 +648,7 @@ class Switch(FLYNCBaseModel):
                                     if stream.ats:
                                         found_ats = True
                         if not found_ats:
-                            raise err_minor(f"No ATS Instance found for traffic class {tr.name}")
+                            raise err_minor(f"No ATS Instance found for traffic class {tr.name}", category=Category.REFERENCE, error_number="091")
 
         return self
 

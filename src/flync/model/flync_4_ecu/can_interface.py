@@ -6,7 +6,7 @@ from pydantic import Field, model_validator
 
 from flync.core.annotations import Implied, ImpliedStrategy
 from flync.core.base_models import FLYNCBaseModel
-from flync.core.utils.exceptions import err_major
+from flync.core.utils.exceptions import Category, err_major
 from flync.model.flync_4_ecu.controller_interface import ControllerInterface
 from flync.model.flync_4_signal.forwarder import CANFrameForwarder
 
@@ -70,5 +70,7 @@ class CANInterface(ControllerInterface):
                 "CANInterface(bus_ref={bus}): duplicate frame_ref(s) in forwarder_frames: {dups}",
                 bus=self.bus_ref,
                 dups=sorted(duplicates),
+                category=Category.UNIQUENESS,
+                error_number="058",
             )
         return self

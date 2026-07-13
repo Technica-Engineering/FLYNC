@@ -10,6 +10,7 @@ from pydantic import TypeAdapter, ValidationError, ValidationInfo
 
 import flync.core.utils.base_utils as utils
 from flync.core.utils.exceptions import (
+    Category,
     _validation_warnings,
     err_major,
     err_minor,
@@ -33,9 +34,13 @@ def validate_vlan_id(value):
 
     if value is not None:
         if value < VLAN_ID_MIN or value > VLAN_ID_MAX:
-            raise err_minor(f"VLAN ID must be in the range {VLAN_ID_MIN}-{VLAN_ID_MAX - 1} (use None for untagged); got {value}.")
+            raise err_minor(
+                f"VLAN ID must be in the range {VLAN_ID_MIN}-{VLAN_ID_MAX - 1} (use None for untagged); got {value}.",
+                category=Category.VALUE_RANGE,
+                error_number="002",
+            )
         if value == VLAN_ID_RESERVED:
-            warn(f"VLAN ID {VLAN_ID_RESERVED} is reserved by IEEE 802.1Q and should not be used.")
+            warn(f"VLAN ID {VLAN_ID_RESERVED} is reserved by IEEE 802.1Q and should not be used.", category=Category.VALUE_RANGE, error_number="003")
     return value
 
 
@@ -210,7 +215,7 @@ def validate_mac_unicast(input: str) -> str:
 
     is_unicast, msg = utils.is_mac_unicast(input)
     if not is_unicast:
-        raise err_minor(msg)
+        raise err_minor(msg, category=Category.FORMAT, error_number="004")
     return input
 
 
@@ -230,7 +235,7 @@ def validate_mac_multicast(input: str) -> Any:
 
     is_multicast, msg = utils.is_mac_multicast(input)
     if not is_multicast:
-        raise err_minor(msg)
+        raise err_minor(msg, category=Category.FORMAT, error_number="005")
     return input
 
 
@@ -250,7 +255,7 @@ def validate_ip_multicast(input: IPv4Address | IPv6Address | str) -> Any:
 
     is_multicast, msg = utils.is_ip_multicast(input)
     if not is_multicast:
-        raise err_minor(msg)
+        raise err_minor(msg, category=Category.FORMAT, error_number="006")
     return input
 
 
@@ -325,14 +330,18 @@ def validate_ingress_streams_fields(streams, location: str):
                 f"Validation Error in Ingress Streams. "
                 f"Removing config from the interface. "
                 f"Ingress stream {ingress_stream.name} "
-                f"at the {location} should not have an ipv value."
+                f"at the {location} should not have an ipv value.",
+                category=Category.CONSISTENCY,
+                error_number="007",
             )
         if ingress_stream.ats is not None:
             raise err_minor(
                 f"Validation Error in Ingress Streams. "
                 f"Removing config from the interface. "
                 f"Ingress stream {ingress_stream.name} at the "
-                f"{location} should not have an ats value"
+                f"{location} should not have an ats value",
+                category=Category.CONSISTENCY,
+                error_number="008",
             )
     return streams
 
@@ -371,7 +380,7 @@ def validate_list_items_unique(input_list: list, list_label: Optional[str] = Non
 
     if len(set(input_list)) != len(input_list):
         dupes = utils.get_duplicates_in_list(input_list)
-        raise err_major(msg + str(dupes))
+        raise err_major(msg + str(dupes), category=Category.UNIQUENESS, error_number="009")
     return input_list
 
 
@@ -394,7 +403,11 @@ def validate_cbs_idleslopes_fit_portspeed(traffic_classes: list, port_speed: int
     if not traffic_classes:
         return
     if not port_speed:
-        raise err_major("Cannot validate Traffic Classes! No port speed defined. Make sure to configure MII or MDI.")
+        raise err_major(
+            "Cannot validate Traffic Classes! No port speed defined. Make sure to configure MII or MDI.",
+            category=Category.REQUIRED,
+            error_number="010",
+        )
 
     sum_idleslopes = 0
 
@@ -403,7 +416,11 @@ def validate_cbs_idleslopes_fit_portspeed(traffic_classes: list, port_speed: int
             sum_idleslopes += tr_class.selection_mechanisms.idleslope
 
     if sum_idleslopes > port_speed * 1000:
-        raise err_major(("The sum of idleslopes of all shapers on one port" + " cannot be higher than the link speed!"))
+        raise err_major(
+            ("The sum of idleslopes of all shapers on one port" + " cannot be higher than the link speed!"),
+            category=Category.CONSISTENCY,
+            error_number="011",
+        )
     return traffic_classes
 
 
@@ -439,17 +456,31 @@ def validate_optional_mii_config_compatibility(comp1, comp2, id):
             f"Invalid MII config in connection {id}: "
             f"{comp1.name} ↔ {comp2.name} "
             f"(MII mismatch for PHY type). Both or None of "
-            f"the components should have a MII config"
+            f"the components should have a MII config",
+            category=Category.COMPATIBILITY,
+            error_number="012",
         )
 
     # External PHY is used for this connection
     if (mii_comp1 and mii_comp1 is not None) and (mii_comp2 and mii_comp2 is not None):
         if mii_comp1.mode == mii_comp2.mode:
-            raise err_major(f"Incompatible MII Mode: {comp1.name} ({mii_comp1.mode}) ↔ {comp2.name}({mii_comp2.mode})")
+            raise err_major(
+                f"Incompatible MII Mode: {comp1.name} ({mii_comp1.mode}) ↔ {comp2.name}({mii_comp2.mode})",
+                category=Category.COMPATIBILITY,
+                error_number="013",
+            )
         if mii_comp1.speed != mii_comp2.speed:
-            raise err_major(f"Incompatible MII Speed: {comp1.name} ({mii_comp1.speed}) ↔ {comp2.name}({mii_comp2.speed})")
+            raise err_major(
+                f"Incompatible MII Speed: {comp1.name} ({mii_comp1.speed}) ↔ {comp2.name}({mii_comp2.speed})",
+                category=Category.COMPATIBILITY,
+                error_number="014",
+            )
         if mii_comp1.type != mii_comp2.type:
-            raise err_major(f"Incompatible MII Type: {comp1.name} ({mii_comp1.type}) ↔ {comp2.name}({mii_comp2.type})")
+            raise err_major(
+                f"Incompatible MII Type: {comp1.name} ({mii_comp1.type}) ↔ {comp2.name}({mii_comp2.type})",
+                category=Category.COMPATIBILITY,
+                error_number="015",
+            )
 
 
 def validate_compulsory_mii_config_compatibility(comp1, comp2, id):
@@ -470,7 +501,11 @@ def validate_compulsory_mii_config_compatibility(comp1, comp2, id):
     """
 
     if not comp1.mii_config or not comp2.mii_config:
-        raise err_major(f"Invalid MII config in connection {id}: {comp1.name} ↔ {comp2.name} (MII configuration missing).")
+        raise err_major(
+            f"Invalid MII config in connection {id}: {comp1.name} ↔ {comp2.name} (MII configuration missing).",
+            category=Category.COMPATIBILITY,
+            error_number="016",
+        )
     validate_optional_mii_config_compatibility(comp1, comp2, id)
 
 
@@ -496,7 +531,9 @@ def validate_htb(comp, speed):
                 sum_child_rates = sum_child_rates + child.rate
     if sum_child_rates > speed:
         raise err_major(
-            f"Incompatible HTB config for {comp.name}Sum of all child classes {sum_child_rates} rates should be less than link speed {speed}"
+            f"Incompatible HTB config for {comp.name}Sum of all child classes {sum_child_rates} rates should be less than link speed {speed}",
+            category=Category.CONSISTENCY,
+            error_number="017",
         )
 
 
@@ -525,13 +562,25 @@ def validate_macsec(comp1, comp2, id):
     macsec2 = comp2.macsec_config
 
     if (macsec1 and not macsec2) or (macsec2 and not macsec1):
-        raise err_major(f"Incomplete MACsec Config. {comp1.name} and {comp2.name} in connection {id} should have a macsec config")
+        raise err_major(
+            f"Incomplete MACsec Config. {comp1.name} and {comp2.name} in connection {id} should have a macsec config",
+            category=Category.COMPATIBILITY,
+            error_number="018",
+        )
     if macsec1 and macsec2:
         if (not macsec1.mka_enabled and macsec2.mka_enabled) or (macsec1.mka_enabled and not macsec2.mka_enabled):
-            raise err_major(f"MACsec should be enabled in both - {comp1.name} and {comp2.name} in connection {id} ")
+            raise err_major(
+                f"MACsec should be enabled in both - {comp1.name} and {comp2.name} in connection {id} ",
+                category=Category.COMPATIBILITY,
+                error_number="019",
+            )
 
         if macsec1.macsec_mode != macsec2.macsec_mode:
-            raise err_major(f"Both {comp1.name} and {comp2.name} should have the same macsec_mode. in connection {id} ")
+            raise err_major(
+                f"Both {comp1.name} and {comp2.name} should have the same macsec_mode. in connection {id} ",
+                category=Category.COMPATIBILITY,
+                error_number="020",
+            )
 
 
 def validate_gptp(comp1, comp2, id):
@@ -560,7 +609,11 @@ def validate_gptp(comp1, comp2, id):
     ptp2 = comp2.ptp_config
 
     if (ptp1 and ptp2 is None) or (ptp2 and ptp1 is None):
-        raise err_major(f"Incompatible PTP config. PTP config not present in either {comp1.name} or  {comp2.name} in connection {id} ")
+        raise err_major(
+            f"Incompatible PTP config. PTP config not present in either {comp1.name} or  {comp2.name} in connection {id} ",
+            category=Category.COMPATIBILITY,
+            error_number="021",
+        )
 
     if ptp1 and ptp2:
 
@@ -573,7 +626,9 @@ def validate_gptp(comp1, comp2, id):
                 f"cmlds_linkport_enabled="
                 f"{ptp1.cmlds_linkport_enabled}, but "
                 f"{comp2.name} has "
-                f"{ptp2.cmlds_linkport_enabled}"
+                f"{ptp2.cmlds_linkport_enabled}",
+                category=Category.COMPATIBILITY,
+                error_number="022",
             )
 
 
@@ -608,9 +663,17 @@ def validate_gptp_domains(comp1, comp2, ptp1, ptp2, id):
             None,
         )
         if ptp_port_iface2 is None:
-            raise err_major(f"Incompatible PTP Config: Domain {domain} not present in {comp2.name} in connection {id}")
+            raise err_major(
+                f"Incompatible PTP Config: Domain {domain} not present in {comp2.name} in connection {id}",
+                category=Category.COMPATIBILITY,
+                error_number="023",
+            )
         if ptp_port_iface.sync_config and ptp_port_iface2.sync_config and ptp_port_iface.sync_config.type == ptp_port_iface2.sync_config.type:
-            raise err_major(f"Incompatible PTP Config: Domain ID {domain} in {comp1.name} and {comp2.name} in connection {id}")
+            raise err_major(
+                f"Incompatible PTP Config: Domain ID {domain} in {comp1.name} and {comp2.name} in connection {id}",
+                category=Category.COMPATIBILITY,
+                error_number="024",
+            )
 
 
 def validate_elements_in(subset: Iterable[Any], superset: Iterable[Any], msg: Optional[str] = None):
@@ -631,7 +694,7 @@ def validate_elements_in(subset: Iterable[Any], superset: Iterable[Any], msg: Op
         msg += " "
     if not all(elem in set(superset) for elem in subset):
         disallowed = set(subset) - set(superset)
-        raise err_major(f"{msg}Invalid values: {sorted(disallowed)}.")
+        raise err_major(f"{msg}Invalid values: {sorted(disallowed)}.", category=Category.VALUE_RANGE, error_number="025")
 
 
 def check_prio_unique(traffic_classes):
@@ -646,7 +709,7 @@ def check_prio_unique(traffic_classes):
         if traffic_class.priority not in traffic_class_prios:
             traffic_class_prios.append(traffic_class.priority)
         else:
-            raise err_minor("Traffic class priority is not unique in controller or switch.")
+            raise err_minor("Traffic class priority is not unique in controller or switch.", category=Category.UNIQUENESS, error_number="026")
 
 
 def check_pcps_different(traffic_classes):
@@ -661,7 +724,11 @@ def check_pcps_different(traffic_classes):
         if traffic_class.frame_priority_values is not None:
             for pcp in traffic_class.frame_priority_values:
                 if pcp in pcp_list:
-                    raise err_minor(f"The pcp value {pcp} is not unique for two different traffic classes in controller interfaceor switch port")
+                    raise err_minor(
+                        f"The pcp value {pcp} is not unique for two different traffic classes in controller interfaceor switch port",
+                        category=Category.UNIQUENESS,
+                        error_number="027",
+                    )
             pcp_list.extend(traffic_class.frame_priority_values)
 
 
@@ -677,7 +744,11 @@ def check_ipvs_unique(traffic_classes):
         if traffic_class.internal_priority_values is not None:
             for ipv in traffic_class.internal_priority_values:
                 if ipv in ipv_list:
-                    raise err_minor(f"The ipv value {ipv} is not unique for two different traffic classes in controller interface. or switch port")
+                    raise err_minor(
+                        f"The ipv value {ipv} is not unique for two different traffic classes in controller interface. or switch port",
+                        category=Category.UNIQUENESS,
+                        error_number="028",
+                    )
             ipv_list.extend(traffic_class.internal_priority_values)
 
 
@@ -753,6 +824,8 @@ def check_bit_ranges_within(context: str, ranges: Iterable[BitRange], max_bits: 
                 start=start,
                 end=end,
                 bits=max_bits,
+                category=Category.VALUE_RANGE,
+                error_number="029",
             )
 
 
@@ -778,6 +851,8 @@ def check_bit_ranges_no_overlap(context: str, ranges: List[BitRange]) -> None:
                     b=name_b,
                     sb=start_b,
                     eb=end_b,
+                    category=Category.CONSISTENCY,
+                    error_number="030",
                 )
 
 
@@ -791,24 +866,34 @@ def validate_value_input_format(data: dict) -> dict:
     has_to_value = "to_value" in data
 
     if not has_value and not has_to_value and not has_from_value:
-        raise err_major("Field required: Either the field 'value' or the pair of 'from_value' and 'to_value' has to be defined.")
+        raise err_major(
+            "Field required: Either the field 'value' or the pair of 'from_value' and 'to_value' has to be defined.",
+            category=Category.REQUIRED,
+            error_number="031",
+        )
 
     if has_value and has_to_value:
         raise err_major(
             "Invalid Combination: cannot use both 'value' and 'to_value' — either use 'value' for a single value, "
-            "or 'from_value' and 'to_value' in a pair."
+            "or 'from_value' and 'to_value' in a pair.",
+            category=Category.CONSISTENCY,
+            error_number="032",
         )
 
     if has_value and has_from_value:
         raise err_major(
             "Invalid Combination: cannot use both 'value' and 'from_value' — either use 'value' for a single value, "
-            "or 'from_value' and 'to_value' in a pair."
+            "or 'from_value' and 'to_value' in a pair.",
+            category=Category.CONSISTENCY,
+            error_number="033",
         )
 
     if (has_from_value and not has_to_value) or (has_to_value and not has_from_value):
         raise err_major(
             "Invalid Combination: 'from_value' and 'to_value' must be paired — either use 'value' for a single value, "
-            "or 'from_value' and 'to_value' in a pair."
+            "or 'from_value' and 'to_value' in a pair.",
+            category=Category.CONSISTENCY,
+            error_number="034",
         )
 
     return data

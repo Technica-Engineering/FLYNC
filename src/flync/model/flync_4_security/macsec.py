@@ -6,7 +6,7 @@ from pydantic import AfterValidator, Field, model_validator
 
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.common_validators import validate_vlan_id
-from flync.core.utils.exceptions import err_minor
+from flync.core.utils.exceptions import Category, err_minor
 
 
 class IntegrityWithoutConfidentiality(FLYNCBaseModel):
@@ -131,13 +131,13 @@ class MACsecConfig(FLYNCBaseModel):
     @model_validator(mode="after")
     def validate_mka_macsecmode_disabled(self):
         if not self.mka_enabled and self.macsec_mode != "disabled":
-            raise err_minor("If MKA is not enabled, macsec_mode should be disabled.")
+            raise err_minor("If MKA is not enabled, macsec_mode should be disabled.", category=Category.CONSISTENCY, error_number="100")
         return self
 
     @model_validator(mode="after")
     def validate_life_time_greater_than_hello_time(self):
         if self.life_time < self.hello_time:
-            raise err_minor("Life time should be greater than hello time.")
+            raise err_minor("Life time should be greater than hello time.", category=Category.CONSISTENCY, error_number="101")
         return self
 
     @staticmethod

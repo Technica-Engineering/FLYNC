@@ -57,6 +57,7 @@ from flync.model.flync_4_someip.someip_datatypes import (
 SOMEIPMethod.model_rebuild()
 SOMEIPConfig.model_rebuild()
 
+KEY = "SOM"
 __all__ = [
     "AllTypes",
     "Boolean",

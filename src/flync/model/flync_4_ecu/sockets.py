@@ -24,7 +24,7 @@ from flync.core.datatypes.ipaddress import (
     IPv4AddressEntry,
     IPv6AddressEntry,
 )
-from flync.core.utils.exceptions import err_major, err_minor, warn
+from flync.core.utils.exceptions import Category, err_major, err_minor, warn
 from flync.model.flync_4_signal.forwarder import PDUForwarder
 from flync.model.flync_4_signal.pdu_deployment import PDUReceiver, PDUSender
 from flync.model.flync_4_someip import (
@@ -127,7 +127,11 @@ class Socket(FLYNCBaseModel):
                     )
                     for err in e.errors()
                 )
-                raise err_minor(f"Validation error in deployment {idx} of socket - {detail}. Skipping to the next deployment.")
+                raise err_minor(
+                    f"Validation error in deployment {idx} of socket - {detail}. Skipping to the next deployment.",
+                    category=Category.STRUCTURAL,
+                    error_number="082",
+                )
             idx = idx + 1
         return valid_deployment
 
@@ -150,6 +154,8 @@ class Socket(FLYNCBaseModel):
                 "Socket '{name}': duplicate PDUForwarder deployment(s) for pdu_ref(s): {dups}",
                 name=self.name,
                 dups=sorted(duplicates),
+                category=Category.UNIQUENESS,
+                error_number="083",
             )
         return self
 
@@ -249,7 +255,11 @@ class SocketTCP(Socket):
 
     def bind(self, tcp_by_id: dict) -> None:
         if self.tcp_profile not in tcp_by_id:
-            warn(f"TCP Socket with TCP Option profile ID {self.tcp_profile} does not exist. Creating a profile with default options.")
+            warn(
+                f"TCP Socket with TCP Option profile ID {self.tcp_profile} does not exist. Creating a profile with default options.",
+                category=Category.REFERENCE,
+                error_number="084",
+            )
 
 
 class SocketUDP(Socket):
@@ -292,7 +302,7 @@ class IPv4AddressEndpoint(IPv4AddressEntry):
 
         for socket in self.sockets:
             if str(socket.endpoint_address) != str(self.address):
-                raise err_minor("Sockets must be tied to the same address as the IPv4 endpoint.")
+                raise err_minor("Sockets must be tied to the same address as the IPv4 endpoint.", category=Category.CONSISTENCY, error_number="085")
 
         return self
 
@@ -322,7 +332,7 @@ class IPv6AddressEndpoint(IPv6AddressEntry):
 
         for socket in self.sockets:
             if str(socket.endpoint_address) != str(self.address):
-                raise err_minor("Sockets must be tied to the same address as the IPv6 endpoint.")
+                raise err_minor("Sockets must be tied to the same address as the IPv6 endpoint.", category=Category.CONSISTENCY, error_number="086")
         return self
 
 

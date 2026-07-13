@@ -8,7 +8,7 @@ from pydantic import Field, field_serializer, model_validator
 from semver import Version as SemVersion
 
 from flync.core.base_models.base_model import FLYNCBaseModel
-from flync.core.utils.exceptions import err_major
+from flync.core.utils.exceptions import Category, err_major
 
 
 class BaseVersion(FLYNCBaseModel):
@@ -40,13 +40,13 @@ class BaseVersion(FLYNCBaseModel):
             try:
                 parsed = raw_version if isinstance(raw_version, Pep440Version) else Pep440Version(str(raw_version))
             except InvalidVersion as e:
-                raise err_major(f"Version '{raw_version}' is not valid PEP 440") from e
+                raise err_major(f"Version '{raw_version}' is not valid PEP 440", category=Category.FORMAT, error_number="092") from e
 
         elif self.version_schema == "semver":
             try:
                 parsed = raw_version if isinstance(raw_version, SemVersion) else SemVersion.parse(str(raw_version))
             except ValueError as e:
-                raise err_major(f"Version '{raw_version}' is not valid Semantic Version") from e
+                raise err_major(f"Version '{raw_version}' is not valid Semantic Version", category=Category.FORMAT, error_number="093") from e
 
         object.__setattr__(self, "version", parsed)
         return self

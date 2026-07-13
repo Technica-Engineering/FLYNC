@@ -25,6 +25,7 @@ extensions = [
     "myst_parser",
     "sphinx_design",
     "sphinxcontrib.mermaid",
+    "sphinx_needs"
 ]
 
 templates_path = ["_templates"]
@@ -61,6 +62,21 @@ html_favicon = "_static/images/flync_logo_darker.svg"  # or favicon.png
 html_css_files = [
     "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
 ]
+
+
+# -- Sphinx Needs settings ---------------------------------------------
+
+needs_types = [
+    {
+        "directive": "err",
+        "title": "Error",
+        "prefix": "FLYNC-",
+        "color": "#7BBEA5",
+    },
+]
+
+needs_id_regex = "^[A-Z0-9_-]+$"
+needs_extra_options = ["module", "severity", "category", "number", "location"]
 
 
 # -- Autodoc settings  -------------------------------------------------

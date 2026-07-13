@@ -85,4 +85,26 @@ Produce a PlantUML diagram of the full system topology for documentation or revi
 
    flync generate-system-uml examples/flync_example --output topology.puml
 
+Registering a new error
+------------------------
+
+Get the next free number, then add it (with a ``category``) at the factory call site:
+
+.. code-block:: bash
+
+   flync errors get-next-number
+
+.. code-block:: python
+
+   raise err_major("Port {name} is invalid.", category=Category.VALUE_RANGE, error_number="175")
+
+Keeping the error catalogue in sync
+-----------------------------------
+
+Check the code against the catalogue, then regenerate it:
+
+.. code-block:: bash
+
+   flync errors validate-catalogue
+   flync errors generate-catalogue
 

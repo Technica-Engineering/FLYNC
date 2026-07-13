@@ -3,7 +3,7 @@ from typing import Annotated, List, Literal, Optional
 from pydantic import Field, field_validator, model_validator
 
 from flync.core.base_models import FLYNCBaseModel
-from flync.core.utils.exceptions import err_major, err_minor
+from flync.core.utils.exceptions import Category, err_major, err_minor
 from flync.model.flync_4_signal.frame import LINFrame
 
 # ---------------------------------------------------------------------------
@@ -145,6 +145,8 @@ class LINBus(FLYNCBaseModel):
                 "baud_rate {value} is not a valid LIN baud rate. Allowed values: {allowed}",
                 value=value,
                 allowed=sorted(_ALLOWED_LIN_BAUD_RATES),
+                category=Category.VALUE_RANGE,
+                error_number="055",
             )
         return value
 
@@ -160,5 +162,7 @@ class LINBus(FLYNCBaseModel):
                         table=table.name,
                         frame=entry.frame_name,
                         defined=sorted(frame_names),
+                        category=Category.REFERENCE,
+                        error_number="056",
                     )
         return self

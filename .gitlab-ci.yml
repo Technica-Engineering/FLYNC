@@ -110,8 +110,8 @@ pytest:
     - apt-get update && apt-get install -y libglib2.0-0 libgl1 libegl1 libdbus-1-3 libfontconfig1 libxcb1 libxkbcommon0
     - poetry install --with test
     - poetry run pip install -e tests/converter_tests/test_plugin/ --no-deps
-    - COVERAGE_FILE=.coverage.unit poetry run pytest -m "not performance" --cov=flync --cov-report= --junitxml=report_not_performance.xml --durations=0
-    - COVERAGE_FILE=.coverage.performance poetry run pytest -m performance --cov=flync --cov-report= --junitxml=report_performance.xml --durations=0
+    - COVERAGE_FILE=.coverage.unit poetry run pytest -m "not performance" --cov=flync --cov=flync_cli --cov-report= --junitxml=report_not_performance.xml --durations=0
+    - COVERAGE_FILE=.coverage.performance poetry run pytest -m performance --cov=flync --cov=flync_cli --cov-report= --junitxml=report_performance.xml --durations=0
     - poetry run coverage combine
     - poetry run coverage xml
     - poetry run coverage report

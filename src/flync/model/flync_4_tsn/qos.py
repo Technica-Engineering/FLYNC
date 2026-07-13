@@ -26,7 +26,7 @@ from flync.core.datatypes import (
     serialize_ethertype,
     validate_ethertype_input,
 )
-from flync.core.utils.exceptions import err_minor
+from flync.core.utils.exceptions import Category, err_minor
 
 
 class ATSInstance(FLYNCBaseModel):
@@ -307,7 +307,9 @@ class FrameFilter(FLYNCBaseModel):
     @staticmethod
     def pcp_validator(value):
         if value < 0 or value > 7:
-            raise err_minor("pcp value must be greater than or equal to 0 and less than or equal to 7")
+            raise err_minor(
+                "pcp value must be greater than or equal to 0 and less than or equal to 7", category=Category.VALUE_RANGE, error_number="150"
+            )
 
     @field_validator("vlanid", mode="after")
     @classmethod
@@ -355,9 +357,9 @@ class FrameFilter(FLYNCBaseModel):
         msg = "Protocol port must be greater than 0."
         if isinstance(value, ValueRange):
             if value.from_value <= 0 or value.to_value <= 0:
-                raise err_minor(msg)
+                raise err_minor(msg, category=Category.VALUE_RANGE, error_number="151")
         if isinstance(value, int) and value <= 0:
-            raise err_minor(msg)
+            raise err_minor(msg, category=Category.VALUE_RANGE, error_number="152")
         return value
 
     @field_serializer("src_ipv4", "dst_ipv4", "src_ipv6", "dst_ipv6")
@@ -478,7 +480,7 @@ class TrafficClass(FLYNCBaseModel):
 
         invalid = [num for num in v if not (0 <= num <= 7)]
         if invalid:
-            raise err_minor(f"Priority value out of range [0..7]: {invalid}")
+            raise err_minor(f"Priority value out of range [0..7]: {invalid}", category=Category.VALUE_RANGE, error_number="153")
         return v
 
     @model_validator(mode="after")
@@ -488,7 +490,11 @@ class TrafficClass(FLYNCBaseModel):
             or internal_priority_values must be set."""
 
         if not self.frame_priority_values and not self.internal_priority_values:
-            raise err_minor("At least one of frame_priority_values or internal_priority_values must be provided and non-empty")
+            raise err_minor(
+                "At least one of frame_priority_values or internal_priority_values must be provided and non-empty",
+                category=Category.REQUIRED,
+                error_number="154",
+            )
         return self
 
 
@@ -598,7 +604,9 @@ class HTBInstance(FLYNCBaseModel):
                     break
             if not exists:
                 raise err_minor(
-                    f"Validation Error in HTB Config. Removing config from the interface. Default class {default} should exist in the HTB config."
+                    f"Validation Error in HTB Config. Removing config from the interface. Default class {default} should exist in the HTB config.",
+                    category=Category.REFERENCE,
+                    error_number="155",
                 )
 
         # Prio of child classes are unique
@@ -649,7 +657,9 @@ class HTBInstance(FLYNCBaseModel):
             if child_class.child_classes:
                 raise err_minor(
                     f"Validation Error in HTB Config. Removing config from the interface. Default class {default} "
-                    "must be a leaf class in HTB config."
+                    "must be a leaf class in HTB config.",
+                    category=Category.STRUCTURAL,
+                    error_number="156",
                 )
             return True
         exists = False
@@ -687,7 +697,9 @@ class HTBInstance(FLYNCBaseModel):
         if child.ceil < child.rate:
             raise err_minor(
                 "Validation Error in HTB Config. Removing config from the interface. Incompatible HTB config. "
-                f"Ceil cannot be less than  rate. Class {child.classid}."
+                f"Ceil cannot be less than  rate. Class {child.classid}.",
+                category=Category.CONSISTENCY,
+                error_number="157",
             )
         else:
             if child.child_classes:
@@ -724,7 +736,9 @@ class HTBInstance(FLYNCBaseModel):
         for child in child_classes:
             if child.priority in class_priority:
                 raise err_minor(
-                    f"Validation Error in HTB Config. Removing config from the interface. All priorities must be unique, prio {child.priority}."
+                    f"Validation Error in HTB Config. Removing config from the interface. All priorities must be unique, prio {child.priority}.",
+                    category=Category.UNIQUENESS,
+                    error_number="158",
                 )
             else:
                 class_priority.append(child.priority)
@@ -759,7 +773,9 @@ class HTBInstance(FLYNCBaseModel):
         for child in child_classes:
             if child.classid in names:
                 raise err_minor(
-                    f"Validation Error in HTB Config. Removing config from the interface. All classids must be unique, classid {child.classid}."
+                    f"Validation Error in HTB Config. Removing config from the interface. All classids must be unique, classid {child.classid}.",
+                    category=Category.UNIQUENESS,
+                    error_number="159",
                 )
             else:
                 names.append(child.classid)
@@ -797,7 +813,9 @@ class HTBInstance(FLYNCBaseModel):
                 if rate_sum_child > child.rate:
                     raise err_minor(
                         f"Validation Error in HTB Config. Removing config from the interface. Incompatible HTB config. "
-                        f"Sum of rate of child classes is greater than the rate of parent class. Class {child.classid}."
+                        f"Sum of rate of child classes is greater than the rate of parent class. Class {child.classid}.",
+                        category=Category.CONSISTENCY,
+                        error_number="160",
                     )
             rate = rate + child.rate
 
@@ -834,7 +852,9 @@ class HTBInstance(FLYNCBaseModel):
                 if ceil_child > child.ceil:
                     raise err_minor(
                         f"Validation Error in HTB Config. Removing config from the interface."
-                        f"Incompatible HTB config. Ceil of child class should be less than parent's class. Class {child.classid}."
+                        f"Incompatible HTB config. Ceil of child class should be less than parent's class. Class {child.classid}.",
+                        category=Category.CONSISTENCY,
+                        error_number="161",
                     )
             ceil = max(ceil, child.ceil)
         return ceil

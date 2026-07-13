@@ -14,7 +14,7 @@ from flync.core.annotations import (
 )
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.base_utils import find_all
-from flync.core.utils.exceptions import err_major, err_minor
+from flync.core.utils.exceptions import Category, err_major, err_minor
 from flync.model.flync_4_ecu.controller import (
     Controller,
     EthernetInterface,
@@ -146,7 +146,9 @@ class ECU(FLYNCBaseModel):
             broken_controllers = isinstance(controllers, list) and any(c is None for c in controllers)
             broken_switches = isinstance(switches, list) and any(s is None for s in switches)
             if broken_controllers or broken_switches:
-                raise err_major("ECU has invalid components. Check controller and switch errors for details.")
+                raise err_major(
+                    "ECU has invalid components. Check controller and switch errors for details.", category=Category.STRUCTURAL, error_number="068"
+                )
         return data
 
     @model_validator(mode="after")
@@ -176,7 +178,9 @@ class ECU(FLYNCBaseModel):
                         "Error in socket configuration:\n"
                         "The following VLAN IDs are specified in the socket containers "
                         "but not configured in any virtual interface of ethernet interface "
-                        f"{iface_config.name}: {missing_vlans}."
+                        f"{iface_config.name}: {missing_vlans}.",
+                        category=Category.REFERENCE,
+                        error_number="069",
                     )
         return self
 
@@ -204,7 +208,9 @@ class ECU(FLYNCBaseModel):
                             raise err_minor(
                                 f"Error in socket {socket.name}:\n"
                                 f"The IP {endpoint_ip} is not configured in any virtual interface of ethernet "
-                                f"interface {iface_config.name} in ECU {self.name}."
+                                f"interface {iface_config.name} in ECU {self.name}.",
+                                category=Category.REFERENCE,
+                                error_number="070",
                             )
                         for vi in iface_config.virtual_interfaces:
                             for ip in vi.addresses:
@@ -283,7 +289,9 @@ class ECU(FLYNCBaseModel):
                     if not interface:
                         raise err_minor(
                             f"Error in MAC multicast:\n"
-                            f"endpoints. Could not find an interface for address {endpoint.mac_address}. ECU {self.name}"
+                            f"endpoints. Could not find an interface for address {endpoint.mac_address}. ECU {self.name}",
+                            category=Category.REFERENCE,
+                            error_number="071",
                         )
                     group._interface = interface
                     self.multicast_groups.append(group)

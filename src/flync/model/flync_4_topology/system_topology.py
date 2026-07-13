@@ -11,7 +11,7 @@ import flync.core.utils.common_validators as common_validators
 from flync.core.annotations.external import External, OutputStrategy
 from flync.core.annotations.reference import Reference
 from flync.core.base_models import FLYNCBaseModel
-from flync.core.utils.exceptions import err_major
+from flync.core.utils.exceptions import Category, err_major
 from flync.model.flync_4_ecu.port import ECUPort
 
 
@@ -76,10 +76,14 @@ class ExternalConnection(FLYNCBaseModel):
         """Resolve port references and run all MDI/MACsec/gPTP compatibility checks."""
         port1 = ports_by_name.get(self.ecu1_port_name)
         if port1 is None:
-            raise err_major(f"ECU port name {self.ecu1_port_name} in connection {self.id} does not exist")
+            raise err_major(
+                f"ECU port name {self.ecu1_port_name} in connection {self.id} does not exist", category=Category.REFERENCE, error_number="142"
+            )
         port2 = ports_by_name.get(self.ecu2_port_name)
         if port2 is None:
-            raise err_major(f"ECU port name {self.ecu2_port_name} in connection {self.id} does not exist")
+            raise err_major(
+                f"ECU port name {self.ecu2_port_name} in connection {self.id} does not exist", category=Category.REFERENCE, error_number="143"
+            )
 
         self._ecu1_port = port1
         self._ecu2_port = port2
@@ -92,34 +96,46 @@ class ExternalConnection(FLYNCBaseModel):
         mdi_ecu2_port = port2.mdi_config
 
         if not mdi_ecu1_port or not mdi_ecu2_port:
-            raise err_major(f"One or both ports missing MDI config: {port1.ecu.name}:{self.ecu1_port_name}, {port2.ecu.name}:{self.ecu2_port_name}")
+            raise err_major(
+                f"One or both ports missing MDI config: {port1.ecu.name}:{self.ecu1_port_name}, {port2.ecu.name}:{self.ecu2_port_name}",
+                category=Category.COMPATIBILITY,
+                error_number="144",
+            )
         if mdi_ecu1_port.mode != mdi_ecu2_port.mode:
             raise err_major(
                 f"Incompatible MDI Mode: "
                 f"{port1.ecu.name}:{self.ecu1_port_name} "
                 f"({mdi_ecu1_port.mode}) ↔ {port2.ecu.name}:"
-                f"{self.ecu2_port_name} ({mdi_ecu2_port.mode})"
+                f"{self.ecu2_port_name} ({mdi_ecu2_port.mode})",
+                category=Category.COMPATIBILITY,
+                error_number="145",
             )
         if mdi_ecu1_port.speed != mdi_ecu2_port.speed:
             raise err_major(
                 f"Incompatible MDI Speed: "
                 f"{port1.ecu.name}:{self.ecu1_port_name} "
                 f"({mdi_ecu1_port.speed}) ↔ {port2.ecu.name}:"
-                f"{self.ecu2_port_name} ({mdi_ecu2_port.speed})"
+                f"{self.ecu2_port_name} ({mdi_ecu2_port.speed})",
+                category=Category.COMPATIBILITY,
+                error_number="146",
             )
         if mdi_ecu1_port.duplex != mdi_ecu2_port.duplex:
             raise err_major(
                 f"Incompatible MDI Duplex Mode: "
                 f"{port1.ecu.name}:{self.ecu1_port_name} "
                 f"({mdi_ecu1_port.duplex}) ↔ {port2.ecu.name}:"
-                f"{self.ecu2_port_name} ({mdi_ecu2_port.duplex})"
+                f"{self.ecu2_port_name} ({mdi_ecu2_port.duplex})",
+                category=Category.COMPATIBILITY,
+                error_number="147",
             )
         if mdi_ecu1_port.role == mdi_ecu2_port.role:
             raise err_major(
                 f"Incompatible MDI Roles: "
                 f"{port1.ecu.name}:{self.ecu1_port_name} "
                 f"({mdi_ecu1_port.role}) ↔ {port2.ecu.name}:"
-                f"{self.ecu2_port_name} ({mdi_ecu2_port.role})"
+                f"{self.ecu2_port_name} ({mdi_ecu2_port.role})",
+                category=Category.COMPATIBILITY,
+                error_number="148",
             )
         if mdi_ecu1_port.autonegotiation != mdi_ecu2_port.autonegotiation:
             raise err_major(
@@ -127,7 +143,9 @@ class ExternalConnection(FLYNCBaseModel):
                 f"{port1.ecu.name}:{self.ecu1_port_name} "
                 f"({mdi_ecu1_port.autonegotiation}) ↔ "
                 f"{port2.ecu.name}:{self.ecu2_port_name} "
-                f"({mdi_ecu2_port.autonegotiation})"
+                f"({mdi_ecu2_port.autonegotiation})",
+                category=Category.COMPATIBILITY,
+                error_number="149",
             )
         comp1 = port1.get_internal_connected_component([port1.ecu])
         comp2 = port2.get_internal_connected_component([port2.ecu])

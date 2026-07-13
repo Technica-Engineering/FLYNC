@@ -17,6 +17,7 @@ Commands
 - **vlan-info** - Show per-VLAN membership, interfaces, and IP addresses.
 - **service-info** - Inspect SOME/IP service deployments across ECUs.
 - **generate-system-uml** - Generate PlantUML system topology diagrams.
+- **errors** - Inspect and maintain the :doc:`../error_catalogue`.
 
 Show all available commands
 ---------------------------

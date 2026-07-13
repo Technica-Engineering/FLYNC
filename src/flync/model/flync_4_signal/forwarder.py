@@ -5,7 +5,7 @@ from typing import List, Literal, Optional
 from pydantic import Field, RootModel, model_validator
 
 from flync.core.base_models import FLYNCBaseModel
-from flync.core.utils.exceptions import err_major
+from flync.core.utils.exceptions import Category, err_major
 
 
 class CANFrameEgress(FLYNCBaseModel):
@@ -77,5 +77,7 @@ def _check_egress_uniqueness(egresses: List[ForwarderEgress], owner: str) -> Non
                 owner=owner,
                 idx=idx,
                 key=key,
+                category=Category.UNIQUENESS,
+                error_number="102",
             )
         seen.add(key)

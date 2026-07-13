@@ -9,7 +9,7 @@ from flync.core.utils.common_validators import (
     check_bit_ranges_no_overlap,
     collect_bit_ranges,
 )
-from flync.core.utils.exceptions import err_major
+from flync.core.utils.exceptions import Category, err_major
 from flync.model.flync_4_signal.value_encoding import (
     BitfieldGroup,
     BitfieldState,
@@ -188,7 +188,11 @@ class Signal(FLYNCBaseModel):
     def _factor_nonzero(cls, v: float) -> float:
         """Reject a zero factor, which would collapse all physical values."""
         if not v:
-            raise err_major("factor must not be zero; a zero factor collapses all physical values to the offset")
+            raise err_major(
+                "factor must not be zero; a zero factor collapses all physical values to the offset",
+                category=Category.VALUE_RANGE,
+                error_number="113",
+            )
         return v
 
     @model_validator(mode="after")
@@ -201,6 +205,8 @@ class Signal(FLYNCBaseModel):
                     data_type=self.data_type.value,
                     natural=natural,
                     bit_length=self.bit_length,
+                    category=Category.VALUE_RANGE,
+                    error_number="114",
                 )
             return self
         elif self.data_type.is_float():
@@ -210,6 +216,8 @@ class Signal(FLYNCBaseModel):
                     data_type=self.data_type.value,
                     natural=natural,
                     bit_length=self.bit_length,
+                    category=Category.VALUE_RANGE,
+                    error_number="115",
                 )
         elif natural is not None and self.bit_length > natural:
             raise err_major(
@@ -217,6 +225,8 @@ class Signal(FLYNCBaseModel):
                 bit_length=self.bit_length,
                 data_type=self.data_type.value,
                 natural=natural,
+                category=Category.VALUE_RANGE,
+                error_number="116",
             )
         return self
 
@@ -228,6 +238,8 @@ class Signal(FLYNCBaseModel):
                     "lower_limit ({lower_limit}) must not exceed upper_limit ({upper_limit})",
                     lower_limit=self.lower_limit,
                     upper_limit=self.upper_limit,
+                    category=Category.CONSISTENCY,
+                    error_number="117",
                 )
         return self
 
@@ -246,6 +258,8 @@ class Signal(FLYNCBaseModel):
             raise err_major(
                 "value_encoding is not supported for {data_type} signals; only integer data types allow text-table or bitfield encodings",
                 data_type=dt.value,
+                category=Category.COMPATIBILITY,
+                error_number="118",
             )
         if isinstance(self.value_encoding, TextTable):
             self._check_text_table_in_range(self.value_encoding)
@@ -276,6 +290,8 @@ class Signal(FLYNCBaseModel):
                     hi=hi,
                     data_type=self.data_type.value,
                     bit_length=self.bit_length,
+                    category=Category.VALUE_RANGE,
+                    error_number="119",
                 )
 
     def _check_bitfield_text_table_in_range(self, table: BitfieldTextTable) -> None:
@@ -288,6 +304,8 @@ class Signal(FLYNCBaseModel):
                     mask=f"{group.mask:#x}",
                     data_type=self.data_type.value,
                     bit_length=self.bit_length,
+                    category=Category.VALUE_RANGE,
+                    error_number="120",
                 )
 
     def _check_bitmask_flags_in_range(self, table: BitmaskFlags) -> None:
@@ -300,6 +318,8 @@ class Signal(FLYNCBaseModel):
                     mask=f"{flag.mask:#x}",
                     data_type=self.data_type.value,
                     bit_length=self.bit_length,
+                    category=Category.VALUE_RANGE,
+                    error_number="121",
                 )
 
 
@@ -396,16 +416,22 @@ def _check_initial_value(iv: object, dt: SignalDataType, bit_length: int) -> Non
     """Validate if the type is fit or not."""
     if dt == SignalDataType.BYTEARRAY:
         if not isinstance(iv, bytes):
-            raise err_major("initial_value for bytearray signal must be bytes; got {got}", got=type(iv).__name__)
+            raise err_major(
+                "initial_value for bytearray signal must be bytes; got {got}", got=type(iv).__name__, category=Category.FORMAT, error_number="122"
+            )
     elif dt == SignalDataType.CHAR:
         if not isinstance(iv, str):
-            raise err_major("initial_value for char signal must be str; got {got}", got=type(iv).__name__)
+            raise err_major(
+                "initial_value for char signal must be str; got {got}", got=type(iv).__name__, category=Category.FORMAT, error_number="123"
+            )
     elif dt.is_float():
         if not isinstance(iv, (float, int)) or isinstance(iv, bool):
             raise err_major(
                 "initial_value for {data_type} must be numeric; got {got}",
                 data_type=dt.value,
                 got=type(iv).__name__,
+                category=Category.FORMAT,
+                error_number="124",
             )
     elif dt.is_unsigned_integer() or dt.is_signed_integer():
         _check_integer_initial_value(iv, dt, bit_length)
@@ -418,6 +444,8 @@ def _check_integer_initial_value(iv: object, dt: SignalDataType, bit_length: int
             "initial_value for {data_type} must be int; got {got}",
             data_type=dt.value,
             got=type(iv).__name__,
+            category=Category.FORMAT,
+            error_number="125",
         )
     if dt.is_unsigned_integer():
         lo, hi = 0, (1 << bit_length) - 1
@@ -432,4 +460,6 @@ def _check_integer_initial_value(iv: object, dt: SignalDataType, bit_length: int
             hi=hi,
             data_type=dt.value,
             bit_length=bit_length,
+            category=Category.VALUE_RANGE,
+            error_number="126",
         )

@@ -26,7 +26,7 @@ from pydantic import (
 import flync.core.utils.common_validators as common_validators
 from flync.core.annotations.external import External, OutputStrategy
 from flync.core.base_models import FLYNCBaseModel
-from flync.core.utils.exceptions import err_minor
+from flync.core.utils.exceptions import Category, err_minor
 from flync.model.flync_4_metadata import SOMEIPServiceMetadata
 from flync.model.flync_4_safety.e2e import E2EConfig
 from flync.model.flync_4_someip.someip_datatypes import AllTypes
@@ -275,7 +275,9 @@ class SOMEIPField(FLYNCBaseModel):
         if self.notifier_id is not None or self.setter_id is not None or self.getter_id is not None:
             err_minor(
                 f'Field "{self.name}": [feat_req_someip_632] - '
-                "A field without a setter and without a getter and without a notifier shall not exist."
+                "A field without a setter and without a getter and without a notifier shall not exist.",
+                category=Category.REQUIRED,
+                error_number="135",
             )
         return self
 
@@ -610,7 +612,11 @@ class SOMEIPServiceInterface(FLYNCBaseModel):
         for eg in self.eventgroups:
             for event in eg.events:
                 if event in (self.events + self.fields):
-                    err_minor(f'Eventgroup references "{event.name}", ' "but it is not in events/fields of Service" f'"{self.name}"')
+                    err_minor(
+                        f'Eventgroup references "{event.name}", ' "but it is not in events/fields of Service" f'"{self.name}"',
+                        category=Category.REFERENCE,
+                        error_number="136",
+                    )
         return self
 
     @model_validator(mode="after")
@@ -636,7 +642,9 @@ class SOMEIPServiceInterface(FLYNCBaseModel):
                 err_minor(
                     f"Entities share same identifier: {identifier} | "
                     + ", ".join([f"'{entity.name}'({type(entity).__name__}.{attr_name})" for attr_name, entity in entries])
-                    + " [feat_req_someip_56]"
+                    + " [feat_req_someip_56]",
+                    category=Category.UNIQUENESS,
+                    error_number="137",
                 )
         return self
 

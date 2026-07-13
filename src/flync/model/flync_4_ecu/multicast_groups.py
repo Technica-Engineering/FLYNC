@@ -15,7 +15,7 @@ import flync.core.utils.common_validators as common_validators
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.datatypes.macaddress import FLYNCMacAddress
 from flync.core.utils.common_validators import validate_vlan_id
-from flync.core.utils.exceptions import err_minor
+from flync.core.utils.exceptions import Category, err_minor
 from flync.model.flync_4_ecu.controller import EthernetInterfaceConfig
 
 
@@ -54,7 +54,9 @@ class MulticastGroupMembership(FLYNCBaseModel):
         if (isinstance(self.group, (IPv4Address | IPv6Address))) and self.mode == "tx" and not self.src_ip:
             raise err_minor(
                 f"Multicast group membership for {self.group} ({self.mode} / VLAN {self.vlan} ) could not be defined."
-                "The field 'src_ip' must be defined for IP multicast senders!"
+                "The field 'src_ip' must be defined for IP multicast senders!",
+                category=Category.REQUIRED,
+                error_number="080",
             )
         return self
 

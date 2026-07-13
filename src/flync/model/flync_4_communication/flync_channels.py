@@ -16,7 +16,7 @@ from flync.core.utils.common_validators import (
     check_bit_ranges_within,
     validate_list_items_unique,
 )
-from flync.core.utils.exceptions import err_major
+from flync.core.utils.exceptions import Category, err_major
 from flync.model.flync_4_bus.can_bus import CANBus
 from flync.model.flync_4_bus.lin_bus import LINBus
 from flync.model.flync_4_signal.frame import Frame
@@ -138,6 +138,8 @@ class FLYNCChannelConfig(FLYNCBaseModel):
                         kind=kind,
                         name=bus.name,
                         unknown_refs=sorted(unknown_refs),
+                        category=Category.REFERENCE,
+                        error_number="057",
                     )
                 _validate_frame_pdu_placements(kind, bus, pdu_registry)
         return self

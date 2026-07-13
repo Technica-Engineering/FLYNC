@@ -14,7 +14,7 @@ the new layout or downgrade FLYNC to the 0.10.x line.
 
 from typing import Any, Optional
 
-from flync.core.utils.exceptions import err_fatal
+from flync.core.utils.exceptions import Category, err_fatal
 
 _LEGACY_META_KEY = "meta"
 _VERSION_KEY = "compatible_flync_version"
@@ -58,4 +58,6 @@ def reject_legacy_controller(data: Any) -> None:
         "Update the configuration to the new layout or downgrade FLYNC to 0.10.x.",
         legacy_version=legacy_version,
         required_version=_REQUIRED_FLYNC_VERSION,
+        category=Category.COMPATIBILITY,
+        error_number="048",
     )

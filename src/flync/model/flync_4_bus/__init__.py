@@ -9,6 +9,7 @@ from flync.model.flync_4_bus.lin_bus import (
     LINScheduleTable,
 )
 
+KEY = "BUS"
 __all__ = [
     # CAN
     "CANBus",

@@ -4,6 +4,7 @@ from importlib import metadata
 import typer
 from rich import print as rprint
 
+from flync_cli.commands.errors import app as errors_app
 from flync_cli.commands.generate_system_uml import app as generate_uml
 from flync_cli.commands.info import app as display_info
 from flync_cli.commands.service_info import app as service_info
@@ -23,6 +24,7 @@ app.add_typer(display_info)
 app.add_typer(display_vlan_info)
 app.add_typer(generate_uml)
 app.add_typer(service_info)
+app.add_typer(errors_app, name="errors")
 
 
 @app.callback(invoke_without_command=True)

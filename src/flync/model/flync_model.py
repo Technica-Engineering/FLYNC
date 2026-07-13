@@ -12,7 +12,7 @@ from flync.core.annotations import External, NamingStrategy, OutputStrategy
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.base_utils import check_obj_in_list
 from flync.core.utils.common_validators import validate_list_items_unique
-from flync.core.utils.exceptions import err_major, warn
+from flync.core.utils.exceptions import Category, err_major, warn
 from flync.core.utils.forwarder_validators import (
     detect_forwarder_cycles,
     validate_forwarder_locality,
@@ -98,13 +98,13 @@ class FLYNCModel(FLYNCBaseModel):
     @model_validator(mode="before")
     def warn_deprecated(cls, data):
         if "general" in data:
-            warn("The 'general' attribute is deprecated. Please use 'communication' instead.")
+            warn("The 'general' attribute is deprecated. Please use 'communication' instead.", category=Category.LIFECYCLE, error_number="162")
         return data
 
     @property
     @typing_extensions.deprecated("The `general` attribute is deprecated, use `communication` instead.")
     def general(self) -> Optional[FLYNCCommunicationConfig]:
-        warn("The 'general' attribute is deprecated. Please use 'communication' instead.")
+        warn("The 'general' attribute is deprecated. Please use 'communication' instead.", category=Category.LIFECYCLE, error_number="163")
         return self.communication
 
     @model_validator(mode="before")
@@ -156,7 +156,7 @@ class FLYNCModel(FLYNCBaseModel):
             try:
                 conn.bind(ports_by_name)
             except PydanticCustomError as e:
-                warn(str(e))
+                warn(str(e), category=Category.REFERENCE, error_number="164")
         return self
 
     @model_validator(mode="after")
@@ -173,9 +173,9 @@ class FLYNCModel(FLYNCBaseModel):
                     if ip not in all_ips:
                         all_ips.append(ip)
                     elif str(ip) not in ("0.0.0.0", "::"):
-                        warn(f"The IP {ip} is repeated in ECU {ecu.name}")
+                        warn(f"The IP {ip} is repeated in ECU {ecu.name}", category=Category.UNIQUENESS, error_number="165")
         except PydanticCustomError as e:
-            warn(str(e))
+            warn(str(e), category=Category.UNIQUENESS, error_number="166")
         return self
 
     @model_validator(mode="after")
@@ -194,9 +194,13 @@ class FLYNCModel(FLYNCBaseModel):
 
             for rx in rx_list:
                 if rx not in tx_list:
-                    warn(f"Invalid Multicast Configuration. There is a multicast rx configured for the address {rx} but no tx.")
+                    warn(
+                        f"Invalid Multicast Configuration. There is a multicast rx configured for the address {rx} but no tx.",
+                        category=Category.CONSISTENCY,
+                        error_number="167",
+                    )
         except PydanticCustomError as e:
-            warn(str(e))
+            warn(str(e), category=Category.CONSISTENCY, error_number="168")
         return self
 
     @model_validator(mode="after")
@@ -215,11 +219,13 @@ class FLYNCModel(FLYNCBaseModel):
                     if (mcast.mode == "tx") and key in paths and not check_obj_in_list(mcast._interface, paths[key]):
                         warn(
                             "Invalid Multicast Address Configuration. There are several RX that the TX Endpoint at "
-                            f"{mcast._interface.name} cannot reach. {serialize_components(paths[key])}"
+                            f"{mcast._interface.name} cannot reach. {serialize_components(paths[key])}",
+                            category=Category.CONSISTENCY,
+                            error_number="169",
                         )
             self.check_rx_are_reached(separ, paths, vlans_dict)
         except PydanticCustomError as e:
-            warn(str(e))
+            warn(str(e), category=Category.CONSISTENCY, error_number="170")
         return self
 
     @model_validator(mode="after")
@@ -251,7 +257,9 @@ class FLYNCModel(FLYNCBaseModel):
                     raise err_major(
                         f"Deployed provided service ({svc.name}, {svc.id:#06x}, {svc.major_version}) "
                         f"has multicast configuration for eventgroups ({mcast_config.eventgroups}/{mcast_config.ip_address}), "
-                        f"but socket ({socket.name}) does not indicate by multicast_tx entry ({socket.multicast_tx})"
+                        f"but socket ({socket.name}) does not indicate by multicast_tx entry ({socket.multicast_tx})",
+                        category=Category.CONSISTENCY,
+                        error_number="171",
                     )
 
         return self
@@ -269,7 +277,7 @@ class FLYNCModel(FLYNCBaseModel):
                 if mac not in all_macs:
                     all_macs.append(mac)
                 else:
-                    raise err_major(f"The MAC {mac} is repeated in ECU {ecu.name}")
+                    raise err_major(f"The MAC {mac} is repeated in ECU {ecu.name}", category=Category.UNIQUENESS, error_number="172")
         return self
 
     @model_validator(mode="after")
@@ -290,11 +298,17 @@ class FLYNCModel(FLYNCBaseModel):
                 key = str(mcast.group) + separ + str(mcast.vlan)
                 if (mcast.mode == "rx") and key not in paths:
 
-                    warn(f"Invalid Multicast Address Configuration. There are no TX endpoints for this address {key} ")
+                    warn(
+                        f"Invalid Multicast Address Configuration. There are no TX endpoints for this address {key} ",
+                        category=Category.CONSISTENCY,
+                        error_number="173",
+                    )
                 if (mcast.mode == "rx") and key in paths and not check_obj_in_list(mcast._interface, paths[key]):
                     warn(
                         f"Invalid Multicast Address Configuration. The RX interface for address {key} "
-                        f"- {mcast._interface.name} cannot be reached by the TX ports."
+                        f"- {mcast._interface.name} cannot be reached by the TX ports.",
+                        category=Category.CONSISTENCY,
+                        error_number="174",
                     )
 
         self.load_switch_multicast(vlans_dict, paths)
