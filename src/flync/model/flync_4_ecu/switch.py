@@ -17,6 +17,7 @@ from pydantic import (
     Field,
     PrivateAttr,
     StrictInt,
+    field_serializer,
     model_validator,
 )
 
@@ -183,7 +184,26 @@ class SwitchPort(FLYNCBaseModel):
         return False
 
 
-class Drop(FLYNCBaseModel):
+class PortScopedAction(FLYNCBaseModel):
+    """
+    Base class for TCAM actions whose ``ports`` list defaults to all switch ports
+    when left empty or undefined.
+
+    The expanded port list is made available at runtime (see
+    :meth:`Switch._fill_empty_tcam_port_lists`), while the field serializer ensures
+    serialization reflects the user's original input: an empty list is dumped as an
+    empty list, and an omitted list stays omitted (under ``exclude_unset``).
+    """
+
+    _ports_autofilled: bool = PrivateAttr(default=False)
+
+    @field_serializer("ports", check_fields=False)
+    def serialize_ports(self, ports: Optional[List[str]], _info):
+        """Dump the user's original port list, not the runtime-expanded one."""
+        return [] if self._ports_autofilled else ports
+
+
+class Drop(PortScopedAction):
     """
     Action that discards traffic on the selected egress ports.
 
@@ -192,15 +212,15 @@ class Drop(FLYNCBaseModel):
     type : Literal["drop"]
         Discriminator used by Pydantic.
 
-    ports : list of str
-        Egress ports where the drop action should be applied.
+    ports : list of str, Optional
+        Egress ports where the drop action should be applied. Defaults to all ports of the switch if kept empty or undefined.
     """
 
     type: Literal["drop"] = Field(default="drop")
-    ports: List[str] = Field()
+    ports: Optional[List[str]] = Field(default_factory=list)
 
 
-class Mirror(FLYNCBaseModel):
+class Mirror(PortScopedAction):
     """
     Action that mirrors incoming traffic to additional egress ports.
 
@@ -209,15 +229,15 @@ class Mirror(FLYNCBaseModel):
     type : Literal["mirror"]
         Discriminator used by Pydantic.
 
-    ports : list of str
-        Egress ports that will receive the mirrored traffic.
+    ports : list of str, Optional
+        Egress ports that will receive the mirrored traffic. Defaults to all ports of the switch if kept empty or undefined.
     """
 
     type: Literal["mirror"] = Field(default="mirror")
-    ports: List[str] = Field()
+    ports: Optional[List[str]] = Field(default_factory=list)
 
 
-class ForceEgress(FLYNCBaseModel):
+class ForceEgress(PortScopedAction):
     """
     Action that forces a packet to leave through a given set of ports, bypassing the normal forwarding decision.
 
@@ -226,15 +246,15 @@ class ForceEgress(FLYNCBaseModel):
     type : Literal["force_egress"]
         Discriminator used by Pydantic.
 
-    ports : list of str
-        Egress ports to which the messages are force-forwarded.
+    ports : list of str, Optional
+        Egress ports to which the messages are force-forwarded. Defaults to all ports of the switch if kept empty or undefined.
     """
 
     type: Literal["force_egress"] = Field(default="force_egress")
-    ports: List[str] = Field()
+    ports: Optional[List[str]] = Field(default_factory=list)
 
 
-class VLANOverwrite(FLYNCBaseModel):
+class VLANOverwrite(PortScopedAction):
     """
     Action that overwrites VLAN ID and/or PCP values on selected ports.
 
@@ -250,17 +270,17 @@ class VLANOverwrite(FLYNCBaseModel):
     overwrite_vlan_pcp : int, optional
         New PCP value (0-7). If ``None``, the PCP value is left unchanged.
 
-    ports : list of str
-        Egress ports at which the overwriting should take place.
+    ports : list of str, Optional
+        Egress ports at which the overwriting should take place. Defaults to all ports of the switch if kept empty or undefined.
     """
 
     type: Literal["vlan_overwrite"] = Field(default="vlan_overwrite")
     overwrite_vlan_id: Annotated[Optional[int], AfterValidator(validate_vlan_id)] = Field(default=None)
     overwrite_vlan_pcp: Optional[int] = Field(default=None)
-    ports: List[str] = Field()
+    ports: Optional[List[str]] = Field(default_factory=list)
 
 
-class RemoveVLAN(FLYNCBaseModel):
+class RemoveVLAN(PortScopedAction):
     """
     Action that removes the VLAN tag from packets on the given ports.
 
@@ -269,12 +289,12 @@ class RemoveVLAN(FLYNCBaseModel):
     type : Literal["remove_vlan"]
         Discriminator used by Pydantic.
 
-    ports : list of str
-        Egress ports where the VLAN tag will be removed.
+    ports : list of str, Optional
+        Egress ports where the VLAN tag will be removed. Defaults to all ports of the switch if kept empty or undefined.
     """
 
     type: Literal["remove_vlan"] = Field(default="remove_vlan")
-    ports: List[str] = Field()
+    ports: Optional[List[str]] = Field(default_factory=list)
 
 
 class TCAMRule(FLYNCBaseModel):
@@ -293,8 +313,8 @@ class TCAMRule(FLYNCBaseModel):
     match_filter : :class:`~flync.model.flync_4_tsn.FrameFilter`
         Packet-matching filter used to decide whether the rule applies.
 
-    match_ports : list of str
-        Ports to which the rule is bound.
+    match_ports : list of str, Optional
+        Ports to which the rule is bound. Defaults to all ports of the switch if kept empty or undefined.
 
     action : list of :class:`Drop` or :class:`Mirror` or :class:`ForceEgress` or :class:`VLANOverwrite` or :class:`RemoveVLAN`
         One or more actions performed when the rule matches.
@@ -304,8 +324,14 @@ class TCAMRule(FLYNCBaseModel):
     name: str = Field()
     id: StrictInt = Field()
     match_filter: FrameFilter = Field()
-    match_ports: List[str] = Field()
+    match_ports: Optional[List[str]] = Field(default_factory=list)
     action: List[(Drop | Mirror | VLANOverwrite | ForceEgress | RemoveVLAN)] = Field()
+    _match_ports_autofilled: bool = PrivateAttr(default=False)
+
+    @field_serializer("match_ports")
+    def serialize_match_ports(self, match_ports: Optional[List[str]], _info):
+        """Dump the user's original port list, not the runtime-expanded one."""
+        return [] if self._match_ports_autofilled else match_ports
 
     @model_validator(mode="after")
     def validate_exclusive_drop_force_mirror(self):
@@ -530,6 +556,34 @@ class Switch(FLYNCBaseModel):
     def model_post_init(self, __context):
         for port in self.ports:
             port._switch = self
+
         if self.host_controller is not None:
             self.host_controller._name = f"{self.name}_host"
+
+        self._fill_empty_tcam_port_lists()
         return super().model_post_init(__context)
+
+    def _fill_empty_tcam_port_lists(self):
+        """
+        Fill empty or omitted port lists in TCAM rules with all available switch ports.
+
+        The expanded list is assigned directly via ``object.__setattr__`` so it is fully
+        accessible at runtime without being recorded in the model's "fields set". This keeps
+        serialization faithful to the user's original input: the field serializers on
+        :class:`TCAMRule` and :class:`PortScopedAction` dump an explicit empty list as ``[]``,
+        while an omitted list stays omitted (under ``exclude_unset``).
+        """
+        if not self.tcam_rules:
+            return
+
+        all_port_names = [port.name for port in self.ports]
+
+        for rule in self.tcam_rules:
+            if not rule.match_ports:
+                object.__setattr__(rule, "match_ports", all_port_names.copy())
+                object.__setattr__(rule, "_match_ports_autofilled", True)
+
+            for action in rule.action:
+                if not action.ports:
+                    object.__setattr__(action, "ports", all_port_names.copy())
+                    object.__setattr__(action, "_ports_autofilled", True)

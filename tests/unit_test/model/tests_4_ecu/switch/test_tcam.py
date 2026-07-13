@@ -16,6 +16,36 @@ def test_positive_tcam_entries(embedded_metadata_entry, vlan_entry, switch_port,
     )
 
 
+@pytest.mark.parametrize("match_ports", [None, [], "omit"])
+def test_positive_empty_match_ports_binds_all_switch_ports(
+    embedded_metadata_entry,
+    vlan_entry,
+    switch_port,
+    tcam_match_filter,
+    match_ports,
+):
+    """An empty or undefined match_ports binds the rule to all switch ports."""
+    rule = {
+        "name": "tcam_rule_1",
+        "id": 1,
+        "match_filter": tcam_match_filter,
+        "action": [{"type": "drop", "ports": [switch_port.name]}],
+    }
+    if match_ports != "omit":
+        rule["match_ports"] = match_ports
+
+    switch = Switch.model_validate(
+        {
+            "meta": embedded_metadata_entry,
+            "name": "switch_example",
+            "vlans": [vlan_entry],
+            "ports": [switch_port],
+            "tcam_rules": [rule],
+        }
+    )
+    assert switch.tcam_rules[0].match_ports == [switch_port.name]
+
+
 def test_negative_match_port_not_a_switch_port_tcam(
     embedded_metadata_entry,
     vlan_entry,

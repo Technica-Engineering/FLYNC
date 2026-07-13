@@ -161,6 +161,11 @@ flync.core.datatypes
 .. autoclass:: flync.core.datatypes.ValueRange()
 .. autoclass:: flync.core.datatypes.ValueTable()
 
+----
+
+.. autoclass:: flync.core.datatypes.Ethertype()
+
+----
 
 flync.core.utils
 =================

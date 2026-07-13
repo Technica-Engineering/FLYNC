@@ -8,6 +8,7 @@ from typing import Annotated, List, Literal, Optional, Self
 from pydantic import (
     BeforeValidator,
     Field,
+    PlainSerializer,
     field_serializer,
     field_validator,
     model_validator,
@@ -17,10 +18,13 @@ from pydantic_extra_types.mac_address import MacAddress
 import flync.core.utils.common_validators as common_validators
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.datatypes import (
+    Ethertype,
     IPv4AddressEntry,
     IPv6AddressEntry,
     MACAddressEntry,
     ValueRange,
+    serialize_ethertype,
+    validate_ethertype_input,
 )
 from flync.core.utils.exceptions import err_minor
 
@@ -223,6 +227,12 @@ class FrameFilter(FLYNCBaseModel):
 
     Parameters
     ----------
+
+    ethertype : :class:`~flync.core.datatypes.ethertypes.Ethertype` or \
+    list of :class:`~flync.core.datatypes.ethertypes.Ethertype`, optional
+        EtherType(s) to filter by. Accepts an :class:`Ethertype` member, its
+        name (e.g. ``"AVTP"``) or its numeric value (e.g. ``0x22F0``).
+
     src_mac : :class:`MacAddress` or :class:`~flync.core.datatypes.MACAddressEntry` \
     or list of  (MacAddress | :class:`~flync.core.datatypes.MACAddressEntry`), optional
         Source MAC address(es) to filter by.
@@ -273,6 +283,9 @@ class FrameFilter(FLYNCBaseModel):
         Destination transport layer port(s). Integers must be > 0.
     """
 
+    ethertype: Optional[Annotated[Ethertype | List[Ethertype], PlainSerializer(serialize_ethertype), BeforeValidator(validate_ethertype_input)]] = (
+        Field(default=None)
+    )
     src_mac: Optional[str | MACAddressEntry | List[str | MACAddressEntry]] = Field(default=None)
     dst_mac: Optional[str | MACAddressEntry | List[str | MACAddressEntry]] = Field(default=None)
     vlan_tagged: Optional[bool] = Field(default=None)

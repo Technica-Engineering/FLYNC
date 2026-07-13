@@ -165,6 +165,14 @@ tcam_rules:
         ports:
           - z2_s1_p1
         overwrite_vlan_pcp: 1
+  - name: rule_3
+    id: 3
+    match_filter:
+      protocol: udp
+      src_port: 1234
+      dst_port: 1234
+    action:
+      - type: remove_vlan
 
 
 vlans:

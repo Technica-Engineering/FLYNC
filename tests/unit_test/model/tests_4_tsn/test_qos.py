@@ -1,13 +1,14 @@
 import pytest
 from pydantic import ValidationError
 
-from flync.core.datatypes import ValueRange
+from flync.core.datatypes import Ethertype, ValueRange
 from flync.model.flync_4_ecu.switch import Switch, SwitchPort
 from flync.model.flync_4_tsn.qos import (
     ATSInstance,
     ATSShaper,
     CBSShaper,
     DoubleRateThreeColorMarker,
+    FrameFilter,
     HTBInstance,
     SingleRateThreeColorMarker,
     SingleRateTwoColorMarker,
@@ -823,3 +824,75 @@ def test_htb():
     }
 
     assert HTBInstance.model_validate(htb_instance)
+
+
+class Test_FrameFilter_Ethertype:
+
+    @pytest.mark.parametrize(
+        "ethertype",
+        [
+            pytest.param(Ethertype.AVTP, id="enum value"),
+            pytest.param(0x22F0, id="numeric value"),
+            pytest.param("AVTP", id="string_name"),
+            pytest.param("0x22F0", id="hex_string"),
+        ],
+    )
+    def test_positive_framefilter_ethertype(self, ethertype):
+        """Test FrameFilter accepts Ethertypes enum value directly."""
+        frame_filter = FrameFilter(ethertype=ethertype)
+        assert frame_filter.ethertype == Ethertype.AVTP
+
+    @pytest.mark.parametrize(
+        "ethertype",
+        [
+            pytest.param(0x000, id="Zero"),
+            pytest.param(0x1111, id="Invalid hex"),
+            pytest.param("XYZINVALID", id="wrong string name"),
+            pytest.param("0x1111", id="invlid hex string"),
+        ],
+    )
+    def test_negative_framefilter_ethertype(self, ethertype):
+        """Test FrameFilter accepts Ethertypes enum value directly."""
+        with pytest.raises(ValidationError, match="Invalid ethertype value"):
+            assert FrameFilter(ethertype=ethertype)
+
+    @pytest.mark.parametrize(
+        "ethertype,assert_type",
+        [
+            pytest.param([Ethertype.AVTP, Ethertype.PTP], [Ethertype.AVTP, Ethertype.PTP], id="enum list"),
+            pytest.param([Ethertype.AVTP, "PTP", 0x0806], [Ethertype.AVTP, Ethertype.PTP, Ethertype.ARP], id="mixed list"),
+        ],
+    )
+    def test_positive_framefilter_ethertype_list(self, ethertype, assert_type):
+        """Test FrameFilter accepts list of Ethertypes enum values."""
+        frame_filter = FrameFilter(ethertype=ethertype)
+
+        assert len(frame_filter.ethertype) == len(assert_type)
+        for i in range(len(assert_type)):
+            assert frame_filter.ethertype[i] == assert_type[i]
+
+    @pytest.mark.parametrize(
+        "ethertype, assert_serialized",
+        [
+            pytest.param(Ethertype.AVTP, "0x22F0", id="enum value"),
+            pytest.param(0x88CC, "0x88CC", id="numeric value"),
+            pytest.param("LLDP", "0x88CC", id="string_name"),
+            pytest.param("0x22F0", "0x22F0", id="hex_string"),
+            pytest.param([Ethertype.AVTP, Ethertype.PTP, Ethertype.ARP], ["0x22F0", "0x88F7", "0x0806"], id="list enums"),
+        ],
+    )
+    def test_positive_framefilter_ethertype_serialization(self, ethertype, assert_serialized):
+        """Test FrameFilter serializes single Ethertypes enum value to its name."""
+        frame_filter = FrameFilter(ethertype=ethertype)
+        serialized = frame_filter.model_dump()
+        assert serialized["ethertype"] == assert_serialized
+
+    def test_positive_framefilter_ethertype_optional_none(self):
+        """Test FrameFilter allows ethertype to be None (optional)."""
+        frame_filter = FrameFilter(ethertype=None)
+        assert frame_filter.ethertype is None
+
+    def test_positive_framefilter_ethertype_not_specified(self):
+        """Test FrameFilter defaults ethertype to None when not specified."""
+        frame_filter = FrameFilter()
+        assert frame_filter.ethertype is None
