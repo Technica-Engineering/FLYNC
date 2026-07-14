@@ -14,7 +14,7 @@ import shutil
 from pathlib import Path
 
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
-from tests.system_test.sdk.helper_load_ws import update_yaml_content
+from tests.system_test.sdk.helper import update_yaml_content
 
 absolute_path = Path(__file__).parents[3] / "examples" / "flync_example"
 

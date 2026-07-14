@@ -7,7 +7,7 @@ from pydantic import ValidationError
 
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 
-from .helper_load_ws import (
+from .helper import (
     append_yaml_content,
     model_has_socket,
     update_yaml_content,
