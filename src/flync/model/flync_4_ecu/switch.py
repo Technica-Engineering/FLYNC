@@ -346,7 +346,9 @@ class FrameMask(FLYNCBaseModel):
             raise err_minor(
                 f"{info.field_name} must be a quoted string: a hex literal like "
                 f'"0x0800" or a binary string like "100101010111". Got '
-                f"{type(value).__name__} {value!r}; wrap the value in quotes."
+                f"{type(value).__name__} {value!r}; wrap the value in quotes.",
+                category=Category.VALUE_RANGE,
+                error_number="176",
             )
         return value
 
@@ -360,7 +362,11 @@ class FrameMask(FLYNCBaseModel):
             return "0x" + v[2:].upper()
         if bin_regex.match(v):
             return v
-        raise err_minor(f'{info.field_name} must be a 0x-hex literal (e.g. "0x0800") or a binary string of 0/1 (e.g. "100101010111"); got {value!r}')
+        raise err_minor(
+            f'{info.field_name} must be a 0x-hex literal (e.g. "0x0800") or a binary string of 0/1 (e.g. "100101010111"); got {value!r}',
+            category=Category.VALUE_RANGE,
+            error_number="177",
+        )
 
     @staticmethod
     def _bit_width(v: str) -> int:
@@ -375,12 +381,18 @@ class FrameMask(FLYNCBaseModel):
     def validate_widths_and_window(self) -> Self:
         d, m = self._bit_width(self.data), self._bit_width(self.mask)
         if d != m:
-            raise err_minor("'data' and 'mask' must describe the same number of bits")
+            raise err_minor("'data' and 'mask' must describe the same number of bits", category=Category.VALUE_RANGE, error_number="178")
         if not 0 <= self.offset < self.frame_window:
-            raise err_minor(f"offset must be between 0 and {self.frame_window - 1}, got {self.offset}")
+            raise err_minor(
+                f"offset must be between 0 and {self.frame_window - 1}, got {self.offset}", category=Category.VALUE_RANGE, error_number="179"
+            )
         byte_span = -(-d // 8)  # ceil(bits/8); patterns need not be byte-aligned
         if self.offset + byte_span > self.frame_window:
-            raise err_minor(f"pattern at offset {self.offset} extends beyond byte {self.frame_window - 1} (max inspectable frame position)")
+            raise err_minor(
+                f"pattern at offset {self.offset} extends beyond byte {self.frame_window - 1} (max inspectable frame position)",
+                category=Category.VALUE_RANGE,
+                error_number="180",
+            )
         return self
 
 
@@ -452,6 +464,8 @@ class TCAMRule(FLYNCBaseModel):
                 raise err_minor(
                     "TCAM Rule '{name}': vehicle_state_mask requires vehicle_state to be set.",
                     name=self.name,
+                    category=Category.STRUCTURAL,
+                    error_number="181",
                 )
             return self
 
@@ -462,6 +476,8 @@ class TCAMRule(FLYNCBaseModel):
             raise err_minor(
                 "TCAM Rule '{name}': vehicle_state has bits set outside vehicle_state_mask.",
                 name=self.name,
+                category=Category.STRUCTURAL,
+                error_number="182",
             )
         return self
 
@@ -477,9 +493,9 @@ class TCAMRule(FLYNCBaseModel):
         has_mask = self.frame_mask is not None
 
         if has_filter and has_mask:
-            raise err_minor("Cannot specify both match_filter and frame_mask; use only one")
+            raise err_minor("Cannot specify both match_filter and frame_mask; use only one", category=Category.STRUCTURAL, error_number="183")
         if not has_filter and not has_mask:
-            raise err_minor("Must specify either match_filter or frame_mask")
+            raise err_minor("Must specify either match_filter or frame_mask", category=Category.STRUCTURAL, error_number="184")
         return self
 
     @model_validator(mode="after")

@@ -11,6 +11,7 @@ stages:
   - tests
   - sonar
   - code_review
+  - docs
   - deploy
 
 lint:
@@ -86,6 +87,17 @@ type_check:
       - type-check-reports/
     when: on_failure
 
+error-catalogue-integrity:
+  extends: .base
+  stage: static-analysis
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
+    - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
+  script:
+    - poetry install
+    - poetry run python src/flync_cli/main.py errors validate-catalogue
+
 examples_validation:
   extends: .base
   stage: tests
@@ -154,15 +166,36 @@ sonar:scan:
   tags:
     - docker-linux
 
-pages:
+docs-build:
   extends: .base
-  stage: deploy
-  needs: [pytest]
+  needs:
+    - job: pytest
+    - job: error-catalogue-integrity
+  stage: docs
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
+    - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
   script:
-    - cd ./docs
     - poetry install --with docs
+    - echo "--- GENERATING ERROR CATALOGUE ---"
+    - poetry run python src/flync_cli/main.py errors generate-catalogue
+    - echo "--- BUILDING DOCS ---"
+    - cd ./docs
     - make html
-    - cd .. && mv ./docs/build/html public
+    - cd ..
+  artifacts:
+    expire_in: 1 day
+    paths:
+      - docs/build
+
+pages:
+  stage: deploy
+  needs:
+    - job: docs-build
+      artifacts: true
+  script:
+    - mv ./docs/build/html public
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"
   artifacts:

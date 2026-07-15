@@ -892,6 +892,96 @@ Every error and warning the FLYNC validators can raise, identified as
 
    f'The switch port {self.name} is not a part of any switch'
 
+.. err:: {info.field_name} must be a quoted string: a hex literal like "0x0800" or a b...
+   :id: FLYNC-ECU-MIN-VAL-176
+   :module: ECU
+   :severity: MIN
+   :category: VALUE_RANGE
+   :number: 176
+   :location: switch.FrameMask._require_string
+
+   f'{info.field_name} must be a quoted string: a hex literal like "0x0800" or a binary string like "100101010111". Got {type(value).__name__} {value!r}; wrap the value in quotes.'
+
+.. err:: {info.field_name} must be a 0x-hex literal (e.g. "0x0800") or a binary string...
+   :id: FLYNC-ECU-MIN-VAL-177
+   :module: ECU
+   :severity: MIN
+   :category: VALUE_RANGE
+   :number: 177
+   :location: switch.FrameMask._normalize_format
+
+   f'{info.field_name} must be a 0x-hex literal (e.g. "0x0800") or a binary string of 0/1 (e.g. "100101010111"); got {value!r}'
+
+.. err:: data' and 'mask' must describe the same number of bits
+   :id: FLYNC-ECU-MIN-VAL-178
+   :module: ECU
+   :severity: MIN
+   :category: VALUE_RANGE
+   :number: 178
+   :location: switch.FrameMask.validate_widths_and_window
+
+   "'data' and 'mask' must describe the same number of bits"
+
+.. err:: offset must be between 0 and {self.frame_window - 1}, got {self.offset}
+   :id: FLYNC-ECU-MIN-VAL-179
+   :module: ECU
+   :severity: MIN
+   :category: VALUE_RANGE
+   :number: 179
+   :location: switch.FrameMask.validate_widths_and_window
+
+   f'offset must be between 0 and {self.frame_window - 1}, got {self.offset}'
+
+.. err:: pattern at offset {self.offset} extends beyond byte {self.frame_window - 1} (...
+   :id: FLYNC-ECU-MIN-VAL-180
+   :module: ECU
+   :severity: MIN
+   :category: VALUE_RANGE
+   :number: 180
+   :location: switch.FrameMask.validate_widths_and_window
+
+   f'pattern at offset {self.offset} extends beyond byte {self.frame_window - 1} (max inspectable frame position)'
+
+.. err:: TCAM Rule '{name}': vehicle_state_mask requires vehicle_state to be set.
+   :id: FLYNC-ECU-MIN-STRUCT-181
+   :module: ECU
+   :severity: MIN
+   :category: STRUCTURAL
+   :number: 181
+   :location: switch.TCAMRule.validate_vehicle_state
+
+   "TCAM Rule '{name}': vehicle_state_mask requires vehicle_state to be set."
+
+.. err:: TCAM Rule '{name}': vehicle_state has bits set outside vehicle_state_mask.
+   :id: FLYNC-ECU-MIN-STRUCT-182
+   :module: ECU
+   :severity: MIN
+   :category: STRUCTURAL
+   :number: 182
+   :location: switch.TCAMRule.validate_vehicle_state
+
+   "TCAM Rule '{name}': vehicle_state has bits set outside vehicle_state_mask."
+
+.. err:: Cannot specify both match_filter and frame_mask; use only one
+   :id: FLYNC-ECU-MIN-STRUCT-183
+   :module: ECU
+   :severity: MIN
+   :category: STRUCTURAL
+   :number: 183
+   :location: switch.TCAMRule.validate_match_filter_or_mask_exclusive
+
+   'Cannot specify both match_filter and frame_mask; use only one'
+
+.. err:: Must specify either match_filter or frame_mask
+   :id: FLYNC-ECU-MIN-STRUCT-184
+   :module: ECU
+   :severity: MIN
+   :category: STRUCTURAL
+   :number: 184
+   :location: switch.TCAMRule.validate_match_filter_or_mask_exclusive
+
+   'Must specify either match_filter or frame_mask'
+
 .. err:: A TCAM Rule can either drop OR force egress OR mirror on one port.
    :id: FLYNC-ECU-MIN-CONS-088
    :module: ECU
