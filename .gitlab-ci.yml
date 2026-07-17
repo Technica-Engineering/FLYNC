@@ -108,7 +108,7 @@ examples_validation:
     - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
   script:
     - poetry install
-    - poetry run python src/flync/sdk/helpers/validate_examples.py
+    - poetry run python scripts/ci/validate_examples.py
 
 pytest:
   extends: .base

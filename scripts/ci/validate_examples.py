@@ -8,7 +8,7 @@ Iterates over every subdirectory in the ``examples/`` folder at the project root
 import subprocess
 from pathlib import Path
 
-PROJECT_BASE = Path(__file__).resolve().parents[4]
+PROJECT_BASE = Path(__file__).resolve().parents[2]
 EXAMPLES_DIR = PROJECT_BASE / "examples"
 WORKSPACE_EXAMPLE = EXAMPLES_DIR / "flync_example"
 ECU_VARIANTS = EXAMPLES_DIR / "ecu_variants"
@@ -21,8 +21,7 @@ subprocess.run(
         str(WORKSPACE_EXAMPLE),
         "--config",
         WORKSPACE_EXAMPLE.name,
-    ],
-    shell=True,
+    ]
 )
 
 print("----- Validate ECU Variants -----")
@@ -36,6 +35,5 @@ for example_dir in list(ECU_VARIANTS.iterdir()):
             example_dir.name,
             "--node",
             "ECU",
-        ],
-        shell=True,
+        ]
     )
