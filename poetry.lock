@@ -315,14 +315,14 @@ uvloop = ["uvloop (>=0.15.2) ; sys_platform != \"win32\"", "winloop (>=0.5.0) ; 
 
 [[package]]
 name = "cantools"
-version = "41.4.1"
+version = "41.4.3"
 description = "CAN BUS tools."
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "cantools-41.4.1-py3-none-any.whl", hash = "sha256:67b37bcba8f1d7aa70aa5a3934e1d70f86446760ab992a8ce790627430d07c9b"},
-    {file = "cantools-41.4.1.tar.gz", hash = "sha256:16946dc96e1c4390ce1c439b2261b3e42f9a03d2248addad9b7c240bb4e28f6d"},
+    {file = "cantools-41.4.3-py3-none-any.whl", hash = "sha256:89154ff5d7a52471ef1d0dd8ea9d012e286ce574c0df2775cef074d8429cd4ee"},
+    {file = "cantools-41.4.3.tar.gz", hash = "sha256:a46628da95a8d772b235c684870cb32d534b97d2d0ebc7ab079f84d4df5a29e5"},
 ]
 
 [package.dependencies]
@@ -334,7 +334,7 @@ textparser = ">=0.21.1"
 
 [package.extras]
 cache = ["diskcache"]
-dev = ["mypy", "pipx", "ruff", "tox"]
+dev = ["matplotlib-stubs", "mypy", "pipx", "ruff", "tox"]
 plot = ["matplotlib"]
 windows-all = ["windows-curses ; platform_system == \"Windows\" and platform_python_implementation == \"CPython\""]
 
