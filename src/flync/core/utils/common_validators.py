@@ -128,6 +128,40 @@ def validate_or_remove(label: str, field_type: Any, severity: str = "minor"):
     return _validator
 
 
+def _format_validation_error_sub_errors(ve: ValidationError) -> str:
+    """
+    Flatten a :class:`ValidationError` into a "loc: msg" string, one line per sub-error.
+    """
+
+    return "\n".join(
+        "{loc}: {msg}".format(
+            loc=".".join(str(x) for x in e.get("loc", ())),
+            msg=e.get("msg", ""),
+        )
+        for e in ve.errors()
+    )
+
+
+def _record_list_item_warning(label: str, location: str, field_name: str, idx: int, item: Any, sub_errors: str, severity: str) -> None:
+    """
+    Append a removed-list-item warning to the ``_validation_warnings`` context var, if one is active.
+    """
+
+    accumulated = _validation_warnings.get()
+    if accumulated is None:
+        return
+    accumulated.append(
+        {
+            "type": severity,
+            "msg": (f"1 or more errors found while validating {label}. Removing {label} {location}."),
+            "loc": (field_name, idx),
+            "input": item,
+            "ctx": {"sub_errors": sub_errors},
+            "url": "",
+        }
+    )
+
+
 def validate_list_items_and_remove(label: str, item_type: Any, severity: str = "minor"):
     """
     Validate each item in a list individually, removing only invalid entries.
@@ -164,6 +198,12 @@ def validate_list_items_and_remove(label: str, item_type: Any, severity: str = "
         available via ``info.data``.
         """
 
+        if isinstance(data, dict):
+            err_fn = err_major if severity == "major" else err_minor
+            raise err_fn(
+                f"'{label}' must be a list of items, but a single mapping was given. "
+                f"Did you forget to add '- ' before each item to make it a list?"
+            )
         if not isinstance(data, list):
             return data
         location = _resolve_location(info)
@@ -175,25 +215,8 @@ def validate_list_items_and_remove(label: str, item_type: Any, severity: str = "
                 adapter.validate_python(item)
                 valid_items.append(item)
             except ValidationError as ve:
-                sub_errors = "\n".join(
-                    "{loc}: {msg}".format(
-                        loc=".".join(str(x) for x in e.get("loc", ())),
-                        msg=e.get("msg", ""),
-                    )
-                    for e in ve.errors()
-                )
-                accumulated = _validation_warnings.get()
-                if accumulated is not None:
-                    accumulated.append(
-                        {
-                            "type": severity,
-                            "msg": (f"1 or more errors found while validating {label}. Removing {label} {location}."),
-                            "loc": (field_name, idx),
-                            "input": item,
-                            "ctx": {"sub_errors": sub_errors},
-                            "url": "",
-                        }
-                    )
+                sub_errors = _format_validation_error_sub_errors(ve)
+                _record_list_item_warning(label, location, field_name, idx, item, sub_errors, severity)
         return valid_items
 
     return _validator
@@ -768,11 +791,18 @@ def validate_traffic_classes(traffic_classes):
     return traffic_classes
 
 
-def none_to_empty_list(v):
+def none_to_empty_list(v, info=None):
     """
     Make the field defined as optional [] if accidentally declared by the user as None.
     """
 
+    if isinstance(v, dict):
+        field = getattr(info, "field_name", None) or "list field"
+        raise err_minor(
+            f"'{field}' must be a list of items, but a single mapping was given. " "Did you forget to add '- ' before each item to make it a list?",
+            error_number="185",
+            category=Category.FORMAT,
+        )
     return [] if v is None else v
 
 

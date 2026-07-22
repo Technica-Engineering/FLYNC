@@ -292,6 +292,16 @@ Every error and warning the FLYNC validators can raise, identified as
 
    f'The ipv value {ipv} is not unique for two different traffic classes in controller interface. or switch port'
 
+.. err:: {field}' must be a list of items, but a single mapping was given. Did you for...
+   :id: FLYNC-CMN-MIN-FMT-185
+   :module: CMN
+   :severity: MIN
+   :category: FORMAT
+   :number: 185
+   :location: common_validators.none_to_empty_list
+
+   f"'{field}' must be a list of items, but a single mapping was given. Did you forget to add '- ' before each item to make it a list?"
+
 .. err:: {context}: '{item}' bit range [{start}, {end}) overflows length of {bits} bits
    :id: FLYNC-CMN-MIN-VAL-029
    :module: CMN
