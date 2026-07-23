@@ -76,7 +76,13 @@ needs_types = [
 ]
 
 needs_id_regex = "^[A-Z0-9_-]+$"
-needs_extra_options = ["module", "severity", "category", "number", "location"]
+needs_fields = {
+    "module": {"nullable": True},
+    "severity": {"nullable": True},
+    "category": {"nullable": True},
+    "number": {"nullable": True},
+    "location": {"nullable": True},
+}
 
 
 # -- Autodoc settings  -------------------------------------------------

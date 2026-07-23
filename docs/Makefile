@@ -24,17 +24,23 @@ generations:
 # create cli docu
 	poetry run typer flync_cli.main utils docs --name flync --title Usage --output $(SOURCEDIR)/flync_cli/usage.md
 
+clear:
+# remove mermaid files again
+	rm -r $(EXAMPLE_DST)/mermaid
+# remove ecu_variant diagrams
+	rm -r $(EXAMPLE_DST)/images/ecu_variants
+# remove flync_example again
+	rm -r $(EXAMPLE_DST)$(EXAMPLE_NAME)
+# remove generated cli usage page
+	rm $(SOURCEDIR)/flync_cli/usage.md
+
+
 
 html: generations
 # copy flync_example for yaml references during runtime of docs build
 	cp -a $(EXAMPLE_SOURCE)$(EXAMPLE_NAME) $(EXAMPLE_DST)
 # build html docs
-	@$(SPHINXBUILD) -b html "$(SOURCEDIR)" "$(BUILDDIR)"
-# remove flync_example again
-	rm -r $(EXAMPLE_DST)$(EXAMPLE_NAME)
-# remove mermaid files again
-	rm -r $(EXAMPLE_DST)/mermaid
-# remove ecu_variant diagrams
-	rm -r $(EXAMPLE_DST)/images/ecu_variants
-# remove generated cli usage page
-	rm $(SOURCEDIR)/flync_cli/usage.md
+	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+
+	@echo "---- Clearing generated files... ----"
+	make clear

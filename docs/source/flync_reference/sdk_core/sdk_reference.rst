@@ -16,17 +16,6 @@ FLYNC Workspace
    :members:
 
 
-Semantic Objects
-=================
-
-.. _semantic_object:
-
-SemanticObject
----------------
-
-.. autoclass:: flync.sdk.workspace.objects.SemanticObject
-   :members:
-
 .. _object_metadata:
 
 ObjectMetadata

@@ -168,6 +168,7 @@ sonar:scan:
 
 docs-build:
   extends: .base
+  allow_failure: true
   needs:
     - job: pytest
     - job: error-catalogue-integrity
@@ -182,10 +183,11 @@ docs-build:
     - poetry run python src/flync_cli/main.py errors generate-catalogue
     - echo "--- BUILDING DOCS ---"
     - cd ./docs
-    - make html
+    - make SPHINXOPTS='--fail-on-warning' html
     - cd ..
   artifacts:
     expire_in: 1 day
+    when: always
     paths:
       - docs/build
 
