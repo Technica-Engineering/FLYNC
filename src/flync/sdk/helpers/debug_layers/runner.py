@@ -52,7 +52,10 @@ def _print_issue(
     if path:
         loc_parts.append(path)
     if line:
-        loc_parts[-1] = loc_parts[-1] + f":{line}" if loc_parts else f":{line}"
+        if loc_parts:
+            loc_parts[-1] += f":{line}"
+        else:
+            loc_parts.append(f":{line}")
     if field:
         loc_parts.append(f"field: {field}")
 
