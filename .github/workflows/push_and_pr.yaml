@@ -172,7 +172,7 @@ jobs:
 
       - name: Run validate_examples.py
         run: |
-          poetry run python src/flync/sdk/helpers/validate_examples.py
+          poetry run python scripts/ci/validate_examples.py
 
   build-documentation:
     runs-on: ubuntu-latest
