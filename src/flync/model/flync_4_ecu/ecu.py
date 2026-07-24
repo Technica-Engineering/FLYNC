@@ -2,7 +2,7 @@
 
 from typing import Annotated, List, Optional, TypeVar
 
-from pydantic import BeforeValidator, Field, model_validator
+from pydantic import BeforeValidator, Field, PrivateAttr, model_validator
 
 import flync.core.utils.common_validators as common_validators
 from flync.core.annotations import (
@@ -28,6 +28,8 @@ from flync.model.flync_4_ecu.port import ECUPort
 from flync.model.flync_4_ecu.sockets import Socket
 from flync.model.flync_4_ecu.switch import Switch, SwitchPort
 from flync.model.flync_4_metadata import ECUMetadata
+from flync.model.flync_4_nm import StateMembershipRef
+from flync.model.flync_4_nm.state_management import EffectiveMember
 from flync.model.flync_4_someip import (  # type: ignore  # noqa: F401
     SOMEIPServiceConsumer,
     SOMEIPServiceDeployment,
@@ -63,6 +65,11 @@ class ECU(FLYNCBaseModel):
 
     ecu_metadata : :class:`~flync.model.flync_4_metadata.metadata.ECUMetadata`
         Metadata information describing the ECU.
+
+    state_memberships : list of \
+    :class:`~flync.model.flync_4_nm.StateMembershipRef`, optional
+        Assignments of this ECU to state management groups (whole-ECU granularity).
+        Stored in ``state_memberships.flync.yaml`` inside the ECU folder.
     """
 
     name: Annotated[
@@ -109,6 +116,16 @@ class ECU(FLYNCBaseModel):
         External(output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT),
     ] = Field(exclude=True, default=None)
     multicast_groups: Optional[List[MulticastGroupMembership]] = Field(default_factory=list, exclude=True)
+    state_memberships: Annotated[
+        Optional[List[StateMembershipRef]],
+        External(output_structure=OutputStrategy.SINGLE_FILE),
+        BeforeValidator(common_validators.validate_or_remove("state memberships", List[StateMembershipRef])),
+        BeforeValidator(common_validators.none_to_empty_list),
+    ] = Field(
+        default=[],
+        description="Assignments of this ECU to state management groups (whole-ECU granularity).",
+    )
+    _state_effective_members: List[EffectiveMember] = PrivateAttr(default_factory=list)
 
     def model_post_init(self, context):
         """
@@ -128,6 +145,7 @@ class ECU(FLYNCBaseModel):
         self.__populate_multicast_tx_groups_from_socket()
         self.__populate_multicast_rx_groups_from_interfaces()
         self._populate_multicast_tx_groups_from_mac_multicast_endpoints()
+        self.__populate_state_memberships()
 
     @model_validator(mode="before")
     @classmethod
@@ -296,6 +314,24 @@ class ECU(FLYNCBaseModel):
                     group._interface = interface
                     self.multicast_groups.append(group)
         return self
+
+    def __populate_state_memberships(self):
+        """Resolve this ECU's and its controllers' state_memberships into EffectiveMember entries."""
+        for ref in self.state_memberships or []:
+            self.__add_effective_state_member(ref, "ecu", self.name, self.name)
+        for ctrl in self.controllers:
+            for ref in ctrl.state_memberships or []:
+                self.__add_effective_state_member(ref, "controller", f"{self.name}/{ctrl.name}", self.name)
+        return self
+
+    def __add_effective_state_member(self, ref, kind, path, ecu_name):
+        """Append one or more EffectiveMember entries for a single state_membership ref."""
+        if ref.role == "observer":
+            self._state_effective_members.append(EffectiveMember(ref.group, kind, path, ecu_name, ref.role, None))
+            return
+        bits = ref.relevance_bits or [path.rsplit("/", 1)[-1]]
+        for bit in bits:
+            self._state_effective_members.append(EffectiveMember(ref.group, kind, path, ecu_name, ref.role, bit))
 
     def get_all_controllers(self):
         """Return a list of all controllers of the ECU."""

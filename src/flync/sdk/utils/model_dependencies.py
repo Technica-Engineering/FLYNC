@@ -413,6 +413,13 @@ class ModelDependencyGraph:
         """
         Find the parent model class that owns a given child field.
 
+        When several parents share the field name, parents whose field is
+        externally serialized win: this lookup feeds
+        :meth:`rebuild_type_from_parent`, which reconstructs the on-disk
+        wrapper for external fields, and a same-named inline field on another
+        parent must not decide that shape (``reverse_tree`` values are sets,
+        so plain iteration order would vary with class allocation order).
+
         Args:
             field_type (type[BaseModel]): The child model class.
             parent_attribute_name (str): The field name on the parent that holds the child.
@@ -421,12 +428,16 @@ class ModelDependencyGraph:
             type[BaseModel] | None: The parent model class, or ``None`` if not found.
         """
 
-        potential_parents = self.reverse_tree[field_type]
-        for parent in potential_parents:
-            attribute = parent.model_fields.get(parent_attribute_name, None)
-            if not attribute:
-                continue
-            return parent
+        candidates = [parent for parent in self.reverse_tree[field_type] if parent.model_fields.get(parent_attribute_name, None)]
+        if not candidates:
+            return None
+        candidates.sort(
+            key=lambda parent: (
+                get_metadata(parent.model_fields[parent_attribute_name].metadata, External) is None,
+                parent.__name__,
+            )
+        )
+        return candidates[0]
 
     def field_info_from_child(self, field_type: type[BaseModel], parent_attribute_name: str):
         """

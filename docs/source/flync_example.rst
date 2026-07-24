@@ -23,7 +23,7 @@ The configuration includes the following key components:
 
 - **Quality of Service (QoS), Layer 2 TSN, and TCAM Usage** - Provides sample configurations for traffic prioritization and deterministic networking using Time-Sensitive Networking (TSN) features. It also illustrates how TCAM rules can be allocated and used for traffic classification and filtering. You can use this configuration as a starting point, adapting interface mappings, policies, and feature parameters to match the specific requirements of your hardware platform and application.
 
-- **Network Management (NM)** - Shows how an NM message is modelled vendor-agnostic as an ordinary PDU with ordinary signals, tagged via the ``pdu_usage`` / ``frame_usage`` fields, and bound to both Ethernet and CAN transports.
+- **Network Management (NM)** - Shows how an NM message is modelled vendor-neutral as an ordinary PDU with ordinary signals, tagged via the ``pdu_usage`` / ``frame_usage`` fields, and bound to both Ethernet and CAN transports.
 
 
 
@@ -454,35 +454,75 @@ A socket in FLYNC represents a logical endpoint on a virtual network interface o
 
 -------
 
+.. _flync_example_nm:
+
 Network Management (NM)
 """"""""""""""""""""""""""
 
-The example illustrates a vendor-agnostic Network Management configuration that exercises both Ethernet and CAN transports with a single PDU definition.
+The example illustrates how vendor-neutral state management membership is configured around **vehicle functions** (``AutonomousDriving``, ``Comfort``, …). Instead of per-node NM identity, each participant declares which function it contributes to, and several nodes may share the same function. The example spans Ethernet, CAN, and LIN within one vehicle-wide state management group, ``VEHICLE`` (see :ref:`flync_4_nm` for the model).
 
 The NM message is modelled as an ordinary PDU (``PDU_NmMessage``) with ordinary signals:
 
 - ``sender_id`` (uint8) - identifies the sending node.
-- ``relevance_vector`` (uint8) - a partial-network relevance bitmask. The
-  bit-to-function mapping uses the ``bitmask_flags`` value encoding, so
-  each bit carries a named label (``MirrorLeft``, ``MirrorRight``,
-  ``CabinLight``, ``EngineStatus``, ``TransmissionStatus``,
-  ``VehicleDynamics``) that matches a real application PDU in this
-  workspace.
-- ``user_data`` (bytearray, 6 bytes) - opaque OEM/application extension area.
+- ``control_vector`` (uint8) - control bits of the NM message:
+  ``repeat_message_request``, ``sleep_ready``, ``active_wakeup``, and
+  ``relevance_vector_present``.
+- ``relevance_vector`` (uint32) - a relevance bitmask whose flags are vehicle
+  **functions** (``AutonomousDriving``, ``OnlineCommunication``, ``Comfort``),
+  not nodes. A participant references the function bit it contributes to;
+  several ECUs may share the same function bit, and one ECU may reference
+  several. The set
+  of flags always matches the derived participant bits of this workspace.
+- ``user_data`` (bytearray, 2 bytes) - opaque OEM/application extension area.
 
-The PDU is flagged ``pdu_usage: network_management``, so any tool processing the catalog can recognize it as the NM message regardless of which transport carries it.
+*Hint: This layout is one illustrative arrangement - FLYNC prescribes no NM PDU format. Each field is an ordinary signal at a configurable bit_position, so a workspace can reorder, resize or rename them (e.g. swap sender id and control vector) to match its stack.*
+
+The PDU is flagged ``pdu_usage: network_management`` regardless of which transport technology carries it.
+
+**State management group**
+
+The group registry lives in ``communication/state_management/groups.flync.yaml`` (with the reusable timing profiles in ``timing_profiles.flync.yaml``); memberships are declared entity-side only. The workspace exercises every use case:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 45 55
+
+   * - Use case
+     - Where to look
+   * - Controller-level membership (recommended site); one ECU owning several
+       function bits (``AutonomousDriving`` + ``OnlineCommunication``)
+     - ``ecus/high_performance_compute/controllers/hpc_controller2/state_memberships.flync.yaml``
+   * - ECU-level membership; several ECUs sharing one function bit (``Comfort``)
+     - ``ecus/zonal_gateway/``, ``ecus/can_node_*/``
+   * - Bus-level membership - the LIN bus participates as one bit with no NM
+       frame (master-as-proxy)
+     - ``communication/channels/lin/body_lin.flync.yaml``
+   * - Gateway use case - receives the NM PDU on Ethernet and forwards it onto
+       BodyCAN via ordinary ``sender_frames`` (plain cross-bus forwarding)
+     - ``ecus/zonal_gateway/``
+   * - Switch use case - the switch-core controller observes the group
+     - ``ecus/zonal_platform2/controllers/z2_controller2/state_memberships.flync.yaml``
+   * - Derived proxy - ``zonal_platform1`` declares no membership itself; as
+       BodyLIN's master, validation derives it as the bus's representative (it
+       receives the group state on Ethernet and drives BodyLIN to sleep)
+     - ``zonal_platform1``
 
 **Ethernet NM**
 
-This example NM PDU (``PDU_NmMessage``) is wrapped in an Ethernet Container PDU (``eth_nm_container_a``) and bound to a UDP socket via the ``pdu_sender`` / ``pdu_receiver`` deployment types:
+The ``VEHICLE`` NM PDU (``PDU_NmMessage``) is wrapped in an Ethernet Container PDU (``eth_nm_container_a``) and bound to a UDP socket via the ``pdu_sender`` / ``pdu_receiver`` deployment types:
 
-- **Sender** - ``high_performance_compute`` transmits the NM container multicast on VLAN 40, group ``224.0.0.1``, UDP port 1200 (its existing ``network_management_socket``).
-- **Receivers** - ``zonal_platform1`` and ``zonal_platform2`` subscribe via ``pdu_receiver`` sockets on the same VLAN and multicast group.
+- **Sender** - ``high_performance_compute`` transmits the NM container multicast on VLAN 40, group ``224.0.0.1``, UDP port 1200, and also receives it via ``pdu_receiver`` so it can observe the group state.
+- **Receivers** - ``zonal_platform1``, ``zonal_platform2``, and ``zonal_gateway`` receive it via ``pdu_receiver`` sockets on the same VLAN and multicast group.
 
 
 As an alternative way, the NM PDU (``PDU_NmMessage``) can be attached to a Ethernet Container PDU (available as example ``eth_nm_container_b``) **which does not carry a PDU Header**, as ``header/id_length_bits`` & ``length_field_bits`` are configured with length zero (``0``), to be sent as a raw UDP payload as example Use-Case.
 
 **CAN NM**
 
-On the CAN side, the same PDU is carried by ``Frame_NmMessage`` on the ``DiagCAN`` bus, tagged ``frame_usage: network_management``. The frame is bound to ``high_performance_compute`` as a ``sender_frames`` entry. ``high_performance_compute`` is the only ECU connected to ``DiagCAN`` in this workspace, so no ``receiver_frames`` entry exists; in a multi-ECU CAN setup, peer ECUs would add ``Frame_NmMessage`` under ``receiver_frames`` on their own ``DiagCAN`` interface — mirroring the Ethernet ``pdu_receiver`` pattern.
+On ``BodyCAN``, the ``VEHICLE`` group follows the classic CAN pattern: ``zonal_gateway`` feeds ``Frame_Nm_Gateway`` (forwarding the NM PDU from Ethernet onto BodyCAN), while ``can_node_1`` / ``can_node_2`` each transmit their own NM frame and receive the others. All three contribute to the ``Comfort`` function, so they share the ``Comfort`` relevance bit - requesting Comfort keeps them awake together, which is how CAN resolves NM state per function.
 
+``DiagCAN`` carries the vehicle NM PDU (``PDU_NmMessage``) in ``Frame_NmMessage``, tagged ``frame_usage: network_management``, sent by ``high_performance_compute`` - a second CAN bus of the same ``VEHICLE`` group. It is a plain diagnostics bus otherwise; it declares no membership of its own.
+
+**LIN NM**
+
+``BodyLIN`` (the body bus - exterior mirrors and cabin ambient lighting) takes part through a **bus-level membership**: the whole bus joins the ``VEHICLE`` group as one participant on the ``Comfort`` function, without a LIN frame of its own. Its master (``zonal_platform1``) receives the group state on Ethernet (``pdu_receiver``) and drives the LIN bus to sleep with it; validation resolves the master as the bus's representative automatically.

@@ -12,6 +12,7 @@ from flync.core.annotations.external import (
 )
 from flync.core.base_models import FLYNCBaseModel
 from flync.model.flync_4_ecu import TCPOption
+from flync.model.flync_4_nm import StateManagementConfig
 from flync.model.flync_4_someip import SOMEIPConfig
 
 from .flync_channels import FLYNCChannelConfig
@@ -38,6 +39,11 @@ class FLYNCCommunicationConfig(FLYNCBaseModel):
         Loaded from the ``communication/channels/`` directory.
         Each bus or container PDU is stored in its own file under the corresponding sub-folder (``can/``, ``lin/``, ``container_pdus/``).
         Absent when the ``communication/channels/`` directory does not exist.
+
+    state_management : :class:`~flync.model.flync_4_nm.StateManagementConfig`, optional
+        System-wide state management groups.
+        Loaded from the ``communication/state_management/`` directory; the group registry lands in ``groups.flync.yaml``.
+        Defaults to an empty registry when the ``communication/state_management/`` directory does not exist.
     """
 
     tcp_profiles: Annotated[
@@ -68,4 +74,15 @@ class FLYNCCommunicationConfig(FLYNCBaseModel):
     ] = Field(
         default=None,
         description=("CAN buses, LIN buses and Ethernet Container PDUs, loaded from communication/channels/."),
+    )
+    state_management: Annotated[
+        Optional[StateManagementConfig],
+        External(
+            output_structure=OutputStrategy.FOLDER,
+            naming_strategy=NamingStrategy.FIXED_PATH,
+            path="state_management",
+        ),
+    ] = Field(
+        default_factory=StateManagementConfig,
+        description="System-wide state management groups, loaded from communication/state_management/.",
     )

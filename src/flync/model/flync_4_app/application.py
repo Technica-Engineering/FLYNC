@@ -40,7 +40,7 @@ class ServiceProviderReference(FLYNCBaseModel):
 
     Parameters
     ----------
-    type: Literal["consumer"]
+    type: Literal["provider"]
         Type of the service reference.
 
     service_name: str

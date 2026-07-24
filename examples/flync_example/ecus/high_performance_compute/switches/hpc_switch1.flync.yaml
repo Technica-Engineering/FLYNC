@@ -289,6 +289,15 @@ ports:
       participant_activation: always
 
 
+- name: hpc_s1_p6
+  silicon_port_no: 6
+  default_vlan_id: 1
+  mii_config:
+    type: sgmii
+    speed: 1000
+    mode: mac
+
+
 vlans:
 - name: VLAN10
   id: 10
@@ -316,6 +325,7 @@ vlans:
   id: 40
   default_priority: 0
   ports:
+    - hpc_s1_p6
     - hpc_s1_p2
     - hpc_s1_p3
     - hpc_s1_p4

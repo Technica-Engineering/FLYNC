@@ -1,0 +1,8 @@
+# Observer use case, declared on the switch-core controller: z2_controller2
+# receives the group's NM PDU on the Ethernet backbone (through the zonal
+# switch) and acts on the group state — e.g. it will pull a wake line once
+# the port-level wake-line field exists — but references no relevance bit and never
+# influences the group's sleep decision.
+state_memberships:
+- group: VEHICLE
+  role: observer

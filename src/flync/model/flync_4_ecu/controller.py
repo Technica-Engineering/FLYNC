@@ -40,6 +40,7 @@ from flync.model.flync_4_ecu.sockets import (
 )
 from flync.model.flync_4_ecu.vlan_entry import VLANEntry
 from flync.model.flync_4_metadata.metadata import EmbeddedMetadata
+from flync.model.flync_4_nm import StateMembershipRef
 from flync.model.flync_4_security import Firewall, MACsecConfig
 from flync.model.flync_4_tsn import (
     HTBInstance,
@@ -585,6 +586,11 @@ class Controller(FLYNCBaseModel):
     app_bindings: :class:`~flync.model.flync_4_app.AppBindings`, optional
         Applications a controller should bind to.
 
+    state_memberships : list of \
+    :class:`~flync.model.flync_4_nm.StateMembershipRef`, optional
+        Assignments of this controller to state management groups.
+        Stored in ``state_memberships.flync.yaml`` inside the controller folder.
+
     Private Attributes
     ------------------
     _type:
@@ -633,11 +639,19 @@ class Controller(FLYNCBaseModel):
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
     ] = Field(default=None)
-
     app_bindings: Annotated[Optional[AppBindings], External(output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT)] = Field(
         default=None, description="Applications a controller should bind to."
     )
 
+    state_memberships: Annotated[
+        Optional[List[StateMembershipRef]],
+        External(output_structure=OutputStrategy.SINGLE_FILE),
+        BeforeValidator(common_validators.validate_or_remove("state memberships", List[StateMembershipRef])),
+        BeforeValidator(common_validators.none_to_empty_list),
+    ] = Field(
+        default=[],
+        description="Assignments of this controller to state management groups.",
+    )
     _type: Literal["controller"] = PrivateAttr(default="controller")
 
     @model_validator(mode="before")

@@ -455,7 +455,7 @@ class Test_Signal:
 
     def test_positive_signal_with_bitmask_flags(self):
         sig = Signal(
-            name="PartialNetworkRelevance",
+            name="FunctionRelevance",
             bit_length=8,
             data_type=SignalDataType.UINT8,
             value_encoding=BitmaskFlags(

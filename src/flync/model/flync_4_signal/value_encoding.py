@@ -264,7 +264,7 @@ class BitmaskFlags(FLYNCBaseModel):
     the decoded value of the signal is the **set** of active flag labels.
     Several flags can be active at the same time.
 
-    Typical use case: a partial-network relevance vector where each bit
+    Typical use case: a function relevance vector where each bit
     names one vehicle function as currently relevant or awake.
 
     Use :class:`BitfieldTextTable` instead when the bits represent

@@ -1,0 +1,14 @@
+# Reusable NM timing profiles. A profile is defined once here and referenced
+# by name from any number of groups (StateManagementGroup.timing_profile),
+# so groups that share the same timing reuse a single definition instead of
+# repeating the values. Parameters are grouped by phase.
+timing_profiles:
+- name: standard
+  cycle_time_ms: 500              # message sending cycle in normal operation
+  announcement:                   # optional: announcement phase
+    duration_ms: 1000             # total duration of the announcement phase
+    burst_count: 5                # number of initial burst PDUs
+    burst_cycle_time_ms: 20       # cycle time for the initial burst PDUs
+  sleep:                          # go-to-sleep progression
+    timeout_ms: 2000              # timeout before preparing to go to sleep
+    wait_before_sleep_ms: 1500    # time of preparing to go to sleep

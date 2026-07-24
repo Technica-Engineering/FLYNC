@@ -58,3 +58,13 @@ schedule_tables:
         period: 10.0
       - frame_name: Frame_MirrorRightStatus
         period: 10.0
+
+# Bus-level membership on the Comfort function. LIN carries NO NM message and
+# no relevance vector — the LIN master (zonal_platform1) learns the vehicle NM
+# state on Ethernet and unilaterally sleeps/wakes this bus. The bus therefore
+# participates as one bit; its representative (the master) is derived by
+# validation, never a frame on LIN.
+state_memberships:
+  - group: VEHICLE
+    role: participant
+    relevance_bits: [Comfort]

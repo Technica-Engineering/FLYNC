@@ -28,6 +28,23 @@ def test_multicast_paths_no_tx(tmpdir):
     update_yaml_content(file_to_update, "multicast_tx:", "")
     update_yaml_content(file_to_update, "- 224.0.0.1", "")
 
+    # The zonal gateway bridges the NM PDU onto the backbone and therefore
+    # also transmits to 224.0.0.1 — strip its multicast_tx as well so the
+    # group really has no transmitter left.
+    gateway_file = (
+        destination_folder
+        / "ecus"
+        / "zonal_gateway"
+        / "controllers"
+        / "zgw_controller1"
+        / "ethernet_interfaces"
+        / "zgw_c1_iface1"
+        / "sockets"
+        / "socket_nm.flync.yaml"
+    )
+    update_yaml_content(gateway_file, "multicast_tx:", "")
+    update_yaml_content(gateway_file, "- 224.0.0.1", "")
+
     data = read_yaml(file_to_update)
     data["name"] = "socket_nm"
     SocketContainer.model_validate(data)

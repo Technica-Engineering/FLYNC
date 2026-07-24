@@ -1,0 +1,19 @@
+# Concept fixture (variant): modern E/E with ONE group, many bits. Same
+# schema, count = 1; nothing is special-cased. Former COMFORT / DRIVE / DIAG
+# become bit subsets of the single relevance vector.
+timing_profiles:
+  - name: standard
+    cycle_time_ms: 500
+    announcement:
+      duration_ms: 100
+      burst_count: 5                # number of initial burst PDUs
+      burst_cycle_time_ms: 20       # cycle time for the initial burst PDUs
+    sleep:
+      timeout_ms: 2000
+      wait_before_sleep_ms: 1500
+
+groups:
+  - name: VEHICLE
+    description: Single vehicle-wide state management group.
+    nm_pdu: PDU_NmMessage
+    timing_profile: standard

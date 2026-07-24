@@ -1,9 +1,11 @@
 from typing import Annotated, List, Literal, Optional
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import BeforeValidator, Field, field_validator, model_validator
 
+import flync.core.utils.common_validators as common_validators
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major, err_minor
+from flync.model.flync_4_nm import StateMembershipRef
 from flync.model.flync_4_signal.frame import LINFrame
 
 # ---------------------------------------------------------------------------
@@ -119,6 +121,12 @@ class LINBus(FLYNCBaseModel):
         Named schedule tables for the LDF ``Schedule_tables`` section.
     frames : list of :class:`~flync.model.flync_4_signal.frame.LINFrame`
         Unconditional LIN frames for the LDF ``Frames`` section.
+    state_memberships : list of \
+    :class:`~flync.model.flync_4_nm.StateMembershipRef`, optional
+        Assignments of this bus to a state management group.  A bus membership enrols the whole bus as one participant — the entire bus
+        stays awake or sleeps as a unit, never expanded into per-attached-node participants.  It contributes one relevance bit by default
+        (the bus name) and may reference several when the bus serves several functions.  LIN has no per-node NM, so a LIN bus always
+        participates as a whole.
     """
 
     name: str = Field()
@@ -131,6 +139,13 @@ class LINBus(FLYNCBaseModel):
     jitter: float = Field(default=0.0)
     schedule_tables: List[LINScheduleTable] = Field(default_factory=list)
     frames: List[LINFrame] = Field(default_factory=list)
+    state_memberships: Annotated[
+        Optional[List[StateMembershipRef]],
+        BeforeValidator(common_validators.none_to_empty_list),
+    ] = Field(
+        default_factory=list,
+        description="Assignments of this bus to a state management group; the whole bus participates as one unit.",
+    )
 
     # ------------------------------------------------------------------
     # Validators

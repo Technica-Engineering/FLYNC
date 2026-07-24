@@ -502,6 +502,146 @@ Every error and warning the FLYNC validators can raise, identified as
 
    'Forwarder cycle detected: {path}'
 
+.. err:: state_memberships reference undefined state management group '{group}' — defi...
+   :id: FLYNC-CMN-MAJ-REF-189
+   :module: CMN
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 189
+   :location: state_management_validators._check_referenced_groups_exist
+
+   "state_memberships reference undefined state management group '{group}' — define it in communication/state_management/groups.flync.yaml"
+
+.. err:: state management group '{group}' has no participant — assign at least one ent...
+   :id: FLYNC-CMN-MAJ-REQ-190
+   :module: CMN
+   :severity: MAJ
+   :category: REQUIRED
+   :number: 190
+   :location: state_management_validators._check_group_basics
+
+   "state management group '{group}' has no participant — assign at least one entity via state_memberships"
+
+.. err:: state management group '{group}': nm_pdu '{pdu}' not found under communicatio...
+   :id: FLYNC-CMN-MAJ-REF-191
+   :module: CMN
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 191
+   :location: state_management_validators._check_group_basics
+
+   "state management group '{group}': nm_pdu '{pdu}' not found under communication.channels"
+
+.. err:: state management group '{group}': PDU '{pdu}' has pdu_usage '{usage}', expect...
+   :id: FLYNC-CMN-MAJ-REF-192
+   :module: CMN
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 192
+   :location: state_management_validators._check_group_basics
+
+   "state management group '{group}': PDU '{pdu}' has pdu_usage '{usage}', expected 'network_management'"
+
+.. err:: state management group '{group}': timing_profile '{profile}' not found — defi...
+   :id: FLYNC-CMN-MAJ-REF-193
+   :module: CMN
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 193
+   :location: state_management_validators._check_group_basics
+
+   "state management group '{group}': timing_profile '{profile}' not found — define it in communication/state_management/timing_profiles.flync.yaml"
+
+.. err:: state management group '{name}': '{m.entity_path}' is redundant — its host EC...
+   :id: FLYNC-CMN-WARN-CONS-194
+   :module: CMN
+   :severity: WARN
+   :category: CONSISTENCY
+   :number: 194
+   :location: state_management_validators._warn_controller_under_ecu
+
+   f"state management group '{name}': '{m.entity_path}' is redundant — its host ECU '{m.ecu_name}' is already a whole-ECU participant"
+
+.. err:: state management group '{group}': bus '{bus}' has a bus-level membership (the...
+   :id: FLYNC-CMN-MAJ-CONS-195
+   :module: CMN
+   :severity: MAJ
+   :category: CONSISTENCY
+   :number: 195
+   :location: state_management_validators._check_single_variant_per_bus
+
+   "state management group '{group}': bus '{bus}' has a bus-level membership (the whole bus as one participant) but node-level member '{node}' on it also participates — choose one variant per bus (whole-bus or per-node), not both"
+
+.. err:: state management group '{group}': {role} '{member}' has no {label} path for N...
+   :id: FLYNC-CMN-MAJ-REF-196
+   :module: CMN
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 196
+   :location: state_management_validators._reachability_error
+
+   "state management group '{group}': {role} '{member}' has no {label} path for NM PDU '{pdu}' — " + missing
+
+.. err:: state management group '{group}': LIN bus participant '{bus}' has no master w...
+   :id: FLYNC-CMN-MAJ-REF-197
+   :module: CMN
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 197
+   :location: state_management_validators._check_lin_bus_reachability
+
+   "state management group '{group}': LIN bus participant '{bus}' has no master whose ECU receives or sends NM PDU '{pdu}' on another bus — the LIN master must know the group state (as its source, or by receiving it) to drive the bus sleep"
+
+.. err:: state management group '{group}': bus participant '{bus}' has no frame carryi...
+   :id: FLYNC-CMN-MAJ-REF-198
+   :module: CMN
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 198
+   :location: state_management_validators._check_bus_reachability
+
+   "state management group '{group}': bus participant '{bus}' has no frame carrying NM PDU '{pdu}' — a bus nobody feeds NM into can never be released correctly"
+
+.. err:: state management group '{group}': no ECU attached to bus participant '{bus}' ...
+   :id: FLYNC-CMN-MAJ-REF-199
+   :module: CMN
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 199
+   :location: state_management_validators._check_bus_reachability
+
+   "state management group '{group}': no ECU attached to bus participant '{bus}' sends NM PDU '{pdu}' — a bus nobody feeds NM into can never be released correctly"
+
+.. err:: state management group '{group}': member '{member}' claims relevance bit '{bi...
+   :id: FLYNC-CMN-MAJ-VAL-200
+   :module: CMN
+   :severity: MAJ
+   :category: VALUE_RANGE
+   :number: 200
+   :location: state_management_validators._check_relevance_bits
+
+   "state management group '{group}': member '{member}' claims relevance bit '{bit}' which is not a flag of NM PDU '{pdu}' — declare the bit in the PDU's relevance vector or correct the relevance_bits entry"
+
+.. err:: state management group '{group.name}': NM frame '{frame.name}' on bus '{bus.n...
+   :id: FLYNC-CMN-WARN-CONS-201
+   :module: CMN
+   :severity: WARN
+   :category: CONSISTENCY
+   :number: 201
+   :location: state_management_validators._warn_cycle_mismatch
+
+   f"state management group '{group.name}': NM frame '{frame.name}' on bus '{bus.name}' is configured with a cyclic timing of {frame_cycle_ms:g} ms, which does not match the group's cycle_time_ms ({cycle_time_ms})"
+
+.. err:: state management group '{group.name}': {source} ({cadence_ms:g}) is shorter t...
+   :id: FLYNC-CMN-WARN-CONS-202
+   :module: CMN
+   :severity: WARN
+   :category: CONSISTENCY
+   :number: 202
+   :location: state_management_validators._warn_infeasible_cadence
+
+   f"state management group '{group.name}': {source} ({cadence_ms:g}) is shorter than the ~{frame_tx_ms:.2f} ms needed to send NM frame '{frame.name}' on bus '{bus.name}' at {baud_rate} bit/s"
+
 .. err:: Incompatible Controller Config detected (compatible_flync_version={legacy_ver...
    :id: FLYNC-GEN-FAT-COMP-048
    :module: GEN
@@ -1061,6 +1201,66 @@ Every error and warning the FLYNC validators can raise, identified as
    :location: metadata.BaseVersion.validate_and_parse_version
 
    f"Version '{raw_version}' is not valid Semantic Version"
+
+.. err:: announcement phase timing: burst_count and burst_cycle_time_ms must be set to...
+   :id: FLYNC-CMN-MAJ-VAL-203
+   :module: CMN
+   :severity: MAJ
+   :category: VALUE_RANGE
+   :number: 203
+   :location: state_management.AnnouncementPhaseTiming.check_burst_pair
+
+   'announcement phase timing: burst_count and burst_cycle_time_ms must be set together (set both or neither)'
+
+.. err:: timing profile '{name}': sleep.timeout_ms must be greater than cycle_time_ms ...
+   :id: FLYNC-CMN-MAJ-VAL-204
+   :module: CMN
+   :severity: MAJ
+   :category: VALUE_RANGE
+   :number: 204
+   :location: state_management.GroupTiming.check_consistency
+
+   "timing profile '{name}': sleep.timeout_ms must be greater than cycle_time_ms (got timeout_ms={timeout}, cycle_time_ms={cycle})"
+
+.. err:: timing profile '{name}': announcement.burst_cycle_time_ms ({burst}) must be s...
+   :id: FLYNC-CMN-MAJ-VAL-205
+   :module: CMN
+   :severity: MAJ
+   :category: VALUE_RANGE
+   :number: 205
+   :location: state_management.GroupTiming.check_consistency
+
+   "timing profile '{name}': announcement.burst_cycle_time_ms ({burst}) must be shorter than cycle_time_ms ({cycle})"
+
+.. err:: timing profile '{name}': the announcement burst ({count} x {burst} ms) does n...
+   :id: FLYNC-CMN-MAJ-VAL-206
+   :module: CMN
+   :severity: MAJ
+   :category: VALUE_RANGE
+   :number: 206
+   :location: state_management.GroupTiming.check_consistency
+
+   "timing profile '{name}': the announcement burst ({count} x {burst} ms) does not fit within the announcement duration_ms ({duration})"
+
+.. err:: observer membership in group '{self.group}' must not define relevance_bits — ...
+   :id: FLYNC-CMN-MAJ-CONS-207
+   :module: CMN
+   :severity: MAJ
+   :category: CONSISTENCY
+   :number: 207
+   :location: state_management.StateMembershipRef.observer_owns_no_bit
+
+   f"observer membership in group '{self.group}' must not define relevance_bits — only participants reference bits"
+
+.. err:: membership in group '{self.group}' lists a relevance bit more than once in re...
+   :id: FLYNC-CMN-MAJ-UNIQ-208
+   :module: CMN
+   :severity: MAJ
+   :category: UNIQUENESS
+   :number: 208
+   :location: state_management.StateMembershipRef.no_duplicate_bits
+
+   f"membership in group '{self.group}' lists a relevance bit more than once in relevance_bits"
 
 .. err:: At least one of the fields in pattern of firewall rule should be present
    :id: FLYNC-SEC-MIN-REQ-094
@@ -1891,4 +2091,3 @@ Every error and warning the FLYNC validators can raise, identified as
    :location: flync_model.FLYNCModel.check_rx_are_reached
 
    f'Invalid Multicast Address Configuration. The RX interface for address {key} - {mcast._interface.name} cannot be reached by the TX ports.'
-

@@ -69,7 +69,7 @@ Three variants are supported, selected by the ``type`` discriminator:
    * - ``bitmask_flags``
      - Decodes the signal as a set of independent on/off flags, each
        identified by a disjoint :class:`BitmaskFlag` mask. Multiple flags may be active
-       simultaneously.  Use this for partial-network relevance vectors
+       simultaneously.  Use this for function relevance vectors
        and similar feature-flag registers.
 
 A signal can combine ``factor``/``offset``/``unit`` with any of the
@@ -200,7 +200,7 @@ raw ``65535`` mapped to ``Signal_Not_Available``).
                 - label: ModeActive
                   value: 0x0100
 
-.. admonition:: Expand for a YAML example — partial-network bitmask (``bitmask_flags``)
+.. admonition:: Expand for a YAML example — function relevance bitmask (``bitmask_flags``)
    :collapsible: closed
 
    A relevance vector where each bit names one vehicle function as
@@ -213,9 +213,9 @@ raw ``65535`` mapped to ``Signal_Not_Available``).
    .. code-block:: yaml
 
       signal:
-        name: PartialNetworkRelevance
+        name: FunctionRelevance
         description: >-
-          Per-function partial-network relevance bitmask.  Each bit
+          Per-function relevance bitmask.  Each bit
           marks one vehicle function as currently relevant or awake;
           several bits may be set at the same time.
         bit_length: 8

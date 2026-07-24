@@ -1,0 +1,46 @@
+# Concept fixture: multi-group registry with reusable timing profiles.
+# A group owns identity, the NM PDU it rides on, and a reference to a shared
+# timing profile. Memberships are declared entity-side; the effective member
+# list per group is DERIVED by validation.
+timing_profiles:
+  - name: comfort_standard
+    cycle_time_ms: 500
+    announcement:
+      duration_ms: 100
+      burst_count: 5
+      burst_cycle_time_ms: 20
+    sleep:
+      timeout_ms: 2000
+      wait_before_sleep_ms: 1500
+  - name: drive_fast
+    cycle_time_ms: 100
+    announcement:
+      duration_ms: 50
+      burst_count: 5
+      burst_cycle_time_ms: 10
+    sleep:
+      timeout_ms: 1000
+      wait_before_sleep_ms: 800
+  - name: diagnostics_slow
+    cycle_time_ms: 1000
+    announcement:
+      duration_ms: 500
+      burst_count: 5
+      burst_cycle_time_ms: 100
+    sleep:
+      timeout_ms: 4000
+      wait_before_sleep_ms: 2000
+
+groups:
+  - name: COMFORT
+    description: Comfort functions across front/rear zones.
+    nm_pdu: PDU_Nm_Comfort
+    timing_profile: comfort_standard
+  - name: DRIVE
+    description: Drive/powertrain functions.
+    nm_pdu: PDU_Nm_Drive
+    timing_profile: drive_fast
+  - name: DIAGNOSTICS
+    description: Diagnostic domain.
+    nm_pdu: PDU_Nm_Diag
+    timing_profile: diagnostics_slow

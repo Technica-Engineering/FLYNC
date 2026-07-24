@@ -1,0 +1,6 @@
+# Gateway participant on the Comfort function. Receives the NM container on
+# Ethernet and forwards the NM PDU onto BodyCAN (plain cross-bus forwarding).
+state_memberships:
+- group: VEHICLE
+  role: participant
+  relevance_bits: [Comfort]

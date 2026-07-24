@@ -1,10 +1,12 @@
 from collections import Counter
 from typing import Annotated, List, Optional, Union
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import BeforeValidator, Field, field_validator, model_validator
 
+import flync.core.utils.common_validators as common_validators
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major, err_minor
+from flync.model.flync_4_nm import StateMembershipRef
 from flync.model.flync_4_signal.frame import CANFDFrame, CANFrame
 
 _ALLOWED_CAN_BAUD_RATES = frozenset(
@@ -51,6 +53,12 @@ class CANBus(FLYNCBaseModel):
         4 000 000, 5 000 000, or 8 000 000.
     frames : list of :class:`CANFrame` | :class:`CANFDFrame`
         Frames transmitted on this bus.  :class:`CANFDFrame` entries are only permitted when ``fd_enabled`` is ``True``.
+    state_memberships : list of \
+    :class:`~flync.model.flync_4_nm.StateMembershipRef`, optional
+        Assignments of this bus to a state management group.  A bus membership enrols the whole bus as one participant — the entire bus
+        stays awake or sleeps as a unit, never expanded into per-attached-node participants.  It contributes one relevance bit by default
+        (the bus name) and may reference several when the bus serves several functions.  On CAN you may instead give the individual nodes
+        their own memberships for selective, per-function participation.
     """
 
     name: str = Field()
@@ -60,6 +68,13 @@ class CANBus(FLYNCBaseModel):
     fd_enabled: bool = Field(default=False)
     fd_baud_rate: Optional[int] = Field(default=None)
     frames: List[Annotated[Union[CANFrame, CANFDFrame], Field(discriminator="type")]] = Field(default_factory=list)
+    state_memberships: Annotated[
+        Optional[List[StateMembershipRef]],
+        BeforeValidator(common_validators.none_to_empty_list),
+    ] = Field(
+        default_factory=list,
+        description="Assignments of this bus to a state management group; the whole bus participates as one unit.",
+    )
 
     @field_validator("baud_rate")
     @classmethod

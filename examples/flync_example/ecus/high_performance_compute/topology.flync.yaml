@@ -19,3 +19,7 @@ connections:
     id: conn5
     switch_port: hpc_s1_p2
     controller_interface: hpc_c2_iface1
+  - type: ecu_port_to_switch_port
+    id: conn6
+    ecu_port: hpc1_p5
+    switch_port: hpc_s1_p6

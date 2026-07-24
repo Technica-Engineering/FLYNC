@@ -11,3 +11,7 @@ connections:
     id: conn3
     ecu1_port: hpc1_p3
     ecu2_port: eth_ecu_p1
+  - type: ecu_port_to_ecu_port
+    id: conn4
+    ecu1_port: hpc1_p5
+    ecu2_port: zgw_p1

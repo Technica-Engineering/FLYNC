@@ -25,6 +25,9 @@ from flync.core.utils.multicast import (
     compute_path,
     serialize_components,
 )
+from flync.core.utils.state_management_validators import (
+    validate_state_management,
+)
 from flync.model.flync_4_app import App
 from flync.model.flync_4_communication import FLYNCCommunicationConfig
 from flync.model.flync_4_ecu import (
@@ -333,6 +336,12 @@ class FLYNCModel(FLYNCBaseModel):
         for controller in self.get_all_controllers():
             if controller.app_bindings:
                 controller.app_bindings.resolve_apps(apps_by_name, controller.name)
+        return self
+
+    @model_validator(mode="after")
+    def validate_state_management_groups(self):
+        """Workspace-level state management pass: group refs, derived member sets, NM PDU binding, and reachability."""
+        validate_state_management(self)
         return self
 
     def check_rx_are_reached(self, separ, paths, vlans_dict):

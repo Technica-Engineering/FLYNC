@@ -1,0 +1,8 @@
+# communication/channels/can/body_can.yaml (fixture)
+# Bus-level membership: the bus is ONE participant owning ONE bit.
+name: BodyCan
+baud_rate: 500000
+frames: []
+state_memberships:
+  - group: COMFORT
+    relevance_bits: [BodyCan]

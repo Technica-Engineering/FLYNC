@@ -1,0 +1,6 @@
+# BodyCAN comfort node. References the Comfort function bit — several nodes share
+# the same function bit, so requesting Comfort wakes them all together.
+state_memberships:
+- group: VEHICLE
+  role: participant
+  relevance_bits: [Comfort]
