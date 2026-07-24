@@ -192,6 +192,7 @@ docs-build:
       - docs/build
 
 pages:
+  extends: .base
   stage: deploy
   needs:
     - job: docs-build
