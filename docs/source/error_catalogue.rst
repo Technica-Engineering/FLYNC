@@ -512,6 +512,16 @@ Every error and warning the FLYNC validators can raise, identified as
 
    "Incompatible Controller Config detected (compatible_flync_version={legacy_version}). FLYNC {required_version} requires every controller to live in its own directory containing 'controller_metadata.flync.yaml'. Update the configuration to the new layout or downgrade FLYNC to 0.10.x."
 
+.. err:: App '{name}' referenced in app_bindings of {controller_name} was not found or...
+   :id: FLYNC-CMN-MAJ-REF-187
+   :module: CMN
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 187
+   :location: app_bindings.AppBindings.resolve_apps
+
+   f"App '{name}' referenced in app_bindings of {controller_name} was not found or was not validated"
+
 .. err:: baud_rate {value} is not a valid CAN baud rate. Allowed values: {allowed}
    :id: FLYNC-BUS-MIN-VAL-049
    :module: BUS
@@ -1742,6 +1752,16 @@ Every error and warning the FLYNC validators can raise, identified as
 
    "The 'general' attribute is deprecated. Please use 'communication' instead."
 
+.. err:: Apps are currently experimental! Subject to change, please use with care.
+   :id: FLYNC-GEN-WARN-LIFE-188
+   :module: GEN
+   :severity: WARN
+   :category: LIFECYCLE
+   :number: 188
+   :location: flync_model.FLYNCModel.warn_experimental
+
+   'Apps are currently experimental! Subject to change, please use with care.'
+
 .. err:: The 'general' attribute is deprecated. Please use 'communication' instead.
    :id: FLYNC-GEN-WARN-LIFE-163
    :module: GEN
@@ -1841,6 +1861,16 @@ Every error and warning the FLYNC validators can raise, identified as
    :location: flync_model.FLYNCModel.validate_unique_macs
 
    f'The MAC {mac} is repeated in ECU {ecu.name}'
+
+.. err:: App {app.name} references service ({ref.service_name}, major_version={ref.maj...
+   :id: FLYNC-GEN-MAJ-REF-186
+   :module: GEN
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 186
+   :location: flync_model.FLYNCModel.validate_service_refs_in_apps
+
+   f"App {app.name} references service ({ref.service_name}, major_version={ref.major_version}) that is not defined in the system's SOME/IP configuration."
 
 .. err:: Invalid Multicast Address Configuration. There are no TX endpoints for this a...
    :id: FLYNC-GEN-WARN-CONS-173

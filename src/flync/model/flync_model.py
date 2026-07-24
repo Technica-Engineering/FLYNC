@@ -25,6 +25,7 @@ from flync.core.utils.multicast import (
     compute_path,
     serialize_components,
 )
+from flync.model.flync_4_app import App
 from flync.model.flync_4_communication import FLYNCCommunicationConfig
 from flync.model.flync_4_ecu import (
     ECU,
@@ -35,7 +36,7 @@ from flync.model.flync_4_ecu import (
 )
 from flync.model.flync_4_metadata import SystemMetadata
 from flync.model.flync_4_signal.forwarder import CANFrameForwarder, PDUForwarder
-from flync.model.flync_4_someip.deployment import SOMEIPServiceDeployment
+from flync.model.flync_4_someip import SOMEIPServiceDeployment, SOMEIPServiceInterface
 from flync.model.flync_4_topology import FLYNCTopology
 
 
@@ -47,6 +48,9 @@ class FLYNCModel(FLYNCBaseModel):
 
     Parameters
     ----------
+    apps : list of :class:`~flync.model.flync_4_app.App`, optional
+        Applications of the system.
+
     ecus : list of :class:`~flync.model.flync_4_ecu.ecu.ECU`
         List of ECU definitions included in the system.
 
@@ -59,6 +63,14 @@ class FLYNCModel(FLYNCBaseModel):
     communication : :class:`~flync.model.flync_4_communication.FLYNCCommunicationConfig`, optional
         Optional communication configuration settings applicable system-wide.
     """
+
+    apps: Annotated[
+        Optional[List[App]],
+        External(
+            output_structure=OutputStrategy.FOLDER,
+            naming_strategy=NamingStrategy.FIELD_NAME,
+        ),
+    ] = Field(default=None, description="Applications of the system.")
 
     communication: Annotated[
         Optional[FLYNCCommunicationConfig],
@@ -99,6 +111,13 @@ class FLYNCModel(FLYNCBaseModel):
     def warn_deprecated(cls, data):
         if "general" in data:
             warn("The 'general' attribute is deprecated. Please use 'communication' instead.", category=Category.LIFECYCLE, error_number="162")
+        return data
+
+    @model_validator(mode="before")
+    def warn_experimental(cls, data):
+        """Experimental Classes"""
+        if "apps" in data and data["apps"] is not None:
+            warn("Apps are currently experimental! Subject to change, please use with care.", category=Category.LIFECYCLE, error_number="188")
         return data
 
     @property
@@ -292,6 +311,30 @@ class FLYNCModel(FLYNCBaseModel):
         detect_forwarder_cycles(self)  # Verifies the forwarder graph is acyclic.
         return self
 
+    @model_validator(mode="after")
+    def validate_service_refs_in_apps(self):
+        """Validate that applications are referencing existing services."""
+        known_services = {(svc.name, svc.major_version) for svc in self.get_all_someip_services()}
+        for app in self.apps or []:
+            for ref in (app.service_consumer_refs or []) + (app.service_provider_refs or []):
+                if (ref.service_name, ref.major_version) not in known_services:
+                    raise err_major(
+                        f"App {app.name} references service ({ref.service_name}, major_version={ref.major_version}) "
+                        "that is not defined in the system's SOME/IP configuration.",
+                        category=Category.REFERENCE,
+                        error_number="186",
+                    )
+        return self
+
+    @model_validator(mode="after")
+    def validate_app_refs_in_controller_bindings(self):
+        """Validate that app_bindings of ecu controllers are referencing existing apps."""
+        apps_by_name = {app.name: app for app in self.apps or []}
+        for controller in self.get_all_controllers():
+            if controller.app_bindings:
+                controller.app_bindings.resolve_apps(apps_by_name, controller.name)
+        return self
+
     def check_rx_are_reached(self, separ, paths, vlans_dict):
         for ecu in self.ecus:
             for mcast in ecu.multicast_groups:
@@ -448,6 +491,12 @@ class FLYNCModel(FLYNCBaseModel):
             for eth_iface in controller.ethernet_interfaces or []:
                 for socket_container in eth_iface.sockets or []:
                     yield from socket_container.sockets or []
+
+    def get_all_someip_services(self) -> List["SOMEIPServiceInterface"]:
+        """Return all SOME/IP service interfaces declared in the system-wide someip_config."""
+        if self.communication and self.communication.someip_config:
+            return self.communication.someip_config.services
+        return []
 
     def get_all_pdu_forwarders(self) -> List[PDUForwarder]:
         """Return every PDUForwarder declared on any socket across all ECUs."""

@@ -27,6 +27,7 @@ from flync.core.utils.exceptions import Category, err_fatal, err_major, err_mino
 from flync.core.version_migrators.legacy_controller_check import (
     reject_legacy_controller,
 )
+from flync.model.flync_4_app.app_bindings import AppBindings
 from flync.model.flync_4_ecu.can_interface import CANInterface
 from flync.model.flync_4_ecu.controller_interface import ControllerInterface
 from flync.model.flync_4_ecu.lin_interface import AnyLINInterface
@@ -581,6 +582,9 @@ class Controller(FLYNCBaseModel):
         Represents a software switch inside a controller in case there are \
             more than one interface or virtual machines/ compute nodes.
 
+    app_bindings: :class:`~flync.model.flync_4_app.AppBindings`, optional
+        Applications a controller should bind to.
+
     Private Attributes
     ------------------
     _type:
@@ -629,6 +633,11 @@ class Controller(FLYNCBaseModel):
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
     ] = Field(default=None)
+
+    app_bindings: Annotated[Optional[AppBindings], External(output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT)] = Field(
+        default=None, description="Applications a controller should bind to."
+    )
+
     _type: Literal["controller"] = PrivateAttr(default="controller")
 
     @model_validator(mode="before")

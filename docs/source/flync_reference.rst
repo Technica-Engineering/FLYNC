@@ -33,7 +33,7 @@ The built-in loaders and validators expect a specific repository structure that 
 Repository Structure for FLYNC configs
 ############################################
 
-The root of a FLYNC config repository holds four main parts: System Metadata, Topology, ECUs, and Communication.
+The root of a FLYNC config repository contains several parts that are described in the subchapters of this section.
 
 .. rubric:: Guidelines
 
@@ -269,7 +269,30 @@ Omit the corresponding sub-folder entirely when the system does not use that cha
    - :ref:`Signals & PDU<signal>`
 
 
+Apps
+*****
 
+This directory describes applications in the system.
+This is a **non-mandatory** directory for the FLYNC configuration.
+
+.. code-block::
+
+   📂 apps
+   │
+   ├── 📄 example_application_1.flync.yaml
+   └── 📄 ...
+
+.. important::
+
+   ✔ The directory name must be respected: ``apps/``
+
+   ✔ The name of an app is derived by the filename.
+
+.. seealso::
+
+   Explore the whole app config further:
+
+   - :ref:`App Config <app>`
 
 ****************************
 Validate your configuration
