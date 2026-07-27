@@ -6,7 +6,7 @@
 SPHINXOPTS    ?=
 SPHINXBUILD   ?= poetry run python -m sphinx.cmd.build
 SOURCEDIR     = source
-BUILDDIR      = build/html
+BUILDDIR      = build
 EXAMPLE_NAME  = flync_example
 EXAMPLE_SOURCE= ../examples/
 EXAMPLE_DST	  = ./source/_static/
