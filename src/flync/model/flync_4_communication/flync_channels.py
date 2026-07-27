@@ -112,16 +112,6 @@ class FLYNCChannelConfig(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_frame_names_unique(self):
-        frames = []
-        for bus in self.can_buses or []:
-            frames.extend(f.name for f in bus.frames)
-        for bus in self.lin_buses or []:
-            frames.extend(f.name for f in bus.frames)
-        validate_list_items_unique(frames, "Frames")
-        return self
-
-    @model_validator(mode="after")
     def validate_pdu_refs(self) -> "FLYNCChannelConfig":
         """Verify packed PDUs in CAN/LIN frames reference known PDUs and fit without overlap."""
         pdu_registry = {p.name: p for p in (self.pdus or [])}
