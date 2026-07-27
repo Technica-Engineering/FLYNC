@@ -98,7 +98,7 @@
 | src/flync/sdk/helpers/debug\_layers/layer2\_yaml.py             |       42 |        4 |     90% |39-41, 71-72 |
 | src/flync/sdk/helpers/debug\_layers/layer3\_4\_5\_workspace.py  |      233 |       58 |     75% |105, 124, 154, 276-277, 413-414, 424, 427, 431, 436, 448-449, 455-463, 475-476, 489, 509, 513, 519-536, 547-557, 562-571 |
 | src/flync/sdk/helpers/debug\_layers/runner.py                   |      116 |        8 |     93% |58, 66, 127-129, 164, 189-190 |
-| src/flync/sdk/helpers/generation\_helpers.py                    |      258 |       58 |     78% |40-48, 70, 217, 279, 356-358, 419, 425-429, 450-454, 462-480, 492-511 |
+| src/flync/sdk/helpers/generation\_helpers.py                    |      258 |       59 |     77% |40-48, 70, 217, 261, 279, 356-358, 419, 425-429, 450-454, 462-480, 492-511 |
 | src/flync/sdk/helpers/nodes\_helpers.py                         |       17 |        4 |     76% |     54-57 |
 | src/flync/sdk/helpers/validation\_helpers.py                    |       48 |       12 |     75% |81, 129-149 |
 | src/flync/sdk/utils/\_\_init\_\_.py                             |        0 |        0 |    100% |           |
@@ -112,7 +112,7 @@
 | src/flync/sdk/workspace/ids.py                                  |        3 |        0 |    100% |           |
 | src/flync/sdk/workspace/objects.py                              |       69 |        0 |    100% |           |
 | src/flync/sdk/workspace/source.py                               |       11 |        0 |    100% |           |
-| **TOTAL**                                                       | **6861** |  **471** | **93%** |           |
+| **TOTAL**                                                       | **6861** |  **472** | **93%** |           |
 
 
 ## Setup coverage badge
