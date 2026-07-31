@@ -28,7 +28,7 @@ dependencies = [
     "pyyaml==6.0.3",
     "myst-parser>=5.0.0,<6.0.0",
     "pydantic-extra-types>=2.11.0,!=2.11.2,<3.0.0",
-    "cantools>=41.3.1,<42.0.0",
+    "cantools>=42.0.3,<42.1.0",
     "semver>=3.0,<4.0",
     "platformdirs (>=4.9.4,<5.0.0)",
     "polyfactory==3.3.0",

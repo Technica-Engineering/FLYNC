@@ -319,14 +319,14 @@ uvloop = ["uvloop (>=0.15.2) ; sys_platform != \"win32\"", "winloop (>=0.5.0) ; 
 
 [[package]]
 name = "cantools"
-version = "41.4.3"
+version = "42.0.3"
 description = "CAN BUS tools."
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "cantools-41.4.3-py3-none-any.whl", hash = "sha256:89154ff5d7a52471ef1d0dd8ea9d012e286ce574c0df2775cef074d8429cd4ee"},
-    {file = "cantools-41.4.3.tar.gz", hash = "sha256:a46628da95a8d772b235c684870cb32d534b97d2d0ebc7ab079f84d4df5a29e5"},
+    {file = "cantools-42.0.3-py3-none-any.whl", hash = "sha256:81732fe0cb6c9b10d8bee74f716ad551ead7b73b6b4d2c78b5e932b5ed61c217"},
+    {file = "cantools-42.0.3.tar.gz", hash = "sha256:13d2ed955ca3a8d4e46763a76ec791f3d9c4b6e73efb394625d4ea2b805f1cfc"},
 ]
 
 [package.dependencies]
@@ -3814,4 +3814,4 @@ type = ["pytest-mypy (>=1.0.1) ; platform_python_implementation != \"PyPy\""]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<3.15"
-content-hash = "b99bffbfc28f653abbc5852c9b40cfc4df6ba8fb72739bbf7a0a990b83fd49b9"
+content-hash = "cda2e7775801675f166be1c8c573462b0dd3a1a13581a71929c45ca84034eccc"
