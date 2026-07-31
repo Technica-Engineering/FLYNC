@@ -24,7 +24,7 @@ dependencies = [
     "typer",
     "prettytable",
     "pydantic==2.13.4",
-    "pydantic-yaml==1.6.0",
+    "pydantic-yaml==1.7.0",
     "pyyaml==6.0.3",
     "myst-parser>=5.0.0,<6.0.0",
     "pydantic-extra-types>=2.11.0,!=2.11.2,<3.0.0",
