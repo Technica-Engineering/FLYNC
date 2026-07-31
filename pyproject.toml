@@ -16,17 +16,12 @@ classifiers = [
 ]
 requires-python = ">=3.12,<3.15"
 dependencies = [
-    "importlib-metadata>=8.6.1",
     "click==8.4.2",
-    "construct==2.10.70",
-    "jinja2",
     "rich",
     "typer",
-    "prettytable",
     "pydantic==2.13.4",
-    "pydantic-yaml==1.7.0",
     "pyyaml==6.0.3",
-    "myst-parser>=5.0.0,<6.0.0",
+    "ruamel.yaml>=0.18,<0.19",
     "pydantic-extra-types>=2.11.0,!=2.11.2,<3.0.0",
     "cantools>=42.0.3,<42.1.0",
     "semver>=3.0,<4.0",
@@ -74,6 +69,7 @@ sphinxcontrib-plantuml = "0.31"
 sphinx-copybutton = "0.5.2"
 sphinx-design = "^0.7.0"
 sphinxcontrib-mermaid = "^2.0.0"
+myst-parser = ">=5.0.0,<6.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.4.0"
@@ -83,8 +79,8 @@ pytest = "*"
 pytest-cov = "*"
 coverage = "*"
 iniconfig = "*"
-pluggy = "*"
 python-dotenv = "*"
+pydantic-yaml = "1.7.0"
 black = "^26.1.0"
 mypy = "^2.0.0"
 pytest-xdist = "^3.8.0"
