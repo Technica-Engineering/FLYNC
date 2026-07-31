@@ -1,0 +1,45 @@
+name: Workflow Check Release Version
+
+on:
+  push:
+    branches:
+      - release-*
+  pull_request:
+    branches:
+      - release-*
+
+permissions:
+  contents: read
+
+jobs:
+  check-release-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Prepare
+        run: |
+          pip install --upgrade pip
+          pip install "poetry>=2.0.0,<3.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
+
+      - name: Check version matches release branch
+        run: |
+          BRANCH="${{ github.base_ref || github.ref_name }}"
+          EXPECTED="${BRANCH#release-}"
+          VERSION="$(poetry version --short)"
+          echo "Branch:           $BRANCH"
+          echo "Expected prefix:  $EXPECTED"
+          echo "Poetry version:   $VERSION"
+          case "$VERSION" in
+            "$EXPECTED" | "$EXPECTED".*)
+              echo "Version '$VERSION' matches release branch '$BRANCH'."
+              echo "✅ Version \`$VERSION\` matches branch \`$BRANCH\`." >> "$GITHUB_STEP_SUMMARY"
+              ;;
+            *)
+              echo "::warning title=Release version mismatch::poetry version '$VERSION' does not start with '$EXPECTED' (branch '$BRANCH')"
+              echo "⚠️ Version \`$VERSION\` does NOT match branch \`$BRANCH\` (expected prefix \`$EXPECTED\`)." >> "$GITHUB_STEP_SUMMARY"
+              ;;
+          esac
