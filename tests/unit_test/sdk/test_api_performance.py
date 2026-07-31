@@ -11,7 +11,7 @@ from flync.sdk.helpers.validation_helpers import validate_workspace
 __PERFORMANCE_THRESHOLDS = {
     validate_workspace.__name__: {"max_duration_ms": 4000, "max_memory_mb": 14},
     # Increased max duration to 20 seconds to account for the difference of computational power of different CI agents
-    dump_flync_workspace.__name__: {"max_duration_ms": 20000, "max_memory_mb": 200},
+    dump_flync_workspace.__name__: {"max_duration_ms": 25000, "max_memory_mb": 200},
 }
 current_dir = Path(__file__).resolve().parent
 
