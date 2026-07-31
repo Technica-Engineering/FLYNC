@@ -445,7 +445,7 @@ class ECU(FLYNCBaseModel):
             All matching service deployment instances found across the ECU's socket containers.
         """
 
-        service_instances = []
+        service_instances: list[_T_Service] = []
         for controller in self.controllers:
             for eth_iface in controller.ethernet_interfaces or []:
                 for ecu_sockets in eth_iface.sockets or []:
