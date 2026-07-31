@@ -104,7 +104,7 @@ mypy = "^1.18.2"
 types-pyyaml = "^6.0.12.20250915"
 
 [tool.poetry.group.deploy.dependencies]
-twine = "^6.2.0"
+twine = "^7.0.0"
 
 [tool.pytest.ini_options]
 addopts = "-n auto --cov=flync --cov=flync_cli --cov=flync_converter --cov-report=term --cov-report=xml --junitxml=report.xml"
