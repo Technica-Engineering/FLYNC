@@ -2170,24 +2170,20 @@ uuid-utils = ["uuid-utils (>=0.6.0) ; python_version < \"3.14\""]
 
 [[package]]
 name = "pydantic-yaml"
-version = "1.6.0"
+version = "1.7.0"
 description = "YAML reading/writing for Pydantic models"
 optional = false
-python-versions = ">=3.10"
+python-versions = "<3.15,>=3.10"
 groups = ["main"]
 files = [
-    {file = "pydantic_yaml-1.6.0-py3-none-any.whl", hash = "sha256:02cb800b455b68daeeb74ad736c252a94a0b203da5fbbeef02539d468e1d98f8"},
-    {file = "pydantic_yaml-1.6.0.tar.gz", hash = "sha256:ce5f10b65d95ca45846a36ea8dae54e550fa3058e7d6218e0179184d9bf6f660"},
+    {file = "pydantic_yaml-1.7.0-py3-none-any.whl", hash = "sha256:794867172285e444653605c16adfc4b874938ce60132eff24cda4e3c590f75f3"},
+    {file = "pydantic_yaml-1.7.0.tar.gz", hash = "sha256:b7c9420647537166c58ff9b150176a434fbdbae843d076e37011dd7e3e2e0044"},
 ]
 
 [package.dependencies]
-pydantic = ">=1.8"
-"ruamel.yaml" = ">=0.17.0,<0.19.0"
+pydantic = ">=1.10.0,<3"
+ruamel-yaml = ">=0.17.0,<0.20.0"
 typing-extensions = ">=4.5.0"
-
-[package.extras]
-dev = ["mypy (==1.17.1)", "pre-commit (==4.2.0)", "pytest (==8.4.1)", "ruff (==0.12.8)", "setuptools (>=61.0.0)", "setuptools-scm[toml] (>=6.2)"]
-docs = ["mkdocs", "mkdocs-material", "mkdocstrings[python]", "pygments", "pymdown-extensions", "types-setuptools"]
 
 [[package]]
 name = "pyflakes"
@@ -3814,4 +3810,4 @@ type = ["pytest-mypy (>=1.0.1) ; platform_python_implementation != \"PyPy\""]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<3.15"
-content-hash = "b99bffbfc28f653abbc5852c9b40cfc4df6ba8fb72739bbf7a0a990b83fd49b9"
+content-hash = "e844d429edd55275734ba88c18cc4abf60ae2b48fbad52c34c28172285547171"
