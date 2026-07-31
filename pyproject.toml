@@ -60,7 +60,7 @@ include = [
     { path = "src/flync/py.typed", format = ["sdist", "wheel"] },
     { path = "src/flync_converter/py.typed", format = ["sdist", "wheel"] }
 ]
-version = "0.0.0"
+version = "0.13.0"
 
 [tool.poetry.group.docs.dependencies]
 furo = ">=2024.0.0"
