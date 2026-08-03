@@ -882,6 +882,36 @@ Every error and warning the FLYNC validators can raise, identified as
 
    f"switch port '{switch_port.name}' on switch '{switch_port.get_switch().name}' is connected to more than one component. Each switch port in the internal topology may only be connected to a single other component."
 
+.. err:: ECU port '{port.name}' is not connected in the internal topology.
+   :id: FLYNC-ECU-WARN-STRUCT-211
+   :module: ECU
+   :severity: WARN
+   :category: STRUCTURAL
+   :number: 211
+   :location: ecu.ECU.validate_no_unconnected_components
+
+   f"ECU port '{port.name}' is not connected in the internal topology."
+
+.. err:: Switch port '{switch_port.name}' (switch: '{switch_port._switch.name}') is no...
+   :id: FLYNC-ECU-WARN-STRUCT-212
+   :module: ECU
+   :severity: WARN
+   :category: STRUCTURAL
+   :number: 212
+   :location: ecu.ECU.validate_no_unconnected_components
+
+   f"Switch port '{switch_port.name}' (switch: '{switch_port._switch.name}') is not connected in the internal topology."
+
+.. err:: Controller interface '{iface.name}' (controller: '{iface._controller.name}') ...
+   :id: FLYNC-ECU-WARN-STRUCT-213
+   :module: ECU
+   :severity: WARN
+   :category: STRUCTURAL
+   :number: 213
+   :location: ecu.ECU.validate_no_unconnected_components
+
+   f"Controller interface '{iface.name}' (controller: '{iface._controller.name}') is not connected in the internal topology."
+
 .. err:: Error in socket configuration:\nThe following VLAN IDs are specified in the s...
    :id: FLYNC-ECU-MIN-REF-069
    :module: ECU
@@ -1841,6 +1871,16 @@ Every error and warning the FLYNC validators can raise, identified as
    :location: system_topology.ExternalConnection.bind
 
    f'Incompatible MDI Autonegotiation: {port1.ecu.name}:{self.ecu1_port_name} ({mdi_ecu1_port.autonegotiation}) ↔ {port2.ecu.name}:{self.ecu2_port_name} ({mdi_ecu2_port.autonegotiation})'
+
+.. err:: ECU port '{port.name}' (ECU: '{port.ecu.name}') is not connected in the syste...
+   :id: FLYNC-TOP-WARN-STRUCT-214
+   :module: TOP
+   :severity: WARN
+   :category: STRUCTURAL
+   :number: 214
+   :location: system_topology.SystemTopology.validate_no_unconnected_ports
+
+   f"ECU port '{port.name}' (ECU: '{port.ecu.name}') is not connected in the system topology."
 
 .. err:: pcp value must be greater than or equal to 0 and less than or equal to 7
    :id: FLYNC-TSN-MIN-VAL-150
