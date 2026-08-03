@@ -77,12 +77,16 @@ class ExternalConnection(FLYNCBaseModel):
         port1 = ports_by_name.get(self.ecu1_port_name)
         if port1 is None:
             raise err_major(
-                f"ECU port name {self.ecu1_port_name} in connection {self.id} does not exist", category=Category.REFERENCE, error_number="142"
+                f"ECU port name {self.ecu1_port_name} in connection {self.id} of system topology does not exist",
+                category=Category.REFERENCE,
+                error_number="142",
             )
         port2 = ports_by_name.get(self.ecu2_port_name)
         if port2 is None:
             raise err_major(
-                f"ECU port name {self.ecu2_port_name} in connection {self.id} does not exist", category=Category.REFERENCE, error_number="143"
+                f"ECU port name {self.ecu2_port_name} in connection {self.id} of system topology does not exist",
+                category=Category.REFERENCE,
+                error_number="143",
             )
 
         self._ecu1_port = port1
