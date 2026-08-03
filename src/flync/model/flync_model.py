@@ -182,6 +182,11 @@ class FLYNCModel(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
+    def validate_no_unconnected_ecu_ports(self):
+        self.topology.system_topology.validate_no_unconnected_ports(self.get_all_ecu_ports())
+        return self
+
+    @model_validator(mode="after")
     def validate_unique_ips(self):
         """
         Validate all IPs are unique system wide

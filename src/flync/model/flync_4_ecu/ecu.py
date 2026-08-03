@@ -14,7 +14,7 @@ from flync.core.annotations import (
 )
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.base_utils import find_all
-from flync.core.utils.exceptions import Category, err_major, err_minor
+from flync.core.utils.exceptions import Category, err_major, err_minor, warn
 from flync.model.flync_4_ecu.controller import (
     Controller,
     EthernetInterface,
@@ -130,6 +130,8 @@ class ECU(FLYNCBaseModel):
     )
     _state_effective_members: List[EffectiveMember] = PrivateAttr(default_factory=list)
 
+    _connectivity_check_done: bool = PrivateAttr(default=False)
+
     def model_post_init(self, context):
         """
         Perform post-initialization processing after the model is created.
@@ -203,6 +205,38 @@ class ECU(FLYNCBaseModel):
 
         for conn in connections:
             conn.validate_compatibility()
+        return self
+
+    @model_validator(mode="after")
+    def validate_no_unconnected_components(self):
+        if self._connectivity_check_done:
+            return self
+        self._connectivity_check_done = True
+
+        for port in self.ports:
+            if not port._connected_components:
+                warn(
+                    f"ECU port '{port.name}' is not connected in the internal topology.",
+                    category=Category.STRUCTURAL,
+                    error_number="211",
+                )
+
+        for switch_port in self.get_all_switch_ports():
+            if switch_port._connected_component is None:
+                warn(
+                    f"Switch port '{switch_port.name}' (switch: '{switch_port._switch.name}') is not connected in the internal topology.",
+                    category=Category.STRUCTURAL,
+                    error_number="212",
+                )
+
+        for iface in self.get_all_interfaces():
+            if not iface._connected_component:
+                warn(
+                    f"Controller interface '{iface.name}' (controller: '{iface._controller.name}') is not connected in the internal topology.",
+                    category=Category.STRUCTURAL,
+                    error_number="213",
+                )
+
         return self
 
     @model_validator(mode="after")

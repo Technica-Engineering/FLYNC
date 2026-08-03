@@ -48,7 +48,13 @@ def test_state_management_example_loads(loaded_workspace_without_object_map):
         ("VEHICLE", "ecu", "zonal_gateway", "participant", "Comfort"),
     ]
 
-    warnings = [error for error in loaded_workspace_without_object_map.load_errors if "experimental" not in error["msg"]]
+    warnings = [
+        error
+        for error in loaded_workspace_without_object_map.load_errors
+        if "experimental" not in error["msg"]
+        and "is not connected in the internal topology" not in error["msg"]
+        and "is not connected in the system topology" not in error["msg"]
+    ]
     assert warnings == []
 
 

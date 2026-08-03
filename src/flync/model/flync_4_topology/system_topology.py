@@ -11,7 +11,7 @@ import flync.core.utils.common_validators as common_validators
 from flync.core.annotations.external import External, OutputStrategy
 from flync.core.annotations.reference import Reference
 from flync.core.base_models import FLYNCBaseModel
-from flync.core.utils.exceptions import Category, err_major
+from flync.core.utils.exceptions import Category, err_major, warn
 from flync.model.flync_4_ecu.port import ECUPort
 
 
@@ -176,6 +176,18 @@ class SystemTopology(FLYNCBaseModel):
     """
 
     connections: List[ExternalConnection] = Field(examples=[[]])
+
+    def validate_no_unconnected_ports(self, all_ports: List[ECUPort]) -> None:
+        """Warn for every ECU port that has no counterpart in the system topology's external connections."""
+
+        for port in all_ports:
+            if not any(c.type == "ecu_port" for c in port.connected_components):
+                assert port.ecu is not None
+                warn(
+                    f"ECU port '{port.name}' (ECU: '{port.ecu.name}') is not connected in the system topology.",
+                    category=Category.STRUCTURAL,
+                    error_number="214",
+                )
 
 
 class FLYNCTopology(FLYNCBaseModel):
