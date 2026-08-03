@@ -288,6 +288,9 @@ class ECUPortToSwitchPort(ECUPortToXConnection, SwitchPortToXConnection):
                 self.ecu_port.mdi_config.speed,
             )
 
+    def get_switch_port_refs(self) -> "List[SwitchPort]":
+        return [self.switch_port]
+
 
 class ECUPortToControllerInterface(ECUPortToXConnection, ControllerInterfaceToXConnection):
     """
@@ -358,6 +361,9 @@ class SwitchPortToControllerInterface(SwitchPortToXConnection, ControllerInterfa
         common_validators.validate_macsec(self.switch_port, self.iface.interface_config, self.id)
         common_validators.validate_gptp(self.switch_port, self.iface.interface_config, self.id)
 
+    def get_switch_port_refs(self) -> "List[SwitchPort]":
+        return [self.switch_port]
+
 
 class SwitchPortToSwitchPort(SwitchPortToXConnection):
     """
@@ -415,6 +421,9 @@ class SwitchPortToSwitchPort(SwitchPortToXConnection):
         common_validators.validate_compulsory_mii_config_compatibility(self.switch_port, self.switch2_port, self.id)
         common_validators.validate_macsec(self.switch_port, self.switch2_port, self.id)
         common_validators.validate_gptp(self.switch_port, self.switch2_port, self.id)
+
+    def get_switch_port_refs(self) -> "List[SwitchPort]":
+        return [self.switch_port, self.switch2_port]
 
 
 class ControllerInterfaceToControllerInterface(ControllerInterfaceToXConnection):

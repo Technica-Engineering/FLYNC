@@ -180,3 +180,85 @@ def test_negative_switch_to_switch_missing_port_2():
             switches=[switch],
             connections=[{"type": "switch_to_switch_same_ecu", "id": "1", "switch_port": "a", "switch2_port": "f"}],
         )
+
+
+def test_switch_port_reused_across_two_connections(virtual_controller_interface):
+    switch_port = SwitchPort(name="a", silicon_port_no=1, default_vlan_id=0, mii_config=MII(mode="mac"))
+    switch = _switch("sw", [switch_port])
+    ecu_port = ECUPort(name="e", mii_config=MII(mode="phy"))
+    ctrl = _controller(
+        "ctrl",
+        "b",
+        EthernetInterfaceConfig(
+            mac_address="10:10:10:22:22:22",
+            virtual_interfaces=[virtual_controller_interface],
+            mii_config=MII(mode="phy"),
+        ),
+    )
+    with pytest.raises(ValidationError, match="switch port 'a'"):
+        _ecu(
+            switches=[switch],
+            controllers=[ctrl],
+            ports=[ecu_port],
+            connections=[
+                {"type": "ecu_port_to_switch_port", "id": "1", "ecu_port": "e", "switch_port": "a"},
+                {"type": "switch_port_to_controller_interface", "id": "2", "switch_port": "a", "controller_interface": "b"},
+            ],
+        )
+
+
+def test_switch_port_connected_to_itself():
+    switch = _switch(
+        "sw",
+        [SwitchPort(name="a", silicon_port_no=1, default_vlan_id=0, mii_config=MII(mode="mac"))],
+    )
+    with pytest.raises(ValidationError, match="connected to itself"):
+        _ecu(
+            switches=[switch],
+            connections=[{"type": "switch_to_switch_same_ecu", "id": "1", "switch_port": "a", "switch2_port": "a"}],
+        )
+
+
+def test_switch_ports_each_used_once_is_valid(virtual_controller_interface):
+    switch_port_a = SwitchPort(name="a", silicon_port_no=1, default_vlan_id=0, mii_config=MII(mode="mac"))
+    switch_port_c = SwitchPort(name="c", silicon_port_no=2, default_vlan_id=0, mii_config=MII(mode="mac"))
+    switch = _switch("sw", [switch_port_a, switch_port_c])
+    ecu_port = ECUPort(name="e", mii_config=MII(mode="phy"))
+    ctrl = _controller(
+        "ctrl",
+        "b",
+        EthernetInterfaceConfig(
+            mac_address="10:10:10:22:22:22",
+            virtual_interfaces=[virtual_controller_interface],
+            mii_config=MII(mode="phy"),
+        ),
+    )
+    ecu = _ecu(
+        switches=[switch],
+        controllers=[ctrl],
+        ports=[ecu_port],
+        connections=[
+            {"type": "ecu_port_to_switch_port", "id": "1", "ecu_port": "e", "switch_port": "a"},
+            {"type": "switch_port_to_controller_interface", "id": "2", "switch_port": "c", "controller_interface": "b"},
+        ],
+    )
+    assert len(ecu.topology.connections) == 2
+
+
+def test_same_switch_port_name_in_different_switches_is_valid():
+    """Two switches in one ECU may each define a port with the same name; using each in its own
+    connection is valid because the dedup compares port objects by identity, not by name."""
+    switch_a = _switch("switch_a", [SwitchPort(name="a", silicon_port_no=1, default_vlan_id=0, mii_config=MII(mode="mac"))])
+    switch_b = _switch("switch_b", [SwitchPort(name="a", silicon_port_no=1, default_vlan_id=0, mii_config=MII(mode="mac"))])
+    ecu_port_1 = ECUPort(name="e1", mii_config=MII(mode="phy"))
+    ecu_port_2 = ECUPort(name="e2", mii_config=MII(mode="phy"))
+    ecu = _ecu(
+        switches=[switch_a, switch_b],
+        ports=[ecu_port_1, ecu_port_2],
+        connections=[
+            {"type": "ecu_port_to_switch_port", "id": "1", "ecu_port": "e1", "switch_port": "a", "switch": "switch_a"},
+            {"type": "ecu_port_to_switch_port", "id": "2", "ecu_port": "e2", "switch_port": "a", "switch": "switch_b"},
+        ],
+    )
+
+    assert len(ecu.topology.connections) == 2

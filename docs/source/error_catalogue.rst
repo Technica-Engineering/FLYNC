@@ -862,6 +862,26 @@ Every error and warning the FLYNC validators can raise, identified as
 
    'ECU has invalid components. Check controller and switch errors for details.'
 
+.. err:: switch port '{sp.name}' on switch '{sp.get_switch().name}' is connected to it...
+   :id: FLYNC-ECU-MAJ-COMP-209
+   :module: ECU
+   :severity: MAJ
+   :category: COMPATIBILITY
+   :number: 209
+   :location: ecu.ECU.resolve_topology_connections
+
+   f"switch port '{sp.name}' on switch '{sp.get_switch().name}' is connected to itself. A component cannot be connected to itself."
+
+.. err:: switch port '{switch_port.name}' on switch '{switch_port.get_switch().name}' ...
+   :id: FLYNC-ECU-MAJ-COMP-210
+   :module: ECU
+   :severity: MAJ
+   :category: COMPATIBILITY
+   :number: 210
+   :location: ecu.ECU.resolve_topology_connections
+
+   f"switch port '{switch_port.name}' on switch '{switch_port.get_switch().name}' is connected to more than one component. Each switch port in the internal topology may only be connected to a single other component."
+
 .. err:: Error in socket configuration:\nThe following VLAN IDs are specified in the s...
    :id: FLYNC-ECU-MIN-REF-069
    :module: ECU
@@ -1242,7 +1262,7 @@ Every error and warning the FLYNC validators can raise, identified as
 
    "timing profile '{name}': the announcement burst ({count} x {burst} ms) does not fit within the announcement duration_ms ({duration})"
 
-.. err:: observer membership in group '{self.group}' must not define relevance_bits — ...
+.. err:: observer membership in group '{self.group}' must not define relevance_bits - ...
    :id: FLYNC-CMN-MAJ-CONS-207
    :module: CMN
    :severity: MAJ
@@ -1250,7 +1270,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :number: 207
    :location: state_management.StateMembershipRef.observer_owns_no_bit
 
-   f"observer membership in group '{self.group}' must not define relevance_bits — only participants reference bits"
+   f"observer membership in group '{self.group}' must not define relevance_bits - only participants reference bits"
 
 .. err:: membership in group '{self.group}' lists a relevance bit more than once in re...
    :id: FLYNC-CMN-MAJ-UNIQ-208
@@ -1742,7 +1762,7 @@ Every error and warning the FLYNC validators can raise, identified as
 
    f'Enum value {entry.value} exceeds valid range for {base_type_name} ({min_value} to {max_value})'
 
-.. err:: ECU port name {self.ecu1_port_name} in connection {self.id} does not exist
+.. err:: ECU port name {self.ecu1_port_name} in connection {self.id} of system topolog...
    :id: FLYNC-TOP-MAJ-REF-142
    :module: TOP
    :severity: MAJ
@@ -1750,9 +1770,9 @@ Every error and warning the FLYNC validators can raise, identified as
    :number: 142
    :location: system_topology.ExternalConnection.bind
 
-   f'ECU port name {self.ecu1_port_name} in connection {self.id} does not exist'
+   f'ECU port name {self.ecu1_port_name} in connection {self.id} of system topology does not exist'
 
-.. err:: ECU port name {self.ecu2_port_name} in connection {self.id} does not exist
+.. err:: ECU port name {self.ecu2_port_name} in connection {self.id} of system topolog...
    :id: FLYNC-TOP-MAJ-REF-143
    :module: TOP
    :severity: MAJ
@@ -1760,7 +1780,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :number: 143
    :location: system_topology.ExternalConnection.bind
 
-   f'ECU port name {self.ecu2_port_name} in connection {self.id} does not exist'
+   f'ECU port name {self.ecu2_port_name} in connection {self.id} of system topology does not exist'
 
 .. err:: One or both ports missing MDI config: {port1.ecu.name}:{self.ecu1_port_name},...
    :id: FLYNC-TOP-MAJ-COMP-144
@@ -2091,3 +2111,4 @@ Every error and warning the FLYNC validators can raise, identified as
    :location: flync_model.FLYNCModel.check_rx_are_reached
 
    f'Invalid Multicast Address Configuration. The RX interface for address {key} - {mcast._interface.name} cannot be reached by the TX ports.'
+

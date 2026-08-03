@@ -19,7 +19,10 @@ from flync.model.flync_4_ecu.controller import (
     Controller,
     EthernetInterface,
 )
-from flync.model.flync_4_ecu.internal_topology import InternalTopology
+from flync.model.flync_4_ecu.internal_topology import (
+    InternalTopology,
+    SwitchPortToXConnection,
+)
 from flync.model.flync_4_ecu.mac_multicast_endpoint import (
     MACMulticastEndpoints,
 )
@@ -171,9 +174,34 @@ class ECU(FLYNCBaseModel):
 
     @model_validator(mode="after")
     def resolve_topology_connections(self):
-        for conn_union in self.topology.connections:
-            conn = conn_union.root
+        connections = [conn_union.root for conn_union in self.topology.connections]
+
+        for conn in connections:
             conn.bind(self.switches or [], self.controllers, self.ports)
+        seen_switch_ports: set[int] = set()
+        for conn in connections:
+            if not isinstance(conn, SwitchPortToXConnection):
+                continue
+            switch_ports = conn.get_switch_port_refs()
+            if len(switch_ports) == 2 and switch_ports[0] is switch_ports[1]:
+                sp = switch_ports[0]
+                raise err_major(
+                    f"switch port '{sp.name}' on switch '{sp.get_switch().name}' is connected to itself. "
+                    f"A component cannot be connected to itself.",
+                    category=Category.COMPATIBILITY,
+                    error_number="209",
+                )
+            for switch_port in switch_ports:
+                if id(switch_port) in seen_switch_ports:
+                    raise err_major(
+                        f"switch port '{switch_port.name}' on switch '{switch_port.get_switch().name}' is connected to more than one component. "
+                        f"Each switch port in the internal topology may only be connected to a single other component.",
+                        category=Category.COMPATIBILITY,
+                        error_number="210",
+                    )
+                seen_switch_ports.add(id(switch_port))
+
+        for conn in connections:
             conn.validate_compatibility()
         return self
 
