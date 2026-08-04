@@ -1,0 +1,287 @@
+# AGENTS.md
+
+## Project Overview
+
+FLYNC (FLexible Yaml-based Network Configuration) — Python library for automotive E/E network configuration as code. Requires **Python 3.12+** (`requires-python = ">=3.12,<3.15"`). Uses **Poetry** for dependency management.
+
+## Quick Start
+
+```bash
+source .venv/bin/activate   # always activate first
+poetry install               # install all dependencies (core + dev + static-analysis)
+```
+
+### Dependency Groups
+
+Poetry defines several dependency groups in `pyproject.toml`:
+
+| Group | Purpose | Install with |
+|---|---|---|
+| (main) | Runtime dependencies (pydantic, pyyaml, etc.) | `poetry install` |
+| `dev` | Testing (pytest, pytest-xdist, pytest-cov, hypothesis, etc.) | `poetry install --with dev` |
+| `static-analysis` | Linting & formatting (black, flake8, isort, mypy, colorama) | `poetry install --with static-analysis` |
+| `docs` | Documentation (Sphinx, furo, sphinx-needs) | `poetry install --with docs` |
+| `deploy` | Publishing (twine) | `poetry install --with deploy` |
+
+**Tip:** `poetry install` installs `dev` and `static-analysis` by default. For docs: `poetry install --with docs`.
+
+### Entry Points
+
+The project registers these CLI commands via `[project.scripts]`:
+
+| Command | Entry Point | Description |
+|---|---|---|
+| `flync` | `flync_cli:app` | Main CLI (Typer) — validate, info, UML generation, etc. |
+| `puml-to-html` | `flync_cli.convert_puml:main` | Convert PlantUML diagrams to HTML |
+| `flync-converter` | `flync_converter.cli:main` | Click-based converter CLI |
+| `flync-converter-interactive` | `flync_converter.cli:main_interactive` | Textual TUI for conversions |
+| `flync-converter-gui` | `flync_converter.cli:main_gui` | PySide6 GUI for conversions |
+
+## Source Layout
+
+```
+src/flync/
+├── core/          # Base models (Pydantic v2), annotations, datatypes, utilities
+├── model/         # Domain models (ECU, topology, SOME/IP, TSN, security, signal, safety, metadata)
+└── sdk/           # Workspace management, helpers, context
+src/flync_cli/     # CLI application
+src/flync_converter/  # Converter tools
+tests/
+├── unit_test/     # Unit tests (mirrors src/flync/ structure)
+│   ├── core/      #   Core unit tests
+│   ├── model/     #   Model unit tests
+│   └── sdk/       #   SDK unit tests
+├── system_test/   # System/integration tests (model + sdk)
+├── cli_tests/     # CLI tests
+├── converter_tests/ # Converter tests (includes test_plugin/ for plugin integration)
+├── model/         # Model-level integration tests (tests_4_ecu, tests_4_someip, etc.)
+├── sdk/           # SDK-level tests (includes fuzzed/)
+└── conftest.py    # Root conftest — pre-loads flync_example workspace for xdist workers
+```
+
+## Model Overview
+
+`FLYNCModel` (`src/flync/model/flync_model.py`) is the root model aggregating all domains:
+
+| Package | Domain | Description |
+|---|---|---|
+| `flync_4_ecu` | **ECU** | Full ECU detail: controllers, Ethernet/CAN/LIN interfaces, ports, sockets, PHY types (RGMII, SGMII, BASET...), switches, VLANs, multicast |
+| `flync_4_signal` | **Signal / PDU / Frame** | Full signal-to-frame stack: data types, PDUs (standard/multiplexed/container), CAN/LIN/CAN-FD frames, signal deployment, forwarding |
+| `flync_4_someip` | **SOME/IP** | AUTOSAR SOME/IP: service interfaces, events, methods, fields, eventgroups, UDP/TCP deployment, type system |
+| `flync_4_topology` | **Topology** | Physical/logical network topology: switch/port interconnections, ECU connections |
+| `flync_4_tsn` | **TSN** | Time-Sensitive Networking: QoS shaping (CBS, ATS, HTB), traffic classes, PTP time sync |
+| `flync_4_security` | **Security** | Firewall rules, MACsec encryption (integrity + confidentiality) |
+| `flync_4_metadata` | **Metadata** | System/ECU metadata: OEM, platform, versioning, HW/SW BOM |
+| `flync_4_nm` | **Network Management** | State management groups, timing profiles for wake-up/sleep coordination |
+| `flync_4_communication` | **Communication** | System-wide TCP profiles, SOME/IP service-level settings |
+| `flync_4_app` | **Application** (experimental) | Applications consuming/providing SOME/IP services |
+| `flync_4_bus` | **Bus** | CANBus and LINBus models |
+| `flync_4_safety` | **Safety** | E2E communication protection |
+
+## Core Overview
+
+`src/flync/core/` — foundational base classes, annotations, datatypes, and utilities used by all domain models:
+
+| Subpackage | Contents | Description |
+|---|---|---|
+| `base_models/` | `FLYNCBaseModel`, `DictInstances`/`ListInstances`/`BaseRegistry` | Pydantic v2 base model and collection management classes |
+| `annotations/` | `External`, `Implied`, `Reference` | Field annotations controlling YAML load/resolve behavior |
+| `datatypes/` | `BitRange`, `Ethertype`, `ValueRange`, `ValueTable`, IP/MAC address types | Low-level data types used across the library |
+| `utils/` | `common_validators`, `exceptions`, `exceptions_handling`, `base_utils`, `forwarder_validators`, `state_management_validators`, `multicast/` (`multicast_paths`, `group_membership_handlers`) | Shared validation logic, exception classes, multicast path computation and group membership |
+| `validators/` | `address_validators` | Pre-validators (e.g. MAC address normalization before model construction) |
+| `version_migrators/` | `legacy_controller_check` | Helpers for FLYNC schema migrations across versions |
+
+## SDK Overview
+
+`src/flync/sdk/` — developer-facing workspace management, helpers, and context:
+
+| Subpackage | Contents | Description |
+|---|---|---|
+| `workspace/` | `FlyncWorkspace`, `document`, `ids`, `objects`, `source` | Workspace management: load/save FLYNC configurations, document tracking, source resolution |
+| `helpers/` | `debug`, `generation_helpers`, `nodes_helpers`, `validation_helpers`, `debug_layers/` (`layer1_structure`, `layer2_yaml`, `layer3_4_5_workspace`, `runner`) | Utility functions for workspace validation, config generation, node traversal, and multi-layer debugging |
+| `context/` | `diagnostics_result`, `node_info`, `workspace_config` | Configuration and diagnostic types for SDK and language server integration |
+| `utils/` | `sdk_types`, `field_utils`, `model_dependencies`, `model_dumper` | Shared type definitions, field introspection, dependency graph, model serialization |
+
+## CLI Overview
+
+`src/flync_cli/` — CLI application built on **Typer + Rich**:
+
+| Module | Description |
+|---|---|
+| `main.py` | Root Typer app that wires up commands from the 7 modules under `commands/` via `add_typer`. Only `errors` is registered as a named subcommand group (`name="errors"`); the others attach their commands at the top level |
+| `commands/validate.py` | Workspace validation (semantic checks, reference resolution) |
+| `commands/info.py` | ECU/controller/interface info in Rich tables |
+| `commands/vlan_info.py` | VLAN and multicast group information |
+| `commands/generate_system_uml.py` | PlantUML system diagram generation from workspace |
+| `commands/service_info.py` | SOME/IP service consumer/provider deployments |
+| `commands/debug_flync.py` | Debug print helpers for model subtrees and structure |
+| `commands/errors.py` | FLYNC error catalogue inspection and maintenance |
+| `utils/` | Shared utilities: error table rendering, error catalogue scanning, connection mapping, validation runner |
+
+## Error Catalogue
+
+FLYNC uses a structured, globally-unique error ID system for all validation errors and warnings. The code is the source of truth — the documentation catalogue is generated from it.
+
+### Error ID Format
+
+```
+FLYNC-<MODULE>-<SEVERITY>-<CATEGORY>-<NUMBER>
+```
+
+Example: `FLYNC-ECU-MAJ-VAL-001`
+
+| Segment | Values |
+|---|---|
+| **Module** | Auto-resolved from the `KEY` variable in each domain package's `__init__.py` (e.g. `ECU`, `SIG`, `SOMEIP`, `TOPO`, `TSN`, `SEC`, `META`, `NM`, `COM`, `APP`, `BUS`, `GEN`, `CMN`) |
+| **Severity** | `WARN` (warning), `MIN` (minor), `MAJ` (major), `FAT` (fatal) |
+| **Category** | `VAL` (value range), `REQ` (required), `CONS` (consistency), `UNIQ` (uniqueness), `REF` (reference), `FMT` (format), `COMP` (compatibility), `STRUCT` (structural), `LIFE` (lifecycle) |
+| **Number** | Zero-padded 3-digit number, globally unique across the entire codebase (monotonically increasing, never reused) |
+
+### Raising Errors in Validators
+
+Errors are raised using factory functions from `flync.core.utils.exceptions`:
+
+```python
+from flync.core.utils.exceptions import err_minor, err_major, err_fatal, warn, Category
+
+# In a Pydantic validator — raise the returned PydanticCustomError:
+raise err_major(
+    "Port name '{port_name}' is not unique within ECU '{ecu_name}'",
+    category=Category.UNIQUENESS,
+    error_number="042",
+    port_name=port_name,
+    ecu_name=ecu_name,
+)
+
+# For non-fatal warnings (field value is kept, warning surfaces in output):
+warn(
+    "Deprecated field '{field}' used",
+    category=Category.LIFECYCLE,
+    error_number="099",
+    field=field,
+)
+```
+
+- `err_minor` / `err_major` / `err_fatal` return a `PydanticCustomError` — **raise** the result
+- `warn` appends to the active warning list — **do not raise** (call it like a side-effect)
+- The module code is auto-resolved from the calling module's package `KEY` — never specify it manually
+- `category` and `error_number` are keyword-only arguments
+
+### Adding a New Error
+
+1. Get the next free number: `flync errors get-next-number`
+2. Use it in your factory call with the appropriate `category=Category.<NAME>` and `error_number="<NNN>"`
+3. Regenerate the catalogue: `flync errors generate-catalogue`
+4. Verify everything is in sync: `flync errors validate-catalogue`
+
+### CLI Commands
+
+```bash
+flync errors get-next-number       # Print the next free globally-unique error number
+flync errors validate-catalogue    # Check code ↔ docs/source/error_catalogue.rst drift (exits 1 on mismatch)
+flync errors generate-catalogue    # (Re)generate error_catalogue.rst from code
+```
+
+### Key Files
+
+| File | Role |
+|---|---|
+| `src/flync/core/utils/exceptions.py` | `Severity`, `Category` enums, `err_minor`/`err_major`/`err_fatal`/`warn` factories, `compose_error_id` |
+| `src/flync_cli/commands/errors.py` | CLI commands (`get-next-number`, `validate-catalogue`, `generate-catalogue`) |
+| `src/flync_cli/utils/errors.py` | AST-based static scanner (`scan_error_calls`), catalogue renderer, drift validator |
+| `docs/source/error_catalogue.rst` | Generated Sphinx-Needs catalogue (do not edit by hand) |
+
+## Converter Overview
+
+`src/flync_converter/` — pluggy-based converter framework with multiple interface modes:
+
+| Subpackage / Module | Description |
+|---|---|
+| `base/` | ABC (`BaseConverter`) with `decode()`/`encode()` contract + `ConverterConfig` |
+| `converters/` | 4 built-in converters: `flync` (workspace), `json`, `yaml`, `dbc` (CAN via cantools) |
+| `registry.py` | `ConverterFactoryRegistry` — pluggy-based plugin loading and name-to-converter mapping |
+| `cli/` | 3 interface modes: **Click CLI** (`flync-converter`), **Textual TUI** (`flync-converter-interactive`), **PySide6 GUI** (`flync-converter-gui`) |
+| `hookspec.py` | Pluggy hook specification (`register_converters`) for external plugin discovery |
+
+## Commands
+
+### Quality checks (run before pushing)
+
+```bash
+bash scripts/helpers/local_checkers.sh           # run all checkers: isort + flake8 + mypy + black (isort/black cover src + tests; flake8/mypy cover src only)
+bash scripts/helpers/local_autoformat.sh         # auto-fix isort & black issues (src + tests)
+```
+
+### Individual checks
+
+```bash
+poetry run black --check --diff --color src                            # formatting (line-length: 149)
+poetry run isort --check --diff --color --line-length 149 src          # import sorting (profile=black)
+poetry run flake8 src                                                  # linting (config in .flake8: max-line-length=149, extend-ignore=E203)
+poetry run mypy src --show-error-codes --pretty --install-types --non-interactive  # type checking
+```
+
+### Auto-format a single file
+
+```bash
+poetry run isort --line-length 149 path/to/file.py
+poetry run black --line-length 149 path/to/file.py
+poetry run flake8 path/to/file.py
+```
+
+### Pre-commit hooks
+
+Defined in `.pre-commit-config.yaml` with `default_install_hook_types: [pre-commit, commit-msg]`:
+- `end-of-file-fixer`, `trailing-whitespace` (pre-commit-hooks v6.0.0)
+- `autoflake` — removes unused imports/variables, expands star imports
+- `black` (line-length=149)
+
+```bash
+pre-commit install              # install hooks (both pre-commit and commit-msg)
+pre-commit run --all-files      # run on all files
+```
+
+### Testing
+
+```bash
+poetry run pytest                                         # all tests (auto: -n auto, coverage, junitxml)
+poetry run pytest tests/unit_test/core/                   # single test directory
+poetry run pytest -k "test_unique"                        # keyword filter
+poetry run pytest --no-header -v --tb=short               # verbose, short tracebacks
+```
+
+Pytest config in `pyproject.toml` under `[tool.pytest.ini_options]` (`addopts`): `-n auto --cov=flync --cov=flync_cli --cov=flync_converter --cov-report=term --cov-report=xml --junitxml=report.xml` (`testpaths = ["tests"]`).
+
+### Validate examples
+
+```bash
+poetry run python scripts/ci/validate_examples.py   # validates bundled example workspaces (alongside scripts/ci/fetch_pr_data.py)
+```
+
+### Build docs
+
+```bash
+cd docs && make html    # Sphinx, generates mermaid diagrams + CLI docs
+```
+
+## Key Architecture Patterns
+
+- All models extend `FLYNCBaseModel` (Pydantic v2) — set `model_config = {'extra': 'forbid'}`
+- **`External` / `Reference` / `Implied`** annotations on fields control YAML load/resolve behavior
+- **Discriminated unions** for polymorphic types (e.g., PHY types)
+- Field annotations use `Annotated[str, External(output_structure=OutputStrategy.SINGLE_FILE)]`
+- Validators use `@field_validator` / `@model_validator` / `BeforeValidator` / `AfterValidator` patterns
+
+## CI
+
+- **GitHub Actions** (primary) — workflows in `.github/workflows/`:
+  - `push_and_pr.yaml` — main test/lint pipeline on push and PR
+    - 7 jobs: `format-check` (Black), `isort`, `lint` (flake8), `type-check` (mypy), `pytest` (two splits: normal + performance, combined coverage), `example-validation`, `build-documentation`
+    - Triggers on push/PR to `main` and `release-*` branches
+    - Posts coverage comment on PRs
+  - `pr_sonar_and_coverage_reports.yaml` — SonarQube analysis + coverage reporting
+  - `build_and_deploy_docs.yaml` — Sphinx docs build/deploy
+- **GitLab CI** (`.gitlab-ci.yml`) — parallel pipeline with `test`, `source-integrity`, and `build` jobs; also installs converter test plugin (`tests/converter_tests/test_plugin/`)
+- All CI targets **Python 3.12**, uses **Poetry >=2.0** with `poetry-dynamic-versioning` (semver, `release-*` tag pattern)
+- Renovate for dependency updates (`renovate.json`)
+- SonarQube (`sonar-project.properties`)
