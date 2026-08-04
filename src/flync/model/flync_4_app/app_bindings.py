@@ -1,3 +1,5 @@
+"""Defines the bindings of a Controller to the Applications it hosts."""
+
 from typing import Annotated, Dict, List
 
 from pydantic import Field, PrivateAttr

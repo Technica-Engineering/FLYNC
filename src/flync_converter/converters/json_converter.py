@@ -1,3 +1,5 @@
+"""Converter that loads and writes FLYNC models as JSON."""
+
 import json
 import logging
 import os

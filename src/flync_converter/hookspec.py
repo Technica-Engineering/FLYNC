@@ -1,4 +1,5 @@
-# core/hookspec.py
+"""Pluggy hook specifications for FLYNC converter plugins."""
+
 import pluggy
 
 hookspec = pluggy.HookspecMarker("flync_converter")

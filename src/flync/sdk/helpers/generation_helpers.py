@@ -1,3 +1,12 @@
+"""
+Generates FLYNC model skeletons for the SDK.
+
+Builds example objects via polyfactory based factories - :class:`FLYNCFactory` for FLYNC model nodes,
+:class:`ExternalConnectionFactory` for external connections and :class:`BASET1Factory` for BASE-T1 PHYs.
+:func:`generate_node` and :func:`generate_external_node` create new objects inside a workspace and
+:func:`dump_flync_workspace` writes a workspace back out.
+"""
+
 import inspect
 import pathlib
 import random

@@ -1,3 +1,5 @@
+"""Annotations to mark a model field as a reference to an already loaded FLYNC object."""
+
 from dataclasses import dataclass
 from enum import IntFlag
 from typing import Optional

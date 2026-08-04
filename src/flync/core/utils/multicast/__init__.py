@@ -1,3 +1,5 @@
+"""Helpers to derive multicast group memberships and multicast paths through a FLYNC network."""
+
 from .group_membership_handlers import (
     collect_ipv6_solicited_node_rx,
     collect_ipv6_solicited_node_tx,

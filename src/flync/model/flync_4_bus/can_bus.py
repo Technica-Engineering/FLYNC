@@ -1,3 +1,5 @@
+"""Defines the CAN and CAN FD bus model for FLYNC."""
+
 from collections import Counter
 from typing import Annotated, List, Optional, Union
 

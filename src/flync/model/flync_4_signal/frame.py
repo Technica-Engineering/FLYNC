@@ -1,3 +1,12 @@
+"""
+Defines frames and their transmission timing for FLYNC.
+
+Provides the :class:`Frame` base class with the bus specific :class:`CANFrame`, :class:`CANFDFrame` and
+:class:`LINFrame`, as well as the timing models :class:`FrameEventTiming`, :class:`FrameCyclicTiming` and
+:class:`FrameTransmissionTiming`. Validates CAN identifiers, the valid CAN FD payload lengths and the bit
+positions of the contained PDU instances.
+"""
+
 from typing import Annotated, FrozenSet, List, Literal, Optional
 
 from pydantic import Field, model_validator

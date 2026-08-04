@@ -1,3 +1,11 @@
+"""
+``flync generate-system-uml`` command: renders a FLYNC workspace as a PlantUML system diagram.
+
+The ``add_*`` helpers collect the nodes of the diagram (ECU ports, controller interfaces, switches and their
+ports, including PTP, MACsec and QoS details) and the ``draw_*`` helpers emit the corresponding PlantUML
+sections. Diagram content can be restricted to a single VLAN.
+"""
+
 from pathlib import Path
 from typing import Optional
 

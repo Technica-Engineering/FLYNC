@@ -1,3 +1,5 @@
+"""Collects IPv6 solicited-node multicast group memberships for FLYNC endpoints."""
+
 from itertools import product
 
 from flync.core.utils.base_utils import find_all

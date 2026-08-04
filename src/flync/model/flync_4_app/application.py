@@ -1,3 +1,5 @@
+"""Defines the Application model for FLYNC including its service provider and consumer references."""
+
 from typing import Annotated, List, Literal, Optional
 
 from pydantic import Field

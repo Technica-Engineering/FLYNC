@@ -1,3 +1,6 @@
+"""Mapping of FLYNC connection type names to the endpoint roles they connect."""
+
+
 def get_mapping():
     """Return the mapping of connection type names to their endpoint role pairs."""
     mapping = {

@@ -1,3 +1,12 @@
+"""
+Renders FLYNC validation results as rich tables on the console.
+
+:func:`print_validation_result` is the entry point used by the CLI commands; it classifies the diagnostics
+into warnings and errors (:func:`render_warnings`, :func:`render_errors`) and formats each entry with its
+workspace-relative source location. :func:`sanitize_error_message` strips ANSI escapes from messages that
+already carry markup.
+"""
+
 import re
 from pathlib import Path
 

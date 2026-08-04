@@ -1,3 +1,12 @@
+"""
+Computes and validates multicast paths through a FLYNC network.
+
+:func:`compute_path` walks the topology from a starting component and collects every component reachable
+within a given VLAN; :func:`serialize_components` renders the result for diagnostics. The
+``get_*_connected_component`` helpers add the neighbours of a switch port, ECU port or controller interface
+and :func:`check_vlan_conn_valid` decides whether a connection may be followed for the given VLAN.
+"""
+
 from flync.core.utils.base_utils import check_obj_in_list
 
 

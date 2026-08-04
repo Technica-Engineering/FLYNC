@@ -1,3 +1,5 @@
+"""``flync info`` command: prints ECUs, controllers, switches and their IP addresses."""
+
 import sys
 from enum import Enum
 

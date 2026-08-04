@@ -1,3 +1,5 @@
+"""Defines MAC multicast endpoints (including AVTP) used by FLYNC ECUs."""
+
 from typing import Annotated, List, Literal, Optional
 
 from pydantic import AfterValidator, Field, RootModel, field_validator

@@ -1,3 +1,5 @@
+"""``flync validate`` command: loads a FLYNC workspace and reports validation errors."""
+
 import sys
 import time
 from pathlib import Path

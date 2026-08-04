@@ -1,3 +1,5 @@
+"""``flync service-info`` command: prints SOME/IP services with their providers and consumers."""
+
 import typer
 from rich import box
 from rich.console import Console
