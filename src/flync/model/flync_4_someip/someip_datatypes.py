@@ -584,22 +584,27 @@ class Enum(Datatype):
     @field_validator("entries")
     @classmethod
     def validate_entries(cls, entries: list["EnumEntry"], info: ValidationInfo) -> list["EnumEntry"]:
+        """
+        Check that enum entries have unique values that fit into the range of the base type.
+
+        Validation is skipped when ``base_type`` is unavailable, i.e. when it failed validation itself.
+        """
+
         base_type = info.data.get("base_type")
-        if base_type is None:
-            return entries  # Cannot validate without base_type
-        base_type_name = base_type.__class__.__name__
-        min_value, max_value = cls.BASE_TYPE_RANGES[base_type_name]
-        seen = set()
-        for entry in entries:
-            if entry.value in seen:
-                raise err_minor(f"Duplicate enum value: {entry.value}", category=Category.UNIQUENESS, error_number="140")
-            seen.add(entry.value)
-            if not (min_value <= entry.value <= max_value):
-                raise err_minor(
-                    f"Enum value {entry.value} exceeds valid range for {base_type_name} ({min_value} to {max_value})",
-                    category=Category.VALUE_RANGE,
-                    error_number="141",
-                )
+        if base_type is not None:
+            base_type_name = base_type.__class__.__name__
+            min_value, max_value = cls.BASE_TYPE_RANGES[base_type_name]
+            seen = set()
+            for entry in entries:
+                if entry.value in seen:
+                    raise err_minor(f"Duplicate enum value: {entry.value}", category=Category.UNIQUENESS, error_number="140")
+                seen.add(entry.value)
+                if not (min_value <= entry.value <= max_value):
+                    raise err_minor(
+                        f"Enum value {entry.value} exceeds valid range for {base_type_name} ({min_value} to {max_value})",
+                        category=Category.VALUE_RANGE,
+                        error_number="141",
+                    )
         return entries
 
     @staticmethod
