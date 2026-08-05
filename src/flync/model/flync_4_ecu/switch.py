@@ -576,6 +576,10 @@ class Switch(FLYNCBaseModel):
         List of TCAM rules configured on the switch.
         These rules define packet-matching conditions and associated actions applied to ingress or egress traffic.
 
+    dynamic_address_aging_time : int, optional
+        Aging time, in seconds, for dynamically learned address entries in the switch's Filtering Database (FDB).
+        A learned MAC address is removed if no matching frame is seen within this interval.
+        Must be a positive value.
     """
 
     name: str = Field()
@@ -586,6 +590,7 @@ class Switch(FLYNCBaseModel):
     ports: List[SwitchPort] = Field()
     vlans: List[VLANEntry] = Field()
     host_controller: Optional[EthernetInterfaceConfig] = Field(default=None)
+    dynamic_address_aging_time: Optional[StrictInt] = Field(default=None, gt=0)
     meta: EmbeddedMetadata = Field()
 
     @model_validator(mode="after")

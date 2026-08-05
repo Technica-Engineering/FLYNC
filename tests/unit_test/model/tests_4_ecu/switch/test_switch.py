@@ -212,6 +212,42 @@ def test_validate_ats_instances_positive(embedded_metadata_entry, vlan_entry):
     assert shaper.type == "ats"
 
 
+def test_dynamic_address_aging_time_defaults_to_none(
+    embedded_metadata_entry,
+    vlan_entry,
+    switch_port,
+):
+    """dynamic_address_aging_time is optional and defaults to None when not provided."""
+    switch = Switch.model_validate(
+        {
+            "meta": embedded_metadata_entry,
+            "name": "switch_example",
+            "vlans": [vlan_entry],
+            "ports": [switch_port],
+        }
+    )
+
+    assert switch.dynamic_address_aging_time is None
+
+
+def test_dynamic_address_aging_time_negative_rejected(
+    embedded_metadata_entry,
+    vlan_entry,
+    switch_port,
+):
+    """A negative dynamic_address_aging_time is rejected."""
+    with pytest.raises(ValidationError):
+        Switch.model_validate(
+            {
+                "meta": embedded_metadata_entry,
+                "name": "switch_example",
+                "vlans": [vlan_entry],
+                "ports": [switch_port],
+                "dynamic_address_aging_time": -1,
+            }
+        )
+
+
 def test_validate_ats_instances_negative(embedded_metadata_entry, vlan_entry):
     """An ATS shaper traffic class without any ingress stream ATS instance
     must raise even though the ipv mapping is satisfied."""

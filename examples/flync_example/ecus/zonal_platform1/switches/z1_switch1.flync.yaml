@@ -5,6 +5,7 @@ meta:
     version: 0.11.0
   target_system: flync_os
 name: z1_switch1
+dynamic_address_aging_time: 300
 ports:
 - name: z1_s1_p0
   silicon_port_no: 0
