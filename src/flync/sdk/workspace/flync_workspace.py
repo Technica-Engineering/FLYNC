@@ -8,9 +8,10 @@ import logging
 import multiprocessing
 import sys
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Annotated, Dict, Optional, Union, get_args, get_origin
+from typing import Annotated, Dict, Literal, Optional, Union, cast, get_args, get_origin
 
 import yaml
 from pydantic import RootModel
@@ -57,6 +58,54 @@ from .objects import ObjectMetadata, SemanticObject
 from .source import SourceRef, get_range
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class ParentLink(object):
+    """
+    Records where a loaded node hangs off its parent so a reloaded value can be put back in place.
+
+    This is captured while the workspace loads. When a single document later changes we re-validate
+    just that node and use this link to splice the fresh value into the parent model, instead of
+    rebuilding the whole tree.
+
+    Attributes:
+        parent_path (Path): Absolute path of the parent load-node (a file or a directory).
+        field_name (str): Python field name on the parent model that holds this value.
+        container (Literal["scalar", "list", "dict"]): How the value sits on that field. ``"scalar"`` is a
+            plain field (e.g. an ECU's ``ports`` file or its ``topology``); ``"list"``/``"dict"`` are
+            folder-based collections whose items load from separate documents.
+        key (int | str | None): List index or dict key of this value; ``None`` for scalar fields.
+    """
+
+    parent_path: Path
+    field_name: str
+    container: Literal["scalar", "list", "dict"]
+    key: int | str | None = None
+
+
+@dataclass
+class LoadNode(object):
+    """
+    Everything needed to reload one document on its own, i.e. one ``__load_from_path`` call.
+
+    Attributes:
+        path (Path): Absolute path (file or directory) this node was loaded from.
+        doc_id (str): Workspace-relative id; matches the keys of ``FLYNCWorkspace.documents``.
+        current_type (type): The model type this node was validated against.
+        current_type_name (str | None): Parent field name, used to rebuild the effective validation type.
+        object_paths (list[str]): The object-path context this node was registered under.
+        link (ParentLink | None): How this node attaches to its parent; ``None`` for the root node.
+        model: The last successfully loaded value for this node, or ``None`` if it failed to load.
+    """
+
+    path: Path
+    doc_id: str
+    current_type: type[FLYNCBaseModel]
+    current_type_name: Optional[str]
+    object_paths: list[str]
+    link: Optional[ParentLink] = None
+    model: object = None
 
 
 class FLYNCWorkspace(object):
@@ -129,6 +178,9 @@ class FLYNCWorkspace(object):
         # dedups so a child is registered under its parent at most once.
         self._children_by_parent: dict[str, list[str]] = {}
         self._linked_child_ids: set[str] = set()
+        # document id -> LoadNode, built during load so update_document can
+        # partially reload a single document instead of the whole workspace.
+        self._doc_index: dict[str, LoadNode] = {}
 
     @property
     def load_errors(self):
@@ -482,6 +534,8 @@ class FLYNCWorkspace(object):
         item_dir: Path,
         external,
         list_paths: list[str],
+        parent_path: Path,
+        position: int,
     ):
         """
         Load one item from a list-folder entry, handling Union and concrete types.
@@ -495,11 +549,15 @@ class FLYNCWorkspace(object):
             item_dir (Path): Parent directory containing the list items.
             external: The ``External`` annotation for this field.
             list_paths (list[str]): Dot-path context for this item.
+            parent_path (Path): Path of the parent load-node that owns the list field.
+            position (int): Index this item occupies in the built list (skipped entries excluded),
+                used to splice a reloaded value back into the parent.
 
         Returns:
             The loaded model instance, or ``None`` if loading failed.
         """
 
+        link = ParentLink(parent_path, field_name, "list", position)
         if base_type is Union:
             item_info: dict = {}
             self.__handle_generic_types_union(
@@ -511,6 +569,7 @@ class FLYNCWorkspace(object):
                 item_info,
                 item_dir,
                 list_paths,
+                link,
             )
             if field_name not in item_info:
                 logger.warning(
@@ -525,6 +584,7 @@ class FLYNCWorkspace(object):
                 list_element_type,
                 field_name,
                 list_paths,
+                link,
             )
             if item is None:
                 logger.warning(
@@ -562,7 +622,7 @@ class FLYNCWorkspace(object):
             bool: ``True`` if the field was handled, ``False`` otherwise.
         """
 
-        list_item_value = []
+        list_item_value: list = []
         list_element_type = base_type_args[0]
         if OutputStrategy.FOLDER in external.output_structure:
             item_dir = path / external_path
@@ -571,7 +631,9 @@ class FLYNCWorkspace(object):
                 effective_element_type = get_args(list_element_type)[0]
             base_type = get_origin(effective_element_type)
             base_type_args = get_args(effective_element_type)
-            for idx, sub_item_path in enumerate(item_dir.iterdir()):
+            # Sort so list indices (and therefore object ids and list order) are
+            # deterministic across loads and filesystems; iterdir() order is not.
+            for idx, sub_item_path in enumerate(sorted(item_dir.iterdir())):
                 if not self.is_path_supported(sub_item_path):
                     logger.warning(
                         "Unrecognized file found in FLYNC workspace: %s",
@@ -589,6 +651,8 @@ class FLYNCWorkspace(object):
                     item_dir,
                     external,
                     list_paths,
+                    path,
+                    len(list_item_value),
                 )
                 if item is None:
                     continue
@@ -646,7 +710,7 @@ class FLYNCWorkspace(object):
         dict_element_type = base_type_args[1]
         if OutputStrategy.FOLDER in external.output_structure:
             item_dir = path / external_path
-            for sub_item_path in item_dir.iterdir():
+            for sub_item_path in sorted(item_dir.iterdir()):
                 if not self.is_path_supported(sub_item_path):
                     logger.warning(
                         "Unrecognized file found in FLYNC workspace: %s",
@@ -658,6 +722,7 @@ class FLYNCWorkspace(object):
                     dict_element_type,
                     field_name,
                     self.update_objects_path(current_object_paths, sub_item_path.name),
+                    ParentLink(path, field_name, "dict", sub_item_path.name),
                 )
             module_load_info[field_name] = dict_item_value
             return True
@@ -687,6 +752,7 @@ class FLYNCWorkspace(object):
         possible_type,
         field_name: str,
         current_object_paths: list[str],
+        link: Optional[ParentLink] = None,
     ):
         """
         Attempt to load one union member type, restoring diagnostics on failure.
@@ -712,6 +778,7 @@ class FLYNCWorkspace(object):
             possible_type,
             field_name,
             current_object_paths,
+            link,
         )
         if result is None:
             new_diags = self.documents_diags.get(doc_id, [])[saved_count:]
@@ -737,6 +804,7 @@ class FLYNCWorkspace(object):
         module_load_info: dict,
         path: Path,
         current_object_paths: list[str],
+        link: Optional[ParentLink] = None,
     ) -> bool:
         """
         Attempt to load an external ``Union`` field by trying each member type.
@@ -772,6 +840,7 @@ class FLYNCWorkspace(object):
                         possible_type,
                         field_name,
                         current_object_paths,
+                        link,
                     )
                     if result is None:
                         continue
@@ -831,6 +900,7 @@ class FLYNCWorkspace(object):
         """
 
         done = False
+        scalar_link = ParentLink(path, field_name, "scalar")
 
         if base_type is list:
             if self.__handle_generic_types_list(
@@ -868,6 +938,7 @@ class FLYNCWorkspace(object):
                 module_load_info,
                 path,
                 current_object_paths,
+                scalar_link,
             )
         ):
             done = True
@@ -897,6 +968,7 @@ class FLYNCWorkspace(object):
             attribute_type,
             field_name,
             current_object_paths,
+            scalar_link,
         )
 
     def __load_from_path(  # nosonar # noqa
@@ -905,6 +977,7 @@ class FLYNCWorkspace(object):
         current_type: Optional[type[FLYNCBaseModel]] = None,
         current_type_name: Optional[str] = None,
         current_object_paths: Optional[list[str]] = None,
+        link: Optional[ParentLink] = None,
     ) -> FLYNCBaseModel | None:
         """
         Load and validate a model from a filesystem path.
@@ -931,6 +1004,15 @@ class FLYNCWorkspace(object):
         if not current_object_paths:
             current_object_paths = [""]
         path = path.absolute()
+        doc_id = self.document_id_from_path(path)
+        self._doc_index[doc_id] = LoadNode(
+            path=path,
+            doc_id=doc_id,
+            current_type=current_type,
+            current_type_name=current_type_name,
+            object_paths=list(current_object_paths),
+            link=link,
+        )
         module_load_info: dict = {}
         # start by loading each field
         for field_name, field_info in current_type.model_fields.items():
@@ -949,37 +1031,9 @@ class FLYNCWorkspace(object):
         # then group all the fields into the same object and return it
         self.__append_to_info_dict(path, module_load_info)
 
-        doc_id = self.document_id_from_path(path)
-        if doc_id not in self.documents_diags:
-            self.documents_diags[doc_id] = []
-        else:
+        if doc_id in self.documents_diags:
             logger.error("File %s was already loaded.", doc_id)
-        if not module_load_info:
-            return None
-        # collected_errors can be reused/reraised further
-        try:
-            # might need to recalculate the model type
-            # based on expected file structure
-            original_type = current_type
-            if current_type_name:  # part of a parent
-                current_type = self.model_graph.rebuild_type_from_parent(current_type, current_type_name)
-            relative_path = path.relative_to(self.workspace_root.absolute())  # type: ignore[union-attr]
-            model, errors = validate_with_policy(current_type, module_load_info, relative_path.as_posix())
-            # errors should be path specific
-            self.documents_diags[self.document_id_from_path(path)].extend(errors)
-            if self.configuration.map_objects:
-                self._update_objects(
-                    path,
-                    model,
-                    current_object_paths,
-                    parent_name=current_type_name,
-                )
-            if current_type_name:
-                model = self.model_graph.normalize_child_to_parent(original_type, current_type_name, model)
-            return model
-        except ValidationError as e:
-            self.documents_diags[self.document_id_from_path(path)].extend(e.errors())
-            return None
+        return self._validate_node(self._doc_index[doc_id], module_load_info, map_paths=current_object_paths)
 
     def __handle_implied_field_load(
         self,
@@ -1157,6 +1211,331 @@ class FLYNCWorkspace(object):
                         default_flow_style=False,
                         allow_unicode=True,
                     )
+
+    # endregion
+    # region incremental update
+
+    def update_document(self, uri: PathType) -> list[str]:
+        """
+        Re-load a single changed document and re-validate only what depends on it.
+
+        The document is read from disk and re-validated in isolation, then its fresh value is spliced
+        into the parent model and every ancestor up to the root is re-validated while reusing the
+        already-loaded sibling models. This keeps cross-document references (which are resolved by
+        ancestor validators) correct without paying the cost of a full :meth:`load_workspace`.
+
+        Falls back to a full reload when the document is not a known load-node (e.g. a brand new file),
+        no longer exists, or the partial update hits an unsupported shape.
+
+        Args:
+            uri (PathType): Path of the changed document, absolute or workspace-relative.
+
+        Returns:
+            list[str]: The ids of every document whose model or diagnostics were recomputed.
+        """
+
+        uri = Document.normalize_uri(uri, self.workspace_root)
+        target = self.workspace_root / uri if self.workspace_root else Path(uri)
+        node = self._doc_index.get(uri)
+        if node is None or not target.exists():
+            logger.info("update_document: %s cannot be updated in place, reloading workspace", uri)
+            return self._reset_and_reload()
+        try:
+            return self._reload_document(node, uri)
+        except Exception as ex:  # noqa: BLE001
+            logger.error("update_document: partial reload of %s failed (%s), reloading workspace", uri, ex)
+            return self._reset_and_reload()
+
+    def _reload_document(self, node: LoadNode, uri: str) -> list[str]:
+        """
+        Perform the in-place reload of ``node`` and re-validate its ancestor spine.
+
+        Args:
+            node (LoadNode): The indexed node for the changed document.
+            uri (str): Workspace-relative id of the changed document.
+
+        Returns:
+            list[str]: Ids of all documents that were recomputed (leaf subtree + ancestors).
+        """
+
+        result = read_file(self.workspace_root / uri)  # type: ignore[operator]
+        text = result[1] if result else ""
+        if uri in self.documents:
+            self.documents[uri].update_text(text)
+        else:
+            doc = Document(uri, text, self.configuration.map_objects)
+            doc.parse()
+            self.documents[uri] = doc
+
+        affected: list[str] = []
+        cur_child, ids = self._reload_subtree(node)
+        affected += ids
+
+        cur_link = self._doc_index[node.doc_id].link
+        while cur_link is not None:
+            parent_id = self.document_id_from_path(str(cur_link.parent_path))
+            parent_node = self._doc_index.get(parent_id)
+            if parent_node is None:
+                raise ValueError(f"missing parent node for {cur_link.parent_path}")
+            rebuilt = self._rebuild_ancestor(parent_node, cur_link, cur_child)
+            if rebuilt is None:
+                # Reusing sibling instances is cheap but leaves error-recovery unable to prune a bad
+                # value out of a reused child. When that happens, re-validate this ancestor's whole
+                # subtree (from the cached ASTs, no disk read) so the policy pruning behaves as it does
+                # on a full load. The root's subtree is the whole workspace, so reload everything.
+                if parent_node.link is None:
+                    return self._reset_and_reload()
+                rebuilt, ids = self._reload_subtree(parent_node)
+                affected += ids
+            affected.append(parent_id)
+            cur_child = rebuilt
+            cur_link = self._doc_index[parent_id].link
+        self.flync_model = cur_child  # type: ignore[assignment]
+
+        return list(dict.fromkeys(affected))
+
+    def _reload_subtree(self, node: LoadNode) -> tuple[object, list[str]]:
+        """
+        Drop and re-load ``node`` together with everything indexed underneath it.
+
+        Args:
+            node (LoadNode): Root of the subtree to reload.
+
+        Returns:
+            tuple[object, list[str]]: The reloaded model value and the ids of the documents touched.
+        """
+
+        affected = [sub.doc_id for sub in self._subtree_nodes(node)]
+        for doc_id in affected:
+            self.documents_diags.pop(doc_id, None)
+            if doc_id != node.doc_id:
+                self._doc_index.pop(doc_id, None)
+        if self.configuration.map_objects:
+            self._purge_object_subtree(node.object_paths)
+        model = self.__load_from_path(
+            node.path,
+            node.current_type,
+            node.current_type_name,
+            list(node.object_paths),
+            node.link,
+        )
+        return model, affected
+
+    def _rebuild_ancestor(self, parent_node: LoadNode, link: ParentLink, new_child):
+        """
+        Re-validate ``parent_node`` with its changed child replaced, reusing every other child instance.
+
+        The parent's own inline file is re-read but the unchanged external children are taken straight
+        from the previously loaded parent instance, so validation only re-runs the parent's own
+        validators (including reference binding) instead of re-parsing sibling documents.
+
+        Args:
+            parent_node (LoadNode): The ancestor being rebuilt.
+            link (ParentLink): How ``new_child`` attaches to this ancestor.
+            new_child: The freshly loaded value for ``link.field_name``.
+
+        Returns:
+            The rebuilt (and parent-normalized) ancestor model.
+        """
+
+        old_parent = parent_node.model
+        parent_type = parent_node.current_type
+        new_branch = self._splice_branch(old_parent, link, new_child)
+        module_load_info = self._ancestor_load_info(parent_node, old_parent, link, new_branch)
+
+        new_parent = self._validate_node(parent_node, module_load_info)
+        if self.configuration.map_objects and old_parent is not None:
+            if new_parent is not None:
+                self._remap_ancestor_objects(parent_type, old_parent, new_parent)
+            else:
+                self._detach_object(parent_node)
+        return new_parent
+
+    def _ancestor_load_info(self, parent_node: LoadNode, old_parent, link: ParentLink, new_branch) -> dict:
+        """
+        Gather the field data to re-validate ``parent_node`` with ``link.field_name`` replaced.
+
+        Unchanged external children are reused straight from ``old_parent`` (so they are not re-read or
+        re-validated), implied fields are recomputed from the path, and the parent's own inline file is
+        merged back in.
+        """
+
+        module_load_info: dict = {}
+        for field_name, field_info in parent_node.current_type.model_fields.items():
+            if field_name == link.field_name:
+                module_load_info[field_name] = new_branch
+                continue
+            if get_metadata(field_info.metadata, External) is not None:
+                value = getattr(old_parent, field_name, None)
+                if value is not None:
+                    module_load_info[field_name] = value
+                continue
+            implied = get_metadata(field_info.metadata, Implied)
+            if implied is not None:
+                self.__handle_implied_field_load(parent_node.path, module_load_info, field_name, implied)
+        self.__append_to_info_dict(parent_node.path, module_load_info)
+        return module_load_info
+
+    def _detach_object(self, node: LoadNode) -> None:
+        """Clear the object-map entry of a node whose model failed to rebuild, so it holds no stale model."""
+        if not node.object_paths:
+            return
+        oid = ObjectId(node.object_paths[0].strip("."))
+        semantic = self.objects.get(oid)
+        if semantic is None or semantic.model is None:
+            return
+        self._unmap_object_id(semantic.model, oid)
+        cast(SemanticObject, semantic).model = None  # type: ignore[assignment]
+
+    @staticmethod
+    def _splice_branch(old_parent, link: ParentLink, new_child):
+        """Build the new value for ``link.field_name`` with ``new_child`` put in the right slot."""
+        if link.container == "list":
+            new_list = list(getattr(old_parent, link.field_name, None) or [])
+            if isinstance(link.key, int) and 0 <= link.key < len(new_list):
+                new_list[link.key] = new_child
+            else:
+                new_list.append(new_child)
+            return new_list
+        if link.container == "dict":
+            new_dict = dict(getattr(old_parent, link.field_name, None) or {})
+            new_dict[link.key] = new_child
+            return new_dict
+        return new_child
+
+    def _validate_node(self, node: LoadNode, module_load_info: dict, map_paths: Optional[list[str]] = None):
+        """
+        Validate ``module_load_info`` for ``node`` the same way the initial load does.
+
+        Resets the node's diagnostics, applies the parent-aware type rebuild/normalisation, records any
+        validation errors against the node's document id and stores the result on ``node.model``.
+
+        Args:
+            node (LoadNode): The node being (re)validated.
+            module_load_info (dict): The gathered field data to validate.
+            map_paths (list[str] | None): When object mapping is enabled and these paths are given, the
+                freshly validated model is registered in the object map under them. Left ``None`` for
+                ancestor rebuilds, where the object map is maintained separately.
+
+        Returns:
+            The validated (and parent-normalized) model, or ``None`` on failure.
+        """
+
+        self.documents_diags[node.doc_id] = []
+        if not module_load_info:
+            node.model = None
+            return None
+        original_type = node.current_type
+        current_type = node.current_type
+        try:
+            if node.current_type_name:
+                current_type = self.model_graph.rebuild_type_from_parent(current_type, node.current_type_name)
+            relative_path = node.path.relative_to(self.workspace_root.absolute())  # type: ignore[union-attr]
+            model, errors = validate_with_policy(current_type, module_load_info, relative_path.as_posix())
+            self.documents_diags[node.doc_id].extend(errors)
+            if map_paths is not None and self.configuration.map_objects:
+                self._update_objects(node.path, model, map_paths, parent_name=node.current_type_name)
+            if node.current_type_name:
+                model = self.model_graph.normalize_child_to_parent(original_type, node.current_type_name, model)
+            node.model = model
+            return model
+        except ValidationError as e:
+            self.documents_diags[node.doc_id].extend(e.errors())
+            node.model = None
+            return None
+
+    def _subtree_nodes(self, node: LoadNode) -> list[LoadNode]:
+        """Return ``node`` and every indexed node whose object path sits underneath it."""
+        own = {p.strip(".") for p in node.object_paths}
+        own.discard("")
+        prefixes = tuple(f"{p}." for p in own)
+        result = []
+        for candidate in self._doc_index.values():
+            ids = {p.strip(".") for p in candidate.object_paths}
+            if ids & own or (prefixes and any(cid.startswith(prefixes) for cid in ids)):
+                result.append(candidate)
+        return result
+
+    def _purge_object_subtree(self, object_paths: list[str]) -> None:
+        """
+        Remove all object-map entries under ``object_paths`` so a reload can register them fresh.
+
+        The node's own ids are dropped from :attr:`objects`/:attr:`sources` (the reload re-creates them
+        with the new model) but kept in the parent's child index, since the parent is not reloaded and
+        would otherwise lose the edge to this node.
+        """
+
+        own = {p.strip(".") for p in object_paths}
+        own.discard("")
+        prefixes = tuple(f"{p}." for p in own)
+
+        def in_subtree(oid: str) -> bool:
+            """Utility function to check if object id is in the subtree."""
+            return oid in own or (bool(prefixes) and oid.startswith(prefixes))
+
+        def is_descendant(oid: str) -> bool:
+            """Utility function to check if object id is descendant in the path."""
+            return bool(prefixes) and oid.startswith(prefixes)
+
+        for oid in [o for o in self.objects if in_subtree(str(o))]:
+            semantic = self.objects.pop(oid)
+            self.sources.pop(oid, None)
+            self._unmap_object_id(semantic.model, oid)
+
+        for pid in [p for p in self._children_by_parent if in_subtree(p)]:
+            self._children_by_parent.pop(pid, None)
+        for parent_id, children in self._children_by_parent.items():
+            self._children_by_parent[parent_id] = [c for c in children if not is_descendant(c)]
+        self._linked_child_ids = {c for c in self._linked_child_ids if not is_descendant(c)}
+
+    def _remap_ancestor_objects(self, parent_type, old_parent, new_parent) -> None:
+        """Point the ancestor's (and its external container fields') object entries at the rebuilt instances."""
+        self._remap_model_ids(old_parent, new_parent)
+        for field_name, field_info in parent_type.model_fields.items():
+            if get_metadata(field_info.metadata, External) is None:
+                continue
+            old_value = getattr(old_parent, field_name, None)
+            new_value = getattr(new_parent, field_name, None)
+            if isinstance(old_value, (list, dict)) and old_value is not new_value:
+                self._remap_model_ids(old_value, new_value)
+
+    def _unmap_object_id(self, model, oid: ObjectId) -> None:
+        """Remove a single object id from the ``model -> ids`` reverse index."""
+        if model is None:
+            return
+        ids = self._model_to_object_ids.get(id(model))
+        if ids is None:
+            return
+        remaining = [i for i in ids if i != oid]
+        if remaining:
+            self._model_to_object_ids[id(model)] = remaining
+        else:
+            self._model_to_object_ids.pop(id(model), None)
+
+    def _remap_model_ids(self, old_model, new_model) -> None:
+        """Move the object ids registered for ``old_model`` onto ``new_model``."""
+        ids = self._model_to_object_ids.pop(id(old_model), None)
+        if not ids:
+            return
+        for oid in ids:
+            semantic = self.objects.get(oid)
+            if semantic is not None:
+                semantic.model = new_model
+        self._model_to_object_ids[id(new_model)] = ids
+
+    def _reset_and_reload(self) -> list[str]:
+        """Clear all derived state and reload the workspace from disk (the safe fallback path)."""
+        self.documents.clear()
+        self.documents_diags.clear()
+        self.objects.clear()
+        self.sources.clear()
+        self._model_to_object_ids.clear()
+        self._children_by_parent.clear()
+        self._linked_child_ids.clear()
+        self._doc_index.clear()
+        self._open_documents()
+        self.flync_model = self.__load_from_path(self.workspace_root)  # type: ignore[arg-type]
+        return list(self.documents_diags.keys())
 
     # endregion
     # region helpers
