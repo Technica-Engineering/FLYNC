@@ -1,3 +1,12 @@
+"""
+Semantic object layer the FLYNC SDK exposes to its clients.
+
+:class:`SemanticObject` wraps a FLYNC model object together with its :class:`ObjectMetadata`, so tooling can
+navigate objects by :class:`ObjectId` instead of by Python reference. The :class:`FieldMetadata` hierarchy -
+:class:`ScalarFieldMetadata`, :class:`ListFieldMetadata` and :class:`DictFieldMetadata` - describes how a
+field references other objects and serializes that information to JSON-safe dictionaries.
+"""
+
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Optional
 

@@ -1,3 +1,5 @@
+"""Converter that loads and writes FLYNC models as YAML."""
+
 import logging
 import os
 from pathlib import Path

@@ -1,3 +1,12 @@
+"""
+Defines Protocol Data Units (PDUs) for FLYNC.
+
+Provides the :class:`PDU` base class with its variants :class:`StandardPDU`, :class:`MultiplexedPDU`
+(selected via :class:`MuxGroup`) and :class:`ContainerPDU` (with :class:`ContainerPDUHeader` and
+:class:`ContainedPDURef`), plus :class:`PDUInstance` for a PDU placed inside a frame. Validates that the
+signal instances of a PDU stay within its length and do not overlap.
+"""
+
 from typing import List, Literal, Optional
 
 from pydantic import Field, field_validator, model_validator

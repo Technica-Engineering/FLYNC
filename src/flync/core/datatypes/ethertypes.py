@@ -1,3 +1,5 @@
+"""Defines the Ethertype datatype including its validation and serialization."""
+
 from enum import Enum
 
 

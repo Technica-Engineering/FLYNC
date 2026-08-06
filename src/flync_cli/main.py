@@ -1,3 +1,5 @@
+"""Assembles the FLYNC Typer application and its sub-commands."""
+
 import logging
 from importlib import metadata
 

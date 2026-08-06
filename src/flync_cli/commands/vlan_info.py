@@ -1,3 +1,5 @@
+"""``flync vlan-info`` command: prints the VLANs of a workspace with their interfaces and switch ports."""
+
 import typer
 from rich import box
 from rich.console import Console

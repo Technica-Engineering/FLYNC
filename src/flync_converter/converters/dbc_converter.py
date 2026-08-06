@@ -1,3 +1,11 @@
+"""
+Converter between the FLYNC model and CAN database (DBC) files.
+
+:func:`load_dbc_files` reads DBC files into cantools databases and :func:`write_dbc_files` writes a FLYNC
+model back out; the ``decode_*`` helpers translate cantools signals and messages into FLYNC signals and
+PDUs (standard, multiplexed and container). :class:`DbcConverter` registers this conversion as a plugin.
+"""
+
 import logging
 from pathlib import Path
 from typing import List, Literal, Optional
@@ -19,8 +27,6 @@ from flync.model.flync_4_signal.pdu import PDU
 
 from ..base.base_converter import BaseConverter
 from ..registry import hookimpl
-
-"""class for the converter between :class:`FLYNCModel` and dbc."""
 
 logger = logging.getLogger(__name__)
 

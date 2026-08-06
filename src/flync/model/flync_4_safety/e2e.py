@@ -1,3 +1,5 @@
+"""Defines the end-to-end (E2E) protection configuration for FLYNC."""
+
 from pydantic import Field
 
 from flync.core.base_models import FLYNCBaseModel

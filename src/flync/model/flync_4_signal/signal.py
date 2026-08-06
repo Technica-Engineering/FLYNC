@@ -1,3 +1,12 @@
+"""
+Defines signals and signal groups for FLYNC.
+
+Provides :class:`Signal` and :class:`SignalGroup` as the reusable definitions, their placed counterparts
+:class:`SignalInstance` and :class:`SignalGroupInstance`, the supported base types in :class:`SignalDataType`
+and the packing order in :class:`InstancePlacement`. Also validates that initial values fit the declared
+data type and that placed bit ranges stay consistent.
+"""
+
 from enum import Enum
 from typing import List, Literal, Optional
 

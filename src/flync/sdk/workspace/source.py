@@ -1,3 +1,5 @@
+"""Source location types that map FLYNC model objects back to their position in the input files."""
+
 from dataclasses import dataclass
 from functools import lru_cache
 

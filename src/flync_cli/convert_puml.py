@@ -1,3 +1,5 @@
+"""Renders PlantUML files to SVG/HTML, downloading the PlantUML jar on demand."""
+
 import argparse
 import subprocess
 import sys

@@ -1,3 +1,5 @@
+"""``flync debug`` command: dumps internal FLYNC model structures for troubleshooting."""
+
 from typing import Optional
 
 import typer

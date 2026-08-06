@@ -1,3 +1,5 @@
+"""Converter for native FLYNC workspace files."""
+
 import logging
 
 from flync.model import FLYNCModel  # type: ignore[import-untyped]

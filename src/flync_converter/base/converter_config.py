@@ -1,3 +1,5 @@
+"""Configuration object passed to FLYNC converters."""
+
 from pydantic import BaseModel
 
 

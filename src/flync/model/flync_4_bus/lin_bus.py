@@ -1,3 +1,5 @@
+"""Defines the LIN bus model for FLYNC including its schedule tables."""
+
 from typing import Annotated, List, Literal, Optional
 
 from pydantic import BeforeValidator, Field, field_validator, model_validator

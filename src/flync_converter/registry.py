@@ -1,4 +1,5 @@
-# core/registry.py
+"""Plugin registry that discovers and instantiates FLYNC converter factories."""
+
 import logging
 
 import pluggy
