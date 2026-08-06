@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Optional
 
 from pydantic import BaseModel
 
+from flync.core.annotations.external import External, OutputStrategy
 from flync.core.annotations.reference import Reference
 from flync.sdk.utils.field_utils import get_metadata, get_name
 
@@ -118,13 +119,45 @@ class ObjectMetadata(object):
         id_str = str(self.id)
         parts = id_str.rsplit(".", 1)
         if len(parts) > 1 and parts[0]:
-            return parts[0]
+            parent_id = parts[0]
+            parent_parts = parent_id.rsplit(".", 1)
+            if len(parent_parts) > 1:
+                grandparent_last = parent_parts[0].rsplit(".", 1)[-1]
+                if parent_parts[1] == grandparent_last:
+                    return parent_parts[0]
+            return parent_id
         return None
 
     @property
     def child_ids(self) -> list[str]:
-        """Direct child ObjectIds (immediate children only)."""
-        return self._workspace.get_child_ids(self.id)
+        """Direct child ObjectIds, collapsing SINGLE_FILE wrapper levels."""
+        raw = self._workspace.get_child_ids(self.id)
+        if len(raw) == 1:
+            only = raw[0]
+            child_last = only.rsplit(".", 1)[-1]
+            my_last = str(self.id).rsplit(".", 1)[-1]
+            if child_last == my_last and self._parent_field_is_single_file(my_last):
+                return self._workspace.get_child_ids(ObjectId(only))
+        return raw
+
+    def _parent_field_is_single_file(self, field_name: str) -> bool:
+        """Check if *field_name* on the parent model is a SINGLE_FILE (no OMMIT_ROOT) external field."""
+        try:
+            pid = self.parent_id
+            if pid is not None:
+                parent_model = self._workspace.get_object(ObjectId(pid)).model
+                model_fields = getattr(type(parent_model), "model_fields", {})
+                if field_name in model_fields:
+                    ext = get_metadata(model_fields[field_name].metadata, External)
+                    return (
+                        ext is not None
+                        and OutputStrategy.SINGLE_FILE in ext.output_structure
+                        and OutputStrategy.OMMIT_ROOT not in ext.output_structure
+                    )
+        except (KeyError, AttributeError):
+            return False
+
+        return False
 
     @property
     def source(self) -> dict:

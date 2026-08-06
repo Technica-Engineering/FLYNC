@@ -340,6 +340,83 @@ class TestMetadataWorkflowIntegration:
             assert "references" in info
 
 
+class TestSingleFileWrapperCollapsing:
+    """Test SINGLE_FILE wrapper-level collapsing in child_ids and parent_id."""
+
+    @pytest.mark.parametrize(
+        "object_id, wrapper",
+        [
+            ("ecus.eth_ecu.ports", "ecus.eth_ecu.ports.ports"),
+            ("ecus.eth_ecu.controllers.0.controller_metadata", "ecus.eth_ecu.controllers.0.controller_metadata.controller_metadata"),
+            ("communication.state_management.timing_profiles", "communication.state_management.timing_profiles.timing_profiles"),
+            ("communication.tcp_profiles", "communication.tcp_profiles.tcp_profiles"),
+            (
+                "ecus.high_performance_compute.controllers.hpc_controller2.state_memberships",
+                "ecus.high_performance_compute.controllers.hpc_controller2.state_memberships.state_memberships",
+            ),
+        ],
+    )
+    def test_child_ids_collapse_single_file_wrapper(self, loaded_workspace_with_object_map, object_id, wrapper):
+        """child_ids should skip the SINGLE_FILE wrapper and expose grandchildren."""
+        ws = loaded_workspace_with_object_map
+        meta = ws.get_metadata(ObjectId(object_id))
+        children = meta.child_ids
+        assert wrapper not in children
+        for child in children:
+            assert child.startswith(f"{wrapper}.")
+
+    def test_non_single_file_not_collapsed(self, loaded_workspace_with_object_map):
+        """Non-SINGLE_FILE fields should NOT collapse their children."""
+        ws = loaded_workspace_with_object_map
+        meta = ws.get_metadata(ObjectId("ecus"))
+        for child in meta.child_ids:
+            child_meta = ws.get_metadata(ObjectId(child))
+            if child_meta.parent_id is not None:
+                assert child_meta.parent_id == "ecus"
+
+    @pytest.mark.parametrize(
+        "child_id, expected_parent",
+        [
+            ("ecus.eth_ecu.ports.ports.0", "ecus.eth_ecu.ports"),
+            ("ecus.eth_ecu.controllers.0.controller_metadata.controller_metadata.type", "ecus.eth_ecu.controllers.0.controller_metadata"),
+        ],
+    )
+    def test_parent_id_skips_wrapper(self, loaded_workspace_with_object_map, child_id, expected_parent):
+        """parent_id for items under a SINGLE_FILE wrapper should skip to the real parent."""
+        ws = loaded_workspace_with_object_map
+        child = ws.get_metadata(ObjectId(child_id))
+        assert child.parent_id == expected_parent
+
+    def test_parent_child_consistency_across_wrapper(self, loaded_workspace_with_object_map):
+        """child_ids/parent_id consistency holds for all non-wrapper objects."""
+        ws = loaded_workspace_with_object_map
+        for oid in ws.list_objects():
+            meta = ws.get_metadata(oid)
+            parts = str(oid).rsplit(".", 1)
+            if len(parts) > 1 and parts[1] == parts[0].rsplit(".", 1)[-1]:
+                continue
+            for child in meta.child_ids:
+                child_meta = ws.get_metadata(ObjectId(child))
+                assert child_meta.parent_id == str(meta.id)
+
+    def test_to_dict_shows_collapsed_ids(self, loaded_workspace_with_object_map):
+        """to_dict() child_ids should reflect the collapsed view."""
+        ws = loaded_workspace_with_object_map
+        meta = ws.get_metadata(ObjectId("ecus.eth_ecu.ports"))
+        d = meta.to_dict()
+        wrapper = "ecus.eth_ecu.ports.ports"
+        assert wrapper not in d["child_ids"]
+        for child in d["child_ids"]:
+            assert child.startswith(f"{wrapper}.")
+
+    def test_to_dict_parent_id_skips_wrapper(self, loaded_workspace_with_object_map):
+        """to_dict() parent_id should skip the wrapper level."""
+        ws = loaded_workspace_with_object_map
+        meta = ws.get_metadata(ObjectId("ecus.eth_ecu.ports.ports.0"))
+        d = meta.to_dict()
+        assert d["parent_id"] == "ecus.eth_ecu.ports"
+
+
 class TestFieldMetadataSerialization:
     """Directly exercise the FieldMetadata reference variants and their recursive to_dict()."""
 
