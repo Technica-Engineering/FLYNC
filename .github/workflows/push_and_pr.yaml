@@ -129,6 +129,8 @@ jobs:
           path: |
             .coverage.performance
             report_performance.xml
+          include-hidden-files: true
+          if-no-files-found: warn
           retention-days: 28
 
   unit-tests:
@@ -153,12 +155,15 @@ jobs:
           COVERAGE_FILE=.coverage.unit poetry run pytest -m "not performance" --cov=flync --cov-report= --junitxml=report_not_performance.xml --durations=0
 
       - name: Upload unittest artifacts
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: unittest-coverage
           path: |
             .coverage.unit
             report_not_performance.xml
+          include-hidden-files: true
+          if-no-files-found: error
           retention-days: 28
 
   tests-summary:
@@ -171,22 +176,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Download performance tests artifacts
-        uses: actions/download-artifact@v7
-        with:
-          name: performance-coverage
-          path: |
-            .coverage.performance
-            report_performance.xml
-        continue-on-error: true
-
       - name: Download unittest artifacts
         uses: actions/download-artifact@v7
         with:
           name: unittest-coverage
-          path: |
-            .coverage.unit
-            report_not_performance.xml
+          path: .
+
+      - name: Download performance tests artifacts
+        uses: actions/download-artifact@v7
+        continue-on-error: true
+        with:
+          name: performance-coverage
+          path: .
 
       - name: Install system dependencies
         run: |
@@ -232,6 +233,7 @@ jobs:
             report_performance.xml
             tests/unit_test/sdk/fuzzed
             tests/unit_test/sdk/generated
+          include-hidden-files: true
           retention-days: 28
 
   example-validation:
