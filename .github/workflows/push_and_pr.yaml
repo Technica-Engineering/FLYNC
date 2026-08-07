@@ -99,12 +99,10 @@ jobs:
           path: type-check-reports
           retention-days: 28
 
-  pytest:
+  performance-tests:
+    continue-on-error: true
     runs-on: ubuntu-latest
     needs: [format-check, lint, type-check, isort]
-    permissions:
-      contents: write
-      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -119,10 +117,89 @@ jobs:
           pip install "poetry>=2.0.0,<3.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
           poetry install --with test
 
-      - name: Run Pytest
+      - name: Run Performance tests
+        run: |
+          COVERAGE_FILE=.coverage.performance poetry run pytest -m performance --cov=flync --cov-report= --junitxml=report_performance.xml --durations=0
+
+      - name: Upload performance tests artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: performance-coverage
+          path: |
+            .coverage.performance
+            report_performance.xml
+          retention-days: 28
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    needs: [format-check, lint, type-check, isort]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install system dependencies
+        run: |
+          sudo apt update && sudo apt install -y libglib2.0-0 libgl1 libegl1 libdbus-1-3 libfontconfig1 libxcb1 libxkbcommon0
+
+      - name: Prepare
+        run: |
+          pip install --upgrade pip
+          pip install "poetry>=2.0.0,<3.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
+          poetry install --with test
+
+      - name: Run Unittest
         run: |
           COVERAGE_FILE=.coverage.unit poetry run pytest -m "not performance" --cov=flync --cov-report= --junitxml=report_not_performance.xml --durations=0
-          COVERAGE_FILE=.coverage.performance poetry run pytest -m performance --cov=flync --cov-report= --junitxml=report_performance.xml --durations=0
+
+      - name: Upload unittest artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: unittest-coverage
+          path: |
+            .coverage.unit
+            report_not_performance.xml
+          retention-days: 28
+
+  tests-summary:
+    runs-on: ubuntu-latest
+    needs: [performance-tests, unit-tests]
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Download performance tests artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: performance-coverage
+          path: |
+            .coverage.performance
+            report_performance.xml
+        continue-on-error: true
+
+      - name: Download unittest artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: unittest-coverage
+          path: |
+            .coverage.unit
+            report_not_performance.xml
+
+      - name: Install system dependencies
+        run: |
+          sudo apt update && sudo apt install -y libglib2.0-0 libgl1 libegl1 libdbus-1-3 libfontconfig1 libxcb1 libxkbcommon0
+
+      - name: Prepare
+        run: |
+          pip install --upgrade pip
+          pip install "poetry>=2.0.0,<3.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
+          poetry install --with test
+
+      - name: Generate reports
+        run: |
           poetry run coverage combine .coverage.unit .coverage.performance
           poetry run coverage xml
           poetry run coverage report
