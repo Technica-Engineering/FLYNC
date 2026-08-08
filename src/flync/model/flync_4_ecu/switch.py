@@ -620,6 +620,29 @@ class Switch(FLYNCBaseModel):
         )
         return self
 
+    def _has_stream_with_ipv(self, ipv) -> bool:
+        """
+        Check whether any ingress stream on any port of this switch uses the given internal priority value.
+
+        Args:
+            ipv: The internal priority value to look for.
+
+        Returns:
+            bool: True if a matching ingress stream exists, False otherwise.
+        """
+
+        return any(stream.ipv == ipv for p in self.ports for stream in (p.ingress_streams or []))
+
+    def _has_ats_stream(self) -> bool:
+        """
+        Check whether any ingress stream on any port of this switch defines an ATS instance.
+
+        Returns:
+            bool: True if an ingress stream with an ATS instance exists, False otherwise.
+        """
+
+        return any(stream.ats for p in self.ports for stream in (p.ingress_streams or []))
+
     @model_validator(mode="after")
     def validate_ipv_mapping(self) -> Self:
         """
@@ -627,23 +650,14 @@ class Switch(FLYNCBaseModel):
         """
 
         for port in self.ports:
-            if port.traffic_classes:
-                for tr in port.traffic_classes:
-
-                    if tr.internal_priority_values:
-                        for iv in tr.internal_priority_values:
-                            found_stream = False
-                            for port_find in self.ports:
-                                if port_find.ingress_streams:
-                                    for stream in port_find.ingress_streams:
-                                        if stream.ipv == iv:
-                                            found_stream = True
-                            if not found_stream:
-                                raise err_minor(
-                                    f"Not able to find any streams with internal priority values {iv}. Traffic class {tr.name}",
-                                    category=Category.REFERENCE,
-                                    error_number="090",
-                                )
+            for tr in port.traffic_classes or []:
+                for iv in tr.internal_priority_values or []:
+                    if not self._has_stream_with_ipv(iv):
+                        raise err_minor(
+                            f"Not able to find any streams with internal priority values {iv}. Traffic class {tr.name}",
+                            category=Category.REFERENCE,
+                            error_number="090",
+                        )
         return self
 
     @model_validator(mode="after")
@@ -659,17 +673,9 @@ class Switch(FLYNCBaseModel):
         """
 
         for port in self.ports:
-            if port.traffic_classes:
-                for tr in port.traffic_classes:
-                    if tr.selection_mechanisms and tr.selection_mechanisms.type == "ats":
-                        found_ats = False
-                        for port_find in self.ports:
-                            if port_find.ingress_streams:
-                                for stream in port_find.ingress_streams:
-                                    if stream.ats:
-                                        found_ats = True
-                        if not found_ats:
-                            raise err_minor(f"No ATS Instance found for traffic class {tr.name}", category=Category.REFERENCE, error_number="091")
+            for tr in port.traffic_classes or []:
+                if tr.selection_mechanisms and tr.selection_mechanisms.type == "ats" and not self._has_ats_stream():
+                    raise err_minor(f"No ATS Instance found for traffic class {tr.name}", category=Category.REFERENCE, error_number="091")
 
         return self
 
