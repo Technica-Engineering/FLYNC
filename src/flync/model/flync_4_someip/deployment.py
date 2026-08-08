@@ -24,6 +24,9 @@ from flync.model.flync_4_someip.service_interface import (
 
 DeploymentTypes = Literal["someip", "someip_provider", "someip_consumer"]
 
+MAJOR_VERSION_DESCRIPTION = "the major version of this service interface"
+MINOR_VERSION_DESCRIPTION = "the minor version of this service interface"
+
 
 class Layer4Endpoint(FLYNCBaseModel):
     """
@@ -149,7 +152,7 @@ class SOMEIPServiceDeployment(abc.ABC, FLYNCBaseModel):
 
     deployment_type: DeploymentTypes
     service: Annotated[int, Reference(source="_service_ref")] = Field(description="identifies the service", gt=0, lt=0xFFFF, strict=True)
-    major_version: Annotated[int, Field(gt=0, le=255, strict=True)] = Field(description="the major version of this service interface", default=0)
+    major_version: Annotated[int, Field(gt=0, le=255, strict=True)] = Field(description=MAJOR_VERSION_DESCRIPTION, default=0)
     instance_id: Annotated[int, Field(gt=0, lt=0xFFFF)] = Field(description="The id of the service instance")
     someip_sd_timings_profile: str = Field(description="The SOME/IP timings profile ussed for the deployment.")
 
@@ -193,7 +196,7 @@ class SOMEIPServiceConsumer(SOMEIPServiceDeployment):
 
     deployment_type: Literal["someip_consumer"] = Field(default="someip_consumer")
 
-    major_version: Annotated[int, Field(gt=0, le=255, strict=True)] = Field(description="the major version of this service interface", default=0)
+    major_version: Annotated[int, Field(gt=0, le=255, strict=True)] = Field(description=MAJOR_VERSION_DESCRIPTION, default=0)
 
     consumed_eventgroups: Optional[List[str]] = Field(default=None)
 
@@ -266,10 +269,10 @@ class SOMEIPServiceProvider(SOMEIPServiceDeployment):
 
     deployment_type: Literal["someip_provider"] = Field(default="someip_provider")
 
-    major_version: Annotated[int, Field(gt=0, lt=255, strict=True)] = Field(description="the major version of this service interface")
+    major_version: Annotated[int, Field(gt=0, lt=255, strict=True)] = Field(description=MAJOR_VERSION_DESCRIPTION)
 
     minor_version: Annotated[int, Field(ge=0, lt=0xFFFFFFFF, strict=True)] = Field(
-        description="the major version of this service interface",
+        description=MINOR_VERSION_DESCRIPTION,
         default=0,
     )
 

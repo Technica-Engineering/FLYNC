@@ -3,6 +3,7 @@
 import abc
 import warnings
 from collections import defaultdict
+from collections.abc import Iterator
 from typing import (
     Annotated,
     Any,
@@ -302,17 +303,6 @@ class SOMEIPParameter(FLYNCBaseModel):
     name: str = Field(description="identifies the parameter")
     description: Optional[str] = Field("", description="Optional description")
     datatype: "AllTypes"
-
-    # @field_serializer("type")
-    # def serialize_type(self, type):
-    #    if type is not None:
-    #        return getattr(type, "type", str(type))
-
-    # @field_validator("type", mode="before")
-    # def wrap_type(cls, v):
-    #    if isinstance(v, str):
-    #        return {"type": v}
-    #    return v
 
 
 class SOMEIPEvent(FLYNCBaseModel):
@@ -836,31 +826,40 @@ class SOMEIPConfig(FLYNCBaseModel):
         External(output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT),
     ] = Field(description="configuration of the SOME/IP timings")
 
+    @staticmethod
+    def _iter_e2e_elements(service: SOMEIPServiceInterface) -> Iterator[tuple[Any, Any]]:
+        """
+        Yields all (element, e2e) pairs of a service that carry an E2E configuration.
+        """
+
+        # fields/events are Optional in the annotation only, a BeforeValidator maps None to []
+        for field in service.fields or []:
+            if field.notifier_e2e is not None:
+                yield field, field.notifier_e2e
+        for event in service.events or []:
+            if event.e2e is not None:
+                yield event, event.e2e
+
     @model_validator(mode="after")
     def validate_all_e2e_identifiers_to_be_unique(self):
         """
         Validates that for each E2E profile all e2e.data_id values are unique.
         """
 
-        # Mapping: profile -> data_id -> List[(service, event)]
+        # Mapping: profile -> data_id -> List[(service, element)]
         per_profile: dict[Any, dict[Any, list[tuple[Any, Any]]]] = defaultdict(lambda: defaultdict(list))
 
         for service in self.services:
-            for field in service.fields:
-                if field.notifier_e2e is not None:
-                    profile, data_id = field.notifier_e2e
-                    per_profile[profile][data_id].append((service, field, field.notifier_e2e))
-            for event in service.events:
-                if event.e2e is not None:
-                    profile, data_id = event.e2e
-                    per_profile[profile][data_id].append((service, event, event.e2e))
+            for element, (profile, data_id) in self._iter_e2e_elements(service):
+                per_profile[profile][data_id].append((service, element))
 
-        errors = []
-        for profile, by_id in per_profile.items():
-            for data_id, entries in by_id.items():
-                if len(entries) > 1:
-                    entity_list = ", ".join(f"{type(service).__name__}.{type(element).__name__}" for service, element, e2e in entries)
-                    errors.append(f"Duplicate e2e.data_id '{data_id}' in Profil '{profile}': {entity_list}")
+        errors = [
+            f"Duplicate e2e.data_id '{data_id}' in Profil '{profile}': "
+            + ", ".join(f"{type(service).__name__}.{type(element).__name__}" for service, element in entries)
+            for profile, by_id in per_profile.items()
+            for data_id, entries in by_id.items()
+            if len(entries) > 1
+        ]
 
         if errors:
             raise ValueError(" | ".join(errors))
