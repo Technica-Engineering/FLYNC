@@ -143,15 +143,22 @@ def _collect_pdu_deployments(model: "FLYNCModel") -> List[Tuple["Controller", "S
     return out
 
 
+def _iter_can_interfaces(model: "FLYNCModel"):
+    """Yield ``(controller, can_interface)`` for every CAN interface in the workspace."""
+
+    for ecu in model.ecus:
+        for controller in ecu.controllers:
+            for can_iface in controller.can_interfaces or []:
+                yield controller, can_iface
+
+
 def _collect_can_frame_forwarders(model: "FLYNCModel"):
     """Collect every CANFrameForwarder in the workspace alongside its parent CAN interface and owning controller."""
 
     out = []
-    for ecu in model.ecus:
-        for controller in ecu.controllers:
-            for can_iface in controller.can_interfaces or []:
-                for fwd in can_iface.forwarder_frames or []:
-                    out.append((controller, can_iface, fwd))
+    for controller, can_iface in _iter_can_interfaces(model):
+        for fwd in can_iface.forwarder_frames or []:
+            out.append((controller, can_iface, fwd))
     return out
 
 
@@ -170,21 +177,29 @@ def _build_socket_indexes(model: "FLYNCModel"):
     return socket_by_controller_name, pdu_forwarder_by_controller_socket_pdu
 
 
+def _index_can_forwarders_by_bus_id(
+    can_iface: CANInterface,
+    can_frame_catalogue: Dict[str, CANAnyFrame],
+    out: Dict[Tuple[str, int], CANFrameForwarder],
+) -> None:
+    """Add every forwarder frame of *can_iface* to *out*, keyed by ``(bus_ref, can_id)``."""
+
+    for fwd in can_iface.forwarder_frames or []:
+        frame = can_frame_catalogue.get(fwd.frame_ref)
+        if frame is not None:
+            out[(can_iface.bus_ref, frame.can_id)] = fwd
+
+
 def _build_can_indexes(model: "FLYNCModel", can_frame_catalogue: Optional[Dict[str, CANAnyFrame]] = None):
     """Build indexes for CAN interface lookup ``(controller, bus)`` and CAN forwarder lookup ``(bus, can_id)``."""
 
     can_iface_by_controller_bus: Dict[Tuple[str, str], CANInterface] = {}
     can_forwarder_by_bus_id: Dict[Tuple[str, int], CANFrameForwarder] = {}
 
-    for ecu in model.ecus:
-        for controller in ecu.controllers:
-            for can_iface in controller.can_interfaces or []:
-                can_iface_by_controller_bus[(controller.name, can_iface.bus_ref)] = can_iface
-                if can_frame_catalogue is not None:
-                    for fwd in can_iface.forwarder_frames or []:
-                        frame = can_frame_catalogue.get(fwd.frame_ref)
-                        if frame is not None:
-                            can_forwarder_by_bus_id[(can_iface.bus_ref, frame.can_id)] = fwd
+    for controller, can_iface in _iter_can_interfaces(model):
+        can_iface_by_controller_bus[(controller.name, can_iface.bus_ref)] = can_iface
+        if can_frame_catalogue is not None:
+            _index_can_forwarders_by_bus_id(can_iface, can_frame_catalogue, can_forwarder_by_bus_id)
     return can_iface_by_controller_bus, can_forwarder_by_bus_id
 
 
