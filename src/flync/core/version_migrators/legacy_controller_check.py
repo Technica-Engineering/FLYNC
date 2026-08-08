@@ -31,13 +31,10 @@ def detect_legacy_controller_version(data: Any) -> Optional[str]:
 
     if not isinstance(data, dict):
         return None
+
     legacy_meta = data.get(_LEGACY_META_KEY)
-    if not isinstance(legacy_meta, dict):
-        return None
-    compat = legacy_meta.get(_VERSION_KEY)
-    if not isinstance(compat, dict):
-        return None
-    version = compat.get("version")
+    compat = legacy_meta.get(_VERSION_KEY) if isinstance(legacy_meta, dict) else None
+    version = compat.get("version") if isinstance(compat, dict) else None
     return None if version is None else str(version)
 
 
