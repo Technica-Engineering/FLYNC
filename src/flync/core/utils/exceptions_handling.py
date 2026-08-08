@@ -73,7 +73,48 @@ def get_name_by_alias(model: type[BaseModel], alias: str):
     raise KeyError(alias)
 
 
-def safe_yaml_position(node: Any, loc: tuple, model: type[BaseModel] | None = None) -> Tuple[int | None, int | None]:  # noqa # nosonar
+def _child_at(container: Any, key: Any) -> Tuple[bool, Any]:
+    """
+    Return ``(True, child)`` for ``container[key]``, or ``(False, None)`` when the key/index is missing or the container is not subscriptable.
+    """
+
+    try:
+        return True, container[key]
+    except (KeyError, IndexError, TypeError):
+        return False, None
+
+
+def _descend_model(current_model: Any, part: str) -> Any:
+    """
+    Return the Pydantic model class describing field ``part`` of ``current_model``, or ``None`` when it cannot be resolved.
+
+    ``current_model`` is either a model class (look ``part`` up in ``model_fields``) or an already-resolved container generic such as
+    ``dict[str, Model]`` (use it directly as the annotation).
+    """
+
+    if hasattr(current_model, "model_fields"):
+        field = current_model.model_fields.get(part)
+        annotation = field.annotation if field else None
+    else:
+        # current_model is already a container generic (e.g. dict[str, Model])
+        annotation = current_model
+
+    if annotation is None:
+        return None
+
+    origin = get_origin(annotation)
+    args: tuple[Any, ...] = get_args(annotation)
+    if origin is dict:
+        nested = args[1] if len(args) > 1 else None
+    elif origin is None:
+        nested = annotation
+    else:
+        nested = None
+
+    return nested if hasattr(nested, "model_fields") else None
+
+
+def safe_yaml_position(node: Any, loc: tuple, model: type[BaseModel] | None = None) -> Tuple[int | None, int | None]:
     """
     Given a ruamel.yaml node and a Pydantic `loc` tuple, return (line, column).
     Falls back gracefully if key/item is missing.
@@ -88,50 +129,19 @@ def safe_yaml_position(node: Any, loc: tuple, model: type[BaseModel] | None = No
         parent = current
         last_key = part
 
-        # Handle list indices
         if isinstance(part, int):
-            try:
-                current = current[part]
-            except (IndexError, TypeError):
-                return _fallback_position(parent)
+            # Handle list indices — an index never carries model information.
+            found, current = _child_at(current, part)
             current_model = None
         else:
             # Map field name to YAML key if alias exists
             yaml_key = resolve_alias(current_model, part) if current_model else part
+            found, current = _child_at(current, yaml_key)
+            if current_model:
+                current_model = _descend_model(current_model, part)
 
-            try:
-                current = current[yaml_key]
-            except (KeyError, TypeError):
-                return _fallback_position(parent)
-
-            # Descend model if available
-            if not current_model:
-                continue
-
-            if hasattr(current_model, "model_fields"):
-                field = current_model.model_fields.get(part)
-                annotation = field.annotation if field else None
-            else:
-                # current_model is already a container generic
-                # (e.g. dict[str, Model])
-                annotation = current_model
-
-            if annotation is None:
-                current_model = None
-                continue
-
-            origin = get_origin(annotation)
-            args: tuple[Any, ...] = get_args(annotation)
-            if origin in (list, tuple) and isinstance(part, int):
-                current_model = args[0] if args else None
-            elif origin is dict and not isinstance(part, int):
-                current_model = args[1] if len(args) > 1 else None
-            elif origin is None:
-                current_model = annotation
-            else:
-                current_model = None
-            if not hasattr(current_model, "model_fields"):
-                current_model = None
+        if not found:
+            return _fallback_position(parent)
 
     # Get line/column for final key or index
     return _extract_position(parent, last_key)
@@ -196,6 +206,53 @@ def _parse_first_sub_error_loc(sub_errors: str) -> tuple:
     return tuple(parts)
 
 
+def _error_yaml_position(err: ErrorDetails, model: type[BaseModel], yaml_data: object, ctx: dict) -> Tuple[int | None, int | None]:
+    """
+    Return the YAML ``(line, column)`` for ``err``.
+
+    Starts from the position of the error's own ``loc`` and, when the error carries ``sub_errors``, refines it with the position of the first
+    sub-error so the report points at the actual offending line inside the sub-object.
+    """
+
+    line, col = safe_yaml_position(yaml_data, err["loc"], model=model)
+
+    sub_errors = ctx.get("sub_errors", "")
+    if not sub_errors:
+        return line, col
+
+    sub_loc = _parse_first_sub_error_loc(sub_errors)
+    if not sub_loc:
+        return line, col
+
+    deep_line, deep_col = safe_yaml_position(yaml_data, err["loc"] + sub_loc)
+    return (deep_line, deep_col) if deep_line is not None else (line, col)
+
+
+def _enrich_error_ctx(
+    err: ErrorDetails,
+    model: Optional[type[BaseModel]],
+    yaml_data: Optional[object],
+    yaml_path: Optional[str],
+) -> dict:
+    """
+    Return ``err``'s context enriched (in place) with ``yaml_path`` and the YAML ``line``/``col`` of the error, when they can be determined.
+    """
+
+    ctx = err.get("ctx", {})
+
+    if yaml_path and "yaml_path" not in ctx:
+        ctx["yaml_path"] = str(yaml_path)
+
+    if model is not None and yaml_data and "yaml_location" not in ctx:
+        line, col = _error_yaml_position(err, model, yaml_data, ctx)
+        if line:
+            ctx["line"] = line
+        if col:
+            ctx["col"] = col
+
+    return ctx
+
+
 def errors_to_init_errors(
     errors: List[ErrorDetails],
     model: Optional[type[BaseModel]] = None,
@@ -227,22 +284,7 @@ def errors_to_init_errors(
 
     enriched = []
     for e in errors:
-        ctx = e.get("ctx", {})
-        if yaml_path and "yaml_path" not in ctx:
-            ctx["yaml_path"] = str(yaml_path)
-        if model is not None and yaml_data and "yaml_location" not in ctx:
-            line, col = safe_yaml_position(yaml_data, e["loc"], model=model)
-            sub_errors = ctx.get("sub_errors", "")
-            if sub_errors:
-                sub_loc = _parse_first_sub_error_loc(sub_errors)
-                if sub_loc:
-                    deep_line, deep_col = safe_yaml_position(yaml_data, e["loc"] + sub_loc)
-                    if deep_line is not None:
-                        line, col = deep_line, deep_col
-            if line:
-                ctx["line"] = line
-            if col:
-                ctx["col"] = col
+        ctx = _enrich_error_ctx(e, model, yaml_data, yaml_path)
         error_detail = InitErrorDetails(
             type=PydanticCustomError(e.get("type", ""), e.get("msg", ""), ctx),
             loc=e.get("loc", tuple()),
