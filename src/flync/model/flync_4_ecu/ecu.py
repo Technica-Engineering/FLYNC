@@ -1,6 +1,6 @@
 """Defines the ECU model for FLYNC."""
 
-from typing import Annotated, List, Optional, TypeVar
+from typing import Annotated, Iterator, List, Optional, TypeVar
 
 from pydantic import BeforeValidator, Field, PrivateAttr, model_validator
 
@@ -28,6 +28,7 @@ from flync.model.flync_4_ecu.mac_multicast_endpoint import (
 )
 from flync.model.flync_4_ecu.multicast_groups import MulticastGroupMembership
 from flync.model.flync_4_ecu.port import ECUPort
+from flync.model.flync_4_ecu.socket_container import SocketContainer
 from flync.model.flync_4_ecu.sockets import Socket
 from flync.model.flync_4_ecu.switch import Switch, SwitchPort
 from flync.model.flync_4_metadata import ECUMetadata
@@ -460,14 +461,39 @@ class ECU(FLYNCBaseModel):
                 mac_lists.extend(switch.host_controller.get_all_macs())
         return mac_lists
 
+    def __iter_socket_containers(self) -> Iterator[SocketContainer]:
+        """
+        Yield every socket container across all ethernet interfaces of the ECU.
+
+        Yields
+        ------
+        SocketContainer
+            Each socket container of each ethernet interface of each controller of the ECU.
+        """
+
+        for controller in self.controllers:
+            for eth_iface in controller.ethernet_interfaces or []:
+                yield from eth_iface.sockets or []
+
+    def __iter_sockets(self) -> Iterator[Socket]:
+        """
+        Yield every socket across all socket containers of the ECU.
+
+        Yields
+        ------
+        Socket
+            Each socket of each socket container of the ECU.
+        """
+
+        for socket_container in self.__iter_socket_containers():
+            yield from socket_container.sockets or []
+
     def get_all_sockets(self) -> dict[int | None, List[Socket]]:
         """
         Get all sockets across all ethernet interfaces of the ECU, grouped by VLAN ID.
         """
 
-        all_socket_containers = [
-            sc for controller in self.controllers for eth_iface in (controller.ethernet_interfaces or []) for sc in (eth_iface.sockets or [])
-        ]
+        all_socket_containers = list(self.__iter_socket_containers())
         return {
             vlan_id: [
                 socket
@@ -508,14 +534,10 @@ class ECU(FLYNCBaseModel):
         """
 
         service_instances: list[_T_Service] = []
-        for controller in self.controllers:
-            for eth_iface in controller.ethernet_interfaces or []:
-                for ecu_sockets in eth_iface.sockets or []:
-                    for socket in ecu_sockets.sockets or []:
-                        for deployment in socket.deployments or []:
-                            if isinstance(deployment.root, service_type):
-                                someip_deployment = deployment.root
-                                service_instances.append(someip_deployment)
+        for socket in self.__iter_sockets():
+            for deployment in socket.deployments or []:
+                if isinstance(deployment.root, service_type):
+                    service_instances.append(deployment.root)
         return service_instances
 
     def get_consumed_services(self) -> list[SOMEIPServiceConsumer]:
