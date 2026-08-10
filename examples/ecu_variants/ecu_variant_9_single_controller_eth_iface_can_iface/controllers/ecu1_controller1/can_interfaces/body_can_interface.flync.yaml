@@ -1,0 +1,7 @@
+bus_ref: BodyCAN
+sender_frames:
+  - bus_ref: BodyCAN
+    frame_ref: 257   # Frame_DoorStatus (0x101)
+receiver_frames:
+  - bus_ref: BodyCAN
+    frame_ref: 769   # Frame_WiperStatus (0x301)

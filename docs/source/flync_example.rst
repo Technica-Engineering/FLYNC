@@ -25,6 +25,8 @@ The configuration includes the following key components:
 
 - **Network Management (NM)** - Shows how an NM message is modelled vendor-neutral as an ordinary PDU with ordinary signals, tagged via the ``pdu_usage`` / ``frame_usage`` fields, and bound to both Ethernet and CAN transports.
 
+- **Signals, PDUs and CAN Communication** - Shows how bus-agnostic signals are grouped into PDUs and carried by CAN and CAN FD frames, and how the same PDUs are packed into Ethernet container PDUs.
+
 
 
 Example Configuration
@@ -214,6 +216,22 @@ Find this example on github: `ecu_variant_8 <https://github.com/Technica-Enginee
 
 .. note:: The Host controller of the switch will have the same configuration as any Controller Interface.
 
+
+--------------
+
+
+Variant 9: Single controller, single Ethernet interface and a CAN interface
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Find this example on github: `ecu_variant_9 <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_9_single_controller_eth_iface_can_iface>`_.
+
+.. image:: ./_static/images/ecu_variants/ecu_variant_9_single_controller_eth_iface_can_iface.svg
+   :align: center
+   :width: 700px
+
+.. note:: A single controller can host a CAN interface alongside its Ethernet interface. The Ethernet interface has its own ECU port and external PHY; the CAN interface instead joins a bus via ``bus_ref`` and lists the frames it exchanges through ``sender_frames`` / ``receiver_frames``.
+
+.. note:: Several CAN frames share the single ``BodyCAN`` bus. The frames are defined once on the bus under ``communication/channels/can/``, and the CAN interface references them by their ``frame_ref`` (the CAN identifier).
 
 --------------
 
@@ -451,6 +469,354 @@ A socket in FLYNC represents a logical endpoint on a virtual network interface o
 
 .. note:: Sockets must be defined in a separate folder for each ECU for better readability.
 .. note:: Multiple sockets may be defined in a single file for different address endpoints, but they must belong to the same VLAN.
+
+-------
+
+Signals
+"""""""
+
+A **Signal** is the smallest data element in the ``FLYNC`` model: a single value with its bit length, optional linear scaling (``factor`` / ``offset`` / ``unit``) and limits, and an optional ``value_encoding`` that maps raw values to labels (``text_table``, ``bitfield_text_table`` or ``bitmask_flags``). Signals are bus-agnostic and are placed into a PDU through a *signal instance* that fixes the ``bit_position`` and ``endianness``.
+
+.. image:: ./_static/images/communication/pdu_engine_status_signal_breakdown.svg
+   :align: center
+   :width: 1100px
+
+.. dropdown:: 📄 ``communication/channels/pdus/PDU_EngineStatus.flync.yaml``
+
+   .. code-block:: yaml
+
+      name: PDU_EngineStatus
+      type: standard
+      length: 8
+      description: >-
+        Engine speed, torque, coolant temperature and operating state.
+        Transmitted cyclically at 10 ms by EngineECU on PowertrainCAN.
+
+      signals:
+        - bit_position: 0
+          endianness: LE
+
+          signal:
+            name: EngineSpeed
+            description: Crankshaft rotational speed.
+            bit_length: 16
+            data_type: uint16
+            factor: 0.25
+            offset: 0.0
+            lower_limit: 0.0
+            upper_limit: 16383.75
+            unit: rpm
+            value_encoding:
+              type: text_table
+              entries:
+                - value: 65535
+                  label: Signal_Not_Available
+                  
+        - bit_position: 16
+          endianness: LE
+
+          signal:
+            name: EngineTorque
+            description: Indicated engine torque at crankshaft.
+            bit_length: 16
+            data_type: int16
+            factor: 0.1
+            offset: 0.0
+            lower_limit: -3276.8
+            upper_limit: 3276.7
+            unit: Nm
+        - bit_position: 32
+          endianness: LE
+
+          signal:
+            name: EngineCoolantTemp
+            description: Engine coolant temperature.
+            bit_length: 8
+            data_type: uint8
+            factor: 1.0
+            offset: -40.0
+            lower_limit: -40.0
+            upper_limit: 215.0
+            unit: degC
+            value_encoding:
+              type: text_table
+              entries:
+                - value: 254
+                  label: Sensor_Error
+                - value: 255
+                  label: Signal_Not_Available
+        - bit_position: 40
+          endianness: LE
+
+          signal:
+            name: EngineStatus
+            description: Engine operating state.
+            bit_length: 4
+            data_type: uint8
+            value_encoding:
+              type: text_table
+              entries:
+                - value: 0
+                  label: Stopped
+                - value: 1
+                  label: Cranking
+                - value: 2
+                  label: Running
+                - value: 3
+                  label: Stall
+                - value: 15
+                  label: Error
+
+.. note:: Signals are defined inline inside the PDU that carries them, under ``communication/channels/pdus/``.
+
+-------
+
+PDUs
+""""
+
+A **PDU** (Protocol Data Unit) is the container that groups signals for transmission. PDUs are defined independently of any bus and stored under ``communication/channels/pdus/`` (Ethernet container PDUs live in ``communication/channels/ethernet_pdu_containers/``). A frame, a socket, or another PDU then references a PDU **by name**.
+
+Three PDU types are distinguished by the ``type`` discriminator:
+
+- ``standard`` - a non-multiplexed PDU carrying a flat list of signal instances.
+- ``multiplexed`` - a PDU with a ``selector_signal`` whose value selects which ``mux_groups`` block of signals is active on each transmission cycle.
+- ``container`` - a Container PDU that packs several other PDUs into one payload, each contained PDU prefixed by a per-slot header.
+
+.. image:: ./_static/images/communication/pdu_types_standard_multiplexed_container.svg
+   :align: center
+   :width: 1100px
+
+**Multiplexed PDU**
+
+``PDU_TransmissionStatus`` multiplexes on the 4-bit ``GearInfoMux`` selector: selector value ``0`` activates the gear-position signals, value ``1`` the torque-converter signals.
+
+.. dropdown:: 📄 ``communication/channels/pdus/PDU_TransmissionStatus.flync.yaml``
+
+   .. code-block:: yaml
+
+      name: PDU_TransmissionStatus
+      type: multiplexed
+      length: 8
+      description: Transmission status, multiplexed on GearInfoMux selector.
+
+      selector_signal:
+        bit_position: 0
+        endianness: LE
+        signal:
+          name: GearInfoMux
+          description: Multiplexer selector for TransmissionStatus PDU.
+          bit_length: 4
+          data_type: uint8
+
+      mux_groups:
+        - selector_value: 0
+          pdu:
+            name: PDU_TransmissionStatus_Gear
+            type: standard
+            length: 8
+            signals:
+              - bit_position: 8
+                endianness: LE
+
+                signal:
+                  name: CurrentGear
+                  description: Currently engaged gear.
+                  bit_length: 8
+                  data_type: uint8
+                  value_encoding:
+                    type: text_table
+                    entries:
+                      - value: 0
+                        label: Park
+                      - value: 1
+                        label: Reverse
+                      - value: 2
+                        label: Neutral
+                      - value: 3
+                        label: Drive_D1
+                      - value: 4
+                        label: Drive_D2
+                      - value: 5
+                        label: Drive_D3
+                      - value: 6
+                        label: Drive_D4
+              - bit_position: 16
+                endianness: LE
+
+                signal:
+                  name: GearShiftMode
+                  description: Automatic / manual / sport shift mode.
+                  bit_length: 4
+                  data_type: uint8
+                  value_encoding:
+                    type: text_table
+                    entries:
+                      - value: 0
+                        label: Automatic
+                      - value: 1
+                        label: Manual
+                      - value: 2
+                        label: Sport
+        - selector_value: 1
+          pdu:
+            name: PDU_TransmissionStatus_Torque
+            type: standard
+            length: 8
+            signals:
+              - bit_position: 8
+                endianness: LE
+
+                signal:
+                  name: TorqueConverterSlipSpeed
+                  description: Slip speed of the torque converter.
+                  bit_length: 16
+                  data_type: uint16
+                  factor: 0.1
+                  offset: 0.0
+                  unit: rpm
+              - bit_position: 24
+                endianness: LE
+
+                signal:
+                  name: TorqueConverterLockup
+                  description: Torque converter lock-up clutch state.
+                  bit_length: 2
+                  data_type: uint8
+                  value_encoding:
+                    type: text_table
+                    entries:
+                      - value: 0
+                        label: Open
+                      - value: 1
+                        label: Slipping
+                      - value: 2
+                        label: Locked
+                      - value: 3
+                        label: Error
+
+**Container PDU**
+
+``EthPowertrainContainer`` bundles three application PDUs - ``PDU_EngineStatus``, ``PDU_VehicleDynamics`` and ``PDU_TransmissionStatus`` - into one Ethernet payload. The per-slot ``header`` gives the bit widths of the PDU-ID and length fields, and each contained PDU declares its ``pdu_id`` and byte ``offset`` inside the container.
+
+.. dropdown:: 📄 ``communication/channels/ethernet_pdu_containers/eth_powertrain_container.flync.yaml``
+
+   .. code-block:: yaml
+
+      name: EthPowertrainContainer
+      type: container
+      pdu_id: 1
+      length: 31
+      header:
+        id_length_bits: 16
+        length_field_bits: 8
+      description: >-
+        Container PDU bundling powertrain PDUs (engine status, vehicle dynamics,
+        transmission state) into a single Ethernet payload.
+
+      contained_pdus:
+        - pdu_id: 257
+          pdu_ref: PDU_EngineStatus
+          offset: 0
+        - pdu_id: 513
+          pdu_ref: PDU_VehicleDynamics
+          offset: 11
+        - pdu_id: 769
+          pdu_ref: PDU_TransmissionStatus
+          offset: 20
+
+.. note:: The ``communication/channels/pdus/`` directory is optional and may be omitted when no PDUs are defined.
+
+-------
+
+CAN Buses
+"""""""""
+
+A **CAN Bus** carries frames between controllers. Each bus is stored in its own file under ``communication/channels/can/`` and defines the bus-level parameters plus the full list of frames transmitted on it. Both **classical CAN** and **CAN FD** are supported by the same bus type: setting ``fd_enabled: true`` (together with an ``fd_baud_rate``) permits ``can_fd`` frames with payloads up to 64 bytes and an optional bit-rate switch.
+
+Each frame references its payload PDU by name via ``packed_pdus`` and may carry an optional ``timing`` block driving cyclic and event-driven transmission.
+
+``DiagCAN`` is a CAN FD bus (500 kbit/s nominal, 2 Mbit/s data phase). Its ``can_fd`` frames set ``bit_rate_switch`` and carry 64-byte diagnostic payloads. It also carries the Network Management frame documented in the NM example.
+
+.. dropdown:: 📄 ``communication/channels/can/diag_can.flync.yaml``
+
+   .. code-block:: yaml
+
+      name: DiagCAN
+      description: Diagnostics bus at 500 kbit/s nominal / 2 Mbit/s data phase (CAN FD).
+      version: "1.0"
+      baud_rate: 500000
+      fd_enabled: true
+      fd_baud_rate: 2000000
+
+      frames:
+
+        - name: Frame_LightDiagRequest
+          type: can_fd
+          description: Functional diagnostic request, CAN FD 64-byte payload.
+          length: 64
+          can_id: 2015         # 0x7DF
+          id_format: standard_11bit
+          bit_rate_switch: true
+          error_state_indicator: false
+          packed_pdus:
+            - pdu_ref: PDU_CabinLight
+              bit_position: 0
+
+        - name: Frame_EngineDiagResponse
+          type: can_fd
+          description: Diagnostic response from HPC, CAN FD 64-byte payload.
+          length: 64
+          can_id: 2024         # 0x7E8
+          id_format: standard_11bit
+          bit_rate_switch: true
+          error_state_indicator: false
+          packed_pdus:
+            - pdu_ref: PDU_EngineStatus
+              bit_position: 0
+
+        # --------------------------------------------------------------------------
+        # Frame: NmMessage (0x500, 8 bytes, sent cyclically by HPC, the sole modelled
+        # NM-sending ECU on this bus). Tagged frame_usage: network_management;
+        # carries PDU_NmMessage. Receivers are implicit external NM peers because HPC
+        # is the only DiagCAN-connected ECU in this workspace; in a multi-ECU CAN
+        # setup, peer ECUs would add Frame_NmMessage under receiver_frames on their
+        # own DiagCAN interface.
+        # --------------------------------------------------------------------------
+        - name: Frame_NmMessage
+          type: can
+          frame_usage: network_management
+          description: >-
+            Network Management frame on DiagCAN. Sent cyclically by HPC, the sole
+            NM-sending ECU modelled in this workspace. Carries the ordinary NM PDU
+            (PDU_NmMessage) as its payload.
+          length: 8
+          can_id: 1280         # 0x500
+          id_format: standard_11bit
+          packed_pdus:
+            - pdu_ref: PDU_NmMessage
+              bit_position: 0
+          timing:
+            cyclic_timings:
+              - cycle: 0.5
+            event_timings: []
+
+Which frames a controller sends and receives is declared on its **CAN interface**, one file per bus, where frames are referenced by ``bus_ref`` and their numeric ``frame_ref`` (the CAN ID). On ``DiagCAN``, ``high_performance_compute`` sends the diagnostic-response and Network-Management frames and receives the diagnostic request:
+
+.. dropdown:: 📄 ``ecus/high_performance_compute/controllers/hpc_controller1/can_interfaces/diag_can_interface.flync.yaml``
+
+   .. code-block:: yaml
+
+      bus_ref: DiagCAN
+      sender_frames:
+        - bus_ref: DiagCAN
+          frame_ref: 2024  # Frame_EngineDiagResponse (0x7E8)
+        - bus_ref: DiagCAN
+          frame_ref: 1280  # Frame_NmMessage (0x500)
+      receiver_frames:
+        - bus_ref: DiagCAN
+          frame_ref: 2015  # Frame_LightDiagRequest (0x7DF)
+
+.. note:: The ``communication/channels/can/`` directory is optional and may be omitted when no CAN buses are defined.
 
 -------
 

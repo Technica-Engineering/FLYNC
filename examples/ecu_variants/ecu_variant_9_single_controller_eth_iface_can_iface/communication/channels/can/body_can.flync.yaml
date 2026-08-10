@@ -1,0 +1,19 @@
+name: BodyCAN
+description: A single classical CAN bus carrying several body frames.
+version: "1.0"
+baud_rate: 500000
+
+frames:
+  - name: Frame_DoorStatus
+    type: can
+    description: Door open/close status.
+    length: 8
+    can_id: 257          # 0x101
+    id_format: standard_11bit
+
+  - name: Frame_WiperStatus
+    type: can
+    description: Wiper motor status.
+    length: 8
+    can_id: 769          # 0x301
+    id_format: standard_11bit
