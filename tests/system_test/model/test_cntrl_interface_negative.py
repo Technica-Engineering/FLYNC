@@ -1,7 +1,6 @@
 import pytest
 from pydantic import ValidationError
 
-from flync.core.datatypes.macaddress import FLYNCMacAddress
 from flync.model.flync_4_bus.lin_bus import LINBus, LINScheduleTable
 from flync.model.flync_4_communication.flync_channels import FLYNCChannelConfig
 from flync.model.flync_4_communication.flync_communication import FLYNCCommunicationConfig
@@ -18,22 +17,47 @@ from flync.model.flync_4_ecu.ecu import ECU
 from flync.model.flync_4_ecu.internal_topology import InternalTopology, SwitchPortToControllerInterface
 from flync.model.flync_4_ecu.lin_interface import LINMasterInterface, LINSlaveInterface
 from flync.model.flync_4_ecu.phy import MII
-from flync.model.flync_4_ecu.sockets import Socket
 from flync.model.flync_4_ecu.switch import Switch, SwitchPort
 from flync.model.flync_4_metadata.metadata import BaseVersion, ECUMetadata, EmbeddedMetadata, SystemMetadata
-from flync.model.flync_4_topology.system_topology import ExternalConnection, FLYNCTopology, SystemTopology
+from flync.model.flync_4_topology.system_topology import FLYNCTopology, SystemTopology
 from flync.model.flync_model import FLYNCModel
+
+FLYNC_VERSION = "0.13.0"
+
+
+def _make_version() -> BaseVersion:
+    """Return the FLYNC version used by every test in this module."""
+    return BaseVersion(version=FLYNC_VERSION)
+
+
+def _make_embedded_metadata() -> EmbeddedMetadata:
+    """Return the common embedded metadata used for controllers and switches in this module."""
+    return EmbeddedMetadata(type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=_make_version())
+
+
+def _make_ecu_metadata() -> ECUMetadata:
+    """Return the common ECU metadata used by every test in this module."""
+    return ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=_make_version())
+
+
+def _make_system_metadata() -> SystemMetadata:
+    """Return the common system metadata used by every test in this module."""
+    return SystemMetadata(type="system", release=_make_version(), author="TestTeam", compatible_flync_version=_make_version())
+
+
+def _make_empty_topology() -> FLYNCTopology:
+    """Return an empty system topology usable by every test in this module."""
+    return FLYNCTopology(system_topology=SystemTopology(connections=[]))
 
 
 # Verify that a Controller without any communication interface is rejected.
 def test_controller_without_interfaces_is_invalid():
+    controller_metadata = _make_embedded_metadata()
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError, match="must declare at least one interface"):
         Controller(
             name="CTRL1",
-            controller_metadata=EmbeddedMetadata(
-                type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.13.0")
-            ),
+            controller_metadata=controller_metadata,
             ethernet_interfaces=[],
             can_interfaces=[],
             lin_interfaces=[],
@@ -48,13 +72,12 @@ def test_duplicate_interface_name_within_controller_is_invalid():
     eth2 = EthernetInterface(
         name="eth0", interface_config=EthernetInterfaceConfig(virtual_interfaces=[VirtualControllerInterface(name="vif0", addresses=[])])
     )
+    controller_metadata = _make_embedded_metadata()
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError, match="Duplicates found in Controller Interfaces"):
         Controller(
             name="CTRL1",
-            controller_metadata=EmbeddedMetadata(
-                type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.13.0")
-            ),
+            controller_metadata=controller_metadata,
             ethernet_interfaces=[eth1, eth2],
         )
 
@@ -66,13 +89,12 @@ def test_duplicate_interface_name_across_interface_types_is_invalid():
         name="iface0", interface_config=EthernetInterfaceConfig(virtual_interfaces=[VirtualControllerInterface(name="vif0", addresses=[])])
     )
     can = CANInterface(name="iface0", bus_ref="can_bus")
+    controller_metadata = _make_embedded_metadata()
 
     with pytest.raises(ValidationError):
         Controller(
             name="CTRL1",
-            controller_metadata=EmbeddedMetadata(
-                type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.13.0")
-            ),
+            controller_metadata=controller_metadata,
             ethernet_interfaces=[eth],
             can_interfaces=[can],
         )
@@ -94,13 +116,12 @@ def test_duplicate_ethernet_mac_address_is_invalid():
             mac_address="00:11:22:33:44:55", virtual_interfaces=[VirtualControllerInterface(name="vif1", addresses=[])]
         ),
     )
+    controller_metadata = _make_embedded_metadata()
 
     with pytest.raises(ValidationError):
         Controller(
             name="CTRL1",
-            controller_metadata=EmbeddedMetadata(
-                type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.13.0")
-            ),
+            controller_metadata=controller_metadata,
             ethernet_interfaces=[eth1, eth2],
         )
 
@@ -108,14 +129,13 @@ def test_duplicate_ethernet_mac_address_is_invalid():
 # Verify that a physical EthernetInterface without a MAC address is rejected.
 @pytest.mark.xfail(reason="FLYNC-1341")
 def test_physical_ethernet_interface_without_mac_address_is_invalid():
+    interface_config = EthernetInterfaceConfig(
+        # MAC address intentionally omitted
+        virtual_interfaces=[VirtualControllerInterface(name="vif0", addresses=[])]
+    )
+
     with pytest.raises(ValidationError):
-        EthernetInterface(
-            name="eth0",
-            interface_config=EthernetInterfaceConfig(
-                # MAC address intentionally omitted
-                virtual_interfaces=[VirtualControllerInterface(name="vif0", addresses=[])]
-            ),
-        )
+        EthernetInterface(name="eth0", interface_config=interface_config)
 
 
 # Verify that a LIN Master cannot use a LIN bus without a schedule table.
@@ -128,9 +148,7 @@ def test_lin_master_without_schedule_table_is_invalid():
 
     controller = Controller(
         name="CTRL1",
-        controller_metadata=EmbeddedMetadata(
-            type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.13.0")
-        ),
+        controller_metadata=_make_embedded_metadata(),
         lin_interfaces=[lin_master],
     )
 
@@ -138,18 +156,14 @@ def test_lin_master_without_schedule_table_is_invalid():
         name="ECU1",
         controllers=[controller],
         topology=InternalTopology(),
-        ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=BaseVersion(version="0.13.0")),
+        ecu_metadata=_make_ecu_metadata(),
     )
+    general = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(lin_buses=[lin_bus]))
+    topology = _make_empty_topology()
+    metadata = _make_system_metadata()
 
     with pytest.raises(ValidationError):
-        FLYNCModel(
-            ecus=[ecu],
-            general=FLYNCCommunicationConfig(channels=FLYNCChannelConfig(lin_buses=[lin_bus])),
-            topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
-            metadata=SystemMetadata(
-                type="system", release=BaseVersion(version="0.13.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.13.0")
-            ),
-        )
+        FLYNCModel(ecus=[ecu], general=general, topology=topology, metadata=metadata)
 
 
 # Verify that a LIN Slave cannot use a LIN bus with a schedule table. Scheduling is handled by the LIN Master only.
@@ -164,9 +178,7 @@ def test_lin_slave_with_schedule_table_is_invalid():
 
     controller = Controller(
         name="CTRL1",
-        controller_metadata=EmbeddedMetadata(
-            type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.13.0")
-        ),
+        controller_metadata=_make_embedded_metadata(),
         lin_interfaces=[lin_slave],
     )
 
@@ -174,18 +186,14 @@ def test_lin_slave_with_schedule_table_is_invalid():
         name="ECU1",
         controllers=[controller],
         topology=InternalTopology(),
-        ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=BaseVersion(version="0.13.0")),
+        ecu_metadata=_make_ecu_metadata(),
     )
+    general = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(lin_buses=[lin_bus]))
+    topology = _make_empty_topology()
+    metadata = _make_system_metadata()
 
     with pytest.raises(ValidationError):
-        FLYNCModel(
-            ecus=[ecu],
-            general=FLYNCCommunicationConfig(channels=FLYNCChannelConfig(lin_buses=[lin_bus])),
-            topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
-            metadata=SystemMetadata(
-                type="system", release=BaseVersion(version="0.13.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.13.0")
-            ),
-        )
+        FLYNCModel(ecus=[ecu], general=general, topology=topology, metadata=metadata)
 
 
 # Verify that an Ethernet switch cannot connect to a CAN interface. Ethernet switches support Ethernet interfaces only.
@@ -194,13 +202,12 @@ def test_ethernet_switch_connected_to_can_interface_is_invalid():
     can_iface = CANInterface(name="can_iface", bus_ref="can_bus")
 
     virtual_switch = VirtualSwitch(name="vswitch_1", vlans=[], ports=[VirtualSwitchPort(name="invalid_vswitch", node_connected="can_iface")])
+    controller_metadata = _make_embedded_metadata()
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError, match="interface or compute node"):
         Controller(
             name="CTRL1",
-            controller_metadata=EmbeddedMetadata(
-                type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.13.0")
-            ),
+            controller_metadata=controller_metadata,
             can_interfaces=[can_iface],
             virtual_switch=virtual_switch,
         )
@@ -212,13 +219,12 @@ def test_ethernet_switch_connected_to_lin_interface_is_invalid():
     lin_iface = LINMasterInterface(name="lin_master_iface", bus_ref="lin_bus", lin_protocol="2.0", p2_min=10, st_min=10)
 
     virtual_switch = VirtualSwitch(name="vswitch_1", vlans=[], ports=[VirtualSwitchPort(name="invalid_vswitch", node_connected="lin_master_iface")])
+    controller_metadata = _make_embedded_metadata()
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError, match="interface or compute node"):
         Controller(
             name="CTRL1",
-            controller_metadata=EmbeddedMetadata(
-                type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.13.0")
-            ),
+            controller_metadata=controller_metadata,
             lin_interfaces=[lin_iface],
             virtual_switch=virtual_switch,
         )
@@ -250,9 +256,7 @@ def test_same_physical_interface_connected_multiple_times_is_invalid():
 
     controller = Controller(
         name="CTRL1",
-        controller_metadata=EmbeddedMetadata(
-            type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.13.0")
-        ),
+        controller_metadata=_make_embedded_metadata(),
         ethernet_interfaces=[eth_iface],
         virtual_switch=virtual_switch,
     )
@@ -264,7 +268,7 @@ def test_same_physical_interface_connected_multiple_times_is_invalid():
             SwitchPort(name="port2", mii_config=MII(speed=100, mode="phy"), silicon_port_no=2, default_vlan_id=1),
         ],
         vlans=[],
-        meta=EmbeddedMetadata(type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.13.0")),
+        meta=_make_embedded_metadata(),
     )
 
     ecu = ECU(
@@ -277,33 +281,24 @@ def test_same_physical_interface_connected_multiple_times_is_invalid():
                 SwitchPortToControllerInterface(id="conn2", switch="switch1", switch_port="port2", controller_interface="eth0", controller="CTRL1"),
             ]
         ),
-        ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=BaseVersion(version="0.13.0")),
+        ecu_metadata=_make_ecu_metadata(),
     )
+    topology = _make_empty_topology()
+    metadata = _make_system_metadata()
 
     with pytest.raises(ValidationError):
-        FLYNCModel(
-            ecus=[ecu],
-            topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
-            metadata=SystemMetadata(
-                type="system", release=BaseVersion(version="0.13.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.13.0")
-            ),
-        )
+        FLYNCModel(ecus=[ecu], topology=topology, metadata=metadata)
 
 
 # Verify that duplicate VLAN IDs inside the same Ethernet interface are rejected.
 def test_ethernet_vlan_conflict_is_invalid():
+    mii_config = MII(speed=100, mode="mac")
+    vif0 = VirtualControllerInterface(name="vif0", vlanid=10, addresses=[])
+    vif1 = VirtualControllerInterface(name="vif1", vlanid=10, addresses=[])
 
-    with pytest.raises(ValidationError):
-        EthernetInterface(
-            name="eth0",
-            interface_config=EthernetInterfaceConfig(
-                mii_config=MII(speed=100, mode="mac"),
-                virtual_interfaces=[
-                    VirtualControllerInterface(name="vif0", vlanid=10, addresses=[]),
-                    VirtualControllerInterface(name="vif1", vlanid=10, addresses=[]),
-                ],
-            ),
-        )
+    # The duplicate-VLAN check lives on EthernetInterfaceConfig, so that is the call under test.
+    with pytest.raises(ValidationError, match="Duplicates found in VLAN IDs of virtual Controller Interface"):
+        EthernetInterfaceConfig(mii_config=mii_config, virtual_interfaces=[vif0, vif1])
 
 
 # Verify that topology loading fails when a referenced ControllerInterface does not exist.
@@ -313,7 +308,7 @@ def test_unresolved_controller_interface_reference_in_topology_is_invalid():
         name="switch1",
         ports=[SwitchPort(name="port1", silicon_port_no=1, default_vlan_id=1, mii_config=MII(speed=100, mode="phy"))],
         vlans=[],
-        meta=EmbeddedMetadata(type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.13.0")),
+        meta=_make_embedded_metadata(),
     )
 
     eth_iface = EthernetInterface(
@@ -325,23 +320,17 @@ def test_unresolved_controller_interface_reference_in_topology_is_invalid():
 
     controller = Controller(
         name="CTRL1",
-        controller_metadata=EmbeddedMetadata(
-            type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.13.0")
-        ),
+        controller_metadata=_make_embedded_metadata(),
         ethernet_interfaces=[eth_iface],
     )
+    internal_topology = InternalTopology(
+        connections=[
+            SwitchPortToControllerInterface(
+                id="conn1", switch="switch1", switch_port="port1", controller_interface="eth_missing", controller="CTRL1"
+            )
+        ]
+    )
+    ecu_metadata = _make_ecu_metadata()
 
-    with pytest.raises(ValidationError):
-        ECU(
-            name="ECU1",
-            controllers=[controller],
-            switches=[switch],
-            topology=InternalTopology(
-                connections=[
-                    SwitchPortToControllerInterface(
-                        id="conn1", switch="switch1", switch_port="port1", controller_interface="eth_missing", controller="CTRL1"
-                    )
-                ]
-            ),
-            ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=BaseVersion(version="0.13.0")),
-        )
+    with pytest.raises(ValidationError, match="was not found or was not validated"):
+        ECU(name="ECU1", controllers=[controller], switches=[switch], topology=internal_topology, ecu_metadata=ecu_metadata)

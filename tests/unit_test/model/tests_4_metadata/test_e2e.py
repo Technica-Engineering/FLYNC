@@ -6,6 +6,7 @@ from flync.model.flync_4_someip import (
     SOMEIPEvent,
     SOMEIPEventgroup,
     SOMEIPServiceInterface,
+    SOMEIPTimingProfile,
 )
 
 
@@ -20,7 +21,16 @@ def test_e2e_config():
     assert e.e2e.data_id == 0x12345678
 
 
-def test_e2e_duplicate_data_id_in_profiles(metadata_entry):
+def test_e2e_duplicate_data_id_in_profiles(
+    metadata_entry,
+    someip_sdconfig,
+    someip_event_default_timings_profile,
+    someip_field_default_timings_profile,
+    someip_method_default_timings_profile,
+    someip_event_custom_timings_profile,
+    someip_field_custom_timings_profile,
+    someip_method_custom_timings_profile,
+):
     e1 = SOMEIPEvent(
         name="t",
         id=2,
@@ -41,22 +51,37 @@ def test_e2e_duplicate_data_id_in_profiles(metadata_entry):
         e2e={"profile": "AUTOSAR_Profile_2", "data_id": 0x12345678},
     )
 
-    with pytest.raises(ValidationError):
+    ets_01 = SOMEIPServiceInterface(
+        meta=metadata_entry,
+        name="a",
+        id=1,
+        events=[e1, e2],
+        eventgroups=[SOMEIPEventgroup(name="eg", id=1, events=[e1, e2])],
+    )
 
-        ETS_01 = SOMEIPServiceInterface(
-            meta=metadata_entry,
-            name="a",
-            id=1,
-            events=[e1, e2],
-            eventgroups=[SOMEIPEventgroup(name="eg", id=1, events=[e1, e2])],
-        )
+    ets_02 = SOMEIPServiceInterface(
+        meta=metadata_entry,
+        name="a",
+        id=2,
+        events=[e3],
+        eventgroups=[SOMEIPEventgroup(name="eg", id=1, events=[e3])],
+    )
 
-        ETS_02 = SOMEIPServiceInterface(
-            meta=metadata_entry,
-            name="a",
-            id=2,
-            events=[e3],
-            eventgroups=[SOMEIPEventgroup(name="eg", id=1, events=[e3])],
-        )
+    # sd_config and someip_timings are mandatory: without them SOMEIPConfig fails on the missing fields
+    # before the duplicate-data_id check is reached, so supply valid ones.
+    someip_timings = SOMEIPTimingProfile(
+        profiles=[
+            someip_event_custom_timings_profile,
+            someip_field_custom_timings_profile,
+            someip_method_custom_timings_profile,
+        ],
+        defaults=[
+            someip_event_default_timings_profile,
+            someip_field_default_timings_profile,
+            someip_method_default_timings_profile,
+        ],
+    )
 
-        SOMEIPConfig(services=[ETS_01, ETS_02])
+    # e2 and e3 share data_id 0x12345678 within AUTOSAR_Profile_2, across the two services.
+    with pytest.raises(ValidationError, match="Duplicate e2e.data_id"):
+        SOMEIPConfig(services=[ets_01, ets_02], sd_config=someip_sdconfig, someip_timings=someip_timings)

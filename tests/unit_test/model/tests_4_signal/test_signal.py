@@ -180,13 +180,10 @@ class Test_TextTable:
 
     def test_negative_text_table_overlap(self):
         """Overlap detection between a single value and a covering range."""
+        entries = [TextEntry(from_value=0, to_value=9, label="Low"), TextEntry(value=5, label="Five")]
+
         with pytest.raises(ValidationError, match="overlap"):
-            TextTable(
-                entries=[
-                    TextEntry(from_value=0, to_value=9, label="Low"),
-                    TextEntry(value=5, label="Five"),
-                ],
-            )
+            TextTable(entries=entries)
 
 
 class Test_BitfieldTextTable:
@@ -208,68 +205,40 @@ class Test_BitfieldTextTable:
         assert table.groups[0].mask == 0xFF
 
     def test_negative_bitfield_overlapping_states_within_group(self):
+        states = [BitfieldState(label="A", from_value=0x08, to_value=0x18), BitfieldState(label="B", from_value=0x10, to_value=0x20)]
+
         with pytest.raises(ValidationError, match="overlap"):
-            BitfieldGroup(
-                name="G",
-                mask=0xFF,
-                states=[
-                    BitfieldState(label="A", from_value=0x08, to_value=0x18),
-                    BitfieldState(label="B", from_value=0x10, to_value=0x20),
-                ],
-            )
+            BitfieldGroup(name="G", mask=0xFF, states=states)
 
     def test_negative_bitfield_overlapping_group_masks(self):
+        groups = [
+            BitfieldGroup(name="A", mask=0xF0, states=[BitfieldState(label="SA", from_value=0, to_value=0)]),
+            BitfieldGroup(name="B", mask=0x30, states=[BitfieldState(label="SB", from_value=0, to_value=0)]),
+        ]
+
         with pytest.raises(ValidationError, match="overlaps another group"):
-            BitfieldTextTable(
-                groups=[
-                    BitfieldGroup(
-                        name="A",
-                        mask=0xF0,
-                        states=[BitfieldState(label="SA", from_value=0, to_value=0)],
-                    ),
-                    BitfieldGroup(
-                        name="B",
-                        mask=0x30,
-                        states=[BitfieldState(label="SB", from_value=0, to_value=0)],
-                    ),
-                ],
-            )
+            BitfieldTextTable(groups=groups)
 
     def test_negative_bitfield_duplicate_group_name(self):
+        groups = [
+            BitfieldGroup(name="G", mask=0x0F, states=[BitfieldState(label="A", from_value=0, to_value=0)]),
+            BitfieldGroup(name="G", mask=0xF0, states=[BitfieldState(label="B", from_value=0, to_value=0)]),
+        ]
+
         with pytest.raises(ValidationError, match="duplicate group name"):
-            BitfieldTextTable(
-                groups=[
-                    BitfieldGroup(
-                        name="G",
-                        mask=0x0F,
-                        states=[BitfieldState(label="A", from_value=0, to_value=0)],
-                    ),
-                    BitfieldGroup(
-                        name="G",
-                        mask=0xF0,
-                        states=[BitfieldState(label="B", from_value=0, to_value=0)],
-                    ),
-                ],
-            )
+            BitfieldTextTable(groups=groups)
 
     def test_negative_bitfield_state_outside_mask(self):
+        states = [BitfieldState(label="OutOfMask", from_value=0x10, to_value=0x10)]
+
         with pytest.raises(ValidationError, match="outside mask"):
-            BitfieldGroup(
-                name="G",
-                mask=0x0F,
-                states=[BitfieldState(label="OutOfMask", from_value=0x10, to_value=0x10)],
-            )
+            BitfieldGroup(name="G", mask=0x0F, states=states)
 
     def test_negative_bitfield_duplicate_state_label(self):
+        states = [BitfieldState(label="Dup", from_value=0x01, to_value=0x01), BitfieldState(label="Dup", from_value=0x02, to_value=0x02)]
+
         with pytest.raises(ValidationError, match="duplicate state label"):
-            BitfieldGroup(
-                name="G",
-                mask=0xFF,
-                states=[
-                    BitfieldState(label="Dup", from_value=0x01, to_value=0x01),
-                    BitfieldState(label="Dup", from_value=0x02, to_value=0x02),
-                ],
-            )
+            BitfieldGroup(name="G", mask=0xFF, states=states)
 
 
 class Test_BitmaskFlags:
@@ -288,22 +257,16 @@ class Test_BitmaskFlags:
         assert len(table.flags) == 2
 
     def test_negative_bitmask_flags_overlapping_masks(self):
+        flags = [BitmaskFlag(mask=0x03, label="A"), BitmaskFlag(mask=0x06, label="B")]
+
         with pytest.raises(ValidationError, match="overlaps another flag"):
-            BitmaskFlags(
-                flags=[
-                    BitmaskFlag(mask=0x03, label="A"),
-                    BitmaskFlag(mask=0x06, label="B"),
-                ],
-            )
+            BitmaskFlags(flags=flags)
 
     def test_negative_bitmask_flags_duplicate_label(self):
+        flags = [BitmaskFlag(mask=0x01, label="Dup"), BitmaskFlag(mask=0x02, label="Dup")]
+
         with pytest.raises(ValidationError, match="duplicate flag label"):
-            BitmaskFlags(
-                flags=[
-                    BitmaskFlag(mask=0x01, label="Dup"),
-                    BitmaskFlag(mask=0x02, label="Dup"),
-                ],
-            )
+            BitmaskFlags(flags=flags)
 
     def test_negative_bitmask_flags_zero_mask(self):
         with pytest.raises(ValidationError):
@@ -741,32 +704,18 @@ class Test_Signal:
             )
 
     def test_negative_text_table_duplicate_value(self):
+        entries = [TextEntry(from_value=1, to_value=1, label="First"), TextEntry(from_value=1, to_value=1, label="Also first")]
+
+        # The overlap check runs while the encoding is built, before any Signal can reference it.
         with pytest.raises(ValidationError, match="overlap"):
-            Signal(
-                name="dup_val",
-                bit_length=8,
-                data_type=SignalDataType.UINT8,
-                value_encoding=TextTable(
-                    entries=[
-                        TextEntry(from_value=1, to_value=1, label="First"),
-                        TextEntry(from_value=1, to_value=1, label="Also first"),
-                    ],
-                ),
-            )
+            TextTable(entries=entries)
 
     def test_negative_range_text_table_overlapping_entries(self):
+        entries = [TextEntry(from_value=0, to_value=10, label="A"), TextEntry(from_value=5, to_value=15, label="B")]
+
+        # The overlap check runs while the encoding is built, before any Signal can reference it.
         with pytest.raises(ValidationError, match="overlap"):
-            Signal(
-                name="olap",
-                bit_length=8,
-                data_type=SignalDataType.UINT8,
-                value_encoding=TextTable(
-                    entries=[
-                        TextEntry(from_value=0, to_value=10, label="A"),
-                        TextEntry(from_value=5, to_value=15, label="B"),
-                    ],
-                ),
-            )
+            TextTable(entries=entries)
 
     @pytest.mark.parametrize(
         "data_type, bit_length, bad_value",
@@ -778,15 +727,10 @@ class Test_Signal:
         ],
     )
     def test_negative_text_table_out_of_range(self, data_type, bit_length, bad_value):
+        value_encoding = TextTable(entries=[TextEntry(from_value=bad_value, to_value=bad_value, label="Out")])
+
         with pytest.raises(ValidationError):
-            Signal(
-                name=f"vd_range_{data_type.value}",
-                bit_length=bit_length,
-                data_type=data_type,
-                value_encoding=TextTable(
-                    entries=[TextEntry(from_value=bad_value, to_value=bad_value, label="Out")],
-                ),
-            )
+            Signal(name=f"vd_range_{data_type.value}", bit_length=bit_length, data_type=data_type, value_encoding=value_encoding)
 
     @pytest.mark.parametrize(
         "data_type, bit_length, bad_from, bad_to",
@@ -797,15 +741,10 @@ class Test_Signal:
         ],
     )
     def test_negative_range_text_table_out_of_range(self, data_type, bit_length, bad_from, bad_to):
+        value_encoding = TextTable(entries=[TextEntry(from_value=bad_from, to_value=bad_to, label="Out")])
+
         with pytest.raises(ValidationError):
-            Signal(
-                name=f"rg_range_{data_type.value}",
-                bit_length=bit_length,
-                data_type=data_type,
-                value_encoding=TextTable(
-                    entries=[TextEntry(from_value=bad_from, to_value=bad_to, label="Out")],
-                ),
-            )
+            Signal(name=f"rg_range_{data_type.value}", bit_length=bit_length, data_type=data_type, value_encoding=value_encoding)
 
     @pytest.mark.parametrize(
         "data_type, bit_length",
@@ -817,43 +756,24 @@ class Test_Signal:
         ],
     )
     def test_negative_value_encoding_unsupported_data_type(self, data_type, bit_length):
+        value_encoding = TextTable(entries=[TextEntry(from_value=0, to_value=0, label="X")])
+
         with pytest.raises(ValidationError, match="not supported"):
-            Signal(
-                name="bad_dt",
-                bit_length=bit_length,
-                data_type=data_type,
-                value_encoding=TextTable(
-                    entries=[TextEntry(from_value=0, to_value=0, label="X")],
-                ),
-            )
+            Signal(name="bad_dt", bit_length=bit_length, data_type=data_type, value_encoding=value_encoding)
 
     def test_negative_bitmask_flags_mask_exceeds_bit_length(self):
+        value_encoding = BitmaskFlags(flags=[BitmaskFlag(mask=0x100, label="TooBig")])
+
         with pytest.raises(ValidationError, match="exceeds the representable range"):
-            Signal(
-                name="bm_overflow",
-                bit_length=8,
-                data_type=SignalDataType.UINT8,
-                value_encoding=BitmaskFlags(
-                    flags=[BitmaskFlag(mask=0x100, label="TooBig")],
-                ),
-            )
+            Signal(name="bm_overflow", bit_length=8, data_type=SignalDataType.UINT8, value_encoding=value_encoding)
 
     def test_negative_bitfield_mask_exceeds_bit_length(self):
+        value_encoding = BitfieldTextTable(
+            groups=[BitfieldGroup(name="G", mask=0x1FF, states=[BitfieldState(label="S", from_value=0, to_value=0)])],
+        )
+
         with pytest.raises(ValidationError, match="exceeds the representable range"):
-            Signal(
-                name="mask_overflow",
-                bit_length=8,
-                data_type=SignalDataType.UINT8,
-                value_encoding=BitfieldTextTable(
-                    groups=[
-                        BitfieldGroup(
-                            name="G",
-                            mask=0x1FF,
-                            states=[BitfieldState(label="S", from_value=0, to_value=0)],
-                        ),
-                    ],
-                ),
-            )
+            Signal(name="mask_overflow", bit_length=8, data_type=SignalDataType.UINT8, value_encoding=value_encoding)
 
     @pytest.mark.parametrize(
         "data_type, bit_length, bad_iv",
@@ -984,27 +904,19 @@ class Test_SignalGroup:
         """Two signal instances whose ranges intersect inside a group must be rejected."""
         s1 = Signal(name="grp_olap_s1", bit_length=8, data_type=SignalDataType.UINT8)
         s2 = Signal(name="grp_olap_s2", bit_length=8, data_type=SignalDataType.UINT8)
+        instances = [SignalInstance(signal=s1, bit_position=0), SignalInstance(signal=s2, bit_position=4)]
+
         with pytest.raises(ValidationError, match="overlap"):
-            SignalGroup(
-                name="grp_olap",
-                signals=[
-                    SignalInstance(signal=s1, bit_position=0),
-                    SignalInstance(signal=s2, bit_position=4),
-                ],
-            )
+            SignalGroup(name="grp_olap", signals=instances)
 
     def test_negative_signal_group_signals_identical_position(self):
         """Two signal instances at the same bit_position inside a group must overlap."""
         s1 = Signal(name="grp_same_s1", bit_length=8, data_type=SignalDataType.UINT8)
         s2 = Signal(name="grp_same_s2", bit_length=8, data_type=SignalDataType.UINT8)
+        instances = [SignalInstance(signal=s1, bit_position=0), SignalInstance(signal=s2, bit_position=0)]
+
         with pytest.raises(ValidationError, match="overlap"):
-            SignalGroup(
-                name="grp_same_pos",
-                signals=[
-                    SignalInstance(signal=s1, bit_position=0),
-                    SignalInstance(signal=s2, bit_position=0),
-                ],
-            )
+            SignalGroup(name="grp_same_pos", signals=instances)
 
 
 class Test_SignalGroupInstance:

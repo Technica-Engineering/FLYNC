@@ -224,17 +224,10 @@ def test_negative_can_frame_negative_length():
 
 
 def test_negative_can_frame_duplicate_pdu_bit_positions():
+    packed_pdus = [PDUInstance(pdu_ref="p1", bit_position=0), PDUInstance(pdu_ref="p2", bit_position=0)]
+
     with pytest.raises(ValidationError):
-        CANFrame(
-            name="can_dup_pdu",
-            can_id=0x100,
-            id_format="standard_11bit",
-            length=8,
-            packed_pdus=[
-                PDUInstance(pdu_ref="p1", bit_position=0),
-                PDUInstance(pdu_ref="p2", bit_position=0),
-            ],
-        )
+        CANFrame(name="can_dup_pdu", can_id=0x100, id_format="standard_11bit", length=8, packed_pdus=packed_pdus)
 
 
 # ---------------------------------------------------------------------------
@@ -358,17 +351,10 @@ def test_negative_can_fd_frame_standard_id_too_large():
 
 
 def test_negative_can_fd_frame_duplicate_pdu_bit_positions():
+    packed_pdus = [PDUInstance(pdu_ref="fd_p1", bit_position=0), PDUInstance(pdu_ref="fd_p2", bit_position=0)]
+
     with pytest.raises(ValidationError):
-        CANFDFrame(
-            name="canfd_dup_pdu",
-            can_id=0x100,
-            id_format="standard_11bit",
-            length=8,
-            packed_pdus=[
-                PDUInstance(pdu_ref="fd_p1", bit_position=0),
-                PDUInstance(pdu_ref="fd_p2", bit_position=0),
-            ],
-        )
+        CANFDFrame(name="canfd_dup_pdu", can_id=0x100, id_format="standard_11bit", length=8, packed_pdus=packed_pdus)
 
 
 # ---------------------------------------------------------------------------
@@ -454,13 +440,7 @@ def test_negative_lin_frame_length_too_large():
 
 
 def test_negative_lin_frame_duplicate_pdu_bit_positions():
+    packed_pdus = [PDUInstance(pdu_ref="lp1", bit_position=0), PDUInstance(pdu_ref="lp2", bit_position=0)]
+
     with pytest.raises(ValidationError):
-        LINFrame(
-            name="lin_dup_pdu",
-            lin_id=0x01,
-            length=8,
-            packed_pdus=[
-                PDUInstance(pdu_ref="lp1", bit_position=0),
-                PDUInstance(pdu_ref="lp2", bit_position=0),
-            ],
-        )
+        LINFrame(name="lin_dup_pdu", lin_id=0x01, length=8, packed_pdus=packed_pdus)

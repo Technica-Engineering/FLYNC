@@ -90,26 +90,18 @@ def test_positive_deployment_union_existing_variants_unaffected():
 
 
 def test_negative_pdu_forwarder_duplicate_can_egresss():
+    egresses = [_can_egress(bus_ref="DiagCAN", frame_ref=0x200), _can_egress(bus_ref="DiagCAN", frame_ref=0x200)]
+
     with pytest.raises(ValidationError) as exc:
-        PDUForwarder(
-            pdu_ref="PDU_X",
-            egresses=[
-                _can_egress(bus_ref="DiagCAN", frame_ref=0x200),
-                _can_egress(bus_ref="DiagCAN", frame_ref=0x200),
-            ],
-        )
+        PDUForwarder(pdu_ref="PDU_X", egresses=egresses)
     assert "duplicates" in str(exc.value).lower()
 
 
 def test_negative_pdu_forwarder_duplicate_eth_socket_egresss():
+    egresses = [_eth_socket_egress(socket_ref="sock_a"), _eth_socket_egress(socket_ref="sock_a")]
+
     with pytest.raises(ValidationError) as exc:
-        PDUForwarder(
-            pdu_ref="PDU_X",
-            egresses=[
-                _eth_socket_egress(socket_ref="sock_a"),
-                _eth_socket_egress(socket_ref="sock_a"),
-            ],
-        )
+        PDUForwarder(pdu_ref="PDU_X", egresses=egresses)
     assert "duplicates" in str(exc.value).lower()
 
 
@@ -136,14 +128,10 @@ def test_negative_can_frame_forwarder_empty_sinks():
 
 
 def test_negative_can_frame_forwarder_duplicate_sinks():
+    egresses = [_can_egress(bus_ref="DiagCAN", frame_ref=0x101), _can_egress(bus_ref="DiagCAN", frame_ref=0x101)]
+
     with pytest.raises(ValidationError) as exc:
-        CANFrameForwarder(
-            frame_ref="Frame_X",
-            egresses=[
-                _can_egress(bus_ref="DiagCAN", frame_ref=0x101),
-                _can_egress(bus_ref="DiagCAN", frame_ref=0x101),
-            ],
-        )
+        CANFrameForwarder(frame_ref="Frame_X", egresses=egresses)
     assert "duplicates" in str(exc.value).lower()
 
 

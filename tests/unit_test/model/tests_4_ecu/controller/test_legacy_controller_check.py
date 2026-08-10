@@ -54,8 +54,10 @@ def test_detect_returns_none_for_unrelated_inputs(data):
 
 
 def test_reject_legacy_controller_raises_fatal_error():
+    payload = _legacy_payload("0.10.0")
+
     with pytest.raises(Exception) as exc_info:
-        reject_legacy_controller(_legacy_payload("0.10.0"))
+        reject_legacy_controller(payload)
     # err_fatal returns a PydanticCustomError whose type is "fatal"
     assert exc_info.value.type == "fatal"
     assert "0.10.0" in str(exc_info.value)
@@ -74,8 +76,10 @@ def test_reject_legacy_controller_is_noop_for_new_payload(
 
 
 def test_controller_model_validate_rejects_legacy_payload():
+    payload = _legacy_payload("0.9.0")
+
     with pytest.raises(ValidationError) as exc_info:
-        Controller.model_validate(_legacy_payload("0.9.0"))
+        Controller.model_validate(payload)
     errors = exc_info.value.errors()
     fatal_errors = [e for e in errors if e.get("type") == "fatal"]
     assert fatal_errors, f"expected a fatal error, got {errors}"

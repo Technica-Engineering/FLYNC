@@ -6,7 +6,7 @@ from pydantic import ValidationError
 from flync.model.flync_4_bus.can_bus import CANBus
 from flync.model.flync_4_communication.flync_channels import FLYNCChannelConfig
 from flync.model.flync_4_communication.flync_communication import FLYNCCommunicationConfig
-from flync.model.flync_4_ecu import Controller, EthernetInterface, EthernetInterfaceConfig, SocketTCP, VirtualControllerInterface
+from flync.model.flync_4_ecu import EthernetInterface, EthernetInterfaceConfig, SocketTCP, VirtualControllerInterface
 from flync.model.flync_4_ecu.can_interface import CANFrameRef, CANInterface
 from flync.model.flync_4_ecu.controller import Controller
 from flync.model.flync_4_ecu.ecu import ECU
@@ -21,6 +21,33 @@ from flync.model.flync_4_signal.signal import Signal
 from flync.model.flync_4_topology.system_topology import FLYNCTopology, SystemTopology
 from flync.model.flync_model import FLYNCModel
 
+FLYNC_VERSION = "0.13.0"
+
+
+def _make_version() -> BaseVersion:
+    """Return the FLYNC version used by every negative routing test."""
+    return BaseVersion(version=FLYNC_VERSION)
+
+
+def _make_system_metadata() -> SystemMetadata:
+    """Return the common system metadata used by every negative routing test."""
+    return SystemMetadata(type="system", release=_make_version(), author="TestTeam", compatible_flync_version=_make_version())
+
+
+def _make_empty_topology() -> FLYNCTopology:
+    """Return an empty system topology usable by every negative routing test."""
+    return FLYNCTopology(system_topology=SystemTopology(connections=[]))
+
+
+def _make_controller_metadata() -> EmbeddedMetadata:
+    """Return the common controller metadata used by every negative routing test."""
+    return EmbeddedMetadata(type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=_make_version())
+
+
+def _make_ecu_metadata() -> ECUMetadata:
+    """Return the common ECU metadata used by every negative routing test."""
+    return ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=_make_version())
+
 
 def test_duplicate_forwarder_rejected():
     """
@@ -29,12 +56,13 @@ def test_duplicate_forwarder_rejected():
     sample_frame = CANFrame(name="EngineStatus", length=8, can_id=0x100, id_format="standard_11bit", is_remote_frame=False)
     forwarder1 = CANFrameForwarder(frame_ref=sample_frame.name, egresses=[CANFrameEgress(frame_ref=sample_frame.can_id, bus_ref="CAN1")])
     forwarder2 = CANFrameForwarder(frame_ref=sample_frame.name, egresses=[CANFrameEgress(frame_ref=sample_frame.can_id, bus_ref="CAN1")])
+    sender_frame = CANFrameRef(bus_ref="CAN1", frame_ref=sample_frame.can_id)
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError, match="duplicate frame_ref"):
         CANInterface(
             name="IF1",
             bus_ref="CAN1",
-            sender_frames=[CANFrameRef(bus_ref="CAN1", frame_ref=sample_frame.can_id)],
+            sender_frames=[sender_frame],
             receiver_frames=[],
             forwarder_frames=[forwarder1, forwarder2],
         )
@@ -51,9 +79,7 @@ def test_forwarder_missing_frame():
     can_interface = CANInterface(name="IF1", bus_ref="CAN_BUS_1", sender_frames=[], receiver_frames=[], forwarder_frames=[forwarder])
     controller = Controller(
         name="CTRL1",
-        controller_metadata=EmbeddedMetadata(
-            type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.12.0")
-        ),
+        controller_metadata=_make_controller_metadata(),
         can_interfaces=[can_interface],
         ethernet_interfaces=[],
     )
@@ -62,18 +88,14 @@ def test_forwarder_missing_frame():
         name="ECU1",
         controllers=[controller],
         topology=InternalTopology(),
-        ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")),
+        ecu_metadata=_make_ecu_metadata(),
     )
+    topology = _make_empty_topology()
+    metadata = _make_system_metadata()
+    communication = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus]))
 
-    with pytest.raises(ValidationError):
-        FLYNCModel(
-            ecus=[ecu],
-            topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
-            metadata=SystemMetadata(
-                type="system", release=BaseVersion(version="0.12.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")
-            ),
-            communication=FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus])),
-        )
+    with pytest.raises(ValidationError, match="does not name any CAN or CAN FD frame declared"):
+        FLYNCModel(ecus=[ecu], topology=topology, metadata=metadata, communication=communication)
 
 
 def test_forwarder_invalid_interface_routing():
@@ -88,32 +110,19 @@ def test_forwarder_invalid_interface_routing():
     can_interface = CANInterface(
         name="IF1", bus_ref="CAN1", receiver_frames=[], forwarder_frames=[forwarder], sender_frames=[CANFrameRef(bus_ref="CAN1", frame_ref=0x100)]
     )
+    controller = Controller(
+        name="CTRL1",
+        controller_metadata=_make_controller_metadata(),
+        can_interfaces=[can_interface],
+        ethernet_interfaces=[],
+    )
+    ecu = ECU(name="ECU1", controllers=[controller], topology=InternalTopology(), ecu_metadata=_make_ecu_metadata())
+    topology = _make_empty_topology()
+    metadata = _make_system_metadata()
+    communication = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus]))
 
-    with pytest.raises(ValidationError):
-        FLYNCModel(
-            ecus=[
-                ECU(
-                    name="ECU1",
-                    controllers=[
-                        Controller(
-                            name="CTRL1",
-                            controller_metadata=EmbeddedMetadata(
-                                type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.12.0")
-                            ),
-                            can_interfaces=[can_interface],
-                            ethernet_interfaces=[],
-                        )
-                    ],
-                    topology=InternalTopology(),
-                    ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")),
-                )
-            ],
-            topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
-            metadata=SystemMetadata(
-                type="system", release=BaseVersion(version="0.12.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")
-            ),
-            communication=FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus])),
-        )
+    with pytest.raises(ValidationError, match="Forwarder cycle detected"):
+        FLYNCModel(ecus=[ecu], topology=topology, metadata=metadata, communication=communication)
 
 
 def test_forwarder_invalid_target_bus():
@@ -128,32 +137,19 @@ def test_forwarder_invalid_target_bus():
     can_interface = CANInterface(
         name="IF1", bus_ref="CAN1", receiver_frames=[], forwarder_frames=[forwarder], sender_frames=[CANFrameRef(bus_ref="CAN1", frame_ref=0x100)]
     )
+    controller = Controller(
+        name="CTRL1",
+        controller_metadata=_make_controller_metadata(),
+        can_interfaces=[can_interface],
+        ethernet_interfaces=[],
+    )
+    ecu = ECU(name="ECU1", controllers=[controller], topology=InternalTopology(), ecu_metadata=_make_ecu_metadata())
+    topology = _make_empty_topology()
+    metadata = _make_system_metadata()
+    communication = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus]))
 
-    with pytest.raises(ValidationError):
-        FLYNCModel(
-            ecus=[
-                ECU(
-                    name="ECU1",
-                    controllers=[
-                        Controller(
-                            name="CTRL1",
-                            controller_metadata=EmbeddedMetadata(
-                                type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.12.0")
-                            ),
-                            can_interfaces=[can_interface],
-                            ethernet_interfaces=[],
-                        )
-                    ],
-                    topology=InternalTopology(),
-                    ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")),
-                )
-            ],
-            topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
-            metadata=SystemMetadata(
-                type="system", release=BaseVersion(version="0.12.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")
-            ),
-            communication=FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus])),
-        )
+    with pytest.raises(ValidationError, match="which has no CAN interface on controller"):
+        FLYNCModel(ecus=[ecu], topology=topology, metadata=metadata, communication=communication)
 
 
 def test_forwarding_invalid_sender():
@@ -169,32 +165,19 @@ def test_forwarding_invalid_sender():
         name="IF1", bus_ref="CAN1", receiver_frames=[], forwarder_frames=[forwarder], sender_frames=[CANFrameRef(bus_ref="CAN1", frame_ref=0x100)]
     )
     can_interface_2 = CANInterface(name="IF2", bus_ref="CAN2", receiver_frames=[], sender_frames=[], forwarder_frames=[])
+    controller = Controller(
+        name="CTRL1",
+        controller_metadata=_make_controller_metadata(),
+        can_interfaces=[can_interface_1, can_interface_2],
+        ethernet_interfaces=[],
+    )
+    ecu = ECU(name="ECU1", controllers=[controller], topology=InternalTopology(), ecu_metadata=_make_ecu_metadata())
+    topology = _make_empty_topology()
+    metadata = _make_system_metadata()
+    communication = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus]))
 
-    with pytest.raises(ValidationError):
-        FLYNCModel(
-            ecus=[
-                ECU(
-                    name="ECU1",
-                    controllers=[
-                        Controller(
-                            name="CTRL1",
-                            controller_metadata=EmbeddedMetadata(
-                                type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.12.0")
-                            ),
-                            can_interfaces=[can_interface_1, can_interface_2],
-                            ethernet_interfaces=[],
-                        )
-                    ],
-                    topology=InternalTopology(),
-                    ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")),
-                )
-            ],
-            topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
-            metadata=SystemMetadata(
-                type="system", release=BaseVersion(version="0.12.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")
-            ),
-            communication=FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus])),
-        )
+    with pytest.raises(ValidationError, match="does not list it in sender_frames of that interface"):
+        FLYNCModel(ecus=[ecu], topology=topology, metadata=metadata, communication=communication)
 
 
 def test_forwarding_locality_violation():
@@ -212,32 +195,19 @@ def test_forwarding_locality_violation():
     can_interface_2 = CANInterface(
         name="IF2", bus_ref="CAN2", receiver_frames=[CANFrameRef(bus_ref="CAN2", frame_ref=0x100)], sender_frames=[], forwarder_frames=[]
     )
+    controller = Controller(
+        name="CTRL1",
+        controller_metadata=_make_controller_metadata(),
+        can_interfaces=[can_interface_1, can_interface_2],
+        ethernet_interfaces=[],
+    )
+    ecu = ECU(name="ECU1", controllers=[controller], topology=InternalTopology(), ecu_metadata=_make_ecu_metadata())
+    topology = _make_empty_topology()
+    metadata = _make_system_metadata()
+    communication = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus]))
 
-    with pytest.raises(ValidationError):
-        FLYNCModel(
-            ecus=[
-                ECU(
-                    name="ECU1",
-                    controllers=[
-                        Controller(
-                            name="CTRL1",
-                            controller_metadata=EmbeddedMetadata(
-                                type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.12.0")
-                            ),
-                            can_interfaces=[can_interface_1, can_interface_2],
-                            ethernet_interfaces=[],
-                        )
-                    ],
-                    topology=InternalTopology(),
-                    ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")),
-                )
-            ],
-            topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
-            metadata=SystemMetadata(
-                type="system", release=BaseVersion(version="0.12.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")
-            ),
-            communication=FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus])),
-        )
+    with pytest.raises(ValidationError, match="does not list it in sender_frames of that interface"):
+        FLYNCModel(ecus=[ecu], topology=topology, metadata=metadata, communication=communication)
 
 
 def test_forwarding_can_to_ethernet_without_pdu():
@@ -259,9 +229,7 @@ def test_forwarding_can_to_ethernet_without_pdu():
     )
     controller = Controller(
         name="CTRL1",
-        controller_metadata=EmbeddedMetadata(
-            type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.12.0")
-        ),
+        controller_metadata=_make_controller_metadata(),
         can_interfaces=[can_interface],
         ethernet_interfaces=[],
     )
@@ -270,23 +238,20 @@ def test_forwarding_can_to_ethernet_without_pdu():
         name="ECU1",
         controllers=[controller],
         topology=InternalTopology(),
-        ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")),
+        ecu_metadata=_make_ecu_metadata(),
     )
+    topology = _make_empty_topology()
+    metadata = _make_system_metadata()
+    communication = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus]))
 
-    with pytest.raises(ValidationError):
-        FLYNCModel(
-            ecus=[ecu],
-            topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
-            metadata=SystemMetadata(
-                type="system", release=BaseVersion(version="0.12.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")
-            ),
-            communication=FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus])),
-        )
+    with pytest.raises(ValidationError, match="cannot resolve egress PDU; ingress frame has no single packed PDU"):
+        FLYNCModel(ecus=[ecu], topology=topology, metadata=metadata, communication=communication)
 
 
 def test_invalid_extract_pdu_ref_on_standard_pdu():
     """
-    Confirms that using 'extract_pdu_ref' on a CANFrameForwarder with a StandardPDU ingress raises a validation error. This property is only valid for ContainerPDUs.
+    Confirms that using 'extract_pdu_ref' on a CANFrameForwarder with a StandardPDU ingress raises a validation error.
+    This property is only valid for ContainerPDUs.
     """
     engine_speed_signal = Signal(name="EngineSpeed", bit_length=16, data_type="uint16", factor=0.125, offset=0)
 
@@ -313,9 +278,7 @@ def test_invalid_extract_pdu_ref_on_standard_pdu():
 
     controller = Controller(
         name="CTRL1",
-        controller_metadata=EmbeddedMetadata(
-            type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.12.0")
-        ),
+        controller_metadata=_make_controller_metadata(),
         can_interfaces=[can_interface],
         ethernet_interfaces=[],
     )
@@ -324,23 +287,20 @@ def test_invalid_extract_pdu_ref_on_standard_pdu():
         name="ECU1",
         controllers=[controller],
         topology=InternalTopology(),
-        ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")),
+        ecu_metadata=_make_ecu_metadata(),
     )
+    topology = _make_empty_topology()
+    metadata = _make_system_metadata()
+    communication = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus], pdus=[engine_status_pdu]))
 
-    with pytest.raises(ValidationError):
-        FLYNCModel(
-            ecus=[ecu],
-            topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
-            metadata=SystemMetadata(
-                type="system", release=BaseVersion(version="0.12.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")
-            ),
-            communication=FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus], pdus=[engine_status_pdu])),
-        )
+    with pytest.raises(ValidationError, match="is only valid when ingress is a ContainerPDU"):
+        FLYNCModel(ecus=[ecu], topology=topology, metadata=metadata, communication=communication)
 
 
 def test_forwarding_can_to_ethernet_missing_pdu_deployment():
     """
-    Validates that CAN-to-Ethernet forwarding is rejected when the target Ethernet socket does not define a PDU sender deployment for the forwarded PDU.
+    Validates that CAN-to-Ethernet forwarding is rejected when the target Ethernet socket does not define a PDU sender
+    deployment for the forwarded PDU.
     """
     engine_speed_signal = Signal(name="EngineSpeed", bit_length=16, data_type="uint16", factor=0.125, offset=0)
 
@@ -392,9 +352,7 @@ def test_forwarding_can_to_ethernet_missing_pdu_deployment():
 
     controller = Controller(
         name="CTRL1",
-        controller_metadata=EmbeddedMetadata(
-            type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.12.0")
-        ),
+        controller_metadata=_make_controller_metadata(),
         can_interfaces=[can_interface],
         ethernet_interfaces=[eth_iface],
     )
@@ -403,18 +361,14 @@ def test_forwarding_can_to_ethernet_missing_pdu_deployment():
         name="ECU1",
         controllers=[controller],
         topology=InternalTopology(),
-        ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")),
+        ecu_metadata=_make_ecu_metadata(),
     )
+    topology = _make_empty_topology()
+    metadata = _make_system_metadata()
+    communication = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus], pdus=[engine_status_pdu]))
 
-    with pytest.raises(ValidationError):
-        FLYNCModel(
-            ecus=[ecu],
-            topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
-            metadata=SystemMetadata(
-                type="system", release=BaseVersion(version="0.12.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")
-            ),
-            communication=FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus], pdus=[engine_status_pdu])),
-        )
+    with pytest.raises(ValidationError, match="has no pdu_sender deployment for PDU"):
+        FLYNCModel(ecus=[ecu], topology=topology, metadata=metadata, communication=communication)
 
 
 def test_forwarding_can_to_ethernet_with_extract_pdu_ref_not_containerPDU():
@@ -485,9 +439,7 @@ def test_forwarding_can_to_ethernet_with_extract_pdu_ref_not_containerPDU():
 
     controller = Controller(
         name="CTRL1",
-        controller_metadata=EmbeddedMetadata(
-            type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.12.0")
-        ),
+        controller_metadata=_make_controller_metadata(),
         can_interfaces=[can_interface],
         ethernet_interfaces=[eth_iface],
     )
@@ -496,17 +448,11 @@ def test_forwarding_can_to_ethernet_with_extract_pdu_ref_not_containerPDU():
         name="ECU1",
         controllers=[controller],
         topology=InternalTopology(),
-        ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")),
+        ecu_metadata=_make_ecu_metadata(),
     )
+    topology = _make_empty_topology()
+    metadata = _make_system_metadata()
+    communication = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus], pdus=[engine_status_pdu], ethernet_pdu_containers=[]))
 
-    with pytest.raises(ValidationError):
-        FLYNCModel(
-            ecus=[ecu],
-            topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
-            metadata=SystemMetadata(
-                type="system", release=BaseVersion(version="0.12.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")
-            ),
-            communication=FLYNCCommunicationConfig(
-                channels=FLYNCChannelConfig(can_buses=[can_bus], pdus=[engine_status_pdu], ethernet_pdu_containers=[])
-            ),
-        )
+    with pytest.raises(ValidationError, match="is only valid when ingress is a ContainerPDU"):
+        FLYNCModel(ecus=[ecu], topology=topology, metadata=metadata, communication=communication)

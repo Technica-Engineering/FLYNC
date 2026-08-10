@@ -502,6 +502,36 @@ Every error and warning the FLYNC validators can raise, identified as
 
    'Forwarder cycle detected: {path}'
 
+.. err:: {owner}: bus_ref '{bus}' does not name any bus declared under {catalogue}.
+   :id: FLYNC-CMN-MAJ-REF-215
+   :module: CMN
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 215
+   :location: interface_validators._validate_interface
+
+   "{owner}: bus_ref '{bus}' does not name any bus declared under {catalogue}."
+
+.. err:: {owner}: {field}: bus_ref '{bus}' does not name any bus declared under {catal...
+   :id: FLYNC-CMN-MAJ-REF-216
+   :module: CMN
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 216
+   :location: interface_validators._validate_interface
+
+   "{owner}: {field}: bus_ref '{bus}' does not name any bus declared under {catalogue}."
+
+.. err:: {owner}: {field}: frame_ref id={ref} does not name any frame declared on bus ...
+   :id: FLYNC-CMN-MAJ-REF-217
+   :module: CMN
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 217
+   :location: interface_validators._validate_interface
+
+   "{owner}: {field}: frame_ref id={ref} does not name any frame declared on bus '{bus}' under {catalogue}."
+
 .. err:: state_memberships reference undefined state management group '{group}' — defi...
    :id: FLYNC-CMN-MAJ-REF-189
    :module: CMN
@@ -2102,15 +2132,15 @@ Every error and warning the FLYNC validators can raise, identified as
 
    str(e)
 
-.. err:: Deployed provided service ({svc.name}, {svc.id:#06x}, {svc.major_version}) ha...
-   :id: FLYNC-GEN-MAJ-CONS-171
+.. err:: Deployed provided service on TCP socket ({socket.name}) of ECU ({ecu.name}) h...
+   :id: FLYNC-GEN-MAJ-CONS-218
    :module: GEN
    :severity: MAJ
    :category: CONSISTENCY
-   :number: 171
-   :location: flync_model.FLYNCModel.validate_multicast_someip
+   :number: 218
+   :location: flync_model.FLYNCModel.validate_no_someip_multicast_on_tcp
 
-   f'Deployed provided service ({svc.name}, {svc.id:#06x}, {svc.major_version}) has multicast configuration for eventgroups ({mcast_config.eventgroups}/{mcast_config.ip_address}), but socket ({socket.name}) does not indicate by multicast_tx entry ({socket.multicast_tx})'
+   f'Deployed provided service on TCP socket ({socket.name}) of ECU ({ecu.name}) has multicast configuration for eventgroups ({[mcast.eventgroups for mcast in provider.multicast_config]}); SOME/IP eventgroup multicast requires a UDP socket'
 
 .. err:: The MAC {mac} is repeated in ECU {ecu.name}
    :id: FLYNC-GEN-MAJ-UNIQ-172
@@ -2152,3 +2182,12 @@ Every error and warning the FLYNC validators can raise, identified as
 
    f'Invalid Multicast Address Configuration. The RX interface for address {key} - {mcast._interface.name} cannot be reached by the TX ports.'
 
+.. err:: Deployed provided service ({svc_label}) has multicast configuration for event...
+   :id: FLYNC-GEN-MAJ-CONS-171
+   :module: GEN
+   :severity: MAJ
+   :category: CONSISTENCY
+   :number: 171
+   :location: flync_model.FLYNCModel.validate_multicast_someip
+
+   f'Deployed provided service ({svc_label}) has multicast configuration for eventgroups ({mcast_config.eventgroups}/{mcast_config.ip_address}), but socket ({socket.name}) does not indicate by multicast_tx entry ({socket.multicast_tx})'

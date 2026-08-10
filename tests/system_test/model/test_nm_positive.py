@@ -47,7 +47,7 @@ from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 # Constants
 # ============================================================================
 
-FLYNC_VERSION = BaseVersion(version_schema="semver", version="0.12.0")
+FLYNC_VERSION = BaseVersion(version_schema="semver", version="0.13.0")
 
 NM_MULTICAST_ADDR = "239.0.0.1"
 NM_UDP_PORT = 1200
@@ -1447,21 +1447,19 @@ def test_multicast_receiver_unknown_pdu_ref_raises():
     hpc = _make_hpc_ecu(nm_tx)
     z1 = _make_zonal_ecu(1, "192.168.40.10", 0x10, bad_rx)
 
+    communication = _make_comm_config(nm_pdu, nm_container)
+    topology = _make_ethernet_topology(("hpc_port1", "zonal1_port1"))
+    metadata = _make_system_metadata()
+
     with pytest.raises(ValidationError, match="pdu_ref 'DoesNotExist'"):
-        FLYNCModel(
-            ecus=[hpc, z1],
-            communication=_make_comm_config(nm_pdu, nm_container),
-            topology=_make_ethernet_topology(("hpc_port1", "zonal1_port1")),
-            metadata=_make_system_metadata(),
-        )
+        FLYNCModel(ecus=[hpc, z1], communication=communication, topology=topology, metadata=metadata)
 
 
 def test_duplicate_nm_pdu_in_catalog_raises():
     """Two NM PDUs sharing the same name in the catalogue are rejected."""
+    duplicate_pdus = [_make_nm_pdu(), _make_nm_pdu()]
+    containers = [_make_nm_container_pdu()]
+
+    # The duplicate-name check lives on FLYNCChannelConfig, so that is the call under test.
     with pytest.raises(ValidationError, match="Duplicates found in PDUs"):
-        FLYNCCommunicationConfig(
-            channels=FLYNCChannelConfig(
-                pdus=[_make_nm_pdu(), _make_nm_pdu()],
-                ethernet_pdu_containers=[_make_nm_container_pdu()],
-            )
-        )
+        FLYNCChannelConfig(pdus=duplicate_pdus, ethernet_pdu_containers=containers)

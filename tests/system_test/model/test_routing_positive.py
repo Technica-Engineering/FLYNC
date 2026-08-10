@@ -21,6 +21,13 @@ from flync.model.flync_4_topology.system_topology import FLYNCTopology, SystemTo
 from flync.model.flync_model import FLYNCModel
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 
+FLYNC_VERSION = "0.13.0"
+
+
+def _make_version() -> BaseVersion:
+    """Return the FLYNC version used by routing tests."""
+    return BaseVersion(version=FLYNC_VERSION)
+
 
 def test_can_frame_routed_across_buses_successfully():
     """
@@ -59,7 +66,9 @@ def test_forwarding_with_valid_can_sender_receiver_context(tmpdir):
     Confirms that a CAN frame is forwarded correctly between interfaces within a FLYNC model. Validates forwarder configuration and model integrity.
     """
     engine_status = CANFrame(name="EngineStatus", length=8, can_id=0x100, id_format="standard_11bit", is_remote_frame=False)
-    can_bus = CANBus(name="CAN2", baud_rate=10000, frames=[engine_status])
+    # Both buses the interfaces below reference must be declared, IF1 sits on CAN1 and forwards onto CAN2.
+    can_bus_1 = CANBus(name="CAN1", baud_rate=10000, frames=[engine_status])
+    can_bus_2 = CANBus(name="CAN2", baud_rate=10000, frames=[engine_status])
     forwarder = CANFrameForwarder(
         frame_ref="EngineStatus", egresses=[ForwarderEgress(root=CANFrameEgress(egress_type="can_frame", bus_ref="CAN2", frame_ref=0x100))]
     )
@@ -75,9 +84,7 @@ def test_forwarding_with_valid_can_sender_receiver_context(tmpdir):
     )
     controller = Controller(
         name="CTRL1",
-        controller_metadata=EmbeddedMetadata(
-            type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.12.0")
-        ),
+        controller_metadata=EmbeddedMetadata(type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=_make_version()),
         can_interfaces=[can_interface_1, can_interface_2],
         ethernet_interfaces=[],
     )
@@ -85,16 +92,14 @@ def test_forwarding_with_valid_can_sender_receiver_context(tmpdir):
         name="ECU1",
         controllers=[controller],
         topology=InternalTopology(),
-        ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")),
+        ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=_make_version()),
     )
 
     flync_model = FLYNCModel(
         ecus=[ecu],
         topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
-        metadata=SystemMetadata(
-            type="system", release=BaseVersion(version="0.12.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")
-        ),
-        communication=FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus])),
+        metadata=SystemMetadata(type="system", release=_make_version(), author="TestTeam", compatible_flync_version=_make_version()),
+        communication=FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus_1, can_bus_2])),
     )
     workspace_path = Path(tmpdir) / "temp_workspace"
     ws = FLYNCWorkspace.load_model(flync_model=flync_model, workspace_name="generated_workspace", file_path=workspace_path)
@@ -152,9 +157,7 @@ def test_forwarding_can_to_ethernet_simple(tmpdir):
     )
     controller = Controller(
         name="CTRL1",
-        controller_metadata=EmbeddedMetadata(
-            type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.12.0")
-        ),
+        controller_metadata=EmbeddedMetadata(type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=_make_version()),
         can_interfaces=[can_interface],
         ethernet_interfaces=[eth_iface],
     )
@@ -162,15 +165,13 @@ def test_forwarding_can_to_ethernet_simple(tmpdir):
         name="ECU1",
         controllers=[controller],
         topology=InternalTopology(),
-        ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")),
+        ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=_make_version()),
     )
 
     flync_model = FLYNCModel(
         ecus=[ecu],
         topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
-        metadata=SystemMetadata(
-            type="system", release=BaseVersion(version="0.12.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")
-        ),
+        metadata=SystemMetadata(type="system", release=_make_version(), author="TestTeam", compatible_flync_version=_make_version()),
         communication=FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus], pdus=[engine_status_pdu])),
     )
     workspace_path = Path(tmpdir) / "temp_workspace"
@@ -233,9 +234,7 @@ def test_multi_egress_forwarding_can_to_eth_and_can(tmpdir):
     )
     controller = Controller(
         name="CTRL1",
-        controller_metadata=EmbeddedMetadata(
-            type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.12.0")
-        ),
+        controller_metadata=EmbeddedMetadata(type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=_make_version()),
         can_interfaces=[can_interface],
         ethernet_interfaces=[eth_interface],
     )
@@ -243,14 +242,12 @@ def test_multi_egress_forwarding_can_to_eth_and_can(tmpdir):
         name="ECU1",
         controllers=[controller],
         topology=InternalTopology(),
-        ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")),
+        ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=_make_version()),
     )
     flync_model = FLYNCModel(
         ecus=[ecu],
         topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
-        metadata=SystemMetadata(
-            type="system", release=BaseVersion(version="0.12.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")
-        ),
+        metadata=SystemMetadata(type="system", release=_make_version(), author="TestTeam", compatible_flync_version=_make_version()),
         communication=FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus], pdus=[engine_status_pdu])),
     )
 
@@ -304,9 +301,7 @@ def test_forwarding_ethernet_to_can_simple(tmpdir):
     )
     controller = Controller(
         name="CTRL1",
-        controller_metadata=EmbeddedMetadata(
-            type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.12.0")
-        ),
+        controller_metadata=EmbeddedMetadata(type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=_make_version()),
         can_interfaces=[can_interface],
         ethernet_interfaces=[eth_interface],
     )
@@ -314,15 +309,13 @@ def test_forwarding_ethernet_to_can_simple(tmpdir):
         name="ECU1",
         controllers=[controller],
         topology=InternalTopology(),
-        ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")),
+        ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=_make_version()),
     )
 
     flync_model = FLYNCModel(
         ecus=[ecu],
         topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
-        metadata=SystemMetadata(
-            type="system", release=BaseVersion(version="0.12.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")
-        ),
+        metadata=SystemMetadata(type="system", release=_make_version(), author="TestTeam", compatible_flync_version=_make_version()),
         communication=FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus], pdus=[engine_status_pdu])),
     )
     workspace_path = Path(tmpdir) / "temp_workspace"
@@ -382,9 +375,7 @@ def test_multi_hop_forwarding_ethernet_to_can(tmpdir):
     )
     controller = Controller(
         name="CTRL1",
-        controller_metadata=EmbeddedMetadata(
-            type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.12.0")
-        ),
+        controller_metadata=EmbeddedMetadata(type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=_make_version()),
         can_interfaces=[can_interface],
         ethernet_interfaces=[eth_iface],
     )
@@ -392,15 +383,13 @@ def test_multi_hop_forwarding_ethernet_to_can(tmpdir):
         name="ECU1",
         controllers=[controller],
         topology=InternalTopology(),
-        ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")),
+        ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=_make_version()),
     )
 
     flync_model = FLYNCModel(
         ecus=[ecu],
         topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
-        metadata=SystemMetadata(
-            type="system", release=BaseVersion(version="0.12.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")
-        ),
+        metadata=SystemMetadata(type="system", release=_make_version(), author="TestTeam", compatible_flync_version=_make_version()),
         communication=FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus], pdus=[engine_status_pdu])),
     )
     workspace_path = Path(tmpdir) / "temp_workspace"
@@ -471,9 +460,7 @@ def test_container_pdu_extracted_and_routed_to_can(tmpdir):
     )
     controller = Controller(
         name="CTRL1",
-        controller_metadata=EmbeddedMetadata(
-            type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.12.0")
-        ),
+        controller_metadata=EmbeddedMetadata(type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=_make_version()),
         can_interfaces=[can_interface],
         ethernet_interfaces=[eth_iface],
     )
@@ -481,15 +468,13 @@ def test_container_pdu_extracted_and_routed_to_can(tmpdir):
         name="ECU1",
         controllers=[controller],
         topology=InternalTopology(),
-        ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")),
+        ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=_make_version()),
     )
 
     flync_model = FLYNCModel(
         ecus=[ecu],
         topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
-        metadata=SystemMetadata(
-            type="system", release=BaseVersion(version="0.12.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")
-        ),
+        metadata=SystemMetadata(type="system", release=_make_version(), author="TestTeam", compatible_flync_version=_make_version()),
         communication=FLYNCCommunicationConfig(
             channels=FLYNCChannelConfig(can_buses=[can_bus], pdus=[engine_status_pdu], ethernet_pdu_containers=[container_pdu])
         ),
@@ -545,9 +530,7 @@ def test_pdu_forwarded_between_two_ethernet_sockets(tmpdir):
     )
     controller = Controller(
         name="CTRL1",
-        controller_metadata=EmbeddedMetadata(
-            type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.12.0")
-        ),
+        controller_metadata=EmbeddedMetadata(type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=_make_version()),
         can_interfaces=[],
         ethernet_interfaces=[eth_iface],
     )
@@ -555,15 +538,13 @@ def test_pdu_forwarded_between_two_ethernet_sockets(tmpdir):
         name="ECU1",
         controllers=[controller],
         topology=InternalTopology(),
-        ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")),
+        ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=_make_version()),
     )
 
     flync_model = FLYNCModel(
         ecus=[ecu],
         topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
-        metadata=SystemMetadata(
-            type="system", release=BaseVersion(version="0.12.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")
-        ),
+        metadata=SystemMetadata(type="system", release=_make_version(), author="TestTeam", compatible_flync_version=_make_version()),
         communication=FLYNCCommunicationConfig(
             channels=FLYNCChannelConfig(can_buses=[], pdus=[vehicle_status_pdu], ethernet_pdu_containers=[container_pdu])
         ),
@@ -624,9 +605,7 @@ def test_container_pdu_fully_preserved_across_sockets(tmpdir):
     )
     controller = Controller(
         name="CTRL1",
-        controller_metadata=EmbeddedMetadata(
-            type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.12.0")
-        ),
+        controller_metadata=EmbeddedMetadata(type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=_make_version()),
         can_interfaces=[],
         ethernet_interfaces=[eth_iface],
     )
@@ -634,15 +613,13 @@ def test_container_pdu_fully_preserved_across_sockets(tmpdir):
         name="ECU1",
         controllers=[controller],
         topology=InternalTopology(),
-        ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")),
+        ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=_make_version()),
     )
 
     flync_model = FLYNCModel(
         ecus=[ecu],
         topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
-        metadata=SystemMetadata(
-            type="system", release=BaseVersion(version="0.12.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")
-        ),
+        metadata=SystemMetadata(type="system", release=_make_version(), author="TestTeam", compatible_flync_version=_make_version()),
         communication=FLYNCCommunicationConfig(
             channels=FLYNCChannelConfig(can_buses=[], pdus=[engine_status_pdu, thermal_status_pdu], ethernet_pdu_containers=[container_pdu])
         ),
@@ -709,9 +686,7 @@ def test_multi_egress_ethernet_forwarding(tmpdir):
     )
     controller = Controller(
         name="CTRL1",
-        controller_metadata=EmbeddedMetadata(
-            type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.12.0")
-        ),
+        controller_metadata=EmbeddedMetadata(type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=_make_version()),
         can_interfaces=[],
         ethernet_interfaces=[eth_iface],
     )
@@ -719,15 +694,13 @@ def test_multi_egress_ethernet_forwarding(tmpdir):
         name="ECU1",
         controllers=[controller],
         topology=InternalTopology(),
-        ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")),
+        ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=_make_version()),
     )
 
     flync_model = FLYNCModel(
         ecus=[ecu],
         topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
-        metadata=SystemMetadata(
-            type="system", release=BaseVersion(version="0.12.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.12.0")
-        ),
+        metadata=SystemMetadata(type="system", release=_make_version(), author="TestTeam", compatible_flync_version=_make_version()),
         communication=FLYNCCommunicationConfig(
             channels=FLYNCChannelConfig(can_buses=[], pdus=[vehicle_status_pdu], ethernet_pdu_containers=[container_pdu])
         ),

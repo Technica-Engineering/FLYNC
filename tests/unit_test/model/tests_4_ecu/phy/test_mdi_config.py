@@ -87,11 +87,13 @@ def test_negative_mode_config():
         "role": "master",
     }
 
+    mii_config = MII(mode="phy")
+
     with pytest.raises(ValidationError) as val100:
         ecu_port_100 = ECUPort.model_validate(
             {
                 "name": "test_ecu_port100",
-                "mii_config": MII(mode="phy"),
+                "mii_config": mii_config,
                 "mdi_config": mdi_100_config,
             }
         )
@@ -99,7 +101,7 @@ def test_negative_mode_config():
         ecu_port_1000 = ECUPort.model_validate(
             {
                 "name": "test_ecu_port1000",
-                "mii_config": MII(mode="phy"),
+                "mii_config": mii_config,
                 "mdi_config": mdi_1000_config,
             }
         )
@@ -107,7 +109,7 @@ def test_negative_mode_config():
         ecu_port_10 = ECUPort.model_validate(
             {
                 "name": "test_ecu_port10",
-                "mii_config": MII(mode="phy"),
+                "mii_config": mii_config,
                 "mdi_config": mdi_10_config,
             }
         )
@@ -129,11 +131,13 @@ def test_negative_speed_config():
         "role": "master",
     }
 
+    mii_config = MII(mode="phy")
+
     with pytest.raises(ValidationError) as valt1:
         ecu_port1 = ECUPort.model_validate(
             {
                 "name": "test_ecu_port1",
-                "mii_config": MII(mode="phy"),
+                "mii_config": mii_config,
                 "mdi_config": mdi_baset1,
             }
         )
@@ -141,7 +145,7 @@ def test_negative_speed_config():
         ecu_port1s = ECUPort.model_validate(
             {
                 "name": "test_ecu_port1",
-                "mii_config": MII(mode="phy"),
+                "mii_config": mii_config,
                 "mdi_config": mdi_baset1s,
             }
         )
@@ -170,11 +174,13 @@ def test_negative_duplex_config():
         "role": "master",
     }
 
+    mii_config = MII(mode="phy")
+
     with pytest.raises(ValidationError) as val100:
         ecu_port100 = ECUPort.model_validate(
             {
                 "name": "test_ecu_port1",
-                "mii_config": MII(mode="phy"),
+                "mii_config": mii_config,
                 "mdi_config": mdi_100baset1,
             }
         )
@@ -182,7 +188,7 @@ def test_negative_duplex_config():
         ecu_port100 = ECUPort.model_validate(
             {
                 "name": "test_ecu_port1",
-                "mii_config": MII(mode="phy"),
+                "mii_config": mii_config,
                 "mdi_config": mdi_1000baset1,
             }
         )
@@ -190,7 +196,7 @@ def test_negative_duplex_config():
         ecu_port1s = ECUPort.model_validate(
             {
                 "name": "test_ecu_port1",
-                "mii_config": MII(mode="phy"),
+                "mii_config": mii_config,
                 "mdi_config": mdi_10baset1s,
             }
         )

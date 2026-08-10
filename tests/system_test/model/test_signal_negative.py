@@ -1,14 +1,22 @@
 import pytest
 from pydantic import ValidationError
 
+from flync.model.flync_4_bus.can_bus import CANBus
+from flync.model.flync_4_bus.lin_bus import LINBus
+from flync.model.flync_4_communication.flync_channels import FLYNCChannelConfig
+from flync.model.flync_4_communication.flync_communication import FLYNCCommunicationConfig
 from flync.model.flync_4_ecu.can_interface import CANFrameRef, CANInterface
 from flync.model.flync_4_ecu.controller import Controller
+from flync.model.flync_4_ecu.ecu import ECU
+from flync.model.flync_4_ecu.internal_topology import InternalTopology
 from flync.model.flync_4_ecu.lin_interface import LINMasterInterface
-from flync.model.flync_4_metadata.metadata import BaseVersion, EmbeddedMetadata
+from flync.model.flync_4_metadata.metadata import BaseVersion, ECUMetadata, EmbeddedMetadata, SystemMetadata
 from flync.model.flync_4_signal.frame import CANFrame, FrameCyclicTiming, FrameEventTiming, FrameTransmissionTiming, LINFrame
 from flync.model.flync_4_signal.pdu import ContainedPDURef, ContainerPDU, ContainerPDUHeader, MultiplexedPDU, MuxGroup, PDUInstance, StandardPDU
 from flync.model.flync_4_signal.pdu_deployment import PDUReceiver, PDUSender
 from flync.model.flync_4_signal.signal import Signal, SignalDataType, SignalInstance
+from flync.model.flync_4_topology.system_topology import FLYNCTopology, SystemTopology
+from flync.model.flync_model import FLYNCModel
 
 
 def test_standard_pdu_invalid_signal_bit_position():
@@ -50,14 +58,10 @@ def test_multiplexed_pdu_invalid_selector_value():
 def test_container_pdu_invalid_contained_ref():
     """Test ContainerPDU references non-existent contained PDU."""
     header = ContainerPDUHeader(id_length_bits=8, length_field_bits=8)
+    contained_ref = ContainedPDURef(pdu_id=0x10, pdu_ref="NonExistentPDU")
+
     with pytest.raises(ValueError):
-        ContainerPDU(
-            name="ContainerPowertrain",
-            length=64,
-            pdu_id=0x01,
-            header=header,
-            contained_pdus=[ContainedPDURef(pdu_id=0x10, pdu_ref="NonExistentPDU")],
-        )
+        ContainerPDU(name="ContainerPowertrain", length=64, pdu_id=0x01, header=header, contained_pdus=[contained_ref])
 
 
 def test_standard_pdu_signal_overlap():
@@ -96,25 +100,50 @@ def test_overlaps_frame_timing():
 
 
 def test_invalid_lin_frame_in_can_interface():
-    """Test CAN interface incorrectly configured with a LIN frame"""
+    """Test CAN interface incorrectly configured with a LIN frame
+
+    The frame id only resolves on the LIN bus, so referencing it from a CAN interface must not resolve. The check
+    is workspace-level (it needs the bus catalogue), hence the full model.
+    """
     speed_signal = Signal(name="VehicleSpeed", bit_length=16, data_type=SignalDataType.UINT16)
     speed_instance = SignalInstance(signal=speed_signal, bit_position=0)
     pdu = StandardPDU(name="PDU_EngineStatus", length=4, signals=[speed_instance])
     pdu_inst = PDUInstance(pdu_ref=pdu.name)
     lin_frame = LINFrame(name="LIN_EngineFrame", length=8, lin_id=0x12, packed_pdus=[pdu_inst])
+    can_frame = CANFrame(name="CAN_EngineFrame", length=8, can_id=0x100, id_format="standard_11bit", packed_pdus=[pdu_inst])
 
-    with pytest.raises(ValidationError):
-        LINMasterInterface()
-        Controller(
-            name="EngineController",
-            controller_metadata=EmbeddedMetadata(
-                type="embedded",
-                author="test_team",
-                compatible_flync_version=BaseVersion(version_schema="semver", version="0.11.0"),
-                target_system="my_system",
-            ),
-            can_interfaces=[CANInterface(bus_ref="CAN0", receiver_frames=[CANFrameRef(bus_ref="CAN0", frame_ref=lin_frame.lin_id)])],
-        )
+    can_bus = CANBus(name="CAN0", baud_rate=500000, frames=[can_frame])
+    lin_bus = LINBus(name="LIN0", lin_protocol_version="2.0", lin_language_version="2.0", baud_rate=19200, frames=[lin_frame])
+
+    # The LIN frame id is declared on LIN0 only - asking for it on the CAN bus cannot resolve.
+    can_interface = CANInterface(name="CAN0_IF", bus_ref="CAN0", receiver_frames=[CANFrameRef(bus_ref="CAN0", frame_ref=lin_frame.lin_id)])
+    controller = Controller(
+        name="EngineController",
+        controller_metadata=EmbeddedMetadata(
+            type="embedded",
+            author="test_team",
+            compatible_flync_version=BaseVersion(version_schema="semver", version="0.11.0"),
+            target_system="my_system",
+        ),
+        can_interfaces=[can_interface],
+    )
+    ecu = ECU(
+        name="ECU1",
+        controllers=[controller],
+        topology=InternalTopology(),
+        ecu_metadata=ECUMetadata(type="ecu", author="test_team", compatible_flync_version=BaseVersion(version="0.11.0")),
+    )
+    topology = FLYNCTopology(system_topology=SystemTopology(connections=[]))
+    metadata = SystemMetadata(
+        type="system",
+        release=BaseVersion(version="0.11.0"),
+        author="test_team",
+        compatible_flync_version=BaseVersion(version="0.11.0"),
+    )
+    communication = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus], lin_buses=[lin_bus], pdus=[pdu]))
+
+    with pytest.raises(ValidationError, match="does not name any frame declared on bus 'CAN0'"):
+        FLYNCModel(ecus=[ecu], topology=topology, metadata=metadata, communication=communication)
 
 
 def test_invalid_can_frame_in_lin_interface():
@@ -124,25 +153,16 @@ def test_invalid_can_frame_in_lin_interface():
     pdu = StandardPDU(name="PDU_EngineStatus", length=4, signals=[speed_instance])
     pdu_inst = PDUInstance(pdu_ref=pdu.name)
     can_frame = CANFrame(name="CAN_EngineFrame", length=8, can_id=0x100, id_format="standard_11bit", packed_pdus=[pdu_inst])
+    can_frame_ref = CANFrameRef(bus_ref="LIN0", frame_ref=can_frame.can_id)  # invalid: a CAN ref on a LIN interface
 
-    with pytest.raises(ValidationError):
-        Controller(
-            name="EngineController",
-            controller_metadata=EmbeddedMetadata(
-                type="embedded",
-                author="test_team",
-                compatible_flync_version=BaseVersion(version_schema="semver", version="0.11.0"),
-                target_system="my_system",
-            ),
-            lin_interfaces=[
-                LINMasterInterface(
-                    node_type="master",
-                    bus_ref="LIN0",
-                    lin_protocol="2.0A",
-                    p2_min=0.001,
-                    st_min=0.001,
-                    sender_frames=[CANFrameRef(bus_ref="LIN0", frame_ref=can_frame.can_id)],  # invalid
-                )
-            ],
-            can_interfaces=[],
+    # The rejection happens when the LIN interface itself is built, so that is the call under test.
+    with pytest.raises(ValidationError, match="LINFrameRef"):
+        LINMasterInterface(
+            name="LIN0_IF",
+            node_type="master",
+            bus_ref="LIN0",
+            lin_protocol="2.0",
+            p2_min=0.001,
+            st_min=0.001,
+            sender_frames=[can_frame_ref],
         )

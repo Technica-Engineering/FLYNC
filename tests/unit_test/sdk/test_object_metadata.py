@@ -214,8 +214,10 @@ class TestMetadataEdgeCases:
 
     def test_metadata_for_nonexistent_object(self, loaded_workspace_with_object_map):
         """Getting metadata for nonexistent object should raise KeyError."""
+        missing_id = ObjectId("this.does.not.exist")
+
         with pytest.raises(KeyError):
-            loaded_workspace_with_object_map.get_metadata(ObjectId("this.does.not.exist"))
+            loaded_workspace_with_object_map.get_metadata(missing_id)
 
     def test_metadata_empty_children_list(self, loaded_workspace_with_object_map):
         """Objects with no children should have empty list."""
@@ -262,12 +264,12 @@ class TestMetadataPerformance:
         # First call
         start = time.time()
         metadata1 = loaded_workspace_with_object_map.get_metadata(obj_id)
-        time1 = time.time() - start
+        time.time() - start
 
         # Second call should be fast (cached or quick lookup)
         start = time.time()
         metadata2 = loaded_workspace_with_object_map.get_metadata(obj_id)
-        time2 = time.time() - start
+        time.time() - start
 
         # Just verify both complete (no specific timing assertion as it depends on system)
         assert metadata1.id == metadata2.id

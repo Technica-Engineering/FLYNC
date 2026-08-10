@@ -91,26 +91,16 @@ def test_negative_firewall_config_multiple_rules_same_filter(
         ],
     }
 
-    with pytest.raises(ValidationError):
-        Controller.model_validate(
-            {
-                "controller_metadata": embedded_metadata_entry,
-                "name": "controller_example",
-                "ethernet_interfaces": [
-                    {
-                        "name": "eth0",
-                        "interface_config": EthernetInterfaceConfig.model_validate(
-                            {
-                                "mac_address": "00:11:22:33:44:55",
-                                "mii_config": None,
-                                "virtual_interfaces": [virtual_controller_interface],
-                                "firewall": firewall_example,
-                            }
-                        ),
-                    }
-                ],
-            }
-        )
+    interface_config = {
+        "mac_address": "00:11:22:33:44:55",
+        "mii_config": None,
+        "virtual_interfaces": [virtual_controller_interface],
+        "firewall": firewall_example,
+    }
+
+    # The firewall is rejected while the interface config is built, so no Controller is ever assembled.
+    with pytest.raises(ValidationError, match="while validating firewall"):
+        EthernetInterfaceConfig.model_validate(interface_config)
 
 
 def test_positive_only_dst_ipv4_in_frame_filter(virtual_controller_interface, embedded_metadata_entry):
@@ -206,23 +196,13 @@ def test_negative_both_dst_ipv4_and_dst_ipv6_in_frame_filter(
         ],
     }
 
-    with pytest.raises(ValidationError):
-        Controller.model_validate(
-            {
-                "controller_metadata": embedded_metadata_entry,
-                "name": "controller_example",
-                "ethernet_interfaces": [
-                    {
-                        "name": "eth0",
-                        "interface_config": EthernetInterfaceConfig.model_validate(
-                            {
-                                "mac_address": "00:11:22:33:44:55",
-                                "mii_config": None,
-                                "virtual_interfaces": [virtual_controller_interface],
-                                "firewall": firewall_example,
-                            }
-                        ),
-                    }
-                ],
-            }
-        )
+    interface_config = {
+        "mac_address": "00:11:22:33:44:55",
+        "mii_config": None,
+        "virtual_interfaces": [virtual_controller_interface],
+        "firewall": firewall_example,
+    }
+
+    # The firewall is rejected while the interface config is built, so no Controller is ever assembled.
+    with pytest.raises(ValidationError, match="while validating firewall"):
+        EthernetInterfaceConfig.model_validate(interface_config)

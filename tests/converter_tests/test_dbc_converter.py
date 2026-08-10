@@ -425,12 +425,17 @@ class TestDbcConverter:
         assert DbcConverter().can_decode() is False
 
     def test_encode_requires_config(self):
+        converter = DbcConverter()
+        model = MagicMock()
+
         with pytest.raises(ValueError, match="config must be set"):
-            DbcConverter().encode(MagicMock())
+            converter.encode(model)
 
     def test_decode_requires_config(self):
+        converter = DbcConverter()
+
         with pytest.raises(ValueError, match="config must be set"):
-            DbcConverter().decode()
+            converter.decode()
 
     def test_encode_with_empty_model(self, tmp_path):
         conv = DbcConverter(ConverterConfig(config_path=str(tmp_path)))

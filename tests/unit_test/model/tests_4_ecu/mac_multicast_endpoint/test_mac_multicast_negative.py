@@ -4,7 +4,6 @@ from flync.core.datatypes.macaddress import MacAddress
 from flync.model.flync_4_ecu.mac_multicast_endpoint import (
     AVTPMulticastEndpoint,
     MACEndpointUnion,
-    MACMulticastEndpoint,
     MACMulticastEndpoints,
 )
 
@@ -29,17 +28,21 @@ def test_mmes_rejects_mixed_valid_and_invalid_meu():
     """
     Ensure system fails when at least one MACEndpointUnion in the list is invalid.
     """
-    valid_mme = MACMulticastEndpoint(
+    # MACEndpointUnion only accepts an AVTPMulticastEndpoint as root, so that is what the valid half must be.
+    valid_ame = AVTPMulticastEndpoint(
         name="mme",
-        mac_address=MacAddress("00:00:5e:00:53:01"),
+        mac_address=MacAddress("91:E0:F0:00:00:01"),
         protocol="avtp",
         ethertype=0x22F0,
         vlan_id=1,
+        multicast_tx=[],
     )
+    valid_meu = MACEndpointUnion(root=valid_ame)
 
+    # The invalid entry is passed as raw data: building a MACEndpointUnion from it would already fail here,
+    # before MACMulticastEndpoints - the collection - ever got a chance to reject it.
     with pytest.raises(Exception):
-        invalid_meu = MACEndpointUnion(root="invalid")
-        MACMulticastEndpoints(endpoints=[MACEndpointUnion(root=valid_mme), invalid_meu])
+        MACMulticastEndpoints(endpoints=[valid_meu, "invalid"])
 
 
 invalid_cases = [
@@ -89,14 +92,16 @@ def test_meu_wraps_ame_inside_mmes_invalid_values(name, mac, protocol, type, vla
     """
     Ensure endpoint creation fails for invalid values, types, or inconsistent configurations.
     """
+    # Validated from raw data so every invalid value is rejected by the union itself; building the
+    # AVTPMulticastEndpoint (or its MacAddress) up front would raise before the call under test.
+    endpoint_payload = {
+        "name": name,
+        "mac_address": mac,
+        "protocol": protocol,
+        "ethertype": type,
+        "vlan_id": vlan,
+        "multicast_tx": tx,
+    }
+
     with pytest.raises(Exception):
-        MACEndpointUnion(
-            root=AVTPMulticastEndpoint(
-                name=name,
-                mac_address=MacAddress(mac),
-                protocol=protocol,
-                ethertype=type,
-                vlan_id=vlan,
-                multicast_tx=tx,
-            )
-        )
+        MACEndpointUnion.model_validate(endpoint_payload)

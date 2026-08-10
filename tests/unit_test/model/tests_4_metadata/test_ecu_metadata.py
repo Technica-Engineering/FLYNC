@@ -33,23 +33,28 @@ def test_ecu_metadata_full_positive():
 
 
 def test_ecu_metadata_invalid_nested_version():
-    with pytest.raises(ValidationError) as exc:
-        ECUMetadata.model_validate(
-            {
-                "author": "Tier1",
-                "compatible_flync_version": {
-                    "version_schema": "semver",
-                    "version": "1.1.0",
-                },
-                "software": {
-                    "version_schema": "semver",
-                    "version": "bad.version",
-                },
-            }
-        )
+    payload = {
+        "author": "Tier1",
+        "compatible_flync_version": {
+            "version_schema": "semver",
+            "version": "1.1.0",
+        },
+        "hardware": {
+            "version_schema": "pep440",
+            "version": "bad.version",
+            "supplier": "My-Tier1",
+        },
+        "software": {
+            "version_schema": "semver",
+            "version": "bad.version",
+        },
+    }
 
-        assert "not valid PEP 440" in str(exc.value)
-        assert "not valid Semantic Version" in str(exc.value)
+    with pytest.raises(ValidationError) as exc:
+        ECUMetadata.model_validate(payload)
+
+    assert "not valid PEP 440" in str(exc.value)
+    assert "not valid Semantic Version" in str(exc.value)
 
 
 def test_system_metadata_invalid_type_literal():

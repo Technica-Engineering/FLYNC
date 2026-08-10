@@ -19,6 +19,9 @@ from flync.core.utils.forwarder_validators import (
     validate_forwarder_refs,
     validate_pdu_deployment_refs,
 )
+from flync.core.utils.interface_validators import (
+    validate_interface_frame_refs,
+)
 from flync.core.utils.multicast import (
     collect_ipv6_solicited_node_rx,
     collect_ipv6_solicited_node_tx,
@@ -256,40 +259,36 @@ class FLYNCModel(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_multicast_someip(self):
+    def validate_no_someip_multicast_on_tcp(self):
         """
-        Validate multicast configuration for SOME/IP consumers and providers
+        Validate that no SOME/IP eventgroup multicast is configured on a TCP socket.
 
-        For provider: check if the parent socket has a multicast_tx entry
+        TCP is a point-to-point transport, so it cannot carry the eventgroup multicast of a provided
+        service - that deployment belongs on a UDP socket.
         """
 
-        deployments = [
-            (deployment.root, socket, ecu)
-            for ecu in self.ecus
-            for ctrl in ecu.controllers
-            for iface in ctrl.ethernet_interfaces
-            for sock_con in iface.sockets
-            for socket in sock_con.sockets
-            for deployment in socket.deployments
-            if deployment.root.deployment_type.startswith("someip_") and socket.endpoint_type == "multicast" and socket.protocol == "udp"
-        ]
+        offender = next(
+            (
+                (ecu, socket, deployment.root)
+                for ecu, socket in self._iter_ecu_sockets()
+                if socket.protocol == "tcp"
+                for deployment in socket.deployments or []
+                if deployment.root.deployment_type == "someip_provider" and deployment.root.multicast_config
+            ),
+            None,
+        )
+        if offender is None:
+            return self
 
-        providers = [dpl for dpl in deployments if dpl[0].deployment_type == "someip_provider"]
-
-        # Providers need to have multicast_tx in socket
-        for provider, socket, _ecu in providers:
-            svc = provider._service_ref
-            for mcast_config in provider.multicast_config or []:
-                if mcast_config.ip_address not in socket.multicast_tx:
-                    raise err_major(
-                        f"Deployed provided service ({svc.name}, {svc.id:#06x}, {svc.major_version}) "
-                        f"has multicast configuration for eventgroups ({mcast_config.eventgroups}/{mcast_config.ip_address}), "
-                        f"but socket ({socket.name}) does not indicate by multicast_tx entry ({socket.multicast_tx})",
-                        category=Category.CONSISTENCY,
-                        error_number="171",
-                    )
-
-        return self
+        ecu, socket, provider = offender
+        raise err_major(
+            f"Deployed provided service on TCP socket ({socket.name}) of ECU ({ecu.name}) has multicast "
+            f"configuration for eventgroups "
+            f"({[mcast.eventgroups for mcast in provider.multicast_config]}); "
+            f"SOME/IP eventgroup multicast requires a UDP socket",
+            category=Category.CONSISTENCY,
+            error_number="218",
+        )
 
     @model_validator(mode="after")
     def validate_unique_macs(self):
@@ -317,6 +316,17 @@ class FLYNCModel(FLYNCBaseModel):
         validate_forwarder_refs(self)  # Verifies all PDU and frame references resolve and the forwarded payload fits the egress CAN frame.
         validate_forwarder_locality(self)  # Verifies each egress targets a same-controller carrier with a compatible pdu_sender or sender_frames.
         detect_forwarder_cycles(self)  # Verifies the forwarder graph is acyclic.
+        return self
+
+    @model_validator(mode="after")
+    def validate_bus_interface_frame_refs(self):
+        """Workspace-level bus interface pass: every CAN / LIN interface names a declared bus of its own kind and resolves its frame refs.
+
+        Deliberately defined after :meth:`validate_forwarders`: model validators run in definition order, so a
+        workspace with a forwarder problem still reports that (more specific) finding first.
+        """
+
+        validate_interface_frame_refs(self)
         return self
 
     @model_validator(mode="after")
@@ -499,12 +509,61 @@ class FLYNCModel(FLYNCBaseModel):
             self._bind_someip_sockets(services_by_key, sd_timings_by_id)
         return self
 
+    @model_validator(mode="after")
+    def validate_multicast_someip(self):
+        """
+        Validate multicast configuration for SOME/IP consumers and providers
+
+        For provider: check if the parent socket has a multicast_tx entry
+
+        Defined after :meth:`resolve_someip_deployments`: the message identifies the offending service through
+        ``_service_ref``, which only exists once the deployments have been bound.
+        """
+
+        deployments = [
+            (deployment.root, socket, ecu)
+            for ecu in self.ecus
+            for ctrl in ecu.controllers
+            for iface in ctrl.ethernet_interfaces
+            for sock_con in iface.sockets
+            for socket in sock_con.sockets
+            for deployment in socket.deployments
+            if deployment.root.deployment_type.startswith("someip_") and socket.endpoint_type == "multicast" and socket.protocol == "udp"
+        ]
+
+        providers = [dpl for dpl in deployments if dpl[0].deployment_type == "someip_provider"]
+
+        # Providers need to have multicast_tx in socket
+        for provider, socket, _ecu in providers:
+            svc = provider._service_ref
+            # An unbound deployment (no someip_config declared) still names its service by id / major_version.
+            svc_label = f"{svc.name}, {svc.id:#06x}, {svc.major_version}" if svc else f"{provider.service:#06x}, {provider.major_version}"
+            for mcast_config in provider.multicast_config or []:
+                if mcast_config.ip_address not in socket.multicast_tx:
+                    raise err_major(
+                        f"Deployed provided service ({svc_label}) "
+                        f"has multicast configuration for eventgroups ({mcast_config.eventgroups}/{mcast_config.ip_address}), "
+                        f"but socket ({socket.name}) does not indicate by multicast_tx entry ({socket.multicast_tx})",
+                        category=Category.CONSISTENCY,
+                        error_number="171",
+                    )
+
+        return self
+
+    def _iter_ecu_sockets(self):
+        """Yield ``(ecu, socket)`` for every :class:`Socket` across every ECU / controller / ethernet interface / VLAN container."""
+        return (
+            (ecu, socket)
+            for ecu in self.ecus
+            for controller in ecu.controllers
+            for eth_iface in controller.ethernet_interfaces or []
+            for socket_container in eth_iface.sockets or []
+            for socket in socket_container.sockets or []
+        )
+
     def _iter_all_sockets(self):
         """Yield every :class:`Socket` across every controller / ethernet interface / VLAN container."""
-        for controller in self.get_all_controllers():
-            for eth_iface in controller.ethernet_interfaces or []:
-                for socket_container in eth_iface.sockets or []:
-                    yield from socket_container.sockets or []
+        return (socket for _ecu, socket in self._iter_ecu_sockets())
 
     def get_all_someip_services(self) -> List["SOMEIPServiceInterface"]:
         """Return all SOME/IP service interfaces declared in the system-wide someip_config."""

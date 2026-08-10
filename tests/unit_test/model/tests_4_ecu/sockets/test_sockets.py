@@ -475,22 +475,15 @@ def test_sockets_deployments(
     assert isinstance(udp_example, Socket)
 
 
-def test_tcp_socket_with_multicast_deployment():
-    tcp_options = TCPOption(tcp_profile_id=1)
+def test_someip_consumer_rejects_unknown_multicast_field():
+    """SOMEIPServiceConsumer carries no multicast field - eventgroup multicast lives on the provider."""
 
-    with pytest.raises(ValidationError) as e:
-        tcp_socket_entry_ipv6 = SocketTCP(
-            endpoint_address="2001:0db8:85a3:0000:0000:8a2e:0370:7334",
-            name="my_socket",
-            port_no=4400,
-            tcp_profile=1,
-            protocol="tcp",
-            deployments=[
-                SOMEIPServiceConsumer(
-                    service=1,
-                    someip_sd_timings_profile="client_default",
-                    instance_id=1,
-                    find_service_multicast=MulticastEndpoint(ip_address="224.0.0.1", port=4444),
-                )
-            ],
+    find_service_multicast = MulticastEndpoint(ip_address="224.0.0.1", port=4444)
+
+    with pytest.raises(ValidationError, match="find_service_multicast"):
+        SOMEIPServiceConsumer(
+            service=1,
+            someip_sd_timings_profile="client_default",
+            instance_id=1,
+            find_service_multicast=find_service_multicast,
         )

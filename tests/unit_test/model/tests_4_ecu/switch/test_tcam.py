@@ -248,15 +248,19 @@ def test_positive_no_vehicle_state_fields(switch_port, tcam_match_filter):
 
 def test_negative_vehicle_state_mask_without_value(switch_port, tcam_match_filter):
     """A mask without a vehicle_state value must raise."""
+    rule = _vehicle_state_rule(switch_port, tcam_match_filter, vehicle_state_mask=0x0F)
+
     with pytest.raises(ValidationError) as e:
-        TCAMRule.model_validate(_vehicle_state_rule(switch_port, tcam_match_filter, vehicle_state_mask=0x0F))
+        TCAMRule.model_validate(rule)
     assert "vehicle_state_mask requires vehicle_state" in str(e.value)
 
 
 def test_negative_vehicle_state_bits_outside_mask(switch_port, tcam_match_filter):
     """A vehicle_state that sets bits the mask ignores must raise."""
+    rule = _vehicle_state_rule(switch_port, tcam_match_filter, vehicle_state=0x10, vehicle_state_mask=0x0F)
+
     with pytest.raises(ValidationError) as e:
-        TCAMRule.model_validate(_vehicle_state_rule(switch_port, tcam_match_filter, vehicle_state=0x10, vehicle_state_mask=0x0F))
+        TCAMRule.model_validate(rule)
     assert "bits set outside vehicle_state_mask" in str(e.value)
 
 
@@ -271,10 +275,10 @@ def test_negative_vehicle_state_bits_outside_mask(switch_port, tcam_match_filter
 )
 def test_negative_vehicle_state_out_of_range(switch_port, tcam_match_filter, vehicle_state, vehicle_state_mask, error):
     """vehicle_state must be within the 8-bit range 0-255."""
+    rule = _vehicle_state_rule(switch_port, tcam_match_filter, vehicle_state=vehicle_state, vehicle_state_mask=vehicle_state_mask)
+
     with pytest.raises(ValidationError) as e:
-        TCAMRule.model_validate(
-            _vehicle_state_rule(switch_port, tcam_match_filter, vehicle_state=vehicle_state, vehicle_state_mask=vehicle_state_mask)
-        )
+        TCAMRule.model_validate(rule)
     assert error in str(e.value)
 
 

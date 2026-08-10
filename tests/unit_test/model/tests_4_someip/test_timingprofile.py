@@ -143,23 +143,21 @@ def test_field_not_implemented_timing_profile(
     )
     sd_config = someip_sdconfig
 
+    someip_timings = SOMEIPTimingProfile(
+        profiles=[
+            someip_event_custom_timings_profile,
+            someip_field_custom_timings_profile,
+            someip_method_custom_timings_profile,
+        ],
+        defaults=[
+            someip_event_default_timings_profile,
+            someip_field_default_timings_profile,
+            someip_method_default_timings_profile,
+        ],
+    )
+
     with pytest.raises(ValueError):
-        config = SOMEIPConfig(
-            services=[s],
-            sd_config=sd_config,
-            someip_timings=SOMEIPTimingProfile(
-                profiles=[
-                    someip_event_custom_timings_profile,
-                    someip_field_custom_timings_profile,
-                    someip_method_custom_timings_profile,
-                ],
-                defaults=[
-                    someip_event_default_timings_profile,
-                    someip_field_default_timings_profile,
-                    someip_method_default_timings_profile,
-                ],
-            ),
-        )
+        config = SOMEIPConfig(services=[s], sd_config=sd_config, someip_timings=someip_timings)
 
 
 def test_event_not_implemented_timing_profile(
@@ -197,23 +195,21 @@ def test_event_not_implemented_timing_profile(
     )
     sd_config = someip_sdconfig
 
+    someip_timings = SOMEIPTimingProfile(
+        profiles=[
+            someip_event_custom_timings_profile,
+            someip_field_custom_timings_profile,
+            someip_method_custom_timings_profile,
+        ],
+        defaults=[
+            someip_event_default_timings_profile,
+            someip_field_default_timings_profile,
+            someip_method_default_timings_profile,
+        ],
+    )
+
     with pytest.raises(ValueError):
-        config = SOMEIPConfig(
-            services=[s],
-            sd_config=sd_config,
-            someip_timings=SOMEIPTimingProfile(
-                profiles=[
-                    someip_event_custom_timings_profile,
-                    someip_field_custom_timings_profile,
-                    someip_method_custom_timings_profile,
-                ],
-                defaults=[
-                    someip_event_default_timings_profile,
-                    someip_field_default_timings_profile,
-                    someip_method_default_timings_profile,
-                ],
-            ),
-        )
+        config = SOMEIPConfig(services=[s], sd_config=sd_config, someip_timings=someip_timings)
 
 
 @pytest.mark.parametrize(
@@ -276,20 +272,18 @@ def test_method_not_implemented_timing_profile(
     )
     sd_config = someip_sdconfig
 
+    someip_timings = SOMEIPTimingProfile(
+        profiles=[
+            someip_event_custom_timings_profile,
+            someip_field_custom_timings_profile,
+            someip_method_custom_timings_profile,
+        ],
+        defaults=[
+            someip_event_default_timings_profile,
+            someip_field_default_timings_profile,
+            someip_method_default_timings_profile,
+        ],
+    )
+
     with pytest.raises(ValueError):
-        config = SOMEIPConfig(
-            services=[s],
-            sd_config=sd_config,
-            someip_timings=SOMEIPTimingProfile(
-                profiles=[
-                    someip_event_custom_timings_profile,
-                    someip_field_custom_timings_profile,
-                    someip_method_custom_timings_profile,
-                ],
-                defaults=[
-                    someip_event_default_timings_profile,
-                    someip_field_default_timings_profile,
-                    someip_method_default_timings_profile,
-                ],
-            ),
-        )
+        config = SOMEIPConfig(services=[s], sd_config=sd_config, someip_timings=someip_timings)

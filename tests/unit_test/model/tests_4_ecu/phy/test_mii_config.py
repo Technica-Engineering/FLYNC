@@ -135,12 +135,14 @@ def test_negative_speed_for_mii_ecu_port():
     mii_config1 = {"type": "mii", "mode": "mac", "speed": 1000}
     mii_config2 = {"type": "mii", "mode": "phy", "speed": 1000}
 
+    mdi_config = BASET1(speed=100, role="master")
+
     with pytest.raises(ValidationError) as val_error_port1:
         ecu_port1 = ECUPort.model_validate(
             {
                 "name": "test_ecu_port1",
                 "mii_config": mii_config1,
-                "mdi_config": BASET1(speed=100, role="master"),
+                "mdi_config": mdi_config,
             }
         )
 
@@ -149,7 +151,7 @@ def test_negative_speed_for_mii_ecu_port():
             {
                 "name": "test_ecu_port2",
                 "mii_config": mii_config2,
-                "mdi_config": BASET1(speed=100, role="master"),
+                "mdi_config": mdi_config,
             }
         )
 
@@ -158,12 +160,14 @@ def test_negative_speed_for_rmii_ecu_port():
     mii_config1 = {"type": "rmii", "mode": "mac", "speed": 1000}
     mii_config2 = {"type": "rmii", "mode": "phy", "speed": 1000}
 
+    mdi_config = BASET1(speed=100, role="master")
+
     with pytest.raises(ValidationError) as val_error_port1:
         ecu_port1 = ECUPort.model_validate(
             {
                 "name": "test_ecu_port1",
                 "mii_config": mii_config1,
-                "mdi_config": BASET1(speed=100, role="master"),
+                "mdi_config": mdi_config,
             }
         )
 
@@ -172,7 +176,7 @@ def test_negative_speed_for_rmii_ecu_port():
             {
                 "name": "test_ecu_port2",
                 "mii_config": mii_config2,
-                "mdi_config": BASET1(speed=100, role="master"),
+                "mdi_config": mdi_config,
             }
         )
 
@@ -181,12 +185,14 @@ def test_negative_speed_for_sgmii_ecu_port():
     mii_config1 = {"type": "sgmii", "mode": "mac", "speed": 10000}
     mii_config2 = {"type": "sgmii", "mode": "phy", "speed": 10000}
 
+    mdi_config = BASET1(speed=100, role="master")
+
     with pytest.raises(ValidationError) as val_error_port1:
         ecu_port1 = ECUPort.model_validate(
             {
                 "name": "test_ecu_port1",
                 "mii_config": mii_config1,
-                "mdi_config": BASET1(speed=100, role="master"),
+                "mdi_config": mdi_config,
             }
         )
 
@@ -195,7 +201,7 @@ def test_negative_speed_for_sgmii_ecu_port():
             {
                 "name": "test_ecu_port2",
                 "mii_config": mii_config2,
-                "mdi_config": BASET1(speed=100, role="master"),
+                "mdi_config": mdi_config,
             }
         )
 
@@ -204,12 +210,14 @@ def test_negative_speed_for_rgmii_ecu_port():
     mii_config1 = {"type": "rgmii", "mode": "mac", "speed": 10000}
     mii_config2 = {"type": "rgmii", "mode": "phy", "speed": 10000}
 
+    mdi_config = BASET1(speed=100, role="master")
+
     with pytest.raises(ValidationError) as val_error_port1:
         ecu_port1 = ECUPort.model_validate(
             {
                 "name": "test_ecu_port1",
                 "mii_config": mii_config1,
-                "mdi_config": BASET1(speed=100, role="master"),
+                "mdi_config": mdi_config,
             }
         )
 
@@ -218,7 +226,7 @@ def test_negative_speed_for_rgmii_ecu_port():
             {
                 "name": "test_ecu_port2",
                 "mii_config": mii_config2,
-                "mdi_config": BASET1(speed=100, role="master"),
+                "mdi_config": mdi_config,
             }
         )
 
@@ -227,12 +235,14 @@ def test_negative_speed_for_xfi_ecu_port():
     mii_config1 = {"type": "xfi", "mode": "mac", "speed": 1000}
     mii_config2 = {"type": "xfi", "mode": "phy", "speed": 1000}
 
+    mdi_config = BASET1(speed=100, role="master")
+
     with pytest.raises(ValidationError) as val_error_port1:
         ecu_port1 = ECUPort.model_validate(
             {
                 "name": "test_ecu_port1",
                 "mii_config": mii_config1,
-                "mdi_config": BASET1(speed=100, role="master"),
+                "mdi_config": mdi_config,
             }
         )
 
@@ -241,7 +251,7 @@ def test_negative_speed_for_xfi_ecu_port():
             {
                 "name": "test_ecu_port2",
                 "mii_config": mii_config2,
-                "mdi_config": BASET1(speed=100, role="master"),
+                "mdi_config": mdi_config,
             }
         )
 

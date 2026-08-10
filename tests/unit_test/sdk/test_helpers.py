@@ -320,7 +320,14 @@ def test_generate_node_add_to_list(
             {
                 "name": "new",
                 "ports": [{"name": "d", "mode": {"autonegotiation": True, "mode": "base_t1s"}}],
-                "controllers": [{"name": "new_controller", "lin_interfaces": [{"name": "lin_inter"}]}],
+                # bus_ref / sender_frames must resolve against communication.channels: generate_node otherwise
+                # scaffolds placeholder refs, which are dangling by construction.
+                "controllers": [
+                    {
+                        "name": "new_controller",
+                        "lin_interfaces": [{"name": "lin_inter", "bus_ref": "BodyLIN", "sender_frames": []}],
+                    }
+                ],
             },
             ECU,
             [("name", "new")],

@@ -219,14 +219,18 @@ def test_group_requires_timing_profile_negative():
 
 def test_config_duplicate_group_name_negative():
     twin = {"name": "TWIN", "nm_pdu": "PDU_Nm", "timing_profile": "standard"}
+    payload = {"groups": [twin, dict(twin)]}
+
     with pytest.raises(ValidationError, match="Duplicates found"):
-        StateManagementConfig.model_validate({"groups": [twin, dict(twin)]})
+        StateManagementConfig.model_validate(payload)
 
 
 def test_config_duplicate_timing_profile_name_negative():
     profile = _make_timing().model_dump()
+    payload = {"timing_profiles": [profile, dict(profile)]}
+
     with pytest.raises(ValidationError, match="Duplicates found"):
-        StateManagementConfig.model_validate({"timing_profiles": [profile, dict(profile)]})
+        StateManagementConfig.model_validate(payload)
 
 
 # ---------------------------------------------------------------------------

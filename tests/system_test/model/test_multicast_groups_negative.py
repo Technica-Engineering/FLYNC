@@ -108,7 +108,8 @@ def test_rx_group_not_configured(ci, vci):
 
     rx_group = MulticastGroupMembership(group="239.1.1.99", mode="rx", vlan=10)
     rx_group._interface = ci
+    rx_group_address = str(rx_group.group)
 
-    with pytest.raises(ValueError):
-        if str(rx_group.group) not in vci.multicast:
+    with pytest.raises(ValueError, match="RX group not configured"):
+        if rx_group_address not in vci.multicast:
             raise ValueError("RX group not configured in interface multicast list.")

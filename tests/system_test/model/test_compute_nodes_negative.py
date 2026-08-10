@@ -72,19 +72,16 @@ def test_ptp_conflict_between_interface_and_compute_node():
 
     This protects against undefined runtime behavior (who actually handles PTP?).
     """
-    with pytest.raises(ValidationError):
-        EthernetInterfaceConfig(
-            mac_address="00:11:22:33:44:55",
-            ptp_config=PTPConfig(),
-            compute_nodes=[
-                ComputeNodes(
-                    name="vm1",
-                    mac_address="00:11:22:33:44:66",
-                    virtual_interfaces=[VirtualControllerInterface(name="vctrl", vlanid=10, addresses=[])],
-                    ptp_config=PTPConfig(),
-                )
-            ],
-        )
+    compute_node = ComputeNodes(
+        name="vm1",
+        mac_address="00:11:22:33:44:66",
+        virtual_interfaces=[VirtualControllerInterface(name="vctrl", vlanid=10, addresses=[])],
+        ptp_config=PTPConfig(),
+    )
+    interface_ptp_config = PTPConfig()
+
+    with pytest.raises(ValidationError, match="is configured on both controller interface"):
+        EthernetInterfaceConfig(mac_address="00:11:22:33:44:55", ptp_config=interface_ptp_config, compute_nodes=[compute_node])
 
 
 def test_feature_offload_to_compute_node_only():
