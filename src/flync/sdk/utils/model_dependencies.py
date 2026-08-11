@@ -162,7 +162,7 @@ def _extract_model_dependencies(model: type[BaseModel], visited: set[type[BaseMo
     return deps
 
 
-def build_dependency_structure(info, visited):  # noqa # nosonar
+def build_dependency_structure(info, visited):
     """
     Convert extracted container info into a resolved dependency tree.
 
@@ -178,32 +178,31 @@ def build_dependency_structure(info, visited):  # noqa # nosonar
         dict: A dependency tree node with a ``"type"`` key and additional keys depending on the container kind (``"items"``, ``"values"``,
         ``"options"``, or ``"children"``).
     """
+    container = info["container"]
 
-    if info["container"] == "model":
+    if container == "model":
         model = info["model"]
         return {
             "type": model,
             "children": _extract_model_dependencies(model, visited),
         }
 
-    if info["container"] == "list":
-        items = build_dependency_structure(info["items"], visited)
-        return {
+    builders = {
+        "list": lambda: {
             "type": "list",
-            "items": items,
-        }
-
-    if info["container"] == "dict":
-        return {
+            "items": build_dependency_structure(info["items"], visited),
+        },
+        "dict": lambda: {
             "type": "dict",
             "keys": str(info["keys"]),
             "values": build_dependency_structure(info["values"], visited),
-        }
-    if info["container"] == "union":
-        return {
+        },
+        "union": lambda: {
             "type": "union",
             "options": [build_dependency_structure(opt, visited) for opt in info["options"]],
-        }
+        },
+    }
+    return builders[container]()
 
 
 def walk_structure(parent_model, structure, edges, visited=None):
@@ -314,100 +313,96 @@ class ModelDependencyGraph:
             reverse[c].add(p)
         return dict(reverse)
 
-    def _field_info(self):  # noqa # nosonar
+    def _field_info(self):
         """
         Build per-node metadata including all paths from the root model.
 
         Walks the full dependency tree starting from ``self.root`` and records, for every reachable model class, the dot-separated paths
-        through which it can be reached. Internal nested helpers ``walk`` and ``walk_structure`` drive the recursion.
+        through which it can be reached.
 
         Returns:
             dict[str, NodeInfo]: Mapping of class names to :class:`NodeInfo` objects. Each ``NodeInfo`` carries the Python type and the list
             of dot-separated FLYNC paths leading to it.
         """
-
         field_info: dict[str, NodeInfo] = {}
         # add root to info
         root_discriminators = {
             field_name for field_name, field_info_obj in self.root.model_fields.items() if get_origin(field_info_obj.annotation) is Literal
         }
         field_info[self.root.__name__] = NodeInfo(self.root.__name__, self.root, discriminator_fields=root_discriminators)
-
-        def walk(current_model, subtree, path=(), container_chain=()):
-            """
-            Iterate over a model's dependency subtree and dispatch to
-            ``walk_structure``.
-
-            Args:
-                current_model: The Pydantic model class whose fields are being walked.
-                subtree (dict): The dependency tree for ``current_model`` as returned by :func:`_extract_model_dependencies`.
-                path (tuple): Accumulated path segments from the root to the current position.
-                container_chain (tuple): Accumulated container kinds (e.g. ``"list"``, ``"dict"``) that wrap the current field.
-            """
-
-            for field_name, info in subtree.items():
-                # add current path to dict
-                if field_name == "__cycle__":  # found a cyclic item
-                    continue
-                structure = info["structure"]
-                walk_structure(current_model, field_name, structure, path, container_chain)
-
-        def walk_structure(parent_model, field_name, structure, path, container_chain):
-            """
-            Recursively resolve a single field's structure and record its path.
-
-            Descends through ``"list"``, ``"dict"``, and ``"union"`` container nodes, accumulating container kinds in ``container_chain``, until a
-            ``BaseModel`` leaf is reached.  At that point the leaf is recorded in ``field_info`` and the walk continues into its children.
-
-            Args:
-                parent_model: The Pydantic model class that owns the field.
-                field_name (str): The attribute name of the field on ``parent_model``.
-                structure (dict): The dependency structure node to resolve.
-                path (tuple): Path segments accumulated from the root to the current node.
-                container_chain (tuple): Container kinds wrapping the current field, used to produce ``[]`` / ``{}`` path segments.
-            """
-
-            t = structure["type"]
-
-            if t in ("list", "dict"):
-                child_struct = structure.get("items") if t == "list" else structure.get("values")
-                walk_structure(
-                    parent_model,
-                    field_name,
-                    child_struct,
-                    path,
-                    container_chain + (t,),
-                )
-
-            elif t == "union":
-                for option in structure["options"]:
-                    walk_structure(
-                        parent_model,
-                        field_name,
-                        option,
-                        path,
-                        container_chain + ("union",),
-                    )
-
-            elif issubclass(t, BaseModel):
-                child_model = t
-                new_path = path + ((child_model, field_name, container_chain),)
-                model_field_key = child_model.__name__
-                if model_field_key not in field_info:
-                    child_discriminators = {fname for fname, finfo in child_model.model_fields.items() if get_origin(finfo.annotation) is Literal}
-                    field_info[model_field_key] = NodeInfo(child_model.__name__, child_model, discriminator_fields=child_discriminators)
-                field_info[model_field_key].flync_paths.append(ModelDependencyGraph.complex_path_to_string_path(new_path))
-
-                # recurse into children
-                if "children" in structure:
-                    walk(child_model, structure["children"], new_path)
-
-            else:
-                # leaf type, ignore
-                return
-
-        walk(self.root, self.tree)
+        self._walk_fields(self.root, self.tree, field_info)
         return dict(field_info)
+
+    def _walk_fields(self, current_model, subtree, field_info, path=()):
+        """
+        Iterate over a model's dependency subtree and dispatch to :meth:`_resolve_structure`.
+
+        Args:
+            current_model: The Pydantic model class whose fields are being walked.
+            subtree (dict): The dependency tree for ``current_model`` as returned by :func:`_extract_model_dependencies`.
+            field_info (dict): Mutable mapping of class names to :class:`NodeInfo` objects being accumulated.
+            path (tuple): Accumulated path segments from the root to the current position.
+        """
+        for field_name, info in subtree.items():
+            if field_name == "__cycle__":  # found a cyclic item
+                continue
+            self._resolve_structure(current_model, field_name, info["structure"], field_info, path, ())
+
+    def _resolve_structure(self, parent_model, field_name, structure, field_info, path, container_chain):
+        """
+        Recursively resolve a single field's structure and record its path.
+
+        Descends through ``"list"``, ``"dict"``, and ``"union"`` container nodes, accumulating container kinds in ``container_chain``, until a
+        ``BaseModel`` leaf is reached.  At that point the leaf is recorded in ``field_info`` and the walk continues into its children.
+
+        Args:
+            parent_model: The Pydantic model class that owns the field.
+            field_name (str): The attribute name of the field on ``parent_model``.
+            structure (dict): The dependency structure node to resolve.
+            field_info (dict): Mutable mapping of class names to :class:`NodeInfo` objects being accumulated.
+            path (tuple): Path segments accumulated from the root to the current node.
+            container_chain (tuple): Container kinds wrapping the current field, used to produce ``[]`` / ``{}`` path segments.
+        """
+        t = structure["type"]
+
+        if t in ("list", "dict"):
+            child_key = "items" if t == "list" else "values"
+            self._resolve_structure(parent_model, field_name, structure[child_key], field_info, path, container_chain + (t,))
+            return
+
+        if t == "union":
+            for option in structure["options"]:
+                self._resolve_structure(parent_model, field_name, option, field_info, path, container_chain + ("union",))
+            return
+
+        if not issubclass(t, BaseModel):
+            return
+
+        self._register_model_node(t, field_name, structure, field_info, path, container_chain)
+
+    def _register_model_node(self, child_model, field_name, structure, field_info, path, container_chain):
+        """
+        Record a ``BaseModel`` node in ``field_info`` and recurse into its children.
+
+        Args:
+            child_model: The child Pydantic model class to register.
+            field_name (str): The attribute name of the field on the parent model.
+            structure (dict): The dependency structure node for this model.
+            field_info (dict): Mutable mapping of class names to :class:`NodeInfo` objects being accumulated.
+            path (tuple): Path segments accumulated from the root to the current node.
+            container_chain (tuple): Container kinds wrapping the current field.
+        """
+        new_path = path + ((child_model, field_name, container_chain),)
+        model_key = child_model.__name__
+
+        if model_key not in field_info:
+            discriminators = {fname for fname, finfo in child_model.model_fields.items() if get_origin(finfo.annotation) is Literal}
+            field_info[model_key] = NodeInfo(child_model.__name__, child_model, discriminator_fields=discriminators)
+
+        field_info[model_key].flync_paths.append(ModelDependencyGraph.complex_path_to_string_path(new_path))
+
+        if "children" in structure:
+            self._walk_fields(child_model, structure["children"], field_info, new_path)
 
     def parent_from_child(self, field_type: type[BaseModel], parent_attribute_name: str):
         """
