@@ -307,6 +307,13 @@ class FLYNCModel(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
+    def validate_bus_interface_frame_refs(self):
+        """Workspace-level bus interface pass: every CAN / LIN interface names a declared bus of its own kind and resolves its frame refs."""
+
+        validate_interface_frame_refs(self)
+        return self
+
+    @model_validator(mode="after")
     def validate_forwarders(self):
         """Workspace-level forwarder/deployment pass: ref resolution, same-controller locality + direction safety, and cycle detection."""
 
@@ -316,17 +323,6 @@ class FLYNCModel(FLYNCBaseModel):
         validate_forwarder_refs(self)  # Verifies all PDU and frame references resolve and the forwarded payload fits the egress CAN frame.
         validate_forwarder_locality(self)  # Verifies each egress targets a same-controller carrier with a compatible pdu_sender or sender_frames.
         detect_forwarder_cycles(self)  # Verifies the forwarder graph is acyclic.
-        return self
-
-    @model_validator(mode="after")
-    def validate_bus_interface_frame_refs(self):
-        """Workspace-level bus interface pass: every CAN / LIN interface names a declared bus of its own kind and resolves its frame refs.
-
-        Deliberately defined after :meth:`validate_forwarders`: model validators run in definition order, so a
-        workspace with a forwarder problem still reports that (more specific) finding first.
-        """
-
-        validate_interface_frame_refs(self)
         return self
 
     @model_validator(mode="after")

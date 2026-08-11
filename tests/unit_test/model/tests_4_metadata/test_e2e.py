@@ -8,6 +8,7 @@ from flync.model.flync_4_someip import (
     SOMEIPServiceInterface,
     SOMEIPTimingProfile,
 )
+from tests.error_assertions import assert_single_error
 
 
 def test_e2e_config():
@@ -83,5 +84,7 @@ def test_e2e_duplicate_data_id_in_profiles(
     )
 
     # e2 and e3 share data_id 0x12345678 within AUTOSAR_Profile_2, across the two services.
-    with pytest.raises(ValidationError, match="Duplicate e2e.data_id"):
+    with pytest.raises(ValidationError) as exc_info:
         SOMEIPConfig(services=[ets_01, ets_02], sd_config=someip_sdconfig, someip_timings=someip_timings)
+    # No error id: the validator raises a bare ValueError instead of going through err_major / err_minor.
+    assert_single_error(exc_info, None, "Duplicate e2e.data_id")

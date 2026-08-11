@@ -3,6 +3,7 @@ from pydantic import ValidationError
 
 from flync.model.flync_4_ecu.controller import Controller, EthernetInterface, EthernetInterfaceConfig
 from flync.model.flync_4_security.firewall import Firewall
+from tests.error_assertions import assert_single_error
 
 
 def test_firewall_config_positive_(virtual_controller_interface):
@@ -99,8 +100,9 @@ def test_negative_firewall_config_multiple_rules_same_filter(
     }
 
     # The firewall is rejected while the interface config is built, so no Controller is ever assembled.
-    with pytest.raises(ValidationError, match="while validating firewall"):
+    with pytest.raises(ValidationError) as exc_info:
         EthernetInterfaceConfig.model_validate(interface_config)
+    assert_single_error(exc_info, "FLYNC-CMN-MIN-UNC-000", "while validating firewall")
 
 
 def test_positive_only_dst_ipv4_in_frame_filter(virtual_controller_interface, embedded_metadata_entry):
@@ -204,5 +206,6 @@ def test_negative_both_dst_ipv4_and_dst_ipv6_in_frame_filter(
     }
 
     # The firewall is rejected while the interface config is built, so no Controller is ever assembled.
-    with pytest.raises(ValidationError, match="while validating firewall"):
+    with pytest.raises(ValidationError) as exc_info:
         EthernetInterfaceConfig.model_validate(interface_config)
+    assert_single_error(exc_info, "FLYNC-CMN-MIN-UNC-000", "while validating firewall")

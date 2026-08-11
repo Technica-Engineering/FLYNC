@@ -21,6 +21,7 @@ from flync.model.flync_4_ecu.switch import Switch, SwitchPort
 from flync.model.flync_4_metadata.metadata import BaseVersion, ECUMetadata, EmbeddedMetadata, SystemMetadata
 from flync.model.flync_4_topology.system_topology import FLYNCTopology, SystemTopology
 from flync.model.flync_model import FLYNCModel
+from tests.error_assertions import assert_single_error
 
 FLYNC_VERSION = "0.13.0"
 
@@ -54,7 +55,7 @@ def _make_empty_topology() -> FLYNCTopology:
 def test_controller_without_interfaces_is_invalid():
     controller_metadata = _make_embedded_metadata()
 
-    with pytest.raises(ValidationError, match="must declare at least one interface"):
+    with pytest.raises(ValidationError) as exc_info:
         Controller(
             name="CTRL1",
             controller_metadata=controller_metadata,
@@ -62,6 +63,7 @@ def test_controller_without_interfaces_is_invalid():
             can_interfaces=[],
             lin_interfaces=[],
         )
+    assert_single_error(exc_info, "FLYNC-ECU-MAJ-REQ-066", "must declare at least one interface")
 
 
 # Verify that a Controller cannot contain two interfaces with the same name.
@@ -74,12 +76,13 @@ def test_duplicate_interface_name_within_controller_is_invalid():
     )
     controller_metadata = _make_embedded_metadata()
 
-    with pytest.raises(ValidationError, match="Duplicates found in Controller Interfaces"):
+    with pytest.raises(ValidationError) as exc_info:
         Controller(
             name="CTRL1",
             controller_metadata=controller_metadata,
             ethernet_interfaces=[eth1, eth2],
         )
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-UNIQ-009", "Duplicates found in Controller Interfaces")
 
 
 # Verify that a different interfaces inside the same Controller cannot have the same name because it creates ambiguous references.
@@ -204,13 +207,14 @@ def test_ethernet_switch_connected_to_can_interface_is_invalid():
     virtual_switch = VirtualSwitch(name="vswitch_1", vlans=[], ports=[VirtualSwitchPort(name="invalid_vswitch", node_connected="can_iface")])
     controller_metadata = _make_embedded_metadata()
 
-    with pytest.raises(ValidationError, match="interface or compute node"):
+    with pytest.raises(ValidationError) as exc_info:
         Controller(
             name="CTRL1",
             controller_metadata=controller_metadata,
             can_interfaces=[can_iface],
             virtual_switch=virtual_switch,
         )
+    assert_single_error(exc_info, "FLYNC-ECU-MIN-REF-067", "interface or compute node")
 
 
 # Verify that an Ethernet switch cannot connect to a LIN interface. Ethernet switches support Ethernet interfaces only and cannot connect to LIN interfaces.
@@ -221,13 +225,14 @@ def test_ethernet_switch_connected_to_lin_interface_is_invalid():
     virtual_switch = VirtualSwitch(name="vswitch_1", vlans=[], ports=[VirtualSwitchPort(name="invalid_vswitch", node_connected="lin_master_iface")])
     controller_metadata = _make_embedded_metadata()
 
-    with pytest.raises(ValidationError, match="interface or compute node"):
+    with pytest.raises(ValidationError) as exc_info:
         Controller(
             name="CTRL1",
             controller_metadata=controller_metadata,
             lin_interfaces=[lin_iface],
             virtual_switch=virtual_switch,
         )
+    assert_single_error(exc_info, "FLYNC-ECU-MIN-REF-067", "interface or compute node")
 
 
 # Verify that the same physical ControllerInterface cannot be connected multiple times inside ECU topology.
@@ -297,8 +302,9 @@ def test_ethernet_vlan_conflict_is_invalid():
     vif1 = VirtualControllerInterface(name="vif1", vlanid=10, addresses=[])
 
     # The duplicate-VLAN check lives on EthernetInterfaceConfig, so that is the call under test.
-    with pytest.raises(ValidationError, match="Duplicates found in VLAN IDs of virtual Controller Interface"):
+    with pytest.raises(ValidationError) as exc_info:
         EthernetInterfaceConfig(mii_config=mii_config, virtual_interfaces=[vif0, vif1])
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-UNIQ-009", "Duplicates found in VLAN IDs of virtual Controller Interface")
 
 
 # Verify that topology loading fails when a referenced ControllerInterface does not exist.
@@ -332,5 +338,6 @@ def test_unresolved_controller_interface_reference_in_topology_is_invalid():
     )
     ecu_metadata = _make_ecu_metadata()
 
-    with pytest.raises(ValidationError, match="was not found or was not validated"):
+    with pytest.raises(ValidationError) as exc_info:
         ECU(name="ECU1", controllers=[controller], switches=[switch], topology=internal_topology, ecu_metadata=ecu_metadata)
+    assert_single_error(exc_info, "FLYNC-ECU-MAJ-REF-078", "was not found or was not validated")

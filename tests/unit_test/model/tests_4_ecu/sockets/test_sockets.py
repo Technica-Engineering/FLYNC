@@ -15,6 +15,7 @@ from flync.model.flync_4_someip.deployment import (
     SOMEIPServiceProvider,
 )
 from flync.model.flync_4_someip.service_interface import SOMEIPServiceInterface
+from tests.error_assertions import assert_single_error
 
 
 def test_positive_udp_socket():
@@ -480,10 +481,13 @@ def test_someip_consumer_rejects_unknown_multicast_field():
 
     find_service_multicast = MulticastEndpoint(ip_address="224.0.0.1", port=4444)
 
-    with pytest.raises(ValidationError, match="find_service_multicast"):
+    with pytest.raises(ValidationError) as exc_info:
         SOMEIPServiceConsumer(
             service=1,
             someip_sd_timings_profile="client_default",
             instance_id=1,
             find_service_multicast=find_service_multicast,
         )
+    # No error id: the unknown field is rejected by Pydantic's extra='forbid', not by a FLYNC validator, and the
+    # field name shows up in the error location rather than in the message.
+    assert_single_error(exc_info, None, "find_service_multicast")

@@ -6,6 +6,7 @@ import pytest
 from pydantic import ValidationError
 
 from flync.model.flync_4_signal.pdu import ContainedPDURef, ContainerPDU, ContainerPDUHeader
+from tests.error_assertions import assert_single_error
 
 # ============================================================================
 # Constants
@@ -35,7 +36,7 @@ def test_CAN_NM_headerless_container_multiple_pdus_raises():
         ContainedPDURef(pdu_id=2, pdu_ref=NM_PDU_NAME, offset=8),
     ]
 
-    with pytest.raises(ValidationError, match="only one contained PDU"):
+    with pytest.raises(ValidationError) as exc_info:
         ContainerPDU(
             name="BadHeaderless",
             length=16,
@@ -44,6 +45,7 @@ def test_CAN_NM_headerless_container_multiple_pdus_raises():
             header=header,
             contained_pdus=contained_pdus,
         )
+    assert_single_error(exc_info, "FLYNC-SIG-MIN-CONS-111", "only one contained PDU")
 
 
 def test_Simple_Ethernet_ECU_Multicast_NM_container_too_small_raises():
@@ -53,7 +55,7 @@ def test_Simple_Ethernet_ECU_Multicast_NM_container_too_small_raises():
     header = ContainerPDUHeader(id_length_bits=16, length_field_bits=16)
     contained_pdus = [ContainedPDURef(pdu_id=1, pdu_ref=NM_PDU_NAME, offset=0)]
 
-    with pytest.raises(ValidationError, match="too small to hold"):
+    with pytest.raises(ValidationError) as exc_info:
         ContainerPDU(
             name="BadContainer",
             length=1,
@@ -62,3 +64,4 @@ def test_Simple_Ethernet_ECU_Multicast_NM_container_too_small_raises():
             header=header,
             contained_pdus=contained_pdus,
         )
+    assert_single_error(exc_info, "FLYNC-SIG-MIN-VAL-110", "too small to hold")

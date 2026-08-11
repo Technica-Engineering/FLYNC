@@ -129,7 +129,11 @@ def _bus_kind_label(kind: str) -> str:
 
 
 def _validate_interface(iface: AnyBusInterface, kind: str, frames_by_bus: Dict[str, Dict[int, AnyFrame]]) -> None:
-    """Resolve one interface's own ``bus_ref`` plus every sender / receiver frame reference it declares."""
+    """Resolve one interface's own ``bus_ref`` plus every sender / receiver frame reference it declares.
+
+    *frames_by_bus* is the catalogue of the interface's own bus kind, so an unresolvable name is reported against
+    that kind - see :func:`validate_interface_frame_refs` for why the catalogue is picked that way.
+    """
 
     owner = f"{type(iface).__name__}(name={iface.name})"
     catalogue = _bus_kind_label(kind)
@@ -171,8 +175,20 @@ def _validate_interface(iface: AnyBusInterface, kind: str, frames_by_bus: Dict[s
 def validate_interface_frame_refs(model: "FLYNCModel") -> None:
     """Workspace pass: every CAN / LIN interface must name a declared bus of its own kind and resolve its frame refs.
 
-    A CAN interface resolves against ``can_buses`` only and a LIN interface against ``lin_buses`` only, so a
-    reference that crosses the bus kinds - e.g. a CAN interface receiving a LIN frame id - is reported here.
+    The check is a plain lookup - is this frame id declared on this bus - performed against the catalogue of the
+    interface's own bus kind. Both aspects are load-bearing:
+
+    *Scoped by bus*, because a CAN id is only unique within a bus: id ``0x100`` on ``CAN1`` and on ``CAN2`` are
+    two different frames, which is why :class:`~flync.model.flync_4_ecu.can_interface.CANFrameRef` carries a
+    ``bus_ref`` next to the ``frame_ref``. Asking only whether an id exists *somewhere* would accept an interface
+    on ``CAN1`` declaring a frame that only exists on ``CAN2``.
+
+    *Scoped by bus kind*, because ``bus_ref`` is a plain string and ``frame_ref`` a plain int - the type system
+    stops a ``LINFrameRef`` from landing in a ``CANInterface``, but nothing stops a CAN interface from naming a
+    LIN bus. Resolving a CAN interface against ``can_buses`` only is what catches that, so no separate cross-kind
+    rule is needed: the LIN bus name simply is not in the CAN catalogue. A single catalogue merged over both
+    kinds would instead accept LIN ids on a CAN interface, and would be ambiguous anyway - bus names are unique
+    per kind but not across kinds, so a workspace may hold a CAN bus and a LIN bus of the same name.
 
     A bus kind whose catalogue is empty is skipped: FLYNC supports partial models (an ECU or controller may be
     modelled without the bus catalogue it will later be wired into), and there is nothing to resolve against.

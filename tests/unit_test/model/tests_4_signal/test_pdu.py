@@ -17,6 +17,7 @@ from flync.model.flync_4_signal.signal import (
     SignalGroupInstance,
     SignalInstance,
 )
+from tests.error_assertions import assert_single_error
 
 # ---------------------------------------------------------------------------
 # PDUInstance
@@ -228,8 +229,9 @@ def test_negative_standard_pdu_signals_identical_position():
     s2 = Signal(name="same_pos_s2", bit_length=8, data_type=SignalDataType.UINT8)
     instances = [SignalInstance(signal=s1, bit_position=0), SignalInstance(signal=s2, bit_position=0)]
 
-    with pytest.raises(ValidationError, match="overlap"):
+    with pytest.raises(ValidationError) as exc_info:
         StandardPDU(name="same_pos_pdu", length=1, signals=instances)
+    assert_single_error(exc_info, "FLYNC-CMN-MIN-CONS-030", "overlap")
 
 
 def test_negative_standard_pdu_signal_range_contained_in_other():
@@ -238,8 +240,9 @@ def test_negative_standard_pdu_signal_range_contained_in_other():
     inner = Signal(name="inner_sig", bit_length=4, data_type=SignalDataType.UINT8)
     instances = [SignalInstance(signal=outer, bit_position=0), SignalInstance(signal=inner, bit_position=4)]
 
-    with pytest.raises(ValidationError, match="overlap"):
+    with pytest.raises(ValidationError) as exc_info:
         StandardPDU(name="contained_pdu", length=2, signals=instances)
+    assert_single_error(exc_info, "FLYNC-CMN-MIN-CONS-030", "overlap")
 
 
 def test_negative_standard_pdu_signal_starts_at_pdu_end():
@@ -247,8 +250,9 @@ def test_negative_standard_pdu_signal_starts_at_pdu_end():
     sig = Signal(name="at_end_sig", bit_length=1, data_type=SignalDataType.UINT8)
     instance = SignalInstance(signal=sig, bit_position=8)
 
-    with pytest.raises(ValidationError, match="overflows"):
+    with pytest.raises(ValidationError) as exc_info:
         StandardPDU(name="at_end_pdu", length=1, signals=[instance])
+    assert_single_error(exc_info, "FLYNC-CMN-MIN-VAL-029", "overflows")
 
 
 def test_negative_standard_pdu_signal_group_overflows_pdu():
@@ -264,8 +268,9 @@ def test_negative_standard_pdu_signal_group_overflows_pdu():
     )
     group_instance = SignalGroupInstance(signal_group=grp, bit_position=0)
 
-    with pytest.raises(ValidationError, match="overflows"):
+    with pytest.raises(ValidationError) as exc_info:
         StandardPDU(name="grp_over_pdu", length=1, signal_groups=[group_instance])
+    assert_single_error(exc_info, "FLYNC-CMN-MIN-VAL-029", "overflows")
 
 
 def test_negative_standard_pdu_signal_overlaps_signal_group():
@@ -283,8 +288,9 @@ def test_negative_standard_pdu_signal_overlaps_signal_group():
     instance = SignalInstance(signal=sig, bit_position=8)
     group_instance = SignalGroupInstance(signal_group=grp, bit_position=0)
 
-    with pytest.raises(ValidationError, match="overlap"):
+    with pytest.raises(ValidationError) as exc_info:
         StandardPDU(name="mix_overlap_pdu", length=2, signals=[instance], signal_groups=[group_instance])
+    assert_single_error(exc_info, "FLYNC-CMN-MIN-CONS-030", "overlap")
 
 
 def test_negative_standard_pdu_signal_groups_overlap_each_other():
@@ -309,8 +315,9 @@ def test_negative_standard_pdu_signal_groups_overlap_each_other():
     )
     group_instances = [SignalGroupInstance(signal_group=grp_a, bit_position=0), SignalGroupInstance(signal_group=grp_b, bit_position=8)]
 
-    with pytest.raises(ValidationError, match="overlap"):
+    with pytest.raises(ValidationError) as exc_info:
         StandardPDU(name="two_groups_overlap_pdu", length=3, signal_groups=group_instances)
+    assert_single_error(exc_info, "FLYNC-CMN-MIN-CONS-030", "overlap")
 
 
 # ---------------------------------------------------------------------------
@@ -373,8 +380,9 @@ def test_negative_mux_group_signals_overlap():
         "signals": [SignalInstance(signal=s1, bit_position=0), SignalInstance(signal=s2, bit_position=4)],
     }
 
-    with pytest.raises(ValidationError, match="overlap"):
+    with pytest.raises(ValidationError) as exc_info:
         MuxGroup(selector_value=0, pdu=pdu_payload)
+    assert_single_error(exc_info, "FLYNC-CMN-MIN-CONS-030", "overlap")
 
 
 def test_negative_mux_group_negative_selector_value():
@@ -696,8 +704,9 @@ def test_positive_container_pdu_headerless_no_contained_pdus_raises():
     """Header-less with zero contained PDUs must be rejected (not exactly one)."""
     header = ContainerPDUHeader(id_length_bits=0, length_field_bits=0)
 
-    with pytest.raises(ValidationError, match="one contained PDU"):
+    with pytest.raises(ValidationError) as exc_info:
         ContainerPDU(name="ctr_headerless_empty", pdu_id=21, length=4, header=header, contained_pdus=[])
+    assert_single_error(exc_info, "FLYNC-SIG-MIN-CONS-111", "one contained PDU")
 
 
 def test_negative_container_pdu_headerless_multiple_contained_pdus():
@@ -705,21 +714,24 @@ def test_negative_container_pdu_headerless_multiple_contained_pdus():
     header = ContainerPDUHeader(id_length_bits=0, length_field_bits=0)
     contained_pdus = [ContainedPDURef(pdu_id=1, pdu_ref="inner_a"), ContainedPDURef(pdu_id=2, pdu_ref="inner_b")]
 
-    with pytest.raises(ValidationError, match="one contained PDU"):
+    with pytest.raises(ValidationError) as exc_info:
         ContainerPDU(name="ctr_headerless_multi", pdu_id=22, length=4, header=header, contained_pdus=contained_pdus)
+    assert_single_error(exc_info, "FLYNC-SIG-MIN-CONS-111", "one contained PDU")
 
 
 def test_negative_container_pdu_only_id_length_zero():
     """id_length_bits=0 with non-zero length_field_bits must be rejected."""
     header = ContainerPDUHeader(id_length_bits=0, length_field_bits=8)
 
-    with pytest.raises(ValidationError, match="Both or None"):
+    with pytest.raises(ValidationError) as exc_info:
         ContainerPDU(name="ctr_id_zero_only", pdu_id=23, length=4, header=header)
+    assert_single_error(exc_info, "FLYNC-SIG-MIN-CONS-112", "Both or None")
 
 
 def test_negative_container_pdu_only_length_field_zero():
     """length_field_bits=0 with non-zero id_length_bits must be rejected."""
     header = ContainerPDUHeader(id_length_bits=16, length_field_bits=0)
 
-    with pytest.raises(ValidationError, match="Both or None"):
+    with pytest.raises(ValidationError) as exc_info:
         ContainerPDU(name="ctr_len_zero_only", pdu_id=24, length=4, header=header)
+    assert_single_error(exc_info, "FLYNC-SIG-MIN-CONS-112", "Both or None")

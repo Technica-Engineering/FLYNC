@@ -17,6 +17,7 @@ from flync.model.flync_4_signal.pdu_deployment import PDUReceiver, PDUSender
 from flync.model.flync_4_signal.signal import Signal, SignalDataType, SignalInstance
 from flync.model.flync_4_topology.system_topology import FLYNCTopology, SystemTopology
 from flync.model.flync_model import FLYNCModel
+from tests.error_assertions import assert_single_error
 
 
 def test_standard_pdu_invalid_signal_bit_position():
@@ -142,8 +143,9 @@ def test_invalid_lin_frame_in_can_interface():
     )
     communication = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus], lin_buses=[lin_bus], pdus=[pdu]))
 
-    with pytest.raises(ValidationError, match="does not name any frame declared on bus 'CAN0'"):
+    with pytest.raises(ValidationError) as exc_info:
         FLYNCModel(ecus=[ecu], topology=topology, metadata=metadata, communication=communication)
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-REF-217", "does not name any frame declared on bus 'CAN0'")
 
 
 def test_invalid_can_frame_in_lin_interface():
@@ -156,7 +158,7 @@ def test_invalid_can_frame_in_lin_interface():
     can_frame_ref = CANFrameRef(bus_ref="LIN0", frame_ref=can_frame.can_id)  # invalid: a CAN ref on a LIN interface
 
     # The rejection happens when the LIN interface itself is built, so that is the call under test.
-    with pytest.raises(ValidationError, match="LINFrameRef"):
+    with pytest.raises(ValidationError) as exc_info:
         LINMasterInterface(
             name="LIN0_IF",
             node_type="master",
@@ -166,3 +168,5 @@ def test_invalid_can_frame_in_lin_interface():
             st_min=0.001,
             sender_frames=[can_frame_ref],
         )
+    # No error id: the mismatch is reported by the Pydantic union discrimination, not by a FLYNC validator.
+    assert_single_error(exc_info, None, "LINFrameRef")

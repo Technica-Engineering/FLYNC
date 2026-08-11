@@ -42,6 +42,7 @@ from flync.model.flync_4_signal.frame import FrameCyclicTiming, FrameTransmissio
 from flync.model.flync_4_signal.pdu import ContainedPDURef, ContainerPDU, ContainerPDUHeader
 from flync.model.flync_4_topology import ExternalConnection, FLYNCTopology, SystemTopology
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
+from tests.error_assertions import assert_single_error
 
 # ============================================================================
 # Constants
@@ -1451,8 +1452,9 @@ def test_multicast_receiver_unknown_pdu_ref_raises():
     topology = _make_ethernet_topology(("hpc_port1", "zonal1_port1"))
     metadata = _make_system_metadata()
 
-    with pytest.raises(ValidationError, match="pdu_ref 'DoesNotExist'"):
+    with pytest.raises(ValidationError) as exc_info:
         FLYNCModel(ecus=[hpc, z1], communication=communication, topology=topology, metadata=metadata)
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-REF-175", "pdu_ref 'DoesNotExist'")
 
 
 def test_duplicate_nm_pdu_in_catalog_raises():
@@ -1461,5 +1463,6 @@ def test_duplicate_nm_pdu_in_catalog_raises():
     containers = [_make_nm_container_pdu()]
 
     # The duplicate-name check lives on FLYNCChannelConfig, so that is the call under test.
-    with pytest.raises(ValidationError, match="Duplicates found in PDUs"):
+    with pytest.raises(ValidationError) as exc_info:
         FLYNCChannelConfig(pdus=duplicate_pdus, ethernet_pdu_containers=containers)
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-UNIQ-009", "Duplicates found in PDUs")

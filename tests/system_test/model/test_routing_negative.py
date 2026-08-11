@@ -20,6 +20,7 @@ from flync.model.flync_4_signal.pdu import PDUInstance, SignalInstance, Standard
 from flync.model.flync_4_signal.signal import Signal
 from flync.model.flync_4_topology.system_topology import FLYNCTopology, SystemTopology
 from flync.model.flync_model import FLYNCModel
+from tests.error_assertions import assert_single_error
 
 FLYNC_VERSION = "0.13.0"
 
@@ -58,7 +59,7 @@ def test_duplicate_forwarder_rejected():
     forwarder2 = CANFrameForwarder(frame_ref=sample_frame.name, egresses=[CANFrameEgress(frame_ref=sample_frame.can_id, bus_ref="CAN1")])
     sender_frame = CANFrameRef(bus_ref="CAN1", frame_ref=sample_frame.can_id)
 
-    with pytest.raises(ValidationError, match="duplicate frame_ref"):
+    with pytest.raises(ValidationError) as exc_info:
         CANInterface(
             name="IF1",
             bus_ref="CAN1",
@@ -66,6 +67,7 @@ def test_duplicate_forwarder_rejected():
             receiver_frames=[],
             forwarder_frames=[forwarder1, forwarder2],
         )
+    assert_single_error(exc_info, "FLYNC-ECU-MAJ-UNIQ-058", "duplicate frame_ref")
 
 
 def test_forwarder_missing_frame():
@@ -94,8 +96,9 @@ def test_forwarder_missing_frame():
     metadata = _make_system_metadata()
     communication = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus]))
 
-    with pytest.raises(ValidationError, match="does not name any CAN or CAN FD frame declared"):
+    with pytest.raises(ValidationError) as exc_info:
         FLYNCModel(ecus=[ecu], topology=topology, metadata=metadata, communication=communication)
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-REF-039", "does not name any CAN or CAN FD frame declared")
 
 
 def test_forwarder_invalid_interface_routing():
@@ -121,16 +124,22 @@ def test_forwarder_invalid_interface_routing():
     metadata = _make_system_metadata()
     communication = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus]))
 
-    with pytest.raises(ValidationError, match="Forwarder cycle detected"):
+    with pytest.raises(ValidationError) as exc_info:
         FLYNCModel(ecus=[ecu], topology=topology, metadata=metadata, communication=communication)
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-STRUCT-047", "Forwarder cycle detected")
 
 
 def test_forwarder_invalid_target_bus():
     """
     Rejects CANFrameForwarder egresses targeting a bus with no interface on the controller.
+
+    Both buses and both frames are declared on purpose: the missing interface on CAN2 has to be the only
+    defect, otherwise the bus / frame reference passes would fail the workspace before the locality rule runs.
     """
     engine_status = CANFrame(name="EngineStatus", length=8, can_id=0x100, id_format="standard_11bit", is_remote_frame=False)
-    can_bus = CANBus(name="CAN2", baud_rate=10000, frames=[engine_status])
+    engine_status_mirror = CANFrame(name="EngineStatusMirror", length=8, can_id=0x100, id_format="standard_11bit", is_remote_frame=False)
+    can_bus_1 = CANBus(name="CAN1", baud_rate=10000, frames=[engine_status])
+    can_bus_2 = CANBus(name="CAN2", baud_rate=10000, frames=[engine_status_mirror])
     forwarder = CANFrameForwarder(
         frame_ref="EngineStatus", egresses=[ForwarderEgress(root=CANFrameEgress(egress_type="can_frame", bus_ref="CAN2", frame_ref=0x100))]
     )
@@ -146,18 +155,24 @@ def test_forwarder_invalid_target_bus():
     ecu = ECU(name="ECU1", controllers=[controller], topology=InternalTopology(), ecu_metadata=_make_ecu_metadata())
     topology = _make_empty_topology()
     metadata = _make_system_metadata()
-    communication = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus]))
+    communication = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus_1, can_bus_2]))
 
-    with pytest.raises(ValidationError, match="which has no CAN interface on controller"):
+    with pytest.raises(ValidationError) as exc_info:
         FLYNCModel(ecus=[ecu], topology=topology, metadata=metadata, communication=communication)
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-REF-044", "which has no CAN interface on controller")
 
 
 def test_forwarding_invalid_sender():
     """
     Rejects forwarding when sender declarations are inconsistent across interfaces.
+
+    Both buses and both frames are declared on purpose: the missing sender_frames entry on IF2 has to be the
+    only defect, otherwise the bus / frame reference passes would fail the workspace before this rule runs.
     """
     engine_status = CANFrame(name="EngineStatus", length=8, can_id=0x100, id_format="standard_11bit", is_remote_frame=False)
-    can_bus = CANBus(name="CAN2", baud_rate=10000, frames=[engine_status])
+    engine_status_mirror = CANFrame(name="EngineStatusMirror", length=8, can_id=0x100, id_format="standard_11bit", is_remote_frame=False)
+    can_bus_1 = CANBus(name="CAN1", baud_rate=10000, frames=[engine_status])
+    can_bus_2 = CANBus(name="CAN2", baud_rate=10000, frames=[engine_status_mirror])
     forwarder = CANFrameForwarder(
         frame_ref="EngineStatus", egresses=[ForwarderEgress(root=CANFrameEgress(egress_type="can_frame", bus_ref="CAN2", frame_ref=0x100))]
     )
@@ -174,18 +189,24 @@ def test_forwarding_invalid_sender():
     ecu = ECU(name="ECU1", controllers=[controller], topology=InternalTopology(), ecu_metadata=_make_ecu_metadata())
     topology = _make_empty_topology()
     metadata = _make_system_metadata()
-    communication = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus]))
+    communication = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus_1, can_bus_2]))
 
-    with pytest.raises(ValidationError, match="does not list it in sender_frames of that interface"):
+    with pytest.raises(ValidationError) as exc_info:
         FLYNCModel(ecus=[ecu], topology=topology, metadata=metadata, communication=communication)
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-CONS-045", "does not list it in sender_frames of that interface")
 
 
 def test_forwarding_locality_violation():
     """
     Rejects CAN forwarding when locality rules between interfaces are violated.
+
+    IF2 receives the egress frame but never sends it, so declaring it as a receiver is not enough to make the
+    egress legal. Both buses and both frames are declared so that this is the only defect in the fixture.
     """
     engine_status = CANFrame(name="EngineStatus", length=8, can_id=0x100, id_format="standard_11bit", is_remote_frame=False)
-    can_bus = CANBus(name="CAN2", baud_rate=10000, frames=[engine_status])
+    engine_status_mirror = CANFrame(name="EngineStatusMirror", length=8, can_id=0x100, id_format="standard_11bit", is_remote_frame=False)
+    can_bus_1 = CANBus(name="CAN1", baud_rate=10000, frames=[engine_status])
+    can_bus_2 = CANBus(name="CAN2", baud_rate=10000, frames=[engine_status_mirror])
     forwarder = CANFrameForwarder(
         frame_ref="EngineStatus", egresses=[ForwarderEgress(root=CANFrameEgress(egress_type="can_frame", bus_ref="CAN2", frame_ref=0x100))]
     )
@@ -204,15 +225,19 @@ def test_forwarding_locality_violation():
     ecu = ECU(name="ECU1", controllers=[controller], topology=InternalTopology(), ecu_metadata=_make_ecu_metadata())
     topology = _make_empty_topology()
     metadata = _make_system_metadata()
-    communication = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus]))
+    communication = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus_1, can_bus_2]))
 
-    with pytest.raises(ValidationError, match="does not list it in sender_frames of that interface"):
+    with pytest.raises(ValidationError) as exc_info:
         FLYNCModel(ecus=[ecu], topology=topology, metadata=metadata, communication=communication)
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-CONS-045", "does not list it in sender_frames of that interface")
 
 
 def test_forwarding_can_to_ethernet_without_pdu():
     """
     Validates that CAN-to-Ethernet forwarding is rejected when the CAN frame does not contain a resolvable single PDU for Ethernet egress.
+
+    The interface resolves against the declared bus on purpose: the frame without a packed PDU has to be the
+    only defect, otherwise the bus reference pass would fail the workspace before the egress rule runs.
     """
     engine_status = CANFrame(name="EngineStatus", length=8, can_id=0x100, id_format="standard_11bit")
     can_bus = CANBus(name="CAN1_BUS", baud_rate=10000, frames=[engine_status])
@@ -222,9 +247,9 @@ def test_forwarding_can_to_ethernet_without_pdu():
     )
     can_interface = CANInterface(
         name="CAN_IF_1",
-        bus_ref="CAN1",
+        bus_ref="CAN1_BUS",
         receiver_frames=[],
-        sender_frames=[CANFrameRef(bus_ref="CAN1", frame_ref=0x100)],
+        sender_frames=[CANFrameRef(bus_ref="CAN1_BUS", frame_ref=0x100)],
         forwarder_frames=[forwarder],
     )
     controller = Controller(
@@ -244,8 +269,9 @@ def test_forwarding_can_to_ethernet_without_pdu():
     metadata = _make_system_metadata()
     communication = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus]))
 
-    with pytest.raises(ValidationError, match="cannot resolve egress PDU; ingress frame has no single packed PDU"):
+    with pytest.raises(ValidationError) as exc_info:
         FLYNCModel(ecus=[ecu], topology=topology, metadata=metadata, communication=communication)
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-REF-046", "cannot resolve egress PDU; ingress frame has no single packed PDU")
 
 
 def test_invalid_extract_pdu_ref_on_standard_pdu():
@@ -293,8 +319,9 @@ def test_invalid_extract_pdu_ref_on_standard_pdu():
     metadata = _make_system_metadata()
     communication = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus], pdus=[engine_status_pdu]))
 
-    with pytest.raises(ValidationError, match="is only valid when ingress is a ContainerPDU"):
+    with pytest.raises(ValidationError) as exc_info:
         FLYNCModel(ecus=[ecu], topology=topology, metadata=metadata, communication=communication)
+    assert_single_error(exc_info, "FLYNC-CMN-MIN-CONS-035", "is only valid when ingress is a ContainerPDU")
 
 
 def test_forwarding_can_to_ethernet_missing_pdu_deployment():
@@ -367,8 +394,9 @@ def test_forwarding_can_to_ethernet_missing_pdu_deployment():
     metadata = _make_system_metadata()
     communication = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus], pdus=[engine_status_pdu]))
 
-    with pytest.raises(ValidationError, match="has no pdu_sender deployment for PDU"):
+    with pytest.raises(ValidationError) as exc_info:
         FLYNCModel(ecus=[ecu], topology=topology, metadata=metadata, communication=communication)
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-CONS-043", "has no pdu_sender deployment for PDU")
 
 
 def test_forwarding_can_to_ethernet_with_extract_pdu_ref_not_containerPDU():
@@ -454,5 +482,6 @@ def test_forwarding_can_to_ethernet_with_extract_pdu_ref_not_containerPDU():
     metadata = _make_system_metadata()
     communication = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus], pdus=[engine_status_pdu], ethernet_pdu_containers=[]))
 
-    with pytest.raises(ValidationError, match="is only valid when ingress is a ContainerPDU"):
+    with pytest.raises(ValidationError) as exc_info:
         FLYNCModel(ecus=[ecu], topology=topology, metadata=metadata, communication=communication)
+    assert_single_error(exc_info, "FLYNC-CMN-MIN-CONS-035", "is only valid when ingress is a ContainerPDU")

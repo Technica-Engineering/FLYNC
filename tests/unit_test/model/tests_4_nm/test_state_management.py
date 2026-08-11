@@ -13,6 +13,7 @@ from flync.model.flync_4_nm import (
     StateManagementGroup,
     StateMembershipRef,
 )
+from tests.error_assertions import assert_single_error
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -65,13 +66,15 @@ def test_positive_group_timing():
 
 
 def test_group_timing_timeout_must_exceed_cycle_time_negative():
-    with pytest.raises(ValidationError, match="timeout_ms must be greater than cycle_time_ms"):
+    with pytest.raises(ValidationError) as exc_info:
         _make_timing(timeout_ms=500)
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-VAL-204", "timeout_ms must be greater than cycle_time_ms")
 
 
 def test_group_timing_timeout_below_cycle_time_negative():
-    with pytest.raises(ValidationError, match="timeout_ms must be greater than cycle_time_ms"):
+    with pytest.raises(ValidationError) as exc_info:
         _make_timing(timeout_ms=100)
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-VAL-204", "timeout_ms must be greater than cycle_time_ms")
 
 
 @pytest.mark.parametrize("field", ["cycle_time_ms", "timeout_ms", "wait_before_sleep_ms", "announcement_duration_ms"])
@@ -112,19 +115,22 @@ def test_group_timing_requires_sleep_negative():
 
 
 def test_group_timing_announcement_burst_requires_both_fields_negative():
-    with pytest.raises(ValidationError, match="must be set together"):
+    with pytest.raises(ValidationError) as exc_info:
         _make_timing(burst_cycle_time_ms=20)
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-VAL-203", "must be set together")
 
 
 def test_group_timing_announcement_burst_must_be_faster_than_cycle_negative():
-    with pytest.raises(ValidationError, match="must be shorter than cycle_time_ms"):
+    with pytest.raises(ValidationError) as exc_info:
         _make_timing(burst_cycle_time_ms=500, burst_count=2)
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-VAL-205", "must be shorter than cycle_time_ms")
 
 
 def test_group_timing_announcement_burst_must_fit_announcement_duration_negative():
     # 30 x 100 ms = 3000 ms burst does not fit within the announcement duration_ms=1000
-    with pytest.raises(ValidationError, match="does not fit within the announcement duration_ms"):
+    with pytest.raises(ValidationError) as exc_info:
         _make_timing(burst_cycle_time_ms=100, burst_count=30)
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-VAL-206", "does not fit within the announcement duration_ms")
 
 
 # ---------------------------------------------------------------------------
@@ -155,8 +161,9 @@ def test_positive_membership_observer_without_bit():
 
 
 def test_membership_observer_owns_no_bit_negative():
-    with pytest.raises(ValidationError, match="participants reference bits"):
+    with pytest.raises(ValidationError) as exc_info:
         StateMembershipRef(group="COMFORT", role="observer", relevance_bits=["X"])
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-CONS-207", "participants reference bits")
 
 
 def test_membership_observer_empty_bits_ok():
@@ -166,8 +173,9 @@ def test_membership_observer_empty_bits_ok():
 
 
 def test_membership_duplicate_bits_negative():
-    with pytest.raises(ValidationError, match="more than once"):
+    with pytest.raises(ValidationError) as exc_info:
         StateMembershipRef(group="VEHICLE", role="participant", relevance_bits=["Comfort", "Comfort"])
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-UNIQ-208", "more than once")
 
 
 def test_membership_rejects_unknown_role_negative():
@@ -221,16 +229,18 @@ def test_config_duplicate_group_name_negative():
     twin = {"name": "TWIN", "nm_pdu": "PDU_Nm", "timing_profile": "standard"}
     payload = {"groups": [twin, dict(twin)]}
 
-    with pytest.raises(ValidationError, match="Duplicates found"):
+    with pytest.raises(ValidationError) as exc_info:
         StateManagementConfig.model_validate(payload)
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-UNIQ-009", "Duplicates found")
 
 
 def test_config_duplicate_timing_profile_name_negative():
     profile = _make_timing().model_dump()
     payload = {"timing_profiles": [profile, dict(profile)]}
 
-    with pytest.raises(ValidationError, match="Duplicates found"):
+    with pytest.raises(ValidationError) as exc_info:
         StateManagementConfig.model_validate(payload)
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-UNIQ-009", "Duplicates found")
 
 
 # ---------------------------------------------------------------------------

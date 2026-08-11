@@ -13,6 +13,7 @@ from flync.model.flync_4_ecu.controller import (
     VirtualSwitchPort,
 )
 from flync.model.flync_4_metadata.metadata import BaseVersion
+from tests.error_assertions import assert_single_error
 
 
 def test_bridge_port_invalid_reference():
@@ -80,8 +81,9 @@ def test_ptp_conflict_between_interface_and_compute_node():
     )
     interface_ptp_config = PTPConfig()
 
-    with pytest.raises(ValidationError, match="is configured on both controller interface"):
+    with pytest.raises(ValidationError) as exc_info:
         EthernetInterfaceConfig(mac_address="00:11:22:33:44:55", ptp_config=interface_ptp_config, compute_nodes=[compute_node])
+    assert_single_error(exc_info, "FLYNC-ECU-MIN-CONS-062", "is configured on both controller interface")
 
 
 def test_feature_offload_to_compute_node_only():

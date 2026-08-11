@@ -23,6 +23,7 @@ from flync.model.flync_4_metadata.metadata import BaseVersion, ECUMetadata, Embe
 from flync.model.flync_4_signal.frame import CANFrame, LINFrame
 from flync.model.flync_4_topology.system_topology import FLYNCTopology, SystemTopology
 from flync.model.flync_model import FLYNCModel
+from tests.error_assertions import assert_single_error
 
 FLYNC_VERSION = "0.13.0"
 CAN_ID = 0x100
@@ -73,8 +74,9 @@ def test_can_interface_unknown_bus_ref_rejected():
     channels = FLYNCChannelConfig(can_buses=[_make_can_bus("CAN0")])
     can_interface = CANInterface(name="CAN_IF_1", bus_ref="CAN_DOES_NOT_EXIST")
 
-    with pytest.raises(ValidationError, match="does not name any bus declared under communication.channels.can_buses"):
+    with pytest.raises(ValidationError) as exc_info:
         _make_model(channels, can_interfaces=[can_interface])
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-REF-215", "does not name any bus declared under communication.channels.can_buses")
 
 
 def test_can_interface_pointing_at_lin_bus_rejected():
@@ -82,8 +84,9 @@ def test_can_interface_pointing_at_lin_bus_rejected():
     channels = FLYNCChannelConfig(can_buses=[_make_can_bus("CAN0")], lin_buses=[_make_lin_bus("LIN0")])
     can_interface = CANInterface(name="CAN_IF_1", bus_ref="LIN0")
 
-    with pytest.raises(ValidationError, match="bus_ref 'LIN0' does not name any bus declared under communication.channels.can_buses"):
+    with pytest.raises(ValidationError) as exc_info:
         _make_model(channels, can_interfaces=[can_interface])
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-REF-215", "bus_ref 'LIN0' does not name any bus declared under communication.channels.can_buses")
 
 
 def test_can_interface_dangling_frame_ref_rejected():
@@ -91,8 +94,9 @@ def test_can_interface_dangling_frame_ref_rejected():
     channels = FLYNCChannelConfig(can_buses=[_make_can_bus("CAN0")])
     can_interface = CANInterface(name="CAN_IF_1", bus_ref="CAN0", sender_frames=[CANFrameRef(bus_ref="CAN0", frame_ref=0x999)])
 
-    with pytest.raises(ValidationError, match="frame_ref id=2457 does not name any frame declared on bus 'CAN0'"):
+    with pytest.raises(ValidationError) as exc_info:
         _make_model(channels, can_interfaces=[can_interface])
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-REF-217", "frame_ref id=2457 does not name any frame declared on bus 'CAN0'")
 
 
 def test_lin_interface_dangling_frame_ref_rejected():
@@ -107,8 +111,9 @@ def test_lin_interface_dangling_frame_ref_rejected():
         sender_frames=[LINFrameRef(bus_ref="LIN0", frame_ref=0x33)],
     )
 
-    with pytest.raises(ValidationError, match="does not name any frame declared on bus 'LIN0'"):
+    with pytest.raises(ValidationError) as exc_info:
         _make_model(channels, lin_interfaces=[lin_interface])
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-REF-217", "does not name any frame declared on bus 'LIN0'")
 
 
 def test_bus_interface_refs_accepted_when_declared():

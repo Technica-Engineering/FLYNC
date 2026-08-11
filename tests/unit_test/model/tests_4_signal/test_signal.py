@@ -16,6 +16,7 @@ from flync.model.flync_4_signal.signal import (
     TextEntry,
     TextTable,
 )
+from tests.error_assertions import assert_single_error
 
 
 class Test_SignalDataTypeHelper:
@@ -139,29 +140,50 @@ class Test_TextEntry:
         assert entry.label == dict_input["label"]
 
     @pytest.mark.parametrize(
-        "dict_input, error_message",
+        "dict_input, error_id, error_message",
         [
             pytest.param(
-                {"value": 5, "to_value": 10, "label": "single_value_with_to"}, "cannot use both 'value' and 'to_value'", id="single_value_with_to"
+                {"value": 5, "to_value": 10, "label": "single_value_with_to"},
+                "FLYNC-CMN-MAJ-CONS-032",
+                "cannot use both 'value' and 'to_value'",
+                id="single_value_with_to",
             ),
             pytest.param(
                 {"value": 5, "from_value": 10, "label": "single_value_with_from"},
+                "FLYNC-CMN-MAJ-CONS-033",
                 "cannot use both 'value' and 'from_value'",
                 id="single_value_with_from",
             ),
-            pytest.param({"from_value": 5, "label": "missing_field_to"}, "'from_value' and 'to_value' must be paired", id="missing_field_to"),
-            pytest.param({"to_value": 5, "label": "missing_field_from"}, "'from_value' and 'to_value' must be paired", id="missing_field_from"),
-            pytest.param({"from_value": 10, "to_value": 5, "label": "reverse_bounds"}, "must not be less than", id="reversed_bounds"),
+            pytest.param(
+                {"from_value": 5, "label": "missing_field_to"},
+                "FLYNC-CMN-MAJ-CONS-034",
+                "'from_value' and 'to_value' must be paired",
+                id="missing_field_to",
+            ),
+            pytest.param(
+                {"to_value": 5, "label": "missing_field_from"},
+                "FLYNC-CMN-MAJ-CONS-034",
+                "'from_value' and 'to_value' must be paired",
+                id="missing_field_from",
+            ),
+            pytest.param(
+                {"from_value": 10, "to_value": 5, "label": "reverse_bounds"},
+                "FLYNC-SIG-MAJ-CONS-127",
+                "must not be less than",
+                id="reversed_bounds",
+            ),
             pytest.param(
                 {"label": "no_value"},
+                "FLYNC-CMN-MAJ-REQ-031",
                 "'value' or the pair of 'from_value' and 'to_value' has to be defined.",
                 id="no_value",
             ),
         ],
     )
-    def test_negative_text_entry_dict(self, dict_input, error_message):
-        with pytest.raises(ValidationError, match=error_message):
+    def test_negative_text_entry_dict(self, dict_input, error_id, error_message):
+        with pytest.raises(ValidationError) as exc_info:
             TextEntry.model_validate(dict_input)
+        assert_single_error(exc_info, error_id, error_message)
 
 
 class Test_TextTable:
@@ -182,8 +204,9 @@ class Test_TextTable:
         """Overlap detection between a single value and a covering range."""
         entries = [TextEntry(from_value=0, to_value=9, label="Low"), TextEntry(value=5, label="Five")]
 
-        with pytest.raises(ValidationError, match="overlap"):
+        with pytest.raises(ValidationError) as exc_info:
             TextTable(entries=entries)
+        assert_single_error(exc_info, "FLYNC-CMN-MIN-CONS-030", "overlap")
 
 
 class Test_BitfieldTextTable:
@@ -207,8 +230,9 @@ class Test_BitfieldTextTable:
     def test_negative_bitfield_overlapping_states_within_group(self):
         states = [BitfieldState(label="A", from_value=0x08, to_value=0x18), BitfieldState(label="B", from_value=0x10, to_value=0x20)]
 
-        with pytest.raises(ValidationError, match="overlap"):
+        with pytest.raises(ValidationError) as exc_info:
             BitfieldGroup(name="G", mask=0xFF, states=states)
+        assert_single_error(exc_info, "FLYNC-CMN-MIN-CONS-030", "overlap")
 
     def test_negative_bitfield_overlapping_group_masks(self):
         groups = [
@@ -216,8 +240,9 @@ class Test_BitfieldTextTable:
             BitfieldGroup(name="B", mask=0x30, states=[BitfieldState(label="SB", from_value=0, to_value=0)]),
         ]
 
-        with pytest.raises(ValidationError, match="overlaps another group"):
+        with pytest.raises(ValidationError) as exc_info:
             BitfieldTextTable(groups=groups)
+        assert_single_error(exc_info, "FLYNC-SIG-MAJ-CONS-132", "overlaps another group")
 
     def test_negative_bitfield_duplicate_group_name(self):
         groups = [
@@ -225,20 +250,23 @@ class Test_BitfieldTextTable:
             BitfieldGroup(name="G", mask=0xF0, states=[BitfieldState(label="B", from_value=0, to_value=0)]),
         ]
 
-        with pytest.raises(ValidationError, match="duplicate group name"):
+        with pytest.raises(ValidationError) as exc_info:
             BitfieldTextTable(groups=groups)
+        assert_single_error(exc_info, "FLYNC-SIG-MAJ-UNIQ-131", "duplicate group name")
 
     def test_negative_bitfield_state_outside_mask(self):
         states = [BitfieldState(label="OutOfMask", from_value=0x10, to_value=0x10)]
 
-        with pytest.raises(ValidationError, match="outside mask"):
+        with pytest.raises(ValidationError) as exc_info:
             BitfieldGroup(name="G", mask=0x0F, states=states)
+        assert_single_error(exc_info, "FLYNC-SIG-MAJ-VAL-130", "outside mask")
 
     def test_negative_bitfield_duplicate_state_label(self):
         states = [BitfieldState(label="Dup", from_value=0x01, to_value=0x01), BitfieldState(label="Dup", from_value=0x02, to_value=0x02)]
 
-        with pytest.raises(ValidationError, match="duplicate state label"):
+        with pytest.raises(ValidationError) as exc_info:
             BitfieldGroup(name="G", mask=0xFF, states=states)
+        assert_single_error(exc_info, "FLYNC-SIG-MAJ-UNIQ-129", "duplicate state label")
 
 
 class Test_BitmaskFlags:
@@ -259,14 +287,16 @@ class Test_BitmaskFlags:
     def test_negative_bitmask_flags_overlapping_masks(self):
         flags = [BitmaskFlag(mask=0x03, label="A"), BitmaskFlag(mask=0x06, label="B")]
 
-        with pytest.raises(ValidationError, match="overlaps another flag"):
+        with pytest.raises(ValidationError) as exc_info:
             BitmaskFlags(flags=flags)
+        assert_single_error(exc_info, "FLYNC-SIG-MAJ-CONS-134", "overlaps another flag")
 
     def test_negative_bitmask_flags_duplicate_label(self):
         flags = [BitmaskFlag(mask=0x01, label="Dup"), BitmaskFlag(mask=0x02, label="Dup")]
 
-        with pytest.raises(ValidationError, match="duplicate flag label"):
+        with pytest.raises(ValidationError) as exc_info:
             BitmaskFlags(flags=flags)
+        assert_single_error(exc_info, "FLYNC-SIG-MAJ-UNIQ-133", "duplicate flag label")
 
     def test_negative_bitmask_flags_zero_mask(self):
         with pytest.raises(ValidationError):
@@ -707,15 +737,17 @@ class Test_Signal:
         entries = [TextEntry(from_value=1, to_value=1, label="First"), TextEntry(from_value=1, to_value=1, label="Also first")]
 
         # The overlap check runs while the encoding is built, before any Signal can reference it.
-        with pytest.raises(ValidationError, match="overlap"):
+        with pytest.raises(ValidationError) as exc_info:
             TextTable(entries=entries)
+        assert_single_error(exc_info, "FLYNC-CMN-MIN-CONS-030", "overlap")
 
     def test_negative_range_text_table_overlapping_entries(self):
         entries = [TextEntry(from_value=0, to_value=10, label="A"), TextEntry(from_value=5, to_value=15, label="B")]
 
         # The overlap check runs while the encoding is built, before any Signal can reference it.
-        with pytest.raises(ValidationError, match="overlap"):
+        with pytest.raises(ValidationError) as exc_info:
             TextTable(entries=entries)
+        assert_single_error(exc_info, "FLYNC-CMN-MIN-CONS-030", "overlap")
 
     @pytest.mark.parametrize(
         "data_type, bit_length, bad_value",
@@ -758,22 +790,25 @@ class Test_Signal:
     def test_negative_value_encoding_unsupported_data_type(self, data_type, bit_length):
         value_encoding = TextTable(entries=[TextEntry(from_value=0, to_value=0, label="X")])
 
-        with pytest.raises(ValidationError, match="not supported"):
+        with pytest.raises(ValidationError) as exc_info:
             Signal(name="bad_dt", bit_length=bit_length, data_type=data_type, value_encoding=value_encoding)
+        assert_single_error(exc_info, "FLYNC-SIG-MAJ-COMP-118", "not supported")
 
     def test_negative_bitmask_flags_mask_exceeds_bit_length(self):
         value_encoding = BitmaskFlags(flags=[BitmaskFlag(mask=0x100, label="TooBig")])
 
-        with pytest.raises(ValidationError, match="exceeds the representable range"):
+        with pytest.raises(ValidationError) as exc_info:
             Signal(name="bm_overflow", bit_length=8, data_type=SignalDataType.UINT8, value_encoding=value_encoding)
+        assert_single_error(exc_info, "FLYNC-SIG-MAJ-VAL-121", "exceeds the representable range")
 
     def test_negative_bitfield_mask_exceeds_bit_length(self):
         value_encoding = BitfieldTextTable(
             groups=[BitfieldGroup(name="G", mask=0x1FF, states=[BitfieldState(label="S", from_value=0, to_value=0)])],
         )
 
-        with pytest.raises(ValidationError, match="exceeds the representable range"):
+        with pytest.raises(ValidationError) as exc_info:
             Signal(name="mask_overflow", bit_length=8, data_type=SignalDataType.UINT8, value_encoding=value_encoding)
+        assert_single_error(exc_info, "FLYNC-SIG-MAJ-VAL-120", "exceeds the representable range")
 
     @pytest.mark.parametrize(
         "data_type, bit_length, bad_iv",
@@ -906,8 +941,9 @@ class Test_SignalGroup:
         s2 = Signal(name="grp_olap_s2", bit_length=8, data_type=SignalDataType.UINT8)
         instances = [SignalInstance(signal=s1, bit_position=0), SignalInstance(signal=s2, bit_position=4)]
 
-        with pytest.raises(ValidationError, match="overlap"):
+        with pytest.raises(ValidationError) as exc_info:
             SignalGroup(name="grp_olap", signals=instances)
+        assert_single_error(exc_info, "FLYNC-CMN-MIN-CONS-030", "overlap")
 
     def test_negative_signal_group_signals_identical_position(self):
         """Two signal instances at the same bit_position inside a group must overlap."""
@@ -915,8 +951,9 @@ class Test_SignalGroup:
         s2 = Signal(name="grp_same_s2", bit_length=8, data_type=SignalDataType.UINT8)
         instances = [SignalInstance(signal=s1, bit_position=0), SignalInstance(signal=s2, bit_position=0)]
 
-        with pytest.raises(ValidationError, match="overlap"):
+        with pytest.raises(ValidationError) as exc_info:
             SignalGroup(name="grp_same_pos", signals=instances)
+        assert_single_error(exc_info, "FLYNC-CMN-MIN-CONS-030", "overlap")
 
 
 class Test_SignalGroupInstance:

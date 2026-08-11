@@ -22,6 +22,7 @@ from flync.model.flync_4_metadata.metadata import BaseVersion, ECUMetadata, Embe
 from flync.model.flync_4_someip.deployment import SOMEIPEventgroupMulticastConfig, SOMEIPServiceProvider
 from flync.model.flync_4_topology.system_topology import FLYNCTopology, SystemTopology
 from flync.model.flync_model import FLYNCModel
+from tests.error_assertions import assert_single_error
 
 FLYNC_VERSION = "0.12.0"
 MULTICAST_GROUP = "224.0.0.15"
@@ -94,8 +95,9 @@ def test_provider_multicast_without_multicast_tx_entry_rejected():
         deployments=[_make_provider()],
     )
 
-    with pytest.raises(ValidationError, match="does not indicate by multicast_tx entry"):
+    with pytest.raises(ValidationError) as exc_info:
         _make_model(socket)
+    assert_single_error(exc_info, "FLYNC-GEN-MAJ-CONS-171", "does not indicate by multicast_tx entry")
 
 
 def test_provider_multicast_on_tcp_socket_rejected():
@@ -110,8 +112,9 @@ def test_provider_multicast_on_tcp_socket_rejected():
         deployments=[_make_provider()],
     )
 
-    with pytest.raises(ValidationError, match="SOME/IP eventgroup multicast requires a UDP socket"):
+    with pytest.raises(ValidationError) as exc_info:
         _make_model(socket)
+    assert_single_error(exc_info, "FLYNC-GEN-MAJ-CONS-218", "SOME/IP eventgroup multicast requires a UDP socket")
 
 
 # NOTE: no positive counterpart here. Both checks above fire before validate_multicast_paths, but a *valid*
