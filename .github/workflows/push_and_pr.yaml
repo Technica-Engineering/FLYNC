@@ -99,6 +99,31 @@ jobs:
           path: type-check-reports
           retention-days: 28
 
+  error-catalogue-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Prepare
+        run: |
+          pip install --upgrade pip
+          pip install "poetry>=2.0.0,<3.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
+          poetry install --with static-analysis
+          mkdir error-catalogue-check
+
+      - name: Run validate-catalogue
+        run: |
+          set -o pipefail
+          poetry run python src/flync_cli/main.py errors validate-catalogue | tee error-catalogue-check/error-catalogue-check.txt
+
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: type-check-artifacts
+          path: type-check-reports
+          retention-days: 28
+
   performance-tests:
     continue-on-error: true
     runs-on: ubuntu-latest
@@ -266,6 +291,10 @@ jobs:
           cd docs
           pwd
           poetry install --with docs
+
+      - name: Generate Error Catalogue
+        run: |
+          poetry run python src/flync_cli/main.py errors generate-catalogue
 
       - name: Run make html
         run: |

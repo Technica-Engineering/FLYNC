@@ -29,6 +29,10 @@ jobs:
           pip install "poetry>=2.0.0,<3.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
           poetry install --with docs
 
+      - name: Generate Error Catalogue
+        run: |
+          poetry run python src/flync_cli/main.py errors generate-catalogue
+
       - name: Build the docs
         run: |
           cd docs
