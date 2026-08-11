@@ -3,7 +3,7 @@ from typing import Any
 
 import pytest
 
-from flync.sdk.workspace.document import Document, parse_document
+from flync.sdk.workspace.document import Document, parse_documents, read_file
 
 # --- Fixtures / Helpers ---
 
@@ -11,14 +11,6 @@ from flync.sdk.workspace.document import Document, parse_document
 @pytest.fixture
 def sample_yaml_text():
     return "foo: bar\nbaz:\n  - 1\n  - 2"
-
-
-@pytest.fixture
-def sample_file(tmp_path, sample_yaml_text):
-    """Create a sample YAML file inside a temporary workspace root."""
-    file_path = tmp_path / "config.yaml"
-    file_path.write_text(sample_yaml_text)
-    return file_path, tmp_path, sample_yaml_text
 
 
 def __assert_compose_ast(needs_compose: bool, compose_ast: Any) -> bool:
@@ -29,7 +21,7 @@ def __assert_compose_ast(needs_compose: bool, compose_ast: Any) -> bool:
 
 
 @pytest.mark.parametrize("needs_compose", [True, False])
-def test_document_parse_and_update(needs_compose, sample_yaml_text):
+def test_document_parse_and_update(needs_compose, sample_yaml_text, tmp_path):
     doc = Document(uri=Path("config.yaml"), text=sample_yaml_text, needs_compose=needs_compose)
     doc.parse()
     assert doc.ast["foo"] == "bar"
@@ -46,10 +38,10 @@ def test_parse_reuses_yaml_instance(sample_yaml_text):
     doc = Document(uri=Path("config.yaml"), text=sample_yaml_text, needs_compose=False)
 
     doc.parse()
-    yaml_instance_first = doc._yaml
+    yaml_instance_first = Document._get_safe_yaml()
 
     doc.parse()
-    yaml_instance_second = doc._yaml
+    yaml_instance_second = Document._get_safe_yaml()
 
     assert yaml_instance_first is yaml_instance_second
 
@@ -68,19 +60,48 @@ def test_normalize_uri_absolute_and_relative(tmp_path):
     assert Document.normalize_uri(rel_path, ws_root) == "another.yaml"
 
 
+# --- parse_documents ---
+
+
+def _make_yaml(tmp_path: Path, name: str, content: str) -> tuple[Path, Path]:
+    """Create a YAML file under tmp_path and return (file_path, ws_root)."""
+    path = tmp_path / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content)
+    return path, tmp_path
+
+
 @pytest.mark.parametrize("needs_compose", [True, False])
-def test_parse_document(sample_file, needs_compose):
-    file_path, ws_root, yaml_text = sample_file
+def test_parse_documents_single_file(needs_compose, tmp_path):
+    file_path, ws_root = _make_yaml(tmp_path, "config.yaml", "foo: bar\nbaz: 42")
+    results = parse_documents([file_path], ws_root, needs_compose)
+    assert len(results) == 1
+    uri, ast, compose_ast = results[0]
+    assert uri == "config.yaml"
+    assert ast == {"foo": "bar", "baz": 42}
+    if needs_compose:
+        assert compose_ast is not None
+    else:
+        assert compose_ast is None
 
-    normalized_uri, ast, compose_ast, text = parse_document(
-        path=file_path,
-        text=yaml_text,
-        ws_root=ws_root,
-        needs_compose=needs_compose,
-    )
 
-    assert normalized_uri == "config.yaml"
-    assert ast["foo"] == "bar"
-    assert ast["baz"] == [1, 2]
-    assert __assert_compose_ast(needs_compose, compose_ast)
-    assert text == yaml_text
+def test_parse_documents_multiple_files(tmp_path):
+    files = [
+        _make_yaml(tmp_path, "a.yaml", "x: 1"),
+        _make_yaml(tmp_path, "sub/b.yaml", "y: 2"),
+    ]
+    results = parse_documents([f for f, _ in files], tmp_path, False)
+    assert len(results) == 2
+    assert results[0] == ("a.yaml", {"x": 1}, None)
+    assert results[1] == ("sub/b.yaml", {"y": 2}, None)
+
+
+def test_parse_documents_compose_ast_preserves_structure(tmp_path):
+    file_path, ws_root = _make_yaml(tmp_path, "data.yaml", "items:\n  - a\n  - b")
+    results = parse_documents([file_path], ws_root, True)
+    _, ast, compose_ast = results[0]
+    assert ast == {"items": ["a", "b"]}
+    assert compose_ast is not None
+    # Verify compose_ast is a ruamel.yaml node tree
+    assert hasattr(compose_ast, "start_mark")
+    assert compose_ast.start_mark.line == 0

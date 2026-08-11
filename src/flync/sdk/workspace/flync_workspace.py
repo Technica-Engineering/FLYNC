@@ -6,10 +6,12 @@ Provides classes and functions to manage workspace operations.
 
 import logging
 import multiprocessing
+import os
 import sys
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
 from functools import lru_cache
+from itertools import chain, islice
 from pathlib import Path
 from typing import Annotated, Dict, Literal, Optional, Union, cast, get_args, get_origin
 
@@ -52,7 +54,7 @@ from flync.sdk.utils.model_dependencies import (
 from flync.sdk.utils.model_dumper import dump_model_with_discriminators
 from flync.sdk.utils.sdk_types import PathType
 
-from .document import Document, parse_document, read_file
+from .document import Document, parse_documents, read_file
 from .ids import ObjectId
 from .objects import ObjectMetadata, SemanticObject
 from .source import SourceRef, get_range
@@ -178,6 +180,10 @@ class FLYNCWorkspace(object):
         # dedups so a child is registered under its parent at most once.
         self._children_by_parent: dict[str, list[str]] = {}
         self._linked_child_ids: set[str] = set()
+        # Mapping of canonical ObjectId → list of duplicate ObjectIds.
+        # Keys represent the chosen canonical identifier, while values hold all alternative IDs
+        # that refer to the same logical object.
+        self._duplicated_objects_ids: dict[ObjectId, list[ObjectId]] = {}
         # document id -> LoadNode, built during load so update_document can
         # partially reload a single document instead of the whole workspace.
         self._doc_index: dict[str, LoadNode] = {}
@@ -293,22 +299,28 @@ class FLYNCWorkspace(object):
     def _open_documents(self):
         """
         Open all documents in the workspace matching the configured file extension.
-        Each file is processed concurrently using a thread pool for efficiency.
+        File I/O and YAML parsing happen inside the ProcessPool workers; the raw text
+        is NOT returned through IPC to reduce pickle overhead — it is re-read from the
+        OS page cache in the main process for Document construction.
 
         Returns:
             None
-
-        Raises:
-            OSError: If a file is temporarily locked or inaccessible. Such files
-            are skipped and retried later in synchronous mode.
         """
+        if self.workspace_root is None:
+            return
         files = [p for p in self.workspace_root.rglob(f"*{self.configuration.flync_file_extension}") if p.is_file()]
         if len(files) == 0:
             return
 
-        contents = []
-        with ThreadPoolExecutor() as tpool:
-            contents = tpool.map(read_file, files)
+        def batched(iterable, size):
+            """Yield successive batches of given size from an iterable."""
+            i = iter(iterable)
+            while batch := list(islice(i, size)):
+                yield batch
+
+        workers = os.cpu_count() or 1
+        batch_size = max(32, len(files) // (workers * 4))
+        batches = list(batched(files, batch_size))
 
         # A forking ProcessPoolExecutor is unsafe here: load_workspace is driven from
         # asyncio.to_thread(...), so the default POSIX "fork" start method forks from a
@@ -316,19 +328,23 @@ class FLYNCWorkspace(object):
         # (forkserver on POSIX, spawn elsewhere); everything submitted (module-level
         # parse_document, path/str/bool args) is picklable, so this is behaviour-neutral.
         mp_context = multiprocessing.get_context("forkserver" if sys.platform != "win32" else "spawn")
-        with ProcessPoolExecutor(mp_context=mp_context) as ppool:
-            futures = []
-            for item in contents:
-                if item is None:
-                    continue
-                path, text = item
-                futures.append(ppool.submit(parse_document, path, text, self.workspace_root, self.configuration.map_objects))
+        with ProcessPoolExecutor(mp_context=mp_context) as pool:
+            futures = [
+                pool.submit(
+                    parse_documents,
+                    batch,
+                    self.workspace_root,
+                    self.configuration.map_objects,
+                )
+                for batch in batches
+            ]
 
             for future in as_completed(futures):
-                uri, ast, compose_ast, text = future.result()
-                doc = Document(uri, text, self.configuration.map_objects)
-                doc.assign_ast(ast, compose_ast)
-                self.documents[doc.uri] = doc
+                for uri, ast, compose_ast in future.result():
+                    text = read_file(self.workspace_root / uri)
+                    doc = Document(uri, text, self.configuration.map_objects)
+                    doc.assign_ast(ast, compose_ast)
+                    self.documents[doc.uri] = doc
 
     def _open_document(self, uri: PathType):  # noqa # nosonar
         """
@@ -341,13 +357,7 @@ class FLYNCWorkspace(object):
 
         Returns: None
         """
-        result = read_file(uri)
-        if result is None:
-            # handle missing file case
-            text = ""
-        else:
-            _, text = result
-
+        text = read_file(uri)
         uri = Document.normalize_uri(uri, self.workspace_root)
         doc = Document(uri, text, self.configuration.map_objects)
         doc.parse()
@@ -865,7 +875,7 @@ class FLYNCWorkspace(object):
                 pass
         return success_union
 
-    def __handle_generic_types(  # noqa # nosonar
+    def __handle_generic_types(
         self,
         attribute_type: type,
         base_type: type | None,
@@ -877,7 +887,7 @@ class FLYNCWorkspace(object):
         field_name: str,
         storage_key: str,
         current_object_paths: list[str],
-    ):  # noqa # nosonar
+    ):
         """
         Dispatch an external field to the correct type-specific loader.
 
@@ -903,7 +913,7 @@ class FLYNCWorkspace(object):
         scalar_link = ParentLink(path, field_name, "scalar")
 
         if base_type is list:
-            if self.__handle_generic_types_list(
+            done = self.__handle_generic_types_list(
                 base_type_args,
                 external,
                 external_path,
@@ -911,11 +921,10 @@ class FLYNCWorkspace(object):
                 module_load_info,
                 path,
                 current_object_paths,
-            ):
-                done = True
+            )
 
-        elif not done and base_type is dict:
-            if self.__handle_generic_types_dict(
+        elif base_type is dict:
+            done = self.__handle_generic_types_dict(
                 base_type_args,
                 external,
                 external_path,
@@ -923,13 +932,10 @@ class FLYNCWorkspace(object):
                 module_load_info,
                 path,
                 current_object_paths,
-            ):
-                done = True
+            )
 
-        elif (
-            not done
-            and base_type is Union
-            and self.__handle_generic_types_union(
+        elif base_type is Union:
+            done = self.__handle_generic_types_union(
                 base_type_args,
                 external,
                 external_path,
@@ -940,8 +946,6 @@ class FLYNCWorkspace(object):
                 current_object_paths,
                 scalar_link,
             )
-        ):
-            done = True
 
         if not done and type(None) in base_type_args:
             # optional type
@@ -950,8 +954,9 @@ class FLYNCWorkspace(object):
         if done:
             # this field might not have been added to the objects since it's
             # not a flync model and has no document. Add it manually.
+            doc_id = self.document_id_from_path(path / external_path if external_path else path)
             self._add_object_to_path(
-                path=path / external_path if external_path else path,
+                doc_id=doc_id,
                 model=(module_load_info[field_name] if field_name in module_load_info else None),
                 current_object_paths=current_object_paths,
                 start_line=0,
@@ -962,7 +967,8 @@ class FLYNCWorkspace(object):
             return
 
         if not issubclass(get_origin(attribute_type) or attribute_type, FLYNCBaseModel):
-            raise ValueError("externally annotated field {} cannot be loaded", field_name)
+            raise ValueError(f"externally annotated field {field_name} cannot be loaded")
+
         module_load_info[field_name] = self.__load_from_path(
             path / external_path,
             attribute_type,
@@ -1258,8 +1264,7 @@ class FLYNCWorkspace(object):
             list[str]: Ids of all documents that were recomputed (leaf subtree + ancestors).
         """
 
-        result = read_file(self.workspace_root / uri)  # type: ignore[operator]
-        text = result[1] if result else ""
+        text = read_file(self.workspace_root / uri)  # type: ignore[operator]
         if uri in self.documents:
             self.documents[uri].update_text(text)
         else:
@@ -1434,7 +1439,7 @@ class FLYNCWorkspace(object):
             model, errors = validate_with_policy(current_type, module_load_info, relative_path.as_posix())
             self.documents_diags[node.doc_id].extend(errors)
             if map_paths is not None and self.configuration.map_objects:
-                self._update_objects(node.path, model, map_paths, parent_name=node.current_type_name)
+                self._update_objects(node.doc_id, model, map_paths, parent_name=node.current_type_name)
             if node.current_type_name:
                 model = self.model_graph.normalize_child_to_parent(original_type, node.current_type_name, model)
             node.model = model
@@ -1477,10 +1482,17 @@ class FLYNCWorkspace(object):
             """Utility function to check if object id is descendant in the path."""
             return bool(prefixes) and oid.startswith(prefixes)
 
-        for oid in [o for o in self.objects if in_subtree(str(o))]:
+        # Use self.objects keys directly — list_objects() includes virtual
+        # aliases from _duplicated_objects_ids.values() that are not actual keys
+        # in self.objects and would cause a KeyError on pop.
+        real_objs = [o for o in self.objects if in_subtree(str(o))]
+        for oid in real_objs:
             semantic = self.objects.pop(oid)
             self.sources.pop(oid, None)
             self._unmap_object_id(semantic.model, oid)
+        if self._duplicated_objects_ids:
+            for oid in [o for o in self.list_objects() if in_subtree(str(o))]:
+                self._duplicated_objects_ids.pop(oid, None)
 
         for pid in [p for p in self._children_by_parent if in_subtree(p)]:
             self._children_by_parent.pop(pid, None)
@@ -1533,6 +1545,7 @@ class FLYNCWorkspace(object):
         self._children_by_parent.clear()
         self._linked_child_ids.clear()
         self._doc_index.clear()
+        self._duplicated_objects_ids.clear()
         self._open_documents()
         self.flync_model = self.__load_from_path(self.workspace_root)  # type: ignore[arg-type]
         return list(self.documents_diags.keys())
@@ -1649,7 +1662,7 @@ class FLYNCWorkspace(object):
             str: The extended path string.
         """
 
-        return ".".join([current_path, str(new_object_name)])
+        return ".".join([current_path, str(new_object_name)]) if current_path else str(new_object_name)
 
     def update_objects_path(self, current_paths: list[str], new_object_name: str) -> list[str]:
         """
@@ -1670,9 +1683,15 @@ class FLYNCWorkspace(object):
             # alignment holds because both lists are built from ``current_paths``.
             for parent_path, child_path in zip(current_paths, child_paths):
                 self._link_child_path(parent_path, child_path)
+            if (
+                len(child_paths) > 1
+                and ListObjectsMode.INDEX in self.configuration.list_objects_mode
+                and ListObjectsMode.NAME in self.configuration.list_objects_mode
+            ):
+                self._duplicated_objects_ids.setdefault(child_paths[0], []).extend(child_paths[1:])  # type: ignore[arg-type]
         return child_paths
 
-    def _link_child_path(self, parent_path: str, child_path: str) -> None:
+    def _link_child_path(self, parent_id: str, child_id: str) -> None:
         """
         Record a parent -> child edge in the child index.
 
@@ -1683,12 +1702,9 @@ class FLYNCWorkspace(object):
         "root has no children" behaviour.
         """
 
-        parent_id = parent_path.strip(".")
-        if not parent_id:
+        if not parent_id or child_id in self._linked_child_ids:
             return
-        child_id = child_path.strip(".")
-        if child_id in self._linked_child_ids:
-            return
+
         self._linked_child_ids.add(child_id)
         self._children_by_parent.setdefault(parent_id, []).append(child_id)
 
@@ -1698,7 +1714,7 @@ class FLYNCWorkspace(object):
 
     def _update_objects(  # nosonar # noqa
         self,
-        path: Path,
+        path_id: str,
         model: FLYNCBaseModel | None,
         current_object_paths: list[str],
         node: Node | None = None,
@@ -1711,7 +1727,7 @@ class FLYNCWorkspace(object):
         each semantic object is associated with its source location.
 
         Args:
-            path (Path): Absolute path of the document containing this node.
+            path_id (str): document id of the document containing this node.
             model (FLYNCBaseModel): The validated model value at this node.
             current_object_paths (str | list[str]): Dot-path context(s) for the current model value.
             node (Node | None): The ruamel.yaml AST node corresponding to ``model``. Defaults to the document's root compose AST.
@@ -1724,7 +1740,6 @@ class FLYNCWorkspace(object):
         end_column = 0
         if isinstance(model, RootModel):
             model = model.root
-        path_id = self.document_id_from_path(str(path))
         if model is not None and path_id in self.documents:
             # object is all external fields
             # should already be updated
@@ -1732,9 +1747,9 @@ class FLYNCWorkspace(object):
             if node is None:
                 node = document.compose_ast
             if isinstance(node, MappingNode):
-                self._update_mapping_node_objects(path, model, current_object_paths, node)
+                self._update_mapping_node_objects(path_id, model, current_object_paths, node)
             elif isinstance(node, SequenceNode):
-                self._update_sequence_node_objects(path, model, current_object_paths, node, parent_name)
+                self._update_sequence_node_objects(path_id, model, current_object_paths, node, parent_name)
             if node is not None:
                 start_line, start_column = (
                     node.start_mark.line + 1,
@@ -1745,7 +1760,7 @@ class FLYNCWorkspace(object):
                     node.end_mark.column + 1,
                 )
         self._add_object_to_path(
-            path,
+            path_id,
             model,
             current_object_paths,
             start_line,
@@ -1754,7 +1769,7 @@ class FLYNCWorkspace(object):
             end_column,
         )
 
-    def _update_sequence_node_objects(self, path, model, current_object_paths, node, parent_name):
+    def _update_sequence_node_objects(self, doc_id, model, current_object_paths, node, parent_name):
         for idx, item in enumerate(node.value):
             list_paths = self.add_list_item_object_path(
                 getattr(model[idx], "name", None),  # type: ignore
@@ -1762,14 +1777,14 @@ class FLYNCWorkspace(object):
                 idx,
             )
             self._update_objects(
-                path,
+                doc_id,
                 model[idx],  # type: ignore[index]
                 list_paths,
                 item,
                 parent_name=parent_name,
             )
 
-    def _update_mapping_node_objects(self, path, model, current_object_paths, node):
+    def _update_mapping_node_objects(self, doc_id, model, current_object_paths, node):
         for key_node, val_node in node.value:
             if isinstance(model, dict):
                 model_value = model[key_node.value]
@@ -1784,7 +1799,7 @@ class FLYNCWorkspace(object):
                         field_name = key_node.value
                 model_value = getattr(model, field_name, None)
             self._update_objects(
-                path,
+                doc_id,
                 model_value,
                 self.update_objects_path(current_object_paths, key_node.value),
                 val_node,
@@ -1814,18 +1829,27 @@ class FLYNCWorkspace(object):
         Returns:
             list[str]: New list of object paths for this item.
         """
+        idx_paths = []
+        name_paths = []
+        index_mode = ListObjectsMode.INDEX in self.configuration.list_objects_mode
+        name_mode = ListObjectsMode.NAME in self.configuration.list_objects_mode
+        if index_mode or not item_name:
+            idx_paths += self.update_objects_path(current_object_paths, idx)
+        if name_mode and item_name:
+            name_paths += self.update_objects_path(current_object_paths, item_name)
 
-        list_paths = []
-        if (ListObjectsMode.INDEX in self.configuration.list_objects_mode) or not item_name:
-            list_paths += self.update_objects_path(current_object_paths, idx)
-        if (ListObjectsMode.NAME in self.configuration.list_objects_mode) and item_name:
-            list_paths += self.update_objects_path(current_object_paths, item_name)
+        if name_mode and index_mode:
+            if len(idx_paths) > 1:
+                self._duplicated_objects_ids.setdefault(idx_paths[0], []).extend(idx_paths[1:] + name_paths)
 
-        return list_paths
+            elif len(idx_paths) == 1 and name_paths:
+                self._duplicated_objects_ids.setdefault(idx_paths[0], []).extend(name_paths)
+
+        return idx_paths + name_paths
 
     def _add_object_to_path(  # noqa # nosonar
         self,
-        path: Path,
+        doc_id: str,
         model,
         current_object_paths: list[str],
         start_line,
@@ -1834,12 +1858,12 @@ class FLYNCWorkspace(object):
         end_column,
     ):  # noqa # nosonar
         """
-        Register a model value and its source location for each given path.
+        Register a model value and its source location for each given document id.
 
         Creates entries in :attr:`objects` and :attr:`sources` for every path in ``current_object_paths``. Skips paths that are already registered.
 
         Args:
-            path (Path): Absolute path of the document containing the object.
+            doc_id (str): document id of the document containing the object.
             model: The semantic object value to store.
             current_object_paths (list[str]): Dot-separated object ids to register.
             start_line (int): 1-based start line of the object in the document.
@@ -1850,28 +1874,50 @@ class FLYNCWorkspace(object):
         if not self.configuration.map_objects:
             return
 
-        objects: Dict[ObjectId, SemanticObject] = {}
-        sources: Dict[ObjectId, SourceRef] = {}
-        src_ref: SourceRef | None = None
+        model_key = None if model is None else id(model)
+        src_ref = SourceRef(doc_id, get_range(start_line, start_column, end_line, end_column))
+        if self._duplicated_objects_ids and current_object_paths:
+            common = [p for p in current_object_paths if p in self._duplicated_objects_ids]
+            if common:
+                current_object_paths = common
+
         for object_path in current_object_paths:
-            object_id = ObjectId(object_path.strip("."))
+            object_id = ObjectId(object_path)
             if object_id in self.objects:
                 return
             self.objects[object_id] = SemanticObject(object_id, model)
-            if src_ref is None:
-                src_ref = SourceRef(
-                    self.document_id_from_path(str(path)),
-                    get_range(start_line, start_column, end_line, end_column),
-                )
-            sources[object_id] = src_ref
-            if model is not None:
-                model_key = id(model)
-                if model_key not in self._model_to_object_ids:
-                    self._model_to_object_ids[model_key] = []
-                self._model_to_object_ids[model_key].append(object_id)
+            self.sources[object_id] = src_ref
+            if model_key is not None:
+                self._model_to_object_ids.setdefault(model_key, []).append(object_id)
+                if oids := self._duplicated_objects_ids.get(object_id):
+                    self._model_to_object_ids[model_key].extend(oids)
 
-        self.objects.update(objects)
-        self.sources.update(sources)
+    def _resolve_duplicate_object_id(self, oid: ObjectId):
+        """
+        Resolve a duplicate object ID into a fully registered object.
+
+        This method checks whether the given `oid` exists in the duplicates mapping
+        (`self._duplicated_objects_ids`). If found, it promotes the duplicate ID into
+        `self.objects` and `self.sources` by copying the canonical object's model and source.
+
+        Args
+        ----------
+        oid : ObjectId
+            The object identifier to resolve from duplicates.
+        """
+        if oid in self.objects or not self._duplicated_objects_ids:
+            return
+        parent = oid.split(".")[0]
+        for name_id, idx_ids in self._duplicated_objects_ids.items():
+            if parent != name_id.split(".")[0] or oid not in idx_ids:
+                continue
+
+            model = self.objects[name_id].model
+            source = self.sources[name_id]
+            self.objects.update({dup: SemanticObject(oid, model) for dup in idx_ids})
+            self.sources.update(dict.fromkeys(idx_ids, source))
+            del self._duplicated_objects_ids[name_id]
+            return
 
     def get_object(self, id: ObjectId) -> SemanticObject:
         """
@@ -1885,7 +1931,7 @@ class FLYNCWorkspace(object):
             SemanticObject:
                 The requested semantic object.
         """
-
+        self._resolve_duplicate_object_id(id)
         return self.objects[id]
 
     def has_object(self, id: ObjectId) -> bool:
@@ -1900,8 +1946,8 @@ class FLYNCWorkspace(object):
             bool:
                 True if the key is found, False otherwise.
         """
-
-        return id in self.objects.keys()
+        self._resolve_duplicate_object_id(id)
+        return id in self.objects
 
     def get_metadata(self, id: ObjectId) -> ObjectMetadata:
         """
@@ -1934,8 +1980,11 @@ class FLYNCWorkspace(object):
             list[ObjectId]:
                 List of object identifiers.
         """
+        if not self._duplicated_objects_ids:
+            return list(self.objects.keys())
 
-        return list(self.objects.keys())
+        duplicated_ids = chain.from_iterable(self._duplicated_objects_ids.values())
+        return list(chain(self.objects.keys(), duplicated_ids))
 
     def get_child_ids(self, id: ObjectId) -> list[str]:
         """
@@ -1952,7 +2001,7 @@ class FLYNCWorkspace(object):
             list[str]: Immediate child id strings (empty if none / not mapped).
         """
 
-        return [child for child in self._children_by_parent.get(str(id), []) if child in self.objects]
+        return [child for child in self._children_by_parent.get(str(id), []) if self.has_object(ObjectId(child))]
 
     def get_definition(self, object_id: ObjectId, field_name: str) -> Optional[ObjectId]:
         """
@@ -2083,7 +2132,7 @@ class FLYNCWorkspace(object):
                 List of semantic objects that correspond to the Flync object. Empty if none found.
         """
 
-        return [self.objects[oid] for oid in self._model_to_object_ids.get(id(model), [])]
+        return [self.get_object(oid) for oid in self._model_to_object_ids.get(id(model), [])]
 
     @deprecated("Use get_semantic_objects_from_model() instead, which returns all matches")
     def get_semantic_object_from_model(self, model: FLYNCBaseModel) -> SemanticObject | None:
@@ -2120,7 +2169,7 @@ class FLYNCWorkspace(object):
             SourceRef:
                 The source reference associated with the object.
         """
-
+        self._resolve_duplicate_object_id(id)
         return self.sources[id]
 
     def objects_at(self, uri: str, line: int, character: int) -> list[ObjectId]:

@@ -363,7 +363,8 @@ class TestSingleFileWrapperCollapsing:
         children = meta.child_ids
         assert wrapper not in children
         for child in children:
-            assert child.startswith(f"{wrapper}.")
+            objects_ids = ws.get_semantic_objects_ids_from_model(ws.get_object(child).model)
+            assert any(child_oi.startswith(f"{wrapper}.") for child_oi in objects_ids)
 
     def test_non_single_file_not_collapsed(self, loaded_workspace_with_object_map):
         """Non-SINGLE_FILE fields should NOT collapse their children."""
@@ -397,7 +398,7 @@ class TestSingleFileWrapperCollapsing:
                 continue
             for child in meta.child_ids:
                 child_meta = ws.get_metadata(ObjectId(child))
-                assert child_meta.parent_id == str(meta.id)
+                assert ws.get_object(child_meta.parent_id).model is ws.get_object(meta.id).model
 
     def test_to_dict_shows_collapsed_ids(self, loaded_workspace_with_object_map):
         """to_dict() child_ids should reflect the collapsed view."""

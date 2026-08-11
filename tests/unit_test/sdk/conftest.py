@@ -18,12 +18,21 @@ def get_flync_example_path(pytestconfig):
 
 @pytest.fixture
 def get_flync_workspace_minimal_config():
-    return WorkspaceConfiguration(list_objects_mode=ListObjectsMode.INDEX)
+    return WorkspaceConfiguration(map_objects=True, list_objects_mode=ListObjectsMode.INDEX)
 
 
 @pytest.fixture(scope="session")
 def loaded_workspace_with_object_map(get_flync_example_path):
     return FLYNCWorkspace.load_workspace("test_workspace", get_flync_example_path, WorkspaceConfiguration(map_objects=True))
+
+
+@pytest.fixture(scope="session")
+def loaded_workspace_index_only(get_flync_example_path):
+    return FLYNCWorkspace.load_workspace(
+        "test_workspace",
+        get_flync_example_path,
+        WorkspaceConfiguration(map_objects=True, list_objects_mode=ListObjectsMode.INDEX),
+    )
 
 
 @pytest.fixture(scope="session")

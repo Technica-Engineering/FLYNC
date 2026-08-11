@@ -20,6 +20,8 @@ PORTS = "ecus/zonal_platform1/ports.flync.yaml"
 
 def _snapshot(ws: FLYNCWorkspace) -> dict:
     """Comparable view of everything a reload derives from disk."""
+    for id in ws.list_objects():
+        ws.has_object(id)
     return {
         "ecus": [e.name for e in (ws.flync_model.ecus or [])] if ws.flync_model else None,
         "diags": {k: len(v) for k, v in ws.documents_diags.items() if v},
@@ -121,3 +123,45 @@ def test_unknown_document_falls_back_to_full_reload(workspace):
     # a path that is not an indexed load-node still leaves a consistent workspace
     ws.update_document("ecus/zonal_platform1/ecu_metadata.flync.yaml")
     _assert_matches_full_reload(ws, root, config, "ecu_metadata")
+
+
+def test_update_document_cleans_duplicated_object_ids(workspace):
+    """
+    After a partial document update, ``_duplicated_objects_ids`` keys must
+    all exist in ``self.objects`` and none of the removed object ids
+    may linger as keys or values.  This guards against a gap where
+    ``_purge_object_subtree`` purges ``self.objects`` but leaves stale
+    entries in ``_duplicated_objects_ids``.
+    """
+    import yaml
+
+    ws, root, _ = workspace
+    rel = "ecus/zonal_platform1/switches/z1_switch1.flync.yaml"
+    file = root / rel
+
+    with open(file, "r") as f:
+        data = yaml.safe_load(f)
+    assert "host_controller" in data
+    del data["host_controller"]
+
+    with open(file, "w") as f:
+        yaml.safe_dump(data, f, sort_keys=False)
+
+    hc_obj_id = "ecus.zonal_platform1.switches.z1_switch1.host_controller"
+    ids = [hc_obj_id, f"{hc_obj_id}.mac_address", f"{hc_obj_id}.virtual_interfaces"]
+    for id in ids:
+        assert ws.has_object(id), f"{id} not found"
+
+    # Collect the state of _duplicated_objects_ids before the update
+    pre_dup = {k: list(v) for k, v in ws._duplicated_objects_ids.items()}
+
+    ws.update_document(rel)
+
+    for id in ids:
+        assert not ws.has_object(id), f"{id} should be removed since the host_controller was removed from the document"
+
+    # After update, the purged ids must not appear as keys or values
+    all_dup_values = {v for vals in ws._duplicated_objects_ids.values() for v in vals}
+    for removed_id in ids:
+        assert removed_id not in ws._duplicated_objects_ids, f"stale key {removed_id} in _duplicated_objects_ids"
+        assert removed_id not in all_dup_values, f"stale value {removed_id} in _duplicated_objects_ids"
