@@ -173,6 +173,14 @@ def _make_unicast_nm_socket(name: str, endpoint_address: str, is_sender: bool) -
     )
 
 
+def _mirror_mii(mii_config: MII | None) -> MII | None:
+    """Return the peer-side MII config (opposite mode) so both ends of a connection are configured, or None."""
+
+    if mii_config is None:
+        return None
+    return mii_config.model_copy(update={"mode": "phy" if mii_config.mode == "mac" else "mac"})
+
+
 def _make_ethernet_ecu(
     ecu_name: str,
     controller_name: str,
@@ -225,7 +233,7 @@ def _make_ethernet_ecu(
             role=port_role,
             autonegotiation=False,
         ),
-        mii_config=None,
+        mii_config=_mirror_mii(controller_mii_config),
     )
     topo = InternalTopology(
         connections=[
@@ -298,7 +306,7 @@ def _make_ethernet_ecu_with_sockets(
             role=port_role,
             autonegotiation=False,
         ),
-        mii_config=None,
+        mii_config=_mirror_mii(controller_mii_config),
     )
     topo = InternalTopology(
         connections=[
@@ -404,7 +412,7 @@ def _make_switch_ecu(
             role="master",
             autonegotiation=False,
         ),
-        mii_config=None,
+        mii_config=MII(speed=100, mode="mac"),
     )
     switch_ports = [
         SwitchPort(
@@ -1284,7 +1292,7 @@ def test_Switch_ECU_PDU_forwarder_switch_topology(tmpdir):
             role="master",
             autonegotiation=False,
         ),
-        mii_config=None,
+        mii_config=MII(speed=100, mode="mac"),
     )
     ext_ecu = ECU(
         name="complex_switch_ecu",

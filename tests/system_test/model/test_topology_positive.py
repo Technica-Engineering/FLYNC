@@ -166,7 +166,7 @@ def valid_ecu_with_switch():
     switch1 = Switch(name="switch1", ports=[switch_port1], vlans=[], meta=embedded_metadata)
 
     # --- ECU Port Configuration ---
-    port_ecu1 = ECUPort(name="port1")
+    port_ecu1 = ECUPort(name="port1", mii_config=MII(type="mii", speed=100, mode="mac"))
 
     # --- ECU Controller Connection ---
     ecu_to_controller_cnx1 = ECUPortToControllerInterface(
@@ -430,7 +430,7 @@ def valid_iface_to_iface():
     )
 
     # --- ECU Port Configuration ---
-    port_ecu1 = ECUPort(name="port1")
+    port_ecu1 = ECUPort(name="port1", mii_config=MII(type="mii", speed=100, mode="mac"))
 
     # --- ECU Controller Connection ---
     ecu_to_controller_cnx1 = ECUPortToControllerInterface(

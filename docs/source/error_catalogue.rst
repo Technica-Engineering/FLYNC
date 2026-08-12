@@ -138,7 +138,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 013
-   :location: common_validators.validate_optional_mii_config_compatibility
+   :location: common_validators._check_mii_pair_compatibility
 
    f'Incompatible MII Mode: {comp1.name} ({mii_comp1.mode}) ↔ {comp2.name}({mii_comp2.mode})'
 
@@ -148,7 +148,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 014
-   :location: common_validators.validate_optional_mii_config_compatibility
+   :location: common_validators._check_mii_pair_compatibility
 
    f'Incompatible MII Speed: {comp1.name} ({mii_comp1.speed}) ↔ {comp2.name}({mii_comp2.speed})'
 
@@ -158,7 +158,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 015
-   :location: common_validators.validate_optional_mii_config_compatibility
+   :location: common_validators._check_mii_pair_compatibility
 
    f'Incompatible MII Type: {comp1.name} ({mii_comp1.type}) ↔ {comp2.name}({mii_comp2.type})'
 
@@ -182,7 +182,7 @@ Every error and warning the FLYNC validators can raise, identified as
 
    f'Incompatible HTB config for {comp.name}Sum of all child classes {sum_child_rates} rates should be less than link speed {speed}'
 
-.. err:: Incomplete MACsec Config. {comp1.name} and {comp2.name} in connection {id} sh...
+.. err:: Incomplete MACsec config in connection {id}: {configured.name} has a macsec c...
    :id: FLYNC-CMN-MAJ-COMP-018
    :module: CMN
    :severity: MAJ
@@ -190,7 +190,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :number: 018
    :location: common_validators.validate_macsec
 
-   f'Incomplete MACsec Config. {comp1.name} and {comp2.name} in connection {id} should have a macsec config'
+   f'Incomplete MACsec config in connection {id}: {configured.name} has a macsec config but {unconfigured.name} does not. Both or none of the components should have one.'
 
 .. err:: MACsec should be enabled in both - {comp1.name} and {comp2.name} in connectio...
    :id: FLYNC-CMN-MAJ-COMP-019
@@ -198,7 +198,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 019
-   :location: common_validators.validate_macsec
+   :location: common_validators._check_macsec_pair_compatibility
 
    f'MACsec should be enabled in both - {comp1.name} and {comp2.name} in connection {id} '
 
@@ -208,7 +208,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 020
-   :location: common_validators.validate_macsec
+   :location: common_validators._check_macsec_pair_compatibility
 
    f'Both {comp1.name} and {comp2.name} should have the same macsec_mode. in connection {id} '
 

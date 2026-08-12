@@ -468,13 +468,18 @@ def validate_optional_mii_config_compatibility(comp1, comp2, id):
         err_major: Both components have an MII config but the *type* values are different.
     """
 
-    if not comp1 or not comp2 or not comp1.mii_config or not comp2.mii_config:
+    if comp1 is None or comp2 is None:
         return
+
     mii_comp1 = comp1.mii_config
     mii_comp2 = comp2.mii_config
-    # Look for wrong config variants: neither external nor internal PHYs
-    # used
-    if (mii_comp1 is None and mii_comp2 is not None) or (mii_comp1 is not None and mii_comp2 is None):
+
+    # Neither side specifies MII
+    if mii_comp1 is None and mii_comp2 is None:
+        return
+
+    # Look for wrong config variants: exactly one side declares an MII config
+    if mii_comp1 is None or mii_comp2 is None:
         raise err_major(
             f"Invalid MII config in connection {id}: "
             f"{comp1.name} ↔ {comp2.name} "
@@ -484,26 +489,51 @@ def validate_optional_mii_config_compatibility(comp1, comp2, id):
             error_number="012",
         )
 
-    # External PHY is used for this connection
-    if (mii_comp1 and mii_comp1 is not None) and (mii_comp2 and mii_comp2 is not None):
-        if mii_comp1.mode == mii_comp2.mode:
-            raise err_major(
-                f"Incompatible MII Mode: {comp1.name} ({mii_comp1.mode}) ↔ {comp2.name}({mii_comp2.mode})",
-                category=Category.COMPATIBILITY,
-                error_number="013",
-            )
-        if mii_comp1.speed != mii_comp2.speed:
-            raise err_major(
-                f"Incompatible MII Speed: {comp1.name} ({mii_comp1.speed}) ↔ {comp2.name}({mii_comp2.speed})",
-                category=Category.COMPATIBILITY,
-                error_number="014",
-            )
-        if mii_comp1.type != mii_comp2.type:
-            raise err_major(
-                f"Incompatible MII Type: {comp1.name} ({mii_comp1.type}) ↔ {comp2.name}({mii_comp2.type})",
-                category=Category.COMPATIBILITY,
-                error_number="015",
-            )
+    # Both sides use MII, so let us check it:
+    _check_mii_pair_compatibility(comp1, comp2, mii_comp1, mii_comp2, id)
+
+
+def _check_mii_pair_compatibility(comp1, comp2, mii_comp1, mii_comp2, id):
+    """
+    Compare the MII settings of two components that both carry an MII config.
+
+    Args:
+        comp1 (object): First component (used only in error messages).
+
+        comp2 (object): Second component (used only in error messages).
+
+        mii_comp1 (object): ``mii_config`` of ``comp1``.
+
+        mii_comp2 (object): ``mii_config`` of ``comp2``.
+
+        id (Any): Identifier of the connection (used only in error messages).
+
+    Raises:
+        err_major: The *mode* values are identical. The modes must differ.
+
+        err_major: The *speed* values are different.
+
+        err_major: The *type* values are different.
+    """
+
+    if mii_comp1.mode == mii_comp2.mode:
+        raise err_major(
+            f"Incompatible MII Mode: {comp1.name} ({mii_comp1.mode}) ↔ {comp2.name}({mii_comp2.mode})",
+            category=Category.COMPATIBILITY,
+            error_number="013",
+        )
+    if mii_comp1.speed != mii_comp2.speed:
+        raise err_major(
+            f"Incompatible MII Speed: {comp1.name} ({mii_comp1.speed}) ↔ {comp2.name}({mii_comp2.speed})",
+            category=Category.COMPATIBILITY,
+            error_number="014",
+        )
+    if mii_comp1.type != mii_comp2.type:
+        raise err_major(
+            f"Incompatible MII Type: {comp1.name} ({mii_comp1.type}) ↔ {comp2.name}({mii_comp2.type})",
+            category=Category.COMPATIBILITY,
+            error_number="015",
+        )
 
 
 def validate_compulsory_mii_config_compatibility(comp1, comp2, id):
@@ -579,31 +609,64 @@ def validate_macsec(comp1, comp2, id):
         err_major: ``macsec_mode`` differs between the two components.
     """
 
-    if not comp1 or not comp2 or not comp1.macsec_config or not comp2.macsec_config:
+    if comp1 is None or comp2 is None:
         return
+
     macsec1 = comp1.macsec_config
     macsec2 = comp2.macsec_config
 
-    if (macsec1 and not macsec2) or (macsec2 and not macsec1):
+    # Neither side uses MACsec
+    if macsec1 is None and macsec2 is None:
+        return
+
+    # Look for wrong config variants: exactly one side declares a MACsec config
+    if macsec1 is None or macsec2 is None:
+        configured, unconfigured = (comp1, comp2) if macsec1 is not None else (comp2, comp1)
         raise err_major(
-            f"Incomplete MACsec Config. {comp1.name} and {comp2.name} in connection {id} should have a macsec config",
+            f"Incomplete MACsec config in connection {id}: {configured.name} has a macsec config "
+            f"but {unconfigured.name} does not. Both or none of the components should have one.",
             category=Category.COMPATIBILITY,
             error_number="018",
         )
-    if macsec1 and macsec2:
-        if (not macsec1.mka_enabled and macsec2.mka_enabled) or (macsec1.mka_enabled and not macsec2.mka_enabled):
-            raise err_major(
-                f"MACsec should be enabled in both - {comp1.name} and {comp2.name} in connection {id} ",
-                category=Category.COMPATIBILITY,
-                error_number="019",
-            )
 
-        if macsec1.macsec_mode != macsec2.macsec_mode:
-            raise err_major(
-                f"Both {comp1.name} and {comp2.name} should have the same macsec_mode. in connection {id} ",
-                category=Category.COMPATIBILITY,
-                error_number="020",
-            )
+    # Both sides use MACsec, so let us check it:
+    _check_macsec_pair_compatibility(comp1, comp2, macsec1, macsec2, id)
+
+
+def _check_macsec_pair_compatibility(comp1, comp2, macsec1, macsec2, id):
+    """
+    Compare the MACsec settings of two components that both carry a MACsec config.
+
+    Args:
+        comp1 (object): First component (used only in error messages).
+
+        comp2 (object): Second component (used only in error messages).
+
+        macsec1 (object): ``macsec_config`` of ``comp1``.
+
+        macsec2 (object): ``macsec_config`` of ``comp2``.
+
+        id (Any): Identifier of the connection (used only in error messages).
+
+    Raises:
+        err_major: MKA (Key Agreement) enabled state differs between the two components.
+
+        err_major: ``macsec_mode`` differs between the two components.
+    """
+
+    if (not macsec1.mka_enabled and macsec2.mka_enabled) or (macsec1.mka_enabled and not macsec2.mka_enabled):
+        raise err_major(
+            f"MACsec should be enabled in both - {comp1.name} and {comp2.name} in connection {id} ",
+            category=Category.COMPATIBILITY,
+            error_number="019",
+        )
+
+    if macsec1.macsec_mode != macsec2.macsec_mode:
+        raise err_major(
+            f"Both {comp1.name} and {comp2.name} should have the same macsec_mode. in connection {id} ",
+            category=Category.COMPATIBILITY,
+            error_number="020",
+        )
 
 
 def validate_gptp(comp1, comp2, id):
@@ -625,34 +688,36 @@ def validate_gptp(comp1, comp2, id):
         err_major: Propagated from :func:`validate_gptp_domains` when domain level checks fail.
     """
 
-    if not comp1 or not comp2 or not comp1.ptp_config or not comp2.ptp_config:
+    if comp1 is None or comp2 is None:
         return
 
     ptp1 = comp1.ptp_config
     ptp2 = comp2.ptp_config
 
-    if (ptp1 and ptp2 is None) or (ptp2 and ptp1 is None):
+    if bool(ptp1) != bool(ptp2):
         raise err_major(
             f"Incompatible PTP config. PTP config not present in either {comp1.name} or  {comp2.name} in connection {id} ",
             category=Category.COMPATIBILITY,
             error_number="021",
         )
 
-    if ptp1 and ptp2:
+    # Neither side uses PTP, so there is nothing to compare
+    if not ptp1:
+        return
 
-        validate_gptp_domains(comp1, comp2, ptp1, ptp2, id)
-        validate_gptp_domains(comp2, comp1, ptp2, ptp1, id)
+    validate_gptp_domains(comp1, comp2, ptp1, ptp2, id)
+    validate_gptp_domains(comp2, comp1, ptp2, ptp1, id)
 
-        if ptp1.cmlds_linkport_enabled != ptp2.cmlds_linkport_enabled:
-            raise err_major(
-                f"CMLDS mismatch: {comp1.name} has "
-                f"cmlds_linkport_enabled="
-                f"{ptp1.cmlds_linkport_enabled}, but "
-                f"{comp2.name} has "
-                f"{ptp2.cmlds_linkport_enabled}",
-                category=Category.COMPATIBILITY,
-                error_number="022",
-            )
+    if ptp1.cmlds_linkport_enabled != ptp2.cmlds_linkport_enabled:
+        raise err_major(
+            f"CMLDS mismatch: {comp1.name} has "
+            f"cmlds_linkport_enabled="
+            f"{ptp1.cmlds_linkport_enabled}, but "
+            f"{comp2.name} has "
+            f"{ptp2.cmlds_linkport_enabled}",
+            category=Category.COMPATIBILITY,
+            error_number="022",
+        )
 
 
 def validate_gptp_domains(comp1, comp2, ptp1, ptp2, id):

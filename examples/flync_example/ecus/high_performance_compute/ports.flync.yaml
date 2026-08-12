@@ -34,3 +34,7 @@ ports:
       duplex: full
       role: master
       autonegotiation: false
+    mii_config:
+      type: sgmii
+      speed: 1000
+      mode: phy
