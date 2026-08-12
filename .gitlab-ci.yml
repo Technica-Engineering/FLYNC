@@ -136,8 +136,6 @@ performance_tests:
 unit_tests:
   extends: .base
   allow_failure: false
-  tags:
-    - k8s-pilot-cluster-linux-runner-heavy
   stage: tests
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
