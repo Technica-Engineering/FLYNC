@@ -1,15 +1,20 @@
-[tool.poetry]
+[project]
 name = "test_plugin"
-authors = ["Dummy Author <dummy.email@example.com>"]
-description = "A test plugin for flync_converter"
 version = "0.1.0"
-[tool.poetry.dependencies]
-python = "^3.11"
-flync_converter= "*"
+description = "A test plugin for flync_converter"
+requires-python = ">=3.12"
+authors = [{ name = "Dummy Author", email = "dummy.email@example.com" }]
+# No runtime dependencies declared on purpose: this plugin is only ever installed
+# into an environment that already provides flync_converter (see
+# tests/converter_tests/test_plugin_discovery.py and .gitlab-ci.yml).
+dependencies = []
 
-[tool.poetry.plugins."flync_converter"]
+[project.entry-points."flync_converter"]
 example = "test_plugin.plugin"
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["test_plugin"]
