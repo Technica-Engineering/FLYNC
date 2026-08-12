@@ -6,12 +6,12 @@
 LINE_LENGTH=149
 
 echo "=== Formatting isort ==="
-poetry run isort --line-length $LINE_LENGTH src
-poetry run isort --line-length $LINE_LENGTH tests
+uv run isort --line-length $LINE_LENGTH src
+uv run isort --line-length $LINE_LENGTH tests
 
 echo "=== Formatting black ==="
-poetry run black --target-version py312 src
-poetry run black --target-version py312 tests
+uv run black --target-version py312 src
+uv run black --target-version py312 tests
 
 echo ""
 echo "Done. Run local_checkers.sh to verify. Note: flake8 and mypy issues require manual fixes."

@@ -79,8 +79,7 @@ target/
 # Dask worker cache
 dask-worker-space/
 
-# pyenv
-.python-version
+# pyenv — .python-version is NOT ignored; uv uses it for interpreter selection
 
 # celery beat schedule file
 celerybeat-schedule

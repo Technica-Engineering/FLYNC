@@ -7,9 +7,9 @@ def _open_tui(ctx, _param, value):
     """Click eager callback that launches the Textual TUI when -i/--interactive is passed."""
     if not value or ctx.resilient_parsing:
         return
-    from flync_converter.cli.tui import run_tui
+    from flync_converter.cli._optional import load_run_tui
 
-    run_tui()
+    load_run_tui()()
     ctx.exit()
 
 
@@ -17,9 +17,9 @@ def _open_gui(ctx, _param, value):
     """Click eager callback that launches the PySide6 GUI when --gui is passed."""
     if not value or ctx.resilient_parsing:
         return
-    from flync_converter.cli.gui import run_gui
+    from flync_converter.cli._optional import load_run_gui
 
-    run_gui()
+    load_run_gui()()
     ctx.exit()
 
 
@@ -31,7 +31,7 @@ def _open_gui(ctx, _param, value):
     is_eager=True,
     expose_value=False,
     callback=_open_tui,
-    help="Launch the interactive Textual TUI session.",
+    help="Launch the interactive Textual TUI session (requires flync[tui]).",
 )
 @click.option(
     "--gui",
@@ -39,7 +39,7 @@ def _open_gui(ctx, _param, value):
     is_eager=True,
     expose_value=False,
     callback=_open_gui,
-    help="Launch the PySide6 desktop GUI (requires flync_converter[gui]).",
+    help="Launch the PySide6 desktop GUI (requires flync[gui]).",
 )
 def cli():
     """flync_converter CLI tool."""

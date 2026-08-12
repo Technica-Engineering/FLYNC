@@ -7,16 +7,16 @@ LINE_LENGTH=149
 
 
 echo "=== isort ==="
-poetry run isort --check --diff --color --line-length $LINE_LENGTH src
-poetry run isort --check --diff --color --line-length $LINE_LENGTH tests
+uv run isort --check --diff --color --line-length $LINE_LENGTH src
+uv run isort --check --diff --color --line-length $LINE_LENGTH tests
 
 echo "=== flake8 ==="
-poetry run flake8 --max-line-length $LINE_LENGTH src
-#poetry run flake8 --max-line-length $LINE_LENGTH tests
+uv run flake8 --max-line-length $LINE_LENGTH src
+#uv run flake8 --max-line-length $LINE_LENGTH tests
 
 echo "=== mypy ==="
-poetry run mypy src --show-error-codes --pretty --install-types --non-interactive
+uv run mypy src --show-error-codes --pretty --install-types --non-interactive
 
 echo "=== black ==="
-poetry run black --target-version py312 --check --diff --color src
-poetry run black --target-version py312 --check --diff --color tests
+uv run black --target-version py312 --check --diff --color src
+uv run black --target-version py312 --check --diff --color tests

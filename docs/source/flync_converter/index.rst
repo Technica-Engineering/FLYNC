@@ -10,7 +10,7 @@ Features
 
 - **Plugin-based architecture** - extend with custom converters via ``pluggy`` entry points
 - **Multiple format support** - built-in JSON, YAML, and FLYNC converters
-- **Interactive TUI** - full terminal UI (Textual) with auto-generated config forms
+- **Interactive TUI** - full terminal UI (Textual) with auto-generated config forms (optional ``tui`` extra)
 - **Scriptable CLI** - ``flync-converter convert`` for pipeline use
 - **Type-safe** - Pydantic config models throughout
 

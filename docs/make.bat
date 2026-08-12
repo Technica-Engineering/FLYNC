@@ -4,7 +4,7 @@ SETLOCAL ENABLEDELAYEDEXPANSION
 pushd %~dp0
 
 REM ---- Configuration (mirrors Makefile) ----
-IF "%SPHINXBUILD%"=="" SET SPHINXBUILD=poetry run python -m sphinx.cmd.build
+IF "%SPHINXBUILD%"=="" SET SPHINXBUILD=uv run python -m sphinx.cmd.build
 IF "%SPHINXOPTS%"=="" SET SPHINXOPTS=
 
 SET SOURCEDIR=source
@@ -13,12 +13,12 @@ SET EXAMPLE_NAME=flync_example
 SET EXAMPLE_SOURCE=..\examples\
 SET EXAMPLE_DST=source\_static\
 
-REM ---- Ensure sphinx-build (via poetry) works ----
+REM ---- Ensure sphinx-build (via uv) works ----
 %SPHINXBUILD% >NUL 2>NUL
 IF ERRORLEVEL 9009 (
     ECHO.
     ECHO Sphinx build command was not found.
-    ECHO Make sure Poetry and Sphinx are installed.
+    ECHO Make sure uv and Sphinx are installed.
     ECHO.
     EXIT /B 1
 )
@@ -47,7 +47,7 @@ IF ERRORLEVEL 1 (
 )
 
 ECHO Creating Mermaid schematics...
-poetry run python source\_scripts\create_mermaid.py
+uv run python source\_scripts\create_mermaid.py
 IF ERRORLEVEL 1 (
     ECHO Mermaid generation failed.
     GOTO cleanup

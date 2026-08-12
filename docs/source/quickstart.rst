@@ -53,7 +53,7 @@ Project Namespaces
      - ``src/flync_converter/``
      - A **pluggy-powered converter framework** that transforms data between formats
        (JSON, YAML, FLYNC, and any third-party format added via plugins).
-       Ships with a scriptable CLI, an interactive Textual TUI, and a PySide6 desktop GUI.
+       Ships with a scriptable CLI, an interactive Textual TUI (optional ``tui`` extra), and a PySide6 desktop GUI (optional ``gui`` extra).
      - :doc:`FLYNC Converter <flync_converter/index>`
 
 ----------

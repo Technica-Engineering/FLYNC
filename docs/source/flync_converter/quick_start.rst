@@ -36,6 +36,10 @@ Additional converter options can be passed using ``--src-<field>`` / ``--dst-<fi
 CLI - Interactive TUI
 ^^^^^^^^^^^^^^^^^^^^^
 
+.. note::
+
+   The interactive TUI requires the ``tui`` extra: ``pip install "flync[tui]"`` (or ``uv sync --extra tui`` from a checkout).
+
 .. code-block:: bash
 
    flync-converter -i
@@ -58,6 +62,10 @@ List available converters
 
 Desktop GUI
 ^^^^^^^^^^^
+
+.. note::
+
+   The desktop GUI requires the ``gui`` extra: ``pip install "flync[gui]"`` (or ``uv sync --extra gui`` from a checkout).
 
 .. code-block:: bash
 

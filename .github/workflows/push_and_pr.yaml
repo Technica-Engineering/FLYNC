@@ -32,16 +32,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
       - name: Prepare
-        run: |
-          pip install --upgrade pip
-          pip install "poetry>=2.0.0,<3.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
-          poetry install --no-root --only static-analysis
+        run: uv sync --frozen --no-install-project --only-group static-analysis
 
       - name: Run isort
         run: |
           mkdir format-reports
-          poetry run isort --check --diff --color --line-length 149 src > format-reports/isort-report.diff
+          uv run isort --check --diff --color --line-length 149 src > format-reports/isort-report.diff
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v7
@@ -56,16 +58,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
       - name: Prepare
-        run: |
-          pip install --upgrade pip
-          pip install "poetry>=2.0.0,<3.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
-          poetry install --no-root --only static-analysis
+        run: uv sync --frozen --no-install-project --only-group static-analysis
 
       - name: Run flake8
         run: |
-          poetry run flake8 --max-line-length 149 src
-          poetry run flake8 --max-line-length 149 src --format=html --htmldir=flake8-report
+          uv run flake8 --max-line-length 149 src
+          uv run flake8 --max-line-length 149 src --format=html --htmldir=flake8-report
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v7
@@ -80,17 +84,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
       - name: Prepare
         run: |
-          pip install --upgrade pip
-          pip install "poetry>=2.0.0,<3.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
-          poetry install --with static-analysis
+          uv sync --frozen --group static-analysis --extra gui --extra tui
           mkdir type-check-reports
 
       - name: Run mypy
         run: |
           set -o pipefail
-          poetry run mypy src --show-error-codes --pretty --install-types --non-interactive | tee type-check-reports/mypy-report.txt
+          uv run mypy src --show-error-codes --pretty --install-types --non-interactive | tee type-check-reports/mypy-report.txt
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v7
@@ -105,17 +112,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
       - name: Prepare
         run: |
-          pip install --upgrade pip
-          pip install "poetry>=2.0.0,<3.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
-          poetry install --with static-analysis
+          uv sync --frozen
           mkdir error-catalogue-check
 
       - name: Run validate-catalogue
         run: |
           set -o pipefail
-          poetry run python src/flync_cli/main.py errors validate-catalogue | tee error-catalogue-check/error-catalogue-check.txt
+          uv run python src/flync_cli/main.py errors validate-catalogue | tee error-catalogue-check/error-catalogue-check.txt
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v7
@@ -136,15 +146,17 @@ jobs:
         run: |
           sudo apt update && sudo apt install -y libglib2.0-0 libgl1 libegl1 libdbus-1-3 libfontconfig1 libxcb1 libxkbcommon0
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
       - name: Prepare
-        run: |
-          pip install --upgrade pip
-          pip install "poetry>=2.0.0,<3.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
-          poetry install --with test
+        run: uv sync --frozen --group test --group qt --extra gui --extra tui
 
       - name: Run Performance tests
         run: |
-          COVERAGE_FILE=.coverage.performance poetry run pytest -m performance --cov=flync --cov-report= --junitxml=report_performance.xml --durations=0
+          COVERAGE_FILE=.coverage.performance uv run pytest -m performance --cov=flync --cov-report= --junitxml=report_performance.xml --durations=0
 
       - name: Upload performance tests artifacts
         if: always()
@@ -169,15 +181,17 @@ jobs:
         run: |
           sudo apt update && sudo apt install -y libglib2.0-0 libgl1 libegl1 libdbus-1-3 libfontconfig1 libxcb1 libxkbcommon0
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
       - name: Prepare
-        run: |
-          pip install --upgrade pip
-          pip install "poetry>=2.0.0,<3.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
-          poetry install --with test
+        run: uv sync --frozen --group test --group qt --extra gui --extra tui
 
       - name: Run Unittest
         run: |
-          COVERAGE_FILE=.coverage.unit poetry run pytest -m "not performance" --cov=flync --cov-report= --junitxml=report_not_performance.xml --durations=0
+          COVERAGE_FILE=.coverage.unit uv run pytest -m "not performance" --cov=flync --cov-report= --junitxml=report_not_performance.xml --durations=0
 
       - name: Upload unittest artifacts
         if: always()
@@ -218,18 +232,20 @@ jobs:
         run: |
           sudo apt update && sudo apt install -y libglib2.0-0 libgl1 libegl1 libdbus-1-3 libfontconfig1 libxcb1 libxkbcommon0
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
       - name: Prepare
-        run: |
-          pip install --upgrade pip
-          pip install "poetry>=2.0.0,<3.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
-          poetry install --with test
+        run: uv sync --frozen --group test --group qt --extra gui --extra tui
 
       - name: Generate reports
         run: |
-          poetry run coverage combine .coverage.unit .coverage.performance
-          poetry run coverage xml
-          poetry run coverage report
-          poetry run python -m junitparser merge report_not_performance.xml report_performance.xml report.xml
+          uv run coverage combine .coverage.unit .coverage.performance
+          uv run coverage xml
+          uv run coverage report
+          uv run python -m junitparser merge report_not_performance.xml report_performance.xml report.xml
 
       - name: Coverage comment
         id: coverage_comment
@@ -268,15 +284,45 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
       - name: Prepare
-        run: |
-          pip install --upgrade pip
-          pip install "poetry>=2.0.0,<3.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
-          poetry install
+        run: uv sync --frozen
 
       - name: Run validate_examples.py
         run: |
-          poetry run python scripts/ci/validate_examples.py
+          uv run python scripts/ci/validate_examples.py
+
+  core-install-integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Verify core install without extras
+        run: |
+          # no --extra, no Qt system libs, no apt-get
+          uv sync --frozen
+          uv run python -c "import flync, flync_converter; from flync_converter.cli import cli"
+          uv run flync --help
+          uv run flync-converter --help
+          uv run flync-converter list-converters
+          uv run python -c "import importlib.util as u; assert u.find_spec('PySide6') is None, 'PySide6 leaked into the core install'"
+          uv run python -c "import importlib.util as u; assert u.find_spec('textual') is None, 'textual leaked into the core install'"
+          # the degradation path (I2): clear message, exit 1, no traceback
+          ! uv run flync-converter gui
+          uv run flync-converter gui 2>&1 | grep -q "flync\[gui\]"
+          ! uv run flync-converter gui 2>&1 | grep -q "Traceback"
+          ! uv run flync-converter-gui
+          ! uv run flync-converter-interactive
 
   build-documentation:
     runs-on: ubuntu-latest
@@ -284,17 +330,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
       - name: Prepare
         run: |
-          pip install --upgrade pip
-          pip install "poetry>=2.0.0,<3.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
           cd docs
           pwd
-          poetry install --with docs
+          uv sync --frozen --group docs
 
       - name: Generate Error Catalogue
         run: |
-          poetry run python src/flync_cli/main.py errors generate-catalogue
+          uv run python src/flync_cli/main.py errors generate-catalogue
 
       - name: Run make html
         run: |

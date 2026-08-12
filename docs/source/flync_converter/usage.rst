@@ -62,6 +62,10 @@ See :doc:`cli` for the full command reference.
 Interactive TUI
 ---------------
 
+.. note::
+
+   The interactive TUI requires the ``tui`` extra: ``pip install "flync[tui]"`` (or ``uv sync --extra tui`` from a checkout).
+
 ``flync-converter-interactive``, ``flync-converter tui``, or ``flync-converter -i`` all open the same full terminal UI powered by `Textual <https://textual.textualize.io/>`_.
 
 .. code-block:: bash

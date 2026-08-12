@@ -17,21 +17,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Setup Python
-        uses: actions/setup-python@v7
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version: "3.12"
-          cache: "pip"
+          enable-cache: true
 
       - name: Prepare
-        run: |
-          pip install --upgrade pip
-          pip install "poetry>=2.0.0,<3.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
-          poetry install --with docs
+        run: uv sync --frozen --group docs
 
       - name: Generate Error Catalogue
         run: |
-          poetry run python src/flync_cli/main.py errors generate-catalogue
+          uv run python src/flync_cli/main.py errors generate-catalogue
 
       - name: Build the docs
         run: |

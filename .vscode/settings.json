@@ -1,4 +1,3 @@
-
 {
     "python.testing.pytestEnabled": true,
     "python.testing.unittestEnabled": false,
@@ -10,6 +9,7 @@
         "tests"
     ],
 
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
     "editor.defaultFormatter": "ms-python.black-formatter",
     "black-formatter.args": [
         "--line-length=149"

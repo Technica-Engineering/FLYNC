@@ -54,18 +54,14 @@ FLYNC models the full automotive E/E architecture across 12 domains:
 
 ### Installation
 
-Requires **Python 3.12+** and [Poetry](https://python-poetry.org/).
+Requires **Python 3.12+** and [uv](https://docs.astral.sh/uv/).
 
 ```bash
 git clone https://github.com/Technica-Engineering/FLYNC.git
 cd FLYNC
 
-python3.12 -m venv .venv
-source .venv/bin/activate    # Windows: .venv\Scripts\Activate.ps1
-
-pip install --upgrade pip
-pip install poetry
-poetry install
+pip install uv
+uv sync
 ```
 
 > For detailed platform-specific instructions and advanced options, see the [Installation Guide](https://flync-language.com).
@@ -180,8 +176,8 @@ FLYNC ships with five CLI entry points:
 |---|---|
 | `flync` | Main CLI — validate workspaces, inspect ECUs, generate UML diagrams, query services and VLANs |
 | `flync-converter` | Convert between formats (FLYNC ↔ JSON ↔ YAML ↔ DBC and custom plugins) |
-| `flync-converter-interactive` | Interactive terminal UI for conversions (Textual) |
-| `flync-converter-gui` | Desktop GUI for conversions (PySide6) |
+| `flync-converter-interactive` | Interactive terminal UI for conversions (requires `flync[tui]`) |
+| `flync-converter-gui` | Desktop GUI for conversions (requires `flync[gui]`) |
 | `puml-to-html` | Convert PlantUML diagrams to HTML |
 
 ## Architecture
@@ -211,22 +207,25 @@ src/
 
 ```bash
 # Full developer environment (core + test + linting)
-poetry install
+uv sync
 
 # Add documentation dependencies
-poetry install --with docs
+uv sync --group docs
 
 # Install pre-commit hooks
 pre-commit install
+
+# Optional: install graphical front-ends
+uv sync --extra gui --extra tui
 ```
 
 ### Running Tests
 
 ```bash
-poetry run pytest                           # Full suite (parallel, with coverage)
-poetry run pytest tests/unit_test/          # Unit tests only
-poetry run pytest -k "test_ecu"             # Filter by keyword
-poetry run pytest --no-header -v --tb=short # Verbose, short tracebacks
+uv run pytest                           # Full suite (parallel, with coverage)
+uv run pytest tests/unit_test/          # Unit tests only
+uv run pytest -k "test_ecu"             # Filter by keyword
+uv run pytest --no-header -v --tb=short # Verbose, short tracebacks
 ```
 
 ### Code Quality
@@ -245,7 +244,7 @@ pre-commit run --all-files
 ### Validate Bundled Examples
 
 ```bash
-poetry run python scripts/ci/validate_examples.py
+uv run python scripts/ci/validate_examples.py
 ```
 
 ### Build Documentation

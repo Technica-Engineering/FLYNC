@@ -2,28 +2,34 @@
 
 ## Project Overview
 
-FLYNC (FLexible Yaml-based Network Configuration) — Python library for automotive E/E network configuration as code. Requires **Python 3.12+** (`requires-python = ">=3.12,<3.15"`). Uses **Poetry** for dependency management.
+FLYNC (FLexible Yaml-based Network Configuration) — Python library for automotive E/E network configuration as code. Requires **Python 3.12+** (`requires-python = ">=3.12,<3.15"`). Uses **uv** for dependency management and **hatchling** as build backend.
 
 ## Quick Start
 
 ```bash
-source .venv/bin/activate   # always activate first
-poetry install               # install all dependencies (core + dev + static-analysis)
+uv sync    # creates .venv and installs all dependencies (core + test + static-analysis)
 ```
+
+Prefix commands with `uv run` (e.g. `uv run pytest`) — uv resolves `.venv` itself, so
+there is no need to activate it.
 
 ### Dependency Groups
 
-Poetry defines several dependency groups in `pyproject.toml`:
+uv dependency groups are defined via PEP 735 `[dependency-groups]` in `pyproject.toml`:
 
 | Group | Purpose | Install with |
 |---|---|---|
-| (main) | Runtime dependencies (pydantic, pyyaml, etc.) | `poetry install` |
-| `dev` | Testing (pytest, pytest-xdist, pytest-cov, hypothesis, etc.) | `poetry install --with dev` |
-| `static-analysis` | Linting & formatting (black, flake8, isort, mypy, colorama) | `poetry install --with static-analysis` |
-| `docs` | Documentation (Sphinx, furo, sphinx-needs) | `poetry install --with docs` |
-| `deploy` | Publishing (twine) | `poetry install --with deploy` |
+| (main) | Runtime dependencies (pydantic, pyyaml, etc.) | `uv sync` |
+| `dev` | Pre-commit + test + static-analysis (default) | `uv sync` |
+| `test` | Testing (pytest, pytest-xdist, pytest-cov, etc.) | `uv sync --group test` |
+| `qt` | `pytest-qt`, for the GUI tests only | `uv sync --group qt --extra gui` |
+| `static-analysis` | Linting & formatting (black, flake8, isort, mypy, colorama) | `uv sync --group static-analysis` |
+| `docs` | Documentation (Sphinx, furo, sphinx-needs) | `uv sync --group docs` |
+| `deploy` | Publishing (twine) | `uv sync --group deploy` |
 
-**Tip:** `poetry install` installs `dev` and `static-analysis` by default. For docs: `poetry install --with docs`.
+**Tip:** `uv sync` installs `dev` (which includes `test` and `static-analysis`) by default. For docs: `uv sync --group docs`.
+
+**`qt` is deliberately outside `dev`.** `pytest-qt` aborts collection when no Qt binding is importable, so installing it without the `gui` extra would break every `uv run pytest` on a core install. Always pair them: `uv sync --group test --group qt --extra gui --extra tui`.
 
 ### Entry Points
 
@@ -34,8 +40,20 @@ The project registers these CLI commands via `[project.scripts]`:
 | `flync` | `flync_cli:app` | Main CLI (Typer) — validate, info, UML generation, etc. |
 | `puml-to-html` | `flync_cli.convert_puml:main` | Convert PlantUML diagrams to HTML |
 | `flync-converter` | `flync_converter.cli:main` | Click-based converter CLI |
-| `flync-converter-interactive` | `flync_converter.cli:main_interactive` | Textual TUI for conversions |
-| `flync-converter-gui` | `flync_converter.cli:main_gui` | PySide6 GUI for conversions |
+| `flync-converter-interactive` | `flync_converter.cli:main_interactive` | Textual TUI for conversions (requires `tui` extra) |
+| `flync-converter-gui` | `flync_converter.cli:main_gui` | PySide6 GUI for conversions (requires `gui` extra) |
+
+### Optional Extras
+
+The TUI and GUI front-ends are optional extras — they are **not** installed by default:
+
+| Extra | Dependency | Install with |
+|---|---|---|
+| `tui` | `textual>=0.80.0` | `pip install 'flync[tui]'` or `uv sync --extra tui` |
+| `gui` | `PySide6>=6.6.0` | `pip install 'flync[gui]'` or `uv sync --extra gui` |
+| `all` | Both of the above | `pip install 'flync[all]'` or `uv sync --extra gui --extra tui` |
+
+`flync-converter-interactive` requires the `tui` extra; `flync-converter-gui` requires the `gui` extra. All other commands work without any extras.
 
 ## Source Layout
 
@@ -215,18 +233,20 @@ bash scripts/helpers/local_autoformat.sh         # auto-fix isort & black issues
 ### Individual checks
 
 ```bash
-poetry run black --check --diff --color src                            # formatting (line-length: 149)
-poetry run isort --check --diff --color --line-length 149 src          # import sorting (profile=black)
-poetry run flake8 src                                                  # linting (config in .flake8: max-line-length=149, extend-ignore=E203)
-poetry run mypy src --show-error-codes --pretty --install-types --non-interactive  # type checking
+uv run black --check --diff --color src                            # formatting (line-length: 149)
+uv run isort --check --diff --color --line-length 149 src          # import sorting (profile=black)
+uv run flake8 src                                                  # linting (config in .flake8: max-line-length=149, extend-ignore=E203)
+uv run mypy src --show-error-codes --pretty --install-types --non-interactive  # type checking
 ```
+
+**mypy needs the optional extras.** `src/flync_converter/cli/gui/` and `cli/tui/` import PySide6 and textual at module level, so a core-only env produces `import-not-found` errors. Run `uv sync --group static-analysis --extra gui --extra tui` first; CI does the same.
 
 ### Auto-format a single file
 
 ```bash
-poetry run isort --line-length 149 path/to/file.py
-poetry run black --line-length 149 path/to/file.py
-poetry run flake8 path/to/file.py
+uv run isort --line-length 149 path/to/file.py
+uv run black --line-length 149 path/to/file.py
+uv run flake8 path/to/file.py
 ```
 
 ### Pre-commit hooks
@@ -244,18 +264,25 @@ pre-commit run --all-files      # run on all files
 ### Testing
 
 ```bash
-poetry run pytest                                         # all tests (auto: -n auto, coverage, junitxml)
-poetry run pytest tests/unit_test/core/                   # single test directory
-poetry run pytest -k "test_unique"                        # keyword filter
-poetry run pytest --no-header -v --tb=short               # verbose, short tracebacks
+uv run pytest                                         # all tests (auto: -n auto, coverage, junitxml)
+uv run pytest tests/unit_test/core/                   # single test directory
+uv run pytest -k "test_unique"                        # keyword filter
+uv run pytest --no-header -v --tb=short               # verbose, short tracebacks
 ```
 
 Pytest config in `pyproject.toml` under `[tool.pytest.ini_options]` (`addopts`): `-n auto --cov=flync --cov=flync_cli --cov=flync_converter --cov-report=term --cov-report=xml --junitxml=report.xml` (`testpaths = ["tests"]`).
 
+`tests/converter_tests/test_gui.py` skips on a default `uv sync`. To run it:
+
+```bash
+uv sync --group test --group qt --extra gui --extra tui
+uv run pytest tests/converter_tests/test_gui.py
+```
+
 ### Validate examples
 
 ```bash
-poetry run python scripts/ci/validate_examples.py   # validates bundled example workspaces (alongside scripts/ci/fetch_pr_data.py)
+uv run python scripts/ci/validate_examples.py   # validates bundled example workspaces (alongside scripts/ci/fetch_pr_data.py)
 ```
 
 ### Build docs
@@ -282,6 +309,6 @@ cd docs && make html    # Sphinx, generates mermaid diagrams + CLI docs
   - `pr_sonar_and_coverage_reports.yaml` — SonarQube analysis + coverage reporting
   - `build_and_deploy_docs.yaml` — Sphinx docs build/deploy
 - **GitLab CI** (`.gitlab-ci.yml`) — parallel pipeline with `test`, `source-integrity`, and `build` jobs; also installs converter test plugin (`tests/converter_tests/test_plugin/`)
-- All CI targets **Python 3.12**, uses **Poetry >=2.0** with `poetry-dynamic-versioning` (semver, `release-*` tag pattern)
+- All CI targets **Python 3.12**, uses **uv** with **hatchling** + `uv-dynamic-versioning` (semver, `release-*` tag pattern)
 - Renovate for dependency updates (`renovate.json`)
 - SonarQube (`sonar-project.properties`)

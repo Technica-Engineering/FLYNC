@@ -4,7 +4,7 @@
 # You can set these variables from the command line, and also
 # from the environment for the first two.
 SPHINXOPTS    ?=
-SPHINXBUILD   ?= poetry run python -m sphinx.cmd.build
+SPHINXBUILD   ?= uv run python -m sphinx.cmd.build
 SOURCEDIR     = source
 BUILDDIR      = build
 EXAMPLE_NAME  = flync_example
@@ -19,10 +19,10 @@ help:
 
 generations:
 # create mermaid schematics
-	poetry run python3 ./source/_scripts/create_mermaid.py
-	poetry run python3 ./source/_scripts/generate_ecu_diagram.py $(EXAMPLE_SOURCE)/ecu_variants -o $(EXAMPLE_DST)/images/ecu_variants
+	uv run python3 ./source/_scripts/create_mermaid.py
+	uv run python3 ./source/_scripts/generate_ecu_diagram.py $(EXAMPLE_SOURCE)/ecu_variants -o $(EXAMPLE_DST)/images/ecu_variants
 # create cli docu
-	poetry run typer flync_cli.main utils docs --name flync --title Usage --output $(SOURCEDIR)/flync_cli/usage.md
+	uv run typer flync_cli.main utils docs --name flync --title Usage --output $(SOURCEDIR)/flync_cli/usage.md
 
 clear:
 # remove mermaid files again

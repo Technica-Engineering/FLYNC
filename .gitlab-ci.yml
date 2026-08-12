@@ -4,7 +4,7 @@
     - docker-linux
   before_script:
     - pip install --upgrade pip
-    - pip install "poetry>=2.0.0,<3.0.0" "poetry-dynamic-versioning>=1.0.0,<2.0.0"
+    - pip install uv
 
 stages:
   - static-analysis
@@ -23,9 +23,9 @@ lint:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
     - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
   script:
-    - poetry install --no-root --only static-analysis
-    - poetry run flake8 --max-line-length 149 src
-    - poetry run flake8 --max-line-length 149 src --format=html --htmldir=flake8-report
+    - uv sync --frozen --no-install-project --only-group static-analysis
+    - uv run flake8 --max-line-length 149 src
+    - uv run flake8 --max-line-length 149 src --format=html --htmldir=flake8-report
   artifacts:
     expire_in: 2 days
     paths:
@@ -41,10 +41,10 @@ format:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
     - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
   script:
-    - poetry install --no-root --only static-analysis
+    - uv sync --frozen --no-install-project --only-group static-analysis
     - mkdir format-reports
-    - poetry run black --target-version py312 --check --diff --color src > format-reports/black-report-src.diff
-    - poetry run black --target-version py312 --check --diff --color tests > format-reports/black-report-tests.diff
+    - uv run black --target-version py312 --check --diff --color src > format-reports/black-report-src.diff
+    - uv run black --target-version py312 --check --diff --color tests > format-reports/black-report-tests.diff
   artifacts:
     expire_in: 2 days
     paths:
@@ -60,10 +60,10 @@ isort:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
     - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
   script:
-    - poetry install --no-root --only static-analysis
+    - uv sync --frozen --no-install-project --only-group static-analysis
     - mkdir format-reports
-    - poetry run isort --check --diff --color --line-length 149 src > format-reports/isort-report-src.diff
-    - poetry run isort --check --diff --color --line-length 149 tests > format-reports/isort-report-tests.diff
+    - uv run isort --check --diff --color --line-length 149 src > format-reports/isort-report-src.diff
+    - uv run isort --check --diff --color --line-length 149 tests > format-reports/isort-report-tests.diff
   artifacts:
     expire_in: 2 days
     paths:
@@ -78,9 +78,9 @@ type_check:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
     - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
   script:
-    - poetry install --with static-analysis
+    - uv sync --frozen --group static-analysis --extra gui --extra tui
     - mkdir type-check-reports
-    - poetry run mypy src --show-error-codes --pretty --install-types --non-interactive | tee type-check-reports/mypy-report.txt
+    - uv run mypy src --show-error-codes --pretty --install-types --non-interactive | tee type-check-reports/mypy-report.txt
   artifacts:
     expire_in: 2 days
     paths:
@@ -95,8 +95,8 @@ error-catalogue-integrity:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
     - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
   script:
-    - poetry install
-    - poetry run python src/flync_cli/main.py errors validate-catalogue
+    - uv sync --frozen
+    - uv run python src/flync_cli/main.py errors validate-catalogue
 
 examples_validation:
   extends: .base
@@ -107,8 +107,30 @@ examples_validation:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
     - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
   script:
-    - poetry install
-    - poetry run python scripts/ci/validate_examples.py
+    - uv sync --frozen
+    - uv run python scripts/ci/validate_examples.py
+
+core-install-integrity:
+  extends: .base
+  stage: tests
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
+  script:
+    # no --extra, no Qt system libs, no apt-get
+    - uv sync --frozen
+    - uv run python -c "import flync, flync_converter; from flync_converter.cli import cli"
+    - uv run flync --help
+    - uv run flync-converter --help
+    - uv run flync-converter list-converters
+    - uv run python -c "import importlib.util as u; assert u.find_spec('PySide6') is None, 'PySide6 leaked into the core install'"
+    - uv run python -c "import importlib.util as u; assert u.find_spec('textual') is None, 'textual leaked into the core install'"
+    # the degradation path (I2): clear message, exit 1, no traceback
+    - '! uv run flync-converter gui'
+    - uv run flync-converter gui 2>&1 | grep -q "flync\[gui\]"
+    - '! uv run flync-converter gui 2>&1 | grep -q "Traceback"'
+    - '! uv run flync-converter-gui'
+    - '! uv run flync-converter-interactive'
 
 performance_tests:
   extends: .base
@@ -123,9 +145,9 @@ performance_tests:
     - if: '$CI_COMMIT_TAG'
   script:
     - apt-get update && apt-get install -y libglib2.0-0 libgl1 libegl1 libdbus-1-3 libfontconfig1 libxcb1 libxkbcommon0
-    - poetry install --with test
-    - poetry run pip install -e tests/converter_tests/test_plugin/ --no-deps
-    - COVERAGE_FILE=.coverage.performance poetry run pytest -m performance --cov=flync --cov=flync_cli --cov-report= --junitxml=report_performance.xml --durations=0
+    - uv sync --frozen --group test --group qt --extra gui --extra tui
+    - uv pip install -e tests/converter_tests/test_plugin/ --no-deps
+    - COVERAGE_FILE=.coverage.performance uv run pytest -m performance --cov=flync --cov=flync_cli --cov-report= --junitxml=report_performance.xml --durations=0
   artifacts:
     when: always
     expire_in: "30 days"
@@ -144,9 +166,9 @@ unit_tests:
     - if: '$CI_COMMIT_TAG'
   script:
     - apt-get update && apt-get install -y libglib2.0-0 libgl1 libegl1 libdbus-1-3 libfontconfig1 libxcb1 libxkbcommon0
-    - poetry install --with test
-    - poetry run pip install -e tests/converter_tests/test_plugin/ --no-deps
-    - COVERAGE_FILE=.coverage.unit poetry run pytest -m "not performance" --cov=flync --cov=flync_cli --cov-report= --junitxml=report_not_performance.xml --durations=0
+    - uv sync --frozen --group test --group qt --extra gui --extra tui
+    - uv pip install -e tests/converter_tests/test_plugin/ --no-deps
+    - COVERAGE_FILE=.coverage.unit uv run pytest -m "not performance" --cov=flync --cov=flync_cli --cov-report= --junitxml=report_not_performance.xml --durations=0
   artifacts:
     when: always
     expire_in: "30 days"
@@ -169,12 +191,12 @@ test-summary:
     - if: '$CI_COMMIT_TAG'
   script:
     - apt-get update && apt-get install -y libglib2.0-0 libgl1 libegl1 libdbus-1-3 libfontconfig1 libxcb1 libxkbcommon0
-    - poetry install --with test
-    - poetry run pip install -e tests/converter_tests/test_plugin/ --no-deps
-    - poetry run coverage combine
-    - poetry run coverage xml
-    - poetry run coverage report
-    - poetry run python -m junitparser merge report_not_performance.xml report_performance.xml report.xml
+    - uv sync --frozen --group test --group qt --extra gui --extra tui
+    - uv pip install -e tests/converter_tests/test_plugin/ --no-deps
+    - uv run coverage combine
+    - uv run coverage xml
+    - uv run coverage report
+    - uv run python -m junitparser merge report_not_performance.xml report_performance.xml report.xml
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   artifacts:
     when: always
@@ -225,9 +247,9 @@ docs-build:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
     - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
   script:
-    - poetry install --with docs
+    - uv sync --frozen --group docs
     - echo "--- GENERATING ERROR CATALOGUE ---"
-    - poetry run python src/flync_cli/main.py errors generate-catalogue
+    - uv run python src/flync_cli/main.py errors generate-catalogue
     - echo "--- BUILDING DOCS ---"
     - cd ./docs
     - make SPHINXOPTS='--fail-on-warning' html
@@ -256,8 +278,10 @@ build:
   extends: .base
   stage: deploy
   needs: [test-summary]
+  variables:
+    GIT_DEPTH: "0"
   script:
-    - poetry build
+    - uv build
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'

@@ -150,17 +150,15 @@ def convert(ctx, source, output, source_format, output_format, **kwargs):
 
 @cli.command()
 def tui():
-    """Launch the full interactive Textual TUI."""
-    from flync_converter.cli.tui import run_tui
+    """Launch the full interactive Textual TUI (requires flync[tui])."""
+    from flync_converter.cli._optional import load_run_tui
 
-    run_tui()
+    load_run_tui()()
 
 
 @cli.command()
 def gui():
-    """Launch the PySide6 GUI."""
-    try:
-        from flync_converter.cli.gui import run_gui
-    except ImportError:
-        raise click.ClickException("PySide6 is required for the GUI. Install it with: pip install flync_converter[gui]")
-    run_gui()
+    """Launch the PySide6 desktop GUI (requires flync[gui])."""
+    from flync_converter.cli._optional import load_run_gui
+
+    load_run_gui()()

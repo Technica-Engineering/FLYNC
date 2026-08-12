@@ -131,6 +131,14 @@ Pass ``--source-format`` and/or ``--output-format`` together with ``--help`` to 
 
 Launches the interactive Textual TUI session. Equivalent to ``flync-converter -i`` and ``flync-converter-interactive``.
 
+**Requires the** ``tui`` **extra** (``pip install "flync[tui]"`` or ``uv sync --extra tui``).
+
+Without the extra installed, the command prints an actionable error and exits with code 1::
+
+   Error: The interactive TUI requires 'textual', which is an optional dependency of flync.
+     Install it with:  pip install 'flync[tui]'
+     From a checkout:  uv sync --extra tui
+
 .. code-block:: bash
 
    flync-converter tui
@@ -156,6 +164,8 @@ Prefer ``tui`` when running locally; use ``convert-interactive`` when you need a
 
 Interactive TUI (``tui`` / ``flync-converter-interactive``)
 -----------------------------------------------------------
+
+**Requires the** ``tui`` **extra** (``pip install "flync[tui]"``).
 
 The TUI is built with `Textual <https://textual.textualize.io/>`_ and presents a single split-panel screen:
 
@@ -197,6 +207,14 @@ The TUI is built with `Textual <https://textual.textualize.io/>`_ and presents a
 
 Desktop GUI (``gui`` / ``flync-converter-gui``)
 ------------------------------------------------
+
+**Requires the** ``gui`` **extra** (``pip install "flync[gui]"``).
+
+Without the extra installed, the command prints an actionable error and exits with code 1::
+
+   Error: The desktop GUI requires 'PySide6', which is an optional dependency of flync.
+     Install it with:  pip install 'flync[gui]'
+     From a checkout:  uv sync --extra gui
 
 The GUI is a `PySide6 <https://doc.qt.io/qtforpython/>`_ desktop application with the same split-panel layout as the TUI.
 

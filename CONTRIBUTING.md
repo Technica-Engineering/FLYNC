@@ -25,7 +25,7 @@ To contribute, you will need:
 
 To get a glance of the project dependencies, check:
 ```bash
-poetry show
+uv tree
 ```
 
 ## Contribution Workflow

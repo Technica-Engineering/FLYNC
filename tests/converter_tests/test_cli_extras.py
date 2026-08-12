@@ -253,14 +253,12 @@ class TestOpenTui:
         ctx.exit.assert_not_called()
 
     def test_value_true_runs_tui_and_exits(self):
-        import sys
-
         ctx = MagicMock()
         ctx.resilient_parsing = False
-        mock_tui_mod = MagicMock()
-        with patch.dict(sys.modules, {"flync_converter.cli.tui": mock_tui_mod}):
+        run_tui = MagicMock()
+        with patch("flync_converter.cli._optional.load_run_tui", return_value=run_tui):
             _open_tui(ctx, None, True)
-        mock_tui_mod.run_tui.assert_called_once()
+        run_tui.assert_called_once()
         ctx.exit.assert_called_once()
 
 
@@ -278,14 +276,12 @@ class TestOpenGui:
         ctx.exit.assert_not_called()
 
     def test_value_true_runs_gui_and_exits(self):
-        import sys
-
         ctx = MagicMock()
         ctx.resilient_parsing = False
-        mock_gui_mod = MagicMock()
-        with patch.dict(sys.modules, {"flync_converter.cli.gui": mock_gui_mod}):
+        run_gui = MagicMock()
+        with patch("flync_converter.cli._optional.load_run_gui", return_value=run_gui):
             _open_gui(ctx, None, True)
-        mock_gui_mod.run_gui.assert_called_once()
+        run_gui.assert_called_once()
         ctx.exit.assert_called_once()
 
 
@@ -437,38 +433,33 @@ class TestListConverters:
 
 class TestTuiGuiCommands:
     def test_tui_command_calls_run_tui(self):
-        import sys
-
         from flync_converter.cli.commands import tui
 
-        mock_tui_mod = MagicMock()
+        run_tui = MagicMock()
         runner = CliRunner()
-        with patch.dict(sys.modules, {"flync_converter.cli.tui": mock_tui_mod}):
+        with patch("flync_converter.cli._optional.load_run_tui", return_value=run_tui):
             result = runner.invoke(tui, [])
-        mock_tui_mod.run_tui.assert_called_once()
+        run_tui.assert_called_once()
         assert result.exit_code == 0
 
     def test_gui_command_calls_run_gui(self):
-        import sys
-
         from flync_converter.cli.commands import gui
 
-        mock_gui_mod = MagicMock()
+        run_gui = MagicMock()
         runner = CliRunner()
-        with patch.dict(sys.modules, {"flync_converter.cli.gui": mock_gui_mod}):
+        with patch("flync_converter.cli._optional.load_run_gui", return_value=run_gui):
             result = runner.invoke(gui, [])
-        mock_gui_mod.run_gui.assert_called_once()
+        run_gui.assert_called_once()
         assert result.exit_code == 0
 
-    def test_gui_import_error_raises_click_exception(self):
-        import sys
-
+    def test_gui_missing_extra_raises_click_exception(self):
         from flync_converter.cli.commands import gui
 
         runner = CliRunner()
-        with patch.dict(sys.modules, {"flync_converter.cli.gui": None}):
+        with patch("flync_converter.cli._optional.find_spec", return_value=None):
             result = runner.invoke(gui, [])
         assert result.exit_code != 0
+        assert "flync[gui]" in result.output
 
 
 # ---------------------------------------------------------------------------

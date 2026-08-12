@@ -4,7 +4,7 @@ Installation Guide
 ==================
 
 This guide explains how to install **FLYNC** and its SDK in different environments.
-FLYNC is a Python-based tool distributed as a package and built using **Poetry**.
+FLYNC is a Python-based tool distributed as a package and built using **hatchling**.
 
 -------
 
@@ -32,28 +32,17 @@ Recommended Tools
 While not strictly required for end users, the following tools are recommended:
 
 - **Git** – for cloning the repository and version control
-- **Poetry** – for managing dependencies and development environments
+- **uv** – for managing dependencies and development environments
 
-Install Poetry (if not already installed) and verify installation:
+Install uv (if not already installed) and verify installation:
 
 .. code-block:: bash
 
-   # Create a new virtual environment or use an existing one.
-   # You can do this also in the source directory after git clone.
-   # In this example we use the directory .venv
-   python -m venv .venv
+   # Install uv:
+   pip install uv
 
-   # activate virtual environment:
-   source .venv/bin/activate
-
-   # Update PIP just in case:
-   pip install --upgrade pip
-
-   # Install Poetry:
-   pip install poetry
-
-   # Check Poetry install:
-   poetry --version
+   # Check uv install:
+   uv --version
 
 --------------
 
@@ -62,7 +51,7 @@ Installation Options
 
 FLYNC can be installed in different ways depending on whether you are a user, contributor, or documentation builder.
 
-All installation methods use **Poetry** as the dependency and environment manager.
+All installation methods use **uv** as the dependency and environment manager.
 
 
 .. warning:: The FLYNC model depends on `pydantic v2`, which is **not compatible** with code written for `pydantic v1`. Make sure all your Pydantic-based code is version 2-compliant.
@@ -83,14 +72,14 @@ Clone the repository:
    git clone https://github.com/Technica-Engineering/FLYNC.git
    cd flync-library
 
-Install dependencies using Poetry:
+Install dependencies using uv:
 
 .. code-block:: bash
 
-   poetry install --only main
+   uv sync --no-dev
 
 
-.. hint:: It is recommended to install the FLYNC dependencies within a virtual environment.
+.. hint:: uv automatically creates and manages a virtual environment in ``.venv``.
 
 .. attention:: Make sure you're in the root directory of the project (where ``pyproject.toml`` is located) before running the installation command.
 
@@ -98,7 +87,7 @@ Verify the installation:
 
 .. code-block:: bash
 
-   poetry show
+   uv pip list
 
 If successful, you should see the list of FLYNC runtime dependencies with their installed version.
 
@@ -109,7 +98,7 @@ Option 2 - Full Developer Installation
 
 **Use this if:** You plan to contribute to FLYNC, modify the SDK, or run tests and linters.
 
-**What it installs:** Runtime + development + testing + documentation + static analysis tools.
+**What it installs:** Runtime + development + testing + documentation + static analysis tools, plus both graphical extras.
 
 .. code-block:: bash
 
@@ -118,13 +107,19 @@ Option 2 - Full Developer Installation
 
    git clone git@github.com:insert-your-name-here/FLYNC.git
    cd flync-library
-   poetry install --with dev,test,docs,static-analysis
+   uv sync --all-groups --all-extras
+
+.. note::
+
+   ``--all-extras`` is required alongside ``--all-groups``: the ``qt`` group pulls in
+   ``pytest-qt``, which aborts pytest collection unless a Qt binding (the ``gui``
+   extra) is also installed.
 
 Optional but recommended:
 
 .. code-block:: bash
 
-   poetry run pre-commit install
+   pre-commit install
 
 ------
 
@@ -139,7 +134,7 @@ Option 3 - Documentation-Only Environment
 
    git clone https://github.com/Technica-Engineering/FLYNC.git
    cd flync-library
-   poetry install --with docs
+   uv sync --group docs
 
 Build docs - Linux and macOS users:
 
@@ -168,13 +163,39 @@ Option 4 - Testing Environment
 
    git clone https://github.com/Technica-Engineering/FLYNC.git
    cd flync-library
-   poetry install --with test
+   uv sync --group test
 
 Run tests:
 
 .. code-block:: bash
 
-   pytest
+   uv run pytest
+
+-------
+
+Option 5 - Graphical Front-ends
+'''''''''''''''''''''''''''''''''
+
+**Use this if:** You want to use the interactive TUI or desktop GUI for flync-converter.
+
+The core install is deliberately Qt-free — ``textual`` and ``PySide6`` are optional extras.
+
+.. code-block:: bash
+
+   # Interactive Textual TUI only
+   pip install "flync[tui]"
+
+   # PySide6 desktop GUI only
+   pip install "flync[gui]"
+
+   # Both
+   pip install "flync[all]"
+
+From a development checkout:
+
+.. code-block:: bash
+
+   uv sync --extra gui --extra tui
 
 --------
 
@@ -210,26 +231,40 @@ After installation, the following console commands are available:
 
 .. list-table::
    :header-rows: 1
-   :widths: 30 40 30
+   :widths: 30 40 15 15
 
    * - Command
      - Entry point
      - Origin
+     - Requires
    * - ``flync``
      - ``flync_cli:app``
      - flync_cli
+     - —
    * - ``puml-to-html``
      - ``flync_cli.convert_puml:main``
      - flync_cli
+     - —
    * - ``flync-converter``
      - ``flync_converter.cli:main``
      - flync_converter
+     - —
    * - ``flync-converter-interactive``
      - ``flync_converter.cli:main_interactive``
      - flync_converter
+     - ``flync[tui]``
    * - ``flync-converter-gui``
      - ``flync_converter.cli:main_gui``
      - flync_converter
+     - ``flync[gui]``
+
+.. note::
+
+   Commands requiring an extra will print an actionable error message (not a traceback) if the extra is not installed. For example::
+
+      Error: The desktop GUI requires 'PySide6', which is an optional dependency of flync.
+        Install it with:  pip install 'flync[gui]'
+        From a checkout:  uv sync --extra gui
 
 
 Happy coding! For issues, contributions, or questions, reach out to the authors listed in :doc:`contact`.
