@@ -6,7 +6,8 @@ ClickExceptions — never tracebacks.
 """
 
 import sys
-from unittest.mock import patch
+from types import ModuleType
+from unittest.mock import MagicMock, patch
 
 import click
 import pytest
@@ -72,6 +73,33 @@ class TestCliGuiSubcommandMissingExtra:
 
 
 # ---------------------------------------------------------------------------
+# load_run_tui / load_run_gui — extra present
+# ---------------------------------------------------------------------------
+
+
+class TestLoadersWhenExtraPresent:
+    """The probe passes, so the loader imports the front-end and returns its runner.
+
+    The front-end packages themselves need textual/PySide6, which a core install
+    does not have, so they are stubbed into ``sys.modules``.
+    """
+
+    def test_load_run_tui_returns_run_tui(self):
+        stub = ModuleType("flync_converter.cli.tui")
+        stub.run_tui = MagicMock()
+        with patch("flync_converter.cli._optional.find_spec", return_value=object()):
+            with patch.dict(sys.modules, {"flync_converter.cli.tui": stub}):
+                assert load_run_tui() is stub.run_tui
+
+    def test_load_run_gui_returns_run_gui(self):
+        stub = ModuleType("flync_converter.cli.gui")
+        stub.run_gui = MagicMock()
+        with patch("flync_converter.cli._optional.find_spec", return_value=object()):
+            with patch.dict(sys.modules, {"flync_converter.cli.gui": stub}):
+                assert load_run_gui() is stub.run_gui
+
+
+# ---------------------------------------------------------------------------
 # Real ImportError propagation (I3)
 # ---------------------------------------------------------------------------
 
@@ -125,6 +153,31 @@ class TestStandaloneEntryPoints:
         err = capsys.readouterr().err
         assert f"flync[{extra}]" in err
         assert "Traceback" not in err
+
+    @pytest.mark.parametrize(
+        ("entry_point", "loader"),
+        [("main_interactive", "load_run_tui"), ("main_gui", "load_run_gui")],
+    )
+    def test_extra_present_runs_the_front_end(self, entry_point, loader):
+        """With the extra installed the loader succeeds and its runner is invoked."""
+        import flync_converter.cli as cli_module
+
+        run = MagicMock()
+        with patch(f"flync_converter.cli._optional.{loader}", return_value=run):
+            getattr(cli_module, entry_point)()
+
+        run.assert_called_once_with()
+
+    def test_main_loads_plugins_before_dispatching(self):
+        """``main`` is the plain CLI entry point — no extras involved."""
+        import flync_converter.cli as cli_module
+
+        with patch("flync_converter.registry.registry.load_plugins") as load_plugins:
+            with patch.object(cli_module, "cli") as cli_group:
+                cli_module.main()
+
+        load_plugins.assert_called_once()
+        cli_group.assert_called_once()
 
 
 # ---------------------------------------------------------------------------

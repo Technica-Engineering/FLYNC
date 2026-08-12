@@ -156,7 +156,7 @@ jobs:
 
       - name: Run Performance tests
         run: |
-          COVERAGE_FILE=.coverage.performance uv run pytest -m performance --cov=flync --cov-report= --junitxml=report_performance.xml --durations=0
+          COVERAGE_FILE=.coverage.performance uv run pytest -m performance --cov=flync --cov=flync_cli --cov=flync_converter --cov-report= --junitxml=report_performance.xml --durations=0
 
       - name: Upload performance tests artifacts
         if: always()
@@ -191,7 +191,7 @@ jobs:
 
       - name: Run Unittest
         run: |
-          COVERAGE_FILE=.coverage.unit uv run pytest -m "not performance" --cov=flync --cov-report= --junitxml=report_not_performance.xml --durations=0
+          COVERAGE_FILE=.coverage.unit uv run pytest -m "not performance" --cov=flync --cov=flync_cli --cov=flync_converter --cov-report= --junitxml=report_not_performance.xml --durations=0
 
       - name: Upload unittest artifacts
         if: always()

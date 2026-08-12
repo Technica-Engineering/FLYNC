@@ -125,7 +125,7 @@ performance_tests:
     - apt-get update && apt-get install -y libglib2.0-0 libgl1 libegl1 libdbus-1-3 libfontconfig1 libxcb1 libxkbcommon0
     - uv sync --frozen --group test --group qt --extra gui --extra tui
     - uv pip install -e tests/converter_tests/test_plugin/ --no-deps
-    - COVERAGE_FILE=.coverage.performance uv run pytest -m performance --cov=flync --cov=flync_cli --cov-report= --junitxml=report_performance.xml --durations=0
+    - COVERAGE_FILE=.coverage.performance uv run pytest -m performance --cov=flync --cov=flync_cli --cov=flync_converter --cov-report= --junitxml=report_performance.xml --durations=0
   artifacts:
     when: always
     expire_in: "30 days"
@@ -146,7 +146,7 @@ unit_tests:
     - apt-get update && apt-get install -y libglib2.0-0 libgl1 libegl1 libdbus-1-3 libfontconfig1 libxcb1 libxkbcommon0
     - uv sync --frozen --group test --group qt --extra gui --extra tui
     - uv pip install -e tests/converter_tests/test_plugin/ --no-deps
-    - COVERAGE_FILE=.coverage.unit uv run pytest -m "not performance" --cov=flync --cov=flync_cli --cov-report= --junitxml=report_not_performance.xml --durations=0
+    - COVERAGE_FILE=.coverage.unit uv run pytest -m "not performance" --cov=flync --cov=flync_cli --cov=flync_converter --cov-report= --junitxml=report_not_performance.xml --durations=0
   artifacts:
     when: always
     expire_in: "30 days"
