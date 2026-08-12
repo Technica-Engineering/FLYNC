@@ -90,7 +90,7 @@ def valid_simple_ecu():
     )
 
     # --- External links ---
-    empty_topology = FLYNCTopology(system_topology=SystemTopology(connections=[]))
+    empty_topology = FLYNCTopology(ethernet_topology=EthernetTopology(connections=[]))
 
     # --- Full FLYNC Model ---
     flync_model = FLYNCModel(
@@ -206,7 +206,7 @@ def valid_ecu_with_switch():
     )
 
     # --- External links ---
-    empty_topology = FLYNCTopology(system_topology=SystemTopology(connections=[]))
+    empty_topology = FLYNCTopology(ethernet_topology=EthernetTopology(connections=[]))
 
     # --- Full FLYNC Model ---
     flync_model = FLYNCModel(
@@ -333,7 +333,7 @@ def valid_inter_ecu_connection():
 
     # --- External links ---
     ecus_topology = FLYNCTopology(
-        system_topology=SystemTopology(
+        ethernet_topology=EthernetTopology(
             connections=[
                 ExternalConnection(
                     type="ecu_port_to_ecu_port",
@@ -469,7 +469,7 @@ def valid_iface_to_iface():
     )
 
     # --- External links ---
-    empty_topology = FLYNCTopology(system_topology=SystemTopology(connections=[]))
+    empty_topology = FLYNCTopology(ethernet_topology=EthernetTopology(connections=[]))
 
     # --- Full FLYNC Model ---
     flync_model = FLYNCModel(
@@ -510,7 +510,7 @@ def test_flync_model(tmpdir, valid_model_func):
     assert len(initial_model.get_all_controllers()) > 0
     assert len(initial_model.get_all_ecu_ports()) > 0
     assert len(initial_model.get_all_interfaces_names()) > 0
-    assert initial_model.get_system_topology_info() is not None
+    assert initial_model.get_ethernet_topology_info() is not None
 
     # --- Workspace ---
     workspace_path = Path(tmpdir) / "temp_workspace"
@@ -532,7 +532,7 @@ def test_flync_model(tmpdir, valid_model_func):
     assert len(final_model.get_all_controllers()) > 0
     assert len(final_model.get_all_ecu_ports()) > 0
     assert len(final_model.get_all_interfaces_names()) > 0
-    assert final_model.get_system_topology_info() is not None
+    assert final_model.get_ethernet_topology_info() is not None
 
     # --- Compare models ---
     def sort_by_name(obj):

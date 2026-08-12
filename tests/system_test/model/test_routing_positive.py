@@ -9,7 +9,9 @@ from flync.model.flync_4_ecu import Controller, EthernetInterfaceConfig, SocketT
 from flync.model.flync_4_ecu.can_interface import CANFrameRef, CANInterface
 from flync.model.flync_4_ecu.controller import Controller, EthernetInterface
 from flync.model.flync_4_ecu.ecu import ECU
-from flync.model.flync_4_ecu.internal_topology import InternalTopology
+from flync.model.flync_4_ecu.internal_topology import ECUPortToControllerInterface, InternalTopology
+from flync.model.flync_4_ecu.phy import BASET1
+from flync.model.flync_4_ecu.port import ECUPort
 from flync.model.flync_4_ecu.socket_container import SocketContainer
 from flync.model.flync_4_ecu.sockets import IPv4AddressEndpoint
 from flync.model.flync_4_metadata.metadata import BaseVersion, ECUMetadata, EmbeddedMetadata, SystemMetadata
@@ -17,9 +19,27 @@ from flync.model.flync_4_signal import CANFrame, CANFrameEgress, CANFrameForward
 from flync.model.flync_4_signal.forwarder import EthSocketEgress, ForwarderEgress, PDUForwarder
 from flync.model.flync_4_signal.pdu import ContainedPDURef, ContainerPDU, PDUInstance, SignalInstance, StandardPDU
 from flync.model.flync_4_signal.signal import Signal
-from flync.model.flync_4_topology.system_topology import FLYNCTopology, SystemTopology
+from flync.model.flync_4_topology.ethernet_topology import EthernetTopology, FLYNCTopology
 from flync.model.flync_model import FLYNCModel
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
+
+
+def _make_ethernet_ecu_ports_and_topology(controller_name: str, iface_name: str) -> tuple[list[ECUPort], InternalTopology]:
+    """Build the minimal ECU ports and internal topology required for an ECU with an Ethernet interface."""
+
+    port = ECUPort(name=f"{controller_name}_{iface_name}_port", mdi_config=BASET1())
+    topology = InternalTopology(
+        connections=[
+            ECUPortToControllerInterface(
+                id=f"conn_{controller_name}_{iface_name}",
+                ecu_port=port.name,
+                controller_interface=iface_name,
+                controller=controller_name,
+            )
+        ]
+    )
+    return [port], topology
+
 
 FLYNC_VERSION = "0.13.0"
 
@@ -97,7 +117,7 @@ def test_forwarding_with_valid_can_sender_receiver_context(tmpdir):
 
     flync_model = FLYNCModel(
         ecus=[ecu],
-        topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
+        topology=FLYNCTopology(system_topology=EthernetTopology(connections=[])),
         metadata=SystemMetadata(type="system", release=_make_version(), author="TestTeam", compatible_flync_version=_make_version()),
         communication=FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus_1, can_bus_2])),
     )
@@ -161,16 +181,18 @@ def test_forwarding_can_to_ethernet_simple(tmpdir):
         can_interfaces=[can_interface],
         ethernet_interfaces=[eth_iface],
     )
+    ports, topology = _make_ethernet_ecu_ports_and_topology("CTRL1", "ETH_IF_1")
     ecu = ECU(
         name="ECU1",
         controllers=[controller],
-        topology=InternalTopology(),
+        ports=ports,
+        topology=topology,
         ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=_make_version()),
     )
 
     flync_model = FLYNCModel(
         ecus=[ecu],
-        topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
+        topology=FLYNCTopology(system_topology=EthernetTopology(connections=[])),
         metadata=SystemMetadata(type="system", release=_make_version(), author="TestTeam", compatible_flync_version=_make_version()),
         communication=FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus], pdus=[engine_status_pdu])),
     )
@@ -238,15 +260,17 @@ def test_multi_egress_forwarding_can_to_eth_and_can(tmpdir):
         can_interfaces=[can_interface],
         ethernet_interfaces=[eth_interface],
     )
+    ports, topology = _make_ethernet_ecu_ports_and_topology("CTRL1", "ETH_IF_1")
     ecu = ECU(
         name="ECU1",
         controllers=[controller],
-        topology=InternalTopology(),
+        ports=ports,
+        topology=topology,
         ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=_make_version()),
     )
     flync_model = FLYNCModel(
         ecus=[ecu],
-        topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
+        topology=FLYNCTopology(system_topology=EthernetTopology(connections=[])),
         metadata=SystemMetadata(type="system", release=_make_version(), author="TestTeam", compatible_flync_version=_make_version()),
         communication=FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus], pdus=[engine_status_pdu])),
     )
@@ -305,16 +329,18 @@ def test_forwarding_ethernet_to_can_simple(tmpdir):
         can_interfaces=[can_interface],
         ethernet_interfaces=[eth_interface],
     )
+    ports, topology = _make_ethernet_ecu_ports_and_topology("CTRL1", "ETH_IF_1")
     ecu = ECU(
         name="ECU1",
         controllers=[controller],
-        topology=InternalTopology(),
+        ports=ports,
+        topology=topology,
         ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=_make_version()),
     )
 
     flync_model = FLYNCModel(
         ecus=[ecu],
-        topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
+        topology=FLYNCTopology(system_topology=EthernetTopology(connections=[])),
         metadata=SystemMetadata(type="system", release=_make_version(), author="TestTeam", compatible_flync_version=_make_version()),
         communication=FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus], pdus=[engine_status_pdu])),
     )
@@ -379,16 +405,18 @@ def test_multi_hop_forwarding_ethernet_to_can(tmpdir):
         can_interfaces=[can_interface],
         ethernet_interfaces=[eth_iface],
     )
+    ports, topology = _make_ethernet_ecu_ports_and_topology("CTRL1", "ETH_IF_1")
     ecu = ECU(
         name="ECU1",
         controllers=[controller],
-        topology=InternalTopology(),
+        ports=ports,
+        topology=topology,
         ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=_make_version()),
     )
 
     flync_model = FLYNCModel(
         ecus=[ecu],
-        topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
+        topology=FLYNCTopology(system_topology=EthernetTopology(connections=[])),
         metadata=SystemMetadata(type="system", release=_make_version(), author="TestTeam", compatible_flync_version=_make_version()),
         communication=FLYNCCommunicationConfig(channels=FLYNCChannelConfig(can_buses=[can_bus], pdus=[engine_status_pdu])),
     )
@@ -464,16 +492,18 @@ def test_container_pdu_extracted_and_routed_to_can(tmpdir):
         can_interfaces=[can_interface],
         ethernet_interfaces=[eth_iface],
     )
+    ports, topology = _make_ethernet_ecu_ports_and_topology("CTRL1", "ETH_IF_1")
     ecu = ECU(
         name="ECU1",
         controllers=[controller],
-        topology=InternalTopology(),
+        ports=ports,
+        topology=topology,
         ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=_make_version()),
     )
 
     flync_model = FLYNCModel(
         ecus=[ecu],
-        topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
+        topology=FLYNCTopology(system_topology=EthernetTopology(connections=[])),
         metadata=SystemMetadata(type="system", release=_make_version(), author="TestTeam", compatible_flync_version=_make_version()),
         communication=FLYNCCommunicationConfig(
             channels=FLYNCChannelConfig(can_buses=[can_bus], pdus=[engine_status_pdu], ethernet_pdu_containers=[container_pdu])
@@ -534,16 +564,18 @@ def test_pdu_forwarded_between_two_ethernet_sockets(tmpdir):
         can_interfaces=[],
         ethernet_interfaces=[eth_iface],
     )
+    ports, topology = _make_ethernet_ecu_ports_and_topology("CTRL1", "ETH_IF_1")
     ecu = ECU(
         name="ECU1",
         controllers=[controller],
-        topology=InternalTopology(),
+        ports=ports,
+        topology=topology,
         ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=_make_version()),
     )
 
     flync_model = FLYNCModel(
         ecus=[ecu],
-        topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
+        topology=FLYNCTopology(system_topology=EthernetTopology(connections=[])),
         metadata=SystemMetadata(type="system", release=_make_version(), author="TestTeam", compatible_flync_version=_make_version()),
         communication=FLYNCCommunicationConfig(
             channels=FLYNCChannelConfig(can_buses=[], pdus=[vehicle_status_pdu], ethernet_pdu_containers=[container_pdu])
@@ -609,16 +641,18 @@ def test_container_pdu_fully_preserved_across_sockets(tmpdir):
         can_interfaces=[],
         ethernet_interfaces=[eth_iface],
     )
+    ports, topology = _make_ethernet_ecu_ports_and_topology("CTRL1", "ETH_IF_1")
     ecu = ECU(
         name="ECU1",
         controllers=[controller],
-        topology=InternalTopology(),
+        ports=ports,
+        topology=topology,
         ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=_make_version()),
     )
 
     flync_model = FLYNCModel(
         ecus=[ecu],
-        topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
+        topology=FLYNCTopology(system_topology=EthernetTopology(connections=[])),
         metadata=SystemMetadata(type="system", release=_make_version(), author="TestTeam", compatible_flync_version=_make_version()),
         communication=FLYNCCommunicationConfig(
             channels=FLYNCChannelConfig(can_buses=[], pdus=[engine_status_pdu, thermal_status_pdu], ethernet_pdu_containers=[container_pdu])
@@ -690,16 +724,18 @@ def test_multi_egress_ethernet_forwarding(tmpdir):
         can_interfaces=[],
         ethernet_interfaces=[eth_iface],
     )
+    ports, topology = _make_ethernet_ecu_ports_and_topology("CTRL1", "ETH_IF_1")
     ecu = ECU(
         name="ECU1",
         controllers=[controller],
-        topology=InternalTopology(),
+        ports=ports,
+        topology=topology,
         ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=_make_version()),
     )
 
     flync_model = FLYNCModel(
         ecus=[ecu],
-        topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
+        topology=FLYNCTopology(system_topology=EthernetTopology(connections=[])),
         metadata=SystemMetadata(type="system", release=_make_version(), author="TestTeam", compatible_flync_version=_make_version()),
         communication=FLYNCCommunicationConfig(
             channels=FLYNCChannelConfig(can_buses=[], pdus=[vehicle_status_pdu], ethernet_pdu_containers=[container_pdu])

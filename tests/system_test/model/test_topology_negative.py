@@ -87,7 +87,7 @@ def invalid_interface_missing():
     )
 
     # --- External links ---
-    empty_topology = FLYNCTopology(system_topology=SystemTopology(connections=[]))
+    empty_topology = FLYNCTopology(ethernet_topology=EthernetTopology(connections=[]))
 
     # --- Full FLYNC Model ---
     flync_model = FLYNCModel(ecus=[ecu1], topology=empty_topology, metadata=system_metadata)
@@ -168,7 +168,7 @@ def invalid_ecu_no_port():
     )
 
     # --- External links ---
-    empty_topology = FLYNCTopology(system_topology=SystemTopology(connections=[]))
+    empty_topology = FLYNCTopology(ethernet_topology=EthernetTopology(connections=[]))
 
     # --- Full FLYNC Model ---
     flync_model = FLYNCModel(ecus=[ecu1], topology=empty_topology, metadata=system_metadata)
@@ -258,7 +258,7 @@ def invalid_controller_isolated():
     )
 
     # --- External links ---
-    empty_topology = FLYNCTopology(system_topology=SystemTopology(connections=[]))
+    empty_topology = FLYNCTopology(ethernet_topology=EthernetTopology(connections=[]))
 
     # --- Full FLYNC Model ---
     flync_model = FLYNCModel(ecus=[ecu1], topology=empty_topology, metadata=system_metadata)
@@ -345,7 +345,7 @@ def invalid_wrong_connection_type():
     )
 
     # --- External links ---
-    empty_topology = FLYNCTopology(system_topology=SystemTopology(connections=[]))
+    empty_topology = FLYNCTopology(ethernet_topology=EthernetTopology(connections=[]))
 
     # --- Full FLYNC Model ---
     flync_model = FLYNCModel(ecus=[ecu1], topology=empty_topology, metadata=system_metadata)
@@ -445,7 +445,7 @@ def invalid_undeclared_switch():
     )
 
     # --- External links ---
-    empty_topology = FLYNCTopology(system_topology=SystemTopology(connections=[]))
+    empty_topology = FLYNCTopology(ethernet_topology=EthernetTopology(connections=[]))
 
     # --- Full FLYNC Model ---
     flync_model = FLYNCModel(ecus=[ecu1], topology=empty_topology, metadata=system_metadata)
@@ -552,7 +552,7 @@ def invalid_loop_connection():
     )
 
     # --- External links ---
-    empty_topology = FLYNCTopology(system_topology=SystemTopology(connections=[]))
+    empty_topology = FLYNCTopology(ethernet_topology=EthernetTopology(connections=[]))
 
     # --- Full FLYNC Model ---
     flync_model = FLYNCModel(ecus=[ecu1], topology=empty_topology, metadata=system_metadata)
@@ -692,7 +692,7 @@ def invalid_cross_ecu_internal_connection():
 
     # --- External links ---
     ecus_topology = FLYNCTopology(
-        system_topology=SystemTopology(
+        ethernet_topology=EthernetTopology(
             connections=[
                 ExternalConnection(
                     type="ecu_port_to_ecu_port",
@@ -854,7 +854,7 @@ def invalid_shared_internal_switch():
     )
 
     # --- External links ---
-    empty_topology = FLYNCTopology(system_topology=SystemTopology(connections=[]))
+    empty_topology = FLYNCTopology(ethernet_topology=EthernetTopology(connections=[]))
 
     # --- Full FLYNC Model ---
     flync_model = FLYNCModel(ecus=[ecu1, ecu2], topology=empty_topology, metadata=system_metadata)
@@ -966,7 +966,7 @@ def undeclared_switch_reference():
     )
 
     # --- External links ---
-    empty_topology = FLYNCTopology(system_topology=SystemTopology(connections=[]))
+    empty_topology = FLYNCTopology(ethernet_topology=EthernetTopology(connections=[]))
 
     # --- Full FLYNC Model ---
     flync_model = FLYNCModel(ecus=[ecu1], topology=empty_topology, metadata=system_metadata)

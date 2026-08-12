@@ -21,7 +21,7 @@ from flync.model.flync_4_ecu.internal_topology import InternalTopology
 from flync.model.flync_4_ecu.lin_interface import LINFrameRef, LINMasterInterface
 from flync.model.flync_4_metadata.metadata import BaseVersion, ECUMetadata, EmbeddedMetadata, SystemMetadata
 from flync.model.flync_4_signal.frame import CANFrame, LINFrame
-from flync.model.flync_4_topology.system_topology import FLYNCTopology, SystemTopology
+from flync.model.flync_4_topology import EthernetTopology, FLYNCTopology
 from flync.model.flync_model import FLYNCModel
 from tests.error_assertions import assert_single_error
 
@@ -63,7 +63,7 @@ def _make_model(channels: FLYNCChannelConfig, can_interfaces=None, lin_interface
     )
     return FLYNCModel(
         ecus=[ecu],
-        topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
+        topology=FLYNCTopology(system_topology=EthernetTopology(connections=[])),
         metadata=SystemMetadata(type="system", release=_make_version(), author="TestTeam", compatible_flync_version=_make_version()),
         communication=FLYNCCommunicationConfig(channels=channels),
     )

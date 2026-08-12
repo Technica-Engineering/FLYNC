@@ -18,7 +18,7 @@ from flync.model.flync_4_metadata.metadata import EmbeddedMetadata, SystemMetada
 from flync.model.flync_4_signal.pdu import PDU, ContainerPDU
 from flync.model.flync_4_someip import SDConfig
 from flync.model.flync_4_someip.service_interface import SDTimings, SOMEIPServiceInterface
-from flync.model.flync_4_topology.system_topology import SystemTopology
+from flync.model.flync_4_topology.ethernet_topology import EthernetTopology
 from flync.sdk.context.diagnostics_result import WorkspaceState
 from flync.sdk.helpers.validation_helpers import validate_external_node
 
@@ -92,7 +92,7 @@ def test_validate_valid_external_tcp_profiles():
     "node_type,path_glob",
     [
         (SystemMetadata, "system_metadata.flync.yaml"),
-        (SystemTopology, "topology/system_topology.flync.yaml"),
+        (EthernetTopology, "topology/system_topology.flync.yaml"),
         (ControllerInterface, "ecus/*/controllers/*/ethernet_interfaces/*/interface_config.flync.yaml"),
         (VirtualSwitch, "ecus/*/controllers/*/virtual_switch.flync.yaml"),
         (CANBus, "communication/channels/can/*.flync.yaml"),
@@ -176,7 +176,7 @@ def test_validate_external_node_supported_but_invalid_type(node_type):
     "node_type_str, rel_path",
     [
         pytest.param(
-            "SystemTopology",
+            "EthernetTopology",
             Path("topology") / "system_topology.flync.yaml",
             id="system_topology_by_string",
         ),

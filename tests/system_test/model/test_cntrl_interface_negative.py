@@ -16,10 +16,11 @@ from flync.model.flync_4_ecu.controller import (
 from flync.model.flync_4_ecu.ecu import ECU
 from flync.model.flync_4_ecu.internal_topology import InternalTopology, SwitchPortToControllerInterface
 from flync.model.flync_4_ecu.lin_interface import LINMasterInterface, LINSlaveInterface
-from flync.model.flync_4_ecu.phy import MII
+from flync.model.flync_4_ecu.phy import BASET1, MII
+from flync.model.flync_4_ecu.port import ECUPort
 from flync.model.flync_4_ecu.switch import Switch, SwitchPort
 from flync.model.flync_4_metadata.metadata import BaseVersion, ECUMetadata, EmbeddedMetadata, SystemMetadata
-from flync.model.flync_4_topology.system_topology import FLYNCTopology, SystemTopology
+from flync.model.flync_4_topology.ethernet_topology import EthernetTopology, FLYNCTopology
 from flync.model.flync_model import FLYNCModel
 from tests.error_assertions import assert_single_error
 
@@ -48,7 +49,7 @@ def _make_system_metadata() -> SystemMetadata:
 
 def _make_empty_topology() -> FLYNCTopology:
     """Return an empty system topology usable by every test in this module."""
-    return FLYNCTopology(system_topology=SystemTopology(connections=[]))
+    return FLYNCTopology(ethernet_topology=EthernetTopology(connections=[]))
 
 
 # Verify that a Controller without any communication interface is rejected.
@@ -337,7 +338,8 @@ def test_unresolved_controller_interface_reference_in_topology_is_invalid():
         ]
     )
     ecu_metadata = _make_ecu_metadata()
+    port = ECUPort(name="ecu_port1", mdi_config=BASET1())
 
     with pytest.raises(ValidationError) as exc_info:
-        ECU(name="ECU1", controllers=[controller], switches=[switch], topology=internal_topology, ecu_metadata=ecu_metadata)
+        ECU(name="ECU1", controllers=[controller], switches=[switch], ports=[port], topology=internal_topology, ecu_metadata=ecu_metadata)
     assert_single_error(exc_info, "FLYNC-ECU-MAJ-REF-078", "was not found or was not validated")

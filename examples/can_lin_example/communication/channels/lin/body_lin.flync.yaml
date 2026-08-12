@@ -1,0 +1,60 @@
+name: BodyLIN
+description: LIN 2.2A body bus managed by ZonalPlatform1. Controls exterior mirrors and cabin ambient lighting.
+lin_protocol_version: "2.2A"
+lin_language_version: "2.2A"
+baud_rate: 19200
+channel_name: LIN1
+time_base: 5.0
+jitter: 0.5
+
+frames:
+
+  - name: Frame_MirrorLeftStatus
+    type: lin
+    description: Left mirror horizontal and vertical position.
+    length: 2
+    lin_id: 1
+    checksum_type: enhanced
+    packed_pdus:
+      - pdu_ref: PDU_MirrorLeft
+        bit_position: 0
+
+  - name: Frame_MirrorRightStatus
+    type: lin
+    description: Right mirror horizontal and vertical position.
+    length: 2
+    lin_id: 2
+    checksum_type: enhanced
+    packed_pdus:
+      - pdu_ref: PDU_MirrorRight
+        bit_position: 0
+
+  - name: Frame_CabinLightStatus
+    type: lin
+    description: Cabin light level and mode.
+    length: 2
+    lin_id: 5
+    checksum_type: enhanced
+    packed_pdus:
+      - pdu_ref: PDU_CabinLight
+        bit_position: 0
+
+schedule_tables:
+
+  - name: NormalSchedule
+    description: Normal operation — mirrors and light polled every 20 ms.
+    entries:
+      - frame_name: Frame_MirrorLeftStatus
+        period: 20.0
+      - frame_name: Frame_MirrorRightStatus
+        period: 20.0
+      - frame_name: Frame_CabinLightStatus
+        period: 20.0
+
+  - name: MirrorAdjustSchedule
+    description: High-rate mirror polling during active adjustment.
+    entries:
+      - frame_name: Frame_MirrorLeftStatus
+        period: 10.0
+      - frame_name: Frame_MirrorRightStatus
+        period: 10.0

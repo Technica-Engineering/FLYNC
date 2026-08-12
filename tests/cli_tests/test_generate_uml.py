@@ -63,7 +63,7 @@ def _make_ws():
     ws.flync_model.get_all_ecus.return_value = [ecu.name]
     ws.flync_model.get_ecu_by_name.return_value = ecu
     ws.flync_model.ecus = [ecu]
-    ws.flync_model.topology.system_topology.connections = []
+    ws.flync_model.topology.ethernet_topology.connections = []
     return ws, ecu
 
 

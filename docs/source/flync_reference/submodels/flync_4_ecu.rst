@@ -98,11 +98,21 @@ Ethernet Interfaces
 CAN Interfaces
 ==============
 
+.. note::
+   CAN interfaces are optional per controller (a controller must declare at least one interface of any kind).
+   An ECU with only CAN/LIN interfaces needs no ECU ports and no internal topology. Each interface's ``bus_ref``
+   attaches it to a declared CAN bus; the system-wide attachment view is derived automatically (see
+   :ref:`bus_topology`).
+
 .. autoclass:: flync.model.flync_4_ecu.can_interface.CANInterface()
 .. autoclass:: flync.model.flync_4_ecu.can_interface.CANFrameRef()
 
 LIN Interfaces
 ==============
+
+.. note::
+   A controller acts as either a LIN master or a LIN slave on a given bus. Exactly one master is required per LIN
+   bus; this is checked when the :ref:`bus_topology` is derived from the interfaces' ``bus_ref``.
 
 .. autoclass:: flync.model.flync_4_ecu.lin_interface.LINMasterInterface()
 .. autoclass:: flync.model.flync_4_ecu.lin_interface.LINSlaveInterface()

@@ -83,7 +83,7 @@ def test_workspace_validator_api(get_flync_example_path):
     assert isinstance(validation_result.model, FLYNCModel)
     assert validation_result.model.ecus
     assert validation_result.model.topology
-    assert validation_result.model.topology.system_topology
+    assert validation_result.model.topology.ethernet_topology
     assert validation_result.model.communication
     assert validation_result.model.communication.someip_config
     assert validation_result.model.communication.tcp_profiles
@@ -106,7 +106,7 @@ def test_load_workspace_from_flync_object_relative_path(
     assert loaded_ws.flync_model is not None
     assert loaded_ws.flync_model.ecus
     assert loaded_ws.flync_model.topology
-    assert loaded_ws.flync_model.topology.system_topology
+    assert loaded_ws.flync_model.topology.ethernet_topology
     assert loaded_ws.flync_model.communication
     assert loaded_ws.flync_model.communication.someip_config
     assert loaded_ws.flync_model.communication.tcp_profiles
@@ -325,7 +325,14 @@ def test_generate_node_add_to_list(
                 "controllers": [
                     {
                         "name": "new_controller",
-                        "lin_interfaces": [{"name": "lin_inter", "bus_ref": "BodyLIN", "sender_frames": []}],
+                        "lin_interfaces": [
+                            {
+                                "name": "lin_inter",
+                                "node_type": "slave",
+                                "bus_ref": "BodyLIN",
+                                "receiver_frames": [{"bus_ref": "BodyLIN", "frame_ref": 1}],
+                            }
+                        ],
                     }
                 ],
             },

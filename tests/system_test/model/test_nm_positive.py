@@ -40,7 +40,7 @@ from flync.model.flync_4_signal import CANFrame, PDUInstance, StandardPDU
 from flync.model.flync_4_signal.forwarder import EthSocketEgress, ForwarderEgress, PDUForwarder
 from flync.model.flync_4_signal.frame import FrameCyclicTiming, FrameTransmissionTiming
 from flync.model.flync_4_signal.pdu import ContainedPDURef, ContainerPDU, ContainerPDUHeader
-from flync.model.flync_4_topology import ExternalConnection, FLYNCTopology, SystemTopology
+from flync.model.flync_4_topology import EthernetTopology, ExternalConnection, FLYNCTopology
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 from tests.error_assertions import assert_single_error
 
@@ -565,7 +565,7 @@ def _make_zonal_ecu(
 
 def _make_ethernet_topology(*port_pairs: tuple[str, str]) -> FLYNCTopology:
     connections = [ExternalConnection(id=f"link_{i}", ecu1_port=p1, ecu2_port=p2) for i, (p1, p2) in enumerate(port_pairs, start=1)]
-    return FLYNCTopology(system_topology=SystemTopology(connections=connections))
+    return FLYNCTopology(system_topology=EthernetTopology(connections=connections))
 
 
 def _make_system_metadata() -> SystemMetadata:
@@ -714,7 +714,7 @@ def _make_sleeping_ecu(
 
 def _make_can_topology(port1: str, port2: str) -> FLYNCTopology:
     return FLYNCTopology(
-        system_topology=SystemTopology(
+        system_topology=EthernetTopology(
             connections=[
                 ExternalConnection(
                     id="can_bus_link",
@@ -892,7 +892,7 @@ def test_Simple_Ethernet_ECU_Multicast_NM(tmpdir):
     for zonal in [z1, z2, z3]:
         assert zonal.controllers[0].ethernet_interfaces[0].sockets[0].vlan_id == NM_VLAN_ID
 
-    conns = flync_model.topology.system_topology.connections
+    conns = flync_model.topology.ethernet_topology.connections
     assert len(conns) == 3
 
     zonal_ports = {c.ecu2_port_name for c in conns}

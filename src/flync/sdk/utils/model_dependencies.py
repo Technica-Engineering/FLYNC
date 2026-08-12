@@ -563,13 +563,11 @@ class ModelDependencyGraph:
         parts = []
         for parent in complex_path:
             parts.append(parent[1])
-            container = parent[2]
-            if not len(container):
-                continue
-            if container[0] == "dict":
-                parts.append("{}")
-            if container[0] == "list":
-                parts.append("[]")
+            for kind in parent[2]:
+                if kind == "dict":
+                    parts.append("{}")
+                elif kind == "list":
+                    parts.append("[]")
         return ".".join(parts)
 
 

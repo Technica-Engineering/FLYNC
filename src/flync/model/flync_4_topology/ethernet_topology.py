@@ -5,7 +5,7 @@ within the system.
 
 from typing import Annotated, List, Literal, Optional
 
-from pydantic import Field, PrivateAttr, model_serializer
+from pydantic import Field, PrivateAttr, model_serializer, model_validator
 
 import flync.core.utils.common_validators as common_validators
 from flync.core.annotations.external import External, OutputStrategy
@@ -13,6 +13,7 @@ from flync.core.annotations.reference import Reference
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major, warn
 from flync.model.flync_4_ecu.port import ECUPort
+from flync.model.flync_4_topology.bus_topology import CANBusTopology, LINBusTopology
 
 
 class ExternalConnection(FLYNCBaseModel):
@@ -157,9 +158,9 @@ class ExternalConnection(FLYNCBaseModel):
         common_validators.validate_gptp(comp1, comp2, self.id)
 
 
-class SystemTopology(FLYNCBaseModel):
+class EthernetTopology(FLYNCBaseModel):
     """
-    Represents the system-wide topology consisting of external connections
+    Represents the system-wide ethernet topology consisting of external connections
     between ECUs.
 
     Parameters
@@ -197,11 +198,33 @@ class FLYNCTopology(FLYNCBaseModel):
 
     Parameters
     ----------
-    system_topology : :class:`SystemTopology`
-        The system-wide external connection topology between ECUs.
+    ethernet_topology : :class:`EthernetTopology`, optional
+        The system-wide ethernet topology between external ports of ECUs. Optional: a workspace with no ECU-to-ECU
+        Ethernet wiring (or none yet authored) does not need one, but system-wide Ethernet features (e.g. multicast
+        across multiple Ethernet ECUs) require it.
+
+    can_bus_topology : list of :class:`~flync.model.flync_4_topology.bus_topology.CANBusTopology`
+        System-wide CAN bus attachment topology. Runtime-derived from CAN bus definitions and ECU CAN interfaces;
+        never authored in YAML.
+
+    lin_bus_topology : list of :class:`~flync.model.flync_4_topology.bus_topology.LINBusTopology`
+        System-wide LIN bus attachment topology. Runtime-derived from LIN bus definitions and ECU LIN interfaces;
+        never authored in YAML.
     """
 
-    system_topology: Annotated[
-        SystemTopology,
+    ethernet_topology: Annotated[
+        Optional[EthernetTopology],
         External(output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT),
-    ]
+    ] = Field(alias="system_topology", default=None)
+    can_bus_topology: List[CANBusTopology] = Field(default_factory=list, exclude=True)
+    lin_bus_topology: List[LINBusTopology] = Field(default_factory=list, exclude=True)
+
+    @model_validator(mode="before")
+    def warn_deprecated(cls, data):
+        if isinstance(data, dict) and "system_topology" in data:
+            warn(
+                "The 'system_topology' attribute is deprecated and will be removed in a future release. Please use 'ethernet_topology' instead.",
+                category=Category.LIFECYCLE,
+                error_number="229",
+            )
+        return data

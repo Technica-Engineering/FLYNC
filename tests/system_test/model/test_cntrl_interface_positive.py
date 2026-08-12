@@ -17,13 +17,34 @@ from flync.model.flync_4_ecu.controller import (
 )
 from flync.model.flync_4_ecu.controller_interface import ControllerInterface
 from flync.model.flync_4_ecu.ecu import ECU
-from flync.model.flync_4_ecu.internal_topology import InternalTopology
+from flync.model.flync_4_ecu.internal_topology import ECUPortToControllerInterface, InternalTopology
 from flync.model.flync_4_ecu.lin_interface import LINMasterInterface, LINSlaveInterface
+from flync.model.flync_4_ecu.phy import BASET1
+from flync.model.flync_4_ecu.port import ECUPort
 from flync.model.flync_4_ecu.router import RouteEntry
 from flync.model.flync_4_ecu.sockets import IPv4AddressEndpoint
 from flync.model.flync_4_ecu.vlan_entry import VLANEntry
+
+
+def _make_ethernet_ecu_ports_and_topology(controller_name: str, iface_name: str) -> tuple[list[ECUPort], InternalTopology]:
+    """Build the minimal ECU ports and internal topology required for an ECU with an Ethernet interface."""
+
+    port = ECUPort(name=f"{controller_name}_{iface_name}_port", mdi_config=BASET1())
+    topology = InternalTopology(
+        connections=[
+            ECUPortToControllerInterface(
+                id=f"conn_{controller_name}_{iface_name}",
+                ecu_port=port.name,
+                controller_interface=iface_name,
+                controller=controller_name,
+            )
+        ]
+    )
+    return [port], topology
+
+
 from flync.model.flync_4_metadata.metadata import BaseVersion, ECUMetadata, EmbeddedMetadata, SystemMetadata
-from flync.model.flync_4_topology.system_topology import FLYNCTopology, SystemTopology
+from flync.model.flync_4_topology.ethernet_topology import EthernetTopology, FLYNCTopology
 from flync.model.flync_model import FLYNCModel
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 
@@ -43,16 +64,18 @@ def test_controller_with_ethernet_interface():
         ethernet_interfaces=[eth_iface],
     )
 
+    ports, topology = _make_ethernet_ecu_ports_and_topology("CTRL1", "eth_iface")
     ecu = ECU(
         name="ECU1",
         controllers=[controller],
-        topology=InternalTopology(),
+        ports=ports,
+        topology=topology,
         ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=BaseVersion(version="0.13.0")),
     )
 
     flync_model = FLYNCModel(
         ecus=[ecu],
-        topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
+        topology=FLYNCTopology(system_topology=EthernetTopology(connections=[])),
         metadata=SystemMetadata(
             type="system", release=BaseVersion(version="0.13.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.13.0")
         ),
@@ -83,7 +106,7 @@ def test_controller_with_can_interface():
 
     flync_model = FLYNCModel(
         ecus=[ecu],
-        topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
+        topology=FLYNCTopology(system_topology=EthernetTopology(connections=[])),
         metadata=SystemMetadata(
             type="system", release=BaseVersion(version="0.13.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.13.0")
         ),
@@ -116,7 +139,7 @@ def test_controller_with_lin_interface():
 
     flync_model = FLYNCModel(
         ecus=[ecu],
-        topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
+        topology=FLYNCTopology(system_topology=EthernetTopology(connections=[])),
         metadata=SystemMetadata(
             type="system", release=BaseVersion(version="0.13.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.13.0")
         ),
@@ -148,16 +171,18 @@ def test_controller_with_mixed_communication_interfaces():
         lin_interfaces=[lin_iface_master, lin_iface_slave],
     )
 
+    ports, topology = _make_ethernet_ecu_ports_and_topology("CTRL1", "eth_iface")
     ecu = ECU(
         name="ECU1",
         controllers=[controller],
-        topology=InternalTopology(),
+        ports=ports,
+        topology=topology,
         ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=BaseVersion(version="0.13.0")),
     )
 
     flync_model = FLYNCModel(
         ecus=[ecu],
-        topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
+        topology=FLYNCTopology(system_topology=EthernetTopology(connections=[])),
         metadata=SystemMetadata(
             type="system", release=BaseVersion(version="0.13.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.13.0")
         ),
@@ -223,7 +248,7 @@ def test_multi_can_controller_support():
 
     flync_model = FLYNCModel(
         ecus=[ecu],
-        topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
+        topology=FLYNCTopology(system_topology=EthernetTopology(connections=[])),
         metadata=SystemMetadata(
             type="system", release=BaseVersion(version="0.13.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.13.0")
         ),
@@ -279,23 +304,27 @@ def test_interface_name_scope_validation():
         ethernet_interfaces=[eth_iface_ecu2],
     )
 
+    ports_1, topology_1 = _make_ethernet_ecu_ports_and_topology("CTRL_CAMERA", "eth0")
     ecu_1 = ECU(
         name="CAMERA_ECU",
         controllers=[controller_1],
-        topology=InternalTopology(),
+        ports=ports_1,
+        topology=topology_1,
         ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=BaseVersion(version="0.13.0")),
     )
 
+    ports_2, topology_2 = _make_ethernet_ecu_ports_and_topology("CTRL_RADAR", "eth0")
     ecu_2 = ECU(
         name="RADAR_ECU",
         controllers=[controller_2],
-        topology=InternalTopology(),
+        ports=ports_2,
+        topology=topology_2,
         ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=BaseVersion(version="0.13.0")),
     )
 
     flync_model = FLYNCModel(
         ecus=[ecu_1, ecu_2],
-        topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
+        topology=FLYNCTopology(system_topology=EthernetTopology(connections=[])),
         metadata=SystemMetadata(
             type="system", release=BaseVersion(version="0.13.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.13.0")
         ),
@@ -348,10 +377,12 @@ def test_ethernet_vlan_configuration_support():
         ethernet_interfaces=[eth_iface],
     )
 
+    ports, topology = _make_ethernet_ecu_ports_and_topology("CTRL1", "eth0")
     ecu = ECU(
         name="ECU1",
         controllers=[controller],
-        topology=InternalTopology(),
+        ports=ports,
+        topology=topology,
         ecu_metadata=ECUMetadata(
             type="ecu",
             author="TestTeam",
@@ -361,7 +392,7 @@ def test_ethernet_vlan_configuration_support():
 
     flync_model = FLYNCModel(
         ecus=[ecu],
-        topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
+        topology=FLYNCTopology(system_topology=EthernetTopology(connections=[])),
         metadata=SystemMetadata(
             type="system",
             release=BaseVersion(version="0.13.0"),
@@ -442,16 +473,18 @@ def test_physical_and_virtual_ethernet_interface_support():
         ethernet_interfaces=[physical_eth_iface],
     )
 
+    ports, topology = _make_ethernet_ecu_ports_and_topology("CTRL_ETH", "eth0")
     ecu = ECU(
         name="ETH_ECU",
         controllers=[controller],
-        topology=InternalTopology(),
+        ports=ports,
+        topology=topology,
         ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=BaseVersion(version="0.13.0")),
     )
 
     flync_model = FLYNCModel(
         ecus=[ecu],
-        topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
+        topology=FLYNCTopology(system_topology=EthernetTopology(connections=[])),
         metadata=SystemMetadata(
             type="system", release=BaseVersion(version="0.13.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.13.0")
         ),
@@ -536,16 +569,18 @@ def test_hpc_network_architecture_support():
         virtual_switch=virtual_switch,
     )
 
+    ports, topology = _make_ethernet_ecu_ports_and_topology("HPC_CONTROLLER", "eth_hpc0")
     ecu = ECU(
         name="HPC_ECU",
         controllers=[controller],
-        topology=InternalTopology(),
+        ports=ports,
+        topology=topology,
         ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=BaseVersion(version="0.13.0")),
     )
 
     flync_model = FLYNCModel(
         ecus=[ecu],
-        topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
+        topology=FLYNCTopology(system_topology=EthernetTopology(connections=[])),
         metadata=SystemMetadata(
             type="system", release=BaseVersion(version="0.13.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.13.0")
         ),
@@ -691,7 +726,7 @@ def test_ethernet_interface_serialization_deserialization(tmp_path):
 
     initial_model = FLYNCModel(
         ecus=[ecu],
-        topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
+        topology=FLYNCTopology(system_topology=EthernetTopology(connections=[])),
         metadata=SystemMetadata(
             type="system", release=BaseVersion(version="0.13.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.13.0")
         ),
@@ -738,7 +773,7 @@ def test_can_interface_serialization_deserialization(tmp_path):
 
     initial_model = FLYNCModel(
         ecus=[ecu],
-        topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
+        topology=FLYNCTopology(system_topology=EthernetTopology(connections=[])),
         metadata=SystemMetadata(
             type="system", release=BaseVersion(version="0.13.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.13.0")
         ),
@@ -787,7 +822,7 @@ def test_lin_interface_serialization_deserialization(tmp_path):
 
     initial_model = FLYNCModel(
         ecus=[ecu],
-        topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
+        topology=FLYNCTopology(system_topology=EthernetTopology(connections=[])),
         metadata=SystemMetadata(
             type="system", release=BaseVersion(version="0.13.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.13.0")
         ),
@@ -836,7 +871,7 @@ def test_lin_interface_serialization_deserialization(tmp_path):
 
     initial_model = FLYNCModel(
         ecus=[ecu],
-        topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
+        topology=FLYNCTopology(system_topology=EthernetTopology(connections=[])),
         metadata=SystemMetadata(
             type="system", release=BaseVersion(version="0.13.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.13.0")
         ),

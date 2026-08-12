@@ -52,8 +52,9 @@ class ECU(FLYNCBaseModel):
     name : str
         Name of the ECU.
 
-    ports : list of :class:`~flync.model.flync_4_ecu.port.ECUPort`
-        List of physical ECU ports. At least one port must be provided.
+    ports : list of :class:`~flync.model.flync_4_ecu.port.ECUPort`, optional
+        List of physical Ethernet ECU ports. May be empty for a CAN/LIN-only ECU, but at least one port is required
+        as soon as the ECU declares any Ethernet interface or switch.
 
     controllers : list of :class:`~flync.model.flync_4_ecu.controller.Controller`
         Controllers associated with this ECU.
@@ -61,8 +62,9 @@ class ECU(FLYNCBaseModel):
     switches : list of :class:`~flync.model.flync_4_ecu.switch.Switch`, optional
         Switches integrated within the ECU. If not provided, the ECU contains no internal switches.
 
-    topology : :class:`~flync.model.flync_4_ecu.internal_topology.InternalTopology`
-        Internal topology defining the connectivity between ECU components.
+    topology : :class:`~flync.model.flync_4_ecu.internal_topology.InternalTopology`, optional
+        Internal topology defining the connectivity between ECU components. May be omitted for a CAN/LIN-only ECU,
+        but is required as soon as the ECU declares any Ethernet interface or switch.
 
     multicast_groups : list of :class:`~flync.model.flync_4_ecu.multicast_groups. MulticastGroupMembership`, optional
         Multicast group memberships of the ECU. This field is populated automatically internally.
@@ -83,12 +85,12 @@ class ECU(FLYNCBaseModel):
         ),
     ] = Field()
     ports: Annotated[
-        List["ECUPort"],
+        Optional[List["ECUPort"]],
         External(
             output_structure=OutputStrategy.SINGLE_FILE,
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
-    ] = Field(min_length=1, default_factory=list)
+    ] = Field(default_factory=list)
     controllers: Annotated[
         List["Controller"],
         External(
@@ -104,13 +106,13 @@ class ECU(FLYNCBaseModel):
         ),
     ] = Field(default_factory=list)
     topology: Annotated[
-        "InternalTopology",
+        Optional["InternalTopology"],
         External(
             output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT,
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
         BeforeValidator(common_validators.validate_or_remove("internal topology", InternalTopology, severity="major")),
-    ] = Field()
+    ] = Field(default=None)
     ecu_metadata: Annotated[
         "ECUMetadata",
         External(output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT),
@@ -176,11 +178,39 @@ class ECU(FLYNCBaseModel):
         return data
 
     @model_validator(mode="after")
+    def validate_ethernet_hw_requires_ports_and_topology(self):
+        """Ethernet interfaces and switches only make sense wired to physical ports through an internal topology."""
+
+        has_ethernet_hw = bool(self.switches) or any(c.ethernet_interfaces for c in self.controllers)
+        if has_ethernet_hw and not self.ports:
+            raise err_major(
+                f"ECU '{self.name}' declares Ethernet interfaces or switches but has no ECU ports defined (ports.flync.yaml).",
+                category=Category.REQUIRED,
+                error_number="227",
+            )
+        if has_ethernet_hw and self.topology is None:
+            raise err_major(
+                f"ECU '{self.name}' declares Ethernet interfaces or switches but has no internal topology (topology.flync.yaml).",
+                category=Category.REQUIRED,
+                error_number="228",
+            )
+        return self
+
+    @model_validator(mode="after")
     def resolve_topology_connections(self):
-        connections = [conn_union.root for conn_union in self.topology.connections]
+        connections = [conn_union.root for conn_union in self.topology.connections] if self.topology else []
 
         for conn in connections:
-            conn.bind(self.switches or [], self.controllers, self.ports)
+            conn.bind(self.switches or [], self.controllers, self.ports or [])
+
+        self.__validate_switch_port_connections(connections)
+
+        for conn in connections:
+            conn.validate_compatibility()
+        return self
+
+    def __validate_switch_port_connections(self, connections):
+        """Validate that switch ports are not self-connected and not connected to more than one component."""
         seen_switch_ports: set[int] = set()
         for conn in connections:
             if not isinstance(conn, SwitchPortToXConnection):
@@ -204,17 +234,13 @@ class ECU(FLYNCBaseModel):
                     )
                 seen_switch_ports.add(id(switch_port))
 
-        for conn in connections:
-            conn.validate_compatibility()
-        return self
-
     @model_validator(mode="after")
     def validate_no_unconnected_components(self):
         if self._connectivity_check_done:
             return self
         self._connectivity_check_done = True
 
-        for port in self.ports:
+        for port in self.ports or []:
             if not port._connected_components:
                 warn(
                     f"ECU port '{port.name}' is not connected in the internal topology.",
@@ -247,7 +273,7 @@ class ECU(FLYNCBaseModel):
         ethernet interface."""
 
         for controller in self.controllers:
-            for eth_iface in controller.ethernet_interfaces:
+            for eth_iface in controller.ethernet_interfaces or []:
                 iface_config = eth_iface.interface_config
                 vlan_ids_in_sockets = {sc.vlan_id for sc in (eth_iface.sockets or [])}
                 if not vlan_ids_in_sockets:
@@ -276,36 +302,46 @@ class ECU(FLYNCBaseModel):
             err_minor: If a socket's endpoint address does not belong to any virtual interface of the ethernet interface that defines the socket.
         """
 
-        for controller in self.controllers:
-            for eth_iface in controller.ethernet_interfaces:
-                iface_config = eth_iface.interface_config
-                iface_ips = set(iface_config.get_all_ips())
-                for socket_container in eth_iface.sockets or []:
-                    for socket in socket_container.sockets or []:
-                        if socket.endpoint_type == "multicast":
-                            continue
-                        endpoint_ip = str(socket.endpoint_address)
-                        if endpoint_ip not in iface_ips:
-                            raise err_minor(
-                                f"Error in socket {socket.name}:\n"
-                                f"The IP {endpoint_ip} is not configured in any virtual interface of ethernet "
-                                f"interface {iface_config.name} in ECU {self.name}.",
-                                category=Category.REFERENCE,
-                                error_number="070",
-                            )
-                        for vi in iface_config.virtual_interfaces:
-                            for ip in vi.addresses:
-                                if ip.address == socket.endpoint_address:
-                                    ip.sockets.append(socket)
+        for eth_iface in self.__get_all_ethernet_interfaces():
+            self.__bind_iface_sockets_to_ip(eth_iface)
         return self
+
+    def __get_all_ethernet_interfaces(self):
+        """Return all ethernet interfaces of all controllers of the ECU."""
+        return [eth_iface for controller in self.controllers for eth_iface in controller.ethernet_interfaces or []]
+
+    def __bind_iface_sockets_to_ip(self, eth_iface):
+        """Bind every socket defined on ``eth_iface`` to its matching IP address on that same interface."""
+        iface_config = eth_iface.interface_config
+        iface_ips = set(iface_config.get_all_ips())
+        for socket_container in eth_iface.sockets or []:
+            for socket in socket_container.sockets or []:
+                if socket.endpoint_type != "multicast":
+                    self.__bind_socket_to_ip(socket, iface_config, iface_ips)
+
+    def __bind_socket_to_ip(self, socket, iface_config, iface_ips):
+        """Bind a single unicast socket to the virtual-interface IP address matching its endpoint address."""
+        endpoint_ip = str(socket.endpoint_address)
+        if endpoint_ip not in iface_ips:
+            raise err_minor(
+                f"Error in socket {socket.name}:\n"
+                f"The IP {endpoint_ip} is not configured in any virtual interface of ethernet "
+                f"interface {iface_config.name} in ECU {self.name}.",
+                category=Category.REFERENCE,
+                error_number="070",
+            )
+        for vi in iface_config.virtual_interfaces:
+            for ip in vi.addresses:
+                if ip.address == socket.endpoint_address:
+                    ip.sockets.append(socket)
 
     def __reference_ecu_in_children(self):
         """
         allows the children attributes to access ._ecu
         """
 
-        [setattr(p, "_ecu", self) for p in self.ports]  # noqa
-        [setattr(c, "_ecu", self) for c in self.topology.connections]  # noqa
+        [setattr(p, "_ecu", self) for p in self.ports or []]  # noqa
+        [setattr(c, "_ecu", self) for c in (self.topology.connections if self.topology else [])]  # noqa
         return self
 
     def __populate_multicast_tx_groups_from_socket(self):
@@ -313,23 +349,26 @@ class ECU(FLYNCBaseModel):
         Add Multicast TX entries from sockets (defined per ethernet interface) to multicast group memberships.
         """
 
-        for controller in self.controllers:
-            for eth_iface in controller.ethernet_interfaces:
-                for socket_container in eth_iface.sockets or []:
-                    for socket in socket_container.sockets:
-                        if socket.endpoint_type == "multicast":
-                            for multicast_addr in socket.multicast_tx:
-                                group = MulticastGroupMembership(
-                                    group=multicast_addr,
-                                    description=socket.name,
-                                    mode="tx",
-                                    vlan=socket_container.vlan_id,
-                                    src_ip=socket.endpoint_address,
-                                )
-                                interface = self.get_interface_for_ip(str(socket.endpoint_address))
-                                group._interface = interface
-                                self.multicast_groups.append(group)
+        for eth_iface in self.__get_all_ethernet_interfaces():
+            for socket_container in eth_iface.sockets or []:
+                for socket in socket_container.sockets:
+                    if socket.endpoint_type == "multicast":
+                        self.__add_multicast_tx_groups_for_socket(socket, socket_container)
         return self
+
+    def __add_multicast_tx_groups_for_socket(self, socket, socket_container):
+        """Create and register one multicast TX group membership per multicast address of ``socket``."""
+        interface = self.get_interface_for_ip(str(socket.endpoint_address))
+        for multicast_addr in socket.multicast_tx:
+            group = MulticastGroupMembership(
+                group=multicast_addr,
+                description=socket.name,
+                mode="tx",
+                vlan=socket_container.vlan_id,
+                src_ip=socket.endpoint_address,
+            )
+            group._interface = interface
+            self.multicast_groups.append(group)
 
     def __populate_multicast_rx_groups_from_interfaces(self):
         """
@@ -402,14 +441,14 @@ class ECU(FLYNCBaseModel):
 
     def get_all_ports(self):
         """Return a list of all ports of the ECU."""
-        return self.ports
+        return self.ports or []
 
     def get_all_switches(self):
         """Return a list of all switches of the ECU."""
         return self.switches
 
     def get_internal_topology(self):
-        """Return a list of all switches of the ECU."""
+        """Return the ECU's internal topology, or ``None`` if none is defined."""
         return self.topology
 
     def get_all_interfaces(self):
@@ -443,7 +482,7 @@ class ECU(FLYNCBaseModel):
         ip_lists = []
         for ctrl in self.controllers or []:
             ip_lists.extend(ctrl.get_all_ips())
-        for switch in self.switches:
+        for switch in self.switches or []:
             if switch.host_controller:
                 ip_lists.extend(switch.host_controller.get_all_ips())
         return ip_lists

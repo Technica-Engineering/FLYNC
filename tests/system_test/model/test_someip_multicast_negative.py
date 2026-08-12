@@ -15,12 +15,14 @@ from flync.model.flync_4_communication.flync_communication import FLYNCCommunica
 from flync.model.flync_4_ecu import EthernetInterface, EthernetInterfaceConfig, SocketTCP, SocketUDP, VirtualControllerInterface
 from flync.model.flync_4_ecu.controller import Controller
 from flync.model.flync_4_ecu.ecu import ECU
-from flync.model.flync_4_ecu.internal_topology import InternalTopology
+from flync.model.flync_4_ecu.internal_topology import ECUPortToControllerInterface, InternalTopology
+from flync.model.flync_4_ecu.phy import BASET1
+from flync.model.flync_4_ecu.port import ECUPort
 from flync.model.flync_4_ecu.socket_container import SocketContainer
 from flync.model.flync_4_ecu.sockets import IPv4AddressEndpoint
 from flync.model.flync_4_metadata.metadata import BaseVersion, ECUMetadata, EmbeddedMetadata, SystemMetadata
 from flync.model.flync_4_someip.deployment import SOMEIPEventgroupMulticastConfig, SOMEIPServiceProvider
-from flync.model.flync_4_topology.system_topology import FLYNCTopology, SystemTopology
+from flync.model.flync_4_topology import EthernetTopology, FLYNCTopology
 from flync.model.flync_model import FLYNCModel
 from tests.error_assertions import assert_single_error
 
@@ -70,15 +72,27 @@ def _make_model(socket) -> FLYNCModel:
         controller_metadata=EmbeddedMetadata(type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=_make_version()),
         ethernet_interfaces=[eth_iface],
     )
+    port = ECUPort(name="CTRL1_ETH_IF_1_port", mdi_config=BASET1())
+    topology = InternalTopology(
+        connections=[
+            ECUPortToControllerInterface(
+                id="conn_CTRL1_ETH_IF_1",
+                ecu_port=port.name,
+                controller_interface="ETH_IF_1",
+                controller="CTRL1",
+            )
+        ]
+    )
     ecu = ECU(
         name="ECU1",
         controllers=[controller],
-        topology=InternalTopology(),
+        ports=[port],
+        topology=topology,
         ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=_make_version()),
     )
     return FLYNCModel(
         ecus=[ecu],
-        topology=FLYNCTopology(system_topology=SystemTopology(connections=[])),
+        topology=FLYNCTopology(system_topology=EthernetTopology(connections=[])),
         metadata=SystemMetadata(type="system", release=_make_version(), author="TestTeam", compatible_flync_version=_make_version()),
         communication=FLYNCCommunicationConfig(),
     )

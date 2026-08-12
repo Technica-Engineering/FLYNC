@@ -71,19 +71,19 @@ This directory describes the interconnections between nodes of the system.
 
    📂 topology
    │
-   └── 📄(❗) system_topology.flync.yaml
+   └── 📄(❗) ethernet_topology.flync.yaml
 
 .. important::
 
-   ✔ The file names **system_topology** must be respected.
+   ✔ The file names **ethernet_topology** must be respected.
 
    ✔ The files are placed in a directory named **topology** .
 
-   ✔  A system_topology must be defined, if there is more than one ECU in the system.
+   ✔  A ethernet_topology must be defined, if there is more than one ECU in the system.
 
 .. seealso::
 
-   :ref:`System Topology <topology>`
+   :ref:`Topology <topology>`
 
 
 ECUs

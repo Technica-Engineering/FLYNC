@@ -34,7 +34,7 @@ def test_load_workspace_valid_absolute_path():
     assert workspace.flync_model is not None
     assert workspace.flync_model.ecus
     assert workspace.flync_model.topology
-    assert workspace.flync_model.topology.system_topology
+    assert workspace.flync_model.topology.ethernet_topology
     assert workspace.flync_model.communication
     assert workspace.flync_model.communication.someip_config
     assert workspace.flync_model.communication.tcp_profiles
@@ -52,7 +52,7 @@ def test_load_workspace_valid_relative_path():
     assert workspace.flync_model is not None
     assert workspace.flync_model.ecus
     assert workspace.flync_model.topology
-    assert workspace.flync_model.topology.system_topology
+    assert workspace.flync_model.topology.ethernet_topology
     assert workspace.flync_model.communication
     assert workspace.flync_model.communication.someip_config
     assert workspace.flync_model.communication.tcp_profiles
@@ -66,7 +66,7 @@ def test_load_workspace_valid_str_path():
     assert workspace.flync_model is not None
     assert workspace.flync_model.ecus
     assert workspace.flync_model.topology
-    assert workspace.flync_model.topology.system_topology
+    assert workspace.flync_model.topology.ethernet_topology
     assert workspace.flync_model.communication
     assert workspace.flync_model.communication.someip_config
     assert workspace.flync_model.communication.tcp_profiles
@@ -315,7 +315,7 @@ def _assert_workspace_valid(ws: FLYNCWorkspace):
     # Only verify core attributes that should always be present.
     assert len(ws.flync_model.ecus) > 0, "No ECUs loaded in the workspace"
     assert ws.flync_model.topology
-    assert ws.flync_model.topology.system_topology
+    assert ws.flync_model.topology.ethernet_topology
     assert ws.flync_model.communication
     assert ws.flync_model.communication.someip_config
     assert ws.flync_model.communication.tcp_profiles

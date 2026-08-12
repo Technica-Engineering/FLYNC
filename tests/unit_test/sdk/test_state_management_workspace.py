@@ -54,6 +54,8 @@ def test_state_management_example_loads(loaded_workspace_without_object_map):
         if "experimental" not in error["msg"]
         and "is not connected in the internal topology" not in error["msg"]
         and "is not connected in the system topology" not in error["msg"]
+        and "'system_topology' attribute is deprecated" not in error["msg"]
+        and "has only a single attached node" not in error["msg"]
     ]
     assert warnings == []
 

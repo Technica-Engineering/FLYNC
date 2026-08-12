@@ -13,7 +13,7 @@ from ipaddress import IPv4Address, IPv6Address
 from os import curdir, sep
 from pathlib import Path
 from types import UnionType
-from typing import Any, Literal, Optional, TypeVar, Union, cast, get_args, get_origin
+from typing import Annotated, Any, Literal, Optional, TypeVar, Union, cast, get_args, get_origin
 
 from polyfactory.factories.pydantic_factory import ModelFactory
 from pydantic import BaseModel, IPvAnyAddress, RootModel
@@ -22,9 +22,11 @@ from pydantic_core import PydanticUndefined
 from pydantic_extra_types.mac_address import MacAddress
 
 from flync.core.datatypes.ipaddress import IPv4AddressEntry
+from flync.model.flync_4_ecu.ecu import ECU
+from flync.model.flync_4_ecu.internal_topology import InternalTopology
 from flync.model.flync_4_ecu.phy import BASET1
 from flync.model.flync_4_ecu.sockets import IPv4AddressEndpoint
-from flync.model.flync_4_topology.system_topology import ExternalConnection
+from flync.model.flync_4_topology.ethernet_topology import ExternalConnection
 from flync.model.flync_model import FLYNCBaseModel, FLYNCModel
 from flync.sdk.context.workspace_config import WorkspaceConfiguration
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
@@ -214,6 +216,66 @@ class FLYNCFactory(ModelFactory[FLYNCBaseModel]):
         return None
 
     @staticmethod
+    def _list_item_annotation(annotation):
+        """
+        Return the raw (still ``Annotated``-wrapped) item annotation of a list field.
+
+        Mirrors the ``Optional[List[X]]``/``List[X]`` unwrapping done by :meth:`_list_element_flync_type`, but
+        stops one level earlier so any ``Field(discriminator=...)`` metadata attached to the item type is preserved
+        for :meth:`_resolve_list_item_type`.
+        """
+
+        candidates = [a for a in get_args(annotation) if a is not type(None)] if is_union(annotation) else [annotation]
+        for candidate in candidates:
+            if (get_origin(candidate) or candidate) is list:
+                item_args = get_args(candidate)
+                if item_args:
+                    return item_args[0]
+        return None
+
+    @staticmethod
+    def _resolve_list_item_type(annotation, default_type: type[TModel], kw: dict) -> type[TModel]:
+        """
+        Pick the concrete member type for one item of a discriminated-union list field.
+
+        ``_list_element_flync_type`` resolves a single element type for the whole list, so a per-item discriminator
+        override (e.g. ``node_type: "slave"``) would otherwise be silently ignored and every item built as the
+        first union member. This inspects the item annotation for ``Field(discriminator=...)`` metadata and, when
+        ``kw`` carries that discriminator, returns the matching union member instead.
+
+        Args:
+            annotation: The list field's annotation (as passed to :meth:`_list_element_flync_type`).
+            default_type (type[TModel]): The element type to fall back to when no discriminator match is found.
+            kw (dict): The override values for this specific list item.
+
+        Returns:
+            type[TModel]: The resolved item type.
+        """
+
+        item_annotation = FLYNCFactory._list_item_annotation(annotation)
+        if item_annotation is None or get_origin(item_annotation) is not Annotated:
+            return default_type
+
+        union_type, *metadata = get_args(item_annotation)
+        discriminator = next((m.discriminator for m in metadata if getattr(m, "discriminator", None)), None)
+        if discriminator and discriminator in kw:
+            match = FLYNCFactory.__find_discriminator_match(union_type, discriminator, kw[discriminator])
+            if match is not None:
+                return match
+        return default_type
+
+    @staticmethod
+    def __find_discriminator_match(union_type, discriminator: str, value) -> type | None:
+        """Return the union member whose ``discriminator`` field default equals ``value``, or ``None`` if none match."""
+
+        for member in get_args(union_type):
+            if safe_issubclass(member, FLYNCBaseModel) and discriminator in member.model_fields:
+                valid, default_value = FLYNCFactory.__get_field_default_value(member.model_fields[discriminator])
+                if valid and default_value == value:
+                    return member
+        return None
+
+    @staticmethod
     def __get_field_default_value(field_info: FieldInfo) -> tuple[bool, Any]:
         """
         Determine the default value for a Pydantic field.
@@ -267,12 +329,12 @@ class FLYNCFactory(ModelFactory[FLYNCBaseModel]):
         min_length = length or FLYNCFactory.__min_length_list(field_info)
         try:
             items = []
-            factory = Factory.get_factory(elem_type)
             for idx in range(1, min_length + 1):
                 kw = kw_list[idx - 1] if kw_list else {}
-                if "name" in elem_type.model_fields and "name" not in kw:
-                    kw["name"] = Factory.build_name(elem_type, idx=idx)
-                items.append(factory.build(**kw))
+                item_type = FLYNCFactory._resolve_list_item_type(field_info.annotation, elem_type, kw)
+                if "name" in item_type.model_fields and "name" not in kw:
+                    kw["name"] = Factory.build_name(item_type, idx=idx)
+                items.append(Factory.get_factory(item_type).build(**kw))
             return True, items
         except Exception:
             return True, FLYNCFactory.__fallback_list_value(field_info)
@@ -433,6 +495,22 @@ class BASET1Factory(FLYNCFactory):
 
     @classmethod
     def build(cls, **kwargs):
+        return super().build(**kwargs)
+
+
+class ECUFactory(FLYNCFactory):
+    """
+    Factory for ECU model.
+    """
+
+    __model__ = ECU
+
+    @classmethod
+    def build(cls, **kwargs):
+        # Generated controllers always carry at least one Ethernet interface (see
+        # __get_field_value_list), which requires the ECU to declare an internal topology.
+        # An empty topology satisfies that requirement without needing to fabricate connections.
+        kwargs.setdefault("topology", InternalTopology())
         return super().build(**kwargs)
 
 

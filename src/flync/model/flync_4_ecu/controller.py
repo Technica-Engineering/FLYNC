@@ -672,7 +672,7 @@ class Controller(FLYNCBaseModel):
     def validate_unique_interface_names(self):
         """Validate that controller interface names are unique within this controller."""
         common_validators.validate_list_items_unique(
-            [eth.name for eth in self.ethernet_interfaces if eth.interface_config],
+            [eth.name for eth in (self.ethernet_interfaces or []) if eth.interface_config],
             "Controller Interfaces (name)",
         )
         return self
@@ -681,7 +681,7 @@ class Controller(FLYNCBaseModel):
     def check_ports_virtual_switch_are_interfaces_or_compute_nodes(self):
         interface_names = []
         compute_node_names = []
-        for eth_iface in self.ethernet_interfaces:
+        for eth_iface in self.ethernet_interfaces or []:
             iface = eth_iface.interface_config
             interface_names.append(eth_iface.name)
             if iface.compute_nodes:
@@ -703,7 +703,7 @@ class Controller(FLYNCBaseModel):
         """
 
         all_ips = []
-        for eth_iface in self.ethernet_interfaces:
+        for eth_iface in self.ethernet_interfaces or []:
             all_ips.extend(eth_iface.interface_config.get_all_ips())
         return all_ips
 
@@ -714,7 +714,7 @@ class Controller(FLYNCBaseModel):
         """
 
         all_macs = []
-        for eth_iface in self.ethernet_interfaces:
+        for eth_iface in self.ethernet_interfaces or []:
             all_macs.extend(eth_iface.interface_config.get_all_macs())
         return all_macs
 
@@ -725,7 +725,7 @@ class Controller(FLYNCBaseModel):
         return next(i.interface_config for i in (self.ethernet_interfaces or []) if i.name == interface_name)
 
     def model_post_init(self, __context):
-        for interface in self.ethernet_interfaces:
+        for interface in self.ethernet_interfaces or []:
             if interface.interface_config is not None:
                 interface._controller = self
                 interface.interface_config._name = interface.name

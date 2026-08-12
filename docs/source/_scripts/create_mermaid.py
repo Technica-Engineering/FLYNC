@@ -53,7 +53,7 @@ targets = {
     "firewall.mmd": base_model.flync_4_security.firewall,
     "someip_service_iface.mmd": base_model.flync_4_someip.service_interface,
     "someip_deployment.mmd": base_model.flync_4_someip.deployment,
-    "system_topology.mmd": base_model.flync_4_topology.system_topology,
+    "ethernet_topology.mmd": base_model.flync_4_topology.ethernet_topology,
     "qos.mmd": base_model.flync_4_tsn.qos,
     "timesync.mmd": base_model.flync_4_tsn.timesync,
     "can.mmd": base_model.flync_4_bus.can_bus,

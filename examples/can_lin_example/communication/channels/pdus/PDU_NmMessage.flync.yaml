@@ -1,0 +1,58 @@
+name: PDU_NmMessage
+type: standard
+length: 8
+pdu_usage: network_management
+description: >-
+  Vendor-independent Network Management message modelled as an ordinary PDU
+  with ordinary signals. Carries the source node identifier, a partial-network
+  relevance vector, and an opaque user-data area reserved for OEM/application
+  extensions. The relevance_vector flag labels intentionally match the names
+  of real application PDUs in this workspace, so the NM bits identify which
+  application functions are currently relevant/awake. Tagged via pdu_usage so
+  it can be recognised as an NM message regardless of transport.
+
+signals:
+  - bit_position: 0
+    endianness: LE
+    signal:
+      name: sender_id
+      description: Identifier of the sending node.
+      bit_length: 8
+      data_type: uint8
+
+  - bit_position: 8
+    endianness: LE
+    signal:
+      name: relevance_vector
+      description: >-
+        Partial-network relevance bitmask: each named flag marks one vehicle
+        function as currently relevant/awake. Multiple flags can be active
+        simultaneously. Bits 6 and 7 are reserved.
+      bit_length: 8
+      data_type: uint8
+      value_encoding:
+        type: bitmask_flags
+        flags:
+          - mask: 0x01
+            label: MirrorLeft
+          - mask: 0x02
+            label: MirrorRight
+          - mask: 0x04
+            label: CabinLight
+          - mask: 0x08
+            label: EngineStatus
+          - mask: 0x10
+            label: TransmissionStatus
+          - mask: 0x20
+            label: VehicleDynamics
+
+  # Opaque trailing bytes reserved for OEM/application extensions. Modelled as
+  # a plain bytearray so the NM example does not pre-commit to any specific
+  # additional fields.
+  - bit_position: 16
+    endianness: LE
+    signal:
+      name: user_data
+      description: Opaque user-data area for OEM/application-specific extensions.
+      bit_length: 48
+      data_type: bytearray

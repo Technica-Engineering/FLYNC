@@ -892,13 +892,33 @@ Every error and warning the FLYNC validators can raise, identified as
 
    'ECU has invalid components. Check controller and switch errors for details.'
 
+.. err:: ECU '{self.name}' declares Ethernet interfaces or switches but has no ECU por...
+   :id: FLYNC-ECU-MAJ-REQ-227
+   :module: ECU
+   :severity: MAJ
+   :category: REQUIRED
+   :number: 227
+   :location: ecu.ECU.validate_ethernet_hw_requires_ports_and_topology
+
+   f"ECU '{self.name}' declares Ethernet interfaces or switches but has no ECU ports defined (ports.flync.yaml)."
+
+.. err:: ECU '{self.name}' declares Ethernet interfaces or switches but has no interna...
+   :id: FLYNC-ECU-MAJ-REQ-228
+   :module: ECU
+   :severity: MAJ
+   :category: REQUIRED
+   :number: 228
+   :location: ecu.ECU.validate_ethernet_hw_requires_ports_and_topology
+
+   f"ECU '{self.name}' declares Ethernet interfaces or switches but has no internal topology (topology.flync.yaml)."
+
 .. err:: switch port '{sp.name}' on switch '{sp.get_switch().name}' is connected to it...
    :id: FLYNC-ECU-MAJ-COMP-209
    :module: ECU
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 209
-   :location: ecu.ECU.resolve_topology_connections
+   :location: ecu.ECU.__validate_switch_port_connections
 
    f"switch port '{sp.name}' on switch '{sp.get_switch().name}' is connected to itself. A component cannot be connected to itself."
 
@@ -908,7 +928,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 210
-   :location: ecu.ECU.resolve_topology_connections
+   :location: ecu.ECU.__validate_switch_port_connections
 
    f"switch port '{switch_port.name}' on switch '{switch_port.get_switch().name}' is connected to more than one component. Each switch port in the internal topology may only be connected to a single other component."
 
@@ -958,7 +978,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: REFERENCE
    :number: 070
-   :location: ecu.ECU.__bind_sockets_to_ip
+   :location: ecu.ECU.__bind_socket_to_ip
 
    f'Error in socket {socket.name}:\nThe IP {endpoint_ip} is not configured in any virtual interface of ethernet interface {iface_config.name} in ECU {self.name}.'
 
@@ -1822,13 +1842,73 @@ Every error and warning the FLYNC validators can raise, identified as
 
    f'Enum value {entry.value} exceeds valid range for {base_type_name} ({min_value} to {max_value})'
 
+.. err:: bus_ref '{topo.bus_name}' referenced by ECU interface(s) cannot be verified: ...
+   :id: FLYNC-TOP-WARN-REF-222
+   :module: TOP
+   :severity: WARN
+   :category: REFERENCE
+   :number: 222
+   :location: bus_topology._validate_bus_ref_known
+
+   f"bus_ref '{topo.bus_name}' referenced by ECU interface(s) cannot be verified: no CAN/LIN bus definitions are loaded."
+
+.. err:: CAN/LIN interface(s) reference unknown bus '{topo.bus_name}'. Defined buses: ...
+   :id: FLYNC-TOP-MAJ-REF-221
+   :module: TOP
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 221
+   :location: bus_topology._validate_bus_ref_known
+
+   f"CAN/LIN interface(s) reference unknown bus '{topo.bus_name}'. Defined buses: {sorted(defs)}"
+
+.. err:: LIN bus '{topo.bus_name}' has {len(masters)} master interfaces ({names}); exa...
+   :id: FLYNC-TOP-MAJ-CONS-223
+   :module: TOP
+   :severity: MAJ
+   :category: CONSISTENCY
+   :number: 223
+   :location: bus_topology._validate_lin_masters
+
+   f"LIN bus '{topo.bus_name}' has {len(masters)} master interfaces ({names}); exactly one is required."
+
+.. err:: LIN bus '{topo.bus_name}' has slave interface(s) but no master interface.
+   :id: FLYNC-TOP-WARN-CONS-224
+   :module: TOP
+   :severity: WARN
+   :category: CONSISTENCY
+   :number: 224
+   :location: bus_topology._validate_lin_masters
+
+   f"LIN bus '{topo.bus_name}' has slave interface(s) but no master interface."
+
+.. err:: {kind} bus '{topo.bus_name}' is defined but no ECU interface attaches to it.
+   :id: FLYNC-TOP-WARN-CONS-226
+   :module: TOP
+   :severity: WARN
+   :category: CONSISTENCY
+   :number: 226
+   :location: bus_topology._validate_attachment_count
+
+   f"{kind} bus '{topo.bus_name}' is defined but no ECU interface attaches to it."
+
+.. err:: {kind} bus '{topo.bus_name}' has only a single attached node ({name}).
+   :id: FLYNC-TOP-WARN-CONS-230
+   :module: TOP
+   :severity: WARN
+   :category: CONSISTENCY
+   :number: 230
+   :location: bus_topology._validate_attachment_count
+
+   f"{kind} bus '{topo.bus_name}' has only a single attached node ({name})."
+
 .. err:: ECU port name {self.ecu1_port_name} in connection {self.id} of system topolog...
    :id: FLYNC-TOP-MAJ-REF-142
    :module: TOP
    :severity: MAJ
    :category: REFERENCE
    :number: 142
-   :location: system_topology.ExternalConnection.bind
+   :location: ethernet_topology.ExternalConnection.bind
 
    f'ECU port name {self.ecu1_port_name} in connection {self.id} of system topology does not exist'
 
@@ -1838,7 +1918,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: REFERENCE
    :number: 143
-   :location: system_topology.ExternalConnection.bind
+   :location: ethernet_topology.ExternalConnection.bind
 
    f'ECU port name {self.ecu2_port_name} in connection {self.id} of system topology does not exist'
 
@@ -1848,7 +1928,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 144
-   :location: system_topology.ExternalConnection.bind
+   :location: ethernet_topology.ExternalConnection.bind
 
    f'One or both ports missing MDI config: {port1.ecu.name}:{self.ecu1_port_name}, {port2.ecu.name}:{self.ecu2_port_name}'
 
@@ -1858,7 +1938,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 145
-   :location: system_topology.ExternalConnection.bind
+   :location: ethernet_topology.ExternalConnection.bind
 
    f'Incompatible MDI Mode: {port1.ecu.name}:{self.ecu1_port_name} ({mdi_ecu1_port.mode}) ↔ {port2.ecu.name}:{self.ecu2_port_name} ({mdi_ecu2_port.mode})'
 
@@ -1868,7 +1948,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 146
-   :location: system_topology.ExternalConnection.bind
+   :location: ethernet_topology.ExternalConnection.bind
 
    f'Incompatible MDI Speed: {port1.ecu.name}:{self.ecu1_port_name} ({mdi_ecu1_port.speed}) ↔ {port2.ecu.name}:{self.ecu2_port_name} ({mdi_ecu2_port.speed})'
 
@@ -1878,7 +1958,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 147
-   :location: system_topology.ExternalConnection.bind
+   :location: ethernet_topology.ExternalConnection.bind
 
    f'Incompatible MDI Duplex Mode: {port1.ecu.name}:{self.ecu1_port_name} ({mdi_ecu1_port.duplex}) ↔ {port2.ecu.name}:{self.ecu2_port_name} ({mdi_ecu2_port.duplex})'
 
@@ -1888,7 +1968,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 148
-   :location: system_topology.ExternalConnection.bind
+   :location: ethernet_topology.ExternalConnection.bind
 
    f'Incompatible MDI Roles: {port1.ecu.name}:{self.ecu1_port_name} ({mdi_ecu1_port.role}) ↔ {port2.ecu.name}:{self.ecu2_port_name} ({mdi_ecu2_port.role})'
 
@@ -1898,7 +1978,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 149
-   :location: system_topology.ExternalConnection.bind
+   :location: ethernet_topology.ExternalConnection.bind
 
    f'Incompatible MDI Autonegotiation: {port1.ecu.name}:{self.ecu1_port_name} ({mdi_ecu1_port.autonegotiation}) ↔ {port2.ecu.name}:{self.ecu2_port_name} ({mdi_ecu2_port.autonegotiation})'
 
@@ -1908,9 +1988,19 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: WARN
    :category: STRUCTURAL
    :number: 214
-   :location: system_topology.SystemTopology.validate_no_unconnected_ports
+   :location: ethernet_topology.EthernetTopology.validate_no_unconnected_ports
 
    f"ECU port '{port.name}' (ECU: '{port.ecu.name}') is not connected in the system topology."
+
+.. err:: The 'system_topology' attribute is deprecated and will be removed in a future...
+   :id: FLYNC-TOP-WARN-LIFE-229
+   :module: TOP
+   :severity: WARN
+   :category: LIFECYCLE
+   :number: 229
+   :location: ethernet_topology.FLYNCTopology.warn_deprecated
+
+   "The 'system_topology' attribute is deprecated and will be removed in a future release. Please use 'ethernet_topology' instead."
 
 .. err:: pcp value must be greater than or equal to 0 and less than or equal to 7
    :id: FLYNC-TSN-MIN-VAL-150
@@ -2072,6 +2162,26 @@ Every error and warning the FLYNC validators can raise, identified as
 
    str(e)
 
+.. err:: The ethernet topology file (topology/system_topology.flync.yaml) is required ...
+   :id: FLYNC-GEN-MAJ-REQ-219
+   :module: GEN
+   :severity: MAJ
+   :category: REQUIRED
+   :number: 219
+   :location: flync_model.FLYNCModel.require_ethernet_topology_when_used
+
+   'The ethernet topology file (topology/system_topology.flync.yaml) is required because system-wide Ethernet features are used: {reasons}'
+
+.. err:: Multiple ECUs declare Ethernet ports but no ethernet topology (external conne...
+   :id: FLYNC-GEN-WARN-CONS-220
+   :module: GEN
+   :severity: WARN
+   :category: CONSISTENCY
+   :number: 220
+   :location: flync_model.FLYNCModel.require_ethernet_topology_when_used
+
+   'Multiple ECUs declare Ethernet ports but no ethernet topology (external connections) is defined.'
+
 .. err:: The IP {ip} is repeated in ECU {ecu.name}
    :id: FLYNC-GEN-WARN-UNIQ-165
    :module: GEN
@@ -2191,3 +2301,4 @@ Every error and warning the FLYNC validators can raise, identified as
    :location: flync_model.FLYNCModel.validate_multicast_someip
 
    f'Deployed provided service ({svc_label}) has multicast configuration for eventgroups ({mcast_config.eventgroups}/{mcast_config.ip_address}), but socket ({socket.name}) does not indicate by multicast_tx entry ({socket.multicast_tx})'
+

@@ -10,7 +10,9 @@ from flync.model.flync_4_ecu import EthernetInterface, EthernetInterfaceConfig, 
 from flync.model.flync_4_ecu.can_interface import CANFrameRef, CANInterface
 from flync.model.flync_4_ecu.controller import Controller
 from flync.model.flync_4_ecu.ecu import ECU
-from flync.model.flync_4_ecu.internal_topology import InternalTopology
+from flync.model.flync_4_ecu.internal_topology import ECUPortToControllerInterface, InternalTopology
+from flync.model.flync_4_ecu.phy import BASET1
+from flync.model.flync_4_ecu.port import ECUPort
 from flync.model.flync_4_ecu.socket_container import SocketContainer
 from flync.model.flync_4_ecu.sockets import IPv4AddressEndpoint
 from flync.model.flync_4_metadata.metadata import BaseVersion, ECUMetadata, EmbeddedMetadata, SystemMetadata
@@ -18,7 +20,7 @@ from flync.model.flync_4_signal import CANFrame, CANFrameEgress, CANFrameForward
 from flync.model.flync_4_signal.forwarder import EthSocketEgress, ForwarderEgress
 from flync.model.flync_4_signal.pdu import PDUInstance, SignalInstance, StandardPDU
 from flync.model.flync_4_signal.signal import Signal
-from flync.model.flync_4_topology.system_topology import FLYNCTopology, SystemTopology
+from flync.model.flync_4_topology.ethernet_topology import EthernetTopology, FLYNCTopology
 from flync.model.flync_model import FLYNCModel
 from tests.error_assertions import assert_single_error
 
@@ -37,7 +39,7 @@ def _make_system_metadata() -> SystemMetadata:
 
 def _make_empty_topology() -> FLYNCTopology:
     """Return an empty system topology usable by every negative routing test."""
-    return FLYNCTopology(system_topology=SystemTopology(connections=[]))
+    return FLYNCTopology(ethernet_topology=EthernetTopology(connections=[]))
 
 
 def _make_controller_metadata() -> EmbeddedMetadata:
@@ -48,6 +50,23 @@ def _make_controller_metadata() -> EmbeddedMetadata:
 def _make_ecu_metadata() -> ECUMetadata:
     """Return the common ECU metadata used by every negative routing test."""
     return ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=_make_version())
+
+
+def _make_ethernet_ecu_ports_and_topology(controller_name: str, iface_name: str) -> tuple[list[ECUPort], InternalTopology]:
+    """Build the minimal ECU ports and internal topology required for an ECU with an Ethernet interface."""
+
+    port = ECUPort(name=f"{controller_name}_{iface_name}_port", mdi_config=BASET1())
+    topology = InternalTopology(
+        connections=[
+            ECUPortToControllerInterface(
+                id=f"conn_{controller_name}_{iface_name}",
+                ecu_port=port.name,
+                controller_interface=iface_name,
+                controller=controller_name,
+            )
+        ]
+    )
+    return [port], topology
 
 
 def test_duplicate_forwarder_rejected():
@@ -384,10 +403,12 @@ def test_forwarding_can_to_ethernet_missing_pdu_deployment():
         ethernet_interfaces=[eth_iface],
     )
 
+    ports, ecu_topology = _make_ethernet_ecu_ports_and_topology("CTRL1", "ETH_IF_1")
     ecu = ECU(
         name="ECU1",
         controllers=[controller],
-        topology=InternalTopology(),
+        ports=ports,
+        topology=ecu_topology,
         ecu_metadata=_make_ecu_metadata(),
     )
     topology = _make_empty_topology()
@@ -472,10 +493,12 @@ def test_forwarding_can_to_ethernet_with_extract_pdu_ref_not_containerPDU():
         ethernet_interfaces=[eth_iface],
     )
 
+    ports, ecu_topology = _make_ethernet_ecu_ports_and_topology("CTRL1", "ETH_IF_1")
     ecu = ECU(
         name="ECU1",
         controllers=[controller],
-        topology=InternalTopology(),
+        ports=ports,
+        topology=ecu_topology,
         ecu_metadata=_make_ecu_metadata(),
     )
     topology = _make_empty_topology()

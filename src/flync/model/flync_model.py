@@ -44,6 +44,12 @@ from flync.model.flync_4_metadata import SystemMetadata
 from flync.model.flync_4_signal.forwarder import CANFrameForwarder, PDUForwarder
 from flync.model.flync_4_someip import SOMEIPServiceDeployment, SOMEIPServiceInterface
 from flync.model.flync_4_topology import FLYNCTopology
+from flync.model.flync_4_topology.bus_topology import (
+    CANBusTopology,
+    LINBusTopology,
+    build_bus_topologies,
+    validate_bus_topologies,
+)
 
 
 class FLYNCModel(FLYNCBaseModel):
@@ -98,7 +104,7 @@ class FLYNCModel(FLYNCBaseModel):
             output_structure=OutputStrategy.FOLDER,
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
-    ]
+    ] = Field(default_factory=FLYNCTopology)
     metadata: Annotated[
         SystemMetadata,
         External(
@@ -131,6 +137,21 @@ class FLYNCModel(FLYNCBaseModel):
     def general(self) -> Optional[FLYNCCommunicationConfig]:
         warn("The 'general' attribute is deprecated. Please use 'communication' instead.", category=Category.LIFECYCLE, error_number="163")
         return self.communication
+
+    @model_validator(mode="before")
+    @classmethod
+    def default_absent_topology(cls, data):
+        """
+        Treat an absent ``topology/`` folder as the default (empty) topology for a CAN/LIN-only workspace.
+
+        When no topology folder exists the workspace loader supplies ``None`` for ``topology``; drop the key so the
+        ``default_factory`` builds an empty :class:`~flync.model.flync_4_topology.FLYNCTopology` (with no ethernet
+        topology) instead of raising a misleading "input should be a valid dictionary" error.
+        """
+
+        if isinstance(data, dict) and data.get("topology", "") is None:
+            data.pop("topology")
+        return data
 
     @model_validator(mode="before")
     @classmethod
@@ -176,8 +197,10 @@ class FLYNCModel(FLYNCBaseModel):
 
     @model_validator(mode="after")
     def resolve_external_connections(self):
+        if self.topology.ethernet_topology is None:
+            return self
         ports_by_name = self.get_all_ecu_ports_by_name()
-        for conn in self.topology.system_topology.connections:
+        for conn in self.topology.ethernet_topology.connections:
             try:
                 conn.bind(ports_by_name)
             except PydanticCustomError as e:
@@ -186,8 +209,60 @@ class FLYNCModel(FLYNCBaseModel):
 
     @model_validator(mode="after")
     def validate_no_unconnected_ecu_ports(self):
-        self.topology.system_topology.validate_no_unconnected_ports(self.get_all_ecu_ports())
+        if self.topology.ethernet_topology is not None:
+            self.topology.ethernet_topology.validate_no_unconnected_ports(self.get_all_ecu_ports())
         return self
+
+    @model_validator(mode="after")
+    def require_ethernet_topology_when_used(self):
+        """
+        The ethernet topology (``topology/system_topology.flync.yaml``) is optional, but system-wide features that
+        rely on inter-ECU Ethernet connectivity (cross-ECU multicast, SOME/IP multicast) cannot be validated without
+        it. Raise instead of silently skipping those checks.
+        """
+
+        if self.topology.ethernet_topology is not None:
+            return self
+        reasons = self._ethernet_topology_dependent_features()
+        if reasons:
+            raise err_major(
+                "The ethernet topology file (topology/system_topology.flync.yaml) is required because system-wide "
+                "Ethernet features are used: {reasons}",
+                reasons=reasons,
+                category=Category.REQUIRED,
+                error_number="219",
+            )
+        if len([ecu for ecu in self.ecus if ecu.ports]) >= 2:
+            warn(
+                "Multiple ECUs declare Ethernet ports but no ethernet topology (external connections) is defined.",
+                category=Category.CONSISTENCY,
+                error_number="220",
+            )
+        return self
+
+    def _ethernet_topology_dependent_features(self) -> List[str]:
+        """Return human-readable reasons the ethernet topology is required, or an empty list if it is not."""
+
+        if len([ecu for ecu in self.ecus if ecu.ports]) < 2:
+            # Single (or zero) Ethernet ECUs: multicast fully resolves from internal topology alone.
+            return []
+
+        reasons = []
+        if any(mcast for ecu in self.ecus for mcast in (ecu.multicast_groups or []) if not mcast.solicited_node_multicast):
+            reasons.append("multicast group memberships are configured")
+        someip_multicast = [
+            socket
+            for ecu in self.ecus
+            for ctrl in ecu.controllers
+            for iface in ctrl.ethernet_interfaces or []
+            for sock_con in iface.sockets or []
+            for socket in sock_con.sockets or []
+            for deployment in socket.deployments or []
+            if deployment.root.deployment_type.startswith("someip_") and socket.endpoint_type == "multicast" and socket.protocol == "udp"
+        ]
+        if someip_multicast:
+            reasons.append("SOME/IP multicast deployments are configured")
+        return reasons
 
     @model_validator(mode="after")
     def validate_unique_ips(self):
@@ -355,6 +430,24 @@ class FLYNCModel(FLYNCBaseModel):
         validate_state_management(self)
         return self
 
+    @model_validator(mode="after")
+    def build_and_validate_bus_topologies(self):
+        """Derive the system-wide CAN/LIN bus topology from bus definitions and ECU interfaces, then validate it."""
+
+        can_topos, lin_topos, can_defs, lin_defs = build_bus_topologies(self)
+        self.topology.can_bus_topology = can_topos
+        self.topology.lin_bus_topology = lin_topos
+        validate_bus_topologies(can_topos, lin_topos, can_defs, lin_defs)
+        return self
+
+    def get_can_bus_topology(self, bus_name: str) -> Optional["CANBusTopology"]:
+        """Return the derived CAN bus topology for ``bus_name``, or ``None`` if unknown."""
+        return next((t for t in self.topology.can_bus_topology if t.bus_name == bus_name), None)
+
+    def get_lin_bus_topology(self, bus_name: str) -> Optional["LINBusTopology"]:
+        """Return the derived LIN bus topology for ``bus_name``, or ``None`` if unknown."""
+        return next((t for t in self.topology.lin_bus_topology if t.bus_name == bus_name), None)
+
     def check_rx_are_reached(self, separ, paths, vlans_dict):
         for ecu in self.ecus:
             for mcast in ecu.multicast_groups:
@@ -473,9 +566,9 @@ class FLYNCModel(FLYNCBaseModel):
             return [eth_iface.name for controller in ecu.controllers for eth_iface in controller.ethernet_interfaces]
         return []
 
-    def get_system_topology_info(self):
-        """Return system topology details."""
-        return self.topology.system_topology.model_dump()
+    def get_ethernet_topology_info(self):
+        """Return ethernet topology details, or ``None`` if no ethernet topology is defined."""
+        return self.topology.ethernet_topology.model_dump() if self.topology.ethernet_topology else None
 
     def _bind_tcp_profiles(self, tcp_by_id):
         for sock in self._iter_all_sockets():

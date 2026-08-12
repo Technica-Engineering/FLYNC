@@ -79,7 +79,7 @@ Identify which ECUs provide or consume a service and verify IP/port configuratio
 Generating topology documentation
 -----------------------------------
 
-Produce a PlantUML diagram of the full system topology for documentation or review:
+Produce a PlantUML diagram of the full ethernet topology for documentation or review:
 
 .. code-block:: bash
 

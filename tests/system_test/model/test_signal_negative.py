@@ -15,7 +15,7 @@ from flync.model.flync_4_signal.frame import CANFrame, FrameCyclicTiming, FrameE
 from flync.model.flync_4_signal.pdu import ContainedPDURef, ContainerPDU, ContainerPDUHeader, MultiplexedPDU, MuxGroup, PDUInstance, StandardPDU
 from flync.model.flync_4_signal.pdu_deployment import PDUReceiver, PDUSender
 from flync.model.flync_4_signal.signal import Signal, SignalDataType, SignalInstance
-from flync.model.flync_4_topology.system_topology import FLYNCTopology, SystemTopology
+from flync.model.flync_4_topology import EthernetTopology, FLYNCTopology
 from flync.model.flync_model import FLYNCModel
 from tests.error_assertions import assert_single_error
 
@@ -134,7 +134,7 @@ def test_invalid_lin_frame_in_can_interface():
         topology=InternalTopology(),
         ecu_metadata=ECUMetadata(type="ecu", author="test_team", compatible_flync_version=BaseVersion(version="0.11.0")),
     )
-    topology = FLYNCTopology(system_topology=SystemTopology(connections=[]))
+    topology = FLYNCTopology(system_topology=EthernetTopology(connections=[]))
     metadata = SystemMetadata(
         type="system",
         release=BaseVersion(version="0.11.0"),

@@ -576,7 +576,7 @@ def generate_system_uml(
         connections = []
     else:
         ecus = loaded_ws.flync_model.ecus
-        connections = loaded_ws.flync_model.topology.system_topology.connections
+        connections = loaded_ws.flync_model.topology.ethernet_topology.connections
 
     uml_lines = parse_and_generate_uml(loaded_ws.flync_model, vlan_id, options, ecus, connections)
     output_path = Path(output)

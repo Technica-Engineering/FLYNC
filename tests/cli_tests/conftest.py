@@ -27,7 +27,7 @@ def mock_model(mock_ecu):
     service = MagicMock()
     service.name = "TestService"
     model.communication.someip_config.services = [service]
-    model.topology.system_topology.connections = []
+    model.topology.ethernet_topology.connections = []
     return model
 
 
