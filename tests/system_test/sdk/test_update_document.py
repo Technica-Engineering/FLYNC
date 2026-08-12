@@ -28,7 +28,11 @@ def _snapshot(ws: FLYNCWorkspace) -> dict:
         "objects": {str(oid): type(so.model).__name__ for oid, so in ws.objects.items()},
         "sources": {str(oid): (s.uri, s.range.start.line) for oid, s in ws.sources.items()},
         "children": {k: sorted(v) for k, v in ws._children_by_parent.items()},
+        "docs": sorted(ws.documents.keys()),
     }
+
+
+SWITCHES = "ecus/zonal_platform1/switches"
 
 
 @pytest.fixture
@@ -165,3 +169,58 @@ def test_update_document_cleans_duplicated_object_ids(workspace):
     for removed_id in ids:
         assert removed_id not in ws._duplicated_objects_ids, f"stale key {removed_id} in _duplicated_objects_ids"
         assert removed_id not in all_dup_values, f"stale value {removed_id} in _duplicated_objects_ids"
+
+
+def _make_switch(root: Path, name: str) -> str:
+    """Create a second switch file in zonal_platform1 with unique names, return its rel path."""
+    rel = f"{SWITCHES}/{name}.flync.yaml"
+    base = (root / SWITCHES / "z1_switch1.flync.yaml").read_text()
+    content = base.replace("z1_switch1", name).replace("z1_s1_", f"{name}_p_").replace("00:11:03:03:01:01", "00:11:03:03:01:09")
+    (root / rel).write_text(content)
+    return rel
+
+
+def test_adding_a_new_document_matches_full_reload(workspace):
+    ws, root, config = workspace
+    rel = _make_switch(root, "z1_switch2")
+
+    affected = ws.update_document(rel)
+
+    zonal = next(e for e in ws.flync_model.ecus if e.name == "zonal_platform1")
+    assert "z1_switch2" in [s.name for s in zonal.switches]
+    assert rel in affected
+    _assert_matches_full_reload(ws, root, config, rel)
+
+
+def test_removing_a_document_matches_full_reload(workspace):
+    ws, root, config = workspace
+    rel = f"{SWITCHES}/z1_switch1.flync.yaml"
+    (root / rel).unlink()
+
+    ws.update_document(rel)
+
+    # the removed document is dropped from the cache; the resulting model (whatever it is, since the
+    # switch is referenced by topology) must still match a full reload of the same files
+    assert rel not in ws.documents
+    _assert_matches_full_reload(ws, root, config, rel)
+
+
+def test_adding_a_new_top_level_item_matches_full_reload(workspace):
+    ws, root, config = workspace
+    rel = "apps/application3.flync.yaml"
+    (root / rel).write_text((root / "apps/application1.flync.yaml").read_text().replace("application1", "application3"))
+
+    ws.update_document(rel)
+
+    _assert_matches_full_reload(ws, root, config, rel)
+
+
+def test_removing_a_referenced_document_matches_full_reload(workspace):
+    ws, root, config = workspace
+    # PDU_CabinLight is referenced by containers/buses; removing it dangles those references
+    rel = "communication/channels/pdus/PDU_CabinLight.flync.yaml"
+    (root / rel).unlink()
+
+    ws.update_document(rel)
+
+    _assert_matches_full_reload(ws, root, config, rel)

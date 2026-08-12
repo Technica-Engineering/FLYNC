@@ -1223,18 +1223,23 @@ class FLYNCWorkspace(object):
 
     def update_document(self, uri: PathType) -> list[str]:
         """
-        Re-load a single changed document and re-validate only what depends on it.
+        Incrementally reconcile the workspace with a single document that changed on disk.
 
-        The document is read from disk and re-validated in isolation, then its fresh value is spliced
-        into the parent model and every ancestor up to the root is re-validated while reusing the
-        already-loaded sibling models. This keeps cross-document references (which are resolved by
-        ancestor validators) correct without paying the cost of a full :meth:`load_workspace`.
+        Three cases are handled in place, all re-validating the affected node's ancestor spine up to the
+        root while reusing the already-loaded sibling models (so cross-document references, resolved by
+        ancestor validators, stay correct) without a full :meth:`load_workspace`:
 
-        Falls back to a full reload when the document is not a known load-node (e.g. a brand new file),
-        no longer exists, or the partial update hits an unsupported shape.
+        - **changed** (known document, still on disk): reload just that node and its subtree.
+        - **added** (unknown document, now on disk): reload the nearest existing ancestor, whose
+          directory scan picks up the new file.
+        - **removed** (known document, gone from disk): reload the parent, whose scan drops the file.
+
+        New or removed items directly under the root, and any change that breaks a root-resolved
+        reference, fall back to :meth:`_revalidate_all` (a full re-validation from the cached ASTs, no
+        disk re-read). An unexpected failure falls back to a from-disk :meth:`_reset_and_reload`.
 
         Args:
-            uri (PathType): Path of the changed document, absolute or workspace-relative.
+            uri (PathType): Path of the affected document, absolute or workspace-relative.
 
         Returns:
             list[str]: The ids of every document whose model or diagnostics were recomputed.
@@ -1243,14 +1248,85 @@ class FLYNCWorkspace(object):
         uri = Document.normalize_uri(uri, self.workspace_root)
         target = self.workspace_root / uri if self.workspace_root else Path(uri)
         node = self._doc_index.get(uri)
-        if node is None or not target.exists():
-            logger.info("update_document: %s cannot be updated in place, reloading workspace", uri)
-            return self._reset_and_reload()
+        exists = target.exists()
         try:
-            return self._reload_document(node, uri)
+            if node is not None and exists:
+                result = self._reload_document(node, uri)
+            elif node is None and exists:
+                result = self._add_document(uri)
+            elif node is not None:
+                result = self._remove_document(node)
+            else:
+                result = self._reset_and_reload()
+            return result
         except Exception as ex:  # noqa: BLE001
-            logger.error("update_document: partial reload of %s failed (%s), reloading workspace", uri, ex)
+            logger.error("update_document: partial update of %s failed (%s), reloading workspace", uri, ex)
             return self._reset_and_reload()
+
+    def _add_document(self, uri: str) -> list[str]:
+        """
+        Bring a newly created document into the workspace.
+
+        The nearest existing ancestor load-node is reloaded; its directory scan picks up the new file and
+        the spine above it is re-validated. A new item directly under the root (e.g. a whole new ECU)
+        has no partial ancestor, so it falls back to a full reload.
+
+        Args:
+            uri (str): Workspace-relative id of the new document.
+
+        Returns:
+            list[str]: Ids of every document that was recomputed.
+        """
+
+        ancestor = self._nearest_ancestor_node(uri)
+        if ancestor is None or ancestor.link is None:
+            return self._revalidate_all()
+        return self._reload_from_node(ancestor)
+
+    def _remove_document(self, node: LoadNode) -> list[str]:
+        """
+        Drop a document that no longer exists on disk.
+
+        The parent load-node is reloaded; its directory scan no longer sees the file, so the item drops
+        out of the model, and the spine above is re-validated. Removing the root falls back to a full
+        reload.
+
+        Args:
+            node (LoadNode): The indexed node for the removed document.
+
+        Returns:
+            list[str]: Ids of every document that was recomputed.
+        """
+
+        if node.link is None:
+            return self._revalidate_all()
+        parent = self._doc_index.get(self.document_id_from_path(str(node.link.parent_path)))
+        if parent is None:
+            return self._revalidate_all()
+        return self._reload_from_node(parent)
+
+    def _nearest_ancestor_node(self, uri: str) -> Optional[LoadNode]:
+        """
+        Return the closest indexed load-node that contains ``uri`` in its directory tree.
+
+        Walks up the path parents until an indexed node is found (the root always matches once loaded).
+
+        Args:
+            uri (str): Workspace-relative id to locate.
+
+        Returns:
+            LoadNode | None: The nearest ancestor node, or ``None`` if none is indexed.
+        """
+
+        current = Path(uri).parent
+        while True:
+            doc_id = current.as_posix()
+            ancestor = self._doc_index.get(doc_id)
+            if ancestor is not None:
+                return ancestor
+            if doc_id in (".", ""):
+                return None
+            current = current.parent
 
     def _reload_document(self, node: LoadNode, uri: str) -> list[str]:
         """
@@ -1272,6 +1348,23 @@ class FLYNCWorkspace(object):
             doc.parse()
             self.documents[uri] = doc
 
+        return self._reload_from_node(node)
+
+    def _reload_from_node(self, node: LoadNode) -> list[str]:
+        """
+        Reload ``node``'s subtree and re-validate every ancestor up to the root.
+
+        Shared by every partial-update flavour: a changed document reloads its own node, while a new or
+        removed document reloads the nearest surviving ancestor (whose directory scan then picks up or
+        drops the affected file).
+
+        Args:
+            node (LoadNode): The node whose subtree is reloaded first.
+
+        Returns:
+            list[str]: Ids of all documents that were recomputed.
+        """
+
         affected: list[str] = []
         cur_child, ids = self._reload_subtree(node)
         affected += ids
@@ -1287,9 +1380,9 @@ class FLYNCWorkspace(object):
                 # Reusing sibling instances is cheap but leaves error-recovery unable to prune a bad
                 # value out of a reused child. When that happens, re-validate this ancestor's whole
                 # subtree (from the cached ASTs, no disk read) so the policy pruning behaves as it does
-                # on a full load. The root's subtree is the whole workspace, so reload everything.
+                # on a full load. The root's subtree is the whole workspace, so revalidate everything.
                 if parent_node.link is None:
-                    return self._reset_and_reload()
+                    return self._revalidate_all()
                 rebuilt, ids = self._reload_subtree(parent_node)
                 affected += ids
             affected.append(parent_id)
@@ -1310,11 +1403,14 @@ class FLYNCWorkspace(object):
             tuple[object, list[str]]: The reloaded model value and the ids of the documents touched.
         """
 
-        affected = [sub.doc_id for sub in self._subtree_nodes(node)]
-        for doc_id in affected:
+        before = [sub.doc_id for sub in self._subtree_nodes(node)]
+        for doc_id in before:
             self.documents_diags.pop(doc_id, None)
             if doc_id != node.doc_id:
                 self._doc_index.pop(doc_id, None)
+            # drop a cached document whose file has been deleted so the rescan does not resurrect it
+            if doc_id in self.documents and not (self.workspace_root / doc_id).exists():  # type: ignore[operator]
+                self.documents.pop(doc_id, None)
         if self.configuration.map_objects:
             self._purge_object_subtree(node.object_paths)
         model = self.__load_from_path(
@@ -1324,7 +1420,9 @@ class FLYNCWorkspace(object):
             list(node.object_paths),
             node.link,
         )
-        return model, affected
+        # union with the post-reload subtree so newly added documents are reported too
+        after = [sub.doc_id for sub in self._subtree_nodes(node)]
+        return model, list(dict.fromkeys(before + after))
 
     def _rebuild_ancestor(self, parent_node: LoadNode, link: ParentLink, new_child):
         """
@@ -1535,9 +1633,8 @@ class FLYNCWorkspace(object):
                 semantic.model = new_model
         self._model_to_object_ids[id(new_model)] = ids
 
-    def _reset_and_reload(self) -> list[str]:
-        """Clear all derived state and reload the workspace from disk (the safe fallback path)."""
-        self.documents.clear()
+    def _clear_derived_state(self) -> None:
+        """Drop the model, object graph and reload index, keeping (or not) the parsed documents."""
         self.documents_diags.clear()
         self.objects.clear()
         self.sources.clear()
@@ -1546,6 +1643,26 @@ class FLYNCWorkspace(object):
         self._linked_child_ids.clear()
         self._doc_index.clear()
         self._duplicated_objects_ids.clear()
+
+    def _revalidate_all(self) -> list[str]:
+        """
+        Rebuild the whole model and object graph from the already-parsed documents.
+
+        Used when a partial update cannot be completed in place (e.g. a change breaks a root-resolved
+        reference, or a new item lands directly under the root). Unlike :meth:`_reset_and_reload` it does
+        not re-read or re-parse files through the process pool - it reuses the in-memory document ASTs
+        that ``update_document`` keeps in sync, reading from disk only files not seen before (a newly
+        created document). This makes the fallback markedly cheaper than a cold load.
+        """
+
+        self._clear_derived_state()
+        self.flync_model = self.__load_from_path(self.workspace_root)  # type: ignore[arg-type]
+        return list(self.documents_diags.keys())
+
+    def _reset_and_reload(self) -> list[str]:
+        """Clear all derived state and reload the workspace from disk (the last-resort safety path)."""
+        self.documents.clear()
+        self._clear_derived_state()
         self._open_documents()
         self.flync_model = self.__load_from_path(self.workspace_root)  # type: ignore[arg-type]
         return list(self.documents_diags.keys())
