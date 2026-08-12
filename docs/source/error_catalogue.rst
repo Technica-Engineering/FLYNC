@@ -292,16 +292,6 @@ Every error and warning the FLYNC validators can raise, identified as
 
    f'The ipv value {ipv} is not unique for two different traffic classes in controller interface. or switch port'
 
-.. err:: {field}' must be a list of items, but a single mapping was given. Did you for...
-   :id: FLYNC-CMN-MIN-FMT-185
-   :module: CMN
-   :severity: MIN
-   :category: FORMAT
-   :number: 185
-   :location: common_validators.none_to_empty_list
-
-   f"'{field}' must be a list of items, but a single mapping was given. Did you forget to add '- ' before each item to make it a list?"
-
 .. err:: {context}: '{item}' bit range [{start}, {end}) overflows length of {bits} bits
    :id: FLYNC-CMN-MIN-VAL-029
    :module: CMN
@@ -432,16 +422,6 @@ Every error and warning the FLYNC validators can raise, identified as
 
    "{owner}: {egress}: PDU '{pdu}' ({pdu_len} B) does not fit egress frame '{frame}' ({frame_len} B)."
 
-.. err:: {owner}: pdu_ref '{ref}' does not name any PDU declared under communication.c...
-   :id: FLYNC-CMN-MAJ-REF-175
-   :module: CMN
-   :severity: MAJ
-   :category: REFERENCE
-   :number: 175
-   :location: forwarder_validators.validate_pdu_deployment_refs
-
-   "{owner}: pdu_ref '{ref}' does not name any PDU declared under communication.channels."
-
 .. err:: {owner}: eth_socket egress targets socket '{ref}' which does not exist on con...
    :id: FLYNC-CMN-MAJ-REF-042
    :module: CMN
@@ -502,176 +482,6 @@ Every error and warning the FLYNC validators can raise, identified as
 
    'Forwarder cycle detected: {path}'
 
-.. err:: {owner}: bus_ref '{bus}' does not name any bus declared under {catalogue}.
-   :id: FLYNC-CMN-MAJ-REF-215
-   :module: CMN
-   :severity: MAJ
-   :category: REFERENCE
-   :number: 215
-   :location: interface_validators._validate_interface
-
-   "{owner}: bus_ref '{bus}' does not name any bus declared under {catalogue}."
-
-.. err:: {owner}: {field}: bus_ref '{bus}' does not name any bus declared under {catal...
-   :id: FLYNC-CMN-MAJ-REF-216
-   :module: CMN
-   :severity: MAJ
-   :category: REFERENCE
-   :number: 216
-   :location: interface_validators._validate_interface
-
-   "{owner}: {field}: bus_ref '{bus}' does not name any bus declared under {catalogue}."
-
-.. err:: {owner}: {field}: frame_ref id={ref} does not name any frame declared on bus ...
-   :id: FLYNC-CMN-MAJ-REF-217
-   :module: CMN
-   :severity: MAJ
-   :category: REFERENCE
-   :number: 217
-   :location: interface_validators._validate_interface
-
-   "{owner}: {field}: frame_ref id={ref} does not name any frame declared on bus '{bus}' under {catalogue}."
-
-.. err:: state_memberships reference undefined state management group '{group}' — defi...
-   :id: FLYNC-CMN-MAJ-REF-189
-   :module: CMN
-   :severity: MAJ
-   :category: REFERENCE
-   :number: 189
-   :location: state_management_validators._check_referenced_groups_exist
-
-   "state_memberships reference undefined state management group '{group}' — define it in communication/state_management/groups.flync.yaml"
-
-.. err:: state management group '{group}' has no participant — assign at least one ent...
-   :id: FLYNC-CMN-MAJ-REQ-190
-   :module: CMN
-   :severity: MAJ
-   :category: REQUIRED
-   :number: 190
-   :location: state_management_validators._check_group_basics
-
-   "state management group '{group}' has no participant — assign at least one entity via state_memberships"
-
-.. err:: state management group '{group}': nm_pdu '{pdu}' not found under communicatio...
-   :id: FLYNC-CMN-MAJ-REF-191
-   :module: CMN
-   :severity: MAJ
-   :category: REFERENCE
-   :number: 191
-   :location: state_management_validators._check_group_basics
-
-   "state management group '{group}': nm_pdu '{pdu}' not found under communication.channels"
-
-.. err:: state management group '{group}': PDU '{pdu}' has pdu_usage '{usage}', expect...
-   :id: FLYNC-CMN-MAJ-REF-192
-   :module: CMN
-   :severity: MAJ
-   :category: REFERENCE
-   :number: 192
-   :location: state_management_validators._check_group_basics
-
-   "state management group '{group}': PDU '{pdu}' has pdu_usage '{usage}', expected 'network_management'"
-
-.. err:: state management group '{group}': timing_profile '{profile}' not found — defi...
-   :id: FLYNC-CMN-MAJ-REF-193
-   :module: CMN
-   :severity: MAJ
-   :category: REFERENCE
-   :number: 193
-   :location: state_management_validators._check_group_basics
-
-   "state management group '{group}': timing_profile '{profile}' not found — define it in communication/state_management/timing_profiles.flync.yaml"
-
-.. err:: state management group '{name}': '{m.entity_path}' is redundant — its host EC...
-   :id: FLYNC-CMN-WARN-CONS-194
-   :module: CMN
-   :severity: WARN
-   :category: CONSISTENCY
-   :number: 194
-   :location: state_management_validators._warn_controller_under_ecu
-
-   f"state management group '{name}': '{m.entity_path}' is redundant — its host ECU '{m.ecu_name}' is already a whole-ECU participant"
-
-.. err:: state management group '{group}': bus '{bus}' has a bus-level membership (the...
-   :id: FLYNC-CMN-MAJ-CONS-195
-   :module: CMN
-   :severity: MAJ
-   :category: CONSISTENCY
-   :number: 195
-   :location: state_management_validators._check_single_variant_per_bus
-
-   "state management group '{group}': bus '{bus}' has a bus-level membership (the whole bus as one participant) but node-level member '{node}' on it also participates — choose one variant per bus (whole-bus or per-node), not both"
-
-.. err:: state management group '{group}': {role} '{member}' has no {label} path for N...
-   :id: FLYNC-CMN-MAJ-REF-196
-   :module: CMN
-   :severity: MAJ
-   :category: REFERENCE
-   :number: 196
-   :location: state_management_validators._reachability_error
-
-   "state management group '{group}': {role} '{member}' has no {label} path for NM PDU '{pdu}' — " + missing
-
-.. err:: state management group '{group}': LIN bus participant '{bus}' has no master w...
-   :id: FLYNC-CMN-MAJ-REF-197
-   :module: CMN
-   :severity: MAJ
-   :category: REFERENCE
-   :number: 197
-   :location: state_management_validators._check_lin_bus_reachability
-
-   "state management group '{group}': LIN bus participant '{bus}' has no master whose ECU receives or sends NM PDU '{pdu}' on another bus — the LIN master must know the group state (as its source, or by receiving it) to drive the bus sleep"
-
-.. err:: state management group '{group}': bus participant '{bus}' has no frame carryi...
-   :id: FLYNC-CMN-MAJ-REF-198
-   :module: CMN
-   :severity: MAJ
-   :category: REFERENCE
-   :number: 198
-   :location: state_management_validators._check_bus_reachability
-
-   "state management group '{group}': bus participant '{bus}' has no frame carrying NM PDU '{pdu}' — a bus nobody feeds NM into can never be released correctly"
-
-.. err:: state management group '{group}': no ECU attached to bus participant '{bus}' ...
-   :id: FLYNC-CMN-MAJ-REF-199
-   :module: CMN
-   :severity: MAJ
-   :category: REFERENCE
-   :number: 199
-   :location: state_management_validators._check_bus_reachability
-
-   "state management group '{group}': no ECU attached to bus participant '{bus}' sends NM PDU '{pdu}' — a bus nobody feeds NM into can never be released correctly"
-
-.. err:: state management group '{group}': member '{member}' claims relevance bit '{bi...
-   :id: FLYNC-CMN-MAJ-VAL-200
-   :module: CMN
-   :severity: MAJ
-   :category: VALUE_RANGE
-   :number: 200
-   :location: state_management_validators._check_relevance_bits
-
-   "state management group '{group}': member '{member}' claims relevance bit '{bit}' which is not a flag of NM PDU '{pdu}' — declare the bit in the PDU's relevance vector or correct the relevance_bits entry"
-
-.. err:: state management group '{group.name}': NM frame '{frame.name}' on bus '{bus.n...
-   :id: FLYNC-CMN-WARN-CONS-201
-   :module: CMN
-   :severity: WARN
-   :category: CONSISTENCY
-   :number: 201
-   :location: state_management_validators._warn_cycle_mismatch
-
-   f"state management group '{group.name}': NM frame '{frame.name}' on bus '{bus.name}' is configured with a cyclic timing of {frame_cycle_ms:g} ms, which does not match the group's cycle_time_ms ({cycle_time_ms})"
-
-.. err:: state management group '{group.name}': {source} ({cadence_ms:g}) is shorter t...
-   :id: FLYNC-CMN-WARN-CONS-202
-   :module: CMN
-   :severity: WARN
-   :category: CONSISTENCY
-   :number: 202
-   :location: state_management_validators._warn_infeasible_cadence
-
-   f"state management group '{group.name}': {source} ({cadence_ms:g}) is shorter than the ~{frame_tx_ms:.2f} ms needed to send NM frame '{frame.name}' on bus '{bus.name}' at {baud_rate} bit/s"
-
 .. err:: Incompatible Controller Config detected (compatible_flync_version={legacy_ver...
    :id: FLYNC-GEN-FAT-COMP-048
    :module: GEN
@@ -681,16 +491,6 @@ Every error and warning the FLYNC validators can raise, identified as
    :location: legacy_controller_check.reject_legacy_controller
 
    "Incompatible Controller Config detected (compatible_flync_version={legacy_version}). FLYNC {required_version} requires every controller to live in its own directory containing 'controller_metadata.flync.yaml'. Update the configuration to the new layout or downgrade FLYNC to 0.10.x."
-
-.. err:: App '{name}' referenced in app_bindings of {controller_name} was not found or...
-   :id: FLYNC-CMN-MAJ-REF-187
-   :module: CMN
-   :severity: MAJ
-   :category: REFERENCE
-   :number: 187
-   :location: app_bindings.AppBindings.resolve_apps
-
-   f"App '{name}' referenced in app_bindings of {controller_name} was not found or was not validated"
 
 .. err:: baud_rate {value} is not a valid CAN baud rate. Allowed values: {allowed}
    :id: FLYNC-BUS-MIN-VAL-049
@@ -892,76 +692,6 @@ Every error and warning the FLYNC validators can raise, identified as
 
    'ECU has invalid components. Check controller and switch errors for details.'
 
-.. err:: ECU '{self.name}' declares Ethernet interfaces or switches but has no ECU por...
-   :id: FLYNC-ECU-MAJ-REQ-227
-   :module: ECU
-   :severity: MAJ
-   :category: REQUIRED
-   :number: 227
-   :location: ecu.ECU.validate_ethernet_hw_requires_ports_and_topology
-
-   f"ECU '{self.name}' declares Ethernet interfaces or switches but has no ECU ports defined (ports.flync.yaml)."
-
-.. err:: ECU '{self.name}' declares Ethernet interfaces or switches but has no interna...
-   :id: FLYNC-ECU-MAJ-REQ-228
-   :module: ECU
-   :severity: MAJ
-   :category: REQUIRED
-   :number: 228
-   :location: ecu.ECU.validate_ethernet_hw_requires_ports_and_topology
-
-   f"ECU '{self.name}' declares Ethernet interfaces or switches but has no internal topology (topology.flync.yaml)."
-
-.. err:: switch port '{sp.name}' on switch '{sp.get_switch().name}' is connected to it...
-   :id: FLYNC-ECU-MAJ-COMP-209
-   :module: ECU
-   :severity: MAJ
-   :category: COMPATIBILITY
-   :number: 209
-   :location: ecu.ECU.__validate_switch_port_connections
-
-   f"switch port '{sp.name}' on switch '{sp.get_switch().name}' is connected to itself. A component cannot be connected to itself."
-
-.. err:: switch port '{switch_port.name}' on switch '{switch_port.get_switch().name}' ...
-   :id: FLYNC-ECU-MAJ-COMP-210
-   :module: ECU
-   :severity: MAJ
-   :category: COMPATIBILITY
-   :number: 210
-   :location: ecu.ECU.__validate_switch_port_connections
-
-   f"switch port '{switch_port.name}' on switch '{switch_port.get_switch().name}' is connected to more than one component. Each switch port in the internal topology may only be connected to a single other component."
-
-.. err:: ECU port '{port.name}' is not connected in the internal topology.
-   :id: FLYNC-ECU-WARN-STRUCT-211
-   :module: ECU
-   :severity: WARN
-   :category: STRUCTURAL
-   :number: 211
-   :location: ecu.ECU.validate_no_unconnected_components
-
-   f"ECU port '{port.name}' is not connected in the internal topology."
-
-.. err:: Switch port '{switch_port.name}' (switch: '{switch_port._switch.name}') is no...
-   :id: FLYNC-ECU-WARN-STRUCT-212
-   :module: ECU
-   :severity: WARN
-   :category: STRUCTURAL
-   :number: 212
-   :location: ecu.ECU.validate_no_unconnected_components
-
-   f"Switch port '{switch_port.name}' (switch: '{switch_port._switch.name}') is not connected in the internal topology."
-
-.. err:: Controller interface '{iface.name}' (controller: '{iface._controller.name}') ...
-   :id: FLYNC-ECU-WARN-STRUCT-213
-   :module: ECU
-   :severity: WARN
-   :category: STRUCTURAL
-   :number: 213
-   :location: ecu.ECU.validate_no_unconnected_components
-
-   f"Controller interface '{iface.name}' (controller: '{iface._controller.name}') is not connected in the internal topology."
-
 .. err:: Error in socket configuration:\nThe following VLAN IDs are specified in the s...
    :id: FLYNC-ECU-MIN-REF-069
    :module: ECU
@@ -1152,96 +882,6 @@ Every error and warning the FLYNC validators can raise, identified as
 
    f'The switch port {self.name} is not a part of any switch'
 
-.. err:: {info.field_name} must be a quoted string: a hex literal like "0x0800" or a b...
-   :id: FLYNC-ECU-MIN-VAL-176
-   :module: ECU
-   :severity: MIN
-   :category: VALUE_RANGE
-   :number: 176
-   :location: switch.FrameMask._require_string
-
-   f'{info.field_name} must be a quoted string: a hex literal like "0x0800" or a binary string like "100101010111". Got {type(value).__name__} {value!r}; wrap the value in quotes.'
-
-.. err:: {info.field_name} must be a 0x-hex literal (e.g. "0x0800") or a binary string...
-   :id: FLYNC-ECU-MIN-VAL-177
-   :module: ECU
-   :severity: MIN
-   :category: VALUE_RANGE
-   :number: 177
-   :location: switch.FrameMask._normalize_format
-
-   f'{info.field_name} must be a 0x-hex literal (e.g. "0x0800") or a binary string of 0/1 (e.g. "100101010111"); got {value!r}'
-
-.. err:: data' and 'mask' must describe the same number of bits
-   :id: FLYNC-ECU-MIN-VAL-178
-   :module: ECU
-   :severity: MIN
-   :category: VALUE_RANGE
-   :number: 178
-   :location: switch.FrameMask.validate_widths_and_window
-
-   "'data' and 'mask' must describe the same number of bits"
-
-.. err:: offset must be between 0 and {self.frame_window - 1}, got {self.offset}
-   :id: FLYNC-ECU-MIN-VAL-179
-   :module: ECU
-   :severity: MIN
-   :category: VALUE_RANGE
-   :number: 179
-   :location: switch.FrameMask.validate_widths_and_window
-
-   f'offset must be between 0 and {self.frame_window - 1}, got {self.offset}'
-
-.. err:: pattern at offset {self.offset} extends beyond byte {self.frame_window - 1} (...
-   :id: FLYNC-ECU-MIN-VAL-180
-   :module: ECU
-   :severity: MIN
-   :category: VALUE_RANGE
-   :number: 180
-   :location: switch.FrameMask.validate_widths_and_window
-
-   f'pattern at offset {self.offset} extends beyond byte {self.frame_window - 1} (max inspectable frame position)'
-
-.. err:: TCAM Rule '{name}': vehicle_state_mask requires vehicle_state to be set.
-   :id: FLYNC-ECU-MIN-STRUCT-181
-   :module: ECU
-   :severity: MIN
-   :category: STRUCTURAL
-   :number: 181
-   :location: switch.TCAMRule.validate_vehicle_state
-
-   "TCAM Rule '{name}': vehicle_state_mask requires vehicle_state to be set."
-
-.. err:: TCAM Rule '{name}': vehicle_state has bits set outside vehicle_state_mask.
-   :id: FLYNC-ECU-MIN-STRUCT-182
-   :module: ECU
-   :severity: MIN
-   :category: STRUCTURAL
-   :number: 182
-   :location: switch.TCAMRule.validate_vehicle_state
-
-   "TCAM Rule '{name}': vehicle_state has bits set outside vehicle_state_mask."
-
-.. err:: Cannot specify both match_filter and frame_mask; use only one
-   :id: FLYNC-ECU-MIN-STRUCT-183
-   :module: ECU
-   :severity: MIN
-   :category: STRUCTURAL
-   :number: 183
-   :location: switch.TCAMRule.validate_match_filter_or_mask_exclusive
-
-   'Cannot specify both match_filter and frame_mask; use only one'
-
-.. err:: Must specify either match_filter or frame_mask
-   :id: FLYNC-ECU-MIN-STRUCT-184
-   :module: ECU
-   :severity: MIN
-   :category: STRUCTURAL
-   :number: 184
-   :location: switch.TCAMRule.validate_match_filter_or_mask_exclusive
-
-   'Must specify either match_filter or frame_mask'
-
 .. err:: A TCAM Rule can either drop OR force egress OR mirror on one port.
    :id: FLYNC-ECU-MIN-CONS-088
    :module: ECU
@@ -1301,66 +941,6 @@ Every error and warning the FLYNC validators can raise, identified as
    :location: metadata.BaseVersion.validate_and_parse_version
 
    f"Version '{raw_version}' is not valid Semantic Version"
-
-.. err:: announcement phase timing: burst_count and burst_cycle_time_ms must be set to...
-   :id: FLYNC-CMN-MAJ-VAL-203
-   :module: CMN
-   :severity: MAJ
-   :category: VALUE_RANGE
-   :number: 203
-   :location: state_management.AnnouncementPhaseTiming.check_burst_pair
-
-   'announcement phase timing: burst_count and burst_cycle_time_ms must be set together (set both or neither)'
-
-.. err:: timing profile '{name}': sleep.timeout_ms must be greater than cycle_time_ms ...
-   :id: FLYNC-CMN-MAJ-VAL-204
-   :module: CMN
-   :severity: MAJ
-   :category: VALUE_RANGE
-   :number: 204
-   :location: state_management.GroupTiming.check_consistency
-
-   "timing profile '{name}': sleep.timeout_ms must be greater than cycle_time_ms (got timeout_ms={timeout}, cycle_time_ms={cycle})"
-
-.. err:: timing profile '{name}': announcement.burst_cycle_time_ms ({burst}) must be s...
-   :id: FLYNC-CMN-MAJ-VAL-205
-   :module: CMN
-   :severity: MAJ
-   :category: VALUE_RANGE
-   :number: 205
-   :location: state_management.GroupTiming.check_consistency
-
-   "timing profile '{name}': announcement.burst_cycle_time_ms ({burst}) must be shorter than cycle_time_ms ({cycle})"
-
-.. err:: timing profile '{name}': the announcement burst ({count} x {burst} ms) does n...
-   :id: FLYNC-CMN-MAJ-VAL-206
-   :module: CMN
-   :severity: MAJ
-   :category: VALUE_RANGE
-   :number: 206
-   :location: state_management.GroupTiming.check_consistency
-
-   "timing profile '{name}': the announcement burst ({count} x {burst} ms) does not fit within the announcement duration_ms ({duration})"
-
-.. err:: observer membership in group '{self.group}' must not define relevance_bits - ...
-   :id: FLYNC-CMN-MAJ-CONS-207
-   :module: CMN
-   :severity: MAJ
-   :category: CONSISTENCY
-   :number: 207
-   :location: state_management.StateMembershipRef.observer_owns_no_bit
-
-   f"observer membership in group '{self.group}' must not define relevance_bits - only participants reference bits"
-
-.. err:: membership in group '{self.group}' lists a relevance bit more than once in re...
-   :id: FLYNC-CMN-MAJ-UNIQ-208
-   :module: CMN
-   :severity: MAJ
-   :category: UNIQUENESS
-   :number: 208
-   :location: state_management.StateMembershipRef.no_duplicate_bits
-
-   f"membership in group '{self.group}' lists a relevance bit more than once in relevance_bits"
 
 .. err:: At least one of the fields in pattern of firewall rule should be present
    :id: FLYNC-SEC-MIN-REQ-094
@@ -1842,66 +1422,6 @@ Every error and warning the FLYNC validators can raise, identified as
 
    f'Enum value {entry.value} exceeds valid range for {base_type_name} ({min_value} to {max_value})'
 
-.. err:: bus_ref '{topo.bus_name}' referenced by ECU interface(s) cannot be verified: ...
-   :id: FLYNC-TOP-WARN-REF-222
-   :module: TOP
-   :severity: WARN
-   :category: REFERENCE
-   :number: 222
-   :location: bus_topology._validate_bus_ref_known
-
-   f"bus_ref '{topo.bus_name}' referenced by ECU interface(s) cannot be verified: no CAN/LIN bus definitions are loaded."
-
-.. err:: CAN/LIN interface(s) reference unknown bus '{topo.bus_name}'. Defined buses: ...
-   :id: FLYNC-TOP-MAJ-REF-221
-   :module: TOP
-   :severity: MAJ
-   :category: REFERENCE
-   :number: 221
-   :location: bus_topology._validate_bus_ref_known
-
-   f"CAN/LIN interface(s) reference unknown bus '{topo.bus_name}'. Defined buses: {sorted(defs)}"
-
-.. err:: LIN bus '{topo.bus_name}' has {len(masters)} master interfaces ({names}); exa...
-   :id: FLYNC-TOP-MAJ-CONS-223
-   :module: TOP
-   :severity: MAJ
-   :category: CONSISTENCY
-   :number: 223
-   :location: bus_topology._validate_lin_masters
-
-   f"LIN bus '{topo.bus_name}' has {len(masters)} master interfaces ({names}); exactly one is required."
-
-.. err:: LIN bus '{topo.bus_name}' has slave interface(s) but no master interface.
-   :id: FLYNC-TOP-WARN-CONS-224
-   :module: TOP
-   :severity: WARN
-   :category: CONSISTENCY
-   :number: 224
-   :location: bus_topology._validate_lin_masters
-
-   f"LIN bus '{topo.bus_name}' has slave interface(s) but no master interface."
-
-.. err:: {kind} bus '{topo.bus_name}' is defined but no ECU interface attaches to it.
-   :id: FLYNC-TOP-WARN-CONS-226
-   :module: TOP
-   :severity: WARN
-   :category: CONSISTENCY
-   :number: 226
-   :location: bus_topology._validate_attachment_count
-
-   f"{kind} bus '{topo.bus_name}' is defined but no ECU interface attaches to it."
-
-.. err:: {kind} bus '{topo.bus_name}' has only a single attached node ({name}).
-   :id: FLYNC-TOP-WARN-CONS-230
-   :module: TOP
-   :severity: WARN
-   :category: CONSISTENCY
-   :number: 230
-   :location: bus_topology._validate_attachment_count
-
-   f"{kind} bus '{topo.bus_name}' has only a single attached node ({name})."
-
 .. err:: ECU port name {self.ecu1_port_name} in connection {self.id} of system topolog...
    :id: FLYNC-TOP-MAJ-REF-142
    :module: TOP
@@ -1981,26 +1501,6 @@ Every error and warning the FLYNC validators can raise, identified as
    :location: ethernet_topology.ExternalConnection.bind
 
    f'Incompatible MDI Autonegotiation: {port1.ecu.name}:{self.ecu1_port_name} ({mdi_ecu1_port.autonegotiation}) ↔ {port2.ecu.name}:{self.ecu2_port_name} ({mdi_ecu2_port.autonegotiation})'
-
-.. err:: ECU port '{port.name}' (ECU: '{port.ecu.name}') is not connected in the syste...
-   :id: FLYNC-TOP-WARN-STRUCT-214
-   :module: TOP
-   :severity: WARN
-   :category: STRUCTURAL
-   :number: 214
-   :location: ethernet_topology.EthernetTopology.validate_no_unconnected_ports
-
-   f"ECU port '{port.name}' (ECU: '{port.ecu.name}') is not connected in the system topology."
-
-.. err:: The 'system_topology' attribute is deprecated and will be removed in a future...
-   :id: FLYNC-TOP-WARN-LIFE-229
-   :module: TOP
-   :severity: WARN
-   :category: LIFECYCLE
-   :number: 229
-   :location: ethernet_topology.FLYNCTopology.warn_deprecated
-
-   "The 'system_topology' attribute is deprecated and will be removed in a future release. Please use 'ethernet_topology' instead."
 
 .. err:: pcp value must be greater than or equal to 0 and less than or equal to 7
    :id: FLYNC-TSN-MIN-VAL-150
@@ -2132,16 +1632,6 @@ Every error and warning the FLYNC validators can raise, identified as
 
    "The 'general' attribute is deprecated. Please use 'communication' instead."
 
-.. err:: Apps are currently experimental! Subject to change, please use with care.
-   :id: FLYNC-GEN-WARN-LIFE-188
-   :module: GEN
-   :severity: WARN
-   :category: LIFECYCLE
-   :number: 188
-   :location: flync_model.FLYNCModel.warn_experimental
-
-   'Apps are currently experimental! Subject to change, please use with care.'
-
 .. err:: The 'general' attribute is deprecated. Please use 'communication' instead.
    :id: FLYNC-GEN-WARN-LIFE-163
    :module: GEN
@@ -2161,26 +1651,6 @@ Every error and warning the FLYNC validators can raise, identified as
    :location: flync_model.FLYNCModel.resolve_external_connections
 
    str(e)
-
-.. err:: The ethernet topology file (topology/system_topology.flync.yaml) is required ...
-   :id: FLYNC-GEN-MAJ-REQ-219
-   :module: GEN
-   :severity: MAJ
-   :category: REQUIRED
-   :number: 219
-   :location: flync_model.FLYNCModel.require_ethernet_topology_when_used
-
-   'The ethernet topology file (topology/system_topology.flync.yaml) is required because system-wide Ethernet features are used: {reasons}'
-
-.. err:: Multiple ECUs declare Ethernet ports but no ethernet topology (external conne...
-   :id: FLYNC-GEN-WARN-CONS-220
-   :module: GEN
-   :severity: WARN
-   :category: CONSISTENCY
-   :number: 220
-   :location: flync_model.FLYNCModel.require_ethernet_topology_when_used
-
-   'Multiple ECUs declare Ethernet ports but no ethernet topology (external connections) is defined.'
 
 .. err:: The IP {ip} is repeated in ECU {ecu.name}
    :id: FLYNC-GEN-WARN-UNIQ-165
@@ -2242,15 +1712,15 @@ Every error and warning the FLYNC validators can raise, identified as
 
    str(e)
 
-.. err:: Deployed provided service on TCP socket ({socket.name}) of ECU ({ecu.name}) h...
-   :id: FLYNC-GEN-MAJ-CONS-218
+.. err:: Deployed provided service ({svc_label}) has multicast configuration for event...
+   :id: FLYNC-GEN-MAJ-CONS-171
    :module: GEN
    :severity: MAJ
    :category: CONSISTENCY
-   :number: 218
-   :location: flync_model.FLYNCModel.validate_no_someip_multicast_on_tcp
+   :number: 171
+   :location: flync_model.FLYNCModel.validate_multicast_someip
 
-   f'Deployed provided service on TCP socket ({socket.name}) of ECU ({ecu.name}) has multicast configuration for eventgroups ({[mcast.eventgroups for mcast in provider.multicast_config]}); SOME/IP eventgroup multicast requires a UDP socket'
+   f'Deployed provided service ({svc_label}) has multicast configuration for eventgroups ({mcast_config.eventgroups}/{mcast_config.ip_address}), but socket ({socket.name}) does not indicate by multicast_tx entry ({socket.multicast_tx})'
 
 .. err:: The MAC {mac} is repeated in ECU {ecu.name}
    :id: FLYNC-GEN-MAJ-UNIQ-172
@@ -2261,16 +1731,6 @@ Every error and warning the FLYNC validators can raise, identified as
    :location: flync_model.FLYNCModel.validate_unique_macs
 
    f'The MAC {mac} is repeated in ECU {ecu.name}'
-
-.. err:: App {app.name} references service ({ref.service_name}, major_version={ref.maj...
-   :id: FLYNC-GEN-MAJ-REF-186
-   :module: GEN
-   :severity: MAJ
-   :category: REFERENCE
-   :number: 186
-   :location: flync_model.FLYNCModel.validate_service_refs_in_apps
-
-   f"App {app.name} references service ({ref.service_name}, major_version={ref.major_version}) that is not defined in the system's SOME/IP configuration."
 
 .. err:: Invalid Multicast Address Configuration. There are no TX endpoints for this a...
    :id: FLYNC-GEN-WARN-CONS-173
@@ -2292,13 +1752,552 @@ Every error and warning the FLYNC validators can raise, identified as
 
    f'Invalid Multicast Address Configuration. The RX interface for address {key} - {mcast._interface.name} cannot be reached by the TX ports.'
 
-.. err:: Deployed provided service ({svc_label}) has multicast configuration for event...
-   :id: FLYNC-GEN-MAJ-CONS-171
+.. err:: {owner}: pdu_ref '{ref}' does not name any PDU declared under communication.c...
+   :id: FLYNC-CMN-MAJ-REF-175
+   :module: CMN
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 175
+   :location: forwarder_validators.validate_pdu_deployment_refs
+
+   "{owner}: pdu_ref '{ref}' does not name any PDU declared under communication.channels."
+
+.. err:: {info.field_name} must be a quoted string: a hex literal like "0x0800" or a b...
+   :id: FLYNC-ECU-MIN-VAL-176
+   :module: ECU
+   :severity: MIN
+   :category: VALUE_RANGE
+   :number: 176
+   :location: switch.FrameMask._require_string
+
+   f'{info.field_name} must be a quoted string: a hex literal like "0x0800" or a binary string like "100101010111". Got {type(value).__name__} {value!r}; wrap the value in quotes.'
+
+.. err:: {info.field_name} must be a 0x-hex literal (e.g. "0x0800") or a binary string...
+   :id: FLYNC-ECU-MIN-VAL-177
+   :module: ECU
+   :severity: MIN
+   :category: VALUE_RANGE
+   :number: 177
+   :location: switch.FrameMask._normalize_format
+
+   f'{info.field_name} must be a 0x-hex literal (e.g. "0x0800") or a binary string of 0/1 (e.g. "100101010111"); got {value!r}'
+
+.. err:: data' and 'mask' must describe the same number of bits
+   :id: FLYNC-ECU-MIN-VAL-178
+   :module: ECU
+   :severity: MIN
+   :category: VALUE_RANGE
+   :number: 178
+   :location: switch.FrameMask.validate_widths_and_window
+
+   "'data' and 'mask' must describe the same number of bits"
+
+.. err:: offset must be between 0 and {self.frame_window - 1}, got {self.offset}
+   :id: FLYNC-ECU-MIN-VAL-179
+   :module: ECU
+   :severity: MIN
+   :category: VALUE_RANGE
+   :number: 179
+   :location: switch.FrameMask.validate_widths_and_window
+
+   f'offset must be between 0 and {self.frame_window - 1}, got {self.offset}'
+
+.. err:: pattern at offset {self.offset} extends beyond byte {self.frame_window - 1} (...
+   :id: FLYNC-ECU-MIN-VAL-180
+   :module: ECU
+   :severity: MIN
+   :category: VALUE_RANGE
+   :number: 180
+   :location: switch.FrameMask.validate_widths_and_window
+
+   f'pattern at offset {self.offset} extends beyond byte {self.frame_window - 1} (max inspectable frame position)'
+
+.. err:: TCAM Rule '{name}': vehicle_state_mask requires vehicle_state to be set.
+   :id: FLYNC-ECU-MIN-STRUCT-181
+   :module: ECU
+   :severity: MIN
+   :category: STRUCTURAL
+   :number: 181
+   :location: switch.TCAMRule.validate_vehicle_state
+
+   "TCAM Rule '{name}': vehicle_state_mask requires vehicle_state to be set."
+
+.. err:: TCAM Rule '{name}': vehicle_state has bits set outside vehicle_state_mask.
+   :id: FLYNC-ECU-MIN-STRUCT-182
+   :module: ECU
+   :severity: MIN
+   :category: STRUCTURAL
+   :number: 182
+   :location: switch.TCAMRule.validate_vehicle_state
+
+   "TCAM Rule '{name}': vehicle_state has bits set outside vehicle_state_mask."
+
+.. err:: Cannot specify both match_filter and frame_mask; use only one
+   :id: FLYNC-ECU-MIN-STRUCT-183
+   :module: ECU
+   :severity: MIN
+   :category: STRUCTURAL
+   :number: 183
+   :location: switch.TCAMRule.validate_match_filter_or_mask_exclusive
+
+   'Cannot specify both match_filter and frame_mask; use only one'
+
+.. err:: Must specify either match_filter or frame_mask
+   :id: FLYNC-ECU-MIN-STRUCT-184
+   :module: ECU
+   :severity: MIN
+   :category: STRUCTURAL
+   :number: 184
+   :location: switch.TCAMRule.validate_match_filter_or_mask_exclusive
+
+   'Must specify either match_filter or frame_mask'
+
+.. err:: {field}' must be a list of items, but a single mapping was given. Did you for...
+   :id: FLYNC-CMN-MIN-FMT-185
+   :module: CMN
+   :severity: MIN
+   :category: FORMAT
+   :number: 185
+   :location: common_validators.none_to_empty_list
+
+   f"'{field}' must be a list of items, but a single mapping was given. Did you forget to add '- ' before each item to make it a list?"
+
+.. err:: App {app.name} references service ({ref.service_name}, major_version={ref.maj...
+   :id: FLYNC-GEN-MAJ-REF-186
+   :module: GEN
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 186
+   :location: flync_model.FLYNCModel.validate_service_refs_in_apps
+
+   f"App {app.name} references service ({ref.service_name}, major_version={ref.major_version}) that is not defined in the system's SOME/IP configuration."
+
+.. err:: App '{name}' referenced in app_bindings of {controller_name} was not found or...
+   :id: FLYNC-CMN-MAJ-REF-187
+   :module: CMN
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 187
+   :location: app_bindings.AppBindings.resolve_apps
+
+   f"App '{name}' referenced in app_bindings of {controller_name} was not found or was not validated"
+
+.. err:: Apps are currently experimental! Subject to change, please use with care.
+   :id: FLYNC-GEN-WARN-LIFE-188
+   :module: GEN
+   :severity: WARN
+   :category: LIFECYCLE
+   :number: 188
+   :location: flync_model.FLYNCModel.warn_experimental
+
+   'Apps are currently experimental! Subject to change, please use with care.'
+
+.. err:: state_memberships reference undefined state management group '{group}' — defi...
+   :id: FLYNC-CMN-MAJ-REF-189
+   :module: CMN
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 189
+   :location: state_management_validators._check_referenced_groups_exist
+
+   "state_memberships reference undefined state management group '{group}' — define it in communication/state_management/groups.flync.yaml"
+
+.. err:: state management group '{group}' has no participant — assign at least one ent...
+   :id: FLYNC-CMN-MAJ-REQ-190
+   :module: CMN
+   :severity: MAJ
+   :category: REQUIRED
+   :number: 190
+   :location: state_management_validators._check_group_basics
+
+   "state management group '{group}' has no participant — assign at least one entity via state_memberships"
+
+.. err:: state management group '{group}': nm_pdu '{pdu}' not found under communicatio...
+   :id: FLYNC-CMN-MAJ-REF-191
+   :module: CMN
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 191
+   :location: state_management_validators._check_group_basics
+
+   "state management group '{group}': nm_pdu '{pdu}' not found under communication.channels"
+
+.. err:: state management group '{group}': PDU '{pdu}' has pdu_usage '{usage}', expect...
+   :id: FLYNC-CMN-MAJ-REF-192
+   :module: CMN
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 192
+   :location: state_management_validators._check_group_basics
+
+   "state management group '{group}': PDU '{pdu}' has pdu_usage '{usage}', expected 'network_management'"
+
+.. err:: state management group '{group}': timing_profile '{profile}' not found — defi...
+   :id: FLYNC-CMN-MAJ-REF-193
+   :module: CMN
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 193
+   :location: state_management_validators._check_group_basics
+
+   "state management group '{group}': timing_profile '{profile}' not found — define it in communication/state_management/timing_profiles.flync.yaml"
+
+.. err:: state management group '{name}': '{m.entity_path}' is redundant — its host EC...
+   :id: FLYNC-CMN-WARN-CONS-194
+   :module: CMN
+   :severity: WARN
+   :category: CONSISTENCY
+   :number: 194
+   :location: state_management_validators._warn_controller_under_ecu
+
+   f"state management group '{name}': '{m.entity_path}' is redundant — its host ECU '{m.ecu_name}' is already a whole-ECU participant"
+
+.. err:: state management group '{group}': bus '{bus}' has a bus-level membership (the...
+   :id: FLYNC-CMN-MAJ-CONS-195
+   :module: CMN
+   :severity: MAJ
+   :category: CONSISTENCY
+   :number: 195
+   :location: state_management_validators._check_single_variant_per_bus
+
+   "state management group '{group}': bus '{bus}' has a bus-level membership (the whole bus as one participant) but node-level member '{node}' on it also participates — choose one variant per bus (whole-bus or per-node), not both"
+
+.. err:: state management group '{group}': {role} '{member}' has no {label} path for N...
+   :id: FLYNC-CMN-MAJ-REF-196
+   :module: CMN
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 196
+   :location: state_management_validators._reachability_error
+
+   "state management group '{group}': {role} '{member}' has no {label} path for NM PDU '{pdu}' — " + missing
+
+.. err:: state management group '{group}': LIN bus participant '{bus}' has no master w...
+   :id: FLYNC-CMN-MAJ-REF-197
+   :module: CMN
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 197
+   :location: state_management_validators._check_lin_bus_reachability
+
+   "state management group '{group}': LIN bus participant '{bus}' has no master whose ECU receives or sends NM PDU '{pdu}' on another bus — the LIN master must know the group state (as its source, or by receiving it) to drive the bus sleep"
+
+.. err:: state management group '{group}': bus participant '{bus}' has no frame carryi...
+   :id: FLYNC-CMN-MAJ-REF-198
+   :module: CMN
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 198
+   :location: state_management_validators._check_bus_reachability
+
+   "state management group '{group}': bus participant '{bus}' has no frame carrying NM PDU '{pdu}' — a bus nobody feeds NM into can never be released correctly"
+
+.. err:: state management group '{group}': no ECU attached to bus participant '{bus}' ...
+   :id: FLYNC-CMN-MAJ-REF-199
+   :module: CMN
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 199
+   :location: state_management_validators._check_bus_reachability
+
+   "state management group '{group}': no ECU attached to bus participant '{bus}' sends NM PDU '{pdu}' — a bus nobody feeds NM into can never be released correctly"
+
+.. err:: state management group '{group}': member '{member}' claims relevance bit '{bi...
+   :id: FLYNC-CMN-MAJ-VAL-200
+   :module: CMN
+   :severity: MAJ
+   :category: VALUE_RANGE
+   :number: 200
+   :location: state_management_validators._check_relevance_bits
+
+   "state management group '{group}': member '{member}' claims relevance bit '{bit}' which is not a flag of NM PDU '{pdu}' — declare the bit in the PDU's relevance vector or correct the relevance_bits entry"
+
+.. err:: state management group '{group.name}': NM frame '{frame.name}' on bus '{bus.n...
+   :id: FLYNC-CMN-WARN-CONS-201
+   :module: CMN
+   :severity: WARN
+   :category: CONSISTENCY
+   :number: 201
+   :location: state_management_validators._warn_cycle_mismatch
+
+   f"state management group '{group.name}': NM frame '{frame.name}' on bus '{bus.name}' is configured with a cyclic timing of {frame_cycle_ms:g} ms, which does not match the group's cycle_time_ms ({cycle_time_ms})"
+
+.. err:: state management group '{group.name}': {source} ({cadence_ms:g}) is shorter t...
+   :id: FLYNC-CMN-WARN-CONS-202
+   :module: CMN
+   :severity: WARN
+   :category: CONSISTENCY
+   :number: 202
+   :location: state_management_validators._warn_infeasible_cadence
+
+   f"state management group '{group.name}': {source} ({cadence_ms:g}) is shorter than the ~{frame_tx_ms:.2f} ms needed to send NM frame '{frame.name}' on bus '{bus.name}' at {baud_rate} bit/s"
+
+.. err:: announcement phase timing: burst_count and burst_cycle_time_ms must be set to...
+   :id: FLYNC-CMN-MAJ-VAL-203
+   :module: CMN
+   :severity: MAJ
+   :category: VALUE_RANGE
+   :number: 203
+   :location: state_management.AnnouncementPhaseTiming.check_burst_pair
+
+   'announcement phase timing: burst_count and burst_cycle_time_ms must be set together (set both or neither)'
+
+.. err:: timing profile '{name}': sleep.timeout_ms must be greater than cycle_time_ms ...
+   :id: FLYNC-CMN-MAJ-VAL-204
+   :module: CMN
+   :severity: MAJ
+   :category: VALUE_RANGE
+   :number: 204
+   :location: state_management.GroupTiming.check_consistency
+
+   "timing profile '{name}': sleep.timeout_ms must be greater than cycle_time_ms (got timeout_ms={timeout}, cycle_time_ms={cycle})"
+
+.. err:: timing profile '{name}': announcement.burst_cycle_time_ms ({burst}) must be s...
+   :id: FLYNC-CMN-MAJ-VAL-205
+   :module: CMN
+   :severity: MAJ
+   :category: VALUE_RANGE
+   :number: 205
+   :location: state_management.GroupTiming.check_consistency
+
+   "timing profile '{name}': announcement.burst_cycle_time_ms ({burst}) must be shorter than cycle_time_ms ({cycle})"
+
+.. err:: timing profile '{name}': the announcement burst ({count} x {burst} ms) does n...
+   :id: FLYNC-CMN-MAJ-VAL-206
+   :module: CMN
+   :severity: MAJ
+   :category: VALUE_RANGE
+   :number: 206
+   :location: state_management.GroupTiming.check_consistency
+
+   "timing profile '{name}': the announcement burst ({count} x {burst} ms) does not fit within the announcement duration_ms ({duration})"
+
+.. err:: observer membership in group '{self.group}' must not define relevance_bits - ...
+   :id: FLYNC-CMN-MAJ-CONS-207
+   :module: CMN
+   :severity: MAJ
+   :category: CONSISTENCY
+   :number: 207
+   :location: state_management.StateMembershipRef.observer_owns_no_bit
+
+   f"observer membership in group '{self.group}' must not define relevance_bits - only participants reference bits"
+
+.. err:: membership in group '{self.group}' lists a relevance bit more than once in re...
+   :id: FLYNC-CMN-MAJ-UNIQ-208
+   :module: CMN
+   :severity: MAJ
+   :category: UNIQUENESS
+   :number: 208
+   :location: state_management.StateMembershipRef.no_duplicate_bits
+
+   f"membership in group '{self.group}' lists a relevance bit more than once in relevance_bits"
+
+.. err:: switch port '{sp.name}' on switch '{sp.get_switch().name}' is connected to it...
+   :id: FLYNC-ECU-MAJ-COMP-209
+   :module: ECU
+   :severity: MAJ
+   :category: COMPATIBILITY
+   :number: 209
+   :location: ecu.ECU.__validate_switch_port_connections
+
+   f"switch port '{sp.name}' on switch '{sp.get_switch().name}' is connected to itself. A component cannot be connected to itself."
+
+.. err:: switch port '{switch_port.name}' on switch '{switch_port.get_switch().name}' ...
+   :id: FLYNC-ECU-MAJ-COMP-210
+   :module: ECU
+   :severity: MAJ
+   :category: COMPATIBILITY
+   :number: 210
+   :location: ecu.ECU.__validate_switch_port_connections
+
+   f"switch port '{switch_port.name}' on switch '{switch_port.get_switch().name}' is connected to more than one component. Each switch port in the internal topology may only be connected to a single other component."
+
+.. err:: ECU port '{port.name}' is not connected in the internal topology.
+   :id: FLYNC-ECU-WARN-STRUCT-211
+   :module: ECU
+   :severity: WARN
+   :category: STRUCTURAL
+   :number: 211
+   :location: ecu.ECU.validate_no_unconnected_components
+
+   f"ECU port '{port.name}' is not connected in the internal topology."
+
+.. err:: Switch port '{switch_port.name}' (switch: '{switch_port._switch.name}') is no...
+   :id: FLYNC-ECU-WARN-STRUCT-212
+   :module: ECU
+   :severity: WARN
+   :category: STRUCTURAL
+   :number: 212
+   :location: ecu.ECU.validate_no_unconnected_components
+
+   f"Switch port '{switch_port.name}' (switch: '{switch_port._switch.name}') is not connected in the internal topology."
+
+.. err:: Controller interface '{iface.name}' (controller: '{iface._controller.name}') ...
+   :id: FLYNC-ECU-WARN-STRUCT-213
+   :module: ECU
+   :severity: WARN
+   :category: STRUCTURAL
+   :number: 213
+   :location: ecu.ECU.validate_no_unconnected_components
+
+   f"Controller interface '{iface.name}' (controller: '{iface._controller.name}') is not connected in the internal topology."
+
+.. err:: ECU port '{port.name}' (ECU: '{port.ecu.name}') is not connected in the syste...
+   :id: FLYNC-TOP-WARN-STRUCT-214
+   :module: TOP
+   :severity: WARN
+   :category: STRUCTURAL
+   :number: 214
+   :location: ethernet_topology.EthernetTopology.validate_no_unconnected_ports
+
+   f"ECU port '{port.name}' (ECU: '{port.ecu.name}') is not connected in the system topology."
+
+.. err:: {owner}: bus_ref '{bus}' does not name any bus declared under {catalogue}.
+   :id: FLYNC-CMN-MAJ-REF-215
+   :module: CMN
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 215
+   :location: interface_validators._validate_interface
+
+   "{owner}: bus_ref '{bus}' does not name any bus declared under {catalogue}."
+
+.. err:: {owner}: {field}: bus_ref '{bus}' does not name any bus declared under {catal...
+   :id: FLYNC-CMN-MAJ-REF-216
+   :module: CMN
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 216
+   :location: interface_validators._validate_interface
+
+   "{owner}: {field}: bus_ref '{bus}' does not name any bus declared under {catalogue}."
+
+.. err:: {owner}: {field}: frame_ref id={ref} does not name any frame declared on bus ...
+   :id: FLYNC-CMN-MAJ-REF-217
+   :module: CMN
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 217
+   :location: interface_validators._validate_interface
+
+   "{owner}: {field}: frame_ref id={ref} does not name any frame declared on bus '{bus}' under {catalogue}."
+
+.. err:: Deployed provided service on TCP socket ({socket.name}) of ECU ({ecu.name}) h...
+   :id: FLYNC-GEN-MAJ-CONS-218
    :module: GEN
    :severity: MAJ
    :category: CONSISTENCY
-   :number: 171
-   :location: flync_model.FLYNCModel.validate_multicast_someip
+   :number: 218
+   :location: flync_model.FLYNCModel.validate_no_someip_multicast_on_tcp
 
-   f'Deployed provided service ({svc_label}) has multicast configuration for eventgroups ({mcast_config.eventgroups}/{mcast_config.ip_address}), but socket ({socket.name}) does not indicate by multicast_tx entry ({socket.multicast_tx})'
+   f'Deployed provided service on TCP socket ({socket.name}) of ECU ({ecu.name}) has multicast configuration for eventgroups ({[mcast.eventgroups for mcast in provider.multicast_config]}); SOME/IP eventgroup multicast requires a UDP socket'
 
+.. err:: The ethernet topology file (topology/system_topology.flync.yaml) is required ...
+   :id: FLYNC-GEN-MAJ-REQ-219
+   :module: GEN
+   :severity: MAJ
+   :category: REQUIRED
+   :number: 219
+   :location: flync_model.FLYNCModel.require_ethernet_topology_when_used
+
+   'The ethernet topology file (topology/system_topology.flync.yaml) is required because system-wide Ethernet features are used: {reasons}'
+
+.. err:: Multiple ECUs declare Ethernet ports but no ethernet topology (external conne...
+   :id: FLYNC-GEN-WARN-CONS-220
+   :module: GEN
+   :severity: WARN
+   :category: CONSISTENCY
+   :number: 220
+   :location: flync_model.FLYNCModel.require_ethernet_topology_when_used
+
+   'Multiple ECUs declare Ethernet ports but no ethernet topology (external connections) is defined.'
+
+.. err:: CAN/LIN interface(s) reference unknown bus '{topo.bus_name}'. Defined buses: ...
+   :id: FLYNC-TOP-MAJ-REF-221
+   :module: TOP
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 221
+   :location: bus_topology._validate_bus_ref_known
+
+   f"CAN/LIN interface(s) reference unknown bus '{topo.bus_name}'. Defined buses: {sorted(defs)}"
+
+.. err:: bus_ref '{topo.bus_name}' referenced by ECU interface(s) cannot be verified: ...
+   :id: FLYNC-TOP-WARN-REF-222
+   :module: TOP
+   :severity: WARN
+   :category: REFERENCE
+   :number: 222
+   :location: bus_topology._validate_bus_ref_known
+
+   f"bus_ref '{topo.bus_name}' referenced by ECU interface(s) cannot be verified: no CAN/LIN bus definitions are loaded."
+
+.. err:: LIN bus '{topo.bus_name}' has {len(masters)} master interfaces ({names}); exa...
+   :id: FLYNC-TOP-MAJ-CONS-223
+   :module: TOP
+   :severity: MAJ
+   :category: CONSISTENCY
+   :number: 223
+   :location: bus_topology._validate_lin_masters
+
+   f"LIN bus '{topo.bus_name}' has {len(masters)} master interfaces ({names}); exactly one is required."
+
+.. err:: LIN bus '{topo.bus_name}' has slave interface(s) but no master interface.
+   :id: FLYNC-TOP-WARN-CONS-224
+   :module: TOP
+   :severity: WARN
+   :category: CONSISTENCY
+   :number: 224
+   :location: bus_topology._validate_lin_masters
+
+   f"LIN bus '{topo.bus_name}' has slave interface(s) but no master interface."
+
+.. err:: {kind} bus '{topo.bus_name}' is defined but no ECU interface attaches to it.
+   :id: FLYNC-TOP-WARN-CONS-226
+   :module: TOP
+   :severity: WARN
+   :category: CONSISTENCY
+   :number: 226
+   :location: bus_topology._validate_attachment_count
+
+   f"{kind} bus '{topo.bus_name}' is defined but no ECU interface attaches to it."
+
+.. err:: ECU '{self.name}' declares Ethernet interfaces or switches but has no ECU por...
+   :id: FLYNC-ECU-MAJ-REQ-227
+   :module: ECU
+   :severity: MAJ
+   :category: REQUIRED
+   :number: 227
+   :location: ecu.ECU.validate_ethernet_hw_requires_ports_and_topology
+
+   f"ECU '{self.name}' declares Ethernet interfaces or switches but has no ECU ports defined (ports.flync.yaml)."
+
+.. err:: ECU '{self.name}' declares Ethernet interfaces or switches but has no interna...
+   :id: FLYNC-ECU-MAJ-REQ-228
+   :module: ECU
+   :severity: MAJ
+   :category: REQUIRED
+   :number: 228
+   :location: ecu.ECU.validate_ethernet_hw_requires_ports_and_topology
+
+   f"ECU '{self.name}' declares Ethernet interfaces or switches but has no internal topology (topology.flync.yaml)."
+
+.. err:: The 'system_topology' attribute is deprecated and will be removed in a future...
+   :id: FLYNC-TOP-WARN-LIFE-229
+   :module: TOP
+   :severity: WARN
+   :category: LIFECYCLE
+   :number: 229
+   :location: ethernet_topology.FLYNCTopology.warn_deprecated
+
+   "The 'system_topology' attribute is deprecated and will be removed in a future release. Please use 'ethernet_topology' instead."
+
+.. err:: {kind} bus '{topo.bus_name}' has only a single attached node ({name}).
+   :id: FLYNC-TOP-WARN-CONS-230
+   :module: TOP
+   :severity: WARN
+   :category: CONSISTENCY
+   :number: 230
+   :location: bus_topology._validate_attachment_count
+
+   f"{kind} bus '{topo.bus_name}' has only a single attached node ({name})."

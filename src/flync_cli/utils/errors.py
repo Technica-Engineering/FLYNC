@@ -198,11 +198,24 @@ def _category_name(category: int) -> str:
     return Category(category).name if category else "UNCATEGORISED"
 
 
+def _catalogue_sort_key(record: ErrorRecord) -> tuple[int, int, str, int]:
+    """Order entries by error number ascending; unnumbered call sites last, by file then line.
+
+    Numbers are globally unique and never reused, so this is a total order that keeps the
+    generated document diff-stable: a newly added error appends at the end instead of being
+    inserted in the middle.
+    """
+
+    if record.number is None:
+        return (1, 0, record.file, record.lineno)
+    return (0, int(record.number), record.file, record.lineno)
+
+
 def render_catalogue(records: list[ErrorRecord]) -> str:
     """Render the full ``error_catalogue.rst`` document for the given records."""
 
     blocks = [_RST_HEADER]
-    for r in records:
+    for r in sorted(records, key=_catalogue_sort_key):
         blocks.append(
             f".. err:: {_title(r.message)}\n"
             f"   :id: {r.error_id}\n"
