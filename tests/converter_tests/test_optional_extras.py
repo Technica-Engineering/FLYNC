@@ -100,6 +100,34 @@ class TestRealImportErrorPropagates:
 
 
 # ---------------------------------------------------------------------------
+# Bare console-script entry points (I2)
+# ---------------------------------------------------------------------------
+
+
+class TestStandaloneEntryPoints:
+    """``main_interactive`` / ``main_gui`` are called directly by the console
+    scripts, outside any Click context, so they must render the ClickException
+    themselves and exit 1 rather than let a traceback escape.
+    """
+
+    @pytest.mark.parametrize(
+        ("entry_point", "extra"),
+        [("main_interactive", "tui"), ("main_gui", "gui")],
+    )
+    def test_missing_extra_prints_hint_and_exits_1(self, entry_point, extra, capsys):
+        import flync_converter.cli as cli_module
+
+        with patch("flync_converter.cli._optional.find_spec", return_value=None):
+            with pytest.raises(SystemExit) as exc_info:
+                getattr(cli_module, entry_point)()
+
+        assert exc_info.value.code == 1
+        err = capsys.readouterr().err
+        assert f"flync[{extra}]" in err
+        assert "Traceback" not in err
+
+
+# ---------------------------------------------------------------------------
 # Core import smoke test (I1)
 # ---------------------------------------------------------------------------
 

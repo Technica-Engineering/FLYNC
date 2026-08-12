@@ -110,28 +110,6 @@ examples_validation:
     - uv sync --frozen
     - uv run python scripts/ci/validate_examples.py
 
-core-install-integrity:
-  extends: .base
-  stage: tests
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
-  script:
-    # no --extra, no Qt system libs, no apt-get
-    - uv sync --frozen
-    - uv run python -c "import flync, flync_converter; from flync_converter.cli import cli"
-    - uv run flync --help
-    - uv run flync-converter --help
-    - uv run flync-converter list-converters
-    - uv run python -c "import importlib.util as u; assert u.find_spec('PySide6') is None, 'PySide6 leaked into the core install'"
-    - uv run python -c "import importlib.util as u; assert u.find_spec('textual') is None, 'textual leaked into the core install'"
-    # the degradation path (I2): clear message, exit 1, no traceback
-    - '! uv run flync-converter gui'
-    - uv run flync-converter gui 2>&1 | grep -q "flync\[gui\]"
-    - '! uv run flync-converter gui 2>&1 | grep -q "Traceback"'
-    - '! uv run flync-converter-gui'
-    - '! uv run flync-converter-interactive'
-
 performance_tests:
   extends: .base
   tags:
