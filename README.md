@@ -114,7 +114,53 @@
 | src/flync/sdk/workspace/ids.py                                  |        3 |        0 |    100% |           |
 | src/flync/sdk/workspace/objects.py                              |       95 |        3 |     97% |   166-169 |
 | src/flync/sdk/workspace/source.py                               |       11 |        0 |    100% |           |
-| **TOTAL**                                                       | **7498** |  **443** | **94%** |           |
+| src/flync\_cli/\_\_init\_\_.py                                  |        2 |        0 |    100% |           |
+| src/flync\_cli/commands/debug\_flync.py                         |       31 |       14 |     55% |25-29, 89-103 |
+| src/flync\_cli/commands/errors.py                               |       43 |        4 |     91% |44, 46, 48, 50 |
+| src/flync\_cli/commands/generate\_system\_uml.py                |      354 |       36 |     90% |123-140, 187, 211-212, 384, 387, 405, 494-495, 498-501, 504-508, 565, 567, 569, 571, 574-576, 586-587 |
+| src/flync\_cli/commands/info.py                                 |      103 |        1 |     99% |        84 |
+| src/flync\_cli/commands/service\_info.py                        |       43 |        2 |     95% |     93-94 |
+| src/flync\_cli/commands/validate.py                             |       33 |        6 |     82% |38-39, 49, 56-57, 59 |
+| src/flync\_cli/commands/vlan\_info.py                           |       67 |        2 |     97% |    89, 96 |
+| src/flync\_cli/convert\_puml.py                                 |       69 |        0 |    100% |           |
+| src/flync\_cli/main.py                                          |       26 |        4 |     85% |     44-47 |
+| src/flync\_cli/utils/error\_table.py                            |       90 |       24 |     73% |119-135, 148-163 |
+| src/flync\_cli/utils/errors.py                                  |      122 |        2 |     98% |   63, 210 |
+| src/flync\_cli/utils/mapping.py                                 |        3 |        0 |    100% |           |
+| src/flync\_cli/utils/run\_validation.py                         |       14 |        6 |     57% |     17-23 |
+| src/flync\_converter/\_\_init\_\_.py                            |       34 |        0 |    100% |           |
+| src/flync\_converter/\_\_main\_\_.py                            |        2 |        2 |      0% |       3-4 |
+| src/flync\_converter/base/\_\_init\_\_.py                       |        3 |        0 |    100% |           |
+| src/flync\_converter/base/base\_converter.py                    |       18 |        3 |     83% |54, 66, 78 |
+| src/flync\_converter/base/converter\_config.py                  |        2 |        0 |    100% |           |
+| src/flync\_converter/cli/\_\_init\_\_.py                        |       21 |        0 |    100% |           |
+| src/flync\_converter/cli/\_optional.py                          |       16 |        0 |    100% |           |
+| src/flync\_converter/cli/commands.py                            |       74 |        0 |    100% |           |
+| src/flync\_converter/cli/dynamic.py                             |       39 |        0 |    100% |           |
+| src/flync\_converter/cli/group.py                               |       18 |        0 |    100% |           |
+| src/flync\_converter/cli/gui/\_\_init\_\_.py                    |        2 |        0 |    100% |           |
+| src/flync\_converter/cli/gui/app.py                             |      113 |       12 |     89% |126-128, 140, 145, 179-180, 189-193 |
+| src/flync\_converter/cli/gui/widgets/\_\_init\_\_.py            |        3 |        0 |    100% |           |
+| src/flync\_converter/cli/gui/widgets/converter\_panel.py        |      130 |       10 |     92% |29-30, 111-113, 145, 166, 168-170 |
+| src/flync\_converter/cli/gui/widgets/log\_handler.py            |       15 |        2 |     87% |     37-38 |
+| src/flync\_converter/cli/interactive.py                         |       59 |        0 |    100% |           |
+| src/flync\_converter/cli/tui/\_\_init\_\_.py                    |        2 |        2 |      0% |       3-5 |
+| src/flync\_converter/cli/tui/app.py                             |       91 |       91 |      0% |     3-198 |
+| src/flync\_converter/cli/tui/utils.py                           |        2 |        2 |      0% |       3-5 |
+| src/flync\_converter/cli/tui/widgets/\_\_init\_\_.py            |        3 |        3 |      0% |       3-6 |
+| src/flync\_converter/cli/tui/widgets/converter\_panel.py        |       97 |       97 |      0% |     3-199 |
+| src/flync\_converter/cli/tui/widgets/log\_handler.py            |       17 |       17 |      0% |      3-34 |
+| src/flync\_converter/cli/types.py                               |       32 |        0 |    100% |           |
+| src/flync\_converter/converters/\_\_init\_\_.py                 |        5 |        0 |    100% |           |
+| src/flync\_converter/converters/dbc\_converter.py               |      114 |        1 |     99% |       292 |
+| src/flync\_converter/converters/flync\_converter.py             |       28 |        1 |     96% |        68 |
+| src/flync\_converter/converters/helpers.py                      |        4 |        0 |    100% |           |
+| src/flync\_converter/converters/json\_converter.py              |       49 |        5 |     90% |43, 59, 71, 86, 101 |
+| src/flync\_converter/converters/yaml\_converter.py              |       49 |        5 |     90% |44, 60, 72, 87, 102 |
+| src/flync\_converter/hookspec.py                                |        4 |        0 |    100% |           |
+| src/flync\_converter/registry.py                                |       32 |       19 |     41% |23-30, 37-49, 56-59 |
+| src/flync\_converter/utils.py                                   |       75 |        4 |     95% |63-64, 93-94 |
+| **TOTAL**                                                       | **9651** |  **820** | **92%** |           |
 
 
 ## Setup coverage badge
