@@ -242,10 +242,21 @@ jobs:
 
       - name: Generate reports
         run: |
-          uv run coverage combine .coverage.unit .coverage.performance
+          # performance-tests is continue-on-error, so its artifacts may be absent.
+          # Combine and merge whatever actually arrived rather than hard-failing.
+          coverage_files=$(ls .coverage.unit .coverage.performance 2>/dev/null || true)
+          junit_files=$(ls report_not_performance.xml report_performance.xml 2>/dev/null || true)
+          if [ -z "$coverage_files" ] || [ -z "$junit_files" ]; then
+            echo "::error::No test artifacts found - both test jobs failed to produce reports"
+            exit 1
+          fi
+          for f in .coverage.performance report_performance.xml; do
+            [ -f "$f" ] || echo "::warning::$f missing - performance-tests produced no artifacts"
+          done
+          uv run coverage combine $coverage_files
           uv run coverage xml
           uv run coverage report
-          uv run python -m junitparser merge report_not_performance.xml report_performance.xml report.xml
+          uv run python -m junitparser merge $junit_files report.xml
 
       - name: Coverage comment
         id: coverage_comment
