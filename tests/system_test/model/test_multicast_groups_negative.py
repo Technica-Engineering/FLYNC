@@ -1,8 +1,8 @@
 import pytest
 from pydantic import ValidationError
 
+from flync.core.utils.exceptions_handling import validate_with_policy
 from flync.model.flync_4_ecu.multicast_groups import MulticastGroupMembership
-from flync.sdk.workspace.flync_workspace import validate_with_policy
 
 
 @pytest.mark.parametrize(

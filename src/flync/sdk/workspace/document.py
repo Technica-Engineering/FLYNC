@@ -156,11 +156,9 @@ def read_file(path: PathType) -> str:
     """
     try:
         with open(path, "r", encoding="utf-8") as direct_data:
-            text = direct_data.read()
-            return text
-    except:  # noqa: E722  # NOSONAR
-        pass
-    return ""
+            return direct_data.read()
+    except (OSError, UnicodeDecodeError):
+        return ""
 
 
 def parse_documents(paths, ws_root, needs_compose):

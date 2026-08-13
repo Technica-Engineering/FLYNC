@@ -11,6 +11,7 @@ FLYNC Workspace
 .. autoclass:: flync.sdk.workspace.flync_workspace.FLYNCWorkspace
    :members:
    :undoc-members:
+   :inherited-members:
 
 .. automodule:: flync.sdk.context.workspace_config
    :members:
