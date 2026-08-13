@@ -5,7 +5,6 @@ Provides common type aliases used across SDK modules.
 """
 
 from pathlib import Path
-from typing import TypeAlias
 
-PathType: TypeAlias = Path | str
+type PathType = Path | str
 """A type alias that accepts either a :class:`pathlib.Path` or a plain :class:`str`."""
