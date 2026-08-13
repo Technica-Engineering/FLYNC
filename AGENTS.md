@@ -72,8 +72,6 @@ tests/
 ├── system_test/   # System/integration tests (model + sdk)
 ├── cli_tests/     # CLI tests
 ├── converter_tests/ # Converter tests (includes test_plugin/ for plugin integration)
-├── model/         # Model-level integration tests (tests_4_ecu, tests_4_someip, etc.)
-├── sdk/           # SDK-level tests (includes fuzzed/)
 └── conftest.py    # Root conftest — pre-loads flync_example workspace for xdist workers
 ```
 
@@ -270,7 +268,14 @@ uv run pytest -k "test_unique"                        # keyword filter
 uv run pytest --no-header -v --tb=short               # verbose, short tracebacks
 ```
 
-Pytest config in `pyproject.toml` under `[tool.pytest.ini_options]` (`addopts`): `-n auto --cov=flync --cov=flync_cli --cov=flync_converter --cov-report=term --cov-report=xml --junitxml=report.xml` (`testpaths = ["tests"]`).
+Pytest config lives **only** in `pyproject.toml` under `[tool.pytest.ini_options]` — `addopts` (`-n auto --cov=flync --cov=flync_cli --cov=flync_converter --cov-report=term --cov-report=xml --junitxml=report.xml`), `testpaths = ["tests"]`, the 5-minute per-test `timeout`, and the `markers` list (`performance`, `critical_api`, `no_xdist`). Do **not** add a `pytest.ini` / `tox.ini` / `setup.cfg` `[pytest]` section: any of those takes precedence over `pyproject.toml` and silently disables all of the above (pytest prints `WARNING: ignoring pytest config in pyproject.toml!`).
+
+**Benchmarks need `-n 0`.** pytest-benchmark disables itself whenever xdist distributes, so the
+`performance`-marked tests must override the `-n auto` from `addopts`:
+
+```bash
+uv run pytest -m performance -n 0
+```
 
 `tests/converter_tests/test_gui.py` skips on a default `uv sync`. To run it:
 
@@ -303,7 +308,10 @@ cd docs && make html    # Sphinx, generates mermaid diagrams + CLI docs
 
 - **GitHub Actions** (primary) — workflows in `.github/workflows/`:
   - `push_and_pr.yaml` — main test/lint pipeline on push and PR
-    - 7 jobs: `format-check` (Black), `isort`, `lint` (flake8), `type-check` (mypy), `pytest` (two splits: normal + performance, combined coverage), `example-validation`, `build-documentation`
+    - Static checks: `format-check` (Black), `isort`, `lint` (flake8), `type-check` (mypy), `error-catalogue-check` (`flync errors validate-catalogue`)
+    - Test splits (all gated on the static checks): `unit-tests`, `system-tests`, `cli-tests` (core env), `converter-tests` and `performance-tests` (Qt/PySide6 apt libs + `--group qt --extra gui --extra tui`); `performance-tests` is `continue-on-error`
+    - `tests-summary` — runs with `if: always()`, combines the per-split `.coverage.*` / `report_*.xml` into `coverage.xml` + `report.xml` and posts the PR coverage comment; missing splits produce warnings, only a total absence of artifacts fails the job
+    - Plus `example-validation` and `build-documentation`
     - Triggers on push/PR to `main` and `release-*` branches
     - Posts coverage comment on PRs
   - `pr_sonar_and_coverage_reports.yaml` — SonarQube analysis + coverage reporting

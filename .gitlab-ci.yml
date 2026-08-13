@@ -125,7 +125,8 @@ performance_tests:
     - apt-get update && apt-get install -y libglib2.0-0 libgl1 libegl1 libdbus-1-3 libfontconfig1 libxcb1 libxkbcommon0
     - uv sync --frozen --group test --group qt --extra gui --extra tui
     - uv pip install -e tests/converter_tests/test_plugin/ --no-deps
-    - COVERAGE_FILE=.coverage.performance uv run pytest -m performance --cov=flync --cov=flync_cli --cov=flync_converter --cov-report= --junitxml=report_performance.xml --durations=0
+    # -n 0 overrides the `-n auto` in addopts: pytest-benchmark disables itself under xdist.
+    - COVERAGE_FILE=.coverage.performance uv run pytest -n 0 -m performance --cov=flync --cov=flync_cli --cov=flync_converter --cov-report= --junitxml=report_performance.xml --durations=0
   artifacts:
     when: always
     expire_in: "30 days"
