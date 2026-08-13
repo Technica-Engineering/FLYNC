@@ -4,14 +4,12 @@ Field utility helpers for the FLYNC SDK.
 Provides functions for extracting metadata and display names from Pydantic model fields.
 """
 
-from typing import Iterable, Optional, TypeVar
+from typing import Iterable
 
 from pydantic import BaseModel
 
-T = TypeVar("T")
 
-
-def get_metadata(meta: Iterable[object], cls: type[T]) -> Optional[T]:
+def get_metadata[T](meta: Iterable[object], cls: type[T]) -> T | None:
     """
     Return the first metadata object of the specified type.
 
@@ -29,7 +27,7 @@ def get_metadata(meta: Iterable[object], cls: type[T]) -> Optional[T]:
     return None
 
 
-def get_name(named_object: T, attr_name: str, fallback_name: str | None = None) -> str:
+def get_name[T](named_object: T, attr_name: str, fallback_name: str | None = None) -> str:
     """
     Retrieve a display name for an object.
 
