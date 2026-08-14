@@ -287,7 +287,7 @@ def errors_to_init_errors(
         ctx = _enrich_error_ctx(e, model, yaml_data, yaml_path)
         error_detail = InitErrorDetails(
             type=PydanticCustomError(e.get("type", ""), e.get("msg", ""), ctx),
-            loc=e.get("loc", tuple()),
+            loc=e.get("loc", ()),
             input=e.get("input"),
             ctx=ctx,
         )
@@ -344,7 +344,7 @@ def _get_error_signature(error_details: ErrorDetails) -> Tuple:
     Tuple
     """
 
-    loc: Tuple[int | str, ...] = error_details.get("loc", tuple())
+    loc: Tuple[int | str, ...] = error_details.get("loc", ())
     msg = error_details.get("msg")
     error_type = error_details.get("type")
 

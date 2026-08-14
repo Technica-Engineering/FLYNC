@@ -229,7 +229,7 @@ def write_dbc_files(flync_model: FLYNCModel, root_folder: str):
             db,
             str(fn),
             database_format="dbc",
-            sort_signals=lambda signals: list(sorted(signals, key=lambda sig: sig.start)),
+            sort_signals=lambda signals: sorted(signals, key=lambda sig: sig.start),
         )
 
 

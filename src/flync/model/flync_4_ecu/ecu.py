@@ -540,7 +540,7 @@ class ECU(FLYNCBaseModel):
                 if socket_container.vlan_id == vlan_id
                 for socket in socket_container.sockets or []
             ]
-            for vlan_id in set(socket_container.vlan_id for socket_container in all_socket_containers)
+            for vlan_id in {socket_container.vlan_id for socket_container in all_socket_containers}
         }
 
     def get_interface_for_ip(self, ip):

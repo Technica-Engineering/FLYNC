@@ -311,8 +311,8 @@ class FLYNCModel(FLYNCBaseModel):
     @model_validator(mode="after")
     def validate_multicast_paths(self):
         try:
-            paths = dict()
-            vlans_dict = dict()
+            paths = {}
+            vlans_dict = {}
             separ = "/VLAN"
             for ecu in self.ecus:
                 for mcast in ecu.multicast_groups:

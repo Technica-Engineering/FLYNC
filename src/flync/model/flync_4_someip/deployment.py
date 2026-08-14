@@ -207,7 +207,7 @@ class SOMEIPServiceConsumer(SOMEIPServiceDeployment):
         super().bind(services_by_key, sd_timings_by_id)
         if self.consumed_eventgroups is not None and self._service_ref is not None:
             consumed = set(self.consumed_eventgroups)
-            provided = set(eg.name for eg in (self._service_ref.eventgroups or []))
+            provided = {eg.name for eg in (self._service_ref.eventgroups or [])}
             found = consumed.intersection(provided)
             assert found == consumed, f"Did not find eventgroups with names {consumed - found}"
 

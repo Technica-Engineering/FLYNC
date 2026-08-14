@@ -152,7 +152,7 @@ def add_switch_port_nodes(ports, all_nodes, vlan_id, vlans, switch_name, ecu_nod
                 break
     else:
         match_vlan = True
-        allowed_ports = set(p.name for p in ports)
+        allowed_ports = {p.name for p in ports}
 
     if match_vlan:
         port_dict = {}
@@ -469,15 +469,15 @@ def parse_and_generate_uml(flync, vlan_id, options, ecus, connections):
     ]
     all_nodes = {}
     all_nodes["defined_nodes"] = set()
-    all_nodes["node_types"] = dict()
+    all_nodes["node_types"] = {}
     all_nodes["included_nodes"] = set()
     all_nodes["included_ecus"] = set()
     all_nodes["internally_connected_ports"] = set()
-    all_nodes["macsec_nodes"] = dict()
-    all_nodes["ptp_nodes"] = dict()
-    all_nodes["qos_nodes"] = dict()
-    all_nodes["ecu_data"] = dict()
-    all_nodes["iface_info_nodes"] = dict()
+    all_nodes["macsec_nodes"] = {}
+    all_nodes["ptp_nodes"] = {}
+    all_nodes["qos_nodes"] = {}
+    all_nodes["ecu_data"] = {}
+    all_nodes["iface_info_nodes"] = {}
 
     for ecu in ecus:
         ecu_name = ecu.name

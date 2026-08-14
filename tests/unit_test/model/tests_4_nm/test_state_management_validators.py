@@ -160,7 +160,7 @@ def _bus(name="DiagCAN", frames=(), memberships=(), baud_rate=500_000):
     return SimpleNamespace(name=name, frames=list(frames), state_memberships=list(memberships), baud_rate=baud_rate)
 
 
-@pytest.fixture()
+@pytest.fixture
 def captured_warnings():
     token = _validation_warnings.set([])
     try:
