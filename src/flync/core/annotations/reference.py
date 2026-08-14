@@ -18,9 +18,15 @@ class ReferenceStrategy(IntFlag):
 class Reference:
     """
     Indicates this field is a reference to an already loaded/generated field.
+
+    Args:
+        source: Name of the private attribute on the model that holds the referenced Pydantic model object.
+        source_key: Attribute name on the referenced model whose value is used as the reference field's content. Defaults to ``name``.
+        reference_strategy: Controls how the reference is stored and resolved.
     """
 
     source: str
+    source_key: str = "name"
     reference_strategy: ReferenceStrategy = ReferenceStrategy.PRIVATE_ATTR
 
 

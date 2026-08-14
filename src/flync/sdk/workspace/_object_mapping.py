@@ -7,17 +7,20 @@ used by the SDK and the language server. Depends only on :mod:`._base`.
 
 import logging
 from itertools import chain
+from pathlib import Path
 from typing import TYPE_CHECKING, Optional, cast
 
-from pydantic import RootModel
+from pydantic import RootModel, ValidationError
 from pydantic.fields import FieldInfo
 from ruamel.yaml.nodes import MappingNode, Node, SequenceNode
 from typing_extensions import deprecated
 
-from flync.core.annotations.reference import resolve_reference
+from flync.core.annotations.reference import Reference, resolve_reference
 from flync.core.base_models.base_model import FLYNCBaseModel
-from flync.core.utils.exceptions_handling import get_name_by_alias
+from flync.core.utils.exceptions_handling import get_name_by_alias, get_unique_errors, has_validators, validate_with_policy
 from flync.sdk.context.workspace_config import ListObjectsMode
+from flync.sdk.utils.field_utils import get_field_name_from_alias, get_metadata
+from flync.sdk.utils.model_dumper import dump_model_with_discriminators
 
 from ._base import _WorkspaceBase
 from .ids import ObjectId
@@ -518,3 +521,168 @@ class _WorkspaceObjectMapping(_WorkspaceBase):
             ):
                 result.append(oid)
         return result
+
+    def revalidate_references_of(self, id: ObjectId) -> None:
+        """
+        Revalidate all reference relationships for a given semantic object and
+        propagate changes upward through its parent objects.
+
+        This method ensures that when a model is modified at runtime, every
+        field in the workspace that references it is brought up to date. It
+        performs a breadth-first walk of the reference graph:
+
+        1. Collects all references pointing to the changed object.
+        2. For each referencing parent, reads ``changed_model.<source_key>``
+           (default: ``"name"``) to obtain the new scalar value for the
+           reference field and writes it onto the parent via ``setattr``.
+        3. Re-validates the parent so that any ``@model_validator`` or
+           ``@field_validator`` methods are re-run.
+        4. Enqueues the parent's own parent for further re-validation so
+           that changes cascade upward through the hierarchy.
+
+        Once all affected objects have been re-validated, every document that
+        changed is serialized back to disk.
+
+        Args:
+            id (ObjectId): The ObjectId of the changed object whose references
+                should be updated.
+        """
+        model_changed: SemanticObject = self.get_object(id)
+        need_revalidate = self.get_references_of(id)
+        affected_files: set[str] = set()
+        affected_files.add(self.get_source(id).uri)
+        revalidated_objects: set[ObjectId] = set()
+        objects_to_revalidate: list[ObjectId] = list(need_revalidate)
+
+        while objects_to_revalidate:
+            nr = objects_to_revalidate.pop(0)
+            if nr in revalidated_objects:
+                continue
+
+            field_obj_ref: SemanticObject = self.get_object(nr)
+            meta = self.get_metadata(nr)
+            parent_id = meta.parent_id
+            child_field_name = meta.name
+            if parent_id is None or child_field_name is None or not self.has_object(ObjectId(parent_id)):
+                continue
+
+            parent_id = ObjectId(parent_id)
+            parent_obj_ref: SemanticObject = self.get_object(parent_id)
+            if not isinstance(parent_obj_ref.model, FLYNCBaseModel):
+                continue
+
+            field_name = get_field_name_from_alias(type(parent_obj_ref.model), child_field_name)
+            field_info = type(parent_obj_ref.model).model_fields[field_name]
+
+            if ref := get_metadata(field_info.metadata, Reference):
+                parent_source = self.get_source(parent_id)
+                try:
+                    # Read source_key (default "name") from the changed model
+                    # to obtain the new scalar value for the parent's reference
+                    # field (e.g. the new name of the referenced object).
+                    new_value = getattr(model_changed.model, ref.source_key)
+                    field_obj_ref.model = new_value
+                    setattr(parent_obj_ref.model, field_name, new_value)
+
+                except ValidationError as e:
+                    merged_errors = self.documents_diags[parent_source.uri] + e.errors()
+                    self.documents_diags[parent_source.uri] = get_unique_errors(merged_errors)
+
+                affected_files.add(parent_source.uri)
+
+                self.__revalidate_model(parent_id, parent_obj_ref)
+                revalidated_objects.add(nr)
+
+                # Always walk up to parent, even if parent has no direct references
+                # Parent might have @model_validator or @field_validator
+                self.__enqueue_parent_for_revalidation(parent_id, objects_to_revalidate, revalidated_objects)
+
+        for affected_file in affected_files:
+            self.__persist_document_changes(affected_file)
+
+    def __enqueue_parent_for_revalidation(
+        self,
+        object_id: ObjectId,
+        queue: list[ObjectId],
+        revalidated: set[ObjectId],
+    ) -> None:
+        """
+        Add an object's parent to the revalidation queue if it has validators.
+
+        Walks up the hierarchy to find parents with custom validators
+        (@model_validator or @field_validator).
+
+        Args:
+            object_id (ObjectId): The object whose parent to check.
+            queue (list[ObjectId]): The revalidation queue (updated in place).
+            revalidated (set[ObjectId]): Already-revalidated objects (to avoid cycles).
+        """
+        parent_id: ObjectId
+        while True:
+            meta_parent_id = self.get_metadata(object_id).parent_id
+            if meta_parent_id is None or ObjectId(meta_parent_id) in revalidated:
+                break
+            parent_id = ObjectId(meta_parent_id)
+            if not self.has_object(parent_id):
+                continue
+
+            parent_obj = self.get_object(parent_id)
+            if isinstance(parent_obj.model, FLYNCBaseModel) and has_validators(type(parent_obj.model)):
+                if parent_id not in queue and parent_id not in revalidated:
+                    queue.append(parent_id)
+                    break
+            object_id = parent_id
+            if object_id == "":
+                break
+
+    def __revalidate_model(self, object_id: ObjectId, semantic_obj: SemanticObject) -> None:
+        """
+        Revalidate a single semantic object and update its diagnostics.
+
+        Dumps the model to a dict via ``dump_model_with_discriminators`` and
+        runs ``validate_with_policy`` to re-check all constraints — including
+        any ``@model_validator`` or ``@field_validator`` decorated methods.
+        New errors are merged into the document's diagnostics store.
+
+        Args:
+            object_id (ObjectId): The ID of the object being revalidated.
+            semantic_obj (SemanticObject): The semantic object wrapper.
+        """
+        if not isinstance(semantic_obj.model, FLYNCBaseModel):
+            return
+
+        parent_type = type(semantic_obj.model)
+        source_ref = self.get_source(object_id)
+        model_dict = dump_model_with_discriminators(semantic_obj.model, exclude_unset=self.configuration.exclude_unset)
+        doc_id = source_ref.uri
+        _, errors = validate_with_policy(parent_type, model_dict, Path(doc_id).as_posix())
+        # Update diagnostics for this document
+        merged_errors = self.documents_diags[doc_id] + errors
+        self.documents_diags[doc_id] = get_unique_errors(merged_errors)
+
+    def __persist_document_changes(self, uri: str) -> None:
+        """
+        Serialize and write a document's top-level model to disk.
+
+        Finds the root object(s) for a document, serializes them with all fields
+        (including external fields), and writes to disk in FLYNC file format.
+
+        Args:
+            uri (str): The document URI (workspace-relative path).
+        """
+        root_id = min([obj_id for obj_id, src in self.sources.items() if src.uri == uri], key=lambda x: x.count("."))
+        while True:
+            root_object: SemanticObject | None
+            if self.has_object(root_id):
+                root_object = self.get_object(root_id)
+            if root_object is None or not isinstance(root_object.model, FLYNCBaseModel):
+                if (parent_id := self.get_metadata(root_id).parent_id) is None:
+                    break
+                root_id = ObjectId(parent_id)
+                continue
+
+            cast("FLYNCWorkspace", self).load_flync_model(
+                root_object.model,
+                self.get_source(root_id).uri.removesuffix(self.configuration.flync_file_extension),
+            )
+            break

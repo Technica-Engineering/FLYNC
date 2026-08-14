@@ -12,6 +12,7 @@ from flync.model import FLYNCModel
 from flync.model.flync_4_ecu import ECU, Controller, ECUPort
 from flync.model.flync_4_ecu.internal_topology import ECUPortToSwitchPort
 from flync.model.flync_4_ecu.switch import Switch
+from flync.sdk.context.diagnostics_result import DiagnosticsResult
 from flync.sdk.context.workspace_config import (
     ListObjectsMode,
     WorkspaceConfiguration,
@@ -27,6 +28,7 @@ from flync.sdk.helpers.validation_helpers import (
     validate_workspace,
 )
 from flync.sdk.utils.field_utils import get_field_name_from_alias
+from flync.sdk.utils.sdk_types import PathType
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 from flync.sdk.workspace.ids import ObjectId
 
@@ -75,7 +77,11 @@ TEST_OBJECTS_PATHS = [
 
 
 def test_workspace_validator_api(get_flync_example_path):
-    validation_result = validate_workspace(get_flync_example_path)
+    __assert_workspace_validation(get_flync_example_path)
+
+
+def __assert_workspace_validation(flync_workspace_path: PathType, workspace_config: WorkspaceConfiguration | None = None) -> DiagnosticsResult:
+    validation_result = validate_workspace(flync_workspace_path, workspace_config)
     assert (validation_result.state == WorkspaceState.VALID) or (validation_result.state == WorkspaceState.WARNING)
     assert validation_result.workspace is not None
     assert validation_result.model is not None
@@ -89,6 +95,7 @@ def test_workspace_validator_api(get_flync_example_path):
     assert validation_result.model.communication.tcp_profiles
     assert validation_result.model.metadata
     assert model_has_socket(validation_result.model)
+    return validation_result
 
 
 params = [pytest.param(cls, path, id=name) for cls, path, name in zip(TEST_MODEL_TYPES, TEST_MODEL_PATHS, TEST_MODEL_TYPES_NAMES)]
@@ -423,3 +430,32 @@ def test_generate_node_set_attribue(get_flync_example_path, tmp_path):
     )
     ws_updated = FLYNCWorkspace.load_workspace("test_set_attr_updated", workspace_path, config)
     assert ws_updated.get_object(f"{owner_model_id}.{attr_fname}").model.mac_address == "00:11:03:03:01:01"
+
+
+def test_revalidate_changed_model(get_relative_flync_example_path, tmp_path):
+    output_path = tmp_path / "generated" / "revalidate_changed_model"
+    shutil.copytree(get_relative_flync_example_path, output_path, dirs_exist_ok=True)
+
+    config = WorkspaceConfiguration(
+        map_objects=True,
+        list_objects_mode=ListObjectsMode.NAME,
+    )
+    loaded_ws = FLYNCWorkspace.load_workspace(
+        workspace_name="flync_workspace_from_folder",
+        workspace_path=output_path,
+        workspace_config=config,
+    )
+    object_id = "ecus.eth_ecu.ports.ports.eth_ecu_p1"
+    port = loaded_ws.get_object(object_id).model
+    port.name = "changed_port"
+    need_revalidate = loaded_ws.get_references_of(object_id)
+    loaded_ws.revalidate_references_of(object_id)
+
+    validated_ws = __assert_workspace_validation(output_path, config).workspace
+    validated_changed_port = validated_ws.get_object("ecus.eth_ecu.ports.ports.changed_port").model
+
+    assert validated_changed_port.name == "changed_port"
+
+    updated_models = [validated_ws.get_object(nr).model for nr in need_revalidate]
+    assert len(updated_models) == 2
+    assert updated_models[0] == "changed_port"

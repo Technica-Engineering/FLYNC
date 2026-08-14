@@ -613,3 +613,23 @@ def validate_with_policy(model: Type[FLYNCBaseModel], data: Any, path) -> Tuple[
         return None, get_unique_errors(collected_errors + accumulated)
     finally:
         _validation_warnings.reset(warnings_token)
+
+
+def has_validators(model_type: type[FLYNCBaseModel]) -> bool:
+    """
+    Check if a model class has @model_validator or @field_validator decorators.
+
+    Args:
+        model_type (type[FLYNCBaseModel]): The model class to inspect.
+
+    Returns:
+        bool: True if the model has any validators.
+    """
+    if hasattr(model_type, "__pydantic_decorators__"):
+        decorators = model_type.__pydantic_decorators__
+        if (hasattr(decorators, "field_validators") and decorators.field_validators) or (
+            hasattr(decorators, "model_validators") and decorators.model_validators
+        ):
+            return True
+
+    return False
