@@ -25,9 +25,9 @@ jobs:
       - name: Prepare
         run: uv sync --frozen --group docs
 
-      - name: Generate Error Catalogue
+      - name: Generate Error Catalog
         run: |
-          uv run python src/flync_cli/main.py errors generate-catalogue
+          uv run python src/flync_cli/main.py errors generate-catalog
 
       - name: Build the docs
         run: |

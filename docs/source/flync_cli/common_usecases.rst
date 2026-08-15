@@ -98,13 +98,13 @@ Get the next free number, then add it (with a ``category``) at the factory call 
 
    raise err_major("Port {name} is invalid.", category=Category.VALUE_RANGE, error_number="175")
 
-Keeping the error catalogue in sync
+Keeping the error catalog in sync
 -----------------------------------
 
-Check the code against the catalogue, then regenerate it:
+Check the code against the catalog, then regenerate it:
 
 .. code-block:: bash
 
-   flync errors validate-catalogue
-   flync errors generate-catalogue
+   flync errors validate-catalog
+   flync errors generate-catalog
 

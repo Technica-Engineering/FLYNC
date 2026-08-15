@@ -8,12 +8,12 @@ from flync.core.utils.exceptions import Severity
 from flync_cli.commands.errors import app
 from flync_cli.utils import errors
 from flync_cli.utils.errors import (
-    CatalogueReport,
+    CatalogReport,
     ErrorRecord,
     next_error_number,
-    parse_catalogue_ids,
-    render_catalogue,
-    validate_catalogue,
+    parse_catalog_ids,
+    render_catalog,
+    validate_catalog,
 )
 
 runner = CliRunner()
@@ -166,7 +166,7 @@ class TestCategoryNameAndTitle:
 
 class TestRenderAndParse:
     def test_render_contains_all_fields(self):
-        out = render_catalogue([rec(error_id="FLYNC-ECU-MAJ-VAL-001", location="m.f")])
+        out = render_catalog([rec(error_id="FLYNC-ECU-MAJ-VAL-001", location="m.f")])
         assert ".. err:: boom" in out
         assert ":id: FLYNC-ECU-MAJ-VAL-001" in out
         assert ":module: ECU" in out
@@ -181,49 +181,49 @@ class TestRenderAndParse:
             rec(error_id="FLYNC-ECU-MAJ-VAL-001", number="001"),
             rec(error_id="FLYNC-BUS-MIN-REQ-002", number="002"),
         ]
-        assert parse_catalogue_ids(render_catalogue(records)) == [
+        assert parse_catalog_ids(render_catalog(records)) == [
             "FLYNC-ECU-MAJ-VAL-001",
             "FLYNC-BUS-MIN-REQ-002",
         ]
 
 
-class TestValidateCatalogue:
+class TestValidateCatalog:
     def test_clean_is_ok(self):
         records = [rec(error_id="FLYNC-ECU-MAJ-VAL-001", number="001", category=1)]
-        report = validate_catalogue(records, render_catalogue(records))
+        report = validate_catalog(records, render_catalog(records))
         assert report.ok
 
     def test_detects_unnumbered(self):
-        report = validate_catalogue([rec(number=None)], "")
+        report = validate_catalog([rec(number=None)], "")
         assert len(report.unnumbered) == 1
 
     def test_detects_uncategorised(self):
-        report = validate_catalogue([rec(category=0)], None)
+        report = validate_catalog([rec(category=0)], None)
         assert len(report.uncategorised) == 1
         assert report.invalid_category == []
 
     def test_detects_invalid_category_separately(self):
-        report = validate_catalogue([rec(category=0, bad_category="Category.NOPE")], None)
+        report = validate_catalog([rec(category=0, bad_category="Category.NOPE")], None)
         assert len(report.invalid_category) == 1
         assert report.uncategorised == []
 
     def test_detects_duplicate_numbers(self):
         records = [rec(number="001"), rec(number="001")]
-        report = validate_catalogue(records, None)
+        report = validate_catalog(records, None)
         assert "001" in report.duplicate_numbers
 
-    def test_missing_from_catalogue_when_file_absent(self):
+    def test_missing_from_catalog_when_file_absent(self):
         records = [rec(error_id="FLYNC-ECU-MAJ-VAL-001", number="001")]
-        report = validate_catalogue(records, None)
-        assert report.missing_from_catalogue == ["FLYNC-ECU-MAJ-VAL-001"]
+        report = validate_catalog(records, None)
+        assert report.missing_from_catalog == ["FLYNC-ECU-MAJ-VAL-001"]
 
-    def test_orphaned_ids_in_catalogue(self):
-        text = render_catalogue([rec(error_id="FLYNC-ECU-MAJ-VAL-999", number="999")])
-        report = validate_catalogue([], text)
-        assert report.orphaned_in_catalogue == ["FLYNC-ECU-MAJ-VAL-999"]
+    def test_orphaned_ids_in_catalog(self):
+        text = render_catalog([rec(error_id="FLYNC-ECU-MAJ-VAL-999", number="999")])
+        report = validate_catalog([], text)
+        assert report.orphaned_in_catalog == ["FLYNC-ECU-MAJ-VAL-999"]
 
     def test_empty_report_is_ok(self):
-        assert CatalogueReport([], [], [], {}, [], []).ok
+        assert CatalogReport([], [], [], {}, [], []).ok
 
 
 class TestGetNextNumberCommand:
@@ -234,13 +234,13 @@ class TestGetNextNumberCommand:
         assert "008" in result.stdout
 
 
-class TestValidateCatalogueCommand:
+class TestValidateCatalogCommand:
     def test_clean_exits_zero(self, tmp_path):
         records = [rec(error_id="FLYNC-ECU-MAJ-VAL-001", number="001", category=1)]
-        catalogue = tmp_path / "cat.rst"
-        catalogue.write_text(render_catalogue(records))
-        with patch("flync_cli.commands.errors.scan_error_calls", return_value=records), patch("flync_cli.commands.errors.CATALOGUE_PATH", catalogue):
-            result = runner.invoke(app, ["validate-catalogue"])
+        catalog = tmp_path / "cat.rst"
+        catalog.write_text(render_catalog(records))
+        with patch("flync_cli.commands.errors.scan_error_calls", return_value=records), patch("flync_cli.commands.errors.CATALOG_PATH", catalog):
+            result = runner.invoke(app, ["validate-catalog"])
         assert result.exit_code == 0
         assert "in sync" in result.stdout
 
@@ -248,24 +248,24 @@ class TestValidateCatalogueCommand:
         records = [rec(error_id="FLYNC-ECU-MAJ-VAL-001", number=None, category=0, bad_category="Category.NOPE")]
         with (
             patch("flync_cli.commands.errors.scan_error_calls", return_value=records),
-            patch("flync_cli.commands.errors.CATALOGUE_PATH", tmp_path / "does_not_exist.rst"),
+            patch("flync_cli.commands.errors.CATALOG_PATH", tmp_path / "does_not_exist.rst"),
         ):
-            result = runner.invoke(app, ["validate-catalogue"])
+            result = runner.invoke(app, ["validate-catalog"])
         assert result.exit_code == 1
 
 
-class TestGenerateCatalogueCommand:
+class TestGenerateCatalogCommand:
     def test_refuses_when_call_sites_incomplete(self):
         with patch("flync_cli.commands.errors.scan_error_calls", return_value=[rec(number=None)]):
-            result = runner.invoke(app, ["generate-catalogue"])
+            result = runner.invoke(app, ["generate-catalog"])
         assert result.exit_code == 1
         assert "Cannot generate" in result.stdout
 
-    def test_writes_catalogue_when_clean(self, tmp_path):
+    def test_writes_catalog_when_clean(self, tmp_path):
         records = [rec(error_id="FLYNC-ECU-MAJ-VAL-001", number="001", category=1)]
-        catalogue = tmp_path / "out.rst"
-        with patch("flync_cli.commands.errors.scan_error_calls", return_value=records), patch("flync_cli.commands.errors.CATALOGUE_PATH", catalogue):
-            result = runner.invoke(app, ["generate-catalogue"])
+        catalog = tmp_path / "out.rst"
+        with patch("flync_cli.commands.errors.scan_error_calls", return_value=records), patch("flync_cli.commands.errors.CATALOG_PATH", catalog):
+            result = runner.invoke(app, ["generate-catalog"])
         assert result.exit_code == 0
-        assert catalogue.exists()
-        assert "FLYNC-ECU-MAJ-VAL-001" in catalogue.read_text()
+        assert catalog.exists()
+        assert "FLYNC-ECU-MAJ-VAL-001" in catalog.read_text()

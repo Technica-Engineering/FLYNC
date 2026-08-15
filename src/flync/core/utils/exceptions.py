@@ -39,7 +39,7 @@ class Category(IntEnum):
     LIFECYCLE = 9
 
 
-# Short category codes used in the error ID; the catalogue still shows the full name.
+# Short category codes used in the error ID; the catalog still shows the full name.
 CATEGORY_CODE: dict[Category, str] = {
     Category.VALUE_RANGE: "VAL",
     Category.REQUIRED: "REQ",

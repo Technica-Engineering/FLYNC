@@ -87,7 +87,7 @@ type_check:
       - type-check-reports/
     when: on_failure
 
-error-catalogue-integrity:
+error-catalog-integrity:
   extends: .base
   stage: static-analysis
   rules:
@@ -96,7 +96,7 @@ error-catalogue-integrity:
     - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
   script:
     - uv sync --frozen
-    - uv run python src/flync_cli/main.py errors validate-catalogue
+    - uv run python src/flync_cli/main.py errors validate-catalog
 
 examples_validation:
   extends: .base
@@ -231,7 +231,7 @@ docs-build:
   allow_failure: true
   needs:
     - job: test-summary
-    - job: error-catalogue-integrity
+    - job: error-catalog-integrity
   stage: docs
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
@@ -239,8 +239,8 @@ docs-build:
     - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
   script:
     - uv sync --frozen --group docs
-    - echo "--- GENERATING ERROR CATALOGUE ---"
-    - uv run python src/flync_cli/main.py errors generate-catalogue
+    - echo "--- GENERATING ERROR CATALOG ---"
+    - uv run python src/flync_cli/main.py errors generate-catalog
     - echo "--- BUILDING DOCS ---"
     - cd ./docs
     - make SPHINXOPTS='--fail-on-warning' html

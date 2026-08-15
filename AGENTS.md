@@ -131,12 +131,12 @@ tests/
 | `commands/generate_system_uml.py` | PlantUML system diagram generation from workspace |
 | `commands/service_info.py` | SOME/IP service consumer/provider deployments |
 | `commands/debug_flync.py` | Debug print helpers for model subtrees and structure |
-| `commands/errors.py` | FLYNC error catalogue inspection and maintenance |
-| `utils/` | Shared utilities: error table rendering, error catalogue scanning, connection mapping, validation runner |
+| `commands/errors.py` | FLYNC error catalog inspection and maintenance |
+| `utils/` | Shared utilities: error table rendering, error catalog scanning, connection mapping, validation runner |
 
-## Error Catalogue
+## Error Catalog
 
-FLYNC uses a structured, globally-unique error ID system for all validation errors and warnings. The code is the source of truth — the documentation catalogue is generated from it.
+FLYNC uses a structured, globally-unique error ID system for all validation errors and warnings. The code is the source of truth — the documentation catalog is generated from it.
 
 ### Error ID Format
 
@@ -187,15 +187,15 @@ warn(
 
 1. Get the next free number: `flync errors get-next-number`
 2. Use it in your factory call with the appropriate `category=Category.<NAME>` and `error_number="<NNN>"`
-3. Regenerate the catalogue: `flync errors generate-catalogue`
-4. Verify everything is in sync: `flync errors validate-catalogue`
+3. Regenerate the catalog: `flync errors generate-catalog`
+4. Verify everything is in sync: `flync errors validate-catalog`
 
 ### CLI Commands
 
 ```bash
 flync errors get-next-number       # Print the next free globally-unique error number
-flync errors validate-catalogue    # Check code ↔ docs/source/error_catalogue.rst drift (exits 1 on mismatch)
-flync errors generate-catalogue    # (Re)generate error_catalogue.rst from code
+flync errors validate-catalog    # Check code ↔ docs/source/error_catalog.rst drift (exits 1 on mismatch)
+flync errors generate-catalog    # (Re)generate error_catalog.rst from code
 ```
 
 ### Key Files
@@ -203,9 +203,9 @@ flync errors generate-catalogue    # (Re)generate error_catalogue.rst from code
 | File | Role |
 |---|---|
 | `src/flync/core/utils/exceptions.py` | `Severity`, `Category` enums, `err_minor`/`err_major`/`err_fatal`/`warn` factories, `compose_error_id` |
-| `src/flync_cli/commands/errors.py` | CLI commands (`get-next-number`, `validate-catalogue`, `generate-catalogue`) |
-| `src/flync_cli/utils/errors.py` | AST-based static scanner (`scan_error_calls`), catalogue renderer, drift validator |
-| `docs/source/error_catalogue.rst` | Generated Sphinx-Needs catalogue (do not edit by hand) |
+| `src/flync_cli/commands/errors.py` | CLI commands (`get-next-number`, `validate-catalog`, `generate-catalog`) |
+| `src/flync_cli/utils/errors.py` | AST-based static scanner (`scan_error_calls`), catalog renderer, drift validator |
+| `docs/source/error_catalog.rst` | Generated Sphinx-Needs catalog (do not edit by hand) |
 
 ## Converter Overview
 

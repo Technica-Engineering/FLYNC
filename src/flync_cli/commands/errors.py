@@ -1,18 +1,18 @@
-"""``flync errors`` — helper commands for the error catalogue."""
+"""``flync errors`` — helper commands for the error catalog."""
 
 import typer
 from rich.console import Console
 from rich.table import Table
 
 from flync_cli.utils.errors import (
-    CATALOGUE_PATH,
+    CATALOG_PATH,
     next_error_number,
-    render_catalogue,
+    render_catalog,
     scan_error_calls,
-    validate_catalogue,
+    validate_catalog,
 )
 
-app = typer.Typer(help="Inspect and maintain the FLYNC error catalogue.")
+app = typer.Typer(help="Inspect and maintain the FLYNC error catalog.")
 console = Console(force_terminal=True)
 
 
@@ -22,18 +22,18 @@ def get_next_number():
     console.print(next_error_number(scan_error_calls()))
 
 
-@app.command(name="validate-catalogue", help="Check that the catalogue matches the code (source of truth).")
+@app.command(name="validate-catalog", help="Check that the catalog matches the code (source of truth).")
 def validate():
-    """Report drift between the code and the committed ``error_catalogue.rst``."""
+    """Report drift between the code and the committed ``error_catalog.rst``."""
     records = scan_error_calls()
-    text = CATALOGUE_PATH.read_text(encoding="utf-8") if CATALOGUE_PATH.exists() else None
-    report = validate_catalogue(records, text)
+    text = CATALOG_PATH.read_text(encoding="utf-8") if CATALOG_PATH.exists() else None
+    report = validate_catalog(records, text)
 
     if report.ok:
-        console.print(f"[green]Catalogue is in sync with {len(records)} error call sites.[/green]")
+        console.print(f"[green]Catalog is in sync with {len(records)} error call sites.[/green]")
         return
 
-    table = Table(show_lines=True, title="Catalogue drift")
+    table = Table(show_lines=True, title="Catalog drift")
     table.add_column("Issue", style="red")
     table.add_column("Detail", style="yellow", overflow="fold")
     for r in report.unnumbered:
@@ -44,22 +44,22 @@ def validate():
         table.add_row("uncategorised", f"{r.error_id} — {r.file}:{r.lineno}")
     for number, rs in report.duplicate_numbers.items():
         table.add_row("duplicate number", f"{number}: " + ", ".join(f"{r.file}:{r.lineno}" for r in rs))
-    for error_id in report.missing_from_catalogue:
-        table.add_row("missing from catalogue", error_id)
-    for error_id in report.orphaned_in_catalogue:
-        table.add_row("orphaned in catalogue", error_id)
+    for error_id in report.missing_from_catalog:
+        table.add_row("missing from catalog", error_id)
+    for error_id in report.orphaned_in_catalog:
+        table.add_row("orphaned in catalog", error_id)
     console.print(table)
     raise typer.Exit(code=1)
 
 
-@app.command(name="generate-catalogue", help="(Re)generate docs/source/error_catalogue.rst from the code.")
+@app.command(name="generate-catalog", help="(Re)generate docs/source/error_catalog.rst from the code.")
 def generate():
-    """Write ``error_catalogue.rst`` from the current source; requires all call sites numbered."""
+    """Write ``error_catalog.rst`` from the current source; requires all call sites numbered."""
     records = scan_error_calls()
-    report = validate_catalogue(records, None)
+    report = validate_catalog(records, None)
     if report.unnumbered or report.duplicate_numbers or report.invalid_category:
-        console.print("[red]Cannot generate: fix unnumbered / duplicate / invalid-category call sites first (see validate-catalogue).[/red]")
+        console.print("[red]Cannot generate: fix unnumbered / duplicate / invalid-category call sites first (see validate-catalog).[/red]")
         raise typer.Exit(code=1)
 
-    CATALOGUE_PATH.write_text(render_catalogue(records), encoding="utf-8")
-    console.print(f"[green]Wrote {len(records)} entries to {CATALOGUE_PATH}.[/green]")
+    CATALOG_PATH.write_text(render_catalog(records), encoding="utf-8")
+    console.print(f"[green]Wrote {len(records)} entries to {CATALOG_PATH}.[/green]")
