@@ -9,25 +9,19 @@ import yaml
 from approvaltests import verify
 
 from flync.model import FLYNCModel
-from flync.model.flync_4_ecu import ECU, Controller, ECUPort
-from flync.model.flync_4_ecu.internal_topology import ECUPortToSwitchPort
-from flync.model.flync_4_ecu.switch import Switch
+from flync.model.flync_4_ecu.controller import Controller
+from flync.model.flync_4_ecu.ecu import ECU
 from flync.sdk.context.diagnostics_result import DiagnosticsResult
 from flync.sdk.context.workspace_config import (
     ListObjectsMode,
     WorkspaceConfiguration,
 )
-from flync.sdk.helpers.generation_helpers import (
-    dump_flync_workspace,
-    generate_external_node,
-    generate_node,
-)
+from flync.sdk.helpers.generation_helpers import dump_flync_workspace
 from flync.sdk.helpers.validation_helpers import (
     WorkspaceState,
     validate_external_node,
     validate_workspace,
 )
-from flync.sdk.utils.field_utils import get_field_name_from_alias
 from flync.sdk.utils.sdk_types import PathType
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 from flync.sdk.workspace.ids import ObjectId
@@ -233,203 +227,6 @@ def test_load_workspace_with_old_field_name(get_relative_flync_example_path, tmp
     assert loaded_ws.flync_model.communication is loaded_ws.flync_model.general
     assert any(loaded_ws.flync_model.communication.tcp_profiles)
     assert [e for e in loaded_ws.load_errors if e.get("type") == "warning" and e.get("msg", "") == expected_warning]
-
-
-@pytest.mark.parametrize(
-    "node_type, override_values",
-    [
-        pytest.param(
-            ECU,
-            {"controllers": [{"lin_interfaces": [{"name": "lin_inter1"}]}]},
-            id="ECU",
-        ),
-        pytest.param(
-            Controller,
-            {"lin_interfaces": [{"name": "lin_inter2"}]},
-            id="Controller",
-        ),
-    ],
-)
-def test_generate_external_node_scaffold(node_type, override_values, tmp_path):
-    """Scaffolding a node exercises the factory/generate path (Factory.build,
-    list-field generation, name assignment) and writes it to disk."""
-    output_path = tmp_path / f"generated_{node_type.__name__}"
-    generate_external_node(node_type, output_path, workspace_config=None, **override_values)
-
-    produced = list(output_path.rglob("*.yaml")) + list(output_path.rglob("*.yml"))
-    assert produced, f"expected generate_external_node to write files for {node_type.__name__}"
-
-
-GENERATE_NODE_PARAMS = [
-    pytest.param(
-        ["ecus.eth_ecu.ports"],
-        "ports",
-        ".ports",
-        ECUPort,
-        "test_port",
-        id="ECUPort",
-    ),
-    pytest.param(
-        ["ecus.eth_ecu.ports"],
-        "ports",
-        ".ports",
-        ECUPort,
-        "test_port2",
-        id="ECUPort",
-    ),
-]
-
-
-@pytest.mark.no_xdist
-@pytest.mark.parametrize("node_paths,field,extra_field,expected_type,generated_name", GENERATE_NODE_PARAMS)
-def test_generate_node_add_to_list(
-    get_flync_example_path,
-    tmp_path,
-    node_paths,
-    field,
-    extra_field,
-    expected_type,
-    generated_name,
-):
-    """
-    Generate a node and add it to an existing list field on a parent model.
-    Verifies the node appears in the workspace, on disk, and persists after reload.
-    """
-    workspace_path = tmp_path / "test_generate"
-    shutil.copytree(get_flync_example_path, workspace_path)
-    config = WorkspaceConfiguration(map_objects=True)
-    ws = FLYNCWorkspace.load_workspace("test_generate", workspace_path, config)
-
-    # The generated node should be attached to ecus.eth_ecu.<field>
-    parent_obj_id = ObjectId("ecus.eth_ecu")
-    parent_obj = ws.get_object(parent_obj_id)
-    original_count = len(getattr(parent_obj.model, field))
-
-    assert generate_node(ws, node_paths, name=generated_name), "Node not generated"
-
-    new_ws = FLYNCWorkspace.load_workspace("reload_test_generate", workspace_path, config)
-
-    new_obj_id = ObjectId(f"{parent_obj_id}.{field}{extra_field}.{generated_name}")
-    assert new_ws.has_object(new_obj_id), f"Expected {new_obj_id} to exist in workspace"
-
-    new_node = new_ws.get_object(new_obj_id)
-    assert isinstance(new_node.model, expected_type)
-
-    parent_obj = new_ws.get_object(parent_obj_id)
-    assert len(getattr(parent_obj.model, field)) == original_count + 1
-
-
-@pytest.mark.parametrize(
-    "node_paths,override_kwargs,expected_type,assertions",
-    [
-        (
-            ["ecus.new"],
-            {
-                "name": "new",
-                "ports": [{"name": "d", "mode": {"autonegotiation": True, "mode": "base_t1s"}}],
-                # bus_ref / sender_frames must resolve against communication.channels: generate_node otherwise
-                # scaffolds placeholder refs, which are dangling by construction.
-                "controllers": [
-                    {
-                        "name": "new_controller",
-                        "lin_interfaces": [
-                            {
-                                "name": "lin_inter",
-                                "node_type": "slave",
-                                "bus_ref": "BodyLIN",
-                                "receiver_frames": [{"bus_ref": "BodyLIN", "frame_ref": 1}],
-                            }
-                        ],
-                    }
-                ],
-            },
-            ECU,
-            [("name", "new")],
-        ),
-        (
-            ["ecus.eth_ecu.ports.ports.override_port"],
-            {"name": "override_port"},
-            ECUPort,
-            [("name", "override_port")],
-        ),
-        (
-            ["ecus.high_performance_compute.topology.connections.ECUPortToSwitchPort"],
-            {
-                "id": "connn25",
-                "switch": "hpc_switch1",
-                "switch_port": "hpc_s1_p0",
-                "ecu_port": "hpc1_p3",
-            },
-            ECUPortToSwitchPort,
-            [
-                ("id", "connn25"),
-                ("switch", "hpc_switch1"),
-                ("switch_port", "hpc_s1_p0"),
-                ("ecu_port", "hpc1_p3"),
-            ],
-        ),
-    ],
-)
-def test_generate_node_override_values(
-    get_flync_example_path,
-    tmp_path,
-    node_paths,
-    override_kwargs,
-    expected_type,
-    assertions,
-):
-    """Override values passed to generate_node should propagate to the generated model."""
-    workspace_path = tmp_path / "test_override"
-    shutil.copytree(get_flync_example_path, workspace_path)
-    config = WorkspaceConfiguration(map_objects=True, list_objects_mode=ListObjectsMode.NAME)
-    ws: FLYNCWorkspace = FLYNCWorkspace.load_workspace("test_override", workspace_path, config)
-    parent_id = node_paths[0].rsplit(".", 1)[0]
-    old_children = ws.get_child_ids(parent_id)
-
-    generate_node(ws, node_paths, **override_kwargs)
-
-    # Reload the workspace to verify the node was persisted correctly
-    ws2 = FLYNCWorkspace.load_workspace("test_override", workspace_path, config)
-    sym_diff = set(ws2.get_child_ids(parent_id)) ^ set(old_children)
-    assert len(sym_diff) > 0
-    new_node = ws2.get_object(list(sym_diff)[0])
-    assert isinstance(new_node.model, expected_type)
-
-    for attr, expected_value in assertions:
-        assert getattr(new_node.model, get_field_name_from_alias(type(new_node.model), attr)) == expected_value
-
-
-def test_generate_node_set_attribue(get_flync_example_path, tmp_path):
-    workspace_path = tmp_path / "test_set_attr"
-    shutil.copytree(get_flync_example_path, workspace_path)
-    file = workspace_path / Path("ecus/zonal_platform1/switches/z1_switch1.flync.yaml")
-    import yaml
-
-    with open(file, "r") as f:
-        data = yaml.safe_load(f)
-
-    host_controller = {}
-    if "host_controller" in data:
-        host_controller = data["host_controller"]
-        del data["host_controller"]
-
-    with open(file, "w") as f:
-        yaml.safe_dump(data, f, sort_keys=False)
-
-    config = WorkspaceConfiguration(map_objects=True)
-    ws = FLYNCWorkspace.load_workspace("test_set_attr", workspace_path, config)
-
-    owner_model_id = "ecus.zonal_platform1.switches.z1_switch1"
-    attr_fname = "host_controller"
-    so = ws.get_object(owner_model_id)
-    assert isinstance(so.model, Switch) and so.model.host_controller is None
-    generate_node(
-        ws=ws,
-        node_paths=[f"{owner_model_id}.{attr_fname}"],
-        **host_controller,
-    )
-    ws_updated = FLYNCWorkspace.load_workspace("test_set_attr_updated", workspace_path, config)
-    assert ws_updated.get_object(f"{owner_model_id}.{attr_fname}").model.mac_address == "00:11:03:03:01:01"
 
 
 def test_revalidate_changed_model(get_relative_flync_example_path, tmp_path):

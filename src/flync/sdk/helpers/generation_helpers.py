@@ -22,13 +22,12 @@ from pydantic_core import PydanticUndefined
 from pydantic_extra_types.mac_address import MacAddress
 
 from flync.core.datatypes.ipaddress import IPv4AddressEntry
-from flync.model.flync_4_ecu.ecu import ECU
-from flync.model.flync_4_ecu.internal_topology import InternalTopology
 from flync.model.flync_4_ecu.phy import BASET1
 from flync.model.flync_4_ecu.sockets import IPv4AddressEndpoint
 from flync.model.flync_4_topology.ethernet_topology import ExternalConnection
 from flync.model.flync_model import FLYNCBaseModel, FLYNCModel
 from flync.sdk.context.workspace_config import WorkspaceConfiguration
+from flync.sdk.utils.field_utils import get_field_name_from_alias
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 from flync.sdk.workspace.ids import ObjectId
 from flync.sdk.workspace.objects import SemanticObject
@@ -216,64 +215,124 @@ class FLYNCFactory(ModelFactory[FLYNCBaseModel]):
         return None
 
     @staticmethod
-    def _list_item_annotation(annotation):
+    def __as_plain_and_meta(arg):
         """
-        Return the raw (still ``Annotated``-wrapped) item annotation of a list field.
+        Unwrap a single ``Annotated`` layer, returning the base annotation and any ``FieldInfo`` metadata.
 
-        Mirrors the ``Optional[List[X]]``/``List[X]`` unwrapping done by :meth:`_list_element_flync_type`, but
-        stops one level earlier so any ``Field(discriminator=...)`` metadata attached to the item type is preserved
-        for :meth:`_resolve_list_item_type`.
+        Args:
+            arg: A type annotation, possibly ``Annotated[T, ...]``.
+
+        Returns:
+            tuple[Any, FieldInfo | None]: The base annotation and, when present, the ``FieldInfo``
+            metadata (e.g. carrying a discriminator), else ``None``.
         """
 
+        if get_origin(arg) is Annotated:
+            args = get_args(arg)
+            return args[0], args[1] if len(args) > 1 and isinstance(args[1], FieldInfo) else None
+        return arg, None
+
+    @staticmethod
+    def _strip_annotated(annotation):
+        """
+        Unwrap nested ``Annotated`` layers, returning the underlying annotation.
+
+        ``Annotated[T, ...]`` may wrap an ``Optional[List[...]]`` at the field level (e.g.
+        ``Annotated[Optional[List[X]], External(...)]``). Strip all ``Annotated`` metadata so the
+        wrapped list/union/type can be inspected by the list-element resolvers.
+
+        Args:
+            annotation: The field type annotation.
+
+        Returns:
+            Any: The annotation with all ``Annotated`` metadata removed.
+        """
+
+        while get_origin(annotation) is Annotated:
+            annotation = get_args(annotation)[0]
+        return annotation
+
+    @staticmethod
+    def __contains_none_type(annotation) -> bool:
+        """Return ``True`` when ``annotation`` (after stripping ``Annotated``) is an optional type."""
+        return type(None) in get_args(FLYNCFactory._strip_annotated(annotation))
+
+    @staticmethod
+    def _list_element_annotation(annotation):
+        """
+        Return the element annotation of a (possibly optional) list annotation, else ``None``.
+
+        Handles bare ``List[X]``, ``Optional[List[X]]`` and fields whose list is wrapped in
+        ``Annotated``/``External`` metadata (e.g. ``Annotated[Optional[List[X]], External(...)]``).
+
+        Args:
+            annotation: The field type annotation.
+
+        Returns:
+            type | None: The list element type, or ``None`` if the annotation is not a list.
+        """
+
+        annotation = FLYNCFactory._strip_annotated(annotation)
         candidates = [a for a in get_args(annotation) if a is not type(None)] if is_union(annotation) else [annotation]
         for candidate in candidates:
             if (get_origin(candidate) or candidate) is list:
-                item_args = get_args(candidate)
-                if item_args:
-                    return item_args[0]
+                return get_args(candidate)[0]
         return None
 
     @staticmethod
-    def _resolve_list_item_type(annotation, default_type: type[TModel], kw: dict) -> type[TModel]:
+    def __is_union_list_element(elem_annotation) -> bool:
         """
-        Pick the concrete member type for one item of a discriminated-union list field.
-
-        ``_list_element_flync_type`` resolves a single element type for the whole list, so a per-item discriminator
-        override (e.g. ``node_type: "slave"``) would otherwise be silently ignored and every item built as the
-        first union member. This inspects the item annotation for ``Field(discriminator=...)`` metadata and, when
-        ``kw`` carries that discriminator, returns the matching union member instead.
+        Determine whether a list element is a union of FLYNC models or a RootModel wrapping one.
 
         Args:
-            annotation: The list field's annotation (as passed to :meth:`_list_element_flync_type`).
-            default_type (type[TModel]): The element type to fall back to when no discriminator match is found.
-            kw (dict): The override values for this specific list item.
+            elem_annotation: The list element type annotation.
 
         Returns:
-            type[TModel]: The resolved item type.
+            bool: ``True`` when the element is a union of FLYNC models or a RootModel whose ``root`` is such a union.
         """
 
-        item_annotation = FLYNCFactory._list_item_annotation(annotation)
-        if item_annotation is None or get_origin(item_annotation) is not Annotated:
-            return default_type
-
-        union_type, *metadata = get_args(item_annotation)
-        discriminator = next((m.discriminator for m in metadata if getattr(m, "discriminator", None)), None)
-        if discriminator and discriminator in kw:
-            match = FLYNCFactory.__find_discriminator_match(union_type, discriminator, kw[discriminator])
-            if match is not None:
-                return match
-        return default_type
+        base, _ = FLYNCFactory.__as_plain_and_meta(elem_annotation)
+        if safe_issubclass(base, RootModel):
+            root_field = base.model_fields.get("root")
+            return (
+                root_field is not None
+                and is_union(root_field.annotation)
+                and any(safe_issubclass(a, FLYNCBaseModel) for a in get_args(root_field.annotation))
+            )
+        if is_union(base):
+            return any(safe_issubclass(a, FLYNCBaseModel) for a in get_args(base))
+        return False
 
     @staticmethod
-    def __find_discriminator_match(union_type, discriminator: str, value) -> type | None:
-        """Return the union member whose ``discriminator`` field default equals ``value``, or ``None`` if none match."""
+    def __resolve_list_element(elem_annotation, kw: dict):
+        """
+        Resolve the concrete model type (and optional RootModel wrapper) for a single list item.
 
-        for member in get_args(union_type):
-            if safe_issubclass(member, FLYNCBaseModel) and discriminator in member.model_fields:
-                valid, default_value = FLYNCFactory.__get_field_default_value(member.model_fields[discriminator])
-                if valid and default_value == value:
-                    return member
-        return None
+        For a RootModel wrapping a union, the concrete member is selected with :meth:`_get_arg_type`
+        using the union's discriminator value found in ``kw``; the RootModel class is returned as the
+        wrapper to re-wrap the built member.
+
+        Args:
+            elem_annotation: The list element type annotation.
+            kw (dict): Per-item override values.
+
+        Returns:
+            tuple[type, type | None]: A ``(concrete_type, wrapper_type)`` pair where ``wrapper_type`` is
+            the RootModel class to wrap the built member in, or ``None`` when no wrapping is needed.
+        """
+
+        base, meta = FLYNCFactory.__as_plain_and_meta(elem_annotation)
+        if safe_issubclass(base, RootModel):
+            root_field = base.model_fields["root"]
+            concrete = FLYNCFactory._get_arg_type(root_field, kw)
+            return concrete, base
+        if is_union(base):
+            if isinstance(meta, FieldInfo) and meta.discriminator:
+                field_info = FieldInfo(annotation=base, discriminator=meta.discriminator)
+                base = FLYNCFactory._get_arg_type(field_info, kw)
+            else:
+                base = FLYNCFactory._default_arg_type(base)
+        return base, None
 
     @staticmethod
     def __get_field_default_value(field_info: FieldInfo) -> tuple[bool, Any]:
@@ -312,6 +371,9 @@ class FLYNCFactory(ModelFactory[FLYNCBaseModel]):
         """
         Generate a default list of values for a Pydantic field when the type annotation indicates a list of FLYNCBaseModel subclasses.
 
+        Each item is built from its own override dict, allowing a list whose element type is a
+        union (or a RootModel wrapping a union) to produce items of the matching concrete member.
+
         Args:
             field_info (FieldInfo): Metadata about the Pydantic field.
             kw_list (list): list of override values.
@@ -322,22 +384,54 @@ class FLYNCFactory(ModelFactory[FLYNCBaseModel]):
                 - `Any`: The generated list of model instances.
         """
 
-        elem_type = FLYNCFactory._list_element_flync_type(field_info.annotation, FLYNCBaseModel)
-        if elem_type is None:
+        elem_annotation = FLYNCFactory._list_element_annotation(field_info.annotation)
+        base_elem, _ = FLYNCFactory.__as_plain_and_meta(elem_annotation) if elem_annotation else (None, None)
+
+        # Validation checks
+        is_single = safe_issubclass(base_elem, FLYNCBaseModel) if base_elem else False
+        is_union_elem = FLYNCFactory.__is_union_list_element(elem_annotation) if elem_annotation else False
+
+        valid_annotation = elem_annotation and (is_single or is_union_elem)
+        if not valid_annotation:
             return False, None
+
+        # Optional lists: skip scaffolding if no overrides
+        if not kw_list and (not is_single or FLYNCFactory.__contains_none_type(field_info.annotation)):
+            return False, None
+
         length = len(kw_list)
         min_length = length or FLYNCFactory.__min_length_list(field_info)
+        items = []
         try:
-            items = []
             for idx in range(1, min_length + 1):
                 kw = kw_list[idx - 1] if kw_list else {}
-                item_type = FLYNCFactory._resolve_list_item_type(field_info.annotation, elem_type, kw)
-                if "name" in item_type.model_fields and "name" not in kw:
-                    kw["name"] = Factory.build_name(item_type, idx=idx)
-                items.append(Factory.get_factory(item_type).build(**kw))
-            return True, items
+                items.append(FLYNCFactory._get_field_value_list_item(idx, elem_annotation, kw))
+            result = items
         except Exception:
-            return True, FLYNCFactory.__fallback_list_value(field_info)
+            result = FLYNCFactory.__fallback_list_value(field_info)
+
+        return True, result
+
+    @staticmethod
+    def _get_field_value_list_item(idx: int, elem_annotation, kw: dict) -> Any:
+        """
+        Generate a item list from its own override dict.
+
+        Args:
+            idx (int): item index.
+            field_info (FieldInfo): Metadata about the Pydantic field.
+            kw (list): the override values.
+
+        Returns:
+            - `Any`: The generated item list of model instance.
+        """
+        concrete, wrapper = FLYNCFactory.__resolve_list_element(elem_annotation, kw)
+        if "name" in concrete.model_fields and "name" not in kw:
+            kw["name"] = Factory.build_name(concrete, idx=idx)
+        built = Factory.get_factory(concrete).build(**kw)
+        if wrapper is not None:
+            built = Factory.get_factory(wrapper).build(root=built)
+        return built
 
     @staticmethod
     def __fallback_list_value(field_info):
@@ -495,22 +589,6 @@ class BASET1Factory(FLYNCFactory):
 
     @classmethod
     def build(cls, **kwargs):
-        return super().build(**kwargs)
-
-
-class ECUFactory(FLYNCFactory):
-    """
-    Factory for ECU model.
-    """
-
-    __model__ = ECU
-
-    @classmethod
-    def build(cls, **kwargs):
-        # Generated controllers always carry at least one Ethernet interface (see
-        # __get_field_value_list), which requires the ECU to declare an internal topology.
-        # An empty topology satisfies that requirement without needing to fabricate connections.
-        kwargs.setdefault("topology", InternalTopology())
         return super().build(**kwargs)
 
 
@@ -694,20 +772,81 @@ def __try_append_to(collection, item) -> bool:
     return item in (collection or [])
 
 
+def __patch_owner(ws, owner_model, generated_node, override_values, owner_path=""):
+    """
+    Patch an owner model in place using the override values and the generated node.
+
+    Complex fields that already exist as workspace objects are patched recursively,
+    collections are appended to in-place, and everything else is assigned from the
+    generated node.
+
+    Args:
+        ws (FLYNCWorkspace): The workspace object.
+        owner_model: The model to patch.
+        generated_node: The generated node providing replacement/derived values.
+        override_values (dict): The override values used to build the generated node.
+        owner_path (str): The semantic object path of the owner ("" for root es).
+
+    Returns:
+        None
+    """
+    for key, value in override_values.items():
+        fname = get_field_name_from_alias(type(owner_model), key)
+        if fname not in type(owner_model).model_fields:
+            continue
+        gen_value = getattr(generated_node, fname, None)
+        field_path = f"{owner_path}.{fname}" if owner_path else fname
+        if not __patch_existing(ws, owner_model, fname, gen_value, value, field_path):
+            setattr(owner_model, fname, gen_value)
+
+
+def __patch_existing(ws, owner_model, fname, gen_value, value, field_path) -> bool:
+    """
+    Handle the recursion and in-place collection append cases for :func:`__patch_owner`.
+
+    Args:
+        ws (FLYNCWorkspace): The workspace object.
+        owner_model: The model to patch.
+        fname (str): The resolved field name on the owner.
+        gen_value: The generated value for the field.
+        value: The raw override value (dict for complex fields, list for collections).
+        field_path (str): The fully-qualified path of the field.
+
+    Returns:
+        bool: ``True`` if the field was patched here (recurse or append), ``False``
+            otherwise so the caller falls back to a plain assignment.
+    """
+    if isinstance(value, dict) and ws.has_object(ObjectId(field_path)) and ws.get_object(ObjectId(field_path)).model is not None:
+        __patch_owner(ws, ws.get_object(ObjectId(field_path)).model, gen_value, value, field_path)
+        return True
+    if isinstance(value, list) and isinstance(getattr(owner_model, fname, None), (list, set)):
+        for item in gen_value or []:
+            __try_append_to(getattr(owner_model, fname, None), item)
+        return True
+    return False
+
+
 def __attach_to_owner(
     ws: FLYNCWorkspace,
     owner_model,
     node_field_name: str,
     generated_node,
+    override_values: dict | None = None,
 ) -> tuple[bool, Path | None, Any]:
     """
     Attach a generated node to its owner model.
+
+    When the generated node is of the same type as the owner, the owner is patched in-place using
+    the override values: collections are appended to (e.g. union-list ``connections``), while empty
+    or scalar fields are assigned. Otherwise the generated node is treated as a child and attached to
+    the owner's ``node_field_name`` field (existing list/assignment behaviour).
 
     Args:
         ws (FLYNCWorkspace): The workspace object.
         owner_model: The parent model that owns the field.
         node_field_name (str): The name of the field on the owner model.
         generated_node: The node to attach.
+        override_values (dict | None): The override values used to build the generated node.
 
     Returns:
         tuple[bool, Path | None, Any]:
@@ -715,15 +854,25 @@ def __attach_to_owner(
             - resolved path for serialization
             - model to be reloaded
     """
-    if not hasattr(owner_model, node_field_name) or ws.workspace_root is None:
+    override_values = override_values or {}
+    if ws.workspace_root is None:
         return False, None, None
 
-    # Handle list element type conversion if needed
-    if root_model := FLYNCFactory._list_element_flync_type(type(owner_model).model_fields[node_field_name].annotation, RootModel):
-        generated_node = __get_generated_node(root_model.__name__, "", "", root=generated_node)
+    # Case B - the generated node is the same type as the owner: patch the owner in place.
+    if type(owner_model) is type(generated_node):
+        owner_path = str(objs[0].id) if (objs := ws.get_semantic_objects_from_model(owner_model)) else ""
+        __patch_owner(ws, owner_model, generated_node, override_values, owner_path)
 
-    if not __try_append_to(getattr(owner_model, node_field_name, None), generated_node):
-        setattr(owner_model, node_field_name, generated_node)
+    # Case A - attach the generated child node to the owner's field.
+    else:
+        if not hasattr(owner_model, node_field_name):
+            return False, None, None
+        # Handle list element type conversion if needed
+        if root_model := FLYNCFactory._list_element_flync_type(type(owner_model).model_fields[node_field_name].annotation, RootModel):
+            generated_node = __get_generated_node(root_model.__name__, "", "", root=generated_node)
+
+        if not __try_append_to(getattr(owner_model, node_field_name, None), generated_node):
+            setattr(owner_model, node_field_name, generated_node)
 
     # Resolve path for serialization
     path: Path | None = None
@@ -780,7 +929,7 @@ def generate_node(
             ws.flync_model = generated_node
             path = ws.workspace_root
         elif owner_model is not None:
-            success, path, model = __attach_to_owner(ws, owner_model, node_field_name, generated_node)
+            success, path, model = __attach_to_owner(ws, owner_model, node_field_name, generated_node, override_values)
 
         if success and path:
             ws.load_flync_model(flync_model=model, file_path=path)
