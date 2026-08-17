@@ -130,8 +130,8 @@ jobs:
       - name: Archive artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: error-catalogue-artifacts
-          path: error-catalogue-check
+          name: error-catalog-artifacts
+          path: error-catalog-check
           retention-days: 28
 
   unit-tests:
