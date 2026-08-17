@@ -1441,12 +1441,12 @@ def test_Simple_CAN_ECU_NM_Timeout_active_phase(tmpdir):
 
 
 # ============================================================================
-# Model-level negatives (need the full model + catalogue, hence co-located here)
+# Model-level negatives (need the full model + catalog, hence co-located here)
 # ============================================================================
 
 
 def test_multicast_receiver_unknown_pdu_ref_raises():
-    """An NM PDUReceiver whose pdu_ref is absent from the catalogue is rejected at model validation."""
+    """An NM PDUReceiver whose pdu_ref is absent from the catalog is rejected at model validation."""
     nm_pdu = _make_nm_pdu()
     nm_container = _make_nm_container_pdu()
     nm_tx = _make_nm_tx_socket()
@@ -1466,7 +1466,7 @@ def test_multicast_receiver_unknown_pdu_ref_raises():
 
 
 def test_duplicate_nm_pdu_in_catalog_raises():
-    """Two NM PDUs sharing the same name in the catalogue are rejected."""
+    """Two NM PDUs sharing the same name in the catalog are rejected."""
     duplicate_pdus = [_make_nm_pdu(), _make_nm_pdu()]
     containers = [_make_nm_container_pdu()]
 

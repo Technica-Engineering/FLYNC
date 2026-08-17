@@ -104,7 +104,7 @@ def test_invalid_lin_frame_in_can_interface():
     """Test CAN interface incorrectly configured with a LIN frame
 
     The frame id only resolves on the LIN bus, so referencing it from a CAN interface must not resolve. The check
-    is workspace-level (it needs the bus catalogue), hence the full model.
+    is workspace-level (it needs the bus catalog), hence the full model.
     """
     speed_signal = Signal(name="VehicleSpeed", bit_length=16, data_type=SignalDataType.UINT16)
     speed_instance = SignalInstance(signal=speed_signal, bit_position=0)

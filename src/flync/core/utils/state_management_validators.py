@@ -15,8 +15,8 @@ from typing import TYPE_CHECKING, Dict, NamedTuple, Set
 
 from flync.core.utils.exceptions import Category, err_major, warn
 from flync.core.utils.forwarder_validators import (
-    _build_can_frame_catalogue_by_bus_id,
-    _build_pdu_catalogue,
+    _build_can_frame_catalog_by_bus_id,
+    _build_pdu_catalog,
     _iter_sockets_on_controller,
 )
 from flync.model.flync_4_nm.state_management import (
@@ -32,12 +32,12 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 class _ValidationContext(NamedTuple):
-    """Model-wide catalogues shared by every group check, built once per model."""
+    """Model-wide catalogs shared by every group check, built once per model."""
 
     model: "FLYNCModel"
     timing_profiles: Set[str]
     lin_bus_names: Set[str]
-    pdu_catalogue: dict
+    pdu_catalog: dict
     frame_by_bus_id: dict
     buses_by_name: dict
     ecus_by_name: dict
@@ -47,7 +47,7 @@ class _ValidationContext(NamedTuple):
 
 
 def _build_context(model: "FLYNCModel", cfg) -> _ValidationContext:
-    """Assemble the group-independent catalogues (PDUs, frames, bus topology, timing profiles)."""
+    """Assemble the group-independent catalogs (PDUs, frames, bus topology, timing profiles)."""
 
     channels = getattr(model.communication, "channels", None) if model.communication else None
     sent_frame_ids_by_bus, attached_buses_by_ecu = _bus_topology_index(model)
@@ -55,8 +55,8 @@ def _build_context(model: "FLYNCModel", cfg) -> _ValidationContext:
         model=model,
         timing_profiles={profile.name for profile in (cfg.timing_profiles if cfg else [])},
         lin_bus_names={bus.name for bus in (channels.lin_buses or [])} if channels else set(),
-        pdu_catalogue=_build_pdu_catalogue(model),
-        frame_by_bus_id=_build_frame_catalogue_by_bus_id(model),
+        pdu_catalog=_build_pdu_catalog(model),
+        frame_by_bus_id=_build_frame_catalog_by_bus_id(model),
         buses_by_name={bus.name: bus for bus in _iter_buses(model)},
         ecus_by_name={ecu.name: ecu for ecu in model.ecus},
         sent_frame_ids_by_bus=sent_frame_ids_by_bus,
@@ -70,7 +70,7 @@ def _paths(ctx: _ValidationContext, ecu_name: str) -> "tuple[Set[str], Set[str]]
 
     cached = ctx.paths_cache.get(ecu_name)
     if cached is None:
-        cached = _pdu_paths_by_ecu(ctx.ecus_by_name[ecu_name], ctx.pdu_catalogue, ctx.frame_by_bus_id)
+        cached = _pdu_paths_by_ecu(ctx.ecus_by_name[ecu_name], ctx.pdu_catalog, ctx.frame_by_bus_id)
         ctx.paths_cache[ecu_name] = cached
     return cached
 
@@ -83,7 +83,7 @@ def validate_state_management(model: "FLYNCModel") -> None:
     groups = {g.name: g for g in (cfg.groups if cfg else [])}
     _check_referenced_groups_exist(members, groups)
     # No groups means no members either (any member would have raised above),
-    # so skip the potentially large catalogue passes — this keeps the validator
+    # so skip the potentially large catalog passes — this keeps the validator
     # free for every workspace that predates the feature.
     if not groups:
         return
@@ -113,7 +113,7 @@ def _validate_group(name, group, ctx: _ValidationContext) -> None:
     participants = [m for m in group._effective_members if m.role == "participant"]
     _check_group_basics(name, group, participants, ctx)
     # Basics has already resolved the NM PDU, so the lookup here always hits.
-    _check_relevance_bits(name, group, participants, ctx.pdu_catalogue.get(group.nm_pdu))
+    _check_relevance_bits(name, group, participants, ctx.pdu_catalog.get(group.nm_pdu))
     _check_single_variant_per_bus(name, participants, ctx)
     _check_group_reachability(name, group, group._effective_members, ctx)
     _warn_redundant_memberships(name, participants)
@@ -130,7 +130,7 @@ def _check_group_basics(name, group, participants, ctx: _ValidationContext) -> N
             category=Category.REQUIRED,
             error_number="190",
         )
-    pdu = ctx.pdu_catalogue.get(group.nm_pdu)
+    pdu = ctx.pdu_catalog.get(group.nm_pdu)
     if pdu is None:
         raise err_major(
             "state management group '{group}': nm_pdu '{pdu}' not found under communication.channels",
@@ -299,24 +299,24 @@ def _index_bus_interface(iface, ecu_name, sent_frame_ids_by_bus, attached_buses_
         sent_frame_ids_by_bus.setdefault(bus_ref, set()).add(ref.frame_ref)
 
 
-def _build_frame_catalogue_by_bus_id(model: "FLYNCModel"):
+def _build_frame_catalog_by_bus_id(model: "FLYNCModel"):
     """
     Return a ``(bus_name, frame_id)``-keyed dict of every CAN and LIN frame.
 
-    Extends the CAN catalogue from the forwarder validators with LIN frames
+    Extends the CAN catalog from the forwarder validators with LIN frames
     (keyed by ``lin_id``) so LIN masters resolve their sender/receiver frames
     the same way CAN interfaces do.
     """
 
-    catalogue = dict(_build_can_frame_catalogue_by_bus_id(model))
+    catalog = dict(_build_can_frame_catalog_by_bus_id(model))
     channels = getattr(model.communication, "channels", None) if model.communication else None
     for bus in channels.lin_buses or [] if channels else []:
         for frame in bus.frames or []:
-            catalogue[(bus.name, frame.lin_id)] = frame
-    return catalogue
+            catalog[(bus.name, frame.lin_id)] = frame
+    return catalog
 
 
-def _pdu_paths_by_ecu(ecu, pdu_catalogue, frame_by_bus_id) -> "tuple[Set[str], Set[str]]":
+def _pdu_paths_by_ecu(ecu, pdu_catalog, frame_by_bus_id) -> "tuple[Set[str], Set[str]]":
     """
     Return ``(tx, rx)`` — the names of every PDU the ECU sends respectively
     receives on any path.
@@ -332,21 +332,21 @@ def _pdu_paths_by_ecu(ecu, pdu_catalogue, frame_by_bus_id) -> "tuple[Set[str], S
     tx: Set[str] = set()
     rx: Set[str] = set()
     for controller in ecu.controllers:
-        _collect_socket_pdus(controller, tx, rx, pdu_catalogue)
+        _collect_socket_pdus(controller, tx, rx, pdu_catalog)
         _collect_frame_pdus(controller, tx, rx, frame_by_bus_id)
     return tx, rx
 
 
-def _collect_socket_pdus(controller, tx: Set[str], rx: Set[str], pdu_catalogue) -> None:
+def _collect_socket_pdus(controller, tx: Set[str], rx: Set[str], pdu_catalog) -> None:
     """Add the Ethernet socket-deployed PDUs of a controller to ``tx`` / ``rx``."""
 
     for socket in _iter_sockets_on_controller(controller):
         for dep_root in socket.deployments or []:
             dep = dep_root.root
             if isinstance(dep, PDUSender):
-                _add_pdu_with_contained(tx, dep.pdu_ref, pdu_catalogue)
+                _add_pdu_with_contained(tx, dep.pdu_ref, pdu_catalog)
             elif isinstance(dep, PDUReceiver):
-                _add_pdu_with_contained(rx, dep.pdu_ref, pdu_catalogue)
+                _add_pdu_with_contained(rx, dep.pdu_ref, pdu_catalog)
 
 
 def _collect_frame_pdus(controller, tx: Set[str], rx: Set[str], frame_by_bus_id) -> None:
@@ -359,11 +359,11 @@ def _collect_frame_pdus(controller, tx: Set[str], rx: Set[str], frame_by_bus_id)
             _add_frame_pdus(rx, frame_ref, frame_by_bus_id)
 
 
-def _add_pdu_with_contained(target: Set[str], pdu_ref: str, pdu_catalogue) -> None:
+def _add_pdu_with_contained(target: Set[str], pdu_ref: str, pdu_catalog) -> None:
     """Add a deployed PDU ref plus, for Container PDUs, every contained PDU ref."""
 
     target.add(pdu_ref)
-    carrier = pdu_catalogue.get(pdu_ref)
+    carrier = pdu_catalog.get(pdu_ref)
     if isinstance(carrier, ContainerPDU):
         target.update(contained.pdu_ref for contained in carrier.contained_pdus)
 

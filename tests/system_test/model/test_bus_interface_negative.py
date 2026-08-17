@@ -136,7 +136,7 @@ def test_bus_interface_refs_accepted_when_declared():
 
 
 def test_bus_interfaces_skipped_when_no_buses_declared():
-    """A partial model without a bus catalogue is accepted: there is nothing to resolve against."""
+    """A partial model without a bus catalog is accepted: there is nothing to resolve against."""
     can_interface = CANInterface(name="CAN_IF_1", bus_ref="CAN_NOT_MODELLED_YET")
 
     model = _make_model(FLYNCChannelConfig(), can_interfaces=[can_interface])

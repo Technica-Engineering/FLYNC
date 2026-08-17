@@ -56,7 +56,7 @@ def _interface_locator(controller: "Controller", iface: AnyBusInterface, kind: s
 
 
 # ---------------------------------------------------------------------------
-# Catalogues
+# Catalogs
 # ---------------------------------------------------------------------------
 
 
@@ -123,7 +123,7 @@ def _iter_frame_refs(iface: AnyBusInterface) -> Iterator[Tuple[str, AnyFrameRef]
 
 
 def _bus_kind_label(kind: str) -> str:
-    """Return the catalogue wording used in the error messages for *kind*."""
+    """Return the catalog wording used in the error messages for *kind*."""
 
     return "communication.channels.can_buses" if kind == "can" else "communication.channels.lin_buses"
 
@@ -131,19 +131,19 @@ def _bus_kind_label(kind: str) -> str:
 def _validate_interface(iface: AnyBusInterface, kind: str, frames_by_bus: Dict[str, Dict[int, AnyFrame]]) -> None:
     """Resolve one interface's own ``bus_ref`` plus every sender / receiver frame reference it declares.
 
-    *frames_by_bus* is the catalogue of the interface's own bus kind, so an unresolvable name is reported against
-    that kind - see :func:`validate_interface_frame_refs` for why the catalogue is picked that way.
+    *frames_by_bus* is the catalog of the interface's own bus kind, so an unresolvable name is reported against
+    that kind - see :func:`validate_interface_frame_refs` for why the catalog is picked that way.
     """
 
     owner = f"{type(iface).__name__}(name={iface.name})"
-    catalogue = _bus_kind_label(kind)
+    catalog = _bus_kind_label(kind)
 
     if iface.bus_ref not in frames_by_bus:
         raise err_major(
-            "{owner}: bus_ref '{bus}' does not name any bus declared under {catalogue}.",
+            "{owner}: bus_ref '{bus}' does not name any bus declared under {catalog}.",
             owner=owner,
             bus=iface.bus_ref,
-            catalogue=catalogue,
+            catalog=catalog,
             category=Category.REFERENCE,
             error_number="215",
         )
@@ -151,22 +151,22 @@ def _validate_interface(iface: AnyBusInterface, kind: str, frames_by_bus: Dict[s
     for field_name, ref in _iter_frame_refs(iface):
         if ref.bus_ref not in frames_by_bus:
             raise err_major(
-                "{owner}: {field}: bus_ref '{bus}' does not name any bus declared under {catalogue}.",
+                "{owner}: {field}: bus_ref '{bus}' does not name any bus declared under {catalog}.",
                 owner=owner,
                 field=field_name,
                 bus=ref.bus_ref,
-                catalogue=catalogue,
+                catalog=catalog,
                 category=Category.REFERENCE,
                 error_number="216",
             )
         if ref.frame_ref not in frames_by_bus[ref.bus_ref]:
             raise err_major(
-                "{owner}: {field}: frame_ref id={ref} does not name any frame declared on bus '{bus}' under {catalogue}.",
+                "{owner}: {field}: frame_ref id={ref} does not name any frame declared on bus '{bus}' under {catalog}.",
                 owner=owner,
                 field=field_name,
                 ref=ref.frame_ref,
                 bus=ref.bus_ref,
-                catalogue=catalogue,
+                catalog=catalog,
                 category=Category.REFERENCE,
                 error_number="217",
             )
@@ -175,7 +175,7 @@ def _validate_interface(iface: AnyBusInterface, kind: str, frames_by_bus: Dict[s
 def validate_interface_frame_refs(model: "FLYNCModel") -> None:
     """Workspace pass: every CAN / LIN interface must name a declared bus of its own kind and resolve its frame refs.
 
-    The check is a plain lookup - is this frame id declared on this bus - performed against the catalogue of the
+    The check is a plain lookup - is this frame id declared on this bus - performed against the catalog of the
     interface's own bus kind. Both aspects are load-bearing:
 
     *Scoped by bus*, because a CAN id is only unique within a bus: id ``0x100`` on ``CAN1`` and on ``CAN2`` are
@@ -186,12 +186,12 @@ def validate_interface_frame_refs(model: "FLYNCModel") -> None:
     *Scoped by bus kind*, because ``bus_ref`` is a plain string and ``frame_ref`` a plain int - the type system
     stops a ``LINFrameRef`` from landing in a ``CANInterface``, but nothing stops a CAN interface from naming a
     LIN bus. Resolving a CAN interface against ``can_buses`` only is what catches that, so no separate cross-kind
-    rule is needed: the LIN bus name simply is not in the CAN catalogue. A single catalogue merged over both
+    rule is needed: the LIN bus name simply is not in the CAN catalog. A single catalog merged over both
     kinds would instead accept LIN ids on a CAN interface, and would be ambiguous anyway - bus names are unique
     per kind but not across kinds, so a workspace may hold a CAN bus and a LIN bus of the same name.
 
-    A bus kind whose catalogue is empty is skipped: FLYNC supports partial models (an ECU or controller may be
-    modelled without the bus catalogue it will later be wired into), and there is nothing to resolve against.
+    A bus kind whose catalog is empty is skipped: FLYNC supports partial models (an ECU or controller may be
+    modelled without the bus catalog it will later be wired into), and there is nothing to resolve against.
     Once a workspace declares buses of a kind, every interface of that kind must resolve.
     """
 

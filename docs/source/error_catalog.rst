@@ -2152,7 +2152,7 @@ Every error and warning the FLYNC validators can raise, identified as
 
    f"ECU port '{port.name}' (ECU: '{port.ecu.name}') is not connected in the system topology."
 
-.. err:: {owner}: bus_ref '{bus}' does not name any bus declared under {catalogue}.
+.. err:: {owner}: bus_ref '{bus}' does not name any bus declared under {catalog}.
    :id: FLYNC-CMN-MAJ-REF-215
    :module: CMN
    :severity: MAJ
@@ -2160,7 +2160,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :number: 215
    :location: interface_validators._validate_interface
 
-   "{owner}: bus_ref '{bus}' does not name any bus declared under {catalogue}."
+   "{owner}: bus_ref '{bus}' does not name any bus declared under {catalog}."
 
 .. err:: {owner}: {field}: bus_ref '{bus}' does not name any bus declared under {catal...
    :id: FLYNC-CMN-MAJ-REF-216
@@ -2170,7 +2170,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :number: 216
    :location: interface_validators._validate_interface
 
-   "{owner}: {field}: bus_ref '{bus}' does not name any bus declared under {catalogue}."
+   "{owner}: {field}: bus_ref '{bus}' does not name any bus declared under {catalog}."
 
 .. err:: {owner}: {field}: frame_ref id={ref} does not name any frame declared on bus ...
    :id: FLYNC-CMN-MAJ-REF-217
@@ -2180,7 +2180,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :number: 217
    :location: interface_validators._validate_interface
 
-   "{owner}: {field}: frame_ref id={ref} does not name any frame declared on bus '{bus}' under {catalogue}."
+   "{owner}: {field}: frame_ref id={ref} does not name any frame declared on bus '{bus}' under {catalog}."
 
 .. err:: Deployed provided service on TCP socket ({socket.name}) of ECU ({ecu.name}) h...
    :id: FLYNC-GEN-MAJ-CONS-218
