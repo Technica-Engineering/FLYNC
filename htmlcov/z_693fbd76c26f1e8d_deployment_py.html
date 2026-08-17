@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_693fbd76c26f1e8d_service_interface_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
-            created at 2026-08-17 07:30 +0000
+            created at 2026-08-17 07:44 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -289,7 +289,7 @@
     <p class="run"><span class="n"><a id="t207" href="#t207">207</a></span><span class="t">        <span class="nam">super</span><span class="op">(</span><span class="op">)</span><span class="op">.</span><span class="nam">bind</span><span class="op">(</span><span class="nam">services_by_key</span><span class="op">,</span> <span class="nam">sd_timings_by_id</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t208" href="#t208">208</a></span><span class="t">        <span class="key">if</span> <span class="nam">self</span><span class="op">.</span><span class="nam">consumed_eventgroups</span> <span class="key">is</span> <span class="key">not</span> <span class="key">None</span> <span class="key">and</span> <span class="nam">self</span><span class="op">.</span><span class="nam">_service_ref</span> <span class="key">is</span> <span class="key">not</span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t209" href="#t209">209</a></span><span class="t">            <span class="nam">consumed</span> <span class="op">=</span> <span class="nam">set</span><span class="op">(</span><span class="nam">self</span><span class="op">.</span><span class="nam">consumed_eventgroups</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t210" href="#t210">210</a></span><span class="t">            <span class="nam">provided</span> <span class="op">=</span> <span class="nam">set</span><span class="op">(</span><span class="nam">eg</span><span class="op">.</span><span class="nam">name</span> <span class="key">for</span> <span class="nam">eg</span> <span class="key">in</span> <span class="op">(</span><span class="nam">self</span><span class="op">.</span><span class="nam">_service_ref</span><span class="op">.</span><span class="nam">eventgroups</span> <span class="key">or</span> <span class="op">[</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t210" href="#t210">210</a></span><span class="t">            <span class="nam">provided</span> <span class="op">=</span> <span class="op">{</span><span class="nam">eg</span><span class="op">.</span><span class="nam">name</span> <span class="key">for</span> <span class="nam">eg</span> <span class="key">in</span> <span class="op">(</span><span class="nam">self</span><span class="op">.</span><span class="nam">_service_ref</span><span class="op">.</span><span class="nam">eventgroups</span> <span class="key">or</span> <span class="op">[</span><span class="op">]</span><span class="op">)</span><span class="op">}</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t211" href="#t211">211</a></span><span class="t">            <span class="nam">found</span> <span class="op">=</span> <span class="nam">consumed</span><span class="op">.</span><span class="nam">intersection</span><span class="op">(</span><span class="nam">provided</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t212" href="#t212">212</a></span><span class="t">            <span class="key">assert</span> <span class="nam">found</span> <span class="op">==</span> <span class="nam">consumed</span><span class="op">,</span> <span class="fst">f&quot;</span><span class="fst">Did not find eventgroups with names </span><span class="op">{</span><span class="nam">consumed</span> <span class="op">-</span> <span class="nam">found</span><span class="op">}</span><span class="fst">&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t213" href="#t213">213</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
@@ -372,7 +372,7 @@
             <a class="nav" href="z_693fbd76c26f1e8d_service_interface_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
-            created at 2026-08-17 07:30 +0000
+            created at 2026-08-17 07:44 +0000
         </p>
     </div>
 </footer>
