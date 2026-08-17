@@ -9,7 +9,7 @@ from pydantic._internal._model_construction import ModelMetaclass
 from ruamel.yaml.nodes import MappingNode, ScalarNode, SequenceNode
 
 from flync.model import FLYNCModel
-from flync.sdk.context.workspace_config import WorkspaceConfiguration
+from flync.sdk.context.workspace_config import CONFIG_DIRNAME, WorkspaceConfiguration
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 
 
@@ -33,6 +33,13 @@ def load_yaml_folder(folder_path: Path, sep="."):
     sorted_files = sorted(folder_path.rglob("*.*"), key=lambda f: f.name)
     for yaml_file in sorted_files:
         if yaml_file.suffix not in (".yml", ".yaml"):
+            continue
+
+        # Skip the .flync/ tool-state directory: config.yaml today, plus
+        # converter.yaml, views/ and templates/ as they land. Matching on the
+        # directory rather than on filenames means this does not silently stop
+        # working each time something new is filed there.
+        if CONFIG_DIRNAME in yaml_file.relative_to(folder_path).parts:
             continue
 
         with open(yaml_file, "r") as f:

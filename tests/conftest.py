@@ -15,3 +15,18 @@ def pytest_configure(config):
 
     example_path = Path(__file__).parent.parent / "examples" / "flync_example"
     FLYNCWorkspace.load_workspace("flync_example", example_path)
+
+
+# ============================================================================
+# Shared Fixtures (used across multiple test suites)
+# ============================================================================
+
+
+@pytest.fixture(scope="session")
+def example_workspace_path():
+    """Return path to standard example FLYNC workspace.
+
+    This fixture is used across multiple test suites (workspace_config, sdk, etc.)
+    to load the common example workspace without modifications.
+    """
+    return (Path(__file__).parent.parent / "examples" / "flync_example").absolute()

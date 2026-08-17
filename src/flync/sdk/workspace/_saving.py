@@ -18,6 +18,7 @@ from flync.core.annotations import (
     OutputStrategy,
 )
 from flync.core.base_models.base_model import FLYNCBaseModel
+from flync.sdk.context.workspace_config import CONFIG_RELPATH
 from flync.sdk.utils.field_utils import (
     get_metadata,
     get_name,
@@ -46,6 +47,28 @@ class _WorkspaceSaving(_WorkspaceIncremental):
             file_path = Path(file_path)
         content = self.__get_model_content(flync_model, file_path)
         self.__save_content_to_file(file_path, content)
+
+    def save_workspace_config(self) -> None:
+        """
+        Save the workspace configuration to .flync/config.yaml.
+
+        Serializes the current :class:`~flync.sdk.context.workspace_config.WorkspaceConfiguration`
+        to the workspace root as ``.flync/config.yaml``. This is typically called after
+        modifying workspace configuration to persist the changes.
+
+        Calling this writes the file unconditionally. ``persist_config`` only governs the
+        implicit write that :meth:`generate_configs` performs, so asking for the file
+        directly always produces it.
+
+        Example:
+            >>> workspace = FLYNCWorkspace.load_workspace("myproject", "/path/to/project")
+            >>> # ... modify workspace.configuration if needed ...
+            >>> workspace.save_workspace_config()
+        """
+        if not self.workspace_root:
+            raise ValueError("Unable to save workspace configuration: workspace root is not defined.")
+        config_path = self.workspace_root / CONFIG_RELPATH
+        self.configuration.to_yaml_file(config_path)
 
     def __save_content_to_file(self, file_path: Path, content):
         """
@@ -226,15 +249,20 @@ class _WorkspaceSaving(_WorkspaceIncremental):
 
         return None
 
-    def generate_configs(self, uri: PathType | None = None):
+    def generate_configs(self, uri: PathType | None = None, *, persist_config: bool | None = None):
         """
         Save the workspace to the given path.
 
         Creates the output directory (if it does not exist) and writes a simple representation of the workspace.
         If a FLYNCModel has been loaded via ``load_flync_model``, it attempts to serialize the model to JSON.
+        Also persists the workspace configuration to .flync/config.yaml (only when saving the entire workspace).
 
         Args:
             uri (str | Path | None): Optional argument to save specific file instead of the entire workspace.
+            persist_config (bool | None): One-off override for ``WorkspaceConfiguration.persist_config``.
+            ``False`` suppresses the ``.flync/config.yaml`` write for this call - use it when writing to a directory that should hold nothing but
+            the generated FLYNC files. ``None`` (the default) follows the workspace configuration. Ignored when ``uri`` is given, since a
+            single-document save never writes the configuration.
 
         Returns: None
         """
@@ -259,3 +287,8 @@ class _WorkspaceSaving(_WorkspaceIncremental):
                         default_flow_style=False,
                         allow_unicode=True,
                     )
+
+        # Persist workspace configuration when saving entire workspace, unless suppressed.
+        should_persist = self.configuration.persist_config if persist_config is None else persist_config
+        if uri is None and should_persist:
+            self.save_workspace_config()

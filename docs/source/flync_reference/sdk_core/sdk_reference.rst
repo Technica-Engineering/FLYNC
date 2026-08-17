@@ -3,6 +3,11 @@ flync.sdk
 
 This page is a full reference of the SDK for developers and contributors to FLYNC.
 
+.. toctree::
+   :maxdepth: 2
+
+   workspace_configuration
+
 .. _flync_workspace:
 
 FLYNC Workspace
@@ -12,9 +17,6 @@ FLYNC Workspace
    :members:
    :undoc-members:
    :inherited-members:
-
-.. automodule:: flync.sdk.context.workspace_config
-   :members:
 
 
 .. _object_metadata:

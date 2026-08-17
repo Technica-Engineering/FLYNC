@@ -6,6 +6,7 @@ Provides functions and classes to build, traverse, and query the dependency grap
 
 import hashlib
 import importlib
+import json
 import shelve
 import time
 import types
@@ -14,6 +15,7 @@ from os import listdir, makedirs, remove, stat, walk
 from os.path import abspath, dirname, join
 from types import NoneType
 from typing import Annotated, Literal, Union, get_args, get_origin
+from weakref import WeakKeyDictionary
 
 import platformdirs
 from filelock import FileLock
@@ -580,6 +582,14 @@ _cache_name = ""
 # per dump/load).
 _graph_cache: dict[str, "ModelDependencyGraph"] = {}
 
+# Dynamically-generated roots (type-replacement engine output) have a per-build
+# object identity even when two builds are structurally identical. Their graphs
+# hold references to those specific synthetic class objects (edges, reverse_tree
+# keys), so a structurally-keyed cache would hand back a graph whose nodes belong
+# to a *previous* build. Cache such graphs by root identity instead; a weak key
+# lets the graph be collected once its root is no longer referenced.
+_dynamic_graph_cache: "WeakKeyDictionary[type, ModelDependencyGraph]" = WeakKeyDictionary()
+
 
 def hash_directory_fast(directory: str, ext=".py") -> str:
     """
@@ -659,11 +669,67 @@ def cleanup_old_caches(force: bool = False):
     return shelv_location, _cache_name
 
 
+def _hash_model_structure(model: type[BaseModel]) -> str:
+    """
+    Hash a model's structure to detect changes in field definitions.
+
+    Includes field names, types, and metadata so changes to the model
+    (e.g., adding/removing fields, changing types) invalidate the cache.
+
+    Args:
+        model (type[BaseModel]): The model to hash.
+
+    Returns:
+        str: Hex digest of the model structure.
+    """
+    structure = {}
+    for name, field in model.model_fields.items():
+        structure[name] = {
+            "annotation": str(field.annotation),
+            "metadata": str(field.metadata),
+        }
+
+    h = hashlib.sha256()
+    h.update(json.dumps(structure, sort_keys=True, default=str).encode())
+    return h.hexdigest()
+
+
+def _is_pickleable_class(cls: type) -> bool:
+    """
+    Return True if ``cls`` can be pickled by reference.
+
+    Pickle serializes classes by ``module.qualname`` lookup, so a class is only
+    picklable if importing its ``__module__`` and resolving its ``__qualname__``
+    yields the same object. Dynamically generated classes (e.g. the synthetic
+    ``FLYNCModel_replaced_..._with_...`` types produced by the type-replacement
+    engine) live on no importable module (``abc``) and fail this check.
+    """
+    module_name = getattr(cls, "__module__", None)
+    qualname = getattr(cls, "__qualname__", None)
+    if not module_name or not qualname:
+        return False
+    try:
+        module = importlib.import_module(module_name)
+    except (ImportError, TypeError, ValueError):
+        # ImportError: no module of that name, so pickle could not resolve the class either.
+        # TypeError/ValueError: a synthetic ``__module__`` that is not a valid module name
+        # (relative or malformed) is rejected by import_module before any import happens.
+        return False
+    obj = module
+    for part in qualname.split("."):
+        obj = getattr(obj, part, None)  # type: ignore[assignment]
+    return obj is cls
+
+
 def get_model_dependency_graph(root: type[BaseModel]) -> ModelDependencyGraph:
     """
     Return a cached :class:`ModelDependencyGraph` for the given root model.
 
-    Building a graph is expensive, so instances are cached by root model class.
+    Building a graph is expensive, so instances are cached by root model class. The
+    cache key includes a hash of the root's field definitions, so two distinct roots
+    with the same qualified name (e.g. a node type rebuilt after a model change) do not
+    share a graph.
+
     Always prefer this factory over instantiating :class:`ModelDependencyGraph` directly.
 
     Args:
@@ -673,10 +739,25 @@ def get_model_dependency_graph(root: type[BaseModel]) -> ModelDependencyGraph:
         ModelDependencyGraph: The (possibly cached) dependency graph.
     """
 
-    key = str(root)
+    # Dynamically generated models (e.g. type-replacement engine output) are not
+    # importable by qualname, so the shelve/pickle disk cache cannot persist their
+    # dependency graph (pickling raises PicklingError). More importantly, two such
+    # models can be structurally identical (same name and hash) yet be distinct
+    # class objects: the structural key below would then return a graph built from
+    # a *different* object's synthetic subclasses, and lookups of this object's
+    # subclasses in reverse_tree would KeyError. Cache these by object identity.
+    if not _is_pickleable_class(root):
+        cached = _dynamic_graph_cache.get(root)
+        if cached is None:
+            cached = ModelDependencyGraph(root)
+            _dynamic_graph_cache[root] = cached
+        return cached
+
+    key = f"{str(root)}_{_hash_model_structure(root)}"
     cached = _graph_cache.get(key)
     if cached is not None:
         return cached
+
     shelv_location, shelv_file_name = cleanup_old_caches()
     lock_path = join(shelv_location, shelv_file_name + ".lock")
     with FileLock(lock_path):

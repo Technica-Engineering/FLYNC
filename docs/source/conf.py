@@ -6,10 +6,21 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
+import importlib.metadata
+
+from packaging.version import Version
+
 project = "FLYNC"
 copyright = "2026, Technica Engineering GmbH"
 author = "Iago Alvarez"
-release = "0.13.0"
+
+# Read the version from the installed distribution rather than hardcoding it, so a
+# release never requires editing the docs. The version itself comes from git tags via
+# uv-dynamic-versioning, so this tracks whatever is actually being documented.
+try:
+    release = importlib.metadata.version("flync")
+except importlib.metadata.PackageNotFoundError:
+    release = "0.0.0"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -112,5 +123,24 @@ mermaid_verbose = True
 mermaid_d3_zoom = True
 
 
+#: Placeholder expanded to the current FLYNC version anywhere in the documentation
+#: sources. Sphinx already provides ``|release|``, but docutils substitutions are not
+#: expanded inside ``.. code-block::``, and the sample YAML files in the SDK reference
+#: need a real version number while keeping their syntax highlighting. Replacing the
+#: token in the raw source before parsing works in every context, prose included.
+VERSION_PLACEHOLDER = "|flync_version|"
+
+#: The release portion of :data:`release` only. Docs built from an untagged commit get a
+#: development version such as ``0.13.0.post66+5d920655``; sample configuration files
+#: should show what a user of a released FLYNC would actually find on disk.
+flync_version = Version(release).base_version
+
+
+def _expand_version_placeholder(app, docname, source):
+    """Substitute :data:`VERSION_PLACEHOLDER` in a source file before it is parsed."""
+    source[0] = source[0].replace(VERSION_PLACEHOLDER, flync_version)
+
+
 def setup(app):
     app.add_css_file("custom.css")
+    app.connect("source-read", _expand_version_placeholder)

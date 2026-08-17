@@ -13,6 +13,7 @@ from flync.model.flync_4_ecu.controller import Controller
 from flync.model.flync_4_ecu.ecu import ECU
 from flync.sdk.context.diagnostics_result import DiagnosticsResult
 from flync.sdk.context.workspace_config import (
+    DEFAULT_EXTENSION,
     ListObjectsMode,
     WorkspaceConfiguration,
 )
@@ -148,7 +149,7 @@ class ExtendedFLYNC(FLYNCModel):
 def test_flync_extension(get_flync_example_path, tmp_path):
     output_extra_path = tmp_path / (Path(get_flync_example_path).name + "_extended_model")
     shutil.copytree(get_flync_example_path, output_extra_path)
-    extra_file = f"extra{WorkspaceConfiguration.flync_file_extension}"
+    extra_file = f"extra{DEFAULT_EXTENSION}"
     extra_data = {"extra_name": "value"}
 
     with open(output_extra_path / extra_file, "w") as f:

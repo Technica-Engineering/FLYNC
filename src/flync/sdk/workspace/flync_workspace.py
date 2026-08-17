@@ -5,7 +5,7 @@ Provides classes and functions to manage workspace operations.
 """
 
 import logging
-from typing import Optional
+from pathlib import Path
 
 from pydantic_core import ValidationError
 
@@ -21,6 +21,47 @@ from ._saving import _WorkspaceSaving
 logger = logging.getLogger(__name__)
 
 __all__ = ["FLYNCWorkspace", "LoadNode", "ParentLink", "WorkspaceConfiguration"]
+
+
+def _resolve_workspace_config(
+    workspace_path: PathType,
+    workspace_config: PathType | WorkspaceConfiguration | None,
+) -> WorkspaceConfiguration:
+    """
+    Resolve workspace config from various sources.
+
+    Priority (first match wins):
+    1. Explicit config object
+    2. Explicit config file path
+    3. Auto-discovered .flync/config.yaml in workspace root
+    4. Default WorkspaceConfiguration()
+
+    Args:
+        workspace_path: Root path of the workspace.
+        workspace_config: Can be:
+            - WorkspaceConfiguration: Use as-is
+            - str | Path: Path to config file (e.g., ".flync/config.yaml")
+            - None: Auto-discover .flync/config.yaml or use defaults
+
+    Returns:
+        Resolved WorkspaceConfiguration instance.
+
+    Raises:
+        FileNotFoundError: If explicit config file doesn't exist.
+    """
+    if isinstance(workspace_config, WorkspaceConfiguration):
+        # Explicit object passed - use it
+        return workspace_config
+
+    if isinstance(workspace_config, (str, Path)):
+        # Explicit file path - load it
+        return WorkspaceConfiguration.from_yaml_file(workspace_config)
+
+    if workspace_config is not None:
+        raise TypeError(f"Invalid workspace_config type: {type(workspace_config)}")
+
+    # Auto-discover disk config (CONFIG_RELPATH under the root) or fall back to defaults.
+    return WorkspaceConfiguration.from_workspace(workspace_path)
 
 
 class FLYNCWorkspace(_WorkspaceSaving):
@@ -54,7 +95,7 @@ class FLYNCWorkspace(_WorkspaceSaving):
         flync_model: FLYNCModel,
         workspace_name: str | None = "generated_workspace",
         file_path: PathType = "",
-        workspace_config: Optional[WorkspaceConfiguration] = None,
+        workspace_config: PathType | WorkspaceConfiguration | None = None,
     ) -> "FLYNCWorkspace":
         """
         loads a workspace object from a FLYNC Object.
@@ -66,15 +107,21 @@ class FLYNCWorkspace(_WorkspaceSaving):
 
             file_path (str | Path): The path of the workspace files.
 
+            workspace_config: Can be:
+                - WorkspaceConfiguration: Config object directly
+                - str | Path: Path to config file (e.g., ".flync/config.yaml")
+                - None: Auto-discover .flync/config.yaml or use defaults
+
         Returns: FLYNCWorkspace
         """
 
         if not workspace_name:
             workspace_name = "generated_workspace"
+        resolved_config = _resolve_workspace_config(file_path, workspace_config)
         output = FLYNCWorkspace(
             name=workspace_name,
             workspace_path=file_path,
-            configuration=workspace_config,
+            configuration=resolved_config,
         )
         # assign this to the workspace if it's the root object
         output.flync_model = flync_model
@@ -86,7 +133,7 @@ class FLYNCWorkspace(_WorkspaceSaving):
         cls,
         workspace_name: str,
         workspace_path: PathType,
-        workspace_config: Optional[WorkspaceConfiguration] = None,
+        workspace_config: PathType | WorkspaceConfiguration | None = None,
     ) -> "FLYNCWorkspace":
         """
         loads a workspace object from a location of the Yaml Configuration.
@@ -98,13 +145,19 @@ class FLYNCWorkspace(_WorkspaceSaving):
 
             workspace_path (str | Path): The path of the workspace files.
 
+            workspace_config: Can be:
+                - WorkspaceConfiguration: Config object directly
+                - str | Path: Path to config file (e.g., ".flync/config.yaml")
+                - None: Auto-discover .flync/config.yaml in workspace_path or use defaults
+
         Returns: FLYNCWorkspace
         """
 
+        resolved_config = _resolve_workspace_config(workspace_path, workspace_config)
         output = FLYNCWorkspace(
             name=workspace_name,
             workspace_path=workspace_path,
-            configuration=workspace_config,
+            configuration=resolved_config,
         )
         output._open_documents()
         model = output._load_from_path(output.workspace_root)  # type: ignore[arg-type]
@@ -119,7 +172,7 @@ class FLYNCWorkspace(_WorkspaceSaving):
         cls,
         workspace_name: str,
         workspace_path: PathType,
-        workspace_config: Optional[WorkspaceConfiguration] = None,
+        workspace_config: PathType | WorkspaceConfiguration | None = None,
     ) -> "FLYNCWorkspace":
         """
         loads a workspace object from a location of the Yaml Configuration.
@@ -128,6 +181,11 @@ class FLYNCWorkspace(_WorkspaceSaving):
             workspace_name (str): The name of the workspace.
 
             workspace_path (str | Path): The path of the workspace files.
+
+            workspace_config: Can be:
+                - WorkspaceConfiguration: Config object directly
+                - str | Path: Path to config file (e.g., ".flync/config.yaml")
+                - None: Auto-discover .flync/config.yaml in workspace_path or use defaults
 
         Returns: FLYNCWorkspace
         """

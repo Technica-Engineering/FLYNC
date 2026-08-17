@@ -77,11 +77,11 @@ def validate_external_node(
     errors = {}
     model = None
     ws = None
-    if workspace_config:
-        workspace_config = WorkspaceConfiguration.create_from_config(workspace_config, root_model=node)
-    else:
-        workspace_config = WorkspaceConfiguration(root_model=node)
     try:
+        if workspace_config:
+            workspace_config = WorkspaceConfiguration.create_from_config(workspace_config, root_model=node)
+        else:
+            workspace_config = WorkspaceConfiguration(root_model=node)
         ws = FLYNCWorkspace.safe_load_workspace(
             "validation_workspace",
             node_path,
