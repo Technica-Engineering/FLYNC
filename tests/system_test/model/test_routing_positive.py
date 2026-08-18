@@ -438,7 +438,7 @@ def test_container_pdu_extracted_and_routed_to_can(tmpdir):
         pdu_id=1,
         length=12,
         header=ContainerPDUHeader(id_length_bits=16, length_field_bits=16),
-        contained_pdus=[ContainedPDURef(pdu_id=10, pdu_ref="EngineStatusPDU", offset=0)],
+        contained_pdus=[ContainedPDURef(header_id=10, pdu_ref="EngineStatusPDU", offset=0)],
     )
     can_frame = CANFrame(
         name="EngineStatusFrame",
@@ -526,7 +526,7 @@ def test_pdu_forwarded_between_two_ethernet_sockets(tmpdir):
         pdu_id=1,
         length=12,
         header=ContainerPDUHeader(id_length_bits=16, length_field_bits=16),
-        contained_pdus=[ContainedPDURef(pdu_id=100, pdu_ref="VehicleStatusPDU", offset=0)],
+        contained_pdus=[ContainedPDURef(header_id=100, pdu_ref="VehicleStatusPDU", offset=0)],
     )
     ingress_socket = SocketTCP(
         name="ETH_SOCKET_INGRESS",
@@ -601,8 +601,8 @@ def test_container_pdu_fully_preserved_across_sockets(tmpdir):
         length=24,
         header=ContainerPDUHeader(id_length_bits=16, length_field_bits=16),
         contained_pdus=[
-            ContainedPDURef(pdu_id=10, pdu_ref="EngineStatusPDU", offset=0),
-            ContainedPDURef(pdu_id=20, pdu_ref="ThermalStatusPDU", offset=96),
+            ContainedPDURef(header_id=10, pdu_ref="EngineStatusPDU", offset=0),
+            ContainedPDURef(header_id=20, pdu_ref="ThermalStatusPDU", offset=96),
         ],
     )
     ingress_socket = SocketTCP(
@@ -676,7 +676,7 @@ def test_multi_egress_ethernet_forwarding(tmpdir):
         pdu_id=1,
         length=12,
         header=ContainerPDUHeader(id_length_bits=16, length_field_bits=16),
-        contained_pdus=[ContainedPDURef(pdu_id=100, pdu_ref="VehicleStatusPDU", offset=0)],
+        contained_pdus=[ContainedPDURef(header_id=100, pdu_ref="VehicleStatusPDU", offset=0)],
     )
     ingress_socket = SocketTCP(
         name="ETH_SOCKET_INGRESS",

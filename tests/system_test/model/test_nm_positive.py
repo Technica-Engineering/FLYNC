@@ -115,7 +115,7 @@ def _make_ethernet_nm_container_pdu() -> ContainerPDU:
         ),
         contained_pdus=[
             ContainedPDURef(
-                pdu_id=NM_CONTAINER_PDU_ID,
+                header_id=NM_CONTAINER_PDU_ID,
                 pdu_ref=NM_PDU_NAME,  # references the NM StandardPDU by name
                 offset=0,
             )

@@ -10,6 +10,6 @@ description: >-
   Ethernet Container PDU without a PDU Header that carries the NM message so it can be bound to a
   UDP socket via a pdu_sender / pdu_receiver deployment.
 contained_pdus:
-  - pdu_id: 1
+  - header_id: 1
     pdu_ref: PDU_NmMessage
     offset: 0

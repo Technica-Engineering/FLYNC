@@ -59,7 +59,7 @@ def test_multiplexed_pdu_invalid_selector_value():
 def test_container_pdu_invalid_contained_ref():
     """Test ContainerPDU references non-existent contained PDU."""
     header = ContainerPDUHeader(id_length_bits=8, length_field_bits=8)
-    contained_ref = ContainedPDURef(pdu_id=0x10, pdu_ref="NonExistentPDU")
+    contained_ref = ContainedPDURef(header_id=0x10, pdu_ref="NonExistentPDU")
 
     with pytest.raises(ValueError):
         ContainerPDU(name="ContainerPowertrain", length=64, pdu_id=0x01, header=header, contained_pdus=[contained_ref])

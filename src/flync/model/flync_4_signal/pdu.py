@@ -7,7 +7,7 @@ Provides the :class:`PDU` base class with its variants :class:`StandardPDU`, :cl
 signal instances of a PDU stay within its length and do not overlap.
 """
 
-from typing import List, Literal, Optional
+from typing import Annotated, List, Literal, Optional
 
 from pydantic import Field, field_validator, model_validator
 
@@ -74,6 +74,30 @@ class PDU(FLYNCBaseModel):
 
 
 # ---------------------------------------------------------------------------
+# PDU Instance
+# ---------------------------------------------------------------------------
+
+
+class PDUInstance(FLYNCBaseModel):
+    """
+    Placement of a PDU at a specific bit offset within a CAN or LIN frame.
+
+    Parameters
+    ----------
+    pdu_ref : str
+        Name of the referenced PDU.
+    bit_position : int, optional
+        Non-negative bit offset where this PDU begins within the frame.
+    update_bit_position : int, optional
+        Bit position of the update indication bit, when applicable.
+    """
+
+    pdu_ref: str = Field()
+    bit_position: Optional[int] = Field(default=None, ge=0)
+    update_bit_position: Optional[int] = Field(default=None, ge=0)
+
+
+# ---------------------------------------------------------------------------
 # StandardPDU
 # ---------------------------------------------------------------------------
 
@@ -117,12 +141,12 @@ class MuxGroup(FLYNCBaseModel):
     ----------
     selector_value : int
         The value of the selector signal that activates this group.
-    pdu : :class:`StandardPDU`
-        The PDU that is active for this selector_value.
+    pdu : :class:`PDUInstance`
+        The PDU Instance that is active for this selector_value.
     """
 
     selector_value: int = Field(ge=0)
-    pdu: StandardPDU = Field()
+    pdu: PDUInstance = Field()
 
 
 # ---------------------------------------------------------------------------
@@ -138,15 +162,15 @@ class MultiplexedPDU(PDU):
     ----------
     selector_signal : :class:`SignalInstance`
         The selector signal whose value determines the active mux group.
-    static_group : :class:`StandardPDU`, optional
-        Optional PDU with signals that are always present regardless of the active mux group.
+    static_group : :class:`PDUInstance`, optional
+        Optional PDU Instance with signals that are always present regardless of the active mux group.
     mux_groups : list of :class:`MuxGroup`
         One entry per distinct selector value.
     """
 
     type: Literal["multiplexed"] = Field(default="multiplexed")
     selector_signal: SignalInstance = Field()
-    static_group: Optional[StandardPDU] = Field(default=None)
+    static_group: Optional[PDUInstance] = Field(default=None)
     mux_groups: List[MuxGroup] = Field(default_factory=list, min_length=1)
 
     @model_validator(mode="after")
@@ -214,7 +238,7 @@ class MultiplexedPDU(PDU):
 
 
 # ---------------------------------------------------------------------------
-# PDU references
+# Contained PDU Ref
 # ---------------------------------------------------------------------------
 
 
@@ -224,8 +248,8 @@ class ContainedPDURef(FLYNCBaseModel):
 
     Parameters
     ----------
-    pdu_id : int
-        Numeric identifier placed in the slot header for this contained PDU.
+    header_id : int
+        Numeric identifier greater zero placed in the slot header for this contained PDU.
     pdu_ref : str
         Name of the referenced PDU.
     offset : int, optional
@@ -234,28 +258,9 @@ class ContainedPDURef(FLYNCBaseModel):
         of each slot so receivers can locate it without parsing preceding slots.
     """
 
-    pdu_id: int = Field()
+    header_id: Annotated[int, Field(gt=0, strict=True)] = Field()
     pdu_ref: str = Field()
     offset: Optional[int] = Field(default=0, ge=0)
-
-
-class PDUInstance(FLYNCBaseModel):
-    """
-    Placement of a PDU at a specific bit offset within a CAN or LIN frame.
-
-    Parameters
-    ----------
-    pdu_ref : str
-        Name of the referenced PDU.
-    bit_position : int, optional
-        Non-negative bit offset where this PDU begins within the frame.
-    update_bit_position : int, optional
-        Bit position of the update indication bit, when applicable.
-    """
-
-    pdu_ref: str = Field()
-    bit_position: Optional[int] = Field(default=None, ge=0)
-    update_bit_position: Optional[int] = Field(default=None, ge=0)
 
 
 # ---------------------------------------------------------------------------

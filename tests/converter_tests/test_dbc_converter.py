@@ -141,53 +141,63 @@ class TestDecodeMultiplexedPdu:
         pdu.selector_signal = sel_inst
         pdu.static_group = None
         pdu.mux_groups = []
-        result = _decode_multiplexed_pdu(MagicMock(), pdu, 0, None)
+        result = _decode_multiplexed_pdu(MagicMock(), pdu, 0, None, pdus={})
         assert len(result) == 1
         assert result[0].name == "sel"
 
     def test_with_mux_group(self):
         sel_inst = _mock_si(_mock_signal("sel", 4), 0)
         data_inst = _mock_si(_mock_signal("data", 8), 8)
-        grp_pdu = MagicMock()
-        grp_pdu.signals = [data_inst]
-        grp_pdu.signal_groups = []
+        data_pdu = StandardPDU.model_construct(name="data_pdu", length=8, signals=[data_inst], signal_groups=[])
         grp = MagicMock()
-        grp.pdu = grp_pdu
+        grp.pdu = MagicMock(pdu_ref="data_pdu", bit_position=0)
         grp.selector_value = 1
         pdu = MagicMock()
         pdu.selector_signal = sel_inst
         pdu.static_group = None
         pdu.mux_groups = [grp]
-        result = _decode_multiplexed_pdu(MagicMock(), pdu, 0, None)
+        result = _decode_multiplexed_pdu(MagicMock(), pdu, 0, None, pdus={"data_pdu": data_pdu})
         assert len(result) == 2
         assert result[0].name == "sel"
         assert result[1].name == "data"
 
-    def test_mux_group_signal_group_warns(self, caplog):
+    def test_mux_group_missing_reference_warns(self, caplog):
         sel_inst = _mock_si(_mock_signal("sel", 4), 0)
-        grp_pdu = MagicMock()
-        grp_pdu.signals = []
-        grp_pdu.signal_groups = [MagicMock()]
         grp = MagicMock()
-        grp.pdu = grp_pdu
+        grp.pdu = MagicMock(pdu_ref="missing_pdu", bit_position=0)
         grp.selector_value = 0
         pdu = MagicMock()
         pdu.selector_signal = sel_inst
         pdu.static_group = None
         pdu.mux_groups = [grp]
         with caplog.at_level(logging.WARNING, logger="flync_converter.converters.dbc_converter"):
-            _decode_multiplexed_pdu(MagicMock(), pdu, 0, None)
+            result = _decode_multiplexed_pdu(MagicMock(), pdu, 0, None, pdus={})
+        assert len(result) == 1  # only the selector
+        assert "Referenced mux PDU 'missing_pdu' not found" in caplog.text
+
+    def test_mux_group_signal_group_warns(self, caplog):
+        sel_inst = _mock_si(_mock_signal("sel", 4), 0)
+        grp_pdu = StandardPDU.model_construct(name="grp_pdu", length=8, signals=[], signal_groups=[MagicMock()])
+        grp = MagicMock()
+        grp.pdu = MagicMock(pdu_ref="grp_pdu", bit_position=0)
+        grp.selector_value = 0
+        pdu = MagicMock()
+        pdu.selector_signal = sel_inst
+        pdu.static_group = None
+        pdu.mux_groups = [grp]
+        with caplog.at_level(logging.WARNING, logger="flync_converter.converters.dbc_converter"):
+            _decode_multiplexed_pdu(MagicMock(), pdu, 0, None, pdus={"grp_pdu": grp_pdu})
         assert "Signal Group inside MuxGroup not supported" in caplog.text
 
     def test_with_static_group(self):
         sel_inst = _mock_si(_mock_signal("sel", 4), 0)
         static_si = _mock_si(_mock_signal("static_sig", 8), 4)
-        static_pdu = StandardPDU.model_construct(name="sp", length=8, signals=[static_si], signal_groups=[])
+        static_pdu = StandardPDU.model_construct(name="static_pdu", length=8, signals=[static_si], signal_groups=[])
         pdu = MagicMock()
         pdu.selector_signal = sel_inst
-        pdu.static_group = static_pdu
+        pdu.static_group = MagicMock(pdu_ref="static_pdu", bit_position=0)
         pdu.mux_groups = []
-        result = _decode_multiplexed_pdu(MagicMock(), pdu, 0, None)
+        result = _decode_multiplexed_pdu(MagicMock(), pdu, 0, None, pdus={"static_pdu": static_pdu})
         assert len(result) == 2
         assert result[0].name == "sel"
         assert result[1].name == "static_sig"

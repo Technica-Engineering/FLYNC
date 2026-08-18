@@ -119,32 +119,61 @@ def _decode_standard_pdu(pdu: StandardPDU, bit_pos: int, receivers: Optional[Lis
     return ret
 
 
+def _pdus_by_name(flync_model: FLYNCModel) -> dict:
+    """Return a ``name -> PDU`` lookup from the model (or ``{}`` when not derivable)."""
+    pdus: dict = {}
+    if flync_model is not None:
+        communication = getattr(flync_model, "communication", None)
+        declared = getattr(getattr(communication, "channels", None), "pdus", None)
+        if declared:
+            try:
+                pdus = {p.name: p for p in declared}
+            except TypeError:
+                pdus = {}
+    return pdus
+
+
 def _decode_multiplexed_pdu(
     flync_model: FLYNCModel,
     pdu: MultiplexedPDU,
     bit_pos: int,
     receivers: Optional[List[str]],
+    pdus: Optional[dict] = None,
 ) -> List[Signal]:
     """Decode a MultiplexedPDU into a flat list of cantools Signal objects."""
+    if pdus is None:
+        pdus = _pdus_by_name(flync_model)
     sel = pdu.selector_signal
     selector_name = sel.signal.name
     ret: List[Signal] = [decode_signal_instance(sel, bit_pos, receivers=receivers)]
 
     if pdu.static_group is not None:
-        ret.extend(decode_pdu(flync_model, pdu.static_group, bit_pos, receivers=receivers))
+        static_ref = pdu.static_group.pdu_ref
+        static_pdu = pdus.get(static_ref, None)
+        static_offset = bit_pos + (pdu.static_group.bit_position or 0)
+        if static_pdu is None:
+            logger.warning("Referenced static PDU '%s' not found", static_ref)
+        else:
+            ret.extend(_decode_standard_pdu(static_pdu, static_offset, receivers))
 
     for group in pdu.mux_groups:
-        for s in group.pdu.signals:
+        mux_ref = group.pdu.pdu_ref
+        mux_pdu = pdus.get(mux_ref, None)
+        mux_offset = bit_pos + (group.pdu.bit_position or 0)
+        if mux_pdu is None:
+            logger.warning("Referenced mux PDU '%s' not found", mux_ref)
+            continue
+        for s in mux_pdu.signals:
             ret.append(
                 decode_signal_instance(
                     s,
-                    bit_pos,
+                    mux_offset,
                     receivers=receivers,
                     multiplexer_signal=selector_name,
                     multiplexer_ids=[group.selector_value],
                 )
             )
-        for _ in group.pdu.signal_groups:
+        for _ in mux_pdu.signal_groups:
             logger.warning("Signal Group inside MuxGroup not supported yet!")
 
     return ret
@@ -155,6 +184,7 @@ def decode_pdu(  # NOSONAR
     pdu: PDU,
     bit_pos: int,
     receivers: Optional[List[str]] = None,
+    pdus: Optional[dict] = None,
 ) -> List[Signal]:
     """Recursively decode a PDU and its nested signals into a flat list of cantools Signal objects."""
     if pdu is None:
@@ -162,7 +192,7 @@ def decode_pdu(  # NOSONAR
     if isinstance(pdu, StandardPDU):
         return _decode_standard_pdu(pdu, bit_pos, receivers)
     if isinstance(pdu, MultiplexedPDU):
-        return _decode_multiplexed_pdu(flync_model, pdu, bit_pos, receivers)
+        return _decode_multiplexed_pdu(flync_model, pdu, bit_pos, receivers, pdus)
     if isinstance(pdu, ContainerPDU):
         logger.warning("ContainerPDU not implemented yet!")
     else:
@@ -196,6 +226,7 @@ def _build_can_messages(flync_model: FLYNCModel, can_bus, pdus: dict, frame_send
                 pdu_obj,  # type: ignore[arg-type]
                 pdu_inst.bit_position or 0,
                 frame_receivers.get((can_bus.name, frame.can_id), None),
+                pdus,
             )
         messages.append(
             Message(

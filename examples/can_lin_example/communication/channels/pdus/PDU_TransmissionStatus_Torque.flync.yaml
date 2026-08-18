@@ -1,0 +1,36 @@
+name: PDU_TransmissionStatus_Torque
+type: standard
+length: 8
+description: Torque converter data, active when the GearInfoMux selector value is 1.
+
+signals:
+  - bit_position: 8
+    endianness: LE
+
+    signal:
+      name: TorqueConverterSlipSpeed
+      description: Slip speed of the torque converter.
+      bit_length: 16
+      data_type: uint16
+      factor: 0.1
+      offset: 0.0
+      unit: rpm
+  - bit_position: 24
+    endianness: LE
+
+    signal:
+      name: TorqueConverterLockup
+      description: Torque converter lock-up clutch state.
+      bit_length: 2
+      data_type: uint8
+      value_encoding:
+        type: text_table
+        entries:
+          - value: 0
+            label: Open
+          - value: 1
+            label: Slipping
+          - value: 2
+            label: Locked
+          - value: 3
+            label: Error

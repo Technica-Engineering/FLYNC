@@ -93,7 +93,7 @@ def _nm_container(name="EthNmContainer", contained=NM_PDU):
         pdu_id=100,
         pdu_usage="network_management",
         header=ContainerPDUHeader(id_length_bits=16, length_field_bits=8),
-        contained_pdus=[ContainedPDURef(pdu_id=1, pdu_ref=contained)],
+        contained_pdus=[ContainedPDURef(header_id=1, pdu_ref=contained)],
     )
 
 

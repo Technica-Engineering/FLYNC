@@ -71,14 +71,12 @@ def test_multiplexed_pdu():
     Verify MultiplexedPDU selector logic and correct PDU reference in a frame.
 
     Path validated:
-    Signal → SignalInstance (selector) → MultiplexedPDU → MuxGroup → StandardPDU → PDUInstance → Frame → PDUSender / PDUReceiver
+    Signal → SignalInstance (selector) → MultiplexedPDU → MuxGroup → PDUInstance → Frame → PDUSender / PDUReceiver
     """
     gear_signal = Signal(name="GearSelector", bit_length=3, data_type=SignalDataType.UINT8)
     gear_instance = SignalInstance(signal=gear_signal, bit_position=0)
-    pdu_gear1 = StandardPDU(name="PDU_Gear1", length=2)
-    pdu_gear2 = StandardPDU(name="PDU_Gear2", length=2)
-    mux1 = MuxGroup(selector_value=1, pdu=pdu_gear1)
-    mux2 = MuxGroup(selector_value=2, pdu=pdu_gear2)
+    mux1 = MuxGroup(selector_value=1, pdu=PDUInstance(pdu_ref="PDU_Gear1"))
+    mux2 = MuxGroup(selector_value=2, pdu=PDUInstance(pdu_ref="PDU_Gear2"))
     muxed_pdu = MultiplexedPDU(name="PDU_TransmissionStatus", length=4, selector_signal=gear_instance, mux_groups=[mux1, mux2])
     pdu_inst = PDUInstance(pdu_ref=muxed_pdu.name)
     frame = LINFrame(name="LIN_TransmissionFrame", length=8, lin_id=0x10, packed_pdus=[pdu_inst])
@@ -99,8 +97,8 @@ def test_container_pdu():
     """
     pdu1 = StandardPDU(name="PDU_EngineStatus", length=4)
     pdu2 = StandardPDU(name="PDU_TransmissionStatus", length=4)
-    ref1 = ContainedPDURef(pdu_id=0x10, pdu_ref=pdu1.name)
-    ref2 = ContainedPDURef(pdu_id=0x11, pdu_ref=pdu2.name)
+    ref1 = ContainedPDURef(header_id=0x10, pdu_ref=pdu1.name)
+    ref2 = ContainedPDURef(header_id=0x11, pdu_ref=pdu2.name)
     header = ContainerPDUHeader(id_length_bits=8, length_field_bits=8)
     container = ContainerPDU(name="ContainerPowertrain", length=64, pdu_id=0x01, header=header, contained_pdus=[ref1, ref2])
     sender = PDUSender(pdu_ref=container.name)

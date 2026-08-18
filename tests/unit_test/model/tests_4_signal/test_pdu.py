@@ -51,14 +51,20 @@ def test_negative_pdu_instance_negative_bit_position():
 
 
 def test_positive_contained_pdu_ref():
-    ref = ContainedPDURef(pdu_id=1, pdu_ref="inner_pdu")
-    assert ref.pdu_id == 1
+    ref = ContainedPDURef(header_id=1, pdu_ref="inner_pdu")
+    assert ref.header_id == 1
     assert ref.pdu_ref == "inner_pdu"
 
 
 def test_positive_contained_pdu_ref_model_validate():
-    ref = ContainedPDURef.model_validate({"pdu_id": 1, "pdu_ref": "pdu_A"})
+    ref = ContainedPDURef.model_validate({"header_id": 1, "pdu_ref": "pdu_A"})
     assert isinstance(ref, ContainedPDURef)
+
+
+def test_negative_contained_pdu_ref_zero_header_id():
+    """header_id must be greater than zero; zero must be rejected."""
+    with pytest.raises(ValidationError):
+        ContainedPDURef(header_id=0, pdu_ref="inner_pdu")
 
 
 # ---------------------------------------------------------------------------
@@ -328,68 +334,25 @@ def test_negative_standard_pdu_signal_groups_overlap_each_other():
 def test_positive_mux_group_empty():
     mg = MuxGroup(
         selector_value=0,
-        pdu=StandardPDU(name="mg_empty_pdu", length=1),
+        pdu=PDUInstance(pdu_ref="mg_empty_pdu"),
     )
     assert mg.selector_value == 0
-    assert mg.pdu.signals == []
+    assert mg.pdu.pdu_ref == "mg_empty_pdu"
 
 
-def test_positive_mux_group_with_signal():
-    sig = Signal(name="mux_s1", bit_length=8, data_type=SignalDataType.UINT8)
+def test_positive_mux_group_with_bit_position():
     mg = MuxGroup(
         selector_value=1,
-        pdu=StandardPDU(
-            name="mg_sig_pdu",
-            length=1,
-            signals=[SignalInstance(signal=sig, bit_position=0)],
-        ),
+        pdu=PDUInstance(pdu_ref="mg_sig_pdu", bit_position=8),
     )
     assert mg.selector_value == 1
-    assert len(mg.pdu.signals) == 1
+    assert mg.pdu.pdu_ref == "mg_sig_pdu"
+    assert mg.pdu.bit_position == 8
 
 
-def test_positive_mux_group_two_signals_no_overlap():
-    s1 = Signal(name="mg_s1", bit_length=8, data_type=SignalDataType.UINT8)
-    s2 = Signal(name="mg_s2", bit_length=8, data_type=SignalDataType.UINT8)
-    mg = MuxGroup(
-        selector_value=0,
-        pdu=StandardPDU(
-            name="mg_two_sig_pdu",
-            length=2,
-            signals=[
-                SignalInstance(signal=s1, bit_position=0),
-                SignalInstance(signal=s2, bit_position=8),
-            ],
-        ),
-    )
-    assert len(mg.pdu.signals) == 2
-
-
-# ---------------------------------------------------------------------------
-# MuxGroup — negative tests
-# ---------------------------------------------------------------------------
-
-
-def test_negative_mux_group_signals_overlap():
-    s1 = Signal(name="mg_olap1", bit_length=8, data_type=SignalDataType.UINT8)
-    s2 = Signal(name="mg_olap2", bit_length=8, data_type=SignalDataType.UINT8)
-    # Passed as raw data so the overlapping payload is validated through MuxGroup itself.
-    pdu_payload = {
-        "name": "mg_olap_pdu",
-        "length": 2,
-        "signals": [SignalInstance(signal=s1, bit_position=0), SignalInstance(signal=s2, bit_position=4)],
-    }
-
-    with pytest.raises(ValidationError) as exc_info:
-        MuxGroup(selector_value=0, pdu=pdu_payload)
-    assert_single_error(exc_info, "FLYNC-CMN-MIN-CONS-030", "overlap")
-
-
-def test_negative_mux_group_negative_selector_value():
-    pdu = StandardPDU(name="mg_neg_pdu", length=1)
-
+def test_positive_mux_group_negative_selector_value_is_rejected():
     with pytest.raises(ValidationError):
-        MuxGroup(selector_value=-1, pdu=pdu)
+        MuxGroup(selector_value=-1, pdu=PDUInstance(pdu_ref="mg_neg_pdu"))
 
 
 # ---------------------------------------------------------------------------
@@ -402,16 +365,10 @@ def _make_selector_signal(name="mux_sel", bit_length=4):
     return SignalInstance(signal=sig, bit_position=0)
 
 
-def _make_mux_group(selector_value, signal_name="mux_payload", bit_position=8):
-    sig = Signal(name=signal_name, bit_length=8, data_type=SignalDataType.UINT8)
-    length = (bit_position + 8 + 7) // 8  # minimum bytes to hold signal
+def _make_mux_group(selector_value, pdu_ref="mux_payload"):
     return MuxGroup(
         selector_value=selector_value,
-        pdu=StandardPDU(
-            name=f"mg_pdu_{signal_name}",
-            length=length,
-            signals=[SignalInstance(signal=sig, bit_position=bit_position)],
-        ),
+        pdu=PDUInstance(pdu_ref=pdu_ref),
     )
 
 
@@ -444,33 +401,20 @@ def test_positive_multiplexed_pdu_multiple_mux_groups():
 def test_positive_multiplexed_pdu_with_static_signals():
     sel = _make_selector_signal("mp_sel_3")
     mg = _make_mux_group(0, "mp_pay_3")
-    static_sig = Signal(name="mp_static", bit_length=8, data_type=SignalDataType.UINT8)
     pdu = MultiplexedPDU(
         name="mp_pdu_3",
         length=4,
         selector_signal=sel,
         mux_groups=[mg],
-        static_group=StandardPDU(
-            name="mp_pdu_3_static",
-            length=3,
-            signals=[SignalInstance(signal=static_sig, bit_position=16)],
-        ),
+        static_group=PDUInstance(pdu_ref="mp_pdu_3_static", bit_position=16),
     )
-    assert len(pdu.static_group.signals) == 1
+    assert pdu.static_group.pdu_ref == "mp_pdu_3_static"
 
 
 def test_positive_multiplexed_pdu_selector_no_position():
     sig = Signal(name="mp_sel_nopos", bit_length=4, data_type=SignalDataType.UINT8)
     sel = SignalInstance(signal=sig)
-    mg_sig = Signal(name="mp_pay_nopos", bit_length=8, data_type=SignalDataType.UINT8)
-    mg = MuxGroup(
-        selector_value=0,
-        pdu=StandardPDU(
-            name="mg_nopos_pdu",
-            length=1,
-            signals=[SignalInstance(signal=mg_sig, bit_position=0)],
-        ),
-    )
+    mg = _make_mux_group(0, "mp_pay_nopos")
     pdu = MultiplexedPDU(
         name="mp_nopos_pdu",
         length=4,
@@ -500,58 +444,18 @@ def test_negative_multiplexed_pdu_duplicate_selector_values():
 
 def test_negative_multiplexed_pdu_selector_value_out_of_range():
     sel = _make_selector_signal("oor_sel", bit_length=4)
-    sig = Signal(name="oor_pay", bit_length=8, data_type=SignalDataType.UINT8)
     mg = MuxGroup(
         selector_value=16,
-        pdu=StandardPDU(
-            name="mg_oor_pdu",
-            length=2,
-            signals=[SignalInstance(signal=sig, bit_position=8)],
-        ),
+        pdu=PDUInstance(pdu_ref="mg_oor_pdu"),
     )
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         MultiplexedPDU(
             name="oor_sel_pdu",
             length=4,
             selector_signal=sel,
             mux_groups=[mg],
         )
-
-
-def test_negative_multiplexed_pdu_mux_group_overlaps_selector():
-    sel_sig = Signal(name="ov_sel", bit_length=4, data_type=SignalDataType.UINT8)
-    sel = SignalInstance(signal=sel_sig, bit_position=0)
-    pay_sig = Signal(name="ov_pay", bit_length=8, data_type=SignalDataType.UINT8)
-    mg = MuxGroup(
-        selector_value=0,
-        pdu=StandardPDU(
-            name="mg_ov_pdu",
-            length=1,
-            signals=[SignalInstance(signal=pay_sig, bit_position=0)],
-        ),
-    )
-    with pytest.raises(ValidationError):
-        MultiplexedPDU(
-            name="ov_sel_pdu",
-            length=4,
-            selector_signal=sel,
-            mux_groups=[mg],
-        )
-
-
-def test_negative_multiplexed_pdu_static_overlaps_selector():
-    sel_sig = Signal(name="stat_sel", bit_length=4, data_type=SignalDataType.UINT8)
-    sel = SignalInstance(signal=sel_sig, bit_position=0)
-    mg = _make_mux_group(0, "stat_pay")
-    static_sig = Signal(name="stat_ov", bit_length=8, data_type=SignalDataType.UINT8)
-    static_group = StandardPDU(
-        name="stat_ov_pdu_static",
-        length=1,
-        signals=[SignalInstance(signal=static_sig, bit_position=0)],
-    )
-
-    with pytest.raises(ValidationError):
-        MultiplexedPDU(name="stat_ov_pdu", length=4, selector_signal=sel, mux_groups=[mg], static_group=static_group)
+    assert_single_error(exc_info, "FLYNC-SIG-MIN-VAL-108", "out-of-range")
 
 
 def test_negative_multiplexed_pdu_empty_mux_groups():
@@ -601,8 +505,8 @@ def test_positive_container_pdu_16bit_id_8bit_length_with_refs():
         length=10,
         header=ContainerPDUHeader(id_length_bits=16, length_field_bits=8),
         contained_pdus=[
-            ContainedPDURef(pdu_id=1, pdu_ref="inner_a"),
-            ContainedPDURef(pdu_id=2, pdu_ref="inner_b"),
+            ContainedPDURef(header_id=1, pdu_ref="inner_a"),
+            ContainedPDURef(header_id=2, pdu_ref="inner_b"),
         ],
     )
     assert len(pdu.contained_pdus) == 2
@@ -615,7 +519,7 @@ def test_positive_container_pdu_32bit_id_16bit_length_exact_minimum():
         pdu_id=4,
         length=6,
         header=ContainerPDUHeader(id_length_bits=32, length_field_bits=16),
-        contained_pdus=[ContainedPDURef(pdu_id=1, pdu_ref="inner_c")],
+        contained_pdus=[ContainedPDURef(header_id=1, pdu_ref="inner_c")],
     )
     assert pdu.length == 6
 
@@ -627,7 +531,7 @@ def test_positive_container_pdu_16bit_id_8bit_length_exact_minimum():
         pdu_id=5,
         length=3,
         header=ContainerPDUHeader(id_length_bits=16, length_field_bits=8),
-        contained_pdus=[ContainedPDURef(pdu_id=1, pdu_ref="inner_d")],
+        contained_pdus=[ContainedPDURef(header_id=1, pdu_ref="inner_d")],
     )
     assert pdu.length == 3
 
@@ -651,7 +555,7 @@ def test_positive_container_pdu_model_validate():
 def test_negative_container_pdu_too_small_3byte_header():
     # overhead = (16+8)//8 = 3 bytes; 2 slots => minimum = 6; length=5 < 6
     header = ContainerPDUHeader(id_length_bits=16, length_field_bits=8)
-    contained_pdus = [ContainedPDURef(pdu_id=1, pdu_ref="p1"), ContainedPDURef(pdu_id=2, pdu_ref="p2")]
+    contained_pdus = [ContainedPDURef(header_id=1, pdu_ref="p1"), ContainedPDURef(header_id=2, pdu_ref="p2")]
 
     with pytest.raises(ValidationError):
         ContainerPDU(name="ctr_small_sh", pdu_id=10, length=5, header=header, contained_pdus=contained_pdus)
@@ -660,7 +564,7 @@ def test_negative_container_pdu_too_small_3byte_header():
 def test_negative_container_pdu_too_small_6byte_header():
     # overhead = (32+16)//8 = 6 bytes; 1 slot => minimum = 6; length=5 < 6
     header = ContainerPDUHeader(id_length_bits=32, length_field_bits=16)
-    contained_pdus = [ContainedPDURef(pdu_id=1, pdu_ref="p1")]
+    contained_pdus = [ContainedPDURef(header_id=1, pdu_ref="p1")]
 
     with pytest.raises(ValidationError):
         ContainerPDU(name="ctr_small_lh", pdu_id=11, length=5, header=header, contained_pdus=contained_pdus)
@@ -695,7 +599,7 @@ def test_positive_container_pdu_headerless_with_one_pdu():
         pdu_id=20,
         length=4,
         header=ContainerPDUHeader(id_length_bits=0, length_field_bits=0),
-        contained_pdus=[ContainedPDURef(pdu_id=1, pdu_ref="inner_hl")],
+        contained_pdus=[ContainedPDURef(header_id=1, pdu_ref="inner_hl")],
     )
     assert len(pdu.contained_pdus) == 1
 
@@ -712,7 +616,7 @@ def test_positive_container_pdu_headerless_no_contained_pdus_raises():
 def test_negative_container_pdu_headerless_multiple_contained_pdus():
     """Header-less with more than one contained PDU must be rejected."""
     header = ContainerPDUHeader(id_length_bits=0, length_field_bits=0)
-    contained_pdus = [ContainedPDURef(pdu_id=1, pdu_ref="inner_a"), ContainedPDURef(pdu_id=2, pdu_ref="inner_b")]
+    contained_pdus = [ContainedPDURef(header_id=1, pdu_ref="inner_a"), ContainedPDURef(header_id=2, pdu_ref="inner_b")]
 
     with pytest.raises(ValidationError) as exc_info:
         ContainerPDU(name="ctr_headerless_multi", pdu_id=22, length=4, header=header, contained_pdus=contained_pdus)

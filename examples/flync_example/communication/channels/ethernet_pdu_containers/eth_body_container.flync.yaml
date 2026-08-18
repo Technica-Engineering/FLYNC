@@ -10,12 +10,12 @@ description: >-
   cabin light) into a single Ethernet payload.
 
 contained_pdus:
-  - pdu_id: 1
+  - header_id: 1
     pdu_ref: PDU_MirrorLeft
     offset: 0
-  - pdu_id: 2
+  - header_id: 2
     pdu_ref: PDU_MirrorRight
     offset: 5
-  - pdu_id: 5
+  - header_id: 5
     pdu_ref: PDU_CabinLight
     offset: 10
