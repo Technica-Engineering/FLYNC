@@ -138,8 +138,8 @@ class MultiplexedPDU(PDU):
     ----------
     selector_signal : :class:`SignalInstance`
         The selector signal whose value determines the active mux group.
-    static_signals : list of :class:`SignalInstance`
-        Signals that are always present regardless of the active mux group.
+    static_group : :class:`StandardPDU`, optional
+        Optional PDU with signals that are always present regardless of the active mux group.
     mux_groups : list of :class:`MuxGroup`
         One entry per distinct selector value.
     """
