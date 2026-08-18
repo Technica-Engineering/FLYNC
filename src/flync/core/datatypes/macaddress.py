@@ -2,7 +2,7 @@
 
 from typing import Annotated, Optional
 
-from pydantic import AfterValidator, BeforeValidator, ConfigDict, Field
+from pydantic import AfterValidator, BeforeValidator, Field
 from pydantic_extra_types.mac_address import MacAddress
 
 from flync.core.base_models.base_model import FLYNCBaseModel
@@ -42,7 +42,6 @@ class MACAddressEntry(FLYNCBaseModel):
             The mask in MAC format. Format: "xx:xx:xx:xx:xx:xx"
     """
 
-    model_config = ConfigDict(extra="forbid")
     address: FLYNCMacAddress = Field()
     macmask: Optional[str] = Field(default="xx:xx:xx:xx:xx:xx")
 

@@ -247,7 +247,7 @@ class SOMEIPField(FLYNCBaseModel):
         Defaults to "field_default".
     """
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(frozen=True)
     name: str = Field(description="name of the field")
     parameters: Annotated[
         Optional[List["SOMEIPParameter"]],
@@ -339,7 +339,7 @@ class SOMEIPEvent(FLYNCBaseModel):
         Defaults to "event_default".
     """
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(frozen=True)
     name: str = Field(description="name of the event")
     description: Optional[str] = Field(default="")
     id: Annotated[int, Field(gt=0, le=0xFFFF, strict=True)] = Field(description="identifies the event")
@@ -371,7 +371,7 @@ class SOMEIPEventgroup(FLYNCBaseModel):
         The events and fields this eventgroup contains.
     """
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(frozen=True)
     name: str = Field(description="name of the eventgroup")
     description: Optional[str] = Field(default="")
     id: Annotated[int, Field(gt=0, le=0xFFFF, strict=True)] = Field(description="identifies the eventgroup")
@@ -439,7 +439,6 @@ class SOMEIPMethod(FLYNCBaseModel):
         Defaults to "method_default".
     """
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
     name: str = Field(description="name of the method")
     description: Optional[str] = Field(description="a short description on what this method does", default="")
     type: Literal["request_response", "fire_and_forget"]
@@ -539,7 +538,6 @@ class SOMEIPServiceInterface(FLYNCBaseModel):
         Metadata for the SOME/IP Service.
     """
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
     name: str = Field(description="name of the service")
     description: Optional[str] = Field(default="")
     id: Annotated[int, Field(gt=0, le=0xFFFF, strict=True)] = Field(description="identifies the service")

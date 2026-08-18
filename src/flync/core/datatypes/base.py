@@ -31,7 +31,7 @@ class Datatype(FLYNCBaseModel):
         None when the datatype is not a struct member or when member name equals the type name.
     """
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(frozen=True)
     name: str = Field()
     description: Optional[str] = Field(default="")
     type: str | object = Field()
