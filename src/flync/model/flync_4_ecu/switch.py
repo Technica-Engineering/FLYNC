@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from typing import (
     Annotated,
     Any,
@@ -25,8 +24,9 @@ from pydantic import (
 
 import flync.core.utils.common_validators as common_validators
 from flync.core.base_models.base_model import FLYNCBaseModel
+from flync.core.datatypes import Bitmask
 from flync.core.utils.common_validators import validate_vlan_id
-from flync.core.utils.exceptions import Category, err_minor
+from flync.core.utils.exceptions import Category, err_minor, warn
 from flync.model.flync_4_ecu.controller import EthernetInterfaceConfig
 from flync.model.flync_4_ecu.phy import (
     BASET,
@@ -197,6 +197,7 @@ class PortScopedAction(FLYNCBaseModel):
     empty list, and an omitted list stays omitted (under ``exclude_unset``).
     """
 
+    ports: Annotated[Optional[List[str]], BeforeValidator(common_validators.none_to_empty_list)] = Field(default_factory=list)
     _ports_autofilled: bool = PrivateAttr(default=False)
 
     @field_serializer("ports", check_fields=False)
@@ -219,7 +220,6 @@ class Drop(PortScopedAction):
     """
 
     type: Literal["drop"] = Field(default="drop")
-    ports: Optional[List[str]] = Field(default_factory=list)
 
 
 class Mirror(PortScopedAction):
@@ -236,7 +236,6 @@ class Mirror(PortScopedAction):
     """
 
     type: Literal["mirror"] = Field(default="mirror")
-    ports: Optional[List[str]] = Field(default_factory=list)
 
 
 class ForceEgress(PortScopedAction):
@@ -253,7 +252,6 @@ class ForceEgress(PortScopedAction):
     """
 
     type: Literal["force_egress"] = Field(default="force_egress")
-    ports: Optional[List[str]] = Field(default_factory=list)
 
 
 class VLANOverwrite(PortScopedAction):
@@ -279,7 +277,6 @@ class VLANOverwrite(PortScopedAction):
     type: Literal["vlan_overwrite"] = Field(default="vlan_overwrite")
     overwrite_vlan_id: Annotated[Optional[int], AfterValidator(validate_vlan_id)] = Field(default=None)
     overwrite_vlan_pcp: Optional[int] = Field(default=None)
-    ports: Optional[List[str]] = Field(default_factory=list)
 
 
 class RemoveVLAN(PortScopedAction):
@@ -296,104 +293,28 @@ class RemoveVLAN(PortScopedAction):
     """
 
     type: Literal["remove_vlan"] = Field(default="remove_vlan")
-    ports: Optional[List[str]] = Field(default_factory=list)
 
 
-class FrameMask(FLYNCBaseModel):
+class FrameMask(Bitmask):
     """
-    Byte-level pattern matching of an Ethernet frame.
-    The inspectable frame window defaults to 96 bytes but may be overwritten with ``frame_window``.
+    Byte-level pattern matching of an Ethernet frame, i.e. a :class:`~flync.core.datatypes.Bitmask` bound to a frame position.
 
-    The rule matches frames by comparing raw byte patterns at a specific offset.
-    The ``mask`` controls which bits are checked: only bits set to 1 in the mask
-    are significant for the comparison. Bits set to 0 in the mask are ignored.
-
-    For example, a frame at byte offset 12 matches if ``(frame[12:14] & mask) == (data & mask)``.
+    A frame matches if ``(frame[offset:offset + byte_length] & mask) == data``, e.g. a
+    two-byte pattern at ``offset=12`` matches on the EtherType field.
 
     Parameters
     ----------
 
     offset : int
-        Byte position in the frame where the pattern match begins. Must be 0 to [frame_window - 1]
-        to stay within the inspectable window. For example, offset=12 starts matching
-        at the 13th byte (after MAC and EtherType headers).
-
-    data : str
-        Expected byte pattern. Input format must be a quoted string to prevent serialization mismatches and loss of leading zeros.
-        The string can represent either:
-
-        * a hexadecimal value ``"0x0800"`` (normalized to upper-case with a 0x prefix)
-        * binary representation like ``"0101010101010101"`` (stored in verbatim).
-
-    mask : str
-        Bitmask controlling which bits to check. Accepts the very same input
-        formats as ``data`` and must describe the same number of bytes.
-
-    frame_window : int, Optional
-        Maximum number of leading frame bytes a :class:`FrameMask` may inspect. Defaults to 96.
+        Byte position in the frame where the pattern match begins.
     """
 
-    offset: int = Field(...)
-    data: str = Field(...)
-    mask: str = Field(...)
-    frame_window: int = Field(default=96)
-
-    @field_validator("data", "mask", mode="before")
-    @classmethod
-    def _require_string(cls, value, info):
-        # Unquoted YAML numbers arrive as int and lose their format/width.
-        if not isinstance(value, str):
-            raise err_minor(
-                f"{info.field_name} must be a quoted string: a hex literal like "
-                f'"0x0800" or a binary string like "100101010111". Got '
-                f"{type(value).__name__} {value!r}; wrap the value in quotes.",
-                category=Category.VALUE_RANGE,
-                error_number="176",
-            )
-        return value
-
-    @field_validator("data", "mask", mode="after")
-    @classmethod
-    def _normalize_format(cls, value, info):
-        hex_regex = re.compile(r"^0[xX][0-9a-fA-F]+$")
-        bin_regex = re.compile(r"^[01]+$")
-        v = value.strip().replace("_", "").replace(" ", "")
-        if hex_regex.match(v):
-            return "0x" + v[2:].upper()
-        if bin_regex.match(v):
-            return v
-        raise err_minor(
-            f'{info.field_name} must be a 0x-hex literal (e.g. "0x0800") or a binary string of 0/1 (e.g. "100101010111"); got {value!r}',
-            category=Category.VALUE_RANGE,
-            error_number="177",
-        )
-
-    @staticmethod
-    def _bit_width(v: str) -> int:
-        return 4 * len(v[2:]) if v[:2].lower() == "0x" else len(v)
+    offset: int = Field(ge=0)
 
     @property
-    def bits(self) -> str:
-        """Canonical binary view of `data` (unified access for consumers)."""
-        return self.data if self.data[:2].lower() != "0x" else bin(int(self.data, 16))[2:].zfill(self._bit_width(self.data))
-
-    @model_validator(mode="after")
-    def validate_widths_and_window(self) -> Self:
-        d, m = self._bit_width(self.data), self._bit_width(self.mask)
-        if d != m:
-            raise err_minor("'data' and 'mask' must describe the same number of bits", category=Category.VALUE_RANGE, error_number="178")
-        if not 0 <= self.offset < self.frame_window:
-            raise err_minor(
-                f"offset must be between 0 and {self.frame_window - 1}, got {self.offset}", category=Category.VALUE_RANGE, error_number="179"
-            )
-        byte_span = -(-d // 8)  # ceil(bits/8); patterns need not be byte-aligned
-        if self.offset + byte_span > self.frame_window:
-            raise err_minor(
-                f"pattern at offset {self.offset} extends beyond byte {self.frame_window - 1} (max inspectable frame position)",
-                category=Category.VALUE_RANGE,
-                error_number="180",
-            )
-        return self
+    def byte_length(self) -> int:
+        """Number of frame bytes inspected, derived from the bit width of the ``data`` literal."""
+        return -(-self._width // 8)
 
 
 class TCAMRule(FLYNCBaseModel):
@@ -407,15 +328,19 @@ class TCAMRule(FLYNCBaseModel):
         Name for the description of the TCAM rule.
 
     id : StrictInt
-        Unique TCAM rule ID.
+        Unique TCAM rule ID. Must be greater or equal to 0.
 
-    match_filter : :class:`~flync.model.flync_4_tsn.FrameFilter`
+    match_filter : :class:`~flync.model.flync_4_tsn.FrameFilter`, optional
         Packet-matching filter for layer-based matching on MAC/IP/VLAN/ports.
-        Mutually exclusive with ``frame_mask``. Either ``match_filter`` or ``frame_mask`` must be provided.
+        Mutually exclusive with ``frame_mask``.
 
-    frame_mask : :class:`~FrameMask`, optional
-        Packet-matching criterion for byte-level pattern matching on raw frame data.
-        Mutually exclusive with ``match_filter``. Either ``match_filter`` or ``frame_mask`` must be provided.
+    frame_mask : list of :class:`~FrameMask`, optional
+        Packet-matching criteria for byte-level pattern matching on raw frame data.
+        The masks of one rule must inspect disjoint byte ranges of the frame.
+
+    frame_window : int, optional
+        Maximum number of leading frame bytes the ``frame_mask`` entries may inspect.
+        Unbounded when omitted.
 
     match_ports : list of str, Optional
         Ports to which the rule is bound. Defaults to all ports of the switch if kept empty or undefined.
@@ -424,25 +349,26 @@ class TCAMRule(FLYNCBaseModel):
         One or more actions performed when the rule matches.
         The ``type`` field of each action class acts as the discriminating key for Pydantic.
 
-    vehicle_state : int, optional
-        Vehicle-state value (0-255) the rule is matched against. The rule applies
-        only when ``(current_state & vehicle_state_mask) == vehicle_state``.
-        ``None`` (default) means the rule is not gated on vehicle state.
+        A single port must not be targeted by more than one of *drop*, *force_egress* or
+        *mirror*, nor by more than one of *remove_vlan* or *vlan_overwrite*.
 
-    vehicle_state_mask : int, optional
-        Bitmask (1-255) selecting which bits of the vehicle-state register are
-        significant. Defaults to ``0xFF`` (all bits) when ``vehicle_state`` is set
-        but no mask is given. Must not be set on its own without ``vehicle_state``.
+    vehicle_state : :class:`~flync.core.datatypes.Bitmask`, optional
+        Vehicle-state pattern the rule is gated on: it applies only when
+        ``(current_state & vehicle_state.mask) == vehicle_state.data``. Both ``data`` and
+        ``mask`` must fit in the 8-bit vehicle-state register. ``None`` (default) means the
+        rule is not gated on vehicle state.
     """
 
-    name: str = Field()
-    id: StrictInt = Field()
+    name: str = Field(min_length=1)
+    id: StrictInt = Field(ge=0)
     match_filter: Optional[FrameFilter] = Field(default=None)
-    frame_mask: Optional[FrameMask] = Field(default=None)
-    match_ports: Optional[List[str]] = Field(default_factory=list)
-    action: List[(Drop | Mirror | VLANOverwrite | ForceEgress | RemoveVLAN)] = Field()
-    vehicle_state: Optional[int] = Field(default=None, ge=0, le=255)
-    vehicle_state_mask: Optional[int] = Field(default=None, gt=0, le=255)
+    frame_mask: Annotated[Optional[List[FrameMask]], BeforeValidator(common_validators.none_to_empty_list)] = Field(default_factory=list)
+    frame_window: Optional[int] = Field(default=None, ge=1)
+    match_ports: Annotated[Optional[List[str]], BeforeValidator(common_validators.none_to_empty_list)] = Field(default_factory=list)
+    action: Annotated[
+        Optional[List[(Drop | Mirror | VLANOverwrite | ForceEgress | RemoveVLAN)]], BeforeValidator(common_validators.none_to_empty_list)
+    ] = Field(default_factory=list)
+    vehicle_state: Optional[Bitmask] = Field(default=None)
     _match_ports_autofilled: bool = PrivateAttr(default=False)
 
     @field_serializer("match_ports")
@@ -450,66 +376,60 @@ class TCAMRule(FLYNCBaseModel):
         """Dump the user's original port list, not the runtime-expanded one."""
         return [] if self._match_ports_autofilled else match_ports
 
-    @model_validator(mode="after")
-    def validate_vehicle_state(self):
-        """
-        Validate the vehicle-state matching parameters:
-        - a mask without a value is invalid,
-        - a value without a mask defaults the mask to all bits (0xFF),
-        - the value must not set bits outside the mask.
-        """
-
-        if self.vehicle_state is None:
-            if self.vehicle_state_mask is not None:
-                raise err_minor(
-                    "TCAM Rule '{name}': vehicle_state_mask requires vehicle_state to be set.",
-                    name=self.name,
-                    category=Category.STRUCTURAL,
-                    error_number="181",
-                )
-            return self
-
-        if self.vehicle_state_mask is None:
-            self.vehicle_state_mask = 0xFF
-
-        if self.vehicle_state & (~self.vehicle_state_mask & 0xFF):
+    @field_validator("vehicle_state")
+    @classmethod
+    def validate_vehicle_state_range(cls, value: Optional[Bitmask]) -> Optional[Bitmask]:
+        """``vehicle_state`` is matched against an 8-bit register, so both ``data`` and ``mask`` must fit in a byte."""
+        if value is not None and max(value.data, value.mask or 0) > 0xFF:
             raise err_minor(
-                "TCAM Rule '{name}': vehicle_state has bits set outside vehicle_state_mask.",
-                name=self.name,
-                category=Category.STRUCTURAL,
-                error_number="182",
+                f"'vehicle_state' data and mask must each be <= 0xFF (255); got data={value.data}, mask={value.mask}",
+                category=Category.VALUE_RANGE,
+                error_number="231",
             )
-        return self
+        return value
 
     @model_validator(mode="after")
     def validate_match_filter_or_mask_exclusive(self) -> Self:
-        """
-        Validate that exactly one of ``match_filter`` or ``frame_mask`` is provided, not both or neither.
+        """Validate that a rule matches either on layers (``match_filter``) or on raw bytes (``frame_mask``), not on both."""
 
-        Raises:
-            err_minor: If both or neither match criteria are provided.
-        """
-        has_filter = self.match_filter is not None
-        has_mask = self.frame_mask is not None
-
-        if has_filter and has_mask:
+        if self.match_filter is not None and self.frame_mask:
             raise err_minor("Cannot specify both match_filter and frame_mask; use only one", category=Category.STRUCTURAL, error_number="183")
-        if not has_filter and not has_mask:
-            raise err_minor("Must specify either match_filter or frame_mask", category=Category.STRUCTURAL, error_number="184")
+        return self
+
+    @model_validator(mode="after")
+    def validate_frame_masks(self) -> Self:
+        """Validate that the frame masks inspect disjoint byte ranges and stay inside ``frame_window``."""
+
+        if self.frame_window is not None and not self.frame_mask:
+            warn(
+                f"TCAM rule {self.name}: 'frame_window' is defined but frame_mask is not. The frame window is not processed in this case.",
+                category=Category.COMPATIBILITY,
+                error_number="235",
+            )
+
+        masks = sorted(self.frame_mask or [], key=lambda frame_mask: frame_mask.offset)
+        for previous, current in zip(masks, masks[1:]):
+            if current.offset < previous.offset + previous.byte_length:
+                raise err_minor(
+                    f"TCAM rule {self.name}: frame_masks must not overlap; the mask at offset {previous.offset} covers "
+                    f"{previous.byte_length} byte(s) and overlaps the mask at offset {current.offset}.",
+                    category=Category.CONSISTENCY,
+                    error_number="232",
+                )
+
+        for frame_mask in masks:
+            if self.frame_window is not None and frame_mask.offset + frame_mask.byte_length > self.frame_window:
+                raise err_minor(
+                    f"TCAM rule {self.name}: the frame_mask at offset {frame_mask.offset} covers {frame_mask.byte_length} byte(s) and "
+                    f"thus exceeds the frame_window of {self.frame_window} byte(s).",
+                    category=Category.VALUE_RANGE,
+                    error_number="233",
+                )
         return self
 
     @model_validator(mode="after")
     def validate_exclusive_drop_force_mirror(self):
-        """
-        Validate that a TCAM rule does **not** use more than one of the mutually‑exclusive actions *drop*, *force_egress* or *mirror* on the
-        same port.
-
-        Args:
-            self (TCAMRule): The model instance being validated.
-
-        Raises:
-            err_minor: If a port appears in more than one of the actions ``drop``, ``force_egress`` or ``mirror these actions per port.
-        """
+        """Validate that no port is targeted by more than one of the mutually-exclusive actions *drop*, *force_egress* or *mirror*."""
 
         all_ports = []
         for action in self.action:
@@ -526,16 +446,7 @@ class TCAMRule(FLYNCBaseModel):
 
     @model_validator(mode="after")
     def validate_exclusive_vlan_action(self):
-        """
-        Validate that a TCAM rule does **not** mix the VLAN actions *remove_vlan* and *vlan_overwrite* on the same port.
-
-        Args:
-            self (TCAMRule): The model instance being validated.
-
-        Raises:
-            err_minor
-                ``vlan_overwrite`` actions.  Only one of these actions may be applied to a given port.
-        """
+        """Validate that no port is targeted by both VLAN actions *remove_vlan* and *vlan_overwrite*."""
 
         all_ports = []
         for action in self.action:
@@ -771,3 +682,7 @@ class Switch(FLYNCBaseModel):
                 if not action.ports:
                     object.__setattr__(action, "ports", all_port_names.copy())
                     object.__setattr__(action, "_ports_autofilled", True)
+
+            # The port-based exclusivity checks ran on the (still empty) user input, so re-run them on the expanded lists.
+            rule.validate_exclusive_drop_force_mirror()
+            rule.validate_exclusive_vlan_action()

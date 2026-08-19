@@ -162,29 +162,9 @@ def tcam_match_filter():
 
 @pytest.fixture
 def frame_mask_valid():
-    """Valid FrameMask with offset 0 and matching IPv4 ethertype."""
+    """Valid FrameMask matching the IPv4 ethertype at its position in the frame."""
     yield FrameMask(
-        offset=0,
+        offset=12,
         data="0x0800",
         mask="0xFFFF",
-    )
-
-
-@pytest.fixture
-def frame_mask_with_offset():
-    """Valid FrameMask with non-zero offset."""
-    yield FrameMask(
-        offset=10,
-        data="0x4500",
-        mask="0xFF00",
-    )
-
-
-@pytest.fixture
-def frame_mask_long_data():
-    """Valid FrameMask with longer data and mask."""
-    yield FrameMask(
-        offset=0,
-        data="0x08004500",
-        mask="0xFFFFFFFF",
     )

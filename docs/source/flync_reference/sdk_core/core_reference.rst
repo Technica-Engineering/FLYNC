@@ -43,6 +43,7 @@ flync.core.datatypes
 ----
 
 .. autoclass:: flync.core.datatypes.BitRange()
+.. autoclass:: flync.core.datatypes.Bitmask()
 
 ----
 

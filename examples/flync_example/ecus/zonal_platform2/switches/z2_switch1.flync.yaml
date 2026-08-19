@@ -160,8 +160,9 @@ tcam_rules:
       pcp: [3, 4]
     match_ports:
       - z2_s1_p0
-    vehicle_state: 0x02
-    vehicle_state_mask: 0x0F
+    vehicle_state:
+      data: "0x02"
+      mask: "0x0F"
     action:
       - type: vlan_overwrite
         ports:
@@ -181,10 +182,14 @@ tcam_rules:
           - z2_s1_p1
   - name: rule_4
     id: 4
+    frame_window: 100
     frame_mask:
-      offset: 0
-      data: "0x0800"
-      mask: "0xFFFF"
+      - offset: 12
+        data: "0x0800"
+        mask: "0xFFFF"
+      - offset: 14
+        data: "0x3014"
+        mask: "0x7FFF"
     match_ports:
       - z2_s1_p2
     action:
@@ -194,18 +199,20 @@ tcam_rules:
   - name: rule_5
     id: 5
     frame_mask:
-      offset: 0
-      data: "000101010111"
-      mask: "111111111111"
-    match_ports:
-      - z2_s1_p0
+      - offset: 0
+        data: "0x8100"
+        mask: "0xFFFF"
+      - offset: 12
+        data: "0b0000100000000000"
+        mask: "0b0000111111111111"
+      # A frame_mask without a mask checks every bit of its data.
+      - offset: 14
+        data: "0x0A00"
     action:
       - type: drop
         ports:
           - z2_s1_p1
           - z2_s1_p2
-
-
 
 vlans:
 - name: VLAN20

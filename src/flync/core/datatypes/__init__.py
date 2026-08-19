@@ -1,6 +1,7 @@
 """This module contains classes to model datatypes"""
 
 from .base import Datatype
+from .bitmask import Bitmask
 from .bitrange import BitRange
 from .ethertypes import Ethertype, serialize_ethertype, validate_ethertype_input
 from .ipaddress import (
@@ -15,6 +16,7 @@ from .value_table import ValueTable
 
 __all__ = [
     "serialize_ethertype",
+    "Bitmask",
     "BitRange",
     "Datatype",
     "Ethertype",

@@ -1762,75 +1762,25 @@ Every error and warning the FLYNC validators can raise, identified as
 
    "{owner}: pdu_ref '{ref}' does not name any PDU declared under communication.channels."
 
-.. err:: {info.field_name} must be a quoted string: a hex literal like "0x0800" or a b...
-   :id: FLYNC-ECU-MIN-VAL-176
-   :module: ECU
-   :severity: MIN
-   :category: VALUE_RANGE
-   :number: 176
-   :location: switch.FrameMask._require_string
-
-   f'{info.field_name} must be a quoted string: a hex literal like "0x0800" or a binary string like "100101010111". Got {type(value).__name__} {value!r}; wrap the value in quotes.'
-
-.. err:: {info.field_name} must be a 0x-hex literal (e.g. "0x0800") or a binary string...
-   :id: FLYNC-ECU-MIN-VAL-177
-   :module: ECU
+.. err:: {name} must be {_LITERAL_FORMATS}; got {value[name]!r}
+   :id: FLYNC-CMN-MIN-VAL-177
+   :module: CMN
    :severity: MIN
    :category: VALUE_RANGE
    :number: 177
-   :location: switch.FrameMask._normalize_format
+   :location: bitmask.Bitmask._parse_data_and_mask
 
-   f'{info.field_name} must be a 0x-hex literal (e.g. "0x0800") or a binary string of 0/1 (e.g. "100101010111"); got {value!r}'
+   f'{name} must be {_LITERAL_FORMATS}; got {value[name]!r}'
 
 .. err:: data' and 'mask' must describe the same number of bits
-   :id: FLYNC-ECU-MIN-VAL-178
-   :module: ECU
+   :id: FLYNC-CMN-MIN-VAL-178
+   :module: CMN
    :severity: MIN
    :category: VALUE_RANGE
    :number: 178
-   :location: switch.FrameMask.validate_widths_and_window
+   :location: bitmask.Bitmask._parse_data_and_mask
 
    "'data' and 'mask' must describe the same number of bits"
-
-.. err:: offset must be between 0 and {self.frame_window - 1}, got {self.offset}
-   :id: FLYNC-ECU-MIN-VAL-179
-   :module: ECU
-   :severity: MIN
-   :category: VALUE_RANGE
-   :number: 179
-   :location: switch.FrameMask.validate_widths_and_window
-
-   f'offset must be between 0 and {self.frame_window - 1}, got {self.offset}'
-
-.. err:: pattern at offset {self.offset} extends beyond byte {self.frame_window - 1} (...
-   :id: FLYNC-ECU-MIN-VAL-180
-   :module: ECU
-   :severity: MIN
-   :category: VALUE_RANGE
-   :number: 180
-   :location: switch.FrameMask.validate_widths_and_window
-
-   f'pattern at offset {self.offset} extends beyond byte {self.frame_window - 1} (max inspectable frame position)'
-
-.. err:: TCAM Rule '{name}': vehicle_state_mask requires vehicle_state to be set.
-   :id: FLYNC-ECU-MIN-STRUCT-181
-   :module: ECU
-   :severity: MIN
-   :category: STRUCTURAL
-   :number: 181
-   :location: switch.TCAMRule.validate_vehicle_state
-
-   "TCAM Rule '{name}': vehicle_state_mask requires vehicle_state to be set."
-
-.. err:: TCAM Rule '{name}': vehicle_state has bits set outside vehicle_state_mask.
-   :id: FLYNC-ECU-MIN-STRUCT-182
-   :module: ECU
-   :severity: MIN
-   :category: STRUCTURAL
-   :number: 182
-   :location: switch.TCAMRule.validate_vehicle_state
-
-   "TCAM Rule '{name}': vehicle_state has bits set outside vehicle_state_mask."
 
 .. err:: Cannot specify both match_filter and frame_mask; use only one
    :id: FLYNC-ECU-MIN-STRUCT-183
@@ -1841,16 +1791,6 @@ Every error and warning the FLYNC validators can raise, identified as
    :location: switch.TCAMRule.validate_match_filter_or_mask_exclusive
 
    'Cannot specify both match_filter and frame_mask; use only one'
-
-.. err:: Must specify either match_filter or frame_mask
-   :id: FLYNC-ECU-MIN-STRUCT-184
-   :module: ECU
-   :severity: MIN
-   :category: STRUCTURAL
-   :number: 184
-   :location: switch.TCAMRule.validate_match_filter_or_mask_exclusive
-
-   'Must specify either match_filter or frame_mask'
 
 .. err:: {field}' must be a list of items, but a single mapping was given. Did you for...
    :id: FLYNC-CMN-MIN-FMT-185
@@ -2301,4 +2241,54 @@ Every error and warning the FLYNC validators can raise, identified as
    :location: bus_topology._validate_attachment_count
 
    f"{kind} bus '{topo.bus_name}' has only a single attached node ({name})."
+
+.. err:: vehicle_state' data and mask must each be <= 0xFF (255); got data={value.data...
+   :id: FLYNC-ECU-MIN-VAL-231
+   :module: ECU
+   :severity: MIN
+   :category: VALUE_RANGE
+   :number: 231
+   :location: switch.TCAMRule.validate_vehicle_state_range
+
+   f"'vehicle_state' data and mask must each be <= 0xFF (255); got data={value.data}, mask={value.mask}"
+
+.. err:: TCAM rule {self.name}: frame_masks must not overlap; the mask at offset {prev...
+   :id: FLYNC-ECU-MIN-CONS-232
+   :module: ECU
+   :severity: MIN
+   :category: CONSISTENCY
+   :number: 232
+   :location: switch.TCAMRule.validate_frame_masks
+
+   f'TCAM rule {self.name}: frame_masks must not overlap; the mask at offset {previous.offset} covers {previous.byte_length} byte(s) and overlaps the mask at offset {current.offset}.'
+
+.. err:: TCAM rule {self.name}: the frame_mask at offset {frame_mask.offset} covers {f...
+   :id: FLYNC-ECU-MIN-VAL-233
+   :module: ECU
+   :severity: MIN
+   :category: VALUE_RANGE
+   :number: 233
+   :location: switch.TCAMRule.validate_frame_masks
+
+   f'TCAM rule {self.name}: the frame_mask at offset {frame_mask.offset} covers {frame_mask.byte_length} byte(s) and thus exceeds the frame_window of {self.frame_window} byte(s).'
+
+.. err:: data' has bits set outside 'mask
+   :id: FLYNC-CMN-MIN-STRUCT-234
+   :module: CMN
+   :severity: MIN
+   :category: STRUCTURAL
+   :number: 234
+   :location: bitmask.Bitmask.validate_mask
+
+   "'data' has bits set outside 'mask'"
+
+.. err:: TCAM rule {self.name}: 'frame_window' is defined but frame_mask is not. The f...
+   :id: FLYNC-ECU-WARN-COMP-235
+   :module: ECU
+   :severity: WARN
+   :category: COMPATIBILITY
+   :number: 235
+   :location: switch.TCAMRule.validate_frame_masks
+
+   f"TCAM rule {self.name}: 'frame_window' is defined but frame_mask is not. The frame window is not processed in this case."
 

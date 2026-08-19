@@ -224,6 +224,8 @@ class DoubleRateThreeColorMarker(FLYNCBaseModel):
 class FrameFilter(FLYNCBaseModel):
     """
     Defines filtering rules for frames based on MAC/IP addresses, VLAN, and transport protocol ports.
+    On embedded devices (e.g. in the TCAM rules of a Switch) frame filters are usually restricted to single values, so value ranges and lists
+    may not be supported there.
 
     Parameters
     ----------
