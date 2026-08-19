@@ -222,9 +222,23 @@ def test_negative_can_frame_unknown_pdu_ref():
         FLYNCChannelConfig.model_validate(cfg)
 
 
-# ---------------------------------------------------------------------------
-# Ethernet Container PDU — unknown contained PDU ref
-# ---------------------------------------------------------------------------
+def test_positive_ethernet_pdu_container_known_pdu_refs():
+    cfg = {
+        "pdus": [_make_pdu("P1", 2)],
+        "ethernet_pdu_containers": [
+            {
+                "name": "C1",
+                "length": 8,
+                "pdu_id": 1,
+                "header": {"id_length_bits": 8, "length_field_bits": 8},
+                "contained_pdus": [
+                    {"header_id": 1, "pdu_ref": "P1"},
+                    {"header_id": 2, "pdu_ref": "P1"},
+                ],
+            }
+        ],
+    }
+    assert FLYNCChannelConfig.model_validate(cfg)
 
 
 def test_negative_ethernet_pdu_container_unknown_pdu_ref():
@@ -245,9 +259,38 @@ def test_negative_ethernet_pdu_container_unknown_pdu_ref():
     assert_single_error(exc_info, "FLYNC-CMN-MAJ-REF-236", "ContainerPDU 'C1' references unknown PDU")
 
 
-# ---------------------------------------------------------------------------
-# MultiplexedPDU — unknown mux group PDU ref
-# ---------------------------------------------------------------------------
+def _make_multiplexed_pdu(name: str, static_group_ref=None, mux_group_refs=None) -> dict:
+    return {
+        "name": name,
+        "type": "multiplexed",
+        "length": 8,
+        "selector_signal": {"signal": {"name": "mp_sel", "bit_length": 4, "data_type": "uint8"}},
+        "static_group": {"pdu_ref": static_group_ref} if static_group_ref else None,
+        "mux_groups": [{"selector_value": idx, "pdu": {"pdu_ref": ref}} for idx, ref in enumerate(mux_group_refs or [])],
+    }
+
+
+def test_positive_multiplexed_pdu_known_pdu_refs():
+    cfg = {
+        "pdus": [
+            _make_pdu("P1", 2),
+            _make_pdu("P2", 2),
+            _make_multiplexed_pdu("MP1", static_group_ref="P1", mux_group_refs=["P2"]),
+        ],
+    }
+    assert FLYNCChannelConfig.model_validate(cfg)
+
+
+def test_negative_multiplexed_pdu_static_group_unknown_pdu_ref():
+    cfg = {
+        "pdus": [
+            _make_pdu("P1", 2),
+            _make_multiplexed_pdu("MP1", static_group_ref="Unknown", mux_group_refs=["P1"]),
+        ],
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        FLYNCChannelConfig.model_validate(cfg)
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-REF-237", "MultiplexedPDU 'MP1' references unknown PDU")
 
 
 def test_negative_multiplexed_pdu_unknown_pdu_ref():
