@@ -11,10 +11,6 @@ from flync.model.flync_4_ecu.lin_interface import (
     LINSlaveInterface,
 )
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
 
 def _can_forwarder(frame_ref="0x100", bus_ref="DiagCAN", egress_frame=0x200):
     """Build a CANFrameForwarder payload (validated from a dict) with a single CAN-frame egress."""
@@ -22,11 +18,6 @@ def _can_forwarder(frame_ref="0x100", bus_ref="DiagCAN", egress_frame=0x200):
         "frame_ref": frame_ref,
         "egresses": [{"egress_type": "can_frame", "bus_ref": bus_ref, "frame_ref": egress_frame}],
     }
-
-
-# ---------------------------------------------------------------------------
-# CANInterface / CANFrameRef — positive
-# ---------------------------------------------------------------------------
 
 
 def test_positive_can_interface_minimal():
@@ -68,11 +59,6 @@ def test_positive_can_interface_model_validate():
     assert isinstance(iface, CANInterface)
 
 
-# ---------------------------------------------------------------------------
-# CANInterface — negative
-# ---------------------------------------------------------------------------
-
-
 def test_negative_can_interface_missing_bus_ref():
     with pytest.raises(ValidationError):
         CANInterface(name="no_bus_iface")
@@ -85,11 +71,6 @@ def test_negative_can_interface_duplicate_forwarder_frame_ref():
             bus_ref="DiagCAN",
             forwarder_frames=[_can_forwarder(frame_ref="0x100"), _can_forwarder(frame_ref="0x100")],
         )
-
-
-# ---------------------------------------------------------------------------
-# LIN master / slave — positive
-# ---------------------------------------------------------------------------
 
 
 def test_positive_lin_master_minimal():
@@ -148,11 +129,6 @@ def test_positive_lin_slave_valid_nad_bounds(nad):
     assert slave.configured_nad == nad
 
 
-# ---------------------------------------------------------------------------
-# LIN master / slave — negative
-# ---------------------------------------------------------------------------
-
-
 def test_negative_lin_master_missing_timing():
     with pytest.raises(ValidationError):
         LINMasterInterface(name="no_timing", bus_ref="BodyLIN", lin_protocol="2.1", p2_min=50.0)
@@ -173,11 +149,6 @@ def test_negative_lin_slave_nad_out_of_range(bad_nad):
             configured_nad=bad_nad,
             initial_nad=0x20,
         )
-
-
-# ---------------------------------------------------------------------------
-# AnyLINInterface — discriminated union
-# ---------------------------------------------------------------------------
 
 
 def test_positive_any_lin_interface_discriminates_master():

@@ -14,11 +14,6 @@ from flync.model.flync_4_signal.pdu import PDUInstance
 _CAN_FD_VALID_LENGTHS = (0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 16, 20, 24, 32, 48, 64)
 
 
-# ---------------------------------------------------------------------------
-# FrameEventTiming
-# ---------------------------------------------------------------------------
-
-
 def test_positive_frame_event_timing_defaults():
     t = FrameEventTiming()
     assert t.final_repetitions == 0
@@ -41,11 +36,6 @@ def test_negative_frame_event_timing_negative_repeating_time():
         FrameEventTiming(repeating_time_range=-0.01)
 
 
-# ---------------------------------------------------------------------------
-# FrameCyclicTiming
-# ---------------------------------------------------------------------------
-
-
 def test_positive_frame_cyclic_timing():
     t = FrameCyclicTiming(cycle=0.01)
     assert t.cycle == 0.01
@@ -64,11 +54,6 @@ def test_negative_frame_cyclic_timing_zero_cycle():
 def test_negative_frame_cyclic_timing_negative_cycle():
     with pytest.raises(ValidationError):
         FrameCyclicTiming(cycle=-0.01)
-
-
-# ---------------------------------------------------------------------------
-# FrameTransmissionTiming
-# ---------------------------------------------------------------------------
 
 
 def test_positive_frame_transmission_timing_empty():
@@ -91,11 +76,6 @@ def test_positive_frame_transmission_timing_both():
     )
     assert t.debounce_time == 0.005
     assert len(t.event_timings) == 1
-
-
-# ---------------------------------------------------------------------------
-# CANFrame — positive tests
-# ---------------------------------------------------------------------------
 
 
 def test_positive_can_frame_standard_id_min():
@@ -172,11 +152,6 @@ def test_positive_can_frame_model_validate():
     assert frm.type == "can"
 
 
-# ---------------------------------------------------------------------------
-# CANFrame — negative tests
-# ---------------------------------------------------------------------------
-
-
 def test_negative_can_frame_standard_id_too_large():
     with pytest.raises(ValidationError):
         CANFrame(
@@ -228,11 +203,6 @@ def test_negative_can_frame_duplicate_pdu_bit_positions():
 
     with pytest.raises(ValidationError):
         CANFrame(name="can_dup_pdu", can_id=0x100, id_format="standard_11bit", length=8, packed_pdus=packed_pdus)
-
-
-# ---------------------------------------------------------------------------
-# CANFDFrame — positive tests
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize(
@@ -304,11 +274,6 @@ def test_positive_can_fd_frame_model_validate():
     assert isinstance(frm, CANFDFrame)
 
 
-# ---------------------------------------------------------------------------
-# CANFDFrame — negative tests
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.parametrize(
     "bad_length",
     [
@@ -355,11 +320,6 @@ def test_negative_can_fd_frame_duplicate_pdu_bit_positions():
 
     with pytest.raises(ValidationError):
         CANFDFrame(name="canfd_dup_pdu", can_id=0x100, id_format="standard_11bit", length=8, packed_pdus=packed_pdus)
-
-
-# ---------------------------------------------------------------------------
-# LINFrame — positive tests
-# ---------------------------------------------------------------------------
 
 
 def test_positive_lin_frame_minimal():
@@ -412,11 +372,6 @@ def test_positive_lin_frame_model_validate():
     data = {"name": "lin_frm_mv", "lin_id": 0x10, "length": 4}
     frm = LINFrame.model_validate(data)
     assert isinstance(frm, LINFrame)
-
-
-# ---------------------------------------------------------------------------
-# LINFrame — negative tests
-# ---------------------------------------------------------------------------
 
 
 def test_negative_lin_frame_id_too_large():

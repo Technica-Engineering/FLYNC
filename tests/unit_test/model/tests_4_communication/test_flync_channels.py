@@ -52,11 +52,6 @@ def _make_lin_frame(name: str, length: int, packed_pdus: list, lin_id: int = 1) 
     }
 
 
-# ---------------------------------------------------------------------------
-# CAN frame — packed PDU overlap / overflow
-# ---------------------------------------------------------------------------
-
-
 def test_positive_can_frame_packed_pdus_no_overlap():
     cfg = {
         "pdus": [_make_pdu("P1", 4), _make_pdu("P2", 4)],
@@ -142,11 +137,6 @@ def test_positive_can_frame_packed_pdu_unplaced_skipped():
         ],
     }
     assert FLYNCChannelConfig.model_validate(cfg)
-
-
-# ---------------------------------------------------------------------------
-# LIN frame — packed PDU overlap / overflow / unknown ref
-# ---------------------------------------------------------------------------
 
 
 def test_positive_lin_frame_packed_pdus_no_overlap():

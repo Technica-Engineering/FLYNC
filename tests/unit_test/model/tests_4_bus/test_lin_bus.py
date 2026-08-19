@@ -8,18 +8,9 @@ from flync.model.flync_4_bus.lin_bus import (
 )
 from flync.model.flync_4_signal.frame import LINFrame
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
 
 def _make_lin_frame(name="lin_frm", lin_id=0x01, length=4):
     return LINFrame(name=name, lin_id=lin_id, length=length)
-
-
-# ---------------------------------------------------------------------------
-# LINScheduleEntry — positive tests
-# ---------------------------------------------------------------------------
 
 
 def test_positive_lin_schedule_entry_basic():
@@ -39,11 +30,6 @@ def test_positive_lin_schedule_entry_model_validate():
     assert isinstance(entry, LINScheduleEntry)
 
 
-# ---------------------------------------------------------------------------
-# LINScheduleEntry — negative tests
-# ---------------------------------------------------------------------------
-
-
 def test_negative_lin_schedule_entry_zero_period():
     with pytest.raises(ValidationError):
         LINScheduleEntry(frame_name="frm_bad", period=0.0)
@@ -52,11 +38,6 @@ def test_negative_lin_schedule_entry_zero_period():
 def test_negative_lin_schedule_entry_negative_period():
     with pytest.raises(ValidationError):
         LINScheduleEntry(frame_name="frm_neg", period=-10.0)
-
-
-# ---------------------------------------------------------------------------
-# LINScheduleTable — positive tests
-# ---------------------------------------------------------------------------
 
 
 def test_positive_lin_schedule_table_empty():
@@ -78,11 +59,6 @@ def test_positive_lin_schedule_table_with_entries():
 def test_positive_lin_schedule_table_with_description():
     table = LINScheduleTable(name="sched_desc", description="Main schedule", entries=[])
     assert table.description == "Main schedule"
-
-
-# ---------------------------------------------------------------------------
-# LINBus — positive tests
-# ---------------------------------------------------------------------------
 
 
 def test_positive_lin_bus_minimal():
@@ -189,11 +165,6 @@ def test_positive_lin_bus_model_validate():
     }
     bus = LINBus.model_validate(data)
     assert isinstance(bus, LINBus)
-
-
-# ---------------------------------------------------------------------------
-# LINBus — negative tests
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize(

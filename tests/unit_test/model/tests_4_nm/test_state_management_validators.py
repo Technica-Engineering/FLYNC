@@ -169,11 +169,6 @@ def captured_warnings():
         _validation_warnings.reset(token)
 
 
-# ---------------------------------------------------------------------------
-# collect_effective_members — derivation and bit defaults
-# ---------------------------------------------------------------------------
-
-
 def test_positive_collect_members_bit_defaults():
     model = FakeModel(
         ecus=[
@@ -201,20 +196,10 @@ def test_positive_empty_model_is_noop():
     validate_state_management(FakeModel())
 
 
-# ---------------------------------------------------------------------------
-# group references must resolve
-# ---------------------------------------------------------------------------
-
-
 def test_unknown_group_reference_negative():
     model = FakeModel(ecus=[_ecu("E", memberships=[StateMembershipRef(group="GHOST")])])
     with pytest.raises(PydanticCustomError, match="undefined state management group 'GHOST'"):
         validate_state_management(model)
-
-
-# ---------------------------------------------------------------------------
-# every group needs at least one participant
-# ---------------------------------------------------------------------------
 
 
 def test_group_without_members_negative():
@@ -228,11 +213,6 @@ def test_group_with_only_observers_negative():
     model = FakeModel(ecus=[ecu], groups=[_group()], pdus=[_nm_pdu()])
     with pytest.raises(PydanticCustomError, match="has no participant"):
         validate_state_management(model)
-
-
-# ---------------------------------------------------------------------------
-# nm_pdu resolves and is flagged network_management
-# ---------------------------------------------------------------------------
 
 
 def _participant_with_tx(group="VEHICLE"):
@@ -260,11 +240,6 @@ def test_unknown_timing_profile_negative():
     )
     with pytest.raises(PydanticCustomError, match="timing_profile 'ghost_profile' not found"):
         validate_state_management(model)
-
-
-# ---------------------------------------------------------------------------
-# every claimed relevance bit exists in the NM PDU's vector
-# ---------------------------------------------------------------------------
 
 
 def _participant_with_bits(relevance_bits, group="VEHICLE"):
@@ -312,11 +287,6 @@ def test_default_bit_not_in_pdu_vector_negative():
     )
     with pytest.raises(PydanticCustomError, match="claims relevance bit 'E' which is not a flag of NM PDU"):
         validate_state_management(model)
-
-
-# ---------------------------------------------------------------------------
-# reachability, ecu/controller branch (role split: participant TX+RX, observer RX)
-# ---------------------------------------------------------------------------
 
 
 def test_participant_without_tx_path_negative():
@@ -395,11 +365,6 @@ def test_positive_participant_via_lin_sender_frames():
     validate_state_management(model)
 
 
-# ---------------------------------------------------------------------------
-# reachability, bus branch
-# ---------------------------------------------------------------------------
-
-
 def test_bus_without_frame_binding_negative():
     bus = _bus(frames=[_can_frame(pdu_refs=("PDU_Other",))], memberships=[StateMembershipRef(group="VEHICLE")])
     model = FakeModel(ecus=[_participant_with_tx()], groups=[_group()], pdus=[_nm_pdu()], can_buses=[bus])
@@ -423,11 +388,6 @@ def test_positive_bus_with_binding_and_sender():
     ecu = _ecu("E", controllers=[sender])
     model = FakeModel(ecus=[ecu], groups=[_group()], pdus=[_nm_pdu()], can_buses=[bus])
     validate_state_management(model)
-
-
-# ---------------------------------------------------------------------------
-# reachability, LIN bus branch (master-as-proxy, no NM frame on LIN)
-# ---------------------------------------------------------------------------
 
 
 def _lin_master(bus_ref, sender_ids=()):
@@ -497,11 +457,6 @@ def test_positive_entity_registered_in_multiple_groups_union():
     validate_state_management(model)  # both groups valid: the ECU is a participant with a TX+RX path in each
 
 
-# ---------------------------------------------------------------------------
-# redundancy warnings and single-variant-per-bus enforcement
-# ---------------------------------------------------------------------------
-
-
 def test_redundant_controller_under_whole_ecu_participant_warns(captured_warnings):
     controller = _controller(
         name="ctrl",
@@ -552,11 +507,6 @@ def test_no_warning_without_redundancy(captured_warnings):
     model = FakeModel(ecus=[_participant_with_tx()], groups=[_group()], pdus=[_nm_pdu()])
     validate_state_management(model)
     assert captured_warnings == []
-
-
-# ---------------------------------------------------------------------------
-# per-bus timing feasibility (warn-level floor check, CAN NM leg only)
-# ---------------------------------------------------------------------------
 
 
 def _timing_model(cycle_time_ms, baud_rate, frame_cyclic_s=None):

@@ -51,11 +51,6 @@ def _make_timing(
     return GroupTiming(**values)
 
 
-# ---------------------------------------------------------------------------
-# GroupTiming (reusable timing profile)
-# ---------------------------------------------------------------------------
-
-
 def test_positive_group_timing():
     timing = _make_timing()
     assert timing.name == "standard"
@@ -133,11 +128,6 @@ def test_group_timing_announcement_burst_must_fit_announcement_duration_negative
     assert_single_error(exc_info, "FLYNC-CMN-MAJ-VAL-206", "does not fit within the announcement duration_ms")
 
 
-# ---------------------------------------------------------------------------
-# StateMembershipRef
-# ---------------------------------------------------------------------------
-
-
 def test_positive_membership_defaults():
     ref = StateMembershipRef(group="COMFORT")
     assert ref.role == "participant"
@@ -189,11 +179,6 @@ def test_positive_membership_oem_extensions():
     assert StateMembershipRef.model_validate(ref.model_dump()).extensions == {"oem_node_id": "7"}
 
 
-# ---------------------------------------------------------------------------
-# StateManagementGroup
-# ---------------------------------------------------------------------------
-
-
 def test_positive_group_minimal():
     group = StateManagementGroup(name="COMFORT", nm_pdu="PDU_Nm_Comfort", timing_profile="standard")
     assert group.name == "COMFORT"
@@ -243,11 +228,6 @@ def test_config_duplicate_timing_profile_name_negative():
     assert_single_error(exc_info, "FLYNC-CMN-MAJ-UNIQ-009", "Duplicates found")
 
 
-# ---------------------------------------------------------------------------
-# StateManagementConfig — concept fixtures (multi-group set + single-group variant)
-# ---------------------------------------------------------------------------
-
-
 def test_positive_config_defaults_to_empty():
     config = StateManagementConfig()
     assert config.groups == []
@@ -281,11 +261,6 @@ def test_positive_config_roundtrip(fixture):
     dumped = config.model_dump()
     reloaded = StateManagementConfig.model_validate(dumped)
     assert reloaded.model_dump() == dumped
-
-
-# ---------------------------------------------------------------------------
-# Bus-level membership — fixture per the concept docs
-# ---------------------------------------------------------------------------
 
 
 def test_positive_bus_level_membership_fixture():

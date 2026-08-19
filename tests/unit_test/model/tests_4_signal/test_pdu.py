@@ -19,10 +19,6 @@ from flync.model.flync_4_signal.signal import (
 )
 from tests.error_assertions import assert_single_error
 
-# ---------------------------------------------------------------------------
-# PDUInstance
-# ---------------------------------------------------------------------------
-
 
 def test_positive_pdu_instance_with_bit_position():
     pi = PDUInstance(pdu_ref="my_pdu", bit_position=0)
@@ -45,11 +41,6 @@ def test_negative_pdu_instance_negative_bit_position():
         PDUInstance(pdu_ref="my_pdu", bit_position=-1)
 
 
-# ---------------------------------------------------------------------------
-# ContainedPDURef
-# ---------------------------------------------------------------------------
-
-
 def test_positive_contained_pdu_ref():
     ref = ContainedPDURef(header_id=1, pdu_ref="inner_pdu")
     assert ref.header_id == 1
@@ -65,11 +56,6 @@ def test_negative_contained_pdu_ref_zero_header_id():
     """header_id must be greater than zero; zero must be rejected."""
     with pytest.raises(ValidationError):
         ContainedPDURef(header_id=0, pdu_ref="inner_pdu")
-
-
-# ---------------------------------------------------------------------------
-# StandardPDU — positive tests
-# ---------------------------------------------------------------------------
 
 
 def test_positive_standard_pdu_empty():
@@ -138,11 +124,6 @@ def test_positive_standard_pdu_model_validate():
     assert pdu.type == "standard"
 
 
-# ---------------------------------------------------------------------------
-# StandardPDU — negative tests
-# ---------------------------------------------------------------------------
-
-
 def test_negative_standard_pdu_signal_overflow():
     sig = Signal(name="overflow_sig", bit_length=8, data_type=SignalDataType.UINT8)
     instance = SignalInstance(signal=sig, bit_position=1)
@@ -163,11 +144,6 @@ def test_negative_standard_pdu_signal_overlap():
 def test_negative_standard_pdu_zero_length():
     with pytest.raises(ValidationError):
         StandardPDU(name="zero_len_pdu", length=0)
-
-
-# ---------------------------------------------------------------------------
-# StandardPDU — signal/group placement edge cases (overlap / overflow)
-# ---------------------------------------------------------------------------
 
 
 def test_positive_standard_pdu_signals_adjacent_no_overlap():
@@ -326,11 +302,6 @@ def test_negative_standard_pdu_signal_groups_overlap_each_other():
     assert_single_error(exc_info, "FLYNC-CMN-MIN-CONS-030", "overlap")
 
 
-# ---------------------------------------------------------------------------
-# MuxGroup — positive tests
-# ---------------------------------------------------------------------------
-
-
 def test_positive_mux_group_empty():
     mg = MuxGroup(
         selector_value=0,
@@ -353,11 +324,6 @@ def test_positive_mux_group_with_bit_position():
 def test_positive_mux_group_negative_selector_value_is_rejected():
     with pytest.raises(ValidationError):
         MuxGroup(selector_value=-1, pdu=PDUInstance(pdu_ref="mg_neg_pdu"))
-
-
-# ---------------------------------------------------------------------------
-# MultiplexedPDU — positive tests
-# ---------------------------------------------------------------------------
 
 
 def _make_selector_signal(name="mux_sel", bit_length=4):
@@ -424,11 +390,6 @@ def test_positive_multiplexed_pdu_selector_no_position():
     assert pdu.selector_signal.bit_position is None
 
 
-# ---------------------------------------------------------------------------
-# MultiplexedPDU — negative tests
-# ---------------------------------------------------------------------------
-
-
 def test_negative_multiplexed_pdu_duplicate_selector_values():
     sel = _make_selector_signal("dup_sel")
     mg0 = _make_mux_group(0, "dup_pay_a")
@@ -467,11 +428,6 @@ def test_negative_multiplexed_pdu_empty_mux_groups():
             selector_signal=sel,
             mux_groups=[],
         )
-
-
-# ---------------------------------------------------------------------------
-# ContainerPDU — positive tests
-# ---------------------------------------------------------------------------
 
 
 def test_positive_container_pdu_16bit_id_8bit_length_empty():
@@ -547,11 +503,6 @@ def test_positive_container_pdu_model_validate():
     assert isinstance(pdu, ContainerPDU)
 
 
-# ---------------------------------------------------------------------------
-# ContainerPDU — negative tests
-# ---------------------------------------------------------------------------
-
-
 def test_negative_container_pdu_too_small_3byte_header():
     # overhead = (16+8)//8 = 3 bytes; 2 slots => minimum = 6; length=5 < 6
     header = ContainerPDUHeader(id_length_bits=16, length_field_bits=8)
@@ -585,11 +536,6 @@ def test_negative_container_pdu_zero_length():
 
     with pytest.raises(ValidationError):
         ContainerPDU(name="ctr_zero_len", pdu_id=12, length=0, header=header)
-
-
-# ---------------------------------------------------------------------------
-# ContainerPDU — validate_one_pdu_if_header_length_is_one
-# ---------------------------------------------------------------------------
 
 
 def test_positive_container_pdu_headerless_with_one_pdu():

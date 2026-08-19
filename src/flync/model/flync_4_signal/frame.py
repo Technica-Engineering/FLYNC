@@ -17,10 +17,6 @@ from flync.model.flync_4_signal.pdu import (
     PDUInstance,
 )
 
-# ---------------------------------------------------------------------------
-# Frame transmission timing
-# ---------------------------------------------------------------------------
-
 
 class FrameEventTiming(FLYNCBaseModel):
     """
@@ -68,11 +64,6 @@ class FrameTransmissionTiming(FLYNCBaseModel):
     debounce_time: Optional[float] = Field(default=None)
     cyclic_timings: List[FrameCyclicTiming] = Field(default_factory=list)
     event_timings: List[FrameEventTiming] = Field(default_factory=list)
-
-
-# ---------------------------------------------------------------------------
-# Base frame
-# ---------------------------------------------------------------------------
 
 
 class Frame(FLYNCBaseModel):
@@ -133,11 +124,6 @@ class Frame(FLYNCBaseModel):
         return self
 
 
-# ---------------------------------------------------------------------------
-# CAN base
-# ---------------------------------------------------------------------------
-
-
 class CANFrameBase(Frame):
     """
     Shared fields for CAN 2.0 and CAN FD frames.
@@ -155,11 +141,6 @@ class CANFrameBase(Frame):
     can_id: int = Field()
     id_format: Literal["standard_11bit", "extended_29bit"] = Field()
     timing: Optional[FrameTransmissionTiming] = Field(default=None)
-
-
-# ---------------------------------------------------------------------------
-# CAN frames
-# ---------------------------------------------------------------------------
 
 
 class CANFrame(CANFrameBase):
@@ -235,11 +216,6 @@ class CANFDFrame(CANFrameBase):
         return self
 
 
-# ---------------------------------------------------------------------------
-# LIN frame
-# ---------------------------------------------------------------------------
-
-
 class LINFrame(Frame):
     """
     LIN unconditional frame.
@@ -260,10 +236,6 @@ class LINFrame(Frame):
     length: int = Field(ge=1, le=8)
     timing: Optional[FrameTransmissionTiming] = Field(default=None)
 
-
-# ---------------------------------------------------------------------------
-# Internal helpers
-# ---------------------------------------------------------------------------
 
 _CAN_FD_VALID_LENGTHS: FrozenSet[int] = frozenset({0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 16, 20, 24, 32, 48, 64})
 

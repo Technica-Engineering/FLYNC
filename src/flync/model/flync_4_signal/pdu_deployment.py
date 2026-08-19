@@ -6,10 +6,6 @@ from pydantic import Field
 
 from flync.core.base_models import FLYNCBaseModel
 
-# ---------------------------------------------------------------------------
-# PDU sender deployment
-# ---------------------------------------------------------------------------
-
 
 class PDUSender(FLYNCBaseModel):
     """

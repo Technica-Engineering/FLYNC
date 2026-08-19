@@ -10,10 +10,6 @@ from flync.model.flync_4_ecu.sockets import (
 )
 from flync.model.flync_4_signal.pdu_deployment import PDUSender
 
-# ---------------------------------------------------------------------------
-# PDUSender via DeploymentUnion
-# ---------------------------------------------------------------------------
-
 
 def test_positive_deployment_union_pdu_sender():
     dep = DeploymentUnion.model_validate({"deployment_type": "pdu_sender", "pdu_ref": "my_container_pdu"})
@@ -24,11 +20,6 @@ def test_positive_deployment_union_pdu_sender():
 def test_positive_deployment_union_pdu_sender_default_type():
     dep = DeploymentUnion.model_validate({"deployment_type": "pdu_sender", "pdu_ref": "pdu_A"})
     assert dep.root.deployment_type == "pdu_sender"
-
-
-# ---------------------------------------------------------------------------
-# SocketUDP with PDUSender deployment
-# ---------------------------------------------------------------------------
 
 
 def test_positive_udp_socket_with_pdu_sender_deployment():
@@ -87,11 +78,6 @@ def test_positive_udp_socket_no_deployments():
     assert socket.deployments == []
 
 
-# ---------------------------------------------------------------------------
-# SocketTCP with PDUSender deployment
-# ---------------------------------------------------------------------------
-
-
 def test_positive_tcp_socket_with_pdu_sender_deployment():
     TCPOption(tcp_profile_id=10)
     socket = SocketTCP(
@@ -103,11 +89,6 @@ def test_positive_tcp_socket_with_pdu_sender_deployment():
     )
     assert isinstance(socket, Socket)
     assert isinstance(socket.deployments[0].root, PDUSender)
-
-
-# ---------------------------------------------------------------------------
-# Negative tests
-# ---------------------------------------------------------------------------
 
 
 def test_negative_pdu_sender_missing_pdu_ref_on_socket():

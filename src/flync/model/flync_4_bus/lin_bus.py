@@ -10,21 +10,10 @@ from flync.core.utils.exceptions import Category, err_major, err_minor
 from flync.model.flync_4_nm import StateMembershipRef
 from flync.model.flync_4_signal.frame import LINFrame
 
-# ---------------------------------------------------------------------------
-# Allowed LIN baud rates (bits/s)
-# ---------------------------------------------------------------------------
-
 _ALLOWED_LIN_BAUD_RATES = {1_200, 2_400, 4_800, 9_600, 10_400, 19_200}
 
-# ---------------------------------------------------------------------------
-# LIN protocol version literals
-# ---------------------------------------------------------------------------
 
 _LINProtocol = Literal["1.3", "2.0", "2.1", "2.2A"]
-
-# ---------------------------------------------------------------------------
-# Schedule table
-# ---------------------------------------------------------------------------
 
 
 class LINScheduleEntry(FLYNCBaseModel):
@@ -69,11 +58,6 @@ class LINScheduleTable(FLYNCBaseModel):
     name: str = Field()
     description: Optional[str] = Field(default=None)
     entries: List[LINScheduleEntry] = Field(default_factory=list)
-
-
-# ---------------------------------------------------------------------------
-# LIN bus
-# ---------------------------------------------------------------------------
 
 
 class LINBus(FLYNCBaseModel):
@@ -148,10 +132,6 @@ class LINBus(FLYNCBaseModel):
         default_factory=list,
         description="Assignments of this bus to a state management group; the whole bus participates as one unit.",
     )
-
-    # ------------------------------------------------------------------
-    # Validators
-    # ------------------------------------------------------------------
 
     @field_validator("baud_rate")
     @classmethod

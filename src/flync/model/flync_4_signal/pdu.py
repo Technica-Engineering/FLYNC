@@ -26,10 +26,6 @@ from flync.model.flync_4_signal.signal import (
     _signal_instance_range,
 )
 
-# ---------------------------------------------------------------------------
-# PDU base
-# ---------------------------------------------------------------------------
-
 
 class PDU(FLYNCBaseModel):
     """
@@ -73,11 +69,6 @@ class PDU(FLYNCBaseModel):
     description: Optional[str] = Field(default=None)
 
 
-# ---------------------------------------------------------------------------
-# PDU Instance
-# ---------------------------------------------------------------------------
-
-
 class PDUInstance(FLYNCBaseModel):
     """
     Placement of a PDU at a specific bit offset within a CAN or LIN frame.
@@ -95,11 +86,6 @@ class PDUInstance(FLYNCBaseModel):
     pdu_ref: str = Field()
     bit_position: Optional[int] = Field(default=None, ge=0)
     update_bit_position: Optional[int] = Field(default=None, ge=0)
-
-
-# ---------------------------------------------------------------------------
-# StandardPDU
-# ---------------------------------------------------------------------------
 
 
 class StandardPDU(PDU):
@@ -128,11 +114,6 @@ class StandardPDU(PDU):
         return self
 
 
-# ---------------------------------------------------------------------------
-# MuxGroup
-# ---------------------------------------------------------------------------
-
-
 class MuxGroup(FLYNCBaseModel):
     """
     Set of signals active for a specific multiplexer selector value.
@@ -147,11 +128,6 @@ class MuxGroup(FLYNCBaseModel):
 
     selector_value: int = Field(ge=0)
     pdu: PDUInstance = Field()
-
-
-# ---------------------------------------------------------------------------
-# MultiplexedPDU
-# ---------------------------------------------------------------------------
 
 
 class MultiplexedPDU(PDU):
@@ -237,11 +213,6 @@ class MultiplexedPDU(PDU):
         return self
 
 
-# ---------------------------------------------------------------------------
-# Contained PDU Ref
-# ---------------------------------------------------------------------------
-
-
 class ContainedPDURef(FLYNCBaseModel):
     """
     Reference to a PDU packed inside a :class:`ContainerPDU`.
@@ -261,11 +232,6 @@ class ContainedPDURef(FLYNCBaseModel):
     header_id: Annotated[int, Field(gt=0, strict=True)] = Field()
     pdu_ref: str = Field()
     offset: Optional[int] = Field(default=0, ge=0)
-
-
-# ---------------------------------------------------------------------------
-# ContainerPDU
-# ---------------------------------------------------------------------------
 
 
 class ContainerPDUHeader(FLYNCBaseModel):
@@ -348,11 +314,6 @@ class ContainerPDU(PDU):
             )
 
         return self
-
-
-# ---------------------------------------------------------------------------
-# Bit-range helpers
-# ---------------------------------------------------------------------------
 
 
 def _signal_group_instance_range(sgi: SignalGroupInstance) -> Optional[BitRange]:

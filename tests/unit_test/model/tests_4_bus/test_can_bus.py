@@ -4,10 +4,6 @@ from pydantic import ValidationError
 from flync.model.flync_4_bus.can_bus import CANBus
 from flync.model.flync_4_signal.frame import CANFDFrame, CANFrame
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
 
 def _make_can_frame(
     name="frm",
@@ -25,11 +21,6 @@ def _make_can_frame(
 
 def _make_canfd_frame(name="fd_frm", can_id=0x100, id_format="standard_11bit", length=8):
     return CANFDFrame(name=name, can_id=can_id, id_format=id_format, length=length)
-
-
-# ---------------------------------------------------------------------------
-# CANBus — positive tests
-# ---------------------------------------------------------------------------
 
 
 def test_positive_can_bus_minimal():
@@ -114,11 +105,6 @@ def test_positive_can_bus_model_validate():
     data = {"name": "CAN_mv_bus", "baud_rate": 250_000}
     bus = CANBus.model_validate(data)
     assert isinstance(bus, CANBus)
-
-
-# ---------------------------------------------------------------------------
-# CANBus — negative tests
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize(

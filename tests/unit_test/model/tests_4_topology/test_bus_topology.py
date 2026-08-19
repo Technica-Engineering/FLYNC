@@ -59,11 +59,6 @@ def _lin_attachment(role, iface_name="li"):
     return BusAttachmentPoint(ecu_name="E1", controller_name="C1", interface_name=iface_name, role=role)
 
 
-# ---------------------------------------------------------------------------
-# Topology model classes
-# ---------------------------------------------------------------------------
-
-
 def test_can_bus_topology_defaults():
     topo = CANBusTopology(bus_name="DiagCAN")
     assert topo.bus_type == "can"
@@ -84,11 +79,6 @@ def test_lin_bus_topology_master_is_none_when_absent():
     topo = LINBusTopology(bus_name="BodyLIN", attachments=[_lin_attachment("lin_slave")])
     assert topo.master is None
     assert len(topo.slaves) == 1
-
-
-# ---------------------------------------------------------------------------
-# build_bus_topologies
-# ---------------------------------------------------------------------------
 
 
 def test_build_groups_can_interfaces_across_ecus_by_bus_ref():
@@ -133,11 +123,6 @@ def test_build_returns_none_defs_when_no_channels():
     _can_topos, _lin_topos, can_defs, lin_defs = build_bus_topologies(model)
     assert can_defs is None
     assert lin_defs is None
-
-
-# ---------------------------------------------------------------------------
-# validate_bus_topologies — raising (major) cases
-# ---------------------------------------------------------------------------
 
 
 def test_validate_raises_on_unknown_can_bus_ref():

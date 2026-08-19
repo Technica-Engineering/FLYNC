@@ -50,11 +50,6 @@ _ETH_CONTAINER = "communication/channels/ethernet_pdu_containers" "/eth_powertra
 _HPC_SWITCH = "ecus/high_performance_compute/switches/hpc_switch1.flync.yaml"
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
 def _load(path: Path) -> dict:
     with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f)
@@ -109,11 +104,6 @@ def _new_workspace(dest: Path) -> Path:
 @pytest.fixture
 def workspace(tmp_path):
     return _new_workspace(tmp_path / "ws")
-
-
-# ---------------------------------------------------------------------------
-# No false positives — clean workspace must not trigger list-type errors
-# ---------------------------------------------------------------------------
 
 
 def test_clean_workspace_has_no_list_type_errors(workspace):
@@ -373,11 +363,6 @@ def _populate_valid_root(root_dir: Path) -> None:
     (root_dir / "leaves" / "leaf1.flync.yaml").write_text("id: leaf\n", encoding="utf-8")
 
 
-# ---------------------------------------------------------------------------
-# debug.py — type-unwrapping helpers and tree rendering
-# ---------------------------------------------------------------------------
-
-
 def test_debug_type_helpers():
     """_unwrap_type / _is_optional / _is_pydantic_model / _has_external_fields."""
     assert debug_mod._unwrap_type(Detail) == (False, Detail)
@@ -442,11 +427,6 @@ def test_print_structure_and_subtree(tmp_path, monkeypatch):
 
     with pytest.raises(ValueError):
         debug_mod.print_field_subtree(LeafOnly, "id")
-
-
-# ---------------------------------------------------------------------------
-# layer1_structure.py — folder/file structure validation
-# ---------------------------------------------------------------------------
 
 
 def test_check_structure_scenarios(tmp_path):
@@ -520,10 +500,6 @@ def test_check_structure_scenarios(tmp_path):
     assert issue.path == ""
 
 
-# ---------------------------------------------------------------------------
-# layer2_yaml.py — YAML syntax validation
-# ---------------------------------------------------------------------------
-
 _VALID_YAML = "id: value\nlist:\n  - a\n  - b\n"
 _INVALID_YAML = "id: [1, 2\nother: 3\n"
 
@@ -569,11 +545,6 @@ def test_yaml_syntax_scenarios(tmp_path):
     issue = YAMLIssue(message="m", path="p")
     assert issue.line is None
     assert issue.col is None
-
-
-# ---------------------------------------------------------------------------
-# runner.py — five-layer orchestration
-# ---------------------------------------------------------------------------
 
 
 def _plain(captured: str) -> str:

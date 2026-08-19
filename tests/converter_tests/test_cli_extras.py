@@ -2,7 +2,7 @@
 
 import enum
 from typing import Optional, Union
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import click
 import pytest
@@ -13,20 +13,11 @@ from flync_converter.cli.dynamic import DynamicConverterCommand
 from flync_converter.cli.group import _open_gui, _open_tui
 from flync_converter.cli.types import _annotation_to_click_type, _EnumNameType
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
 
 class _Color(enum.Enum):
     RED = 1
     GREEN = 2
     BLUE = 3
-
-
-# ---------------------------------------------------------------------------
-# _EnumNameType
-# ---------------------------------------------------------------------------
 
 
 class TestEnumNameType:
@@ -55,11 +46,6 @@ class TestEnumNameType:
         t = _EnumNameType(_Color)
         with pytest.raises(click.exceptions.BadParameter):
             t.convert("PURPLE", None, None)
-
-
-# ---------------------------------------------------------------------------
-# _annotation_to_click_type
-# ---------------------------------------------------------------------------
 
 
 class TestAnnotationToClickType:
@@ -105,11 +91,6 @@ class TestAnnotationToClickType:
         assert result is click.STRING
 
 
-# ---------------------------------------------------------------------------
-# DynamicConverterCommand._prescan_value
-# ---------------------------------------------------------------------------
-
-
 class TestPrescanValue:
     def _cmd(self):
         return DynamicConverterCommand("test", callback=lambda: None)
@@ -138,11 +119,6 @@ class TestPrescanValue:
     def test_short_flag_space_form(self):
         cmd = self._cmd()
         assert cmd._prescan_value(["-sf", "json"], "-sf", "--source-format") == "json"
-
-
-# ---------------------------------------------------------------------------
-# DynamicConverterCommand._inject_config_params
-# ---------------------------------------------------------------------------
 
 
 class TestInjectConfigParams:
@@ -193,11 +169,6 @@ class TestInjectConfigParams:
         # nothing injected — no crash
 
 
-# ---------------------------------------------------------------------------
-# DynamicConverterCommand.parse_args
-# ---------------------------------------------------------------------------
-
-
 class TestParseArgs:
     def test_parse_args_injects_for_src_and_dst(self):
         injected = []
@@ -232,11 +203,6 @@ class TestParseArgs:
         keys = [a[0] for a in injected]
         assert "dbc" not in keys
         assert "json" in keys
-
-
-# ---------------------------------------------------------------------------
-# group._open_tui / _open_gui
-# ---------------------------------------------------------------------------
 
 
 class TestOpenTui:
@@ -285,11 +251,6 @@ class TestOpenGui:
         ctx.exit.assert_called_once()
 
 
-# ---------------------------------------------------------------------------
-# interactive.select_converter
-# ---------------------------------------------------------------------------
-
-
 class TestSelectConverter:
     def test_numeric_choice_returns_converter_name(self):
         from flync_converter.cli.interactive import select_converter
@@ -312,11 +273,6 @@ class TestSelectConverter:
         ):
             result = select_converter("destination")
         assert result == "json"
-
-
-# ---------------------------------------------------------------------------
-# interactive.interactive_configure_converter
-# ---------------------------------------------------------------------------
 
 
 class TestInteractiveConfigureConverter:
@@ -345,7 +301,7 @@ class TestInteractiveConfigureConverter:
             patch("flync_converter.cli.interactive.ConverterConfig", mock_cfg_cls),
             patch("flync_converter.cli.interactive.console"),
         ):
-            result = interactive_configure_converter("plain", "source")
+            interactive_configure_converter("plain", "source")
         # common_fields: input_path, output_path, path all populated
         mock_cfg_cls.assert_called_once_with(input_path="/tmp/x", output_path="/tmp/x", path="/tmp/x")
 
@@ -383,14 +339,9 @@ class TestInteractiveConfigureConverter:
             patch("flync_converter.cli.interactive.ConverterConfig", mock_cfg_cls),
             patch("flync_converter.cli.interactive.console"),
         ):
-            result = interactive_configure_converter("plain", "source")
+            interactive_configure_converter("plain", "source")
         # called with no kwargs since all prompts returned empty
         mock_cfg_cls.assert_called_once_with()
-
-
-# ---------------------------------------------------------------------------
-# commands.list_converters
-# ---------------------------------------------------------------------------
 
 
 class TestListConverters:
@@ -426,11 +377,6 @@ class TestListConverters:
         assert result.exit_code == 0
 
 
-# ---------------------------------------------------------------------------
-# commands.tui / gui
-# ---------------------------------------------------------------------------
-
-
 class TestTuiGuiCommands:
     def test_tui_command_calls_run_tui(self):
         from flync_converter.cli.commands import tui
@@ -460,11 +406,6 @@ class TestTuiGuiCommands:
             result = runner.invoke(gui, [])
         assert result.exit_code != 0
         assert "flync[gui]" in result.output
-
-
-# ---------------------------------------------------------------------------
-# commands.convert — auto-detect and same-format paths
-# ---------------------------------------------------------------------------
 
 
 class TestConvertCommand:

@@ -64,11 +64,6 @@ def _ecu(switches=None, controllers=None, ports=None, connections=None):
     )
 
 
-# ---------------------------------------------------------------------------
-# Type-discrimination tests (no ECU context needed — parsing only)
-# ---------------------------------------------------------------------------
-
-
 def test_internal_topology_chooses_ecu_port_to_switch_port_if_type_expected():
     kwargs = {
         "connections": [
@@ -112,11 +107,6 @@ def test_internal_topology_chooses_switch_to_switch_same_ecu_if_type_expected():
     }
     st = InternalTopology.model_validate(kwargs)
     assert isinstance(st.connections[0].root, SwitchPortToSwitchPort)
-
-
-# ---------------------------------------------------------------------------
-# Resolution tests (validated through ECU — resolution happens there)
-# ---------------------------------------------------------------------------
 
 
 def test_internal_topology_ecu_port_not_defined():

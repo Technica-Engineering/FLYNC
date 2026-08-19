@@ -37,11 +37,6 @@ def populated_registry():
         yield fake_registry
 
 
-# ---------------------------------------------------------------------------
-# list_converters
-# ---------------------------------------------------------------------------
-
-
 def test_list_converters_shows_registered(runner, populated_registry):
     result = runner.invoke(cli, ["list-converters"])
     assert result.exit_code == 0
@@ -54,11 +49,6 @@ def test_list_converters_empty_registry(runner):
         result = runner.invoke(cli, ["list-converters"])
     assert result.exit_code == 0
     assert "No converters registered" in result.output
-
-
-# ---------------------------------------------------------------------------
-# convert
-# ---------------------------------------------------------------------------
 
 
 def test_convert_same_format_skips(runner, populated_registry):
@@ -101,11 +91,6 @@ def test_convert_calls_convert_func(runner, populated_registry):
     assert mock_func.call_args.args[:4] == ("input/path", "output/path", "yaml", "json")
 
 
-# ---------------------------------------------------------------------------
-# convert_interactive
-# ---------------------------------------------------------------------------
-
-
 def test_convert_interactive_success(runner, populated_registry):
     """Simulate selecting json->yaml with minimal config input."""
     # input sequence: source format (1=json), config_path, dest format (2=yaml), config_path
@@ -125,11 +110,6 @@ def test_convert_interactive_conversion_error(runner, populated_registry):
         result = runner.invoke(cli, ["convert-interactive"], input=user_input)
     assert result.exit_code == 0
     assert "boom" in result.output
-
-
-# ---------------------------------------------------------------------------
-# get_config_model (unit)
-# ---------------------------------------------------------------------------
 
 
 def test_get_config_model_returns_subclass():

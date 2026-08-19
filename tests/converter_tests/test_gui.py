@@ -55,11 +55,6 @@ _APP_REGISTRY = "flync_converter.cli.gui.app.registry"
 _UTILS_REGISTRY = "flync_converter.utils.registry"
 
 
-# ---------------------------------------------------------------------------
-# ConverterPanel
-# ---------------------------------------------------------------------------
-
-
 def test_panel_initial_state(qapp_instance, fake_registry):
     """Panel has no converter selected on construction."""
     with patch(_PANEL_REGISTRY, fake_registry):
@@ -169,11 +164,6 @@ def test_panel_changed_signal_emitted_on_format_change(qapp_instance, fake_regis
     assert received == ["json"]
 
 
-# ---------------------------------------------------------------------------
-# LogWidgetHandler
-# ---------------------------------------------------------------------------
-
-
 def test_log_handler_routes_record_to_append_fn(qapp_instance):
     """LogWidgetHandler forwards formatted records to the supplied callable."""
     received: list[str] = []
@@ -194,11 +184,6 @@ def test_log_handler_routes_record_to_append_fn(qapp_instance):
     assert len(received) == 1
     assert "WARNING" in received[0]
     assert "hello gui" in received[0]
-
-
-# ---------------------------------------------------------------------------
-# FlyncGUI
-# ---------------------------------------------------------------------------
 
 
 def test_gui_convert_button_initially_disabled(qapp_instance, fake_registry):

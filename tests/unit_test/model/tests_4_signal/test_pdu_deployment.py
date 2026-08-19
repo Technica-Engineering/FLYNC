@@ -3,10 +3,6 @@ from pydantic import ValidationError
 
 from flync.model.flync_4_signal.pdu_deployment import PDUReceiver, PDUSender
 
-# ---------------------------------------------------------------------------
-# PDUSender
-# ---------------------------------------------------------------------------
-
 
 def test_positive_pdu_sender_basic():
     sender = PDUSender(pdu_ref="my_container_pdu")
@@ -28,11 +24,6 @@ def test_positive_pdu_sender_default_type():
 def test_negative_pdu_sender_missing_pdu_ref():
     with pytest.raises(ValidationError):
         PDUSender.model_validate({"deployment_type": "pdu_sender"})
-
-
-# ---------------------------------------------------------------------------
-# PDUReceiver
-# ---------------------------------------------------------------------------
 
 
 def test_positive_pdu_receiver_basic():
