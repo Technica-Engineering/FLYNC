@@ -2292,3 +2292,22 @@ Every error and warning the FLYNC validators can raise, identified as
 
    f"TCAM rule {self.name}: 'frame_window' is defined but frame_mask is not. The frame window is not processed in this case."
 
+.. err:: ContainerPDU '{name}' references unknown PDU(s): {unknown_refs}
+   :id: FLYNC-CMN-MAJ-REF-236
+   :module: CMN
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 236
+   :location: flync_channels.FLYNCChannelConfig.validate_ethernet_pdu_container_refs
+
+   "ContainerPDU '{name}' references unknown PDU(s): {unknown_refs}"
+
+.. err:: MultiplexedPDU '{name}' references unknown PDU(s): {unknown_refs}
+   :id: FLYNC-CMN-MAJ-REF-237
+   :module: CMN
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 237
+   :location: flync_channels.FLYNCChannelConfig.validate_multiplexed_pdu_refs
+
+   "MultiplexedPDU '{name}' references unknown PDU(s): {unknown_refs}"

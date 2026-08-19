@@ -134,6 +134,40 @@ class FLYNCChannelConfig(FLYNCBaseModel):
                 _validate_frame_pdu_placements(kind, bus, pdu_registry)
         return self
 
+    @model_validator(mode="after")
+    def validate_ethernet_pdu_container_refs(self) -> "FLYNCChannelConfig":
+        """Verify contained PDUs in ethernet_pdu_containers reference known PDUs."""
+        pdu_registry = {p.name: p for p in (self.pdus or [])}
+        for container in self.ethernet_pdu_containers or []:
+            unknown_refs = _collect_unknown_contained_pdu_refs(container, pdu_registry)
+            if unknown_refs:
+                raise err_major(
+                    "ContainerPDU '{name}' references unknown PDU(s): {unknown_refs}",
+                    name=container.name,
+                    unknown_refs=sorted(unknown_refs),
+                    category=Category.REFERENCE,
+                    error_number="236",
+                )
+        return self
+
+    @model_validator(mode="after")
+    def validate_multiplexed_pdu_refs(self) -> "FLYNCChannelConfig":
+        """Verify MultiplexedPDU static/mux group PDU instances reference known PDUs."""
+        pdu_registry = {p.name: p for p in (self.pdus or [])}
+        for pdu in self.pdus or []:
+            if not isinstance(pdu, MultiplexedPDU):
+                continue
+            unknown_refs = _collect_unknown_muxed_pdu_refs(pdu, pdu_registry)
+            if unknown_refs:
+                raise err_major(
+                    "MultiplexedPDU '{name}' references unknown PDU(s): {unknown_refs}",
+                    name=pdu.name,
+                    unknown_refs=sorted(unknown_refs),
+                    category=Category.REFERENCE,
+                    error_number="237",
+                )
+        return self
+
 
 def _collect_unknown_pdu_refs(frames: Iterable[Frame], pdu_registry: Mapping[str, PDU]) -> "set[str]":
     """Return pdu_ref names in ``frames`` not present in the PDU registry."""
@@ -142,6 +176,22 @@ def _collect_unknown_pdu_refs(frames: Iterable[Frame], pdu_registry: Mapping[str
         for pdu_inst in frame.packed_pdus:
             if pdu_inst.pdu_ref not in pdu_registry:
                 unknown.add(pdu_inst.pdu_ref)
+    return unknown
+
+
+def _collect_unknown_contained_pdu_refs(container: ContainerPDU, pdu_registry: Mapping[str, PDU]) -> "set[str]":
+    """Return pdu_ref names in ``container.contained_pdus`` not present in the PDU registry."""
+    return {contained.pdu_ref for contained in container.contained_pdus if contained.pdu_ref not in pdu_registry}
+
+
+def _collect_unknown_muxed_pdu_refs(pdu: MultiplexedPDU, pdu_registry: Mapping[str, PDU]) -> "set[str]":
+    """Return pdu_ref names in ``pdu``'s static_group/mux_groups not present in the PDU registry."""
+    unknown: set[str] = set()
+    if pdu.static_group is not None and pdu.static_group.pdu_ref not in pdu_registry:
+        unknown.add(pdu.static_group.pdu_ref)
+    for group in pdu.mux_groups:
+        if group.pdu.pdu_ref not in pdu_registry:
+            unknown.add(group.pdu.pdu_ref)
     return unknown
 
 

@@ -4,6 +4,7 @@ from pydantic import ValidationError
 from flync.model.flync_4_communication.flync_channels import (
     FLYNCChannelConfig,
 )
+from tests.error_assertions import assert_single_error
 
 
 def _make_pdu(name: str, length: int) -> dict:
@@ -219,3 +220,48 @@ def test_negative_can_frame_unknown_pdu_ref():
     }
     with pytest.raises(ValidationError, match="CANBus 'B1' references unknown PDU"):
         FLYNCChannelConfig.model_validate(cfg)
+
+
+# ---------------------------------------------------------------------------
+# Ethernet Container PDU — unknown contained PDU ref
+# ---------------------------------------------------------------------------
+
+
+def test_negative_ethernet_pdu_container_unknown_pdu_ref():
+    cfg = {
+        "pdus": [_make_pdu("P1", 2)],
+        "ethernet_pdu_containers": [
+            {
+                "name": "C1",
+                "length": 8,
+                "pdu_id": 1,
+                "header": {"id_length_bits": 8, "length_field_bits": 8},
+                "contained_pdus": [{"header_id": 1, "pdu_ref": "Unknown"}],
+            }
+        ],
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        FLYNCChannelConfig.model_validate(cfg)
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-REF-236", "ContainerPDU 'C1' references unknown PDU")
+
+
+# ---------------------------------------------------------------------------
+# MultiplexedPDU — unknown mux group PDU ref
+# ---------------------------------------------------------------------------
+
+
+def test_negative_multiplexed_pdu_unknown_pdu_ref():
+    cfg = {
+        "pdus": [
+            {
+                "name": "MP1",
+                "type": "multiplexed",
+                "length": 8,
+                "selector_signal": {"signal": {"name": "mp_sel", "bit_length": 4, "data_type": "uint8"}},
+                "mux_groups": [{"selector_value": 0, "pdu": {"pdu_ref": "Unknown"}}],
+            }
+        ],
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        FLYNCChannelConfig.model_validate(cfg)
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-REF-237", "MultiplexedPDU 'MP1' references unknown PDU")
