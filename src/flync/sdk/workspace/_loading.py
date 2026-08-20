@@ -603,8 +603,15 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
                 field_info,
                 external,
             )
-            implied: Implied | None = get_metadata(field_info.metadata, Implied)
-            self._handle_implied_field_load(path, module_load_info, field_name, implied)
+            if implied := get_metadata(field_info.metadata, Implied):
+                self._handle_implied_field_load(path, module_load_info, field_name, implied)
+                # Implied fields carry no YAML node and no model value of their
+                # own, so the AST walk never registers them. Register a marker
+                # object (model=None) under the linked path; without it
+                # get_child_ids would drop the field, since it filters children
+                # by has_object().
+                paths = self.update_objects_path(current_object_paths, field_name)
+                self._add_object_to_path("", None, paths, 0, 0, 0, 0)
 
         # then group all the fields into the same object and return it
         self._append_to_info_dict(path, module_load_info)
@@ -618,13 +625,12 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
         path: Path,
         module_load_info: dict,
         field_name: str,
-        implied: Implied | None,
+        implied: Implied,
     ):
-        if implied is not None:
-            if implied.strategy == ImpliedStrategy.FOLDER_NAME:
-                module_load_info[field_name] = path.name
-            elif implied.strategy == ImpliedStrategy.FILE_NAME:
-                module_load_info[field_name] = self.name_form_file(path)
+        if implied.strategy == ImpliedStrategy.FOLDER_NAME:
+            module_load_info[field_name] = path.name
+        elif implied.strategy == ImpliedStrategy.FILE_NAME:
+            module_load_info[field_name] = self.name_form_file(path)
 
     def __handle_external_field_load(
         self,
