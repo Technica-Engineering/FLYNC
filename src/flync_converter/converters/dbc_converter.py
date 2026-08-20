@@ -145,7 +145,7 @@ def _decode_multiplexed_pdu(
         pdus = _pdus_by_name(flync_model)
     sel = pdu.selector_signal
     selector_name = sel.signal.name
-    ret: List[Signal] = [decode_signal_instance(sel, bit_pos, receivers=receivers)]
+    ret: List[Signal] = [decode_signal_instance(sel, bit_pos, receivers=receivers, is_multiplexer=True)]
 
     for static in pdu.static_group or []:
         static_ref = static.pdu_ref
@@ -292,7 +292,7 @@ class DbcConverter(BaseConverter):
 
         write_dbc_files(source, self.config.config_path)
 
-        logger.debug("JSON encode complete: %s", self.config.config_path)
+        logger.debug("DBC encode complete: %s", self.config.config_path)
 
     def decode(self) -> FLYNCModel:
         """Decode data into a FLYNCBaseModel.
