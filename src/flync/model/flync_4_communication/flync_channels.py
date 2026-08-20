@@ -24,6 +24,7 @@ from flync.model.flync_4_signal.pdu import (
     PDU,
     ContainerPDU,
     MultiplexedPDU,
+    PDUInstance,
     StandardPDU,
 )
 
@@ -111,10 +112,15 @@ class FLYNCChannelConfig(FLYNCBaseModel):
         validate_list_items_unique([lin.name for lin in (self.lin_buses or [])], "LINBus")
         return self
 
+    def _pdu_registry(self) -> Mapping[str, PDU]:
+        """Return a ``name -> PDU`` lookup over the shared PDU definitions."""
+        return {p.name: p for p in (self.pdus or [])}
+
     @model_validator(mode="after")
     def validate_pdu_refs(self) -> "FLYNCChannelConfig":
         """Verify packed PDUs in CAN/LIN frames reference known PDUs and fit without overlap."""
-        pdu_registry = {p.name: p for p in (self.pdus or [])}
+        pdu_registry = self._pdu_registry()
+        _validate_multiplexed_pdu_placements(self.pdus or [], pdu_registry)
         buses_by_kind = (
             ("CANBus", self.can_buses or []),
             ("LINBus", self.lin_buses or []),
@@ -137,7 +143,7 @@ class FLYNCChannelConfig(FLYNCBaseModel):
     @model_validator(mode="after")
     def validate_ethernet_pdu_container_refs(self) -> "FLYNCChannelConfig":
         """Verify contained PDUs in ethernet_pdu_containers reference known PDUs."""
-        pdu_registry = {p.name: p for p in (self.pdus or [])}
+        pdu_registry = self._pdu_registry()
         for container in self.ethernet_pdu_containers or []:
             unknown_refs = _collect_unknown_contained_pdu_refs(container, pdu_registry)
             if unknown_refs:
@@ -153,7 +159,7 @@ class FLYNCChannelConfig(FLYNCBaseModel):
     @model_validator(mode="after")
     def validate_multiplexed_pdu_refs(self) -> "FLYNCChannelConfig":
         """Verify MultiplexedPDU static/mux group PDU instances reference known PDUs."""
-        pdu_registry = {p.name: p for p in (self.pdus or [])}
+        pdu_registry = self._pdu_registry()
         for pdu in self.pdus or []:
             if not isinstance(pdu, MultiplexedPDU):
                 continue
@@ -187,12 +193,58 @@ def _collect_unknown_contained_pdu_refs(container: ContainerPDU, pdu_registry: M
 def _collect_unknown_muxed_pdu_refs(pdu: MultiplexedPDU, pdu_registry: Mapping[str, PDU]) -> "set[str]":
     """Return pdu_ref names in ``pdu``'s static_group/mux_groups not present in the PDU registry."""
     unknown: set[str] = set()
-    if pdu.static_group is not None and pdu.static_group.pdu_ref not in pdu_registry:
-        unknown.add(pdu.static_group.pdu_ref)
+    for static in pdu.static_group or []:
+        if static.pdu_ref not in pdu_registry:
+            unknown.add(static.pdu_ref)
     for group in pdu.mux_groups:
         if group.pdu.pdu_ref not in pdu_registry:
             unknown.add(group.pdu.pdu_ref)
     return unknown
+
+
+def _resolve_placement_range(inst: PDUInstance, label: str, pdu_registry: Mapping[str, PDU]) -> Optional[BitRange]:
+    """Return the bit range a :class:`PDUInstance` occupies, or ``None`` when it cannot be resolved.
+
+    The extent is ``[bit_position, bit_position + referenced_pdu.length * 8)`` — the signals inside the
+    referenced PDU are irrelevant (this mirrors how frame PDU placements are validated). Unplaced
+    instances (``bit_position is None``) and references missing from ``pdu_registry`` yield ``None``;
+    the reference itself is validated by :meth:`FLYNCChannelConfig.validate_multiplexed_pdu_refs`.
+    """
+    if inst.bit_position is None:
+        return None
+    ref_pdu = pdu_registry.get(inst.pdu_ref)
+    if ref_pdu is None:
+        return None
+    return (f"{label} '{inst.pdu_ref}'", inst.bit_position, inst.bit_position + ref_pdu.length * 8)
+
+
+def _validate_multiplexed_pdu_placements(pdus: Iterable[PDU], pdu_registry: Mapping[str, PDU]) -> None:
+    """Validate the PDU placements of every :class:`MultiplexedPDU` in ``pdus``.
+
+    Every placement (selector signal, ``static_group``, ``mux_groups``) must fit within the
+    multiplexed PDU's own length. Static placements must not overlap each other nor the selector.
+    Each mux group is checked against the selector and the static placements only: mux groups are
+    mutually exclusive alternatives selected at runtime, so two groups with different
+    ``selector_value`` are expected to share the same bits.
+    """
+    for pdu in pdus:
+        if not isinstance(pdu, MultiplexedPDU):
+            continue
+        context = f"MultiplexedPDU '{pdu.name}'"
+        sel = pdu.selector_signal
+        static_ranges = [r for r in (_resolve_placement_range(inst, "static_group", pdu_registry) for inst in (pdu.static_group or [])) if r]
+        group_ranges = [
+            r
+            for r in (_resolve_placement_range(group.pdu, f"mux_group(selector={group.selector_value})", pdu_registry) for group in pdu.mux_groups)
+            if r
+        ]
+        sel_ranges: List[BitRange] = []
+        if sel.bit_position is not None:
+            sel_ranges.append((sel.signal.name, sel.bit_position, sel.bit_position + sel.signal.bit_length))
+        check_bit_ranges_within(context, [*sel_ranges, *static_ranges, *group_ranges], pdu.length * 8)
+        check_bit_ranges_no_overlap(context, [*sel_ranges, *static_ranges])
+        for group_range in group_ranges:
+            check_bit_ranges_no_overlap(context, [*sel_ranges, *static_ranges, group_range])
 
 
 def _validate_frame_pdu_placements(kind: str, bus, pdu_registry: Mapping[str, PDU]) -> None:

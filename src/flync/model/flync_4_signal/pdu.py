@@ -9,7 +9,7 @@ signal instances of a PDU stay within its length and do not overlap.
 
 from typing import Annotated, List, Literal, Optional
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import BeforeValidator, Field, field_validator, model_validator
 
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.common_validators import (
@@ -17,6 +17,7 @@ from flync.core.utils.common_validators import (
     check_bit_ranges_no_overlap,
     check_bit_ranges_within,
     collect_bit_ranges,
+    single_to_list,
 )
 from flync.core.utils.exceptions import Category, err_major, err_minor
 from flync.model.flync_4_signal.signal import (
@@ -138,15 +139,16 @@ class MultiplexedPDU(PDU):
     ----------
     selector_signal : :class:`SignalInstance`
         The selector signal whose value determines the active mux group.
-    static_group : :class:`PDUInstance`, optional
-        Optional PDU Instance with signals that are always present regardless of the active mux group.
+    static_group : list of :class:`PDUInstance`, optional
+        Optional PDU Instances with signals that are always present regardless of the active mux group.
+        A single PDU Instance (unwrapped mapping) is accepted as well and coerced into a one-element list.
     mux_groups : list of :class:`MuxGroup`
         One entry per distinct selector value.
     """
 
     type: Literal["multiplexed"] = Field(default="multiplexed")
     selector_signal: SignalInstance = Field()
-    static_group: Optional[PDUInstance] = Field(default=None)
+    static_group: Annotated[Optional[List[PDUInstance]], BeforeValidator(single_to_list)] = Field(default=None)
     mux_groups: List[MuxGroup] = Field(default_factory=list, min_length=1)
 
     @model_validator(mode="after")
@@ -181,34 +183,6 @@ class MultiplexedPDU(PDU):
                 bad=out_of_range,
                 category=Category.VALUE_RANGE,
                 error_number="108",
-            )
-        return self
-
-    @model_validator(mode="after")
-    def validate_selector_overlap(self) -> "MultiplexedPDU":
-        """Ensure mux group and static signals do not overlap the selector."""
-        sel_bp = self.selector_signal.bit_position
-        if sel_bp is None:
-            return self
-        sel_range: BitRange = (
-            self.selector_signal.signal.name,
-            sel_bp,
-            sel_bp + self.selector_signal.signal.bit_length,
-        )
-        for group in self.mux_groups:
-            group_signals = getattr(group.pdu, "signals", [])
-            group_signal_groups = getattr(group.pdu, "signal_groups", [])
-            group_ranges = _collect_placed_ranges(group_signals, group_signal_groups)
-            check_bit_ranges_no_overlap(
-                f"MultiplexedPDU '{self.name}' mux_group(selector={group.selector_value}) vs selector",
-                [sel_range, *group_ranges],
-            )
-        if self.static_group is not None:
-            static_signals = getattr(self.static_group, "signals", [])
-            static_ranges = _collect_placed_ranges(static_signals, [])
-            check_bit_ranges_no_overlap(
-                f"MultiplexedPDU '{self.name}' static_group vs selector",
-                [sel_range, *static_ranges],
             )
         return self
 

@@ -147,14 +147,14 @@ def _decode_multiplexed_pdu(
     selector_name = sel.signal.name
     ret: List[Signal] = [decode_signal_instance(sel, bit_pos, receivers=receivers)]
 
-    if pdu.static_group is not None:
-        static_ref = pdu.static_group.pdu_ref
+    for static in pdu.static_group or []:
+        static_ref = static.pdu_ref
         static_pdu = pdus.get(static_ref, None)
-        static_offset = bit_pos + (pdu.static_group.bit_position or 0)
+        static_offset = bit_pos + (static.bit_position or 0)
         if static_pdu is None:
             logger.warning("Referenced static PDU '%s' not found", static_ref)
         else:
-            ret.extend(_decode_standard_pdu(static_pdu, static_offset, receivers))
+            ret.extend(decode_pdu(flync_model, static_pdu, static_offset, receivers, pdus))
 
     for group in pdu.mux_groups:
         mux_ref = group.pdu.pdu_ref

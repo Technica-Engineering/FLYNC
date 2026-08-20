@@ -260,12 +260,13 @@ def test_negative_ethernet_pdu_container_unknown_pdu_ref():
 
 
 def _make_multiplexed_pdu(name: str, static_group_ref=None, mux_group_refs=None) -> dict:
+    """Build a multiplexed PDU dict. ``static_group`` is emitted as a list of PDU instances."""
     return {
         "name": name,
         "type": "multiplexed",
         "length": 8,
         "selector_signal": {"signal": {"name": "mp_sel", "bit_length": 4, "data_type": "uint8"}},
-        "static_group": {"pdu_ref": static_group_ref} if static_group_ref else None,
+        "static_group": [{"pdu_ref": static_group_ref}] if static_group_ref else None,
         "mux_groups": [{"selector_value": idx, "pdu": {"pdu_ref": ref}} for idx, ref in enumerate(mux_group_refs or [])],
     }
 
@@ -279,6 +280,15 @@ def test_positive_multiplexed_pdu_known_pdu_refs():
         ],
     }
     assert FLYNCChannelConfig.model_validate(cfg)
+
+
+def test_positive_multiplexed_pdu_static_group_single_mapping():
+    # static_group used to be a single PDU instance; the unwrapped mapping is still accepted.
+    mp = _make_multiplexed_pdu("MP1", static_group_ref="P1", mux_group_refs=["P2"])
+    mp["static_group"] = {"pdu_ref": "P1"}
+    cfg = {"pdus": [_make_pdu("P1", 2), _make_pdu("P2", 2), mp]}
+    config = FLYNCChannelConfig.model_validate(cfg)
+    assert [inst.pdu_ref for inst in config.pdus[2].static_group] == ["P1"]
 
 
 def test_negative_multiplexed_pdu_static_group_unknown_pdu_ref():
@@ -308,3 +318,129 @@ def test_negative_multiplexed_pdu_unknown_pdu_ref():
     with pytest.raises(ValidationError) as exc_info:
         FLYNCChannelConfig.model_validate(cfg)
     assert_single_error(exc_info, "FLYNC-CMN-MAJ-REF-237", "MultiplexedPDU 'MP1' references unknown PDU")
+
+
+# ---------------------------------------------------------------------------
+# MultiplexedPDU placements
+#
+# Each referenced PDU occupies [bit_position, bit_position + referenced_pdu.length * 8) — the signals
+# inside it are irrelevant, exactly as for PDU placements in a frame. Statics must be disjoint from each
+# other and from the selector; mux groups are runtime alternatives and may share bits with one another.
+# ---------------------------------------------------------------------------
+
+
+def _make_placed_multiplexed_pdu(length=8, selector_bit=0, static=(), mux=()) -> dict:
+    return {
+        "name": "MP1",
+        "type": "multiplexed",
+        "length": length,
+        "selector_signal": {"signal": {"name": "mp_sel", "bit_length": 4, "data_type": "uint8"}, "bit_position": selector_bit},
+        "static_group": [{"pdu_ref": ref, "bit_position": bit} for ref, bit in static] or None,
+        "mux_groups": [{"selector_value": idx, "pdu": {"pdu_ref": ref, "bit_position": bit}} for idx, (ref, bit) in enumerate(mux)],
+    }
+
+
+def test_positive_multiplexed_pdu_placements_clear_of_selector():
+    cfg = {
+        "pdus": [
+            _make_pdu("P1", 1),
+            _make_pdu("P2", 2),
+            _make_placed_multiplexed_pdu(static=[("P1", 8)], mux=[("P2", 16)]),
+        ],
+    }
+    assert FLYNCChannelConfig.model_validate(cfg)
+
+
+def test_positive_multiplexed_pdu_mux_groups_may_share_bits():
+    # Two alternatives selected by different selector values are expected to occupy the same bits.
+    cfg = {
+        "pdus": [
+            _make_pdu("P1", 2),
+            _make_pdu("P2", 2),
+            _make_placed_multiplexed_pdu(mux=[("P1", 8), ("P2", 8)]),
+        ],
+    }
+    assert FLYNCChannelConfig.model_validate(cfg)
+
+
+def test_negative_multiplexed_pdu_static_overlaps_selector():
+    # P1 is 1 byte at bit 0 -> [0, 8), which covers the 4-bit selector at [0, 4).
+    cfg = {
+        "pdus": [
+            _make_pdu("P1", 1),
+            _make_pdu("P2", 2),
+            _make_placed_multiplexed_pdu(static=[("P1", 0)], mux=[("P2", 16)]),
+        ],
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        FLYNCChannelConfig.model_validate(cfg)
+    assert_single_error(exc_info, "FLYNC-CMN-MIN-CONS-030", "MultiplexedPDU 'MP1'")
+
+
+def test_negative_multiplexed_pdu_statics_overlap_each_other():
+    cfg = {
+        "pdus": [
+            _make_pdu("P1", 2),
+            _make_pdu("P2", 2),
+            _make_placed_multiplexed_pdu(static=[("P1", 8), ("P1", 16)], mux=[("P2", 40)]),
+        ],
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        FLYNCChannelConfig.model_validate(cfg)
+    assert_single_error(exc_info, "FLYNC-CMN-MIN-CONS-030", "MultiplexedPDU 'MP1'")
+
+
+def test_negative_multiplexed_pdu_mux_overlaps_static():
+    cfg = {
+        "pdus": [
+            _make_pdu("P1", 2),
+            _make_pdu("P2", 2),
+            _make_placed_multiplexed_pdu(static=[("P1", 8)], mux=[("P2", 16)]),
+        ],
+    }
+    cfg["pdus"][2]["mux_groups"][0]["pdu"]["bit_position"] = 8
+    with pytest.raises(ValidationError) as exc_info:
+        FLYNCChannelConfig.model_validate(cfg)
+    assert_single_error(exc_info, "FLYNC-CMN-MIN-CONS-030", "MultiplexedPDU 'MP1'")
+
+
+def test_negative_multiplexed_pdu_mux_overlaps_selector():
+    cfg = {
+        "pdus": [
+            _make_pdu("P1", 2),
+            _make_placed_multiplexed_pdu(mux=[("P1", 0)]),
+        ],
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        FLYNCChannelConfig.model_validate(cfg)
+    assert_single_error(exc_info, "FLYNC-CMN-MIN-CONS-030", "MultiplexedPDU 'MP1'")
+
+
+def test_negative_multiplexed_pdu_placement_exceeds_length():
+    # A 2-byte PDU placed at bit 56 ends at bit 72, past the multiplexed PDU's 8 byte (64 bit) length.
+    cfg = {
+        "pdus": [
+            _make_pdu("P1", 2),
+            _make_placed_multiplexed_pdu(mux=[("P1", 56)]),
+        ],
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        FLYNCChannelConfig.model_validate(cfg)
+    assert_single_error(exc_info, "FLYNC-CMN-MIN-VAL-029", "MultiplexedPDU 'MP1'")
+
+
+def test_positive_multiplexed_pdu_unplaced_instances_skipped():
+    # An unplaced selector or PDU instance cannot be range-checked and is skipped here.
+    cfg = {
+        "pdus": [
+            _make_pdu("P1", 2),
+            _make_pdu("P2", 2),
+            {
+                **_make_placed_multiplexed_pdu(static=[("P1", 0)], mux=[("P2", 0)]),
+                "selector_signal": {"signal": {"name": "mp_sel", "bit_length": 4, "data_type": "uint8"}},
+            },
+        ],
+    }
+    cfg["pdus"][2]["static_group"][0].pop("bit_position")
+    cfg["pdus"][2]["mux_groups"][0]["pdu"].pop("bit_position")
+    assert FLYNCChannelConfig.model_validate(cfg)

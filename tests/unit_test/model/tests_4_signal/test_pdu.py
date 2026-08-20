@@ -372,9 +372,48 @@ def test_positive_multiplexed_pdu_with_static_signals():
         length=4,
         selector_signal=sel,
         mux_groups=[mg],
-        static_group=PDUInstance(pdu_ref="mp_pdu_3_static", bit_position=16),
+        static_group=[PDUInstance(pdu_ref="mp_pdu_3_static", bit_position=16)],
     )
-    assert pdu.static_group.pdu_ref == "mp_pdu_3_static"
+    assert pdu.static_group == [PDUInstance(pdu_ref="mp_pdu_3_static", bit_position=16)]
+
+
+def test_positive_multiplexed_pdu_multiple_static_pdus():
+    sel = _make_selector_signal("mp_sel_3b")
+    mg = _make_mux_group(0, "mp_pay_3b")
+    pdu = MultiplexedPDU(
+        name="mp_pdu_3b",
+        length=4,
+        selector_signal=sel,
+        mux_groups=[mg],
+        static_group=[PDUInstance(pdu_ref="mp_pdu_3b_static_1"), PDUInstance(pdu_ref="mp_pdu_3b_static_2")],
+    )
+    assert [inst.pdu_ref for inst in pdu.static_group] == ["mp_pdu_3b_static_1", "mp_pdu_3b_static_2"]
+
+
+def test_positive_multiplexed_pdu_static_group_default_none():
+    sel = _make_selector_signal("mp_sel_3c")
+    mg = _make_mux_group(0, "mp_pay_3c")
+    pdu = MultiplexedPDU(
+        name="mp_pdu_3c",
+        length=4,
+        selector_signal=sel,
+        mux_groups=[mg],
+    )
+    assert pdu.static_group is None
+
+
+def test_positive_multiplexed_pdu_static_group_single_instance_coerced():
+    # static_group used to be a single PDUInstance; an unwrapped mapping is coerced into a list.
+    pdu = MultiplexedPDU.model_validate(
+        {
+            "name": "mp_pdu_3d",
+            "length": 4,
+            "selector_signal": {"signal": {"name": "mp_sel_3d", "bit_length": 4, "data_type": "uint8"}},
+            "mux_groups": [{"selector_value": 0, "pdu": {"pdu_ref": "mp_pay_3d"}}],
+            "static_group": {"pdu_ref": "mp_pdu_3d_static"},
+        }
+    )
+    assert [inst.pdu_ref for inst in pdu.static_group] == ["mp_pdu_3d_static"]
 
 
 def test_positive_multiplexed_pdu_selector_no_position():

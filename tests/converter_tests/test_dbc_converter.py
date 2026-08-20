@@ -195,12 +195,26 @@ class TestDecodeMultiplexedPdu:
         static_pdu = StandardPDU.model_construct(name="static_pdu", length=8, signals=[static_si], signal_groups=[])
         pdu = MagicMock()
         pdu.selector_signal = sel_inst
-        pdu.static_group = MagicMock(pdu_ref="static_pdu", bit_position=0)
+        pdu.static_group = [MagicMock(pdu_ref="static_pdu", bit_position=0)]
         pdu.mux_groups = []
         result = _decode_multiplexed_pdu(MagicMock(), pdu, 0, None, pdus={"static_pdu": static_pdu})
         assert len(result) == 2
         assert result[0].name == "sel"
         assert result[1].name == "static_sig"
+
+    def test_with_multiple_static_groups(self):
+        sel_inst = _mock_si(_mock_signal("sel", 4), 0)
+        static_1 = StandardPDU.model_construct(name="static_1", length=8, signals=[_mock_si(_mock_signal("static_sig_1", 8), 4)], signal_groups=[])
+        static_2 = StandardPDU.model_construct(name="static_2", length=8, signals=[_mock_si(_mock_signal("static_sig_2", 8), 0)], signal_groups=[])
+        pdu = MagicMock()
+        pdu.selector_signal = sel_inst
+        pdu.static_group = [MagicMock(pdu_ref="static_1", bit_position=0), MagicMock(pdu_ref="static_2", bit_position=16)]
+        pdu.mux_groups = []
+        result = _decode_multiplexed_pdu(MagicMock(), pdu, 0, None, pdus={"static_1": static_1, "static_2": static_2})
+        assert len(result) == 3
+        assert result[0].name == "sel"
+        assert [s.name for s in result[1:]] == ["static_sig_1", "static_sig_2"]
+        assert [s.start for s in result[1:]] == [4, 16]
 
 
 class TestDecodePdu:

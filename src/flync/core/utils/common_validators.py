@@ -871,6 +871,20 @@ def none_to_empty_list(v, info=None):
     return [] if v is None else v
 
 
+def single_to_list(v):
+    """
+    Accept a single item where a list is expected and wrap it into a one-element list.
+
+    Used for fields that started out as a single sub-model and later grew into a list, so
+    that YAML written in the old single-mapping form keeps loading. ``None`` and existing
+    list/tuple values are returned unchanged.
+    """
+
+    if v is None or isinstance(v, (list, tuple)):
+        return v
+    return [v]
+
+
 # ---------------------------------------------------------------------------
 # Bit-range placement validators
 # ---------------------------------------------------------------------------
