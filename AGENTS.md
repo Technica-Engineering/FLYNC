@@ -308,7 +308,7 @@ cd docs && make html    # Sphinx, generates mermaid diagrams + CLI docs
 
 - **GitHub Actions** (primary) — workflows in `.github/workflows/`:
   - `push_and_pr.yaml` — main test/lint pipeline on push and PR
-    - Static checks: `format-check` (Black), `isort`, `lint` (flake8), `type-check` (mypy), `error-catalogue-check` (`flync errors validate-catalogue`)
+    - Static checks: `format-check` (Black), `isort`, `lint` (flake8), `type-check` (mypy), `error-catalog-check` (`flync errors validate-catalog`)
     - Test splits (all gated on the static checks): `unit-tests`, `system-tests`, `cli-tests` (core env), `converter-tests` and `performance-tests` (Qt/PySide6 apt libs + `--group qt --extra gui --extra tui`); `performance-tests` is `continue-on-error`
     - `tests-summary` — runs with `if: always()`, combines the per-split `.coverage.*` / `report_*.xml` into `coverage.xml` + `report.xml` and posts the PR coverage comment; missing splits produce warnings, only a total absence of artifacts fails the job
     - Plus `example-validation` and `build-documentation`
