@@ -1,7 +1,7 @@
 """Defines the CAN and CAN FD bus model for FLYNC."""
 
 from collections import Counter
-from typing import Annotated, List, Optional, Union
+from typing import Annotated, List, Optional
 
 from pydantic import BeforeValidator, Field, field_validator, model_validator
 
@@ -69,7 +69,7 @@ class CANBus(FLYNCBaseModel):
     baud_rate: int = Field()
     fd_enabled: bool = Field(default=False)
     fd_baud_rate: Optional[int] = Field(default=None)
-    frames: List[Annotated[Union[CANFrame, CANFDFrame], Field(discriminator="type")]] = Field(default_factory=list)
+    frames: List[Annotated[CANFrame | CANFDFrame, Field(discriminator="type")]] = Field(default_factory=list)
     state_memberships: Annotated[
         Optional[List[StateMembershipRef]],
         BeforeValidator(common_validators.none_to_empty_list),

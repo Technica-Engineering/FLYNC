@@ -336,7 +336,7 @@ class EthernetInterfaceConfig(FLYNCBaseModel):
         Optional[List[RouteEntry]],
         BeforeValidator(common_validators.none_to_empty_list),
     ] = Field(default=[])
-    _name: Optional[str] = PrivateAttr(default=None)
+    _name: Optional[str] = None
 
     @property
     def name(self):
@@ -525,7 +525,7 @@ class EthernetInterface(ControllerInterface):
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
     ] = Field(default_factory=list)
-    _connected_component: List = PrivateAttr(default_factory=list)
+    _connected_component: List = []
     _type: Literal["controller_interface"] = PrivateAttr(default="controller_interface")
     _controller: Optional["Controller"] = PrivateAttr(default=None)
 

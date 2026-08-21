@@ -2,7 +2,7 @@
 
 from typing import Annotated, Dict, List
 
-from pydantic import Field, PrivateAttr
+from pydantic import Field
 
 from flync.core.annotations.reference import Reference
 from flync.core.base_models import FLYNCBaseModel
@@ -29,7 +29,7 @@ class AppBindings(FLYNCBaseModel):
 
     app_refs: Annotated[List[str], Reference(source="_apps")] = Field(default_factory=list, description="List of application names to bind to.")
 
-    _apps: List[App] = PrivateAttr(default_factory=list)
+    _apps: List[App] = []
 
     @property
     def apps(self) -> List["App"]:

@@ -1438,7 +1438,8 @@ def test_Simple_CAN_ECU_NM_Timeout_active_phase(tmpdir):
     # and that frame holds the cyclic TX timing.
     bus_frame = flync_model.communication.channels.can_buses[0].frames[0]
     assert bus_frame.can_id == sender_iface.sender_frames[0].frame_ref
-    assert bus_frame.timing is not None and len(bus_frame.timing.cyclic_timings) == 1
+    assert bus_frame.timing is not None
+    assert len(bus_frame.timing.cyclic_timings) == 1
 
     _roundtrip(flync_model, tmpdir)
 

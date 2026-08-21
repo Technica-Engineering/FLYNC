@@ -5,7 +5,7 @@ within the system.
 
 from typing import Annotated, List, Literal, Optional
 
-from pydantic import Field, PrivateAttr, model_serializer, model_validator
+from pydantic import Field, model_serializer, model_validator
 
 import flync.core.utils.common_validators as common_validators
 from flync.core.annotations.external import External, OutputStrategy
@@ -53,8 +53,8 @@ class ExternalConnection(FLYNCBaseModel):
     ecu1_port_name: Annotated[str, Reference(source="_ecu1_port")] = Field(alias="ecu1_port")
     ecu2_port_name: Annotated[str, Reference(source="_ecu2_port")] = Field(alias="ecu2_port")
 
-    _ecu1_port: Optional[ECUPort] = PrivateAttr(default=None)
-    _ecu2_port: Optional[ECUPort] = PrivateAttr(default=None)
+    _ecu1_port: Optional[ECUPort] = None
+    _ecu2_port: Optional[ECUPort] = None
 
     @property
     def ecu1_port(self) -> Optional[ECUPort]:

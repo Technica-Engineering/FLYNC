@@ -2,7 +2,7 @@
 
 from typing import Annotated, Iterator, List, Optional, TypeVar
 
-from pydantic import BeforeValidator, Field, PrivateAttr, model_validator
+from pydantic import BeforeValidator, Field, model_validator
 
 import flync.core.utils.common_validators as common_validators
 from flync.core.annotations import (
@@ -131,9 +131,9 @@ class ECU(FLYNCBaseModel):
         default=[],
         description="Assignments of this ECU to state management groups (whole-ECU granularity).",
     )
-    _state_effective_members: List[EffectiveMember] = PrivateAttr(default_factory=list)
+    _state_effective_members: List[EffectiveMember] = []
 
-    _connectivity_check_done: bool = PrivateAttr(default=False)
+    _connectivity_check_done: bool = False
 
     def model_post_init(self, context):
         """

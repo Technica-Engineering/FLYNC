@@ -253,7 +253,8 @@ class TestCollectFrameParticipants:
         model = MagicMock()
         model.ecus = []
         senders, receivers = _collect_frame_participants(model)
-        assert senders == {} and receivers == {}
+        assert senders == {}
+        assert receivers == {}
 
     def test_single_ecu(self):
         sf = MagicMock()
@@ -285,7 +286,8 @@ class TestCollectFrameParticipants:
         model = MagicMock()
         model.ecus = [ecu]
         senders, receivers = _collect_frame_participants(model)
-        assert senders == {} and receivers == {}
+        assert senders == {}
+        assert receivers == {}
 
     def test_multiple_ecus_same_frame(self):
         def _ecu(name, frame_ref, bus_ref="BUS_X"):

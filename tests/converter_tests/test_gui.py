@@ -33,7 +33,7 @@ from flync_converter.cli.gui.widgets.log_handler import LogWidgetHandler  # noqa
 @pytest.fixture(scope="session")
 def qapp_instance():
     app = QApplication.instance() or QApplication([])
-    yield app
+    return app
 
 
 @pytest.fixture

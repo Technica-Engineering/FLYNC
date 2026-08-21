@@ -16,24 +16,25 @@ from flync.model.flync_4_someip import (
 
 
 def test_service_check_for_events_without_eg(metadata_entry):
+    f = SOMEIPField(
+        name="a",
+        parameters=[SOMEIPParameter(name="p1", datatype=UInt8())],
+        notifier_id=1,
+    )
+    e = SOMEIPEvent(
+        name="t",
+        id=2,
+        parameters=[SOMEIPParameter(name="p1", datatype=UInt8())],
+    )
+    eg = SOMEIPEventgroup(name="eg", id=1, events=[f])
     with pytest.warns(UserWarning, match="not assigned to an eventgroup") as w:
-        f = SOMEIPField(
-            name="a",
-            parameters=[SOMEIPParameter(name="p1", datatype=UInt8())],
-            notifier_id=1,
-        )
-        e = SOMEIPEvent(
-            name="t",
-            id=2,
-            parameters=[SOMEIPParameter(name="p1", datatype=UInt8())],
-        )
         s = SOMEIPServiceInterface(
             meta=metadata_entry,
             name="a",
             id=1,
             events=[e],
             fields=[f],
-            eventgroups=[SOMEIPEventgroup(name="eg", id=1, events=[f])],
+            eventgroups=[eg],
         )
     with pytest.warns(UserWarning, match="not assigned to an eventgroup") as w:
         s.validate_for_notifiers_without_eventgroup()

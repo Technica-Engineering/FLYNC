@@ -8,7 +8,7 @@ MAC) along with the direction (tx/rx), VLAN and optional source IP.
 from ipaddress import IPv4Address, IPv6Address
 from typing import Annotated, Literal, Optional
 
-from pydantic import AfterValidator, Field, PrivateAttr, model_validator
+from pydantic import AfterValidator, Field, model_validator
 from pydantic.networks import IPvAnyAddress
 
 import flync.core.utils.common_validators as common_validators
@@ -47,7 +47,7 @@ class MulticastGroupMembership(FLYNCBaseModel):
     vlan: Annotated[Optional[int], AfterValidator(validate_vlan_id)] = Field(default=0)
     src_ip: Optional[IPvAnyAddress] = Field(default=None)
     solicited_node_multicast: Optional[bool] = Field(default=False)
-    _interface: EthernetInterfaceConfig = PrivateAttr()
+    _interface: EthernetInterfaceConfig | None = None
 
     @model_validator(mode="after")
     def validate_src_ip_set_on_tx_ip_groups(self):
@@ -63,4 +63,9 @@ class MulticastGroupMembership(FLYNCBaseModel):
     @property
     def interface(self):
         """Return the controller interface this membership belongs to."""
+        if self._interface is None:
+            raise AttributeError(
+                "This MulticastGroupMembership is not assigned to a controller interface yet. "
+                "Assign it to a controller interface before accessing the 'interface' property."
+            )
         return self._interface

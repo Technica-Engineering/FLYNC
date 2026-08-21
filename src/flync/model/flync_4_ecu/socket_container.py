@@ -1,6 +1,6 @@
 """Defines the socket container model in an ECU."""
 
-from typing import Annotated, List, Optional, Union
+from typing import Annotated, List, Optional
 
 from pydantic import AfterValidator, BeforeValidator, Field
 
@@ -34,7 +34,7 @@ class SocketContainer(FLYNCBaseModel):
         Optional[
             List[
                 Annotated[
-                    Union[SocketTCP, SocketUDP],
+                    SocketTCP | SocketUDP,
                     Field(discriminator="protocol"),
                 ]
             ]
@@ -43,7 +43,7 @@ class SocketContainer(FLYNCBaseModel):
             common_validators.validate_list_items_and_remove(
                 "socket",
                 Annotated[
-                    Union[SocketTCP, SocketUDP],
+                    SocketTCP | SocketUDP,
                     Field(discriminator="protocol"),
                 ],
                 severity="minor",

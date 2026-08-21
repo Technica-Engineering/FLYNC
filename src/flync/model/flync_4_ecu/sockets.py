@@ -5,7 +5,6 @@ from typing import (
     List,
     Literal,
     Optional,
-    Union,
 )
 
 from pydantic import (
@@ -289,7 +288,7 @@ class IPv4AddressEndpoint(IPv4AddressEntry):
         Assigned TCP and UDP socket endpoints.
     """
 
-    sockets: Optional[List[Annotated[Union[SocketTCP, SocketUDP], Field(discriminator="protocol")]]] = Field(default_factory=list, exclude=True)
+    sockets: List[Annotated[SocketTCP | SocketUDP, Field(discriminator="protocol")]] | None = Field(default_factory=list, exclude=True)
 
     @model_validator(mode="after")
     def check_if_sockets_have_the_same_ip(self):
@@ -318,7 +317,7 @@ class IPv6AddressEndpoint(IPv6AddressEntry):
         Assigned TCP and UDP socket endpoints.
     """
 
-    sockets: Optional[List[Annotated[Union[SocketTCP, SocketUDP], Field(discriminator="protocol")]]] = Field(default_factory=list, exclude=True)
+    sockets: List[Annotated[SocketTCP | SocketUDP, Field(discriminator="protocol")]] | None = Field(default_factory=list, exclude=True)
 
     @model_validator(mode="after")
     def check_if_sockets_have_the_same_ip(self):

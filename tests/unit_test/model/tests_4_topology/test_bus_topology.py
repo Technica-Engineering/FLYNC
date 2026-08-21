@@ -104,7 +104,8 @@ def test_build_assigns_lin_master_and_slave_roles():
 
     assert len(lin_topos) == 1
     topo = lin_topos[0]
-    assert topo.master is not None and topo.master.role == "lin_master"
+    assert topo.master is not None
+    assert topo.master.role == "lin_master"
     assert len(topo.slaves) == 1
 
 
@@ -127,8 +128,9 @@ def test_build_returns_none_defs_when_no_channels():
 
 def test_validate_raises_on_unknown_can_bus_ref():
     topo = CANBusTopology(bus_name="Ghost", attachments=[_can_attachment()])
+    real = _bus("Real")
     with pytest.raises(PydanticCustomError):
-        validate_bus_topologies([topo], [], {"Real": _bus("Real")}, {})
+        validate_bus_topologies([topo], [], {"Real": real}, {})
 
 
 def test_validate_raises_on_multiple_lin_masters():
@@ -136,8 +138,9 @@ def test_validate_raises_on_multiple_lin_masters():
         bus_name="BodyLIN",
         attachments=[_lin_attachment("lin_master", "m1"), _lin_attachment("lin_master", "m2")],
     )
+    bodylin = _bus("BodyLIN")
     with pytest.raises(PydanticCustomError):
-        validate_bus_topologies([], [topo], {}, {"BodyLIN": _bus("BodyLIN")})
+        validate_bus_topologies([], [topo], {}, {"BodyLIN": bodylin})
 
 
 # ---------------------------------------------------------------------------

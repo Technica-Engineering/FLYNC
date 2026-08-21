@@ -1,5 +1,4 @@
 import shutil
-from pathlib import Path
 from typing import Annotated, Optional
 
 import pytest
@@ -218,7 +217,9 @@ def test_generate_node_set_attribue(get_flync_example_path, tmp_path):
     owner_model_id = "ecus.zonal_platform1.switches.z1_switch1"
     attr_fname = "host_controller"
     so = ws.get_object(owner_model_id)
-    assert isinstance(so.model, Switch) and so.model.host_controller is None
+
+    assert isinstance(so.model, Switch)
+    assert so.model.host_controller is None
 
     generate_node(
         ws=ws,
@@ -376,7 +377,8 @@ def test_generate_node_add_lin_interface_to_any_lin_union(get_flync_example_path
 
     # The pre-existing LIN master interface is untouched.
     masters = [i for i in new_parent.model.lin_interfaces if isinstance(i, LINMasterInterface)]
-    assert len(masters) == 1 and masters[0].name == "body_lin_interface"
+    assert len(masters) == 1
+    assert masters[0].name == "body_lin_interface"
 
 
 def test_factory_build_canbus_discriminated_frames():
@@ -398,8 +400,10 @@ def test_factory_build_canbus_discriminated_frames():
 
     assert isinstance(bus, CANBus)
     assert [type(frame) for frame in bus.frames] == [CANFrame, CANFDFrame]
-    assert bus.frames[0].name == "can1" and bus.frames[0].can_id == 0x100
-    assert bus.frames[1].name == "fd1" and bus.frames[1].can_id == 0x200
+    assert bus.frames[0].name == "can1"
+    assert bus.frames[0].can_id == 0x100
+    assert bus.frames[1].name == "fd1"
+    assert bus.frames[1].can_id == 0x200
 
 
 def test_factory_list_element_annotation_helpers():
@@ -460,7 +464,8 @@ def test_patch_owner_scalar_and_unknown_fields():
 
     # Scalar overrides -> plain setattr fallback.
     generation_helpers_util.__patch_owner(None, owner, generated, {"name": "new", "count": 9})
-    assert owner.name == "new" and owner.count == 9
+    assert owner.name == "new"
+    assert owner.count == 9
 
     # Unknown override key -> skipped without error.
     generation_helpers_util.__patch_owner(None, owner, generated, {"not_a_field": True})

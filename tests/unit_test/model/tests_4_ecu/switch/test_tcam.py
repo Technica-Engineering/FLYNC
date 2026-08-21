@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from flync.model.flync_4_ecu.switch import FrameMask, Switch, SwitchConfig, TCAMRule
+from flync.model.flync_4_ecu.switch import FrameMask, Switch, TCAMRule
 
 
 def _make_switch(meta, name, vlans, ports, tcam_rules=None, **kwargs):
@@ -194,7 +194,8 @@ def test_negative_exclusive_vlan_action_same_port(switch_port, tcam_match_filter
                 ],
             }
         )
-    assert "remove OR" in str(e.value) and "overwrite a vlan" in str(e.value)
+    assert "remove OR" in str(e.value)
+    assert "overwrite a vlan" in str(e.value)
 
 
 def test_positive_remove_vlan_and_vlan_overwrite_on_different_ports(switch_port, tcam_match_filter):

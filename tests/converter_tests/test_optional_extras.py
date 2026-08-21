@@ -116,9 +116,10 @@ class TestStandaloneEntryPoints:
     def test_missing_extra_prints_hint_and_exits_1(self, entry_point, extra, capsys):
         import flync_converter.cli as cli_module
 
+        entry = getattr(cli_module, entry_point)
         with patch("flync_converter.cli._optional.find_spec", return_value=None):
             with pytest.raises(SystemExit) as exc_info:
-                getattr(cli_module, entry_point)()
+                entry()
 
         assert exc_info.value.code == 1
         err = capsys.readouterr().err

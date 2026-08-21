@@ -61,7 +61,7 @@ class ECUPort(FLYNCBaseModel):
     )
     mii_config: Optional[MII | RMII | SGMII | RGMII | XFI] = Field(default=None, discriminator="type")
     _ecu: "ECU" | None = PrivateAttr(default=None)
-    _connected_components: List = PrivateAttr(default_factory=list)
+    _connected_components: List = []
     _type: Literal["ecu_port"] = PrivateAttr(default="ecu_port")
 
     @property

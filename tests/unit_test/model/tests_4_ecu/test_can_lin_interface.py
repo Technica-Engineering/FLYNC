@@ -65,11 +65,13 @@ def test_negative_can_interface_missing_bus_ref():
 
 
 def test_negative_can_interface_duplicate_forwarder_frame_ref():
+    forwarder_1 = _can_forwarder(frame_ref="0x100")
+    forwarder_2 = _can_forwarder(frame_ref="0x100")
     with pytest.raises(ValidationError):
         CANInterface(
             name="dup_fwd_iface",
             bus_ref="DiagCAN",
-            forwarder_frames=[_can_forwarder(frame_ref="0x100"), _can_forwarder(frame_ref="0x100")],
+            forwarder_frames=[forwarder_1, forwarder_2],
         )
 
 
@@ -166,5 +168,6 @@ def test_positive_any_lin_interface_discriminates_slave():
 
 
 def test_negative_any_lin_interface_unknown_node_type():
+    adapter = TypeAdapter(AnyLINInterface)
     with pytest.raises(ValidationError):
-        TypeAdapter(AnyLINInterface).validate_python({"name": "x", "node_type": "gateway", "bus_ref": "BodyLIN", "lin_protocol": "2.1"})
+        adapter.validate_python({"name": "x", "node_type": "gateway", "bus_ref": "BodyLIN", "lin_protocol": "2.1"})

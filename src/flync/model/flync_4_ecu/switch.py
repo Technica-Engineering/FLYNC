@@ -125,7 +125,7 @@ class SwitchPort(FLYNCBaseModel):
         Optional[MACsecConfig],
         BeforeValidator(common_validators.validate_or_remove("MACsec config", MACsecConfig)),
     ] = Field(default=None)
-    _mdi_config: BASET1 | BASET1S | BASET | None = PrivateAttr(default=None)
+    _mdi_config: BASET1 | BASET1S | BASET | None = None
     _connected_component: Optional[Any] = PrivateAttr(default=None)
     _type: Literal["switch_port"] = PrivateAttr(default="switch_port")
     _switch: Optional["Switch"] = PrivateAttr(default=None)
@@ -205,7 +205,7 @@ class PortScopedAction(FLYNCBaseModel):
     """
 
     ports: Annotated[Optional[List[str]], BeforeValidator(common_validators.none_to_empty_list)] = Field(default_factory=list)
-    _ports_autofilled: bool = PrivateAttr(default=False)
+    _ports_autofilled: bool = False
 
     @field_serializer("ports", check_fields=False)
     def serialize_ports(self, ports: Optional[List[str]], _info):
@@ -376,7 +376,7 @@ class TCAMRule(FLYNCBaseModel):
         Optional[List[(Drop | Mirror | VLANOverwrite | ForceEgress | RemoveVLAN)]], BeforeValidator(common_validators.none_to_empty_list)
     ] = Field(default_factory=list)
     vehicle_state: Optional[Bitmask] = Field(default=None)
-    _match_ports_autofilled: bool = PrivateAttr(default=False)
+    _match_ports_autofilled: bool = False
 
     @field_serializer("match_ports")
     def serialize_match_ports(self, match_ports: Optional[List[str]], _info):

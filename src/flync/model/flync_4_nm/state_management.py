@@ -42,7 +42,7 @@ membership is the documented recommendation for multi-controller ECUs.
 
 from typing import TYPE_CHECKING, Annotated, Dict, List, Literal, NamedTuple, Optional
 
-from pydantic import BeforeValidator, Field, PrivateAttr, model_validator
+from pydantic import BeforeValidator, Field, model_validator
 
 import flync.core.utils.common_validators as common_validators
 from flync.core.annotations import External, OutputStrategy
@@ -278,7 +278,7 @@ class StateManagementGroup(FLYNCBaseModel):
     timing_profile: str = Field()
     description: Optional[str] = Field(default=None)
     extensions: Optional[Dict[str, str]] = Field(default=None)
-    _effective_members: List[EffectiveMember] = PrivateAttr(default_factory=list)
+    _effective_members: List[EffectiveMember] = []
 
 
 class StateMembershipRef(FLYNCBaseModel):
