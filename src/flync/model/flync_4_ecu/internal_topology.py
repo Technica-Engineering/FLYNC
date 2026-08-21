@@ -365,6 +365,70 @@ class SwitchPortToControllerInterface(SwitchPortToXConnection, ControllerInterfa
         return [self.switch_port]
 
 
+class SwitchPortToHostControllerInterface(SwitchPortToXConnection):
+    """
+    Represents the on-die connection between a switch's CPU port and an Ethernet interface of that same
+    switch's own host controller.
+
+    Unlike :class:`SwitchPortToControllerInterface`, this connection models an internal, on-die link — the
+    switch and its host controller sit on the same die/package, so there is no PHY, MII, or cabling involved.
+    No MII/MACsec/gPTP/HTB compatibility checks are performed for this connection type. The referenced
+    interface must belong to the CPU port's own switch; it can never reference the host controller of a
+    different switch.
+
+    Parameters
+    ----------
+    type : Literal["switch_port_to_host_controller_interface"]
+        Type of the connection. Defaults to ``"switch_port_to_host_controller_interface"``.
+
+    host_controller_interface_name : str
+        Name of the Ethernet interface on the switch's own host controller (alias: ``host_controller_interface``).
+
+    Private Attributes
+    ------------------
+    _iface : :class:`~flync.model.flync_4_ecu.controller.EthernetInterface`
+        Internal reference to the resolved host-controller interface.
+        Managed privately.
+    """
+
+    type: Literal["switch_port_to_host_controller_interface"] = Field("switch_port_to_host_controller_interface")
+
+    host_controller_interface_name: Annotated[str, Reference(source="_iface")] = Field(alias="host_controller_interface")
+    _iface: Optional["EthernetInterface"] = PrivateAttr(default=None)
+
+    @property
+    def iface(self) -> "EthernetInterface":
+        assert self._iface is not None
+        return self._iface
+
+    def bind(self, switches: list, controllers: list, ports: list) -> None:
+        self.resolve_switch_port(switches)
+        host_controller = self.switch.host_controller
+        if host_controller is None:
+            raise err_major(
+                f"Connection '{self.id}' references a host controller interface, but switch '{self.switch.name}' has no host controller.",
+                category=Category.REFERENCE,
+                error_number="239",
+            )
+        self._iface = next((i for i in host_controller.get_interfaces() if i.name == self.host_controller_interface_name), None)
+        if self._iface is None:
+            raise err_major(
+                f"Host controller interface '{self.host_controller_interface_name}' referenced in connection '{self.id}' was not found "
+                f"on the host controller of switch '{self.switch.name}'.",
+                category=Category.REFERENCE,
+                error_number="240",
+            )
+        self.switch_port._connected_component = self.iface
+        self.iface._connected_component.append(self.switch_port)
+
+    def validate_compatibility(self) -> None:
+        """No compatibility checks: the CPU port and its host controller interface are linked on-die, not through a PHY."""
+        return None
+
+    def get_switch_port_refs(self) -> "List[SwitchPort]":
+        return [self.switch_port]
+
+
 class SwitchPortToSwitchPort(SwitchPortToXConnection):
     """
     Represents a connection between two switch ports on the same ECU.
@@ -508,6 +572,9 @@ class InternalConnectionUnion(RootModel):
     :class:`~flync.model.flync_4_ecu.internal_topology.SwitchPortToControllerInterface`
         Connection from a switch port to a controller interface.
 
+    :class:`~flync.model.flync_4_ecu.internal_topology.SwitchPortToHostControllerInterface`
+        On-die connection from a switch's CPU port to an interface of that switch's own host controller.
+
     :class:`~flync.model.flync_4_ecu.internal_topology.SwitchPortToSwitchPort`
         Connection between two switch ports on the same ECU.
 
@@ -519,6 +586,7 @@ class InternalConnectionUnion(RootModel):
         ECUPortToSwitchPort
         | ECUPortToControllerInterface
         | SwitchPortToControllerInterface
+        | SwitchPortToHostControllerInterface
         | SwitchPortToSwitchPort
         | ControllerInterfaceToControllerInterface
     ) = Field(discriminator="type")

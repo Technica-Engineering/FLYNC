@@ -182,6 +182,19 @@ def _port_for_switch_port(ecu: ECU, switch_port_name: str):
     return None
 
 
+def _cpu_port_for_switch(ecu: ECU, switch):
+    """Return ``switch``'s CPU port — the switch port wired on-die to its own host_controller
+    (via a switch_port_to_host_controller_interface connection)."""
+    for conn in ecu.topology.connections:
+        c = conn.root if hasattr(conn, "root") else conn
+        if getattr(c, "type", None) != "switch_port_to_host_controller_interface":
+            continue
+        port = next((p for p in switch.ports if p.name == c.switch_port_name), None)
+        if port is not None:
+            return port
+    return None
+
+
 def detect_pattern(ecu: ECU) -> str:
     n_ctrl = len(ecu.controllers)
     n_sw = len(ecu.switches) if ecu.switches else 0
@@ -535,15 +548,20 @@ def render_switch(ecu: ECU, *, with_host: bool = False) -> str:
     ctrl = ecu.controllers[0]
     iface = ctrl.ethernet_interfaces[0].interface_config
     switch = ecu.switches[0]
-
+    cpu_port = _cpu_port_for_switch(ecu, switch) if with_host else None
     sw_ports = sorted(switch.ports, key=lambda p: p.silicon_port_no)
     top_port = sw_ports[0]
     bottom_ports = sw_ports[1:]
     n_ext = len(bottom_ports)
     n_vifaces = len(iface.virtual_interfaces)
 
+    sp_w, sp_h = 96, 22
+    silicon_w, silicon_h = 130, 64
+    hc_iface_w, hc_iface_h = 280, 110
+
     chain_pitch = 360
-    width_for_chains = max(700, n_ext * chain_pitch + 120)
+    chain_margin = max(120, hc_iface_w + 40) if with_host else 120
+    width_for_chains = max(700, n_ext * chain_pitch + chain_margin)
     width_for_vifaces = n_vifaces * 230 + 100
     width = max(width_for_chains, width_for_vifaces, 720 if with_host else 700)
 
@@ -560,7 +578,12 @@ def render_switch(ecu: ECU, *, with_host: bool = False) -> str:
     sw_x = ecu_x + 25
     sw_y = ctrl_y + ctrl_h + 60
     sw_w = ecu_w - 50
-    sw_h = 320 if with_host else 280
+    if with_host:
+        silicon_y = sw_y + 50 + sp_h + 40
+        sw_h = (silicon_y - sw_y) + silicon_h + 60 + sp_h + 30 + hc_iface_h + 20
+    else:
+        sw_h = 280
+        silicon_y = sw_y + (sw_h - silicon_h) / 2 + 10
 
     ecu_h = (sw_y + sw_h) - ecu_y + 10
     height = ecu_y + ecu_h + 170
@@ -591,20 +614,14 @@ def render_switch(ecu: ECU, *, with_host: bool = False) -> str:
         chain_start = sw_x + (sw_w - chain_total) / 2 + chain_pitch / 2
         bottom_xs = [chain_start + i * chain_pitch for i in range(n_ext)]
 
-    silicon_w, silicon_h = 130, 64
     if bottom_xs:
         silicon_cx = sum(bottom_xs) / len(bottom_xs)
     else:
         silicon_cx = sw_x + sw_w / 2
-    if with_host:
-        silicon_cx = max(silicon_cx, sw_x + 360)
     silicon_x = silicon_cx - silicon_w / 2
-    silicon_y = sw_y + (sw_h - silicon_h) / 2 + 10
 
     svg.rect(sw_x, sw_y, sw_w, sw_h, fill=SWITCH_FILL, stroke=SWITCH_STROKE, sw=1.2, rx=4)
     svg.text(sw_x + 80, sw_y + 18, switch.name, size=13, anchor="middle", bold=True)
-
-    sp_w, sp_h = 96, 22
 
     tp_cx = iface_cx
     tp_y = sw_y + 50
@@ -619,6 +636,7 @@ def render_switch(ecu: ECU, *, with_host: bool = False) -> str:
     svg.text(silicon_cx, silicon_y - 4, "silicon_port0", size=9, anchor="middle")
 
     bp_y = silicon_y + silicon_h + 60
+    cpu_bx = None
     for i, (bp, bx) in enumerate(zip(bottom_ports, bottom_xs)):
         svg.rect(bx - sp_w / 2, bp_y, sp_w, sp_h, fill=SWITCH_PORT_FILL, stroke=SWITCH_PORT_STROKE, sw=1, rx=2)
         svg.text(bx, bp_y + sp_h / 2 + 4, bp.name, size=10, anchor="middle", bold=True)
@@ -631,17 +649,30 @@ def render_switch(ecu: ECU, *, with_host: bool = False) -> str:
         svg.text(bx + offset, label_y + 3, f"silicon_port{i + 1}", size=9, anchor=anchor)
         oval_cx = bx + (-110 if bx < silicon_cx else 110)
         _vlans_block(svg, switch, bp, cx=oval_cx, cy_center=bp_y + sp_h / 2)
+        if bp is cpu_port:
+            cpu_bx = bx
 
     if with_host and switch.host_controller is not None:
         hc = switch.host_controller
-        hc_iface_w, hc_iface_h = 280, 110
-        hc_iface_x = sw_x + 20
-        hc_iface_y = sw_y + 80
+        hc_iface = hc.ethernet_interfaces[0].interface_config if hc.ethernet_interfaces else None
+        host_cx = cpu_bx if cpu_bx is not None else sw_x + 20 + hc_iface_w / 2
+        hc_iface_x = host_cx - hc_iface_w / 2
+        hc_iface_y = bp_y + sp_h + 30
         svg.rect(hc_iface_x, hc_iface_y, hc_iface_w, hc_iface_h, fill=IFACE_FILL, stroke=IFACE_STROKE, sw=1, rx=4)
-        svg.text(hc_iface_x + hc_iface_w / 2, hc_iface_y + 14, hc.name or "host_controller", size=11, anchor="middle", bold=True)
-        if hc.virtual_interfaces:
-            v0 = hc.virtual_interfaces[0]
+        svg.text(
+            hc_iface_x + hc_iface_w / 2,
+            hc_iface_y + 14,
+            (hc_iface.name if hc_iface else hc.name) or "host_controller",
+            size=11,
+            anchor="middle",
+            bold=True,
+        )
+        if hc_iface is not None and hc_iface.virtual_interfaces:
+            v0 = hc_iface.virtual_interfaces[0]
             svg.viface(hc_iface_x + 10, hc_iface_y + 25, hc_iface_w - 20, v0.name, v0.addresses, v0.vlanid, with_oval=True)
+
+        if cpu_bx is not None:
+            svg.line(cpu_bx, bp_y + sp_h, cpu_bx, hc_iface_y)
 
     svg.line(iface_cx, if_y + if_h, iface_cx, tp_y, dashed=True)
     svg.options(iface_cx + 12, (if_y + if_h + tp_y) / 2 + 4, mii_opts(iface.mii_config.type if iface.mii_config else None))

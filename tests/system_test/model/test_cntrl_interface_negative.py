@@ -18,7 +18,7 @@ from flync.model.flync_4_ecu.internal_topology import InternalTopology, SwitchPo
 from flync.model.flync_4_ecu.lin_interface import LINMasterInterface, LINSlaveInterface
 from flync.model.flync_4_ecu.phy import BASET1, MII
 from flync.model.flync_4_ecu.port import ECUPort
-from flync.model.flync_4_ecu.switch import Switch, SwitchPort
+from flync.model.flync_4_ecu.switch import Switch, SwitchConfig, SwitchPort
 from flync.model.flync_4_metadata.metadata import BaseVersion, ECUMetadata, EmbeddedMetadata, SystemMetadata
 from flync.model.flync_4_topology.ethernet_topology import EthernetTopology, FLYNCTopology
 from flync.model.flync_model import FLYNCModel
@@ -269,12 +269,14 @@ def test_same_physical_interface_connected_multiple_times_is_invalid():
 
     switch = Switch(
         name="switch1",
-        ports=[
-            SwitchPort(name="port1", mii_config=MII(speed=100, mode="phy"), silicon_port_no=1, default_vlan_id=1),
-            SwitchPort(name="port2", mii_config=MII(speed=100, mode="phy"), silicon_port_no=2, default_vlan_id=1),
-        ],
-        vlans=[],
-        meta=_make_embedded_metadata(),
+        switch_config=SwitchConfig(
+            ports=[
+                SwitchPort(name="port1", mii_config=MII(speed=100, mode="phy"), silicon_port_no=1, default_vlan_id=1),
+                SwitchPort(name="port2", mii_config=MII(speed=100, mode="phy"), silicon_port_no=2, default_vlan_id=1),
+            ],
+            vlans=[],
+            meta=_make_embedded_metadata(),
+        ),
     )
 
     ecu = ECU(
@@ -313,9 +315,11 @@ def test_unresolved_controller_interface_reference_in_topology_is_invalid():
 
     switch = Switch(
         name="switch1",
-        ports=[SwitchPort(name="port1", silicon_port_no=1, default_vlan_id=1, mii_config=MII(speed=100, mode="phy"))],
-        vlans=[],
-        meta=_make_embedded_metadata(),
+        switch_config=SwitchConfig(
+            ports=[SwitchPort(name="port1", silicon_port_no=1, default_vlan_id=1, mii_config=MII(speed=100, mode="phy"))],
+            vlans=[],
+            meta=_make_embedded_metadata(),
+        ),
     )
 
     eth_iface = EthernetInterface(

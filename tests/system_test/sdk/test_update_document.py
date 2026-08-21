@@ -107,7 +107,7 @@ def test_adding_a_port_matches_full_reload(workspace):
 @pytest.mark.parametrize(
     "rel",
     [
-        "ecus/zonal_platform1/switches/z1_switch1.flync.yaml",
+        "ecus/zonal_platform1/switches/z1_switch1/switch.flync.yaml",
         "ecus/eth_ecu/controllers/eth_ecu_controller1/controller_metadata.flync.yaml",
         "communication/tcp_profiles.flync.yaml",
         "system_metadata.flync.yaml",
@@ -140,19 +140,19 @@ def test_update_document_cleans_duplicated_object_ids(workspace):
     import yaml
 
     ws, root, _ = workspace
-    rel = "ecus/zonal_platform1/switches/z1_switch1.flync.yaml"
+    rel = "ecus/zonal_platform1/switches/z1_switch1/switch.flync.yaml"
     file = root / rel
 
     with open(file, "r") as f:
         data = yaml.safe_load(f)
-    assert "host_controller" in data
-    del data["host_controller"]
+    assert "vlans" in data
+    del data["vlans"]
 
     with open(file, "w") as f:
         yaml.safe_dump(data, f, sort_keys=False)
 
-    hc_obj_id = "ecus.zonal_platform1.switches.z1_switch1.host_controller"
-    ids = [hc_obj_id, f"{hc_obj_id}.mac_address", f"{hc_obj_id}.virtual_interfaces"]
+    vlans_obj_id = "ecus.zonal_platform1.switches.z1_switch1.switch_config.vlans"
+    ids = [vlans_obj_id, f"{vlans_obj_id}.VLAN10", f"{vlans_obj_id}.VLAN20"]
     for id in ids:
         assert ws.has_object(id), f"{id} not found"
 
@@ -162,7 +162,7 @@ def test_update_document_cleans_duplicated_object_ids(workspace):
     ws.update_document(rel)
 
     for id in ids:
-        assert not ws.has_object(id), f"{id} should be removed since the host_controller was removed from the document"
+        assert not ws.has_object(id), f"{id} should be removed since the vlans were removed from the document"
 
     # After update, the purged ids must not appear as keys or values
     all_dup_values = {v for vals in ws._duplicated_objects_ids.values() for v in vals}
@@ -172,10 +172,11 @@ def test_update_document_cleans_duplicated_object_ids(workspace):
 
 
 def _make_switch(root: Path, name: str) -> str:
-    """Create a second switch file in zonal_platform1 with unique names, return its rel path."""
-    rel = f"{SWITCHES}/{name}.flync.yaml"
-    base = (root / SWITCHES / "z1_switch1.flync.yaml").read_text()
+    """Create a second switch directory in zonal_platform1 with unique names, return its rel path."""
+    rel = f"{SWITCHES}/{name}/switch.flync.yaml"
+    base = (root / SWITCHES / "z1_switch1" / "switch.flync.yaml").read_text()
     content = base.replace("z1_switch1", name).replace("z1_s1_", f"{name}_p_").replace("00:11:03:03:01:01", "00:11:03:03:01:09")
+    (root / SWITCHES / name).mkdir(parents=True, exist_ok=True)
     (root / rel).write_text(content)
     return rel
 
@@ -194,8 +195,11 @@ def test_adding_a_new_document_matches_full_reload(workspace):
 
 def test_removing_a_document_matches_full_reload(workspace):
     ws, root, config = workspace
-    rel = f"{SWITCHES}/z1_switch1.flync.yaml"
-    (root / rel).unlink()
+    rel = f"{SWITCHES}/z1_switch1/switch.flync.yaml"
+    # Remove the whole switch directory, not just switch.flync.yaml: the switch is now a folder
+    # (switch.flync.yaml + switch_host_controller/), and deleting only the config file would leave
+    # an orphaned switch_host_controller/ behind with no owning switch document.
+    shutil.rmtree(root / SWITCHES / "z1_switch1")
 
     ws.update_document(rel)
 

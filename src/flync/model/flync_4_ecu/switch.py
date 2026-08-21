@@ -23,11 +23,18 @@ from pydantic import (
 )
 
 import flync.core.utils.common_validators as common_validators
+from flync.core.annotations import (
+    External,
+    Implied,
+    ImpliedStrategy,
+    NamingStrategy,
+    OutputStrategy,
+)
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.datatypes import Bitmask
 from flync.core.utils.common_validators import validate_vlan_id
 from flync.core.utils.exceptions import Category, err_minor, warn
-from flync.model.flync_4_ecu.controller import EthernetInterfaceConfig
+from flync.model.flync_4_ecu.controller import Controller
 from flync.model.flync_4_ecu.phy import (
     BASET,
     BASET1,
@@ -462,47 +469,100 @@ class TCAMRule(FLYNCBaseModel):
         return self
 
 
-class Switch(FLYNCBaseModel):
+class SwitchConfig(FLYNCBaseModel):
     """
-    Represents an automotive Ethernet network switch configuration.
+    Core switch configuration data stored in ``switch.flync.yaml``.
+
+    This model holds the switch metadata, ports, VLANs, and TCAM rules.
+    It is loaded from the ``switch.flync.yaml`` file inside each switch folder.
 
     Parameters
     ----------
     meta : :class:`~flync.model.flync_4_metadata.metadata.EmbeddedMetadata`
-        Metadata associated with the switch, such as vendor-specific or implementation-specific attributes.
-
-    name : str
-        Name of the switch.
+        Metadata associated with the switch.
 
     ports : list of :class:`SwitchPort`
-        List of external (connected to ECU ports) or internal (connected to internal ECU interfaces) switch ports.
+        List of switch ports.
 
     vlans : list of :class:`~flync.model.flync_4_ecu.vlan_entry.VLANEntry`
         List of VLAN entries configured on the switch.
 
-    host_controller : :class:`~flync.model.flync_4_ecu.controller.EthernetInterfaceConfig`, optional
-        Internal controller interface that manages the switch.
-
     tcam_rules : list of :class:`TCAMRule`, optional
         List of TCAM rules configured on the switch.
-        These rules define packet-matching conditions and associated actions applied to ingress or egress traffic.
-
     dynamic_address_aging_time : int, optional
         Aging time, in seconds, for dynamically learned address entries in the switch's Filtering Database (FDB).
         A learned MAC address is removed if no matching frame is seen within this interval.
         Must be a positive value.
     """
 
-    name: str = Field()
+    meta: EmbeddedMetadata = Field()
     tcam_rules: Annotated[
         Optional[List[TCAMRule]],
         BeforeValidator(common_validators.none_to_empty_list),
     ] = Field(default=[])
     ports: List[SwitchPort] = Field()
     vlans: List[VLANEntry] = Field()
-    host_controller: Optional[EthernetInterfaceConfig] = Field(default=None)
     dynamic_address_aging_time: Optional[StrictInt] = Field(default=None, gt=0)
-    meta: EmbeddedMetadata = Field()
+
+
+class Switch(FLYNCBaseModel):
+    """
+    Represents an automotive Ethernet network switch configuration.
+
+    Parameters
+    ----------
+    name : str
+        Name of the switch. Implied from the folder name.
+
+    switch_config : :class:`SwitchConfig`
+        The core switch configuration loaded from ``switch.flync.yaml``.
+
+    host_controller : :class:`~flync.model.flync_4_ecu.controller.Controller`, optional
+        The host controller managing the switch, stored in the
+        ``switch_host_controller/`` sub-folder.
+
+    """
+
+    name: Annotated[
+        str,
+        Implied(strategy=ImpliedStrategy.FOLDER_NAME),
+    ] = Field()
+    switch_config: Annotated[
+        SwitchConfig,
+        External(
+            output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT,
+            naming_strategy=NamingStrategy.FIXED_PATH,
+            path="switch",
+        ),
+    ] = Field()
+    host_controller: Annotated[
+        Optional["Controller"],
+        External(
+            output_structure=OutputStrategy.FOLDER,
+            naming_strategy=NamingStrategy.FIXED_PATH,
+            path="switch_host_controller",
+        ),
+    ] = Field(default=None)
+
+    @property
+    def meta(self) -> EmbeddedMetadata:
+        """Proxy to the underlying switch config metadata."""
+        return self.switch_config.meta
+
+    @property
+    def tcam_rules(self) -> Optional[List[TCAMRule]]:
+        """Proxy to the underlying switch config TCAM rules."""
+        return self.switch_config.tcam_rules
+
+    @property
+    def ports(self) -> List[SwitchPort]:
+        """Proxy to the underlying switch config ports."""
+        return self.switch_config.ports
+
+    @property
+    def vlans(self) -> List[VLANEntry]:
+        """Proxy to the underlying switch config VLANs."""
+        return self.switch_config.vlans
 
     @model_validator(mode="after")
     def validate_unique_port_number(self):
@@ -643,7 +703,9 @@ class Switch(FLYNCBaseModel):
         return self
 
     def get_mac(self):
-        return self.host_controller.mac_address
+        """Return MAC address from the host controller's first ethernet interface."""
+        macs = self.host_controller.get_all_macs()
+        return macs[0] if macs else None
 
     def find_switch_port(self, port_name: str) -> SwitchPort:
         return next(p for p in self.ports if p.name == port_name)
@@ -651,9 +713,6 @@ class Switch(FLYNCBaseModel):
     def model_post_init(self, __context):
         for port in self.ports:
             port._switch = self
-
-        if self.host_controller is not None:
-            self.host_controller._name = f"{self.name}_host"
 
         self._fill_empty_tcam_port_lists()
         return super().model_post_init(__context)

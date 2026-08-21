@@ -52,7 +52,9 @@ def check_switch_host_controller(ecu, vlan_tag):
     name = None
     for sw in ecu.get_all_switches():
         if sw.host_controller:
-            ips = get_ips_per_interface(sw.host_controller, vlan_tag)
+            for eth_iface in sw.host_controller.get_interfaces():
+                iface_ips = get_ips_per_interface(eth_iface.interface_config, vlan_tag)
+                ips.extend(iface_ips)
             name = sw.host_controller.name
     if len(ips) == 0:
         name = None

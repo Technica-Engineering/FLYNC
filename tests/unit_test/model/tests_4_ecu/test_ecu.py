@@ -30,18 +30,20 @@ def test_ecu_parsing_from_dicts(metadata_entry, embedded_metadata_entry, ecu_por
         },
         switches=[
             dict(
-                meta=embedded_metadata_entry,
                 name="a",
-                ports=[
-                    dict(
-                        name="b",
-                        silicon_port_no=1,
-                        default_vlan_id=1,
-                        mii_config=MII(mode="mac"),
-                    ),
-                    dict(name="c", silicon_port_no=2, default_vlan_id=1),
-                ],
-                vlans=[VLANEntry(name="vlan10", id=1, default_priority=1, ports=["a"])],
+                switch_config=dict(
+                    meta=embedded_metadata_entry,
+                    ports=[
+                        dict(
+                            name="b",
+                            silicon_port_no=1,
+                            default_vlan_id=1,
+                            mii_config=MII(mode="mac"),
+                        ),
+                        dict(name="c", silicon_port_no=2, default_vlan_id=1),
+                    ],
+                    vlans=[VLANEntry(name="vlan10", id=1, default_priority=1, ports=["a"])],
+                ),
             )
         ],
         controllers=[],
@@ -55,18 +57,20 @@ def test_ecu_parsing_from_dicts(metadata_entry, embedded_metadata_entry, ecu_por
         ecu_metadata=metadata_entry,
     )
     switch = dict(
-        meta=embedded_metadata_entry,
         name="d",
-        ports=[
-            dict(
-                name="e",
-                silicon_port_no=1,
-                default_vlan_id=1,
-                mii_config=MII(mode="mac"),
-            ),
-            dict(name="f", silicon_port_no=2, default_vlan_id=1),
-        ],
-        vlans=[VLANEntry(name="vlan10", id=1, default_priority=1, ports=["a"])],
+        switch_config=dict(
+            meta=embedded_metadata_entry,
+            ports=[
+                dict(
+                    name="e",
+                    silicon_port_no=1,
+                    default_vlan_id=1,
+                    mii_config=MII(mode="mac"),
+                ),
+                dict(name="f", silicon_port_no=2, default_vlan_id=1),
+            ],
+            vlans=[VLANEntry(name="vlan10", id=1, default_priority=1, ports=["a"])],
+        ),
     )
     Switch.model_validate(switch)
     ECU.model_validate(kwargs)
@@ -86,42 +90,46 @@ def test_ecu_internal_topology_ambiguous_switch_port_name_across_switches(metada
         controllers=[],
         switches=[
             dict(
-                meta=embedded_metadata_entry,
                 name="Switch_B",
-                ports=[
-                    dict(
-                        name="couplingPort_ConnectTo_Switch_A",
-                        silicon_port_no=1,
-                        default_vlan_id=1,
-                        mii_config=MII(mode="mac"),
-                    ),
-                    dict(
-                        name="couplingPort_ConnectTo_Switch_C",
-                        silicon_port_no=2,
-                        default_vlan_id=1,
-                        mii_config=MII(mode="mac"),
-                    ),
-                ],
-                vlans=[VLANEntry(name="vlan10", id=1, default_priority=1, ports=[])],
+                switch_config=dict(
+                    meta=embedded_metadata_entry,
+                    ports=[
+                        dict(
+                            name="couplingPort_ConnectTo_Switch_A",
+                            silicon_port_no=1,
+                            default_vlan_id=1,
+                            mii_config=MII(mode="mac"),
+                        ),
+                        dict(
+                            name="couplingPort_ConnectTo_Switch_C",
+                            silicon_port_no=2,
+                            default_vlan_id=1,
+                            mii_config=MII(mode="mac"),
+                        ),
+                    ],
+                    vlans=[VLANEntry(name="vlan10", id=1, default_priority=1, ports=[])],
+                ),
             ),
             dict(
-                meta=embedded_metadata_entry,
                 name="Switch_C",
-                ports=[
-                    dict(
-                        name="couplingPort_ConnectTo_Switch_A",
-                        silicon_port_no=1,
-                        default_vlan_id=1,
-                        mii_config=MII(mode="phy"),
-                    ),
-                    dict(
-                        name="couplingPort_ConnectTo_Switch_B",
-                        silicon_port_no=2,
-                        default_vlan_id=1,
-                        mii_config=MII(mode="phy"),
-                    ),
-                ],
-                vlans=[VLANEntry(name="vlan10", id=1, default_priority=1, ports=[])],
+                switch_config=dict(
+                    meta=embedded_metadata_entry,
+                    ports=[
+                        dict(
+                            name="couplingPort_ConnectTo_Switch_A",
+                            silicon_port_no=1,
+                            default_vlan_id=1,
+                            mii_config=MII(mode="phy"),
+                        ),
+                        dict(
+                            name="couplingPort_ConnectTo_Switch_B",
+                            silicon_port_no=2,
+                            default_vlan_id=1,
+                            mii_config=MII(mode="phy"),
+                        ),
+                    ],
+                    vlans=[VLANEntry(name="vlan10", id=1, default_priority=1, ports=[])],
+                ),
             ),
         ],
         topology={

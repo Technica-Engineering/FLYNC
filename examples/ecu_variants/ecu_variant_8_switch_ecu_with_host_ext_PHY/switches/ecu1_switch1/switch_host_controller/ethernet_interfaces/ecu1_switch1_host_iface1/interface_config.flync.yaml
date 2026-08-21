@@ -1,0 +1,7 @@
+mac_address: 00:11:22:33:44:60
+virtual_interfaces:
+  - name: ecu1_switch1_controlleriface1_viface1
+    vlanid: 30
+    addresses:
+      - address: 10.0.30.100
+        ipv4netmask: 255.255.255.0

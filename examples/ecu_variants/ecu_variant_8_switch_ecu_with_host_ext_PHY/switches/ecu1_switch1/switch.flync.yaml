@@ -4,7 +4,6 @@ meta:
     version_schema: semver
     version: 0.11.0
   target_system: flync_os
-name: ecu1_switch1
 ports:
   - name: switch1_port0
     silicon_port_no: 0
@@ -27,14 +26,10 @@ ports:
       type: rmii
       speed: 100
       mode: mac
-host_controller:
-  mac_address: 00:11:22:33:44:60
-  virtual_interfaces:
-    - name: ecu1_switch1_controlleriface1_viface1
-      vlanid: 30
-      addresses:
-        - address: 10.0.30.100
-          ipv4netmask: 255.255.255.0
+  - name: switch1_cpu_port
+    silicon_port_no: 3
+    default_vlan_id: 30
+    
 vlans:
   - name: VLAN10
     id: 10
@@ -54,3 +49,4 @@ vlans:
     default_priority: 0
     ports:
       - switch1_port0
+      - switch1_cpu_port

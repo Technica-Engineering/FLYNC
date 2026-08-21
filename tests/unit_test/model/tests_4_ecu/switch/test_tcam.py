@@ -1,18 +1,30 @@
 import pytest
 from pydantic import ValidationError
 
-from flync.model.flync_4_ecu.switch import FrameMask, Switch, TCAMRule
+from flync.model.flync_4_ecu.switch import FrameMask, Switch, SwitchConfig, TCAMRule
+
+
+def _make_switch(meta, name, vlans, ports, tcam_rules=None, **kwargs):
+    """Helper to build Switch using the new switch_config structure."""
+    cfg = {"meta": meta, "ports": ports, "vlans": vlans}
+    if tcam_rules is not None:
+        cfg["tcam_rules"] = tcam_rules
+    return Switch.model_validate(
+        {
+            "name": name,
+            "switch_config": cfg,
+            **kwargs,
+        }
+    )
 
 
 def test_positive_tcam_entries(embedded_metadata_entry, vlan_entry, switch_port, two_good_tcam_rules):
-    Switch.model_validate(
-        {
-            "meta": embedded_metadata_entry,
-            "name": "switch_example",
-            "vlans": [vlan_entry],
-            "ports": [switch_port],
-            "tcam_rules": two_good_tcam_rules,
-        }
+    _make_switch(
+        embedded_metadata_entry,
+        "switch_example",
+        [vlan_entry],
+        [switch_port],
+        tcam_rules=two_good_tcam_rules,
     )
 
 
@@ -34,14 +46,12 @@ def test_positive_empty_match_ports_binds_all_switch_ports(
     if match_ports != "omit":
         rule["match_ports"] = match_ports
 
-    switch = Switch.model_validate(
-        {
-            "meta": embedded_metadata_entry,
-            "name": "switch_example",
-            "vlans": [vlan_entry],
-            "ports": [switch_port],
-            "tcam_rules": [rule],
-        }
+    switch = _make_switch(
+        embedded_metadata_entry,
+        "switch_example",
+        [vlan_entry],
+        [switch_port],
+        tcam_rules=[rule],
     )
     assert switch.tcam_rules[0].match_ports == [switch_port.name]
 
@@ -53,14 +63,12 @@ def test_negative_match_port_not_a_switch_port_tcam(
     tcam_rule_invalid_match_port,
 ):
     with pytest.raises(ValidationError) as e:
-        Switch.model_validate(
-            {
-                "meta": embedded_metadata_entry,
-                "name": "switch_example",
-                "vlans": [vlan_entry],
-                "ports": [switch_port],
-                "tcam_rules": [tcam_rule_invalid_match_port],
-            }
+        _make_switch(
+            embedded_metadata_entry,
+            "switch_example",
+            [vlan_entry],
+            [switch_port],
+            tcam_rules=[tcam_rule_invalid_match_port],
         )
     assert "TCAM Ports must exist on the Switch." in str(e.value)
 
@@ -72,14 +80,12 @@ def test_negative_action_port_not_a_switch_port_tcam(
     tcam_rule_invalid_action_port,
 ):
     with pytest.raises(ValidationError) as e:
-        Switch.model_validate(
-            {
-                "meta": embedded_metadata_entry,
-                "name": "switch_example",
-                "vlans": [vlan_entry],
-                "ports": [switch_port],
-                "tcam_rules": [tcam_rule_invalid_action_port],
-            }
+        _make_switch(
+            embedded_metadata_entry,
+            "switch_example",
+            [vlan_entry],
+            [switch_port],
+            tcam_rules=[tcam_rule_invalid_action_port],
         )
     assert "TCAM Ports must exist on the Switch." in str(e.value)
 
@@ -87,14 +93,12 @@ def test_negative_action_port_not_a_switch_port_tcam(
 def test_negative_two_rules_having_same_name(embedded_metadata_entry, vlan_entry, switch_port, two_tcam_rules_same_name):
 
     with pytest.raises(ValidationError) as e:
-        Switch.model_validate(
-            {
-                "meta": embedded_metadata_entry,
-                "name": "switch_example",
-                "vlans": [vlan_entry],
-                "ports": [switch_port],
-                "tcam_rules": two_tcam_rules_same_name,
-            }
+        _make_switch(
+            embedded_metadata_entry,
+            "switch_example",
+            [vlan_entry],
+            [switch_port],
+            tcam_rules=two_tcam_rules_same_name,
         )
     assert "Duplicates found in tcam_rules (name):" in str(e.value)
 
@@ -102,14 +106,12 @@ def test_negative_two_rules_having_same_name(embedded_metadata_entry, vlan_entry
 def test_negative_two_rules_having_same_id(embedded_metadata_entry, vlan_entry, switch_port, two_tcam_rules_same_id):
 
     with pytest.raises(ValidationError) as e:
-        Switch.model_validate(
-            {
-                "meta": embedded_metadata_entry,
-                "name": "switch_example",
-                "vlans": [vlan_entry],
-                "ports": [switch_port],
-                "tcam_rules": two_tcam_rules_same_id,
-            }
+        _make_switch(
+            embedded_metadata_entry,
+            "switch_example",
+            [vlan_entry],
+            [switch_port],
+            tcam_rules=two_tcam_rules_same_id,
         )
     assert "Duplicates found in tcam_rules (id):" in str(e.value)
 
@@ -212,17 +214,23 @@ def test_positive_remove_vlan_and_vlan_overwrite_on_different_ports(switch_port,
     assert isinstance(rule, TCAMRule)
 
 
-def _vehicle_state_rule(switch_port, tcam_match_filter, **vehicle_state_fields):
-    """Build a minimal valid TCAM rule dict, overlaying vehicle-state fields."""
-    rule = {
-        "name": "tcam_rule_1",
+# ── Vehicle-state tests ──────────────────────────────────────────────
+
+
+def _vehicle_state_rule(switch_port, tcam_match_filter, vehicle_state=None, vehicle_state_mask=None):
+    """Build a raw TCAM rule dict with optional vehicle-state fields."""
+    d = {
+        "name": "vs_rule",
         "id": 1,
         "match_filter": tcam_match_filter,
         "match_ports": [switch_port.name],
         "action": [{"type": "drop", "ports": [switch_port.name]}],
     }
-    rule.update(vehicle_state_fields)
-    return rule
+    if vehicle_state is not None:
+        d["vehicle_state"] = vehicle_state
+    if vehicle_state_mask is not None:
+        d["vehicle_state_mask"] = vehicle_state_mask
+    return d
 
 
 @pytest.mark.parametrize(
@@ -333,14 +341,12 @@ class Test_FrameMask_TCAM:
 
     def test_positive_frame_masks_in_tcam_and_switch(self, embedded_metadata_entry, vlan_entry, switch_port, frame_mask_valid):
         """Frame masks are accepted as a TCAM rule's match criterion and validate at Switch level."""
-        switch = Switch.model_validate(
-            {
-                "meta": embedded_metadata_entry,
-                "name": "switch_example",
-                "vlans": [vlan_entry],
-                "ports": [switch_port],
-                "tcam_rules": [_frame_mask_rule(switch_port, [(12, "0x0800")], frame_window=96)],
-            }
+        switch = _make_switch(
+            embedded_metadata_entry,
+            "switch_example",
+            [vlan_entry],
+            [switch_port],
+            tcam_rules=[_frame_mask_rule(switch_port, [(12, "0x0800")], frame_window=96)],
         )
         rule = switch.tcam_rules[0]
         assert rule.match_filter is None

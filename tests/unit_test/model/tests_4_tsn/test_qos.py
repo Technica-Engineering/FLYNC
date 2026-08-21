@@ -269,10 +269,12 @@ def test_positive_hilimit_lolimit_differenece_greater_than_max_frame_size(embedd
     )
     switch_example = Switch.model_validate(
         {
-            "meta": embedded_metadata_entry,
             "name": "switch1",
-            "ports": [ports],
-            "vlans": [vlan_entry],
+            "switch_config": {
+                "meta": embedded_metadata_entry,
+                "ports": [ports],
+                "vlans": [vlan_entry],
+            },
         }
     )
 
@@ -296,7 +298,7 @@ def test_negative_hilimit_ceil(vlan_entry, MII_entry):
         traffic_classes=[traffic_class_example],
     )
     with pytest.raises(ValidationError) as e:
-        switch_example = Switch.model_validate({"name": "switch1", "ports": [ports], "vlans": [vlan_entry]})
+        switch_example = Switch.model_validate({"name": "switch1", "switch_config": {"ports": [ports], "vlans": [vlan_entry]}})
 
 
 def test_negative_lolimit_ceil(vlan_entry, MII_entry):
@@ -318,7 +320,7 @@ def test_negative_lolimit_ceil(vlan_entry, MII_entry):
         traffic_classes=[traffic_class_example],
     )
     with pytest.raises(ValidationError) as e:
-        switch_example = Switch.model_validate({"name": "switch1", "ports": [ports], "vlans": [vlan_entry]})
+        switch_example = Switch.model_validate({"name": "switch1", "switch_config": {"ports": [ports], "vlans": [vlan_entry]}})
 
 
 def test_negative_traffic_class_containing_ipv_should_be_defined_on_atleast_one_ingress_stream(vlan_entry, MII_entry):
@@ -340,7 +342,7 @@ def test_negative_traffic_class_containing_ipv_should_be_defined_on_atleast_one_
         traffic_classes=[traffic_class_example],
     )
     with pytest.raises(ValidationError) as e:
-        switch_example = Switch.model_validate({"name": "switch1", "ports": [ports], "vlans": [vlan_entry]})
+        switch_example = Switch.model_validate({"name": "switch1", "switch_config": {"ports": [ports], "vlans": [vlan_entry]}})
 
 
 def test_negative_ats_instance_for_traffic_class(vlan_entry, MII_entry):
@@ -359,7 +361,7 @@ def test_negative_ats_instance_for_traffic_class(vlan_entry, MII_entry):
         traffic_classes=[traffic_class_example],
     )
     with pytest.raises(ValidationError) as e:
-        switch_example = Switch.model_validate({"name": "switch1", "ports": [ports], "vlans": [vlan_entry]})
+        switch_example = Switch.model_validate({"name": "switch1", "switch_config": {"ports": [ports], "vlans": [vlan_entry]}})
 
 
 def test_positive_ats_instance_for_traffic_class(
@@ -394,10 +396,12 @@ def test_positive_ats_instance_for_traffic_class(
     )
     switch_example = Switch.model_validate(
         {
-            "meta": embedded_metadata_entry,
             "name": "switch1",
-            "ports": [ports],
-            "vlans": [vlan_entry],
+            "switch_config": {
+                "meta": embedded_metadata_entry,
+                "ports": [ports],
+                "vlans": [vlan_entry],
+            },
         }
     )
 
@@ -421,7 +425,7 @@ def test_negative_frame_filter_has_atleast_one_field(ATSInstance_entry, vlan_ent
         ingress_streams=[stream_example],
     )
     with pytest.raises(ValidationError) as e:
-        switch_example = Switch.model_validate({"name": "switch1", "ports": [ports], "vlans": [vlan_entry]})
+        switch_example = Switch.model_validate({"name": "switch1", "switch_config": {"ports": [ports], "vlans": [vlan_entry]}})
 
 
 def test_negative_protocol_for_source_port_frame_filter(ATSInstance_entry, vlan_entry, MII_entry):
@@ -731,10 +735,12 @@ def test_positive_cbs_should_be_greater_than_max_frame_size(embedded_metadata_en
     )
     switch_example = Switch.model_validate(
         {
-            "meta": embedded_metadata_entry,
             "name": "switch1",
-            "ports": [ports],
-            "vlans": [vlan_entry],
+            "switch_config": {
+                "meta": embedded_metadata_entry,
+                "ports": [ports],
+                "vlans": [vlan_entry],
+            },
         }
     )
 
@@ -758,10 +764,12 @@ def test_positive_ebs_should_be_greater_than_max_frame_size(embedded_metadata_en
     )
     switch_example = Switch.model_validate(
         {
-            "meta": embedded_metadata_entry,
             "name": "switch1",
-            "ports": [ports],
-            "vlans": [vlan_entry],
+            "switch_config": {
+                "meta": embedded_metadata_entry,
+                "ports": [ports],
+                "vlans": [vlan_entry],
+            },
         }
     )
 
@@ -792,7 +800,7 @@ def test_negative_ebs_greater_than_cbs(vlan_entry):
         ingress_streams=[stream_example],
     )
     with pytest.raises(ValidationError) as e:
-        switch_example = Switch.model_validate({"name": "switch1", "ports": [ports], "vlans": [vlan_entry]})
+        switch_example = Switch.model_validate({"name": "switch1", "switch_config": {"ports": [ports], "vlans": [vlan_entry]}})
 
 
 def test_htb():

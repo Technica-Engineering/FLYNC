@@ -2058,7 +2058,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: WARN
    :category: STRUCTURAL
    :number: 211
-   :location: ecu.ECU.validate_no_unconnected_components
+   :location: ecu.ECU.__warn_unconnected_ports
 
    f"ECU port '{port.name}' is not connected in the internal topology."
 
@@ -2068,7 +2068,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: WARN
    :category: STRUCTURAL
    :number: 212
-   :location: ecu.ECU.validate_no_unconnected_components
+   :location: ecu.ECU.__warn_unconnected_switch_ports
 
    f"Switch port '{switch_port.name}' (switch: '{switch_port._switch.name}') is not connected in the internal topology."
 
@@ -2078,7 +2078,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: WARN
    :category: STRUCTURAL
    :number: 213
-   :location: ecu.ECU.validate_no_unconnected_components
+   :location: ecu.ECU.__warn_unconnected_controller_interfaces
 
    f"Controller interface '{iface.name}' (controller: '{iface._controller.name}') is not connected in the internal topology."
 
@@ -2311,3 +2311,34 @@ Every error and warning the FLYNC validators can raise, identified as
    :location: flync_channels.FLYNCChannelConfig.validate_multiplexed_pdu_refs
 
    "MultiplexedPDU '{name}' references unknown PDU(s): {unknown_refs}"
+
+.. err:: Host controller interface '{iface.name}' (switch: '{switch.name}') is not con...
+   :id: FLYNC-ECU-WARN-STRUCT-238
+   :module: ECU
+   :severity: WARN
+   :category: STRUCTURAL
+   :number: 238
+   :location: ecu.ECU.__warn_unconnected_host_controller_interfaces
+
+   f"Host controller interface '{iface.name}' (switch: '{switch.name}') is not connected to its switch's CPU port in the internal topology."
+
+.. err:: Connection '{self.id}' references a host controller interface, but switch '{s...
+   :id: FLYNC-ECU-MAJ-REF-239
+   :module: ECU
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 239
+   :location: internal_topology.SwitchPortToHostControllerInterface.bind
+
+   f"Connection '{self.id}' references a host controller interface, but switch '{self.switch.name}' has no host controller."
+
+.. err:: Host controller interface '{self.host_controller_interface_name}' referenced ...
+   :id: FLYNC-ECU-MAJ-REF-240
+   :module: ECU
+   :severity: MAJ
+   :category: REFERENCE
+   :number: 240
+   :location: internal_topology.SwitchPortToHostControllerInterface.bind
+
+   f"Host controller interface '{self.host_controller_interface_name}' referenced in connection '{self.id}' was not found on the host controller of switch '{self.switch.name}'."
+

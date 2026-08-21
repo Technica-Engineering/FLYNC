@@ -47,7 +47,7 @@ _CAN_IFACE = "ecus/high_performance_compute/controllers/hpc_controller1" "/can_i
 _POWERTRAIN_CAN_IFACE = "ecus/high_performance_compute/controllers/hpc_controller1" "/can_interfaces/powertrain_can_interface.flync.yaml"
 _LIN_BUS = "communication/channels/lin/body_lin.flync.yaml"
 _ETH_CONTAINER = "communication/channels/ethernet_pdu_containers" "/eth_powertrain_container.flync.yaml"
-_HPC_SWITCH = "ecus/high_performance_compute/switches/hpc_switch1.flync.yaml"
+_HPC_SWITCH = "ecus/high_performance_compute/switches/hpc_switch1/switch.flync.yaml"
 
 
 def _load(path: Path) -> dict:

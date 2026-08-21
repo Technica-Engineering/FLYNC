@@ -4,7 +4,6 @@ meta:
     version_schema: semver
     version: 0.11.0
   target_system: flync_os
-name: hpc_switch1
 ports:
 - name: hpc_s1_p0
   silicon_port_no: 0
@@ -115,8 +114,6 @@ ports:
       key_role: key_server_never
       delay_protect: false
       participant_activation: always
-
-
 
 - name: hpc_s1_p2
   silicon_port_no: 2
@@ -288,7 +285,6 @@ ports:
       delay_protect: false
       participant_activation: always
 
-
 - name: hpc_s1_p6
   silicon_port_no: 6
   default_vlan_id: 1
@@ -297,6 +293,9 @@ ports:
     speed: 1000
     mode: mac
 
+- name: hpc_s1_cpu_port
+  silicon_port_no: 5
+  default_vlan_id: 30
 
 vlans:
 - name: VLAN10
@@ -320,6 +319,7 @@ vlans:
   ports:
     - hpc_s1_p0
     - hpc_s1_p2
+    - hpc_s1_cpu_port
 
 - name: VLAN40
   id: 40
@@ -331,35 +331,11 @@ vlans:
     - hpc_s1_p4
     - hpc_s1_p1
     - hpc_s1_p0
+    - hpc_s1_cpu_port
 
 - name: VLAN50
   id: 50
   default_priority: 0
   ports:
     - hpc_s1_p1
-
-
-host_controller:
-  mac_address: 00:11:02:03:01:01
-  virtual_interfaces:
-    - name: hpc_sw_host_viface1
-      vlanid: 30
-      addresses:
-        - address: 10.0.30.101
-          ipv4netmask: 255.255.255.0
-    - name: hpc_sw_host_viface2
-      vlanid: 40
-      addresses:
-        - address: 10.0.40.101
-          ipv4netmask: 255.255.255.0
-    - name: hpc_sw_host_viface3
-      vlanid: 50
-      addresses:
-        - address: 10.0.50.101
-          ipv4netmask: 255.255.255.0
-  routing_table:
-    - destination:
-        address: 10.0.30.0
-        ipv4netmask: 255.255.255.0
-      default_gateway: 10.0.30.6
-      egress_interface: hpc_sw_host_viface1
+    - hpc_s1_cpu_port

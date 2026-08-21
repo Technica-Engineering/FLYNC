@@ -195,21 +195,22 @@ def test_generate_node_override_values(
 
 
 def test_generate_node_set_attribue(get_flync_example_path, tmp_path):
+    """``generate_node`` should populate an unset ``Optional External(FOLDER)`` field (``Switch.host_controller``)."""
     workspace_path = tmp_path / "test_set_attr"
     shutil.copytree(get_flync_example_path, workspace_path)
-    file = workspace_path / Path("ecus/zonal_platform1/switches/z1_switch1.flync.yaml")
+
+    # z1_switch1's host controller is removed for this test. The example's topology wires a
+    # switch_port_to_host_controller_interface connection to it, so that connection has to go
+    # too -- otherwise even a full reload fails validation before generate_node is reached.
+    hc_dir = workspace_path / "ecus/zonal_platform1/switches/z1_switch1/switch_host_controller"
+    shutil.rmtree(hc_dir)
+
     import yaml
 
-    with open(file, "r") as f:
-        data = yaml.safe_load(f)
-
-    host_controller = {}
-    if "host_controller" in data:
-        host_controller = data["host_controller"]
-        del data["host_controller"]
-
-    with open(file, "w") as f:
-        yaml.safe_dump(data, f, sort_keys=False)
+    topo_file = workspace_path / "ecus/zonal_platform1/topology.flync.yaml"
+    topo = yaml.safe_load(topo_file.read_text())
+    topo["connections"] = [c for c in topo["connections"] if c.get("id") != "conn4"]
+    topo_file.write_text(yaml.safe_dump(topo, sort_keys=False))
 
     config = WorkspaceConfiguration(map_objects=True)
     ws = FLYNCWorkspace.load_workspace("test_set_attr", workspace_path, config)
@@ -218,13 +219,35 @@ def test_generate_node_set_attribue(get_flync_example_path, tmp_path):
     attr_fname = "host_controller"
     so = ws.get_object(owner_model_id)
     assert isinstance(so.model, Switch) and so.model.host_controller is None
+
     generate_node(
         ws=ws,
         node_paths=[f"{owner_model_id}.{attr_fname}"],
-        **host_controller,
+        controller_metadata={
+            "author": "Dev",
+            "compatible_flync_version": {"version_schema": "semver", "version": "0.11.0"},
+            "target_system": "flync_os",
+        },
+        ethernet_interfaces=[
+            {
+                "name": "z1_switch1_host_iface1",
+                "interface_config": {
+                    "mac_address": "00:11:03:03:01:01",
+                    "virtual_interfaces": [
+                        {
+                            "name": "z1_sw_host_viface",
+                            "vlanid": 50,
+                            "addresses": [{"address": "10.0.50.100", "ipv4netmask": "255.255.255.0"}],
+                        }
+                    ],
+                },
+            }
+        ],
     )
+
     ws_updated = FLYNCWorkspace.load_workspace("test_set_attr_updated", workspace_path, config)
-    assert ws_updated.get_object(f"{owner_model_id}.{attr_fname}").model.mac_address == "00:11:03:03:01:01"
+    host_controller = ws_updated.get_object(f"{owner_model_id}.{attr_fname}").model
+    assert host_controller.ethernet_interfaces[0].interface_config.mac_address == "00:11:03:03:01:01"
 
 
 @pytest.mark.parametrize(

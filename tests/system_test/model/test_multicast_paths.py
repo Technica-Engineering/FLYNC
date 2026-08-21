@@ -58,11 +58,11 @@ def test_multicast_paths_no_tx(tmpdir):
 def test_multicast_paths_no_path_from_rx_to_tx(tmpdir):
     destination_folder = Path(tmpdir) / "copie2"
     shutil.copytree(absolute_path, destination_folder)
-    file_to_update = destination_folder / "ecus" / "high_performance_compute" / "switches" / "hpc_switch1.flync.yaml"
+    file_to_update = destination_folder / "ecus" / "high_performance_compute" / "switches" / "hpc_switch1" / "switch.flync.yaml"
     update_yaml_content(file_to_update, "    - hpc_s1_p3", "")
 
     data = read_yaml(file_to_update)
-    Switch.model_validate(data)
+    Switch.model_validate({"name": "hpc_switch1", "switch_config": data})
     loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
     assert "Invalid Multicast Configuration" and "224.0.0.1" and "eth_ecu_c1_iface1" and "cannot be reached by the TX" in str(loaded_ws.load_errors)
     if destination_folder.exists():

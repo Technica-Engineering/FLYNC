@@ -11,3 +11,7 @@ connections:
     id: conn3
     ecu_port: ecu1_port2
     switch_port: switch1_port2
+  - type: switch_port_to_host_controller_interface
+    id: conn4
+    switch_port: switch1_cpu_port
+    host_controller_interface: ecu1_switch1_host_iface1

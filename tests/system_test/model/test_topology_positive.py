@@ -7,6 +7,7 @@ from flync.core.datatypes.macaddress import MacAddress
 from flync.model.flync_4_ecu import *
 from flync.model.flync_4_ecu.controller import *
 from flync.model.flync_4_ecu.internal_topology import *
+from flync.model.flync_4_ecu.switch import SwitchConfig
 from flync.model.flync_4_metadata import *
 from flync.model.flync_4_topology import *
 from flync.model.flync_model import FLYNCModel
@@ -163,7 +164,7 @@ def valid_ecu_with_switch():
     )
 
     # --- Switch ---
-    switch1 = Switch(name="switch1", ports=[switch_port1], vlans=[], meta=embedded_metadata)
+    switch1 = Switch(name="switch1", switch_config=SwitchConfig(ports=[switch_port1], vlans=[], meta=embedded_metadata))
 
     # --- ECU Port Configuration ---
     port_ecu1 = ECUPort(name="port1", mii_config=MII(type="mii", speed=100, mode="mac"))

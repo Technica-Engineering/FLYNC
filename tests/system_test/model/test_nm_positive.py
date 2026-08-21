@@ -35,6 +35,7 @@ from flync.model.flync_4_ecu.internal_topology import (
     SwitchPortToControllerInterface,
 )
 from flync.model.flync_4_ecu.sockets import DeploymentUnion, PDUReceiver, PDUSender
+from flync.model.flync_4_ecu.switch import SwitchConfig
 from flync.model.flync_4_metadata import BaseVersion, ECUMetadata, EmbeddedMetadata, SystemMetadata
 from flync.model.flync_4_signal import CANFrame, PDUInstance, StandardPDU
 from flync.model.flync_4_signal.forwarder import EthSocketEgress, ForwarderEgress, PDUForwarder
@@ -430,9 +431,11 @@ def _make_switch_ecu(
     ]
     switch = Switch(
         name=switch_name,
-        ports=switch_ports,
-        vlans=[],
-        meta=_make_controller_metadata(),
+        switch_config=SwitchConfig(
+            ports=switch_ports,
+            vlans=[],
+            meta=_make_controller_metadata(),
+        ),
     )
     endpoint = IPv4AddressEndpoint(
         address=controller_ip,
@@ -1248,7 +1251,7 @@ def test_Switch_ECU_PDU_forwarder_switch_topology(tmpdir):
             mii_config=MII(speed=100, mode="phy"),
         ),
     ]
-    switch = Switch(name="multi_switch", ports=switch_ports, vlans=[], meta=_make_controller_metadata())
+    switch = Switch(name="multi_switch", switch_config=SwitchConfig(ports=switch_ports, vlans=[], meta=_make_controller_metadata()))
 
     socket_a_rx = _make_unicast_nm_socket("nm_a_rx", "192.168.70.10", is_sender=False)
     socket_a_tx = _make_unicast_nm_socket("nm_a_tx", "192.168.70.10", is_sender=True)

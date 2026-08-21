@@ -240,6 +240,15 @@ class ECU(FLYNCBaseModel):
             return self
         self._connectivity_check_done = True
 
+        self.__warn_unconnected_ports()
+        self.__warn_unconnected_switch_ports()
+        self.__warn_unconnected_controller_interfaces()
+        self.__warn_unconnected_host_controller_interfaces()
+
+        return self
+
+    def __warn_unconnected_ports(self):
+        """Warn about ECU ports that are not connected in the internal topology."""
         for port in self.ports or []:
             if not port._connected_components:
                 warn(
@@ -248,6 +257,8 @@ class ECU(FLYNCBaseModel):
                     error_number="211",
                 )
 
+    def __warn_unconnected_switch_ports(self):
+        """Warn about switch ports that are not connected in the internal topology."""
         for switch_port in self.get_all_switch_ports():
             if switch_port._connected_component is None:
                 warn(
@@ -256,6 +267,8 @@ class ECU(FLYNCBaseModel):
                     error_number="212",
                 )
 
+    def __warn_unconnected_controller_interfaces(self):
+        """Warn about controller interfaces that are not connected in the internal topology."""
         for iface in self.get_all_interfaces():
             if not iface._connected_component:
                 warn(
@@ -264,7 +277,19 @@ class ECU(FLYNCBaseModel):
                     error_number="213",
                 )
 
-        return self
+    def __warn_unconnected_host_controller_interfaces(self):
+        """Warn about switch host-controller interfaces that are not connected to their switch's CPU port."""
+        for switch in self.switches or []:
+            if switch.host_controller is None:
+                continue
+            for iface in switch.host_controller.get_interfaces():
+                if not iface._connected_component:
+                    warn(
+                        f"Host controller interface '{iface.name}' (switch: '{switch.name}') is not connected to its switch's CPU port "
+                        "in the internal topology.",
+                        category=Category.STRUCTURAL,
+                        error_number="238",
+                    )
 
     @model_validator(mode="after")
     def validate_vlans_in_sockets(self):

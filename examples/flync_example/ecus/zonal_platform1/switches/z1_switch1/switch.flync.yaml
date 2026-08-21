@@ -4,22 +4,21 @@ meta:
     version_schema: semver
     version: 0.11.0
   target_system: flync_os
-name: z2_switch1
+dynamic_address_aging_time: 300
 ports:
-- name: z2_s1_p0
+- name: z1_s1_p0
   silicon_port_no: 0
   default_vlan_id: 1
   ptp_config:
       cmlds_linkport_enabled: false
       ptp_ports:
         - domain_id: 0
-          src_port_identity: 14
+          src_port_identity: 8
           sync_config:
-            type: time_receiver
-            sync_timeout: 3
-            sync_followup_timeout: 10
-          pdelay_config:
-            log_tx_period: 1
+            type: time_transmitter
+            log_tx_period: -3
+            two_step: true
+            tlv: []
   ingress_streams:
     - name: stream_0
       stream_identification:
@@ -82,23 +81,24 @@ ports:
       delay_protect: false
       participant_activation: always
 
-- name: z2_s1_p1
+- name: z1_s1_p1
   silicon_port_no: 1
   default_vlan_id: 1
   mii_config:
-    type: sgmii
-    speed: 1000
+    type: rmii
+    speed: 100
     mode: mac
   ptp_config:
       cmlds_linkport_enabled: false
       ptp_ports:
         - domain_id: 0
-          src_port_identity: 15
+          src_port_identity: 9
           sync_config:
-            type: time_transmitter
-            log_tx_period: -3
-            two_step: true
-            tlv: []
+            type: time_receiver
+            sync_timeout: 3
+            sync_followup_timeout: 10
+          pdelay_config:
+            log_tx_period: 1
   macsec_config:
       vlan_bypass: []
       mka_enabled: true
@@ -108,22 +108,22 @@ ports:
       sak_retire_time: 20000
       macsec_mode: integrity
       kay_on: true
-      key_role: key_server_always
+      key_role: key_server_never
       delay_protect: false
       participant_activation: always
 
-- name: z2_s1_p2
+- name: z1_s1_p2
   silicon_port_no: 2
   default_vlan_id: 1
   mii_config:
-    type: sgmii
-    speed: 1000
+    type: rmii
+    speed: 100
     mode: mac
   ptp_config:
       cmlds_linkport_enabled: false
       ptp_ports:
         - domain_id: 0
-          src_port_identity: 13
+          src_port_identity: 10
           sync_config:
             type: time_transmitter
             log_tx_period: -3
@@ -138,121 +138,47 @@ ports:
       sak_retire_time: 20000
       macsec_mode: integrity
       kay_on: true
-      key_role: key_server_always
+      key_role: key_server_never
       delay_protect: false
       participant_activation: always
 
-tcam_rules:
-  - name: rule_1
-    id: 1
-    match_filter:
-      pcp: [3, 4]
-    match_ports:
-      - z2_s1_p0
-    action:
-      - type: drop
-        ports:
-          - z2_s1_p2
-  - name: rule_2
-    id: 2
-    match_filter:
-      vlanid: 20
-      pcp: [3, 4]
-    match_ports:
-      - z2_s1_p0
-    vehicle_state:
-      data: "0x02"
-      mask: "0x0F"
-    action:
-      - type: vlan_overwrite
-        ports:
-          - z2_s1_p1
-        overwrite_vlan_pcp: 1
-  - name: rule_3
-    id: 3
-    match_filter:
-      protocol: udp
-      src_port: 1234
-      dst_port: 1234
-    match_ports:
-      - z2_s1_p1
-    action:
-      - type: remove_vlan
-        ports:
-          - z2_s1_p1
-  - name: rule_4
-    id: 4
-    frame_window: 100
-    frame_mask:
-      - offset: 12
-        data: "0x0800"
-        mask: "0xFFFF"
-      - offset: 14
-        data: "0x3014"
-        mask: "0x7FFF"
-    match_ports:
-      - z2_s1_p2
-    action:
-      - type: drop
-        ports:
-          - z2_s1_p2
-  - name: rule_5
-    id: 5
-    frame_mask:
-      - offset: 0
-        data: "0x8100"
-        mask: "0xFFFF"
-      - offset: 12
-        data: "0b0000100000000000"
-        mask: "0b0000111111111111"
-      # A frame_mask without a mask checks every bit of its data.
-      - offset: 14
-        data: "0x0A00"
-    action:
-      - type: drop
-        ports:
-          - z2_s1_p1
-          - z2_s1_p2
+- name: z1_s1_cpu_port
+  silicon_port_no: 3
+  default_vlan_id: 50
 
 vlans:
+- name: VLAN10
+  id: 10
+  default_priority: 0
+  ports:
+    - z1_s1_p0
+    - z1_s1_p1
+
 - name: VLAN20
   id: 20
   default_priority: 0
   ports:
-    - z2_s1_p0
-    - z2_s1_p1
+    - z1_s1_p0
+    - z1_s1_p2
+
+- name: VLAN30
+  id: 30
+  default_priority: 0
+  ports:
+    - z1_s1_p0
+    - z1_s1_p2
+
+- name: VLAN50
+  id: 50
+  default_priority: 0
+  ports:
+    - z1_s1_p1
+    - z1_s1_cpu_port
 
 - name: VLAN40
   id: 40
   default_priority: 0
   ports:
-    - z2_s1_p0
-    - z2_s1_p2
-    - z2_s1_p1
-
-
-
-host_controller:
-  mac_address: 00:11:04:03:01:01
-  virtual_interfaces:
-    - name: z2_sw_host_viface1
-      vlanid: 0
-      addresses:
-        - address: 10.0.0.102
-          ipv4netmask: 255.255.255.0
-    - name: z2_sw_host_viface2
-      vlanid: 20
-      addresses:
-        - address: 10.0.20.102
-          ipv4netmask: 255.255.255.0
-    - name: z2_sw_host_viface3
-      vlanid: 40
-      addresses:
-        - address: 10.0.40.102
-          ipv4netmask: 255.255.255.0
-  routing_table:
-    - destination:
-        address: 10.0.30.0
-        ipv4netmask: 255.255.255.0
-      default_gateway: 10.0.40.101
-      egress_interface: z2_sw_host_viface3
+    - z1_s1_p0
+    - z1_s1_p1
+    - z1_s1_p2

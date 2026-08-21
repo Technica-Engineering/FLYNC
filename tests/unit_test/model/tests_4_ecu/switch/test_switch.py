@@ -1,7 +1,14 @@
 import pytest
 from pydantic import ValidationError
 
-from flync.model.flync_4_ecu import EthernetInterfaceConfig, Switch, SwitchPort
+from flync.model.flync_4_ecu import Controller, Switch, SwitchPort
+
+
+def _switch_config(meta, ports, vlans, **kwargs):
+    """Build a switch_config dict for Switch.model_validate."""
+    cfg = {"meta": meta, "ports": ports, "vlans": vlans}
+    cfg.update(kwargs)
+    return cfg
 
 
 def test_unique_silicon_port_number(embedded_metadata_entry, vlan_entry, switch_host_controller_example):
@@ -11,10 +18,12 @@ def test_unique_silicon_port_number(embedded_metadata_entry, vlan_entry, switch_
     with pytest.raises(ValidationError) as e:
         Switch.model_validate(
             {
-                "meta": embedded_metadata_entry,
                 "name": "switch_example",
-                "vlans": [vlan_entry],
-                "ports": [switch_port1, switch_port2],
+                "switch_config": _switch_config(
+                    embedded_metadata_entry,
+                    [switch_port1, switch_port2],
+                    [vlan_entry],
+                ),
                 "host_controller": switch_host_controller_example,
             }
         )
@@ -30,15 +39,17 @@ def test_switch_host(
 ):
     switch_example = Switch.model_validate(
         {
-            "meta": embedded_metadata_entry,
             "name": "switch_example",
-            "vlans": [vlan_entry],
-            "ports": [switch_port],
+            "switch_config": _switch_config(
+                embedded_metadata_entry,
+                [switch_port],
+                [vlan_entry],
+            ),
             "host_controller": switch_host_controller_example,
         }
     )
 
-    assert isinstance(switch_example.host_controller, EthernetInterfaceConfig)
+    assert isinstance(switch_example.host_controller, Controller)
 
 
 def test_get_mac_returns_host_controller_mac(
@@ -50,10 +61,12 @@ def test_get_mac_returns_host_controller_mac(
     """Switch.get_mac proxies to host_controller.mac_address."""
     switch = Switch.model_validate(
         {
-            "meta": embedded_metadata_entry,
             "name": "switch_example",
-            "vlans": [vlan_entry],
-            "ports": [switch_port],
+            "switch_config": _switch_config(
+                embedded_metadata_entry,
+                [switch_port],
+                [vlan_entry],
+            ),
             "host_controller": switch_host_controller_example,
         }
     )
@@ -61,25 +74,27 @@ def test_get_mac_returns_host_controller_mac(
     assert switch.get_mac() == "10:10:10:22:22:22"
 
 
-def test_host_controller_name_derived_from_switch_name(
+def test_host_controller_is_a_controller(
     embedded_metadata_entry,
     vlan_entry,
     switch_port,
     switch_host_controller_example,
 ):
-    """The switch host_controller is an inline ControllerInterface with no folder/wrapper to
-    imply a name, so its name is propagated as ``<switch_name>_host``."""
+    """The switch host_controller is a regular Controller whose name is set in the dict
+    (or implied from the folder name when loaded from disk)."""
     switch = Switch.model_validate(
         {
-            "meta": embedded_metadata_entry,
             "name": "switch_example",
-            "vlans": [vlan_entry],
-            "ports": [switch_port],
+            "switch_config": _switch_config(
+                embedded_metadata_entry,
+                [switch_port],
+                [vlan_entry],
+            ),
             "host_controller": switch_host_controller_example,
         }
     )
 
-    assert switch.host_controller.name == "switch_example_host"
+    assert switch.host_controller.name == "host_controller"
 
 
 @pytest.mark.parametrize("invalid_vlan_id", [-1, 4096])
@@ -127,10 +142,12 @@ def test_validate_ipv_mapping_positive(embedded_metadata_entry, vlan_entry):
 
     switch = Switch.model_validate(
         {
-            "meta": embedded_metadata_entry,
             "name": "switch_example",
-            "vlans": [vlan_entry],
-            "ports": [port],
+            "switch_config": _switch_config(
+                embedded_metadata_entry,
+                [port],
+                [vlan_entry],
+            ),
         }
     )
 
@@ -158,10 +175,12 @@ def test_validate_ipv_mapping_negative(embedded_metadata_entry, vlan_entry):
     with pytest.raises(ValidationError) as e:
         Switch.model_validate(
             {
-                "meta": embedded_metadata_entry,
                 "name": "switch_example",
-                "vlans": [vlan_entry],
-                "ports": [port],
+                "switch_config": _switch_config(
+                    embedded_metadata_entry,
+                    [port],
+                    [vlan_entry],
+                ),
             }
         )
 
@@ -201,10 +220,12 @@ def test_validate_ats_instances_positive(embedded_metadata_entry, vlan_entry):
 
     switch = Switch.model_validate(
         {
-            "meta": embedded_metadata_entry,
             "name": "switch_example",
-            "vlans": [vlan_entry],
-            "ports": [port],
+            "switch_config": _switch_config(
+                embedded_metadata_entry,
+                [port],
+                [vlan_entry],
+            ),
         }
     )
 
@@ -220,14 +241,16 @@ def test_dynamic_address_aging_time_defaults_to_none(
     """dynamic_address_aging_time is optional and defaults to None when not provided."""
     switch = Switch.model_validate(
         {
-            "meta": embedded_metadata_entry,
             "name": "switch_example",
-            "vlans": [vlan_entry],
-            "ports": [switch_port],
+            "switch_config": _switch_config(
+                embedded_metadata_entry,
+                [switch_port],
+                [vlan_entry],
+            ),
         }
     )
 
-    assert switch.dynamic_address_aging_time is None
+    assert switch.switch_config.dynamic_address_aging_time is None
 
 
 def test_dynamic_address_aging_time_negative_rejected(
@@ -239,11 +262,13 @@ def test_dynamic_address_aging_time_negative_rejected(
     with pytest.raises(ValidationError):
         Switch.model_validate(
             {
-                "meta": embedded_metadata_entry,
                 "name": "switch_example",
-                "vlans": [vlan_entry],
-                "ports": [switch_port],
-                "dynamic_address_aging_time": -1,
+                "switch_config": _switch_config(
+                    embedded_metadata_entry,
+                    [switch_port],
+                    [vlan_entry],
+                    dynamic_address_aging_time=-1,
+                ),
             }
         )
 
@@ -276,10 +301,12 @@ def test_validate_ats_instances_negative(embedded_metadata_entry, vlan_entry):
     with pytest.raises(ValidationError) as e:
         Switch.model_validate(
             {
-                "meta": embedded_metadata_entry,
                 "name": "switch_example",
-                "vlans": [vlan_entry],
-                "ports": [port],
+                "switch_config": _switch_config(
+                    embedded_metadata_entry,
+                    [port],
+                    [vlan_entry],
+                ),
             }
         )
 

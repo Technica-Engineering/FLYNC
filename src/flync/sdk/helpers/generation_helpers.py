@@ -710,6 +710,12 @@ def __resolve_path(valid_path: list[str], ws: FLYNCWorkspace) -> tuple[type[FLYN
         flync_path, resolved_root = __resolve_semantic_object(so, field_name)
         if resolved_root is not None:
             root = resolved_root
+        elif so.model is None and owner_model is not None and hasattr(owner_model, field_name):
+            # The field is registered (e.g. an unset Optional External field) but has no value
+            # yet, so fall back to the owner's field annotation for the type. Only applies when
+            # so.model is genuinely None -- list fields resolve so.model to the (possibly empty)
+            # list itself and must keep the owner as root to match its "field.[]" flync path.
+            root = FLYNCFactory._default_arg_type(type(owner_model).model_fields[field_name].annotation)
         if isinstance(so.model, FLYNCBaseModel):
             owner_model = so.model
 

@@ -196,7 +196,7 @@ Switch Config
       The switches directory contains the individual configuration files for every ethernet switch that is present in that ECU.
       This is a **non-mandatory** directory for the ECU configuration, since not all ECUs have switches.
 
-   .. literalinclude:: ../../_static/flync_example/ecus/high_performance_compute/switches/hpc_switch1.flync.yaml
+   .. literalinclude:: ../../_static/flync_example/ecus/high_performance_compute/switches/hpc_switch1/switch.flync.yaml
       :language: yaml
 
 .. hint::
@@ -215,7 +215,18 @@ Switch Config
    describing the various properties of the MII connected to that port.
    For switch ports using an integrated PHY, no ``mii_config`` is needed.
 
+.. note::
+
+   Each switch folder holds a 📄 ``switch.flync.yaml`` file (the :class:`SwitchConfig` — ports, VLANs, TCAM
+   rules, dynamic address aging) and, optionally, a 📁 ``switch_host_controller/`` sub-folder. That sub-folder
+   is a regular :ref:`controller` (name, ethernet interfaces, virtual interfaces, ...) and models the switch's
+   own host controller — the CPU that manages the switch via its CPU port. Because it is a full
+   :class:`~flync.model.flync_4_ecu.controller.Controller`, its interfaces are linked to the switch's CPU port
+   through a :class:`~flync.model.flync_4_ecu.internal_topology.SwitchPortToHostControllerInterface` connection
+   in the ECU's internal topology.
+
 .. autoclass:: flync.model.flync_4_ecu.switch.Switch()
+.. autoclass:: flync.model.flync_4_ecu.switch.SwitchConfig()
 .. autoclass:: flync.model.flync_4_ecu.switch.SwitchPort()
 .. autoclass:: flync.model.flync_4_ecu.switch.VLANEntry()
 
@@ -313,6 +324,8 @@ Types of Internal Connections
    +-------------------------------------------------+-------------------------------+-----------------------------+
    |``switch_port_to_controller_interface``          |``switch_port``                |``controller_interface``     |
    +-------------------------------------------------+-------------------------------+-----------------------------+
+   |``switch_port_to_host_controller_interface``     |``switch_port``                |``host_controller_interface``|
+   +-------------------------------------------------+-------------------------------+-----------------------------+
    |``switch_port_to_switch_port``                   |``switch_port_1``              |``switch_port_2``            |
    +-------------------------------------------------+-------------------------------+-----------------------------+
    |``controller_interface_to_controller_interface`` |``controller_interface_1``     |``controller_interface_2``   |
@@ -327,6 +340,7 @@ Types of Internal Connections
 .. autoclass:: flync.model.flync_4_ecu.internal_topology.ECUPortToSwitchPort()
 .. autoclass:: flync.model.flync_4_ecu.internal_topology.ECUPortToControllerInterface()
 .. autoclass:: flync.model.flync_4_ecu.internal_topology.SwitchPortToControllerInterface()
+.. autoclass:: flync.model.flync_4_ecu.internal_topology.SwitchPortToHostControllerInterface()
 .. autoclass:: flync.model.flync_4_ecu.internal_topology.SwitchPortToSwitchPort()
 .. autoclass:: flync.model.flync_4_ecu.internal_topology.ControllerInterfaceToControllerInterface()
 

@@ -37,6 +37,7 @@ from .sockets import (
 from .switch import (
     FrameMask,
     Switch,
+    SwitchConfig,
     SwitchPort,
     TCAMRule,
     TrafficClass,
@@ -75,6 +76,7 @@ __all__ = [
     "ECUPort",
     "RouteEntry",
     "Switch",
+    "SwitchConfig",
     "SwitchPort",
     "VLANEntry",
     "MulticastGroup",

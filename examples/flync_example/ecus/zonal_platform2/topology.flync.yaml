@@ -15,3 +15,7 @@ connections:
     id: conn4
     controller_interface: z2_c1_iface1
     controller_interface2: z2_c2_iface1
+  - type: switch_port_to_host_controller_interface
+    id: conn5
+    switch_port: z2_s1_cpu_port
+    host_controller_interface: z2_switch1_host_iface1

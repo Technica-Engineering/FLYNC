@@ -33,7 +33,7 @@ Use `--node` or `-n` to validate just a part of a config such as an ECU director
 
 .. code-block:: bash
 
-   flync validate -n Switch examples/flync_example/ecus/high_performance_compute/switches/hpc_switch1.flync.yaml
+   flync validate -n Switch examples/flync_example/ecus/high_performance_compute/switches/hpc_switch1/switch.flync.yaml
 
 Inspect ECUs in a workspace
 ----------------------------

@@ -3,6 +3,7 @@ import pytest
 from flync.model.flync_4_ecu import *
 from flync.model.flync_4_ecu.controller import *
 from flync.model.flync_4_ecu.internal_topology import *
+from flync.model.flync_4_ecu.switch import SwitchConfig
 from flync.model.flync_4_metadata import *
 from flync.model.flync_4_topology import *
 from flync.model.flync_model import FLYNCModel
@@ -510,7 +511,7 @@ def invalid_loop_connection():
     )
 
     # --- Switch ---
-    Switch(name="switch1", ports=[switch_port1], vlans=[], meta=embedded_metadata)
+    Switch(name="switch1", switch_config=SwitchConfig(ports=[switch_port1], vlans=[], meta=embedded_metadata))
 
     # --- ECU Port Configuration ---
     port_ecu1 = ECUPort(name="port1")
@@ -804,7 +805,7 @@ def invalid_shared_internal_switch():
     switch_port1 = SwitchPort(name="sw_port1", silicon_port_no=1, default_vlan_id=1)
 
     # --- Shared Switch (INVALID) ---
-    Switch(name="switch1", ports=[switch_port1], vlans=[], meta=embedded_metadata)
+    Switch(name="switch1", switch_config=SwitchConfig(ports=[switch_port1], vlans=[], meta=embedded_metadata))
 
     # --- ECU Switch Connection ---
     ecu_to_switch_cnx1 = ECUPortToSwitchPort(
@@ -919,7 +920,7 @@ def undeclared_switch_reference():
     )
 
     # --- Switch ---
-    Switch(name="switch1", ports=[switch_port1], vlans=[], meta=embedded_metadata)
+    Switch(name="switch1", switch_config=SwitchConfig(ports=[switch_port1], vlans=[], meta=embedded_metadata))
 
     # --- ECU Port Configuration ---
     port_ecu1 = ECUPort(

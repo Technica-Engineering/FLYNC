@@ -225,10 +225,19 @@ def switch_port():
 
 
 @pytest.fixture
-def switch_host_controller_example(virtual_controller_interface):
+def switch_host_controller_example(virtual_controller_interface, embedded_metadata_entry):
     host_ctrl = {
-        "mac_address": "10:10:10:22:22:22",
-        "virtual_interfaces": [virtual_controller_interface],
+        "name": "host_controller",
+        "controller_metadata": embedded_metadata_entry,
+        "ethernet_interfaces": [
+            {
+                "name": "host_iface1",
+                "interface_config": {
+                    "mac_address": "10:10:10:22:22:22",
+                    "virtual_interfaces": [virtual_controller_interface],
+                },
+            }
+        ],
     }
 
     yield host_ctrl

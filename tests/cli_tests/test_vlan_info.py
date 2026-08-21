@@ -75,12 +75,19 @@ class TestGetSwitchPortsPerVlan:
 
 
 class TestCheckSwitchHostController:
+    def _make_host_ctrl(self, name="HOST_CTRL", vlan_id=10, ips=None):
+        """Build a mock Controller with get_interfaces() returning EthernetInterface-like mocks."""
+        host_ctrl = MagicMock()
+        host_ctrl.name = name
+        eth_iface = MagicMock()
+        eth_iface.interface_config = make_interface(vlan_id=vlan_id, ips=ips or [])
+        host_ctrl.get_interfaces.return_value = [eth_iface]
+        return host_ctrl
+
     def test_returns_name_and_ips_when_present(self):
         ecu = make_ecu()
         sw = MagicMock()
-        host_ctrl = make_interface(vlan_id=10, ips=["192.168.1.100"])
-        host_ctrl.name = "HOST_CTRL"
-        sw.host_controller = host_ctrl
+        sw.host_controller = self._make_host_ctrl(vlan_id=10, ips=["192.168.1.100"])
         ecu.get_all_switches.return_value = [sw]
         name, ips = check_switch_host_controller(ecu, 10)
         assert name == "HOST_CTRL"
@@ -89,9 +96,7 @@ class TestCheckSwitchHostController:
     def test_returns_none_when_no_ips(self):
         ecu = make_ecu()
         sw = MagicMock()
-        host_ctrl = make_interface(vlan_id=99)
-        host_ctrl.name = "HOST_CTRL"
-        sw.host_controller = host_ctrl
+        sw.host_controller = self._make_host_ctrl(vlan_id=99)
         ecu.get_all_switches.return_value = [sw]
         name, ips = check_switch_host_controller(ecu, 10)
         assert name is None

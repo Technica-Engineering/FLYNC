@@ -111,37 +111,37 @@ def test_validate_workspace_without_flync_files(tmp_path):
 TYPE_AND_SEMANTIC_ERROR_SCENARIOS = [
     {
         "sceanrio_name": "int_value_name",
-        "file_path": "ecus/zonal_platform1/switches/z1_switch1.flync.yaml",
+        "file_path": "ecus/zonal_platform1/switches/z1_switch1/switch.flync.yaml",
         "old_text": "- name: z1_s1_p0",
         "new_text": "- name: 123",
     },
     {
         "sceanrio_name": "empty_name",
-        "file_path": "ecus/zonal_platform1/switches/z1_switch1.flync.yaml",
+        "file_path": "ecus/zonal_platform1/switches/z1_switch1/switch.flync.yaml",
         "old_text": "- name: z1_s1_p0",
         "new_text": "- name: ",
     },
     {
         "sceanrio_name": "null_value_name",
-        "file_path": "ecus/zonal_platform1/switches/z1_switch1.flync.yaml",
+        "file_path": "ecus/zonal_platform1/switches/z1_switch1/switch.flync.yaml",
         "old_text": "- name: z1_s1_p0",
         "new_text": "- name: null",
     },
     {
         "sceanrio_name": "boolean_value_name",
-        "file_path": "ecus/zonal_platform1/switches/z1_switch1.flync.yaml",
+        "file_path": "ecus/zonal_platform1/switches/z1_switch1/switch.flync.yaml",
         "old_text": "- name: z1_s1_p0",
         "new_text": "- name: true",
     },
     {
         "sceanrio_name": "incorrect_name",
-        "file_path": "ecus/zonal_platform1/switches/z1_switch1.flync.yaml",
+        "file_path": "ecus/zonal_platform1/switches/z1_switch1/switch.flync.yaml",
         "old_text": "- name: z1_s1_p0",
         "new_text": "- name: z1_s1_p2",
     },
     {
         "sceanrio_name": "extra_field_under_name",
-        "file_path": "ecus/zonal_platform1/switches/z1_switch1.flync.yaml",
+        "file_path": "ecus/zonal_platform1/switches/z1_switch1/switch.flync.yaml",
         "old_text": "- name: z1_s1_p0",
         "new_text": "- name: z1_s1_p0\n  config:",
     },
@@ -197,7 +197,7 @@ def test_validate_workspace_with_duplicate_yaml_key(tmp_path):
     destination_folder = Path(tmp_path) / "copy"
     shutil.copytree(absolute_path, destination_folder)
 
-    file_path = destination_folder / "ecus/zonal_platform1/switches/z1_switch1.flync.yaml"
+    file_path = destination_folder / "ecus/zonal_platform1/switches/z1_switch1/switch.flync.yaml"
 
     update_yaml_content(
         file_path,
@@ -216,19 +216,19 @@ def test_validate_workspace_with_duplicate_yaml_key(tmp_path):
 STRUCTURAL_SCENARIOS = [
     {
         "sceanrio_name": "broken_indentation",
-        "file_path": "ecus/zonal_platform1/switches/z1_switch1.flync.yaml",
+        "file_path": "ecus/zonal_platform1/switches/z1_switch1/switch.flync.yaml",
         "old_text": "- name: z1_s1_p0",
         "new_text": " - name: z1_s1_p0",
     },
     {
         "sceanrio_name": "missing_list_marker",
-        "file_path": "ecus/zonal_platform1/switches/z1_switch1.flync.yaml",
+        "file_path": "ecus/zonal_platform1/switches/z1_switch1/switch.flync.yaml",
         "old_text": "- name: z1_s1_p0",
         "new_text": " name: z1_s1_p0",
     },
     {
         "sceanrio_name": "missing_space_after_list_marker",
-        "file_path": "ecus/zonal_platform1/switches/z1_switch1.flync.yaml",
+        "file_path": "ecus/zonal_platform1/switches/z1_switch1/switch.flync.yaml",
         "old_text": "- name: z1_s1_p0",
         "new_text": "-name: z1_s1_p0",
     },
