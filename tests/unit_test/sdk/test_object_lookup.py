@@ -84,7 +84,8 @@ def test_get_object_index_and_name_refer_to_same_semantic_object(loaded_workspac
     assert len(name_paths) == 1
     obj_idx = ws.get_object("ecus.0")
     obj_name = ws.get_object(name_paths[0])
-    assert isinstance(obj_idx, SemanticObject) and isinstance(obj_name, SemanticObject)
+    assert isinstance(obj_idx, SemanticObject)
+    assert isinstance(obj_name, SemanticObject)
     assert obj_idx.model is obj_name.model
 
 

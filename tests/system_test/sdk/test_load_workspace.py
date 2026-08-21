@@ -100,12 +100,12 @@ def test_load_workspace_invalid_yaml_path():
 
 
 def test_load_workspace_empty_name():
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         FLYNCWorkspace.load_workspace("", absolute_path)
 
 
 def test_load_workspace_empty_path():
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         FLYNCWorkspace.load_workspace("flync_example", "")
 
 

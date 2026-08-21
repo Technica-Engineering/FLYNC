@@ -56,7 +56,7 @@ def test_detect_returns_none_for_unrelated_inputs(data):
 def test_reject_legacy_controller_raises_fatal_error():
     payload = _legacy_payload("0.10.0")
 
-    with pytest.raises(Exception) as exc_info:
+    with pytest.raises(ValueError) as exc_info:
         reject_legacy_controller(payload)
     # err_fatal returns a PydanticCustomError whose type is "fatal"
     assert exc_info.value.type == "fatal"

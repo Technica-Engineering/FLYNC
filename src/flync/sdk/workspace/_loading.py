@@ -12,6 +12,7 @@ import sys
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from itertools import islice
 from pathlib import Path
+from types import UnionType
 from typing import Annotated, Optional, Union, get_args, get_origin
 
 from pydantic_core import ValidationError
@@ -140,7 +141,7 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
         """
 
         link = ParentLink(parent_path, field_name, "list", position)
-        if base_type is Union:
+        if base_type is Union or base_type is UnionType:
             item_info: dict = {}
             self.__handle_generic_types_union(
                 base_type_args,
@@ -506,7 +507,7 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
                 current_object_paths,
             )
 
-        elif base_type is Union:
+        elif base_type is Union or base_type is UnionType:
             done = self.__handle_generic_types_union(
                 base_type_args,
                 external,

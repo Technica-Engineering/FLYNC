@@ -1,6 +1,6 @@
 """Channel-level configuration for CAN, LIN, Ethernet, and PDU definitions."""
 
-from typing import Annotated, Iterable, List, Mapping, Optional, Union
+from typing import Annotated, Iterable, List, Mapping, Optional
 
 from pydantic import Field, model_validator
 
@@ -49,7 +49,7 @@ class FLYNCChannelConfig(FLYNCBaseModel):
         Optional[
             List[
                 Annotated[
-                    Union[StandardPDU, MultiplexedPDU],
+                    StandardPDU | MultiplexedPDU,
                     Field(discriminator="type"),
                 ]
             ]

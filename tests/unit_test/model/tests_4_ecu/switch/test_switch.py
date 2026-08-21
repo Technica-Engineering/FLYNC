@@ -2,6 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from flync.model.flync_4_ecu import Controller, Switch, SwitchPort
+from tests.error_assertions import assert_single_error
 
 
 def _switch_config(meta, ports, vlans, **kwargs):
@@ -14,16 +15,13 @@ def _switch_config(meta, ports, vlans, **kwargs):
 def test_unique_silicon_port_number(embedded_metadata_entry, vlan_entry, switch_host_controller_example):
     switch_port1 = SwitchPort(name="port1", default_vlan_id=1, silicon_port_no=1)
     switch_port2 = SwitchPort(name="port2", default_vlan_id=2, silicon_port_no=1)
+    switch_config = _switch_config(embedded_metadata_entry, [switch_port1, switch_port2], [vlan_entry])
 
     with pytest.raises(ValidationError) as e:
         Switch.model_validate(
             {
                 "name": "switch_example",
-                "switch_config": _switch_config(
-                    embedded_metadata_entry,
-                    [switch_port1, switch_port2],
-                    [vlan_entry],
-                ),
+                "switch_config": switch_config,
                 "host_controller": switch_host_controller_example,
             }
         )
@@ -171,20 +169,17 @@ def test_validate_ipv_mapping_negative(embedded_metadata_entry, vlan_entry):
             ],
         }
     )
+    switch_config = _switch_config(embedded_metadata_entry, [port], [vlan_entry])
 
-    with pytest.raises(ValidationError) as e:
+    with pytest.raises(ValidationError) as exc_info:
         Switch.model_validate(
             {
                 "name": "switch_example",
-                "switch_config": _switch_config(
-                    embedded_metadata_entry,
-                    [port],
-                    [vlan_entry],
-                ),
+                "switch_config": switch_config,
             }
         )
 
-    assert "internal priority values 5" in str(e.value)
+    assert_single_error(exc_info, "FLYNC-ECU-MIN-REF-090", "internal priority values 5")
 
 
 def test_validate_ats_instances_positive(embedded_metadata_entry, vlan_entry):
@@ -298,16 +293,14 @@ def test_validate_ats_instances_negative(embedded_metadata_entry, vlan_entry):
         }
     )
 
-    with pytest.raises(ValidationError) as e:
+    switch_config = _switch_config(embedded_metadata_entry, [port], [vlan_entry])
+
+    with pytest.raises(ValidationError) as exc_info:
         Switch.model_validate(
             {
                 "name": "switch_example",
-                "switch_config": _switch_config(
-                    embedded_metadata_entry,
-                    [port],
-                    [vlan_entry],
-                ),
+                "switch_config": switch_config,
             }
         )
 
-    assert "No ATS Instance found for traffic class tc_ats" in str(e.value)
+    assert_single_error(exc_info, "FLYNC-ECU-MIN-REF-091", "No ATS Instance found for traffic class tc_ats")

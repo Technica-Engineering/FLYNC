@@ -297,7 +297,9 @@ class WorkspaceConfiguration(BaseModel):
         # ``exclude_defaults`` compares serialized output, so a field with a custom
         # ``field_serializer`` (list_objects_mode) is kept even at its default. Drop those
         # by comparing the attribute against the declared default instead.
-        for name in list(data):
+        #
+        # Creating a list is required to delete while we iterate!
+        for name in list(data.keys()):
             field = type(self).model_fields.get(name)
             if field is not None and getattr(self, name) == field.default:
                 del data[name]

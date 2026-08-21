@@ -322,8 +322,10 @@ def test_positive_mux_group_with_bit_position():
 
 
 def test_positive_mux_group_negative_selector_value_is_rejected():
-    with pytest.raises(ValidationError):
-        MuxGroup(selector_value=-1, pdu=PDUInstance(pdu_ref="mg_neg_pdu"))
+    pdu = PDUInstance(pdu_ref="mg_neg_pdu")
+
+    with pytest.raises(ValidationError) as exc_info:
+        MuxGroup(selector_value=-1, pdu=pdu)
 
 
 def _make_selector_signal(name="mux_sel", bit_length=4):

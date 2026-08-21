@@ -69,7 +69,7 @@ class TestWorkspaceConfigYamlLoading:
             config_path = Path(tmpdir) / "invalid.yaml"
             config_path.write_text("invalid: yaml: content: :[")
 
-            with pytest.raises(Exception):  # YAML parsing error
+            with pytest.raises(yaml.YAMLError):  # YAML parsing error
                 WorkspaceConfiguration.from_yaml_file(config_path)
 
     def test_unknown_key_is_rejected(self):
