@@ -54,8 +54,8 @@
             </div>
         </aside>
         <h2>
-            <span class="text">26 statements &nbsp;</span>
-            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">26<span class="text"> run</span></button>
+            <span class="text">28 statements &nbsp;</span>
+            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">28<span class="text"> run</span></button>
             <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">0<span class="text"> missing</span></button>
             <button type="button" class="exc show_exc button_toggle_exc" value="exc" data-shortcut="x" title="Toggle lines excluded">0<span class="text"> excluded</span></button>
         </h2>
@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_493a9e6852f5b4be_phy_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
-            created at 2026-08-21 09:04 +0000
+            created at 2026-08-21 15:29 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -90,7 +90,7 @@
     <p class="run"><span class="n"><a id="t8" href="#t8">8</a></span><span class="t"><span class="key">from</span> <span class="nam">ipaddress</span> <span class="key">import</span> <span class="nam">IPv4Address</span><span class="op">,</span> <span class="nam">IPv6Address</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t9" href="#t9">9</a></span><span class="t"><span class="key">from</span> <span class="nam">typing</span> <span class="key">import</span> <span class="nam">Annotated</span><span class="op">,</span> <span class="nam">Literal</span><span class="op">,</span> <span class="nam">Optional</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t10" href="#t10">10</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t11" href="#t11">11</a></span><span class="t"><span class="key">from</span> <span class="nam">pydantic</span> <span class="key">import</span> <span class="nam">AfterValidator</span><span class="op">,</span> <span class="nam">Field</span><span class="op">,</span> <span class="nam">PrivateAttr</span><span class="op">,</span> <span class="nam">model_validator</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t11" href="#t11">11</a></span><span class="t"><span class="key">from</span> <span class="nam">pydantic</span> <span class="key">import</span> <span class="nam">AfterValidator</span><span class="op">,</span> <span class="nam">Field</span><span class="op">,</span> <span class="nam">model_validator</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t12" href="#t12">12</a></span><span class="t"><span class="key">from</span> <span class="nam">pydantic</span><span class="op">.</span><span class="nam">networks</span> <span class="key">import</span> <span class="nam">IPvAnyAddress</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t13" href="#t13">13</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t14" href="#t14">14</a></span><span class="t"><span class="key">import</span> <span class="nam">flync</span><span class="op">.</span><span class="nam">core</span><span class="op">.</span><span class="nam">utils</span><span class="op">.</span><span class="nam">common_validators</span> <span class="key">as</span> <span class="nam">common_validators</span>&nbsp;</span><span class="r"></span></p>
@@ -129,7 +129,7 @@
     <p class="run"><span class="n"><a id="t47" href="#t47">47</a></span><span class="t">    <span class="nam">vlan</span><span class="op">:</span> <span class="nam">Annotated</span><span class="op">[</span><span class="nam">Optional</span><span class="op">[</span><span class="nam">int</span><span class="op">]</span><span class="op">,</span> <span class="nam">AfterValidator</span><span class="op">(</span><span class="nam">validate_vlan_id</span><span class="op">)</span><span class="op">]</span> <span class="op">=</span> <span class="nam">Field</span><span class="op">(</span><span class="nam">default</span><span class="op">=</span><span class="num">0</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t48" href="#t48">48</a></span><span class="t">    <span class="nam">src_ip</span><span class="op">:</span> <span class="nam">Optional</span><span class="op">[</span><span class="nam">IPvAnyAddress</span><span class="op">]</span> <span class="op">=</span> <span class="nam">Field</span><span class="op">(</span><span class="nam">default</span><span class="op">=</span><span class="key">None</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t49" href="#t49">49</a></span><span class="t">    <span class="nam">solicited_node_multicast</span><span class="op">:</span> <span class="nam">Optional</span><span class="op">[</span><span class="nam">bool</span><span class="op">]</span> <span class="op">=</span> <span class="nam">Field</span><span class="op">(</span><span class="nam">default</span><span class="op">=</span><span class="key">False</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t50" href="#t50">50</a></span><span class="t">    <span class="nam">_interface</span><span class="op">:</span> <span class="nam">EthernetInterfaceConfig</span> <span class="op">=</span> <span class="nam">PrivateAttr</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t50" href="#t50">50</a></span><span class="t">    <span class="nam">_interface</span><span class="op">:</span> <span class="nam">EthernetInterfaceConfig</span> <span class="op">|</span> <span class="key">None</span> <span class="op">=</span> <span class="key">None</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t51" href="#t51">51</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t52" href="#t52">52</a></span><span class="t">    <span class="op">@</span><span class="nam">model_validator</span><span class="op">(</span><span class="nam">mode</span><span class="op">=</span><span class="str">&quot;after&quot;</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t53" href="#t53">53</a></span><span class="t">    <span class="key">def</span> <span class="nam">validate_src_ip_set_on_tx_ip_groups</span><span class="op">(</span><span class="nam">self</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
@@ -145,7 +145,12 @@
     <p class="run"><span class="n"><a id="t63" href="#t63">63</a></span><span class="t">    <span class="op">@</span><span class="nam">property</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t64" href="#t64">64</a></span><span class="t">    <span class="key">def</span> <span class="nam">interface</span><span class="op">(</span><span class="nam">self</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t65" href="#t65">65</a></span><span class="t">        <span class="str">&quot;&quot;&quot;Return the controller interface this membership belongs to.&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t66" href="#t66">66</a></span><span class="t">        <span class="key">return</span> <span class="nam">self</span><span class="op">.</span><span class="nam">_interface</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t66" href="#t66">66</a></span><span class="t">        <span class="key">if</span> <span class="nam">self</span><span class="op">.</span><span class="nam">_interface</span> <span class="key">is</span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t67" href="#t67">67</a></span><span class="t">            <span class="key">raise</span> <span class="nam">AttributeError</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t68" href="#t68">68</a></span><span class="t">                <span class="str">&quot;This MulticastGroupMembership is not assigned to a controller interface yet. &quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t69" href="#t69">69</a></span><span class="t">                <span class="str">&quot;Assign it to a controller interface before accessing the &#x27;interface&#x27; property.&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t70" href="#t70">70</a></span><span class="t">            <span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t71" href="#t71">71</a></span><span class="t">        <span class="key">return</span> <span class="nam">self</span><span class="op">.</span><span class="nam">_interface</span>&nbsp;</span><span class="r"></span></p>
 </main>
 <footer>
     <div class="content">
@@ -155,7 +160,7 @@
             <a class="nav" href="z_493a9e6852f5b4be_phy_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
-            created at 2026-08-21 09:04 +0000
+            created at 2026-08-21 15:29 +0000
         </p>
     </div>
 </footer>
