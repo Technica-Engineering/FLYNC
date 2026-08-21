@@ -1,7 +1,6 @@
 """defines the base class each datatype shares"""
 
 from typing import Annotated, ClassVar, List, Literal, Optional
-from typing import Union as TypingUnion
 
 from pydantic import (
     BaseModel,
@@ -568,7 +567,7 @@ class Enum(Datatype):
 
     name: str = Field(default="Enum")
     type: Literal["enum"] = Field("enum")
-    base_type: TypingUnion["Ints"] = Field(default_factory=lambda: Enum.default_base_type())
+    base_type: "Ints" = Field(default_factory=lambda: Enum.default_base_type())
     entries: List[EnumEntry] = Field(default_factory=list)
     BASE_TYPE_RANGES: ClassVar[dict[str, tuple[int, int]]] = {
         "UInt8": (0, 2**8 - 1),

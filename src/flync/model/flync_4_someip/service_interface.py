@@ -562,7 +562,7 @@ class SOMEIPServiceInterface(FLYNCBaseModel):
         BeforeValidator(common_validators.none_to_empty_list),
     ] = Field(default=[], description="eventgroups of the service")
     methods: Annotated[
-        List[Union[SOMEIPFireAndForgetMethod, SOMEIPRequestResponseMethod]],
+        List[SOMEIPFireAndForgetMethod | SOMEIPRequestResponseMethod],
         BeforeValidator(common_validators.none_to_empty_list),
     ] = Field(default=[], description="methods of the service")
     meta: SOMEIPServiceMetadata = Field()
@@ -827,7 +827,7 @@ class SOMEIPConfig(FLYNCBaseModel):
     ] = Field(description="configuration of the SOME/IP timings")
 
     @staticmethod
-    def _iter_e2e_elements(service: SOMEIPServiceInterface) -> Iterator[tuple[Any, Any]]:
+    def _iter_e2e_elements(service: SOMEIPServiceInterface) -> Iterator[tuple[Any, E2EConfig]]:
         """
         Yields all (element, e2e) pairs of a service that carry an E2E configuration.
         """
@@ -847,11 +847,11 @@ class SOMEIPConfig(FLYNCBaseModel):
         """
 
         # Mapping: profile -> data_id -> List[(service, element)]
-        per_profile: dict[Any, dict[Any, list[tuple[Any, Any]]]] = defaultdict(lambda: defaultdict(list))
+        per_profile: dict[str, dict[int, list[tuple[Any, Any]]]] = defaultdict(lambda: defaultdict(list))
 
         for service in self.services:
-            for element, (profile, data_id) in self._iter_e2e_elements(service):
-                per_profile[profile][data_id].append((service, element))
+            for element, e2e in self._iter_e2e_elements(service):
+                per_profile[e2e.profile][e2e.data_id].append((service, element))
 
         errors = [
             f"Duplicate e2e.data_id '{data_id}' in Profil '{profile}': "

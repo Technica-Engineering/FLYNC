@@ -9,7 +9,6 @@ from pydantic import (
     AfterValidator,
     Field,
     IPvAnyAddress,
-    PrivateAttr,
     field_serializer,
 )
 
@@ -156,8 +155,8 @@ class SOMEIPServiceDeployment(abc.ABC, FLYNCBaseModel):
     instance_id: Annotated[int, Field(gt=0, lt=0xFFFF)] = Field(description="The id of the service instance")
     someip_sd_timings_profile: str = Field(description="The SOME/IP timings profile ussed for the deployment.")
 
-    _service_ref: Optional[SOMEIPServiceInterface] = PrivateAttr(default=None)
-    _sd_timing_ref: Optional[SDTimings] = PrivateAttr(default=None)
+    _service_ref: SOMEIPServiceInterface | None = None
+    _sd_timing_ref: SDTimings | None = None
 
     @abc.abstractmethod
     def model_post_init(self, __context):
