@@ -83,7 +83,7 @@ def convert_interactive():
             )
         console.print("[bold green]✓ Conversion completed successfully![/bold green]")
     except Exception as e:
-        logger.error(f"Conversion failed: {e}")
+        logger.exception("Conversion failed: %s", e)
         console.print(f"[bold red]✗ Conversion failed: {e}[/bold red]")
 
 

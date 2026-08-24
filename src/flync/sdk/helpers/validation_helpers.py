@@ -98,10 +98,7 @@ def validate_external_node(
             state = WorkspaceState.INVALID
     except Exception as ex:
         state = WorkspaceState.BROKEN
-        logger.error(
-            "Encountered issue while validating node %s",
-            ex.with_traceback(None),  # type: ignore[func-returns-value]
-        )
+        logger.exception("Encountered issue while validating node %s: %s", node_path, ex)
     return DiagnosticsResult(state=state, errors=errors, model=model, workspace=ws)
 
 
