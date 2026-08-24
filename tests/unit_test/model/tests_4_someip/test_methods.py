@@ -267,6 +267,7 @@ class TestMethodsUnionDiscrimination:
     )
     def test_negative_nested_error_reported_once_under_declared_tag(self, metadata_entry, method_type, error_id, message_fragment):
         """A nested error surfaces once, located by tag, instead of once per candidate method class."""
+        service = _service_with_corrupt_bitfield(metadata_entry, method_type)
         with pytest.raises(ValidationError) as exc_info:
-            SOMEIPServiceInterface(**_service_with_corrupt_bitfield(metadata_entry, method_type))
+            SOMEIPServiceInterface(**service)
         assert_single_error(exc_info, error_id, message_fragment)

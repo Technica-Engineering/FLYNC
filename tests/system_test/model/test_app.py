@@ -141,8 +141,9 @@ def test_duplicate_app_names_rejected():
 
     apps = [App(name="dashboard_app"), App(name="dashboard_app")]
 
+    metadata = _make_metadata()
     with pytest.raises(ValidationError) as exc_info:
-        FLYNCModel(ecus=[], apps=apps, metadata=_make_metadata())
+        FLYNCModel(ecus=[], apps=apps, metadata=metadata)
     assert_single_error(exc_info, DUPLICATE_APP_NAMES_ERROR_ID, "Duplicates found in App names")
 
 

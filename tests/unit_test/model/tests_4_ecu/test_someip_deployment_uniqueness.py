@@ -51,8 +51,9 @@ def test_ecu_consuming_same_instance_twice_emits_warning(two_socket_ecu_kwargs):
 def test_ecu_providing_same_instance_twice_rejected(two_socket_ecu_kwargs):
     """Providing one service instance on two sockets of one ECU is a hard conflict."""
 
+    ecu_kwargs = two_socket_ecu_kwargs("provider")
     with pytest.raises(ValidationError) as exc_info:
-        ECU.model_validate(two_socket_ecu_kwargs("provider"))
+        ECU.model_validate(ecu_kwargs)
 
     assert_single_error(exc_info, DUPLICATE_PROVIDER_ERROR_ID, INSTANCE_MESSAGE_FRAGMENT)
 
