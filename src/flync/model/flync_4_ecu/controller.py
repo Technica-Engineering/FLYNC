@@ -718,6 +718,21 @@ class Controller(FLYNCBaseModel):
             all_macs.extend(eth_iface.interface_config.get_all_macs())
         return all_macs
 
+    def get_consumed_service_instances(self) -> set:
+        """
+        Helper function.
+        Return the ``(service, major_version, instance_id)`` triples this Controller deploys as a SOME/IP consumer.
+        """
+
+        return {
+            (dep.root.service, dep.root.major_version, dep.root.instance_id)
+            for eth_iface in self.ethernet_interfaces or []
+            for sock_con in eth_iface.sockets or []
+            for socket in sock_con.sockets or []
+            for dep in socket.deployments or []
+            if dep.root.deployment_type == "someip_consumer"
+        }
+
     def get_interfaces(self) -> list["EthernetInterface"]:
         return list(self.ethernet_interfaces or [])
 

@@ -627,3 +627,68 @@ class ECU(FLYNCBaseModel):
         """
 
         return self.__get_services_of_type(SOMEIPServiceProvider)
+
+    @model_validator(mode="after")
+    def validate_unique_someip_service_instances(self) -> "ECU":
+        """
+        Flag repeated ``(protocol, endpoint_type, service, major_version, instance_id)`` deployments across the
+        ECU's sockets.
+
+        Protocol and endpoint type are part of the identity: offering the same instance over both UDP and TCP is
+        a normal dual-transport setup, and a UDP consumer commonly splits across a unicast socket (regular
+        eventgroups) and a separate multicast socket (multicast-only eventgroups) - neither is a conflict.
+        Consuming one instance twice on the very same transport/endpoint combination is only warned about - some
+        deployments deliberately subscribe to the same instance from more than one such socket. Providing one
+        instance twice on the same transport/endpoint combination is a hard conflict and raises an err_major.
+        """
+
+        seen_consumers: set = set()
+        seen_providers: set = set()
+        for deployment, key in self.iter_someip_deployment_identities():
+            if isinstance(deployment, SOMEIPServiceProvider):
+                if key in seen_providers:
+                    raise err_major(
+                        self.__duplicate_deployment_message("provider", deployment),
+                        category=Category.UNIQUENESS,
+                        error_number="243",
+                    )
+                seen_providers.add(key)
+            elif key in seen_consumers:
+                warn(
+                    self.__duplicate_deployment_message("consumer", deployment),
+                    category=Category.UNIQUENESS,
+                    error_number="241",
+                )
+            else:
+                seen_consumers.add(key)
+        return self
+
+    def iter_someip_deployment_identities(self) -> Iterator[tuple]:
+        """
+        Yield ``(deployment, identity)`` for every SOME/IP provider or consumer deployment across the ECU's sockets.
+
+        The identity is the ``(protocol, endpoint_type, service, major_version, instance_id)`` tuple that decides
+        whether two deployments describe the very same service instance on the very same transport.
+        """
+
+        for socket in self.__iter_sockets():
+            for dep_root in socket.deployments or []:
+                deployment = dep_root.root
+                if isinstance(deployment, (SOMEIPServiceConsumer, SOMEIPServiceProvider)):
+                    identity = (
+                        socket.protocol,  # type: ignore[attr-defined]
+                        socket.endpoint_type,
+                        deployment.service,
+                        deployment.major_version,
+                        deployment.instance_id,
+                    )
+                    yield deployment, identity
+
+    def __duplicate_deployment_message(self, role: str, deployment: SOMEIPServiceDeployment) -> str:
+        """Return the message naming the service instance *deployment* repeats in the given *role*."""
+
+        return (
+            f"ECU '{self.name}': duplicate {role} deployment for service instance "
+            f"(service={deployment.service:#06x}, major_version={deployment.major_version}, "
+            f"instance_id={deployment.instance_id})"
+        )

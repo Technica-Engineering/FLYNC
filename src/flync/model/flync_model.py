@@ -196,6 +196,11 @@ class FLYNCModel(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
+    def validate_unique_app_names(self):
+        validate_list_items_unique([app.name for app in self.apps or []], "App names")
+        return self
+
+    @model_validator(mode="after")
     def resolve_external_connections(self):
         if self.topology.ethernet_topology is None:
             return self
@@ -403,7 +408,7 @@ class FLYNCModel(FLYNCBaseModel):
     @model_validator(mode="after")
     def validate_service_refs_in_apps(self):
         """Validate that applications are referencing existing services."""
-        known_services = {(svc.name, svc.major_version) for svc in self.get_all_someip_services()}
+        known_services = self.get_someip_services_by_identity()
         for app in self.apps or []:
             for ref in (app.service_consumer_refs or []) + (app.service_provider_refs or []):
                 if (ref.service_name, ref.major_version) not in known_services:
@@ -422,6 +427,24 @@ class FLYNCModel(FLYNCBaseModel):
         for controller in self.get_all_controllers():
             if controller.app_bindings:
                 controller.app_bindings.resolve_apps(apps_by_name, controller.name)
+        return self
+
+    @model_validator(mode="after")
+    def validate_app_bindings_consume_deployed_services(self):
+        """Every app bound to a controller must have its service_consumer_refs matched by a someip_consumer
+        deployment on that same controller."""
+        services_by_identity = self.get_someip_services_by_identity()
+        for controller, consumed_instances, app, ref in self._iter_bound_app_consumer_refs():
+            svc = services_by_identity.get((ref.service_name, ref.major_version))
+            key = (svc.id, ref.major_version, ref.instance_id) if svc else None
+            if key not in consumed_instances:
+                raise err_major(
+                    f"App '{app.name}' bound to controller '{controller.name}' expects to consume "
+                    f"({ref.service_name}, instance_id={ref.instance_id}, major_version={ref.major_version}), "
+                    "but the controller does not deploy it as a SOME/IP consumer.",
+                    category=Category.CONSISTENCY,
+                    error_number="245",
+                )
         return self
 
     @model_validator(mode="after")
@@ -654,11 +677,31 @@ class FLYNCModel(FLYNCBaseModel):
         """Yield every :class:`Socket` across every controller / ethernet interface / VLAN container."""
         return (socket for _ecu, socket in self._iter_ecu_sockets())
 
-    def get_all_someip_services(self) -> List["SOMEIPServiceInterface"]:
+    def get_all_someip_services(self) -> List[SOMEIPServiceInterface]:
         """Return all SOME/IP service interfaces declared in the system-wide someip_config."""
         if self.communication and self.communication.someip_config:
             return self.communication.someip_config.services
         return []
+
+    def get_someip_services_by_identity(self) -> Dict[Tuple[str, int], SOMEIPServiceInterface]:
+        """
+        Return the system-wide SOME/IP service interfaces keyed by ``(name, major_version)``.
+        """
+        return {(svc.name, svc.major_version): svc for svc in self.get_all_someip_services()}
+
+    def _iter_bound_app_consumer_refs(self):
+        """
+        Yield ``(controller, consumed_instances, app, ref)`` for every consumer reference of every app bound to a
+        controller, where ``consumed_instances`` is that controller's set of SOME/IP consumer service triples.
+        """
+
+        for controller in self.get_all_controllers():
+            if not controller.app_bindings:
+                continue
+            consumed_instances = controller.get_consumed_service_instances()
+            for app in controller.app_bindings.apps:
+                for ref in app.service_consumer_refs or []:
+                    yield controller, consumed_instances, app, ref
 
     def get_all_pdu_forwarders(self) -> List[PDUForwarder]:
         """Return every PDUForwarder declared on any socket across all ECUs."""

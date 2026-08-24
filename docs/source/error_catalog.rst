@@ -2342,3 +2342,53 @@ Every error and warning the FLYNC validators can raise, identified as
 
    f"Host controller interface '{self.host_controller_interface_name}' referenced in connection '{self.id}' was not found on the host controller of switch '{self.switch.name}'."
 
+.. err:: ECU '{self.name}': duplicate consumer deployment for service instance (servic...
+   :id: FLYNC-ECU-WARN-UNIQ-241
+   :module: ECU
+   :severity: WARN
+   :category: UNIQUENESS
+   :number: 241
+   :location: ecu.ECU.validate_unique_someip_service_instances
+
+   f"ECU '{self.name}': duplicate consumer deployment for service instance (service={dep.service:#06x}, major_version={dep.major_version}, instance_id={dep.instance_id})"
+
+.. err:: App '{self.name}' both consumes and provides the same service instance ({ref....
+   :id: FLYNC-CMN-WARN-CONS-242
+   :module: CMN
+   :severity: WARN
+   :category: CONSISTENCY
+   :number: 242
+   :location: application.App.warn_self_consumed_instances
+
+   f"App '{self.name}' both consumes and provides the same service instance ({ref.service_name}, instance_id={ref.instance_id}, major_version={ref.major_version})."
+
+.. err:: ECU '{self.name}': duplicate provider deployment for service instance (servic...
+   :id: FLYNC-ECU-MAJ-UNIQ-243
+   :module: ECU
+   :severity: MAJ
+   :category: UNIQUENESS
+   :number: 243
+   :location: ecu.ECU.validate_unique_someip_service_instances
+
+   f"ECU '{self.name}': duplicate provider deployment for service instance (service={dep.service:#06x}, major_version={dep.major_version}, instance_id={dep.instance_id})"
+
+.. err:: Socket '{self.name}': duplicate {deployment_type.__name__} deployment for ser...
+   :id: FLYNC-ECU-MAJ-UNIQ-244
+   :module: ECU
+   :severity: MAJ
+   :category: UNIQUENESS
+   :number: 244
+   :location: sockets.Socket.validate_unique_someip_deployments
+
+   f"Socket '{self.name}': duplicate {deployment_type.__name__} deployment for service instance (service={dep.service:#06x}, major_version={dep.major_version}, instance_id={dep.instance_id})"
+
+.. err:: App '{app.name}' bound to controller '{controller.name}' expects to consume (...
+   :id: FLYNC-GEN-MAJ-CONS-245
+   :module: GEN
+   :severity: MAJ
+   :category: CONSISTENCY
+   :number: 245
+   :location: flync_model.FLYNCModel.validate_app_bindings_consume_deployed_services
+
+   f"App '{app.name}' bound to controller '{controller.name}' expects to consume ({ref.service_name}, instance_id={ref.instance_id}, major_version={ref.major_version}), but the controller does not deploy it as a SOME/IP consumer."
+

@@ -2,13 +2,14 @@
 
 from typing import Annotated, List, Literal, Optional
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from flync.core.annotations import (
     Implied,
     ImpliedStrategy,
 )
 from flync.core.base_models import FLYNCBaseModel
+from flync.core.utils.exceptions import Category, warn
 
 
 class ServiceConsumerReference(FLYNCBaseModel):
@@ -53,13 +54,10 @@ class ServiceProviderReference(FLYNCBaseModel):
 
     major_version: int
         Major version of the referenced service instance.
-
-    minor_version: int
-        Minor version of the referenced service instance.
     """
 
     type: Literal["provider"] = Field(default="provider", description="Type of the service reference.")
-    service_name: str = Field(default="consumer", description="Name of the referenced service instance.")
+    service_name: str = Field(default="provider", description="Name of the referenced service instance.")
     instance_id: int = Field(description="Instance ID of the referenced service instance.")
     major_version: int = Field(description="Major version of the referenced service instance.")
 
@@ -87,3 +85,17 @@ class App(FLYNCBaseModel):
     service_provider_refs: Optional[List[ServiceProviderReference]] = Field(
         description="Reference of all Provider Instances of this application.", default_factory=list
     )
+
+    @model_validator(mode="after")
+    def warn_self_consumed_instances(self):
+        """Warn when a service instance is referenced in both service_consumer_refs and service_provider_refs."""
+        provided = {(ref.service_name, ref.instance_id, ref.major_version) for ref in self.service_provider_refs or []}
+        for ref in self.service_consumer_refs or []:
+            if (ref.service_name, ref.instance_id, ref.major_version) in provided:
+                warn(
+                    f"App '{self.name}' both consumes and provides the same service instance "
+                    f"({ref.service_name}, instance_id={ref.instance_id}, major_version={ref.major_version}).",
+                    category=Category.CONSISTENCY,
+                    error_number="242",
+                )
+        return self

@@ -158,6 +158,30 @@ class Socket(FLYNCBaseModel):
             )
         return self
 
+    @model_validator(mode="after")
+    def validate_unique_someip_deployments(self) -> "Socket":
+        """
+        Raise ``err_major`` if two deployments of the same role (provider or consumer) on this socket target the
+        same ``(service, major_version, instance_id)`` triple - indistinguishable on the wire.
+        """
+
+        for deployment_type in (SOMEIPServiceProvider, SOMEIPServiceConsumer):
+            seen: set = set()
+            for dep_root in self.deployments or []:
+                dep = dep_root.root
+                if not isinstance(dep, deployment_type):
+                    continue
+                key = (dep.service, dep.major_version, dep.instance_id)
+                if key in seen:
+                    raise err_major(
+                        f"Socket '{self.name}': duplicate {deployment_type.__name__} deployment for service instance "
+                        f"(service={dep.service:#06x}, major_version={dep.major_version}, instance_id={dep.instance_id})",
+                        category=Category.UNIQUENESS,
+                        error_number="244",
+                    )
+                seen.add(key)
+        return self
+
     @field_serializer("endpoint_address")
     def serialize_endpoint_address(self, endpoint):
         if endpoint is not None:
