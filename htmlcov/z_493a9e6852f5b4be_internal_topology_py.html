@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Coverage for src/flync/model/flync_4_ecu/internal_topology.py: 94%</title>
+    <title>Coverage for src/flync/model/flync_4_ecu/internal_topology.py: 95%</title>
     <link rel="icon" sizes="32x32" href="favicon_32_cb_c827f16f.png">
     <link rel="stylesheet" href="style_cb_4667309f.css" type="text/css">
     <script src="coverage_html_cb_dd2e7eb5.js" defer></script>
@@ -12,7 +12,7 @@
     <div class="content">
         <h1>
             <span class="text">Coverage for </span><b>src<span class="sep">/</span>flync<span class="sep">/</span>model<span class="sep">/</span>flync_4_ecu<span class="sep">/</span>internal_topology.py</b>:
-            <span class="pc_cov">94%</span>
+            <span class="pc_cov">95%</span>
         </h1>
         <aside id="help_panel_wrapper">
             <input id="help_panel_state" type="checkbox">
@@ -55,8 +55,8 @@
         </aside>
         <h2>
             <span class="text">210 statements &nbsp;</span>
-            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">198<span class="text"> run</span></button>
-            <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">12<span class="text"> missing</span></button>
+            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">200<span class="text"> run</span></button>
+            <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">10<span class="text"> missing</span></button>
             <button type="button" class="exc show_exc button_toggle_exc" value="exc" data-shortcut="x" title="Toggle lines excluded">2<span class="text"> excluded</span></button>
         </h2>
         <p class="text">
@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_493a9e6852f5b4be_lin_interface_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
-            created at 2026-08-21 15:29 +0000
+            created at 2026-08-24 08:33 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -225,11 +225,11 @@
     <p class="run"><span class="n"><a id="t143" href="#t143">143</a></span><span class="t">        <span class="key">if</span> <span class="nam">switch_name</span> <span class="key">is</span> <span class="key">not</span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t144" href="#t144">144</a></span><span class="t">            <span class="nam">switch</span> <span class="op">=</span> <span class="nam">next</span><span class="op">(</span><span class="op">(</span><span class="nam">s</span> <span class="key">for</span> <span class="nam">s</span> <span class="key">in</span> <span class="nam">switches</span> <span class="key">if</span> <span class="nam">s</span><span class="op">.</span><span class="nam">name</span> <span class="op">==</span> <span class="nam">switch_name</span><span class="op">)</span><span class="op">,</span> <span class="key">None</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t145" href="#t145">145</a></span><span class="t">            <span class="key">if</span> <span class="nam">switch</span> <span class="key">is</span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t146" href="#t146">146</a></span><span class="t">                <span class="key">raise</span> <span class="nam">err_major</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis mis2 show_mis"><span class="n"><a id="t147" href="#t147">147</a></span><span class="t">                    <span class="fst">f&quot;</span><span class="fst">Switch &#x27;</span><span class="op">{</span><span class="nam">switch_name</span><span class="op">}</span><span class="fst">&#x27; referenced in connection &#x27;</span><span class="op">{</span><span class="nam">connection_id</span><span class="op">}</span><span class="fst">&#x27; was not found in the current ECU.</span><span class="fst">&quot;</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis mis2 show_mis"><span class="n"><a id="t148" href="#t148">148</a></span><span class="t">                    <span class="nam">category</span><span class="op">=</span><span class="nam">Category</span><span class="op">.</span><span class="nam">REFERENCE</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis mis2 show_mis"><span class="n"><a id="t149" href="#t149">149</a></span><span class="t">                    <span class="nam">error_number</span><span class="op">=</span><span class="str">&quot;073&quot;</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis mis2 show_mis"><span class="n"><a id="t150" href="#t150">150</a></span><span class="t">                <span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t146" href="#t146">146</a></span><span class="t">                <span class="key">raise</span> <span class="nam">err_major</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t147" href="#t147">147</a></span><span class="t">                    <span class="fst">f&quot;</span><span class="fst">Switch &#x27;</span><span class="op">{</span><span class="nam">switch_name</span><span class="op">}</span><span class="fst">&#x27; referenced in connection &#x27;</span><span class="op">{</span><span class="nam">connection_id</span><span class="op">}</span><span class="fst">&#x27; was not found in the current ECU.</span><span class="fst">&quot;</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t148" href="#t148">148</a></span><span class="t">                    <span class="nam">category</span><span class="op">=</span><span class="nam">Category</span><span class="op">.</span><span class="nam">REFERENCE</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t149" href="#t149">149</a></span><span class="t">                    <span class="nam">error_number</span><span class="op">=</span><span class="str">&quot;073&quot;</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t150" href="#t150">150</a></span><span class="t">                <span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t151" href="#t151">151</a></span><span class="t">            <span class="nam">port</span> <span class="op">=</span> <span class="nam">next</span><span class="op">(</span><span class="op">(</span><span class="nam">p</span> <span class="key">for</span> <span class="nam">p</span> <span class="key">in</span> <span class="nam">switch</span><span class="op">.</span><span class="nam">ports</span> <span class="key">if</span> <span class="nam">p</span><span class="op">.</span><span class="nam">name</span> <span class="op">==</span> <span class="nam">port_name</span><span class="op">)</span><span class="op">,</span> <span class="key">None</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t152" href="#t152">152</a></span><span class="t">        <span class="key">else</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t153" href="#t153">153</a></span><span class="t">            <span class="nam">matches</span> <span class="op">=</span> <span class="op">[</span><span class="nam">p</span> <span class="key">for</span> <span class="nam">s</span> <span class="key">in</span> <span class="nam">switches</span> <span class="key">for</span> <span class="nam">p</span> <span class="key">in</span> <span class="nam">s</span><span class="op">.</span><span class="nam">ports</span> <span class="key">if</span> <span class="nam">p</span><span class="op">.</span><span class="nam">name</span> <span class="op">==</span> <span class="nam">port_name</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
@@ -311,11 +311,11 @@
     <p class="run"><span class="n"><a id="t229" href="#t229">229</a></span><span class="t">        <span class="key">if</span> <span class="nam">controller_name</span> <span class="key">is</span> <span class="key">not</span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t230" href="#t230">230</a></span><span class="t">            <span class="nam">ctrl</span> <span class="op">=</span> <span class="nam">next</span><span class="op">(</span><span class="op">(</span><span class="nam">c</span> <span class="key">for</span> <span class="nam">c</span> <span class="key">in</span> <span class="nam">controllers</span> <span class="key">if</span> <span class="nam">c</span><span class="op">.</span><span class="nam">name</span> <span class="op">==</span> <span class="nam">controller_name</span><span class="op">)</span><span class="op">,</span> <span class="key">None</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t231" href="#t231">231</a></span><span class="t">            <span class="key">if</span> <span class="nam">ctrl</span> <span class="key">is</span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t232" href="#t232">232</a></span><span class="t">                <span class="key">raise</span> <span class="nam">err_major</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis mis2 show_mis"><span class="n"><a id="t233" href="#t233">233</a></span><span class="t">                    <span class="fst">f&quot;</span><span class="fst">Controller &#x27;</span><span class="op">{</span><span class="nam">controller_name</span><span class="op">}</span><span class="fst">&#x27; referenced in connection &#x27;</span><span class="op">{</span><span class="nam">connection_id</span><span class="op">}</span><span class="fst">&#x27; was not found in the current ECU.</span><span class="fst">&quot;</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis mis2 show_mis"><span class="n"><a id="t234" href="#t234">234</a></span><span class="t">                    <span class="nam">category</span><span class="op">=</span><span class="nam">Category</span><span class="op">.</span><span class="nam">REFERENCE</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis mis2 show_mis"><span class="n"><a id="t235" href="#t235">235</a></span><span class="t">                    <span class="nam">error_number</span><span class="op">=</span><span class="str">&quot;076&quot;</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis mis2 show_mis"><span class="n"><a id="t236" href="#t236">236</a></span><span class="t">                <span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t232" href="#t232">232</a></span><span class="t">                <span class="key">raise</span> <span class="nam">err_major</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t233" href="#t233">233</a></span><span class="t">                    <span class="fst">f&quot;</span><span class="fst">Controller &#x27;</span><span class="op">{</span><span class="nam">controller_name</span><span class="op">}</span><span class="fst">&#x27; referenced in connection &#x27;</span><span class="op">{</span><span class="nam">connection_id</span><span class="op">}</span><span class="fst">&#x27; was not found in the current ECU.</span><span class="fst">&quot;</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t234" href="#t234">234</a></span><span class="t">                    <span class="nam">category</span><span class="op">=</span><span class="nam">Category</span><span class="op">.</span><span class="nam">REFERENCE</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t235" href="#t235">235</a></span><span class="t">                    <span class="nam">error_number</span><span class="op">=</span><span class="str">&quot;076&quot;</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t236" href="#t236">236</a></span><span class="t">                <span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t237" href="#t237">237</a></span><span class="t">            <span class="nam">iface</span> <span class="op">=</span> <span class="nam">next</span><span class="op">(</span><span class="op">(</span><span class="nam">i</span> <span class="key">for</span> <span class="nam">i</span> <span class="key">in</span> <span class="nam">ctrl</span><span class="op">.</span><span class="nam">get_interfaces</span><span class="op">(</span><span class="op">)</span> <span class="key">if</span> <span class="nam">i</span><span class="op">.</span><span class="nam">name</span> <span class="op">==</span> <span class="nam">iface_name</span><span class="op">)</span><span class="op">,</span> <span class="key">None</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t238" href="#t238">238</a></span><span class="t">        <span class="key">else</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t239" href="#t239">239</a></span><span class="t">            <span class="nam">matches</span> <span class="op">=</span> <span class="op">[</span><span class="op">(</span><span class="nam">i</span><span class="op">,</span> <span class="nam">c</span><span class="op">)</span> <span class="key">for</span> <span class="nam">c</span> <span class="key">in</span> <span class="nam">controllers</span> <span class="key">for</span> <span class="nam">i</span> <span class="key">in</span> <span class="nam">c</span><span class="op">.</span><span class="nam">get_interfaces</span><span class="op">(</span><span class="op">)</span> <span class="key">if</span> <span class="nam">i</span><span class="op">.</span><span class="nam">name</span> <span class="op">==</span> <span class="nam">iface_name</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
@@ -693,7 +693,7 @@
             <a class="nav" href="z_493a9e6852f5b4be_lin_interface_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
-            created at 2026-08-21 15:29 +0000
+            created at 2026-08-24 08:33 +0000
         </p>
     </div>
 </footer>
