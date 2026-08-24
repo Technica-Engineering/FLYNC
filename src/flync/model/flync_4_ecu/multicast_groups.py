@@ -11,11 +11,10 @@ from typing import Annotated, Literal, Optional
 from pydantic import AfterValidator, Field, model_validator
 from pydantic.networks import IPvAnyAddress
 
-import flync.core.utils.common_validators as common_validators
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.datatypes.macaddress import FLYNCMacAddress
-from flync.core.utils.common_validators import validate_vlan_id
 from flync.core.utils.exceptions import Category, err_minor
+from flync.core.utils.validators_address import validate_any_multicast_address, validate_vlan_id
 from flync.model.flync_4_ecu.controller import EthernetInterfaceConfig
 
 
@@ -40,7 +39,7 @@ class MulticastGroupMembership(FLYNCBaseModel):
 
     group: Annotated[
         IPvAnyAddress | FLYNCMacAddress,
-        AfterValidator(common_validators.validate_any_multicast_address),
+        AfterValidator(validate_any_multicast_address),
     ] = Field()
     description: Optional[str] = Field(default="")
     mode: Literal["tx"] | Literal["rx"] = Field(default="rx")

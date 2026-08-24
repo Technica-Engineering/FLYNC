@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import pytest
 from pydantic_core import PydanticCustomError
 
-from flync.core.utils.common_validators import (
+from flync.core.utils.validators_connection_compatibility import (
     validate_gptp,
     validate_macsec,
     validate_optional_mii_config_compatibility,

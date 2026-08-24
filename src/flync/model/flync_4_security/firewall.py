@@ -4,9 +4,9 @@ from typing import Annotated, List, Literal, Optional
 
 from pydantic import BeforeValidator, Field, field_validator, model_validator
 
-import flync.core.utils.common_validators as common_validators
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_minor
+from flync.core.utils.validators_helpers import none_to_empty_list
 from flync.model.flync_4_tsn.qos import FrameFilter
 
 
@@ -66,15 +66,15 @@ class Firewall(FLYNCBaseModel):
     default_action: Optional[Literal["reject", "accept", "drop"]] = Field(default="reject")
     input_rules: Annotated[
         Optional[List[FirewallRule]],
-        BeforeValidator(common_validators.none_to_empty_list),
+        BeforeValidator(none_to_empty_list),
     ] = Field(default=[])
     output_rules: Annotated[
         Optional[List[FirewallRule]],
-        BeforeValidator(common_validators.none_to_empty_list),
+        BeforeValidator(none_to_empty_list),
     ] = Field(default=[])
     forward_rules: Annotated[
         Optional[List[FirewallRule]],
-        BeforeValidator(common_validators.none_to_empty_list),
+        BeforeValidator(none_to_empty_list),
     ] = Field(default=[])
 
     @field_validator("input_rules", "output_rules", "forward_rules")

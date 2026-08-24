@@ -13,7 +13,6 @@ from pydantic import (
 )
 from pydantic.networks import IPvAnyAddress
 
-import flync.core.utils.common_validators as common_validators
 from flync.core.annotations import (
     External,
     Implied,
@@ -24,6 +23,18 @@ from flync.core.annotations import (
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.datatypes.macaddress import FLYNCMacAddress
 from flync.core.utils.exceptions import Category, err_fatal, err_major, err_minor, warn
+from flync.core.utils.validators_address import validate_multicast_list, validate_vlan_id
+from flync.core.utils.validators_connection_compatibility import (
+    validate_ingress_streams_fields,
+    validate_vlan_ids_unique,
+)
+from flync.core.utils.validators_helpers import (
+    none_to_empty_list,
+    validate_list_items_and_remove,
+    validate_list_items_unique,
+    validate_or_remove,
+)
+from flync.core.utils.validators_traffic_classes import validate_traffic_classes
 from flync.core.version_migrators.legacy_controller_check import (
     reject_legacy_controller,
 )
@@ -51,30 +62,30 @@ from flync.model.flync_4_tsn import (
 
 _PTPConfigField = Annotated[
     Optional[PTPConfig],
-    BeforeValidator(common_validators.validate_or_remove("PTP config", PTPConfig)),
+    BeforeValidator(validate_or_remove("PTP config", PTPConfig)),
 ]
 _MACsecConfigField = Annotated[
     Optional[MACsecConfig],
-    BeforeValidator(common_validators.validate_or_remove("MACsec config", MACsecConfig)),
+    BeforeValidator(validate_or_remove("MACsec config", MACsecConfig)),
 ]
 _FirewallField = Annotated[
     Optional[Firewall],
-    BeforeValidator(common_validators.validate_or_remove("firewall", Firewall)),
+    BeforeValidator(validate_or_remove("firewall", Firewall)),
 ]
 _HTBField = Annotated[
     Optional[HTBInstance],
-    BeforeValidator(common_validators.validate_or_remove("HTB config", HTBInstance)),
+    BeforeValidator(validate_or_remove("HTB config", HTBInstance)),
 ]
 _IngressStreamsField = Annotated[
     Optional[List[Stream]],
-    BeforeValidator(common_validators.validate_or_remove("ingress streams", List[Stream])),
-    BeforeValidator(common_validators.none_to_empty_list),
+    BeforeValidator(validate_or_remove("ingress streams", List[Stream])),
+    BeforeValidator(none_to_empty_list),
 ]
 _TrafficClassesField = Annotated[
     Optional[List[TrafficClass]],
-    AfterValidator(common_validators.validate_traffic_classes),
-    BeforeValidator(common_validators.validate_or_remove("traffic classes", List[TrafficClass])),
-    BeforeValidator(common_validators.none_to_empty_list),
+    AfterValidator(validate_traffic_classes),
+    BeforeValidator(validate_or_remove("traffic classes", List[TrafficClass])),
+    BeforeValidator(none_to_empty_list),
 ]
 
 
@@ -106,13 +117,13 @@ class VirtualControllerInterface(FLYNCBaseModel):
     name: str = Field()
     vlanid: Annotated[
         Optional[int],
-        AfterValidator(common_validators.validate_vlan_id),
+        AfterValidator(validate_vlan_id),
     ] = Field(default=None)
     addresses: List[IPv6AddressEndpoint | IPv4AddressEndpoint] = Field()
     multicast: Annotated[
         Optional[List[IPvAnyAddress | FLYNCMacAddress]],
-        AfterValidator(common_validators.validate_multicast_list),
-        BeforeValidator(common_validators.none_to_empty_list),
+        AfterValidator(validate_multicast_list),
+        BeforeValidator(none_to_empty_list),
     ] = Field(default=[])
 
     @field_serializer("addresses", "multicast")
@@ -171,7 +182,7 @@ class ComputeNodes(FLYNCBaseModel):
     virtual_interfaces: Annotated[
         List[VirtualControllerInterface],
         BeforeValidator(
-            common_validators.validate_list_items_and_remove(
+            validate_list_items_and_remove(
                 "virtual interface",
                 VirtualControllerInterface,
                 severity="minor",
@@ -188,7 +199,7 @@ class ComputeNodes(FLYNCBaseModel):
     @field_validator("ingress_streams", mode="after")
     def validate_ingress_streams(cls, value):
         """Ensure no ingress stream carries an ipv or ats value."""
-        return common_validators.validate_ingress_streams_fields(value, "compute node")
+        return validate_ingress_streams_fields(value, "compute node")
 
     @model_validator(mode="before")
     def experimental_warning(self):
@@ -199,7 +210,7 @@ class ComputeNodes(FLYNCBaseModel):
     @model_validator(mode="after")
     def validate_vlans(self):
         """Raise if any VLAN ID is repeated across virtual interfaces."""
-        common_validators.validate_vlan_ids_unique(self.virtual_interfaces, self.name)
+        validate_vlan_ids_unique(self.virtual_interfaces, self.name)
         return self
 
 
@@ -319,7 +330,7 @@ class EthernetInterfaceConfig(FLYNCBaseModel):
     virtual_interfaces: Annotated[
         Optional[List[VirtualControllerInterface]],
         BeforeValidator(
-            common_validators.validate_list_items_and_remove(
+            validate_list_items_and_remove(
                 "virtual interface",
                 VirtualControllerInterface,
                 severity="minor",
@@ -334,7 +345,7 @@ class EthernetInterfaceConfig(FLYNCBaseModel):
     traffic_classes: _TrafficClassesField = Field(default_factory=list)
     routing_table: Annotated[
         Optional[List[RouteEntry]],
-        BeforeValidator(common_validators.none_to_empty_list),
+        BeforeValidator(none_to_empty_list),
     ] = Field(default=[])
     _name: Optional[str] = None
 
@@ -346,7 +357,7 @@ class EthernetInterfaceConfig(FLYNCBaseModel):
     @field_validator("ingress_streams", mode="after")
     def validate_ingress_streams(cls, value):
         """Ensure no ingress stream carries an ipv or ats value."""
-        return common_validators.validate_ingress_streams_fields(value, "controller interface")
+        return validate_ingress_streams_fields(value, "controller interface")
 
     @model_validator(mode="after")
     def require_valid_virtual_interface(self):
@@ -360,7 +371,7 @@ class EthernetInterfaceConfig(FLYNCBaseModel):
     @model_validator(mode="after")
     def validate_vlans(self):
         """Raise if any VLAN ID is repeated across virtual interfaces."""
-        common_validators.validate_vlan_ids_unique(self.virtual_interfaces, self.name)
+        validate_vlan_ids_unique(self.virtual_interfaces, self.name)
         return self
 
     @model_validator(mode="after")
@@ -646,8 +657,8 @@ class Controller(FLYNCBaseModel):
     state_memberships: Annotated[
         Optional[List[StateMembershipRef]],
         External(output_structure=OutputStrategy.SINGLE_FILE),
-        BeforeValidator(common_validators.validate_or_remove("state memberships", List[StateMembershipRef])),
-        BeforeValidator(common_validators.none_to_empty_list),
+        BeforeValidator(validate_or_remove("state memberships", List[StateMembershipRef])),
+        BeforeValidator(none_to_empty_list),
     ] = Field(
         default=[],
         description="Assignments of this controller to state management groups.",
@@ -671,7 +682,7 @@ class Controller(FLYNCBaseModel):
     @model_validator(mode="after")
     def validate_unique_interface_names(self):
         """Validate that controller interface names are unique within this controller."""
-        common_validators.validate_list_items_unique(
+        validate_list_items_unique(
             [eth.name for eth in (self.ethernet_interfaces or []) if eth.interface_config],
             "Controller Interfaces (name)",
         )

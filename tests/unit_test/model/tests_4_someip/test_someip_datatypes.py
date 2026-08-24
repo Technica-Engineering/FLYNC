@@ -2,7 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from flync.model.flync_4_someip import Bitfield, Enum, Int8, UInt8
-from flync.model.flync_4_someip.someip_datatypes import BitfieldEntry, EnumEntry
+from flync.model.flync_4_someip.someip_simple_datatypes import BitfieldEntry, EnumEntry
 from tests.error_assertions import assert_single_error
 
 

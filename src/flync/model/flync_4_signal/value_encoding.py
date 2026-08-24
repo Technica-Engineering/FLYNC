@@ -7,8 +7,8 @@ from typing import Annotated, List, Literal, Optional, Union
 from pydantic import Field, model_validator
 
 from flync.core.base_models import FLYNCBaseModel
-from flync.core.utils.common_validators import check_bit_ranges_no_overlap, collect_bit_ranges, validate_value_input_format
 from flync.core.utils.exceptions import Category, err_major
+from flync.core.utils.validators_bit_ranges import check_bit_ranges_no_overlap, collect_bit_ranges, validate_value_input_format
 
 
 class TextEntry(FLYNCBaseModel):

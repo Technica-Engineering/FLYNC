@@ -11,7 +11,6 @@ from pydantic_core import PydanticCustomError
 from flync.core.annotations import External, NamingStrategy, OutputStrategy
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.base_utils import check_obj_in_list
-from flync.core.utils.common_validators import validate_list_items_unique
 from flync.core.utils.exceptions import Category, err_major, warn
 from flync.core.utils.forwarder_validators import (
     detect_forwarder_cycles,
@@ -31,6 +30,7 @@ from flync.core.utils.multicast import (
 from flync.core.utils.state_management_validators import (
     validate_state_management,
 )
+from flync.core.utils.validators_helpers import validate_list_items_unique
 from flync.model.flync_4_app import App
 from flync.model.flync_4_communication import FLYNCCommunicationConfig
 from flync.model.flync_4_ecu import (

@@ -7,11 +7,8 @@ from pydantic_extra_types.mac_address import MacAddress
 
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.datatypes.macaddress import FLYNCMacAddress, is_mac_in_range
-from flync.core.utils.common_validators import (
-    validate_mac_multicast,
-    validate_vlan_id,
-)
 from flync.core.utils.exceptions import Category, err_major
+from flync.core.utils.validators_address import validate_mac_multicast, validate_vlan_id
 
 
 class MACMulticastEndpoint(FLYNCBaseModel):

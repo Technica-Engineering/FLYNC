@@ -6,10 +6,7 @@ from pydantic import AfterValidator, BeforeValidator, Field
 from pydantic_extra_types.mac_address import MacAddress
 
 from flync.core.base_models.base_model import FLYNCBaseModel
-from flync.core.utils.common_validators import (
-    validate_mac_multicast,
-    validate_mac_unicast,
-)
+from flync.core.utils.validators_address import validate_mac_multicast, validate_mac_unicast
 from flync.core.validators.address_validators import before_validate_mac_address
 
 FLYNCMacAddress = Annotated[MacAddress, BeforeValidator(before_validate_mac_address)]

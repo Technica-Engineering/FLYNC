@@ -5,8 +5,8 @@ from typing import Annotated, List, Literal, Optional, Union
 from pydantic import AfterValidator, Field, model_validator
 
 from flync.core.base_models.base_model import FLYNCBaseModel
-from flync.core.utils.common_validators import validate_vlan_id
 from flync.core.utils.exceptions import Category, err_minor
+from flync.core.utils.validators_address import validate_vlan_id
 
 
 class IntegrityWithoutConfidentiality(FLYNCBaseModel):

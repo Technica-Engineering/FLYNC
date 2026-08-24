@@ -15,9 +15,10 @@ from pydantic import (
 )
 from pydantic.networks import IPvAnyAddress
 
-import flync.core.utils.common_validators as common_validators
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.datatypes.macaddress import FLYNCMacAddress
+from flync.core.utils.validators_address import validate_any_multicast_address, validate_vlan_id
+from flync.core.utils.validators_helpers import none_to_empty_list
 
 
 class MulticastGroup(FLYNCBaseModel):
@@ -45,7 +46,7 @@ class MulticastGroup(FLYNCBaseModel):
         Validate that ``address`` is an IP or MAC multicast address.
         """
 
-        return common_validators.validate_any_multicast_address(v)
+        return validate_any_multicast_address(v)
 
     @field_serializer("address")
     def serialize_address(self, address):
@@ -79,7 +80,7 @@ class VLANEntry(FLYNCBaseModel):
     """
 
     name: str = Field()
-    id: Annotated[int, AfterValidator(common_validators.validate_vlan_id)] = Field(...)
+    id: Annotated[int, AfterValidator(validate_vlan_id)] = Field(...)
     default_priority: int = Field(..., ge=0, le=7)
     ports: List[str] = Field()
     multicast: List[MulticastGroup] | None = Field(default=[])
@@ -91,4 +92,4 @@ class VLANEntry(FLYNCBaseModel):
         Coerce a ``None`` multicast list to an empty list.
         """
 
-        return common_validators.none_to_empty_list(v)
+        return none_to_empty_list(v)

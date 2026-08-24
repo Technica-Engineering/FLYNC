@@ -30,9 +30,13 @@ from flync.model.flync_4_someip.service_interface import (
     SOMEIPServiceInterface,
     SOMEIPTimingProfile,
 )
-from flync.model.flync_4_someip.someip_datatypes import (
+from flync.model.flync_4_someip.someip_complex_datatypes import (
     AllTypes,
     ArrayType,
+    Struct,
+    Union,
+)
+from flync.model.flync_4_someip.someip_simple_datatypes import (
     Bitfield,
     Boolean,
     DynamicLengthString,
@@ -46,12 +50,10 @@ from flync.model.flync_4_someip.someip_datatypes import (
     Int32,
     Int64,
     Ints,
-    Struct,
     UInt8,
     UInt16,
     UInt32,
     UInt64,
-    Union,
 )
 
 SOMEIPMethod.model_rebuild()

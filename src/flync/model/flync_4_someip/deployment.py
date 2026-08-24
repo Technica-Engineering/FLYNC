@@ -12,10 +12,10 @@ from pydantic import (
     field_serializer,
 )
 
-import flync.core.utils.common_validators as common_validators
 from flync.core.annotations.reference import Reference
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.base_utils import is_ip_multicast
+from flync.core.utils.validators_address import validate_ip_multicast
 from flync.model.flync_4_someip.service_interface import (
     SDTimings,
     SOMEIPServiceInterface,
@@ -232,9 +232,7 @@ class SOMEIPEventgroupMulticastConfig(FLYNCBaseModel):
         Eventgroup names for which this config should apply.
     """
 
-    ip_address: Annotated[IPvAnyAddress, AfterValidator(common_validators.validate_ip_multicast)] = Field(
-        description="identifies the multicast address"
-    )
+    ip_address: Annotated[IPvAnyAddress, AfterValidator(validate_ip_multicast)] = Field(description="identifies the multicast address")
     port: Annotated[int, Field(gt=0, lt=0xFFFF)] = Field(description="identifies the multicast port")
     threshold: Annotated[int, Field(gt=0)] = Field(description="identifies the multicast threshold")
     eventgroups: List[str] = Field(description="identfies the eventgroups which can be sent via multicast")

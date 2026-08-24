@@ -24,13 +24,14 @@ from pydantic import (
     model_validator,
 )
 
-import flync.core.utils.common_validators as common_validators
 from flync.core.annotations.external import External, OutputStrategy
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_minor
+from flync.core.utils.validators_address import validate_ip_multicast
+from flync.core.utils.validators_helpers import none_to_empty_list
 from flync.model.flync_4_metadata import SOMEIPServiceMetadata
 from flync.model.flync_4_safety.e2e import E2EConfig
-from flync.model.flync_4_someip.someip_datatypes import AllTypes
+from flync.model.flync_4_someip.someip_complex_datatypes import AllTypes
 
 
 class SOMEIPFieldTimings(FLYNCBaseModel):
@@ -296,7 +297,7 @@ class SOMEIPParameter(FLYNCBaseModel):
     description : str, optional
         Human-readable description of the datatype.
 
-    type : :class:`~flync.model.flync_4_someip.someip_datatypes.AllTypes`
+    type : :class:`~flync.model.flync_4_someip.someip_complex_datatypes.AllTypes`
         Datatype of the Parameter.
     """
 
@@ -454,7 +455,7 @@ class SOMEIPMethod(FLYNCBaseModel):
     )
     input_parameters: Annotated[
         Optional[List["SOMEIPParameter"]],
-        BeforeValidator(common_validators.none_to_empty_list),
+        BeforeValidator(none_to_empty_list),
     ] = Field(default=[])
 
     someip_timing: Optional[str] = Field(default="method_default")
@@ -479,7 +480,7 @@ class SOMEIPRequestResponseMethod(SOMEIPMethod):
     type: Literal["request_response"] = "request_response"
     output_parameters: Annotated[
         Optional[List["SOMEIPParameter"]],
-        BeforeValidator(common_validators.none_to_empty_list),
+        BeforeValidator(none_to_empty_list),
     ] = Field(default=[])
 
     def __init__(self, *args, **kwargs):
@@ -549,19 +550,19 @@ class SOMEIPServiceInterface(FLYNCBaseModel):
     )
     fields: Annotated[
         Optional[List[SOMEIPField]],
-        BeforeValidator(common_validators.none_to_empty_list),
+        BeforeValidator(none_to_empty_list),
     ] = Field(default=[], description="fields of the service")
     events: Annotated[
         Optional[List[SOMEIPEvent]],
-        BeforeValidator(common_validators.none_to_empty_list),
+        BeforeValidator(none_to_empty_list),
     ] = Field(default=[], description="events of the service")
     eventgroups: Annotated[
         Optional[List[SOMEIPEventgroup]],
-        BeforeValidator(common_validators.none_to_empty_list),
+        BeforeValidator(none_to_empty_list),
     ] = Field(default=[], description="eventgroups of the service")
     methods: Annotated[
         List[Annotated[SOMEIPFireAndForgetMethod | SOMEIPRequestResponseMethod, Field(discriminator="type")]],
-        BeforeValidator(common_validators.none_to_empty_list),
+        BeforeValidator(none_to_empty_list),
     ] = Field(default=[], description="methods of the service")
     meta: SOMEIPServiceMetadata = Field()
 
@@ -780,9 +781,7 @@ class SDConfig(FLYNCBaseModel):
         Timing Configurations for SOME/IP-SD.
     """
 
-    ip_address: Annotated[IPvAnyAddress, AfterValidator(common_validators.validate_ip_multicast)] = Field(
-        description="IP on which the service discovery operates"
-    )
+    ip_address: Annotated[IPvAnyAddress, AfterValidator(validate_ip_multicast)] = Field(description="IP on which the service discovery operates")
     port: Annotated[int, Field(gt=0, lt=0xFFFF)] = Field(
         default=30490,
         description="port which the service discovery operates on",

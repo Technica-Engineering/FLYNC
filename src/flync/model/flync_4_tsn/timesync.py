@@ -6,8 +6,8 @@ from typing import Annotated, List, Literal, Optional
 
 from pydantic import BeforeValidator, Field
 
-import flync.core.utils.common_validators as common_validators
 from flync.core.base_models.base_model import FLYNCBaseModel
+from flync.core.utils.validators_helpers import none_to_empty_list
 
 
 class PTPTimeTransmitterConfig(FLYNCBaseModel):
@@ -35,7 +35,7 @@ class PTPTimeTransmitterConfig(FLYNCBaseModel):
     two_step: Optional[bool] = Field(default=True)
     tlv: Annotated[
         Optional[List[str]],
-        BeforeValidator(common_validators.none_to_empty_list),
+        BeforeValidator(none_to_empty_list),
     ] = Field(default=[])
 
 

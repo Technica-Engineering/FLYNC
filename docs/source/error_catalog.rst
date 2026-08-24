@@ -28,7 +28,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: VALUE_RANGE
    :number: 002
-   :location: common_validators.validate_vlan_id
+   :location: validators_address.validate_vlan_id
 
    f'VLAN ID must be in the range {VLAN_ID_MIN}-{VLAN_ID_MAX - 1} (use None for untagged); got {value}.'
 
@@ -38,7 +38,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: WARN
    :category: VALUE_RANGE
    :number: 003
-   :location: common_validators.validate_vlan_id
+   :location: validators_address.validate_vlan_id
 
    f'VLAN ID {VLAN_ID_RESERVED} is reserved by IEEE 802.1Q and should not be used.'
 
@@ -48,7 +48,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: FORMAT
    :number: 004
-   :location: common_validators.validate_mac_unicast
+   :location: validators_address.validate_mac_unicast
 
    msg
 
@@ -58,7 +58,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: FORMAT
    :number: 005
-   :location: common_validators.validate_mac_multicast
+   :location: validators_address.validate_mac_multicast
 
    msg
 
@@ -68,7 +68,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: FORMAT
    :number: 006
-   :location: common_validators.validate_ip_multicast
+   :location: validators_address.validate_ip_multicast
 
    msg
 
@@ -78,7 +78,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: CONSISTENCY
    :number: 007
-   :location: common_validators.validate_ingress_streams_fields
+   :location: validators_connection_compatibility.validate_ingress_streams_fields
 
    f'Validation Error in Ingress Streams. Removing config from the interface. Ingress stream {ingress_stream.name} at the {location} should not have an ipv value.'
 
@@ -88,7 +88,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: CONSISTENCY
    :number: 008
-   :location: common_validators.validate_ingress_streams_fields
+   :location: validators_connection_compatibility.validate_ingress_streams_fields
 
    f'Validation Error in Ingress Streams. Removing config from the interface. Ingress stream {ingress_stream.name} at the {location} should not have an ats value'
 
@@ -98,7 +98,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: UNIQUENESS
    :number: 009
-   :location: common_validators.validate_list_items_unique
+   :location: validators_helpers.validate_list_items_unique
 
    msg + str(dupes)
 
@@ -108,7 +108,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: REQUIRED
    :number: 010
-   :location: common_validators.validate_cbs_idleslopes_fit_portspeed
+   :location: validators_connection_compatibility.validate_cbs_idleslopes_fit_portspeed
 
    'Cannot validate Traffic Classes! No port speed defined. Make sure to configure MII or MDI.'
 
@@ -118,7 +118,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: CONSISTENCY
    :number: 011
-   :location: common_validators.validate_cbs_idleslopes_fit_portspeed
+   :location: validators_connection_compatibility.validate_cbs_idleslopes_fit_portspeed
 
    'The sum of idleslopes of all shapers on one port' + ' cannot be higher than the link speed!'
 
@@ -128,7 +128,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 012
-   :location: common_validators.validate_optional_mii_config_compatibility
+   :location: validators_connection_compatibility.validate_optional_mii_config_compatibility
 
    f'Invalid MII config in connection {id}: {comp1.name} ↔ {comp2.name} (MII mismatch for PHY type). Both or None of the components should have a MII config'
 
@@ -138,7 +138,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 013
-   :location: common_validators._check_mii_pair_compatibility
+   :location: validators_connection_compatibility._check_mii_pair_compatibility
 
    f'Incompatible MII Mode: {comp1.name} ({mii_comp1.mode}) ↔ {comp2.name}({mii_comp2.mode})'
 
@@ -148,7 +148,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 014
-   :location: common_validators._check_mii_pair_compatibility
+   :location: validators_connection_compatibility._check_mii_pair_compatibility
 
    f'Incompatible MII Speed: {comp1.name} ({mii_comp1.speed}) ↔ {comp2.name}({mii_comp2.speed})'
 
@@ -158,7 +158,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 015
-   :location: common_validators._check_mii_pair_compatibility
+   :location: validators_connection_compatibility._check_mii_pair_compatibility
 
    f'Incompatible MII Type: {comp1.name} ({mii_comp1.type}) ↔ {comp2.name}({mii_comp2.type})'
 
@@ -168,7 +168,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 016
-   :location: common_validators.validate_compulsory_mii_config_compatibility
+   :location: validators_connection_compatibility.validate_compulsory_mii_config_compatibility
 
    f'Invalid MII config in connection {id}: {comp1.name} ↔ {comp2.name} (MII configuration missing).'
 
@@ -178,7 +178,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: CONSISTENCY
    :number: 017
-   :location: common_validators.validate_htb
+   :location: validators_connection_compatibility.validate_htb
 
    f'Incompatible HTB config for {comp.name}Sum of all child classes {sum_child_rates} rates should be less than link speed {speed}'
 
@@ -188,7 +188,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 018
-   :location: common_validators.validate_macsec
+   :location: validators_connection_compatibility.validate_macsec
 
    f'Incomplete MACsec config in connection {id}: {configured.name} has a macsec config but {unconfigured.name} does not. Both or none of the components should have one.'
 
@@ -198,7 +198,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 019
-   :location: common_validators._check_macsec_pair_compatibility
+   :location: validators_connection_compatibility._check_macsec_pair_compatibility
 
    f'MACsec should be enabled in both - {comp1.name} and {comp2.name} in connection {id} '
 
@@ -208,7 +208,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 020
-   :location: common_validators._check_macsec_pair_compatibility
+   :location: validators_connection_compatibility._check_macsec_pair_compatibility
 
    f'Both {comp1.name} and {comp2.name} should have the same macsec_mode. in connection {id} '
 
@@ -218,7 +218,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 021
-   :location: common_validators.validate_gptp
+   :location: validators_connection_compatibility.validate_gptp
 
    f'Incompatible PTP config. PTP config not present in either {comp1.name} or  {comp2.name} in connection {id} '
 
@@ -228,7 +228,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 022
-   :location: common_validators.validate_gptp
+   :location: validators_connection_compatibility.validate_gptp
 
    f'CMLDS mismatch: {comp1.name} has cmlds_linkport_enabled={ptp1.cmlds_linkport_enabled}, but {comp2.name} has {ptp2.cmlds_linkport_enabled}'
 
@@ -238,7 +238,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 023
-   :location: common_validators.validate_gptp_domains
+   :location: validators_connection_compatibility.validate_gptp_domains
 
    f'Incompatible PTP Config: Domain {domain} not present in {comp2.name} in connection {id}'
 
@@ -248,7 +248,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 024
-   :location: common_validators.validate_gptp_domains
+   :location: validators_connection_compatibility.validate_gptp_domains
 
    f'Incompatible PTP Config: Domain ID {domain} in {comp1.name} and {comp2.name} in connection {id}'
 
@@ -258,7 +258,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: VALUE_RANGE
    :number: 025
-   :location: common_validators.validate_elements_in
+   :location: validators_helpers.validate_elements_in
 
    f'{msg}Invalid values: {sorted(disallowed)}.'
 
@@ -268,7 +268,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: UNIQUENESS
    :number: 026
-   :location: common_validators.check_prio_unique
+   :location: validators_traffic_classes.check_prio_unique
 
    'Traffic class priority is not unique in controller or switch.'
 
@@ -278,7 +278,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: UNIQUENESS
    :number: 027
-   :location: common_validators.check_pcps_different
+   :location: validators_traffic_classes.check_pcps_different
 
    f'The pcp value {pcp} is not unique for two different traffic classes in controller interfaceor switch port'
 
@@ -288,7 +288,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: UNIQUENESS
    :number: 028
-   :location: common_validators.check_ipvs_unique
+   :location: validators_traffic_classes.check_ipvs_unique
 
    f'The ipv value {ipv} is not unique for two different traffic classes in controller interface. or switch port'
 
@@ -298,7 +298,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: VALUE_RANGE
    :number: 029
-   :location: common_validators.check_bit_ranges_within
+   :location: validators_bit_ranges.check_bit_ranges_within
 
    "{context}: '{item}' bit range [{start}, {end}) overflows length of {bits} bits"
 
@@ -308,7 +308,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: CONSISTENCY
    :number: 030
-   :location: common_validators.check_bit_ranges_no_overlap
+   :location: validators_bit_ranges.check_bit_ranges_no_overlap
 
    "{context}: '{a}' [{sa}, {ea}) and '{b}' [{sb}, {eb}) overlap"
 
@@ -318,7 +318,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: REQUIRED
    :number: 031
-   :location: common_validators.validate_value_input_format
+   :location: validators_bit_ranges.validate_value_input_format
 
    "Field required: Either the field 'value' or the pair of 'from_value' and 'to_value' has to be defined."
 
@@ -328,7 +328,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: CONSISTENCY
    :number: 032
-   :location: common_validators.validate_value_input_format
+   :location: validators_bit_ranges.validate_value_input_format
 
    "Invalid Combination: cannot use both 'value' and 'to_value' — either use 'value' for a single value, or 'from_value' and 'to_value' in a pair."
 
@@ -338,7 +338,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: CONSISTENCY
    :number: 033
-   :location: common_validators.validate_value_input_format
+   :location: validators_bit_ranges.validate_value_input_format
 
    "Invalid Combination: cannot use both 'value' and 'from_value' — either use 'value' for a single value, or 'from_value' and 'to_value' in a pair."
 
@@ -348,7 +348,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: CONSISTENCY
    :number: 034
-   :location: common_validators.validate_value_input_format
+   :location: validators_bit_ranges.validate_value_input_format
 
    "Invalid Combination: 'from_value' and 'to_value' must be paired — either use 'value' for a single value, or 'from_value' and 'to_value' in a pair."
 
@@ -1388,7 +1388,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: CONSISTENCY
    :number: 138
-   :location: someip_datatypes.Bitfield.validate_length_against_fields_size
+   :location: someip_simple_datatypes.Bitfield.validate_length_against_fields_size
 
    f'{self.name}: Number of defined fields ({len(self.fields)}) exceeds the bitfield length ({self.length})'
 
@@ -1398,7 +1398,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: VALUE_RANGE
    :number: 139
-   :location: someip_datatypes.Bitfield.validate_bitfieldposition_of_entries
+   :location: someip_simple_datatypes.Bitfield.validate_bitfieldposition_of_entries
 
    f'{self.name}: Bitposition of {field.name} is out of range. Must be < {self.length}, got {field.bitposition}.'
 
@@ -1408,7 +1408,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: UNIQUENESS
    :number: 140
-   :location: someip_datatypes.Enum.validate_entries
+   :location: someip_simple_datatypes.Enum.validate_entries
 
    f'Duplicate enum value: {entry.value}'
 
@@ -1418,7 +1418,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: VALUE_RANGE
    :number: 141
-   :location: someip_datatypes.Enum.validate_entries
+   :location: someip_simple_datatypes.Enum.validate_entries
 
    f'Enum value {entry.value} exceeds valid range for {base_type_name} ({min_value} to {max_value})'
 
@@ -1798,7 +1798,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: FORMAT
    :number: 185
-   :location: common_validators.none_to_empty_list
+   :location: validators_helpers.none_to_empty_list
 
    f"'{field}' must be a list of items, but a single mapping was given. Did you forget to add '- ' before each item to make it a list?"
 
@@ -2398,7 +2398,6 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: UNIQUENESS
    :number: 246
-   :location: someip_datatypes.Bitfield.validate_bitpositions_to_be_unique
+   :location: someip_simple_datatypes.Bitfield.validate_bitpositions_to_be_unique
 
    f"{self.name}: Bitposition {field.bitposition} is claimed by '{owner_by_bitposition[field.bitposition]}' and '{field.name}'."
-

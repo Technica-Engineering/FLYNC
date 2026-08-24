@@ -4,10 +4,17 @@ from typing import TYPE_CHECKING, Annotated, List, Literal, Optional
 
 from pydantic import Field, PrivateAttr, RootModel
 
-import flync.core.utils.common_validators as common_validators
 from flync.core.annotations.reference import Reference
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major
+from flync.core.utils.validators_connection_compatibility import (
+    validate_cbs_idleslopes_fit_portspeed,
+    validate_compulsory_mii_config_compatibility,
+    validate_gptp,
+    validate_htb,
+    validate_macsec,
+    validate_optional_mii_config_compatibility,
+)
 from flync.model.flync_4_ecu.controller import Controller, EthernetInterface
 from flync.model.flync_4_ecu.port import ECUPort
 from flync.model.flync_4_ecu.switch import Switch, SwitchPort
@@ -281,9 +288,9 @@ class ECUPortToSwitchPort(ECUPortToXConnection, SwitchPortToXConnection):
         self.switch_port.copy_mdi_config_to_switch(self.ecu_port.mdi_config)
 
     def validate_compatibility(self) -> None:
-        common_validators.validate_optional_mii_config_compatibility(self.ecu_port, self.switch_port, self.id)
+        validate_optional_mii_config_compatibility(self.ecu_port, self.switch_port, self.id)
         if self.ecu_port.mdi_config and self.switch_port.traffic_classes:
-            common_validators.validate_cbs_idleslopes_fit_portspeed(
+            validate_cbs_idleslopes_fit_portspeed(
                 self.switch_port.traffic_classes,
                 self.ecu_port.mdi_config.speed,
             )
@@ -331,8 +338,8 @@ class ECUPortToControllerInterface(ECUPortToXConnection, ControllerInterfaceToXC
         self.iface._connected_component.append(self.ecu_port)
 
     def validate_compatibility(self) -> None:
-        common_validators.validate_optional_mii_config_compatibility(self.ecu_port, self.iface.interface_config, self.id)
-        common_validators.validate_htb(self.iface.interface_config, self.ecu_port.mdi_config.speed if self.ecu_port.mdi_config else None)
+        validate_optional_mii_config_compatibility(self.ecu_port, self.iface.interface_config, self.id)
+        validate_htb(self.iface.interface_config, self.ecu_port.mdi_config.speed if self.ecu_port.mdi_config else None)
 
 
 class SwitchPortToControllerInterface(SwitchPortToXConnection, ControllerInterfaceToXConnection):
@@ -355,11 +362,11 @@ class SwitchPortToControllerInterface(SwitchPortToXConnection, ControllerInterfa
         self.iface._connected_component.append(self.switch_port)
 
     def validate_compatibility(self) -> None:
-        common_validators.validate_compulsory_mii_config_compatibility(self.switch_port, self.iface.interface_config, self.id)
+        validate_compulsory_mii_config_compatibility(self.switch_port, self.iface.interface_config, self.id)
         assert self.iface.interface_config.mii_config is not None
-        common_validators.validate_htb(self.iface.interface_config, self.iface.interface_config.mii_config.speed)
-        common_validators.validate_macsec(self.switch_port, self.iface.interface_config, self.id)
-        common_validators.validate_gptp(self.switch_port, self.iface.interface_config, self.id)
+        validate_htb(self.iface.interface_config, self.iface.interface_config.mii_config.speed)
+        validate_macsec(self.switch_port, self.iface.interface_config, self.id)
+        validate_gptp(self.switch_port, self.iface.interface_config, self.id)
 
     def get_switch_port_refs(self) -> "List[SwitchPort]":
         return [self.switch_port]
@@ -482,9 +489,9 @@ class SwitchPortToSwitchPort(SwitchPortToXConnection):
         self.switch2_port._connected_component = self.switch_port
 
     def validate_compatibility(self) -> None:
-        common_validators.validate_compulsory_mii_config_compatibility(self.switch_port, self.switch2_port, self.id)
-        common_validators.validate_macsec(self.switch_port, self.switch2_port, self.id)
-        common_validators.validate_gptp(self.switch_port, self.switch2_port, self.id)
+        validate_compulsory_mii_config_compatibility(self.switch_port, self.switch2_port, self.id)
+        validate_macsec(self.switch_port, self.switch2_port, self.id)
+        validate_gptp(self.switch_port, self.switch2_port, self.id)
 
     def get_switch_port_refs(self) -> "List[SwitchPort]":
         return [self.switch_port, self.switch2_port]
@@ -545,13 +552,13 @@ class ControllerInterfaceToControllerInterface(ControllerInterfaceToXConnection)
         self.iface2._connected_component.append(self.iface)
 
     def validate_compatibility(self) -> None:
-        common_validators.validate_compulsory_mii_config_compatibility(self.iface.interface_config, self.iface2.interface_config, self.id)
+        validate_compulsory_mii_config_compatibility(self.iface.interface_config, self.iface2.interface_config, self.id)
         assert self.iface.interface_config.mii_config is not None
         assert self.iface2.interface_config.mii_config is not None
-        common_validators.validate_htb(self.iface.interface_config, self.iface.interface_config.mii_config.speed)
-        common_validators.validate_htb(self.iface2.interface_config, self.iface2.interface_config.mii_config.speed)
-        common_validators.validate_macsec(self.iface.interface_config, self.iface2.interface_config, self.id)
-        common_validators.validate_gptp(self.iface.interface_config, self.iface2.interface_config, self.id)
+        validate_htb(self.iface.interface_config, self.iface.interface_config.mii_config.speed)
+        validate_htb(self.iface2.interface_config, self.iface2.interface_config.mii_config.speed)
+        validate_macsec(self.iface.interface_config, self.iface2.interface_config, self.id)
+        validate_gptp(self.iface.interface_config, self.iface2.interface_config, self.id)
 
 
 class InternalConnectionUnion(RootModel):

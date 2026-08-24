@@ -15,7 +15,6 @@ from pydantic import (
 )
 from pydantic_extra_types.mac_address import MacAddress
 
-import flync.core.utils.common_validators as common_validators
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.datatypes import (
     Ethertype,
@@ -27,6 +26,8 @@ from flync.core.datatypes import (
     validate_ethertype_input,
 )
 from flync.core.utils.exceptions import Category, err_minor
+from flync.core.utils.validators_address import validate_vlan_id
+from flync.core.utils.validators_helpers import none_to_empty_list
 
 
 class ATSInstance(FLYNCBaseModel):
@@ -304,7 +305,7 @@ class FrameFilter(FLYNCBaseModel):
     @staticmethod
     def vlan_validator(value):
         """Validate one VLAN ID via :func:`validate_vlan_id`."""
-        common_validators.validate_vlan_id(value)
+        validate_vlan_id(value)
 
     @staticmethod
     def pcp_validator(value):
@@ -465,11 +466,11 @@ class TrafficClass(FLYNCBaseModel):
     priority: int = Field(..., ge=0, le=7)
     frame_priority_values: Annotated[
         Optional[List[int]],
-        BeforeValidator(common_validators.none_to_empty_list),
+        BeforeValidator(none_to_empty_list),
     ] = Field(default=[])
     internal_priority_values: Annotated[
         Optional[List[int]],
-        BeforeValidator(common_validators.none_to_empty_list),
+        BeforeValidator(none_to_empty_list),
     ] = Field(default=[])
     selection_mechanisms: Optional[CBSShaper | ATSShaper] = Field(default=None, discriminator="type")
 
@@ -545,11 +546,11 @@ class ChildClass(FLYNCBaseModel):
     priority: int = Field()
     filter: Annotated[
         Optional[List[HTBFilter]],
-        BeforeValidator(common_validators.none_to_empty_list),
+        BeforeValidator(none_to_empty_list),
     ] = Field(default=[])
     child_classes: Annotated[
         Optional[List["ChildClass"]],
-        BeforeValidator(common_validators.none_to_empty_list),
+        BeforeValidator(none_to_empty_list),
     ] = Field(default=[])
 
 

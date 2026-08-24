@@ -22,7 +22,6 @@ from pydantic import (
     model_validator,
 )
 
-import flync.core.utils.common_validators as common_validators
 from flync.core.annotations import (
     External,
     Implied,
@@ -32,8 +31,16 @@ from flync.core.annotations import (
 )
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.datatypes import Bitmask
-from flync.core.utils.common_validators import validate_vlan_id
+from flync.core.utils import validators_traffic_classes
 from flync.core.utils.exceptions import Category, err_minor, warn
+from flync.core.utils.validators_address import validate_vlan_id
+from flync.core.utils.validators_connection_compatibility import validate_cbs_idleslopes_fit_portspeed
+from flync.core.utils.validators_helpers import (
+    none_to_empty_list,
+    validate_elements_in,
+    validate_list_items_unique,
+    validate_or_remove,
+)
 from flync.model.flync_4_ecu.controller import Controller
 from flync.model.flync_4_ecu.phy import (
     BASET,
@@ -108,22 +115,22 @@ class SwitchPort(FLYNCBaseModel):
     mii_config: Optional[MII | RMII | SGMII | RGMII | XFI] = Field(default=None, discriminator="type")
     ptp_config: Annotated[
         Optional[PTPConfig],
-        BeforeValidator(common_validators.validate_or_remove("PTP config", PTPConfig)),
+        BeforeValidator(validate_or_remove("PTP config", PTPConfig)),
     ] = Field(default=None)
     ingress_streams: Annotated[
         Optional[List[Stream]],
-        BeforeValidator(common_validators.validate_or_remove("ingress streams", List[Stream])),
-        BeforeValidator(common_validators.none_to_empty_list),
+        BeforeValidator(validate_or_remove("ingress streams", List[Stream])),
+        BeforeValidator(none_to_empty_list),
     ] = Field(default=[])
     traffic_classes: Annotated[
         Optional[List[TrafficClass]],
-        AfterValidator(common_validators.validate_traffic_classes),
-        BeforeValidator(common_validators.validate_or_remove("traffic classes", List[TrafficClass])),
-        BeforeValidator(common_validators.none_to_empty_list),
+        AfterValidator(validators_traffic_classes.validate_traffic_classes),
+        BeforeValidator(validate_or_remove("traffic classes", List[TrafficClass])),
+        BeforeValidator(none_to_empty_list),
     ] = Field(default=[])
     macsec_config: Annotated[
         Optional[MACsecConfig],
-        BeforeValidator(common_validators.validate_or_remove("MACsec config", MACsecConfig)),
+        BeforeValidator(validate_or_remove("MACsec config", MACsecConfig)),
     ] = Field(default=None)
     _mdi_config: BASET1 | BASET1S | BASET | None = None
     _connected_component: Optional[Any] = PrivateAttr(default=None)
@@ -149,7 +156,7 @@ class SwitchPort(FLYNCBaseModel):
     @model_validator(mode="after")
     def validate_traffic_classes(self):
         if self.mii_config and self.traffic_classes:
-            common_validators.validate_cbs_idleslopes_fit_portspeed(
+            validate_cbs_idleslopes_fit_portspeed(
                 self.traffic_classes,
                 self.mii_config.speed,
             )
@@ -204,7 +211,7 @@ class PortScopedAction(FLYNCBaseModel):
     empty list, and an omitted list stays omitted (under ``exclude_unset``).
     """
 
-    ports: Annotated[Optional[List[str]], BeforeValidator(common_validators.none_to_empty_list)] = Field(default_factory=list)
+    ports: Annotated[Optional[List[str]], BeforeValidator(none_to_empty_list)] = Field(default_factory=list)
     _ports_autofilled: bool = False
 
     @field_serializer("ports", check_fields=False)
@@ -369,12 +376,12 @@ class TCAMRule(FLYNCBaseModel):
     name: str = Field(min_length=1)
     id: StrictInt = Field(ge=0)
     match_filter: Optional[FrameFilter] = Field(default=None)
-    frame_mask: Annotated[Optional[List[FrameMask]], BeforeValidator(common_validators.none_to_empty_list)] = Field(default_factory=list)
+    frame_mask: Annotated[Optional[List[FrameMask]], BeforeValidator(none_to_empty_list)] = Field(default_factory=list)
     frame_window: Optional[int] = Field(default=None, ge=1)
-    match_ports: Annotated[Optional[List[str]], BeforeValidator(common_validators.none_to_empty_list)] = Field(default_factory=list)
-    action: Annotated[
-        Optional[List[(Drop | Mirror | VLANOverwrite | ForceEgress | RemoveVLAN)]], BeforeValidator(common_validators.none_to_empty_list)
-    ] = Field(default_factory=list)
+    match_ports: Annotated[Optional[List[str]], BeforeValidator(none_to_empty_list)] = Field(default_factory=list)
+    action: Annotated[Optional[List[(Drop | Mirror | VLANOverwrite | ForceEgress | RemoveVLAN)]], BeforeValidator(none_to_empty_list)] = Field(
+        default_factory=list
+    )
     vehicle_state: Optional[Bitmask] = Field(default=None)
     _match_ports_autofilled: bool = False
 
@@ -498,7 +505,7 @@ class SwitchConfig(FLYNCBaseModel):
     meta: EmbeddedMetadata = Field()
     tcam_rules: Annotated[
         Optional[List[TCAMRule]],
-        BeforeValidator(common_validators.none_to_empty_list),
+        BeforeValidator(none_to_empty_list),
     ] = Field(default=[])
     ports: List[SwitchPort] = Field()
     vlans: List[VLANEntry] = Field()
@@ -576,7 +583,7 @@ class Switch(FLYNCBaseModel):
         silicon_port_numbers = []
         for port in self.ports:
             silicon_port_numbers.append(port.silicon_port_no)
-        common_validators.validate_list_items_unique(
+        validate_list_items_unique(
             silicon_port_numbers,
             "Switch Ports (silicon_port_number)",
         )
@@ -585,7 +592,7 @@ class Switch(FLYNCBaseModel):
     @model_validator(mode="after")
     def validate_unique_port_names(self):
         """Validate port names are unique across this switch's ports."""
-        common_validators.validate_list_items_unique(
+        validate_list_items_unique(
             [p.name for p in self.ports],
             "Switch Ports (name)",
         )
@@ -668,7 +675,7 @@ class Switch(FLYNCBaseModel):
             for action in tcam_rule.action:
                 tcam_ports += action.ports
 
-        common_validators.validate_elements_in(
+        validate_elements_in(
             tcam_ports,
             switch_port_names,
             "TCAM Ports must exist on the Switch.",
@@ -685,7 +692,7 @@ class Switch(FLYNCBaseModel):
         """
 
         ids = [tcam.id for tcam in self.tcam_rules]
-        common_validators.validate_list_items_unique(ids, "tcam_rules (id)")
+        validate_list_items_unique(ids, "tcam_rules (id)")
         return self
 
     @model_validator(mode="after")
@@ -698,7 +705,7 @@ class Switch(FLYNCBaseModel):
         """
 
         names = [tcam.name for tcam in self.tcam_rules]
-        common_validators.validate_list_items_unique(names, "tcam_rules (name)")
+        validate_list_items_unique(names, "tcam_rules (name)")
 
         return self
 

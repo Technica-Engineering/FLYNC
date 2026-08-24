@@ -124,5 +124,8 @@ SOME/IP Datatypes
 .. note::
    SOME/IP Datatypes are used to describe the parameters of messages that are transported in the payload.
 
-.. automodule:: flync.model.flync_4_someip.someip_datatypes
+.. automodule:: flync.model.flync_4_someip.someip_simple_datatypes
+   :members:
+
+.. automodule:: flync.model.flync_4_someip.someip_complex_datatypes
    :members:

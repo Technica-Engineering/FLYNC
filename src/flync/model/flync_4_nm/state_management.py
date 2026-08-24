@@ -44,10 +44,10 @@ from typing import TYPE_CHECKING, Annotated, Dict, List, Literal, NamedTuple, Op
 
 from pydantic import BeforeValidator, Field, model_validator
 
-import flync.core.utils.common_validators as common_validators
 from flync.core.annotations import External, OutputStrategy
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major
+from flync.core.utils.validators_helpers import none_to_empty_list, validate_list_items_unique
 
 if TYPE_CHECKING:  # pragma: no cover
     from flync.model.flync_model import FLYNCModel
@@ -368,19 +368,19 @@ class StateManagementConfig(FLYNCBaseModel):
     groups: Annotated[
         List[StateManagementGroup],
         External(output_structure=OutputStrategy.SINGLE_FILE),
-        BeforeValidator(common_validators.none_to_empty_list),
+        BeforeValidator(none_to_empty_list),
     ] = Field(default=[])
     timing_profiles: Annotated[
         List[GroupTiming],
         External(output_structure=OutputStrategy.SINGLE_FILE),
-        BeforeValidator(common_validators.none_to_empty_list),
+        BeforeValidator(none_to_empty_list),
     ] = Field(default=[])
 
     @model_validator(mode="after")
     def validate_unique_names(self):
         """Raise a major error when two groups, or two timing profiles, share a name."""
-        common_validators.validate_list_items_unique([group.name for group in self.groups], "state management groups (name)")
-        common_validators.validate_list_items_unique([profile.name for profile in self.timing_profiles], "state management timing profiles (name)")
+        validate_list_items_unique([group.name for group in self.groups], "state management groups (name)")
+        validate_list_items_unique([profile.name for profile in self.timing_profiles], "state management timing profiles (name)")
         return self
 
 

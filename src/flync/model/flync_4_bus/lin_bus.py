@@ -4,9 +4,9 @@ from typing import Annotated, List, Literal, Optional
 
 from pydantic import BeforeValidator, Field, field_validator, model_validator
 
-import flync.core.utils.common_validators as common_validators
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major, err_minor
+from flync.core.utils.validators_helpers import none_to_empty_list
 from flync.model.flync_4_nm import StateMembershipRef
 from flync.model.flync_4_signal.frame import LINFrame
 
@@ -127,7 +127,7 @@ class LINBus(FLYNCBaseModel):
     frames: List[LINFrame] = Field(default_factory=list)
     state_memberships: Annotated[
         Optional[List[StateMembershipRef]],
-        BeforeValidator(common_validators.none_to_empty_list),
+        BeforeValidator(none_to_empty_list),
     ] = Field(
         default_factory=list,
         description="Assignments of this bus to a state management group; the whole bus participates as one unit.",

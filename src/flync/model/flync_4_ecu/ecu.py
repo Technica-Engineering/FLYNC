@@ -4,7 +4,6 @@ from typing import Annotated, Iterator, List, Optional, TypeVar
 
 from pydantic import BeforeValidator, Field, model_validator
 
-import flync.core.utils.common_validators as common_validators
 from flync.core.annotations import (
     External,
     Implied,
@@ -15,6 +14,7 @@ from flync.core.annotations import (
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.base_utils import find_all
 from flync.core.utils.exceptions import Category, err_major, err_minor, warn
+from flync.core.utils.validators_helpers import none_to_empty_list, validate_or_remove
 from flync.model.flync_4_ecu.controller import (
     Controller,
     EthernetInterface,
@@ -111,7 +111,7 @@ class ECU(FLYNCBaseModel):
             output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT,
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
-        BeforeValidator(common_validators.validate_or_remove("internal topology", InternalTopology, severity="major")),
+        BeforeValidator(validate_or_remove("internal topology", InternalTopology, severity="major")),
     ] = Field(default=None)
     ecu_metadata: Annotated[
         "ECUMetadata",
@@ -125,8 +125,8 @@ class ECU(FLYNCBaseModel):
     state_memberships: Annotated[
         Optional[List[StateMembershipRef]],
         External(output_structure=OutputStrategy.SINGLE_FILE),
-        BeforeValidator(common_validators.validate_or_remove("state memberships", List[StateMembershipRef])),
-        BeforeValidator(common_validators.none_to_empty_list),
+        BeforeValidator(validate_or_remove("state memberships", List[StateMembershipRef])),
+        BeforeValidator(none_to_empty_list),
     ] = Field(
         default=[],
         description="Assignments of this ECU to state management groups (whole-ECU granularity).",

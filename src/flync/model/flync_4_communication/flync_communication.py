@@ -4,13 +4,13 @@ from typing import Annotated, List, Optional
 
 from pydantic import BeforeValidator, Field
 
-import flync.core.utils.common_validators as common_validators
 from flync.core.annotations.external import (
     External,
     NamingStrategy,
     OutputStrategy,
 )
 from flync.core.base_models import FLYNCBaseModel
+from flync.core.utils.validators_helpers import none_to_empty_list, validate_or_remove
 from flync.model.flync_4_ecu import TCPOption
 from flync.model.flync_4_nm import StateManagementConfig
 from flync.model.flync_4_someip import SOMEIPConfig
@@ -49,8 +49,8 @@ class FLYNCCommunicationConfig(FLYNCBaseModel):
     tcp_profiles: Annotated[
         Optional[List[TCPOption]],
         External(output_structure=OutputStrategy.SINGLE_FILE),
-        BeforeValidator(common_validators.validate_or_remove("TCP profiles", List[TCPOption])),
-        BeforeValidator(common_validators.none_to_empty_list),
+        BeforeValidator(validate_or_remove("TCP profiles", List[TCPOption])),
+        BeforeValidator(none_to_empty_list),
     ] = Field(default=[])
     someip_config: Annotated[
         Optional[SOMEIPConfig],
@@ -59,7 +59,7 @@ class FLYNCCommunicationConfig(FLYNCBaseModel):
             naming_strategy=NamingStrategy.FIXED_PATH,
             path="someip",
         ),
-        BeforeValidator(common_validators.validate_or_remove("SOME/IP config", SOMEIPConfig)),
+        BeforeValidator(validate_or_remove("SOME/IP config", SOMEIPConfig)),
     ] = Field(
         default=None,
         description="contains the SOME/IP config for the entire system.",

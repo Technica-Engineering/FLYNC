@@ -7,11 +7,11 @@ from typing import Annotated, List, Literal, Optional
 
 from pydantic import Field, model_serializer, model_validator
 
-import flync.core.utils.common_validators as common_validators
 from flync.core.annotations.external import External, OutputStrategy
 from flync.core.annotations.reference import Reference
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major, warn
+from flync.core.utils.validators_connection_compatibility import validate_gptp, validate_macsec
 from flync.model.flync_4_ecu.port import ECUPort
 from flync.model.flync_4_topology.bus_topology import CANBusTopology, LINBusTopology
 
@@ -154,8 +154,8 @@ class ExternalConnection(FLYNCBaseModel):
             )
         comp1 = port1.get_internal_connected_component([port1.ecu])
         comp2 = port2.get_internal_connected_component([port2.ecu])
-        common_validators.validate_macsec(comp1, comp2, self.id)
-        common_validators.validate_gptp(comp1, comp2, self.id)
+        validate_macsec(comp1, comp2, self.id)
+        validate_gptp(comp1, comp2, self.id)
 
 
 class EthernetTopology(FLYNCBaseModel):

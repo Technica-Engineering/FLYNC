@@ -65,10 +65,34 @@ base_utils
 .. automodule:: flync.core.utils.base_utils
    :members:
 
-common_validators
+validators_address
 ------------------
 
-.. automodule:: flync.core.utils.common_validators
+.. automodule:: flync.core.utils.validators_address
+   :members:
+
+validators_bit_ranges
+---------------------
+
+.. automodule:: flync.core.utils.validators_bit_ranges
+   :members:
+
+validators_connection_compatibility
+-----------------------------------
+
+.. automodule:: flync.core.utils.validators_connection_compatibility
+   :members:
+
+validators_helpers
+------------------
+
+.. automodule:: flync.core.utils.validators_helpers
+   :members:
+
+validators_traffic_classes
+--------------------------
+
+.. automodule:: flync.core.utils.validators_traffic_classes
    :members:
 
 exceptions
