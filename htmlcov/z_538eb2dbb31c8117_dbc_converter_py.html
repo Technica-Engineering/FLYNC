@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_538eb2dbb31c8117_flync_converter_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
-            created at 2026-08-24 08:33 +0000
+            created at 2026-08-24 16:39 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -227,7 +227,7 @@
     <p class="run"><span class="n"><a id="t145" href="#t145">145</a></span><span class="t">        <span class="nam">pdus</span> <span class="op">=</span> <span class="nam">_pdus_by_name</span><span class="op">(</span><span class="nam">flync_model</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t146" href="#t146">146</a></span><span class="t">    <span class="nam">sel</span> <span class="op">=</span> <span class="nam">pdu</span><span class="op">.</span><span class="nam">selector_signal</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t147" href="#t147">147</a></span><span class="t">    <span class="nam">selector_name</span> <span class="op">=</span> <span class="nam">sel</span><span class="op">.</span><span class="nam">signal</span><span class="op">.</span><span class="nam">name</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t148" href="#t148">148</a></span><span class="t">    <span class="nam">ret</span><span class="op">:</span> <span class="nam">List</span><span class="op">[</span><span class="nam">Signal</span><span class="op">]</span> <span class="op">=</span> <span class="op">[</span><span class="nam">decode_signal_instance</span><span class="op">(</span><span class="nam">sel</span><span class="op">,</span> <span class="nam">bit_pos</span><span class="op">,</span> <span class="nam">receivers</span><span class="op">=</span><span class="nam">receivers</span><span class="op">)</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t148" href="#t148">148</a></span><span class="t">    <span class="nam">ret</span><span class="op">:</span> <span class="nam">List</span><span class="op">[</span><span class="nam">Signal</span><span class="op">]</span> <span class="op">=</span> <span class="op">[</span><span class="nam">decode_signal_instance</span><span class="op">(</span><span class="nam">sel</span><span class="op">,</span> <span class="nam">bit_pos</span><span class="op">,</span> <span class="nam">receivers</span><span class="op">=</span><span class="nam">receivers</span><span class="op">,</span> <span class="nam">is_multiplexer</span><span class="op">=</span><span class="key">True</span><span class="op">)</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t149" href="#t149">149</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t150" href="#t150">150</a></span><span class="t">    <span class="key">for</span> <span class="nam">static</span> <span class="key">in</span> <span class="nam">pdu</span><span class="op">.</span><span class="nam">static_group</span> <span class="key">or</span> <span class="op">[</span><span class="op">]</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t151" href="#t151">151</a></span><span class="t">        <span class="nam">static_ref</span> <span class="op">=</span> <span class="nam">static</span><span class="op">.</span><span class="nam">pdu_ref</span>&nbsp;</span><span class="r"></span></p>
@@ -374,7 +374,7 @@
     <p class="pln"><span class="n"><a id="t292" href="#t292">292</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t293" href="#t293">293</a></span><span class="t">        <span class="nam">write_dbc_files</span><span class="op">(</span><span class="nam">source</span><span class="op">,</span> <span class="nam">self</span><span class="op">.</span><span class="nam">config</span><span class="op">.</span><span class="nam">config_path</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t294" href="#t294">294</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t295" href="#t295">295</a></span><span class="t">        <span class="nam">logger</span><span class="op">.</span><span class="nam">debug</span><span class="op">(</span><span class="str">&quot;JSON encode complete: %s&quot;</span><span class="op">,</span> <span class="nam">self</span><span class="op">.</span><span class="nam">config</span><span class="op">.</span><span class="nam">config_path</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t295" href="#t295">295</a></span><span class="t">        <span class="nam">logger</span><span class="op">.</span><span class="nam">debug</span><span class="op">(</span><span class="str">&quot;DBC encode complete: %s&quot;</span><span class="op">,</span> <span class="nam">self</span><span class="op">.</span><span class="nam">config</span><span class="op">.</span><span class="nam">config_path</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t296" href="#t296">296</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t297" href="#t297">297</a></span><span class="t">    <span class="key">def</span> <span class="nam">decode</span><span class="op">(</span><span class="nam">self</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="nam">FLYNCModel</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t298" href="#t298">298</a></span><span class="t">        <span class="str">&quot;&quot;&quot;Decode data into a FLYNCBaseModel.</span>&nbsp;</span><span class="r"></span></p>
@@ -412,7 +412,7 @@
             <a class="nav" href="z_538eb2dbb31c8117_flync_converter_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
-            created at 2026-08-24 08:33 +0000
+            created at 2026-08-24 16:39 +0000
         </p>
     </div>
 </footer>
