@@ -284,6 +284,34 @@ uv sync --group test --group qt --extra gui --extra tui
 uv run pytest tests/converter_tests/test_gui.py
 ```
 
+### Writing tests
+
+Tests must be **useful and concise** — rigorous about what they pin down, lightweight in the lines it takes.
+
+- **Pin the exact error with the shared helper.** Negative tests use `tests/error_assertions.py` — never a bare `assert "..." in str(exc_info.value)`, which passes on any error
+  that happens to contain the fragment:
+
+  ```python
+  from tests.error_assertions import assert_single_error
+
+  with pytest.raises(ValidationError) as exc_info:
+      Bitfield(name="corrupt_bitfield", length=8, fields=nine_fields)
+  assert_single_error(exc_info, "FLYNC-SOM-MIN-CONS-138", "exceeds the bitfield length (8)")
+  ```
+
+  It asserts *exactly one* error, pins the `FLYNC-<MODULE>-<SEVERITY>-<CATEGORY>-<NUMBER>` id, and matches a
+  substring of `"<location>: <message>"` — so the fragment may name the offending field path instead of the
+  message. Pass `expected_error_id=None` for the few errors raised by plain Pydantic (union tag, literal,
+  `extra_forbidden`, a bare `ValueError` in a validator), which carry no id.
+- **One defect per fixture.** `assert_single_error` fails when a fixture grows a second, unrelated error —
+  that is the point. Build the minimum input that triggers the one rule under test.
+- **Parameterize aggressively.** Collapse variants of the same rule into one `@pytest.mark.parametrize` with
+  `pytest.param(..., id="...")` per case; put the expected error id and message fragment in the params rather
+  than duplicating the test body. Prefer plain dicts for the input so a case is one readable line.
+- **Cover both directions.** Every rule gets the accepted cases (boundary included: last valid bit, exactly-full,
+  maximum length) next to the rejected ones — a validator with an inverted condition passes a negative-only suite.
+- Keep helper builders module-level and named for what they produce, so `parametrize` can call them directly.
+
 ### Validate examples
 
 ```bash

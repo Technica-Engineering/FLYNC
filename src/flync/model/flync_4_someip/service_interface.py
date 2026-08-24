@@ -560,7 +560,7 @@ class SOMEIPServiceInterface(FLYNCBaseModel):
         BeforeValidator(common_validators.none_to_empty_list),
     ] = Field(default=[], description="eventgroups of the service")
     methods: Annotated[
-        List[SOMEIPFireAndForgetMethod | SOMEIPRequestResponseMethod],
+        List[Annotated[SOMEIPFireAndForgetMethod | SOMEIPRequestResponseMethod, Field(discriminator="type")]],
         BeforeValidator(common_validators.none_to_empty_list),
     ] = Field(default=[], description="methods of the service")
     meta: SOMEIPServiceMetadata = Field()

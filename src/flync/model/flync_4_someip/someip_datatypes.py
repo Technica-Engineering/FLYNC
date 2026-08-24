@@ -447,7 +447,7 @@ class BitfieldEntry(BaseModel):
     """
 
     name: str = Field(..., description="Name of the individual bitfield")
-    bitposition: int = Field(..., description="Bitposition for the individual bitfield")
+    bitposition: Annotated[int, Field(ge=0)] = Field(..., description="Bitposition for the individual bitfield")
     description: Optional[str] = Field("", description="Optional description of the field")
     values: Optional[List[BitfieldEntryValue]] = Field(
         default_factory=list,
@@ -479,6 +479,7 @@ class Bitfield(Datatype):
 
     fields : list of :class:`BitfieldEntry`
         List of bitfield entries that define the individual bit ranges.
+        Each entry must fit into ``length`` and claim a bitposition no other entry claims.
     """
 
     name: str = Field(default="Bitfield")
@@ -494,10 +495,10 @@ class Bitfield(Datatype):
 
     @model_validator(mode="after")
     def validate_length_against_fields_size(self):
-        """Validate size of fields equals bitfield length"""
-        if self.fields is not None and len(self.fields) <= self.length:
-            err_minor(
-                f"Mismatch between length({self.length}) and number of defined fields ({len(self.fields)})",
+        """Validate the number of defined fields fits into the bitfield length"""
+        if self.fields is not None and len(self.fields) > self.length:
+            raise err_minor(
+                f"{self.name}: Number of defined fields ({len(self.fields)}) exceeds the bitfield length ({self.length})",
                 category=Category.CONSISTENCY,
                 error_number="138",
             )
@@ -508,12 +509,28 @@ class Bitfield(Datatype):
         """Validate bitfield position for all entries must be in range"""
         if self.fields is not None:
             for field in self.fields:
-                if field.bitposition < self.length:
-                    err_minor(
-                        f"Bitposition of {field.name} is out of range: {field.bitposition} >= {self.length}",
+                if field.bitposition >= self.length:
+                    raise err_minor(
+                        f"{self.name}: Bitposition of {field.name} is out of range. Must be < {self.length}, got {field.bitposition}.",
                         category=Category.VALUE_RANGE,
                         error_number="139",
                     )
+        return self
+
+    @model_validator(mode="after")
+    def validate_bitpositions_to_be_unique(self):
+        """Validate each bitposition is claimed by at most one entry"""
+        if self.fields is not None:
+            owner_by_bitposition: dict[int, str] = {}
+            for field in self.fields:
+                if field.bitposition in owner_by_bitposition:
+                    raise err_minor(
+                        f"{self.name}: Bitposition {field.bitposition} is claimed by '{owner_by_bitposition[field.bitposition]}' "
+                        f"and '{field.name}'.",
+                        category=Category.UNIQUENESS,
+                        error_number="246",
+                    )
+                owner_by_bitposition[field.bitposition] = field.name
         return self
 
 

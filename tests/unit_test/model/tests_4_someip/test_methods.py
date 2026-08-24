@@ -11,11 +11,13 @@ from flync.model.flync_4_someip import (
     SOMEIPMethod,
     SOMEIPParameter,
     SOMEIPRequestResponseMethod,
+    SOMEIPServiceInterface,
     Struct,
     UInt8,
     UInt16,
     UInt32,
 )
+from tests.error_assertions import assert_single_error
 
 
 def test_simple_method():
@@ -222,3 +224,49 @@ class TestRequestAndResponseMethod:
                 input_parameters=input_params,
                 output_parameters=output_params,
             )
+
+
+def _service_with_corrupt_bitfield(metadata_entry: dict, method_type: str) -> dict:
+    """A service whose single method takes a bitfield parameter with an out-of-range bitposition."""
+    method: dict = {
+        "name": "m",
+        "id": 0x123,
+        "type": method_type,
+        "input_parameters": [{"name": "p1", "datatype": {"type": "bitfield", "length": 8, "fields": [{"name": "H", "bitposition": 10}]}}],
+    }
+    if method_type == "request_response":
+        method["output_parameters"] = [{"name": "o1", "datatype": {"type": "uint8"}}]
+    return {"meta": metadata_entry, "name": "svc", "id": 1, "methods": [method]}
+
+
+class TestMethodsUnionDiscrimination:
+    """``methods`` is discriminated on ``type``, so only the declared branch is validated and reported."""
+
+    @pytest.mark.parametrize(
+        "method_type, error_id, message_fragment",
+        [
+            pytest.param(
+                "request_response",
+                "FLYNC-SOM-MIN-VAL-139",
+                "methods.0.request_response.input_parameters.0.datatype.bitfield",
+                id="request_response",
+            ),
+            pytest.param(
+                "fire_and_forget",
+                "FLYNC-SOM-MIN-VAL-139",
+                "methods.0.fire_and_forget.input_parameters.0.datatype.bitfield",
+                id="fire_and_forget",
+            ),
+            pytest.param(
+                "nonsense",
+                None,
+                "Input tag 'nonsense' found using 'type' does not match any of the expected tags",
+                id="unknown_tag",
+            ),
+        ],
+    )
+    def test_negative_nested_error_reported_once_under_declared_tag(self, metadata_entry, method_type, error_id, message_fragment):
+        """A nested error surfaces once, located by tag, instead of once per candidate method class."""
+        with pytest.raises(ValidationError) as exc_info:
+            SOMEIPServiceInterface(**_service_with_corrupt_bitfield(metadata_entry, method_type))
+        assert_single_error(exc_info, error_id, message_fragment)
