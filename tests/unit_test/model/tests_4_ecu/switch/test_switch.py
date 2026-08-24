@@ -254,18 +254,21 @@ def test_dynamic_address_aging_time_negative_rejected(
     switch_port,
 ):
     """A negative dynamic_address_aging_time is rejected."""
-    with pytest.raises(ValidationError):
+    switch_config = _switch_config(
+        embedded_metadata_entry,
+        [switch_port],
+        [vlan_entry],
+        dynamic_address_aging_time=-1,
+    )
+    with pytest.raises(ValidationError) as exc_info:
         Switch.model_validate(
             {
                 "name": "switch_example",
-                "switch_config": _switch_config(
-                    embedded_metadata_entry,
-                    [switch_port],
-                    [vlan_entry],
-                    dynamic_address_aging_time=-1,
-                ),
+                "switch_config": switch_config,
             }
         )
+
+    assert_single_error(exc_info, None, "greater than 0")
 
 
 def test_validate_ats_instances_negative(embedded_metadata_entry, vlan_entry):
