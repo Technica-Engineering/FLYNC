@@ -299,8 +299,9 @@ class Test_BitmaskFlags:
         assert_single_error(exc_info, "FLYNC-SIG-MAJ-UNIQ-133", "duplicate flag label")
 
     def test_negative_bitmask_flags_zero_mask(self):
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError) as exc_info:
             BitmaskFlag(mask=0, label="ZeroMask")
+        assert_single_error(exc_info, None, "greater than 0")
 
 
 class Test_Signal:
@@ -341,7 +342,7 @@ class Test_Signal:
             pytest.param(SignalDataType.INT32, 32, id="int32"),
             pytest.param(SignalDataType.INT64, 64, id="int64"),
             pytest.param(SignalDataType.CHAR, 8, id="char"),
-            pytest.param(SignalDataType.CHAR, 48, id="char"),
+            pytest.param(SignalDataType.CHAR, 48, id="char_48bit"),
             pytest.param(SignalDataType.BYTEARRAY, 24, id="bytearray_24bit"),
             pytest.param(SignalDataType.BYTEARRAY, 8, id="bytearray_1bit"),
         ],
@@ -672,21 +673,24 @@ class Test_Signal:
         assert sig_roundtrip.unit == sig_original.unit
 
     def test_negative_signal_zero_factor(self):
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError) as exc_info:
             Signal(
                 name="bad_factor",
                 bit_length=8,
                 data_type=SignalDataType.UINT8,
                 factor=0,
             )
+        assert_single_error(exc_info, "FLYNC-SIG-MAJ-VAL-113", "factor must not be zero")
 
     def test_negative_signal_bit_length_zero(self):
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError) as exc_info:
             Signal(name="zero_len", bit_length=0, data_type=SignalDataType.UINT8)
+        assert_single_error(exc_info, None, "greater than 0")
 
     def test_negative_signal_bit_length_negative(self):
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError) as exc_info:
             Signal(name="neg_len", bit_length=-1, data_type=SignalDataType.UINT8)
+        assert_single_error(exc_info, None, "greater than 0")
 
     @pytest.mark.parametrize(
         "data_type, bit_length",
@@ -698,33 +702,65 @@ class Test_Signal:
         ],
     )
     def test_negative_signal_float_wrong_bit_length(self, data_type, bit_length):
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError) as exc_info:
             Signal(
                 name=f"bad_float_{bit_length}",
                 bit_length=bit_length,
                 data_type=data_type,
             )
+        assert_single_error(exc_info, "FLYNC-SIG-MAJ-VAL-115", "requires exactly")
 
     @pytest.mark.parametrize(
-        "data_type, bit_length",
+        "data_type, bit_length, error_id, error_message",
         [
-            pytest.param(SignalDataType.UINT8, 9, id="uint8_9bit"),
-            pytest.param(SignalDataType.UINT16, 17, id="uint16_17bit"),
-            pytest.param(SignalDataType.INT8, 9, id="int8_9bit"),
-            pytest.param(SignalDataType.INT32, 33, id="int32_33bit"),
-            pytest.param(SignalDataType.CHAR, 9, id="char_9bit"),
+            pytest.param(
+                SignalDataType.UINT8,
+                9,
+                "FLYNC-SIG-MAJ-VAL-116",
+                "exceeds the natural width",
+                id="uint8_9bit",
+            ),
+            pytest.param(
+                SignalDataType.UINT16,
+                17,
+                "FLYNC-SIG-MAJ-VAL-116",
+                "exceeds the natural width",
+                id="uint16_17bit",
+            ),
+            pytest.param(
+                SignalDataType.INT8,
+                9,
+                "FLYNC-SIG-MAJ-VAL-116",
+                "exceeds the natural width",
+                id="int8_9bit",
+            ),
+            pytest.param(
+                SignalDataType.INT32,
+                33,
+                "FLYNC-SIG-MAJ-VAL-116",
+                "exceeds the natural width",
+                id="int32_33bit",
+            ),
+            pytest.param(
+                SignalDataType.CHAR,
+                9,
+                "FLYNC-SIG-MAJ-VAL-114",
+                "requires 8 bits or a multiple of that",
+                id="char_9bit_not_multiple",
+            ),
         ],
     )
-    def test_negative_signal_exceeds_natural_width(self, data_type, bit_length):
-        with pytest.raises(ValidationError):
+    def test_negative_signal_exceeds_natural_width(self, data_type, bit_length, error_id, error_message):
+        with pytest.raises(ValidationError) as exc_info:
             Signal(
                 name=f"overflow_{data_type.value}",
                 bit_length=bit_length,
                 data_type=data_type,
             )
+        assert_single_error(exc_info, error_id, error_message)
 
     def test_negative_signal_limits_inverted(self):
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError) as exc_info:
             Signal(
                 name="inverted_limits",
                 bit_length=8,
@@ -732,6 +768,7 @@ class Test_Signal:
                 lower_limit=100.0,
                 upper_limit=50.0,
             )
+        assert_single_error(exc_info, "FLYNC-SIG-MAJ-CONS-117", "must not exceed")
 
     def test_negative_text_table_duplicate_value(self):
         entries = [TextEntry(from_value=1, to_value=1, label="First"), TextEntry(from_value=1, to_value=1, label="Also first")]
@@ -761,8 +798,9 @@ class Test_Signal:
     def test_negative_text_table_out_of_range(self, data_type, bit_length, bad_value):
         value_encoding = TextTable(entries=[TextEntry(from_value=bad_value, to_value=bad_value, label="Out")])
 
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError) as exc_info:
             Signal(name=f"vd_range_{data_type.value}", bit_length=bit_length, data_type=data_type, value_encoding=value_encoding)
+        assert_single_error(exc_info, "FLYNC-SIG-MAJ-VAL-119", "outside the representable range")
 
     @pytest.mark.parametrize(
         "data_type, bit_length, bad_from, bad_to",
@@ -775,8 +813,9 @@ class Test_Signal:
     def test_negative_range_text_table_out_of_range(self, data_type, bit_length, bad_from, bad_to):
         value_encoding = TextTable(entries=[TextEntry(from_value=bad_from, to_value=bad_to, label="Out")])
 
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError) as exc_info:
             Signal(name=f"rg_range_{data_type.value}", bit_length=bit_length, data_type=data_type, value_encoding=value_encoding)
+        assert_single_error(exc_info, "FLYNC-SIG-MAJ-VAL-119", "outside the representable range")
 
     @pytest.mark.parametrize(
         "data_type, bit_length",
@@ -811,24 +850,67 @@ class Test_Signal:
         assert_single_error(exc_info, "FLYNC-SIG-MAJ-VAL-120", "exceeds the representable range")
 
     @pytest.mark.parametrize(
-        "data_type, bit_length, bad_iv",
+        "data_type, bit_length, bad_iv, error_id, error_message",
         [
-            pytest.param(SignalDataType.UINT8, 8, "string_val", id="uint8_string"),
-            pytest.param(SignalDataType.UINT8, 8, 3.14, id="uint8_float"),
-            pytest.param(SignalDataType.INT8, 8, True, id="int8_bool"),
-            pytest.param(SignalDataType.FLOAT32, 32, b"\x00", id="float32_bytes"),
-            pytest.param(SignalDataType.CHAR, 8, 65, id="char_int"),
-            pytest.param(SignalDataType.BYTEARRAY, 8, 0, id="bytearray_int"),
+            pytest.param(
+                SignalDataType.UINT8,
+                8,
+                "string_val",
+                "FLYNC-SIG-MAJ-FMT-125",
+                "must be int",
+                id="uint8_string",
+            ),
+            pytest.param(
+                SignalDataType.UINT8,
+                8,
+                3.14,
+                "FLYNC-SIG-MAJ-FMT-125",
+                "must be int",
+                id="uint8_float",
+            ),
+            pytest.param(
+                SignalDataType.INT8,
+                8,
+                True,
+                "FLYNC-SIG-MAJ-FMT-125",
+                "must be int",
+                id="int8_bool",
+            ),
+            pytest.param(
+                SignalDataType.FLOAT32,
+                32,
+                b"\x00",
+                "FLYNC-SIG-MAJ-FMT-124",
+                "must be numeric",
+                id="float32_bytes",
+            ),
+            pytest.param(
+                SignalDataType.CHAR,
+                8,
+                65,
+                "FLYNC-SIG-MAJ-FMT-123",
+                "must be str",
+                id="char_int",
+            ),
+            pytest.param(
+                SignalDataType.BYTEARRAY,
+                8,
+                0,
+                "FLYNC-SIG-MAJ-FMT-122",
+                "must be bytes",
+                id="bytearray_int",
+            ),
         ],
     )
-    def test_negative_signal_initial_value_wrong_type(self, data_type, bit_length, bad_iv):
-        with pytest.raises(ValidationError):
+    def test_negative_signal_initial_value_wrong_type(self, data_type, bit_length, bad_iv, error_id, error_message):
+        with pytest.raises(ValidationError) as exc_info:
             Signal(
                 name=f"bad_iv_{data_type.value}",
                 bit_length=bit_length,
                 data_type=data_type,
                 initial_value=bad_iv,
             )
+        assert_single_error(exc_info, error_id, error_message)
 
     @pytest.mark.parametrize(
         "data_type, bit_length, bad_iv",
@@ -841,13 +923,14 @@ class Test_Signal:
         ],
     )
     def test_negative_signal_initial_value_out_of_range(self, data_type, bit_length, bad_iv):
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError) as exc_info:
             Signal(
                 name=f"iv_range_{data_type.value}_{bad_iv}",
                 bit_length=bit_length,
                 data_type=data_type,
                 initial_value=bad_iv,
             )
+        assert_single_error(exc_info, "FLYNC-SIG-MAJ-VAL-126", "outside the representable range")
 
 
 class Test_InstancePlacement:
@@ -869,8 +952,9 @@ class Test_InstancePlacement:
         assert ip.endianness == endianness
 
     def test_negative_instance_placement_negative_bit_position(self):
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError) as exc_info:
             InstancePlacement(bit_position=-1)
+        assert_single_error(exc_info, None, "greater than or equal to 0")
 
 
 class Test_SignalInstance:
@@ -932,8 +1016,9 @@ class Test_SignalGroup:
         assert sg.signals[0].bit_position is None
 
     def test_negative_signal_group_empty_signals(self):
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError) as exc_info:
             SignalGroup(name="grp_empty", signals=[])
+        assert_single_error(exc_info, None, "at least 1 item")
 
     def test_negative_signal_group_signals_overlap(self):
         """Two signal instances whose ranges intersect inside a group must be rejected."""
