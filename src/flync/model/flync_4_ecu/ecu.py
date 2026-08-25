@@ -14,7 +14,7 @@ from flync.core.annotations import (
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.base_utils import find_all
 from flync.core.utils.exceptions import Category, err_major, err_minor, warn
-from flync.core.utils.validators_helpers import none_to_empty_list, validate_or_remove
+from flync.core.validators.generic import none_to_empty_list, validate_or_remove
 from flync.model.flync_4_ecu.controller import (
     Controller,
     EthernetInterface,

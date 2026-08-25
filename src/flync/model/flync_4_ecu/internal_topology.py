@@ -7,7 +7,7 @@ from pydantic import Field, PrivateAttr, RootModel
 from flync.core.annotations.reference import Reference
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major
-from flync.core.utils.validators_connection_compatibility import (
+from flync.core.validators.connection_compatibility import (
     validate_cbs_idleslopes_fit_portspeed,
     validate_compulsory_mii_config_compatibility,
     validate_gptp,

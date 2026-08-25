@@ -12,25 +12,25 @@ from flync.core.annotations import External, NamingStrategy, OutputStrategy
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.base_utils import check_obj_in_list
 from flync.core.utils.exceptions import Category, err_major, warn
-from flync.core.utils.forwarder_validators import (
-    detect_forwarder_cycles,
-    validate_forwarder_locality,
-    validate_forwarder_refs,
-    validate_pdu_deployment_refs,
-)
-from flync.core.utils.interface_validators import (
-    validate_interface_frame_refs,
-)
 from flync.core.utils.multicast import (
     collect_ipv6_solicited_node_rx,
     collect_ipv6_solicited_node_tx,
     compute_path,
     serialize_components,
 )
-from flync.core.utils.state_management_validators import (
+from flync.core.validators.forwarder import (
+    detect_forwarder_cycles,
+    validate_forwarder_locality,
+    validate_forwarder_refs,
+    validate_pdu_deployment_refs,
+)
+from flync.core.validators.generic import validate_list_items_unique
+from flync.core.validators.interface import (
+    validate_interface_frame_refs,
+)
+from flync.core.validators.state_management import (
     validate_state_management,
 )
-from flync.core.utils.validators_helpers import validate_list_items_unique
 from flync.model.flync_4_app import App
 from flync.model.flync_4_communication import FLYNCCommunicationConfig
 from flync.model.flync_4_ecu import (

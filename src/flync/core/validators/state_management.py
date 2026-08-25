@@ -14,7 +14,7 @@ ECU and controller-level memberships are pre-populated during
 from typing import TYPE_CHECKING, Dict, NamedTuple, Set
 
 from flync.core.utils.exceptions import Category, err_major, warn
-from flync.core.utils.forwarder_validators import (
+from flync.core.validators.forwarder import (
     _build_can_frame_catalog_by_bus_id,
     _build_pdu_catalog,
     _iter_sockets_on_controller,

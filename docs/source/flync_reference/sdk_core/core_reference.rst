@@ -65,36 +65,6 @@ base_utils
 .. automodule:: flync.core.utils.base_utils
    :members:
 
-validators_address
-------------------
-
-.. automodule:: flync.core.utils.validators_address
-   :members:
-
-validators_bit_ranges
----------------------
-
-.. automodule:: flync.core.utils.validators_bit_ranges
-   :members:
-
-validators_connection_compatibility
------------------------------------
-
-.. automodule:: flync.core.utils.validators_connection_compatibility
-   :members:
-
-validators_helpers
-------------------
-
-.. automodule:: flync.core.utils.validators_helpers
-   :members:
-
-validators_traffic_classes
---------------------------
-
-.. automodule:: flync.core.utils.validators_traffic_classes
-   :members:
-
 exceptions
 ----------
 
@@ -105,4 +75,57 @@ exceptions_handling
 -------------------
 
 .. automodule:: flync.core.utils.exceptions_handling
+   :members:
+
+----
+
+flync.core.validators
+=====================
+
+address
+-------
+
+.. automodule:: flync.core.validators.address
+   :members:
+
+bit_ranges
+----------
+
+.. automodule:: flync.core.validators.bit_ranges
+   :members:
+
+connection_compatibility
+------------------------
+
+.. automodule:: flync.core.validators.connection_compatibility
+   :members:
+
+forwarder
+---------
+
+.. automodule:: flync.core.validators.forwarder
+   :members:
+
+generic
+-------
+
+.. automodule:: flync.core.validators.generic
+   :members:
+
+interface
+---------
+
+.. automodule:: flync.core.validators.interface
+   :members:
+
+state_management
+----------------
+
+.. automodule:: flync.core.validators.state_management
+   :members:
+
+traffic_classes
+---------------
+
+.. automodule:: flync.core.validators.traffic_classes
    :members:

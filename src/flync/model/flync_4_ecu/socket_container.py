@@ -6,8 +6,8 @@ from pydantic import AfterValidator, BeforeValidator, Field
 
 from flync.core.annotations import Implied, ImpliedStrategy
 from flync.core.base_models import FLYNCBaseModel
-from flync.core.utils.validators_address import validate_vlan_id
-from flync.core.utils.validators_helpers import validate_list_items_and_remove
+from flync.core.validators.address import validate_vlan_id
+from flync.core.validators.generic import validate_list_items_and_remove
 
 from .sockets import SocketTCP, SocketUDP
 

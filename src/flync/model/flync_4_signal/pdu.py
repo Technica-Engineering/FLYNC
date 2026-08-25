@@ -13,13 +13,13 @@ from pydantic import BeforeValidator, Field, field_validator, model_validator
 
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major, err_minor
-from flync.core.utils.validators_bit_ranges import (
+from flync.core.validators.bit_ranges import (
     BitRange,
     check_bit_ranges_no_overlap,
     check_bit_ranges_within,
     collect_bit_ranges,
 )
-from flync.core.utils.validators_helpers import single_to_list
+from flync.core.validators.generic import single_to_list
 from flync.model.flync_4_signal.signal import (
     SignalGroupInstance,
     SignalInstance,

@@ -6,7 +6,7 @@ from pydantic import BeforeValidator, Field, field_validator, model_validator
 
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_minor
-from flync.core.utils.validators_helpers import none_to_empty_list
+from flync.core.validators.generic import none_to_empty_list
 from flync.model.flync_4_tsn.qos import FrameFilter
 
 

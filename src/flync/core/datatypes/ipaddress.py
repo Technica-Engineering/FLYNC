@@ -6,7 +6,7 @@ from typing import Annotated
 from pydantic import AfterValidator, Field, field_serializer
 
 from flync.core.base_models.base_model import FLYNCBaseModel
-from flync.core.utils.validators_address import validate_ip_multicast
+from flync.core.validators.address import validate_ip_multicast
 
 
 class IPv4AddressEntry(FLYNCBaseModel):

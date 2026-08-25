@@ -4,7 +4,7 @@ components: MII, MACsec, gPTP, HTB, CBS/ingress streams and VLAN uniqueness.
 """
 
 from flync.core.utils.exceptions import Category, err_major, err_minor
-from flync.core.utils.validators_helpers import validate_list_items_unique
+from flync.core.validators.generic import validate_list_items_unique
 
 
 def validate_ingress_streams_fields(streams, location: str):

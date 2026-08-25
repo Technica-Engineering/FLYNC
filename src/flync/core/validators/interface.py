@@ -1,6 +1,6 @@
 """Workspace-level validators for bus interface frame references (CAN / CAN FD and LIN).
 
-Complements :mod:`flync.core.utils.forwarder_validators`, which resolves *forwarder* references only.
+Complements :mod:`flync.core.validators.forwarder`, which resolves *forwarder* references only.
 The passes here cover the plain ``sender_frames`` / ``receiver_frames`` declarations of the bus
 interfaces, plus the interface's own ``bus_ref``, so that a dangling id or a CAN interface pointing at
 a LIN bus (or vice versa) is reported instead of silently ignored.

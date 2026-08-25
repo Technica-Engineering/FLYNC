@@ -31,11 +31,11 @@ from flync.core.annotations import (
 )
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.datatypes import Bitmask
-from flync.core.utils import validators_traffic_classes
 from flync.core.utils.exceptions import Category, err_minor, warn
-from flync.core.utils.validators_address import validate_vlan_id
-from flync.core.utils.validators_connection_compatibility import validate_cbs_idleslopes_fit_portspeed
-from flync.core.utils.validators_helpers import (
+from flync.core.validators import traffic_classes as traffic_class_validators
+from flync.core.validators.address import validate_vlan_id
+from flync.core.validators.connection_compatibility import validate_cbs_idleslopes_fit_portspeed
+from flync.core.validators.generic import (
     none_to_empty_list,
     validate_elements_in,
     validate_list_items_unique,
@@ -124,7 +124,7 @@ class SwitchPort(FLYNCBaseModel):
     ] = Field(default=[])
     traffic_classes: Annotated[
         Optional[List[TrafficClass]],
-        AfterValidator(validators_traffic_classes.validate_traffic_classes),
+        AfterValidator(traffic_class_validators.validate_traffic_classes),
         BeforeValidator(validate_or_remove("traffic classes", List[TrafficClass])),
         BeforeValidator(none_to_empty_list),
     ] = Field(default=[])

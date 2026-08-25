@@ -11,12 +11,12 @@ from flync.core.annotations.external import (
 )
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major
-from flync.core.utils.validators_bit_ranges import (
+from flync.core.validators.bit_ranges import (
     BitRange,
     check_bit_ranges_no_overlap,
     check_bit_ranges_within,
 )
-from flync.core.utils.validators_helpers import validate_list_items_unique
+from flync.core.validators.generic import validate_list_items_unique
 from flync.model.flync_4_bus.can_bus import CANBus
 from flync.model.flync_4_bus.lin_bus import LINBus
 from flync.model.flync_4_signal.frame import Frame

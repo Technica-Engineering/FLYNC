@@ -11,7 +11,7 @@ from flync.core.annotations.external import External, OutputStrategy
 from flync.core.annotations.reference import Reference
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major, warn
-from flync.core.utils.validators_connection_compatibility import validate_gptp, validate_macsec
+from flync.core.validators.connection_compatibility import validate_gptp, validate_macsec
 from flync.model.flync_4_ecu.port import ECUPort
 from flync.model.flync_4_topology.bus_topology import CANBusTopology, LINBusTopology
 

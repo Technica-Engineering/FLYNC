@@ -14,7 +14,7 @@ from pydantic import Field, field_serializer, field_validator, model_validator
 
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major
-from flync.core.utils.validators_bit_ranges import (
+from flync.core.validators.bit_ranges import (
     BitRange,
     check_bit_ranges_no_overlap,
     collect_bit_ranges,

@@ -47,7 +47,7 @@ from pydantic import BeforeValidator, Field, model_validator
 from flync.core.annotations import External, OutputStrategy
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major
-from flync.core.utils.validators_helpers import none_to_empty_list, validate_list_items_unique
+from flync.core.validators.generic import none_to_empty_list, validate_list_items_unique
 
 if TYPE_CHECKING:  # pragma: no cover
     from flync.model.flync_model import FLYNCModel

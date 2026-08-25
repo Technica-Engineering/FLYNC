@@ -2,7 +2,7 @@
 
 from typing import get_origin
 
-from flync.core.utils.state_management_validators import (
+from flync.core.validators.state_management import (
     collect_effective_members,
 )
 from flync.model import FLYNCModel

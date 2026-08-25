@@ -17,8 +17,8 @@ from pydantic.networks import IPvAnyAddress
 
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.datatypes.macaddress import FLYNCMacAddress
-from flync.core.utils.validators_address import validate_any_multicast_address, validate_vlan_id
-from flync.core.utils.validators_helpers import none_to_empty_list
+from flync.core.validators.address import validate_any_multicast_address, validate_vlan_id
+from flync.core.validators.generic import none_to_empty_list
 
 
 class MulticastGroup(FLYNCBaseModel):

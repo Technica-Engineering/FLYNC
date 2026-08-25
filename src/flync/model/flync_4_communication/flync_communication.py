@@ -10,7 +10,7 @@ from flync.core.annotations.external import (
     OutputStrategy,
 )
 from flync.core.base_models import FLYNCBaseModel
-from flync.core.utils.validators_helpers import none_to_empty_list, validate_or_remove
+from flync.core.validators.generic import none_to_empty_list, validate_or_remove
 from flync.model.flync_4_ecu import TCPOption
 from flync.model.flync_4_nm import StateManagementConfig
 from flync.model.flync_4_someip import SOMEIPConfig

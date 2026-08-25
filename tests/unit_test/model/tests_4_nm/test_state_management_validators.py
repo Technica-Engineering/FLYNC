@@ -6,7 +6,7 @@ import pytest
 from pydantic_core import PydanticCustomError
 
 from flync.core.utils.exceptions import _validation_warnings
-from flync.core.utils.state_management_validators import (
+from flync.core.validators.state_management import (
     collect_effective_members,
     validate_state_management,
 )

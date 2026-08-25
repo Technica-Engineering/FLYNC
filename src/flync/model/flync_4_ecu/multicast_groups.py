@@ -14,7 +14,7 @@ from pydantic.networks import IPvAnyAddress
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.datatypes.macaddress import FLYNCMacAddress
 from flync.core.utils.exceptions import Category, err_minor
-from flync.core.utils.validators_address import validate_any_multicast_address, validate_vlan_id
+from flync.core.validators.address import validate_any_multicast_address, validate_vlan_id
 from flync.model.flync_4_ecu.controller import EthernetInterfaceConfig
 
 

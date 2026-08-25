@@ -1,1 +1,1 @@
-"""Shared utilities for FLYNC: common validators, exception types and handling, and multicast helpers."""
+"""Shared utilities for FLYNC: base helpers, exception types and handling, and multicast helpers."""

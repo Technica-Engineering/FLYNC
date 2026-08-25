@@ -15,7 +15,7 @@ from pydantic import (
 from flync.core.annotations.reference import Reference
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.base_utils import is_ip_multicast
-from flync.core.utils.validators_address import validate_ip_multicast
+from flync.core.validators.address import validate_ip_multicast
 from flync.model.flync_4_someip.service_interface import (
     SDTimings,
     SOMEIPServiceInterface,

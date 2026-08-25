@@ -26,8 +26,8 @@ from flync.core.datatypes import (
     validate_ethertype_input,
 )
 from flync.core.utils.exceptions import Category, err_minor
-from flync.core.utils.validators_address import validate_vlan_id
-from flync.core.utils.validators_helpers import none_to_empty_list
+from flync.core.validators.address import validate_vlan_id
+from flync.core.validators.generic import none_to_empty_list
 
 
 class ATSInstance(FLYNCBaseModel):

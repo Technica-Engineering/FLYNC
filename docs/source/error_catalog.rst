@@ -28,7 +28,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: VALUE_RANGE
    :number: 002
-   :location: validators_address.validate_vlan_id
+   :location: address.validate_vlan_id
 
    f'VLAN ID must be in the range {VLAN_ID_MIN}-{VLAN_ID_MAX - 1} (use None for untagged); got {value}.'
 
@@ -38,7 +38,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: WARN
    :category: VALUE_RANGE
    :number: 003
-   :location: validators_address.validate_vlan_id
+   :location: address.validate_vlan_id
 
    f'VLAN ID {VLAN_ID_RESERVED} is reserved by IEEE 802.1Q and should not be used.'
 
@@ -48,7 +48,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: FORMAT
    :number: 004
-   :location: validators_address.validate_mac_unicast
+   :location: address.validate_mac_unicast
 
    msg
 
@@ -58,7 +58,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: FORMAT
    :number: 005
-   :location: validators_address.validate_mac_multicast
+   :location: address.validate_mac_multicast
 
    msg
 
@@ -68,7 +68,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: FORMAT
    :number: 006
-   :location: validators_address.validate_ip_multicast
+   :location: address.validate_ip_multicast
 
    msg
 
@@ -78,7 +78,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: CONSISTENCY
    :number: 007
-   :location: validators_connection_compatibility.validate_ingress_streams_fields
+   :location: connection_compatibility.validate_ingress_streams_fields
 
    f'Validation Error in Ingress Streams. Removing config from the interface. Ingress stream {ingress_stream.name} at the {location} should not have an ipv value.'
 
@@ -88,7 +88,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: CONSISTENCY
    :number: 008
-   :location: validators_connection_compatibility.validate_ingress_streams_fields
+   :location: connection_compatibility.validate_ingress_streams_fields
 
    f'Validation Error in Ingress Streams. Removing config from the interface. Ingress stream {ingress_stream.name} at the {location} should not have an ats value'
 
@@ -98,7 +98,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: UNIQUENESS
    :number: 009
-   :location: validators_helpers.validate_list_items_unique
+   :location: generic.validate_list_items_unique
 
    msg + str(dupes)
 
@@ -108,7 +108,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: REQUIRED
    :number: 010
-   :location: validators_connection_compatibility.validate_cbs_idleslopes_fit_portspeed
+   :location: connection_compatibility.validate_cbs_idleslopes_fit_portspeed
 
    'Cannot validate Traffic Classes! No port speed defined. Make sure to configure MII or MDI.'
 
@@ -118,7 +118,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: CONSISTENCY
    :number: 011
-   :location: validators_connection_compatibility.validate_cbs_idleslopes_fit_portspeed
+   :location: connection_compatibility.validate_cbs_idleslopes_fit_portspeed
 
    'The sum of idleslopes of all shapers on one port' + ' cannot be higher than the link speed!'
 
@@ -128,7 +128,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 012
-   :location: validators_connection_compatibility.validate_optional_mii_config_compatibility
+   :location: connection_compatibility.validate_optional_mii_config_compatibility
 
    f'Invalid MII config in connection {id}: {comp1.name} ↔ {comp2.name} (MII mismatch for PHY type). Both or None of the components should have a MII config'
 
@@ -138,7 +138,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 013
-   :location: validators_connection_compatibility._check_mii_pair_compatibility
+   :location: connection_compatibility._check_mii_pair_compatibility
 
    f'Incompatible MII Mode: {comp1.name} ({mii_comp1.mode}) ↔ {comp2.name}({mii_comp2.mode})'
 
@@ -148,7 +148,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 014
-   :location: validators_connection_compatibility._check_mii_pair_compatibility
+   :location: connection_compatibility._check_mii_pair_compatibility
 
    f'Incompatible MII Speed: {comp1.name} ({mii_comp1.speed}) ↔ {comp2.name}({mii_comp2.speed})'
 
@@ -158,7 +158,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 015
-   :location: validators_connection_compatibility._check_mii_pair_compatibility
+   :location: connection_compatibility._check_mii_pair_compatibility
 
    f'Incompatible MII Type: {comp1.name} ({mii_comp1.type}) ↔ {comp2.name}({mii_comp2.type})'
 
@@ -168,7 +168,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 016
-   :location: validators_connection_compatibility.validate_compulsory_mii_config_compatibility
+   :location: connection_compatibility.validate_compulsory_mii_config_compatibility
 
    f'Invalid MII config in connection {id}: {comp1.name} ↔ {comp2.name} (MII configuration missing).'
 
@@ -178,7 +178,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: CONSISTENCY
    :number: 017
-   :location: validators_connection_compatibility.validate_htb
+   :location: connection_compatibility.validate_htb
 
    f'Incompatible HTB config for {comp.name}Sum of all child classes {sum_child_rates} rates should be less than link speed {speed}'
 
@@ -188,7 +188,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 018
-   :location: validators_connection_compatibility.validate_macsec
+   :location: connection_compatibility.validate_macsec
 
    f'Incomplete MACsec config in connection {id}: {configured.name} has a macsec config but {unconfigured.name} does not. Both or none of the components should have one.'
 
@@ -198,7 +198,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 019
-   :location: validators_connection_compatibility._check_macsec_pair_compatibility
+   :location: connection_compatibility._check_macsec_pair_compatibility
 
    f'MACsec should be enabled in both - {comp1.name} and {comp2.name} in connection {id} '
 
@@ -208,7 +208,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 020
-   :location: validators_connection_compatibility._check_macsec_pair_compatibility
+   :location: connection_compatibility._check_macsec_pair_compatibility
 
    f'Both {comp1.name} and {comp2.name} should have the same macsec_mode. in connection {id} '
 
@@ -218,7 +218,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 021
-   :location: validators_connection_compatibility.validate_gptp
+   :location: connection_compatibility.validate_gptp
 
    f'Incompatible PTP config. PTP config not present in either {comp1.name} or  {comp2.name} in connection {id} '
 
@@ -228,7 +228,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 022
-   :location: validators_connection_compatibility.validate_gptp
+   :location: connection_compatibility.validate_gptp
 
    f'CMLDS mismatch: {comp1.name} has cmlds_linkport_enabled={ptp1.cmlds_linkport_enabled}, but {comp2.name} has {ptp2.cmlds_linkport_enabled}'
 
@@ -238,7 +238,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 023
-   :location: validators_connection_compatibility.validate_gptp_domains
+   :location: connection_compatibility.validate_gptp_domains
 
    f'Incompatible PTP Config: Domain {domain} not present in {comp2.name} in connection {id}'
 
@@ -248,7 +248,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: COMPATIBILITY
    :number: 024
-   :location: validators_connection_compatibility.validate_gptp_domains
+   :location: connection_compatibility.validate_gptp_domains
 
    f'Incompatible PTP Config: Domain ID {domain} in {comp1.name} and {comp2.name} in connection {id}'
 
@@ -258,7 +258,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: VALUE_RANGE
    :number: 025
-   :location: validators_helpers.validate_elements_in
+   :location: generic.validate_elements_in
 
    f'{msg}Invalid values: {sorted(disallowed)}.'
 
@@ -268,7 +268,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: UNIQUENESS
    :number: 026
-   :location: validators_traffic_classes.check_prio_unique
+   :location: traffic_classes.check_prio_unique
 
    'Traffic class priority is not unique in controller or switch.'
 
@@ -278,7 +278,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: UNIQUENESS
    :number: 027
-   :location: validators_traffic_classes.check_pcps_different
+   :location: traffic_classes.check_pcps_different
 
    f'The pcp value {pcp} is not unique for two different traffic classes in controller interfaceor switch port'
 
@@ -288,7 +288,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: UNIQUENESS
    :number: 028
-   :location: validators_traffic_classes.check_ipvs_unique
+   :location: traffic_classes.check_ipvs_unique
 
    f'The ipv value {ipv} is not unique for two different traffic classes in controller interface. or switch port'
 
@@ -298,7 +298,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: VALUE_RANGE
    :number: 029
-   :location: validators_bit_ranges.check_bit_ranges_within
+   :location: bit_ranges.check_bit_ranges_within
 
    "{context}: '{item}' bit range [{start}, {end}) overflows length of {bits} bits"
 
@@ -308,7 +308,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: CONSISTENCY
    :number: 030
-   :location: validators_bit_ranges.check_bit_ranges_no_overlap
+   :location: bit_ranges.check_bit_ranges_no_overlap
 
    "{context}: '{a}' [{sa}, {ea}) and '{b}' [{sb}, {eb}) overlap"
 
@@ -318,7 +318,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: REQUIRED
    :number: 031
-   :location: validators_bit_ranges.validate_value_input_format
+   :location: bit_ranges.validate_value_input_format
 
    "Field required: Either the field 'value' or the pair of 'from_value' and 'to_value' has to be defined."
 
@@ -328,7 +328,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: CONSISTENCY
    :number: 032
-   :location: validators_bit_ranges.validate_value_input_format
+   :location: bit_ranges.validate_value_input_format
 
    "Invalid Combination: cannot use both 'value' and 'to_value' — either use 'value' for a single value, or 'from_value' and 'to_value' in a pair."
 
@@ -338,7 +338,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: CONSISTENCY
    :number: 033
-   :location: validators_bit_ranges.validate_value_input_format
+   :location: bit_ranges.validate_value_input_format
 
    "Invalid Combination: cannot use both 'value' and 'from_value' — either use 'value' for a single value, or 'from_value' and 'to_value' in a pair."
 
@@ -348,7 +348,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: CONSISTENCY
    :number: 034
-   :location: validators_bit_ranges.validate_value_input_format
+   :location: bit_ranges.validate_value_input_format
 
    "Invalid Combination: 'from_value' and 'to_value' must be paired — either use 'value' for a single value, or 'from_value' and 'to_value' in a pair."
 
@@ -358,7 +358,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: CONSISTENCY
    :number: 035
-   :location: forwarder_validators._resolve_egress_pdu
+   :location: forwarder._resolve_egress_pdu
 
    "{owner}: {egress}: extract_pdu_ref='{ref}' is only valid when ingress is a ContainerPDU; ingress '{ingress}' is a {kind}."
 
@@ -368,7 +368,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: REFERENCE
    :number: 036
-   :location: forwarder_validators._resolve_egress_pdu
+   :location: forwarder._resolve_egress_pdu
 
    "{owner}: {egress}: extract_pdu_ref '{ref}' is not contained in ContainerPDU '{ingress}' (contained_pdus = {inner})."
 
@@ -378,7 +378,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: UNIQUENESS
    :number: 037
-   :location: forwarder_validators._resolve_egress_pdu
+   :location: forwarder._resolve_egress_pdu
 
    "{owner}: {egress}: extract_pdu_ref '{ref}' is ambiguous; ContainerPDU '{ingress}' contains it more than once."
 
@@ -388,7 +388,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: REFERENCE
    :number: 038
-   :location: forwarder_validators._validate_pdu_forwarder_refs_for
+   :location: forwarder._validate_pdu_forwarder_refs_for
 
    "{owner}: pdu_ref '{ref}' does not name any PDU declared under communication.channels."
 
@@ -398,7 +398,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: REFERENCE
    :number: 039
-   :location: forwarder_validators._validate_can_frame_forwarder_refs_for
+   :location: forwarder._validate_can_frame_forwarder_refs_for
 
    "{owner}: frame_ref '{ref}' does not name any CAN or CAN FD frame declared under communication.channels.can_buses."
 
@@ -408,7 +408,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: REFERENCE
    :number: 040
-   :location: forwarder_validators._resolve_sinks_for
+   :location: forwarder._resolve_sinks_for
 
    "{owner}: {egress}: frame_ref id={ref} on bus '{bus}' does not name any CAN or CAN FD frame."
 
@@ -418,7 +418,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: CONSISTENCY
    :number: 041
-   :location: forwarder_validators._resolve_sinks_for
+   :location: forwarder._resolve_sinks_for
 
    "{owner}: {egress}: PDU '{pdu}' ({pdu_len} B) does not fit egress frame '{frame}' ({frame_len} B)."
 
@@ -428,7 +428,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: REFERENCE
    :number: 042
-   :location: forwarder_validators._check_eth_socket_egress
+   :location: forwarder._check_eth_socket_egress
 
    "{owner}: eth_socket egress targets socket '{ref}' which does not exist on controller '{ctrl}'."
 
@@ -438,7 +438,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: CONSISTENCY
    :number: 043
-   :location: forwarder_validators._check_eth_socket_egress
+   :location: forwarder._check_eth_socket_egress
 
    "{owner}: eth_socket egress target '{ref}' has no pdu_sender deployment for PDU '{pdu}'; cannot publish forwarded payload."
 
@@ -448,7 +448,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: REFERENCE
    :number: 044
-   :location: forwarder_validators._check_can_frame_egress
+   :location: forwarder._check_can_frame_egress
 
    "{owner}: can_frame egress targets bus '{bus}' which has no CAN interface on controller '{ctrl}'."
 
@@ -458,7 +458,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: CONSISTENCY
    :number: 045
-   :location: forwarder_validators._check_can_frame_egress
+   :location: forwarder._check_can_frame_egress
 
    "{owner}: can_frame egress targets frame id={frame} on bus '{bus}', but controller '{ctrl}' does not list it in sender_frames of that interface."
 
@@ -468,7 +468,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: REFERENCE
    :number: 046
-   :location: forwarder_validators._check_forwarder_egress_locality
+   :location: forwarder._check_forwarder_egress_locality
 
    '{owner}: eth_socket egress cannot resolve egress PDU; ingress frame has no single packed PDU.'
 
@@ -478,7 +478,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: STRUCTURAL
    :number: 047
-   :location: forwarder_validators._ForwarderCycleDetector._visit_neighbour
+   :location: forwarder._ForwarderCycleDetector._visit_neighbour
 
    'Forwarder cycle detected: {path}'
 
@@ -1758,7 +1758,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: REFERENCE
    :number: 175
-   :location: forwarder_validators.validate_pdu_deployment_refs
+   :location: forwarder.validate_pdu_deployment_refs
 
    "{owner}: pdu_ref '{ref}' does not name any PDU declared under communication.channels."
 
@@ -1798,7 +1798,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MIN
    :category: FORMAT
    :number: 185
-   :location: validators_helpers.none_to_empty_list
+   :location: generic.none_to_empty_list
 
    f"'{field}' must be a list of items, but a single mapping was given. Did you forget to add '- ' before each item to make it a list?"
 
@@ -1838,7 +1838,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: REFERENCE
    :number: 189
-   :location: state_management_validators._check_referenced_groups_exist
+   :location: state_management._check_referenced_groups_exist
 
    "state_memberships reference undefined state management group '{group}' — define it in communication/state_management/groups.flync.yaml"
 
@@ -1848,7 +1848,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: REQUIRED
    :number: 190
-   :location: state_management_validators._check_group_basics
+   :location: state_management._check_group_basics
 
    "state management group '{group}' has no participant — assign at least one entity via state_memberships"
 
@@ -1858,7 +1858,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: REFERENCE
    :number: 191
-   :location: state_management_validators._check_group_basics
+   :location: state_management._check_group_basics
 
    "state management group '{group}': nm_pdu '{pdu}' not found under communication.channels"
 
@@ -1868,7 +1868,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: REFERENCE
    :number: 192
-   :location: state_management_validators._check_group_basics
+   :location: state_management._check_group_basics
 
    "state management group '{group}': PDU '{pdu}' has pdu_usage '{usage}', expected 'network_management'"
 
@@ -1878,7 +1878,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: REFERENCE
    :number: 193
-   :location: state_management_validators._check_group_basics
+   :location: state_management._check_group_basics
 
    "state management group '{group}': timing_profile '{profile}' not found — define it in communication/state_management/timing_profiles.flync.yaml"
 
@@ -1888,7 +1888,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: WARN
    :category: CONSISTENCY
    :number: 194
-   :location: state_management_validators._warn_controller_under_ecu
+   :location: state_management._warn_controller_under_ecu
 
    f"state management group '{name}': '{m.entity_path}' is redundant — its host ECU '{m.ecu_name}' is already a whole-ECU participant"
 
@@ -1898,7 +1898,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: CONSISTENCY
    :number: 195
-   :location: state_management_validators._check_single_variant_per_bus
+   :location: state_management._check_single_variant_per_bus
 
    "state management group '{group}': bus '{bus}' has a bus-level membership (the whole bus as one participant) but node-level member '{node}' on it also participates — choose one variant per bus (whole-bus or per-node), not both"
 
@@ -1908,7 +1908,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: REFERENCE
    :number: 196
-   :location: state_management_validators._reachability_error
+   :location: state_management._reachability_error
 
    "state management group '{group}': {role} '{member}' has no {label} path for NM PDU '{pdu}' — " + missing
 
@@ -1918,7 +1918,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: REFERENCE
    :number: 197
-   :location: state_management_validators._check_lin_bus_reachability
+   :location: state_management._check_lin_bus_reachability
 
    "state management group '{group}': LIN bus participant '{bus}' has no master whose ECU receives or sends NM PDU '{pdu}' on another bus — the LIN master must know the group state (as its source, or by receiving it) to drive the bus sleep"
 
@@ -1928,7 +1928,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: REFERENCE
    :number: 198
-   :location: state_management_validators._check_bus_reachability
+   :location: state_management._check_bus_reachability
 
    "state management group '{group}': bus participant '{bus}' has no frame carrying NM PDU '{pdu}' — a bus nobody feeds NM into can never be released correctly"
 
@@ -1938,7 +1938,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: REFERENCE
    :number: 199
-   :location: state_management_validators._check_bus_reachability
+   :location: state_management._check_bus_reachability
 
    "state management group '{group}': no ECU attached to bus participant '{bus}' sends NM PDU '{pdu}' — a bus nobody feeds NM into can never be released correctly"
 
@@ -1948,7 +1948,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: VALUE_RANGE
    :number: 200
-   :location: state_management_validators._check_relevance_bits
+   :location: state_management._check_relevance_bits
 
    "state management group '{group}': member '{member}' claims relevance bit '{bit}' which is not a flag of NM PDU '{pdu}' — declare the bit in the PDU's relevance vector or correct the relevance_bits entry"
 
@@ -1958,7 +1958,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: WARN
    :category: CONSISTENCY
    :number: 201
-   :location: state_management_validators._warn_cycle_mismatch
+   :location: state_management._warn_cycle_mismatch
 
    f"state management group '{group.name}': NM frame '{frame.name}' on bus '{bus.name}' is configured with a cyclic timing of {frame_cycle_ms:g} ms, which does not match the group's cycle_time_ms ({cycle_time_ms})"
 
@@ -1968,7 +1968,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: WARN
    :category: CONSISTENCY
    :number: 202
-   :location: state_management_validators._warn_infeasible_cadence
+   :location: state_management._warn_infeasible_cadence
 
    f"state management group '{group.name}': {source} ({cadence_ms:g}) is shorter than the ~{frame_tx_ms:.2f} ms needed to send NM frame '{frame.name}' on bus '{bus.name}' at {baud_rate} bit/s"
 
@@ -2098,7 +2098,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: REFERENCE
    :number: 215
-   :location: interface_validators._validate_interface
+   :location: interface._validate_interface
 
    "{owner}: bus_ref '{bus}' does not name any bus declared under {catalog}."
 
@@ -2108,7 +2108,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: REFERENCE
    :number: 216
-   :location: interface_validators._validate_interface
+   :location: interface._validate_interface
 
    "{owner}: {field}: bus_ref '{bus}' does not name any bus declared under {catalog}."
 
@@ -2118,7 +2118,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :severity: MAJ
    :category: REFERENCE
    :number: 217
-   :location: interface_validators._validate_interface
+   :location: interface._validate_interface
 
    "{owner}: {field}: frame_ref id={ref} does not name any frame declared on bus '{bus}' under {catalog}."
 

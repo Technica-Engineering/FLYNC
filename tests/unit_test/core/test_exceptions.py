@@ -27,7 +27,7 @@ class TestModuleCodeFor:
         assert module_code_for("flync.core.version_migrators.legacy_controller_check") == "GEN"
 
     def test_shared_utils_fall_back_to_cmn(self):
-        assert module_code_for("flync.core.utils.validators_helpers") == "CMN"
+        assert module_code_for("flync.core.validators.generic") == "CMN"
 
     def test_unknown_module_falls_back_to_cmn(self):
         assert module_code_for("totally.made.up.module") == "CMN"

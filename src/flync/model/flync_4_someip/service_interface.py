@@ -27,8 +27,8 @@ from pydantic import (
 from flync.core.annotations.external import External, OutputStrategy
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_minor
-from flync.core.utils.validators_address import validate_ip_multicast
-from flync.core.utils.validators_helpers import none_to_empty_list
+from flync.core.validators.address import validate_ip_multicast
+from flync.core.validators.generic import none_to_empty_list
 from flync.model.flync_4_metadata import SOMEIPServiceMetadata
 from flync.model.flync_4_safety.e2e import E2EConfig
 from flync.model.flync_4_someip.someip_complex_datatypes import AllTypes

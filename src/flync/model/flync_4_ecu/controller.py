@@ -23,18 +23,18 @@ from flync.core.annotations import (
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.datatypes.macaddress import FLYNCMacAddress
 from flync.core.utils.exceptions import Category, err_fatal, err_major, err_minor, warn
-from flync.core.utils.validators_address import validate_multicast_list, validate_vlan_id
-from flync.core.utils.validators_connection_compatibility import (
+from flync.core.validators.address import validate_multicast_list, validate_vlan_id
+from flync.core.validators.connection_compatibility import (
     validate_ingress_streams_fields,
     validate_vlan_ids_unique,
 )
-from flync.core.utils.validators_helpers import (
+from flync.core.validators.generic import (
     none_to_empty_list,
     validate_list_items_and_remove,
     validate_list_items_unique,
     validate_or_remove,
 )
-from flync.core.utils.validators_traffic_classes import validate_traffic_classes
+from flync.core.validators.traffic_classes import validate_traffic_classes
 from flync.core.version_migrators.legacy_controller_check import (
     reject_legacy_controller,
 )
