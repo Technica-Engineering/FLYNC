@@ -15,6 +15,7 @@ from flync.model.flync_4_tsn.qos import (
     Stream,
     TrafficClass,
 )
+from tests.error_assertions import assert_single_error
 
 
 def test_positive_traffic_class_definition_cbs_shaper(
@@ -54,111 +55,29 @@ def test_positive_traffic_class_definition_ATSShaper(
 
 
 def test_negative_traffic_class_priority(CBSShaper_entry: CBSShaper):
-    traffic_class_example = {
-        "name": "Low_Priority_Traffic",
-        "priority": 10,
-        "internal_priority_values": [0, 1],
-        "selection_mechanisms": CBSShaper_entry,
-    }
-    with pytest.raises(ValidationError) as e:
-        switch_port = SwitchPort.model_validate(
+    with pytest.raises(ValidationError) as exc_info:
+        TrafficClass.model_validate(
             {
-                "name": "Ingress_port_A",
-                "silicon_port_no": 1,
-                "default_vlan_id": 35,
-                "traffic_classes": [traffic_class_example],
+                "name": "Low_Priority_Traffic",
+                "priority": 10,
+                "internal_priority_values": [0, 1],
+                "selection_mechanisms": CBSShaper_entry,
             }
         )
+    assert_single_error(exc_info, None, "less than or equal to 7")
 
 
 def test_negative_cbs_shaper_idle_slope():
-    cbs_shaper_example = {
-        "type": "cbs",
-        "idleslope": 2000000000,
-        "hilimit": 400000,
-        "lolimit": -100000,
-    }
-    with pytest.raises(ValidationError) as e:
-        traffic_class_example = TrafficClass.model_validate(
+    with pytest.raises(ValidationError) as exc_info:
+        TrafficClass.model_validate(
             {
                 "name": "Low_Priority_Traffic",
                 "priority": 1,
                 "internal_priority_values": [0, 1],
-                "selection_mechanisms": cbs_shaper_example,
+                "selection_mechanisms": {"type": "cbs", "idleslope": 2000000000},
             }
         )
-
-
-def test_negative_cbs_shaper_hi_limit():
-    cbs_shaper_example = {
-        "type": "cbs",
-        "idleslope": 200000,
-        "hilimit": 4000000000,
-        "lolimit": -100000,
-    }
-    with pytest.raises(ValidationError) as e:
-        traffic_class_example = TrafficClass.model_validate(
-            {
-                "name": "Low_Priority_Traffic",
-                "priority": 1,
-                "internal_priority_values": [0, 1],
-                "selection_mechanisms": cbs_shaper_example,
-            }
-        )
-
-
-def test_negative_cbs_shaper_lo_limit():
-    cbs_shaper_example = {
-        "type": "cbs",
-        "idleslope": 200000,
-        "hilimit": 400000,
-        "lolimit": 100000,
-    }
-    with pytest.raises(ValidationError) as e:
-        traffic_class_example = TrafficClass.model_validate(
-            {
-                "name": "Low_Priority_Traffic",
-                "priority": 1,
-                "internal_priority_values": [0, 1],
-                "selection_mechanisms": cbs_shaper_example,
-            }
-        )
-
-
-def test_negative_max_sdu_size():
-    cbs_shaper_example = {
-        "type": "cbs",
-        "idleslope": 200000,
-        "hilimit": 400000,
-        "lolimit": 100000,
-    }
-    with pytest.raises(ValidationError) as e:
-        traffic_class_example = TrafficClass.model_validate(
-            {
-                "name": "Low_Priority_Traffic",
-                "priority": 1,
-                "internal_priority_values": [0, 1],
-                "selection_mechanisms": cbs_shaper_example,
-            }
-        )
-
-
-def test_negative_cbs_shaper_lo_limit():
-    cbs_shaper_example = {
-        "type": "cbs",
-        "idleslope": 200000,
-        "hilimit": 400000,
-        "lolimit": 100000,
-    }
-    with pytest.raises(ValidationError) as e:
-        traffic_class_example = TrafficClass.model_validate(
-            {
-                "name": "Low_Priority_Traffic",
-                "priority": 1,
-                "internal_priority_values": [0, 1],
-                "selection_mechanisms": cbs_shaper_example,
-            }
-        )
+    assert_single_error(exc_info, None, "less than or equal to 1000000")
 
 
 def test_positive_SingleRateTwoColorMarker(
@@ -230,7 +149,7 @@ def test_positive_DoubleRateThreeColorMarker(
 def test_negative_cbs_shaper_idleslope_greater_than_link_speed(metadata_entry, vlan_entry, MII_entry):
     cbs_shaper_example = {
         "type": "cbs",
-        "idleslope": 2000000,
+        "idleslope": 200000,
     }
     traffic_class_example = {
         "name": "Low_Priority_Traffic",
@@ -239,7 +158,7 @@ def test_negative_cbs_shaper_idleslope_greater_than_link_speed(metadata_entry, v
         "selection_mechanisms": cbs_shaper_example,
     }
 
-    with pytest.raises(ValidationError) as e:
+    with pytest.raises(ValidationError) as exc_info:
         SwitchPort(
             name="Ingress_port_A",
             silicon_port_no=1,
@@ -247,39 +166,10 @@ def test_negative_cbs_shaper_idleslope_greater_than_link_speed(metadata_entry, v
             mii_config=MII_entry,
             traffic_classes=[traffic_class_example],
         )
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-CONS-011", "cannot be higher than the link speed")
 
 
-def test_positive_hilimit_lolimit_differenece_greater_than_max_frame_size(embedded_metadata_entry, vlan_entry, MII_entry):
-    cbs_shaper_example = {
-        "type": "cbs",
-        "idleslope": 10000,
-    }
-    traffic_class_example = {
-        "name": "Low_Priority_Traffic",
-        "priority": 1,
-        "frame_priority_values": [0, 1],
-        "selection_mechanisms": cbs_shaper_example,
-    }
-    ports = SwitchPort(
-        name="Ingress_port_A",
-        silicon_port_no=1,
-        default_vlan_id=35,
-        mii_config=MII_entry,
-        traffic_classes=[traffic_class_example],
-    )
-    switch_example = Switch.model_validate(
-        {
-            "name": "switch1",
-            "switch_config": {
-                "meta": embedded_metadata_entry,
-                "ports": [ports],
-                "vlans": [vlan_entry],
-            },
-        }
-    )
-
-
-def test_negative_hilimit_ceil(vlan_entry, MII_entry):
+def test_negative_traffic_class_containing_ipv_should_be_defined_on_atleast_one_ingress_stream(embedded_metadata_entry, vlan_entry, MII_entry):
     cbs_shaper_example = {
         "type": "cbs",
         "idleslope": 100000,
@@ -297,55 +187,21 @@ def test_negative_hilimit_ceil(vlan_entry, MII_entry):
         mii_config=MII_entry,
         traffic_classes=[traffic_class_example],
     )
-    with pytest.raises(ValidationError) as e:
-        switch_example = Switch.model_validate({"name": "switch1", "switch_config": {"ports": [ports], "vlans": [vlan_entry]}})
+    with pytest.raises(ValidationError) as exc_info:
+        Switch.model_validate(
+            {
+                "name": "switch1",
+                "switch_config": {
+                    "meta": embedded_metadata_entry,
+                    "ports": [ports],
+                    "vlans": [vlan_entry],
+                },
+            }
+        )
+    assert_single_error(exc_info, "FLYNC-ECU-MIN-REF-090", "Not able to find any streams")
 
 
-def test_negative_lolimit_ceil(vlan_entry, MII_entry):
-    cbs_shaper_example = {
-        "type": "cbs",
-        "idleslope": 100000,
-    }
-    traffic_class_example = {
-        "name": "Low_Priority_Traffic",
-        "priority": 1,
-        "internal_priority_values": [0, 1],
-        "selection_mechanisms": cbs_shaper_example,
-    }
-    ports = SwitchPort(
-        name="Ingress_port_A",
-        silicon_port_no=1,
-        default_vlan_id=35,
-        mii_config=MII_entry,
-        traffic_classes=[traffic_class_example],
-    )
-    with pytest.raises(ValidationError) as e:
-        switch_example = Switch.model_validate({"name": "switch1", "switch_config": {"ports": [ports], "vlans": [vlan_entry]}})
-
-
-def test_negative_traffic_class_containing_ipv_should_be_defined_on_atleast_one_ingress_stream(vlan_entry, MII_entry):
-    cbs_shaper_example = {
-        "type": "cbs",
-        "idleslope": 100000,
-    }
-    traffic_class_example = {
-        "name": "Low_Priority_Traffic",
-        "priority": 1,
-        "internal_priority_values": [0, 1],
-        "selection_mechanisms": cbs_shaper_example,
-    }
-    ports = SwitchPort(
-        name="Ingress_port_A",
-        silicon_port_no=1,
-        default_vlan_id=35,
-        mii_config=MII_entry,
-        traffic_classes=[traffic_class_example],
-    )
-    with pytest.raises(ValidationError) as e:
-        switch_example = Switch.model_validate({"name": "switch1", "switch_config": {"ports": [ports], "vlans": [vlan_entry]}})
-
-
-def test_negative_ats_instance_for_traffic_class(vlan_entry, MII_entry):
+def test_negative_ats_instance_for_traffic_class(embedded_metadata_entry, vlan_entry, MII_entry):
     ats_shaper_example = {"type": "ats"}
     traffic_class_example = {
         "name": "Low_Priority_Traffic",
@@ -360,8 +216,18 @@ def test_negative_ats_instance_for_traffic_class(vlan_entry, MII_entry):
         mii_config=MII_entry,
         traffic_classes=[traffic_class_example],
     )
-    with pytest.raises(ValidationError) as e:
-        switch_example = Switch.model_validate({"name": "switch1", "switch_config": {"ports": [ports], "vlans": [vlan_entry]}})
+    with pytest.raises(ValidationError) as exc_info:
+        Switch.model_validate(
+            {
+                "name": "switch1",
+                "switch_config": {
+                    "meta": embedded_metadata_entry,
+                    "ports": [ports],
+                    "vlans": [vlan_entry],
+                },
+            }
+        )
+    assert_single_error(exc_info, "FLYNC-ECU-MIN-REF-091", "No ATS Instance found")
 
 
 def test_positive_ats_instance_for_traffic_class(
@@ -404,403 +270,99 @@ def test_positive_ats_instance_for_traffic_class(
             },
         }
     )
+    assert isinstance(switch_example.ports[0].traffic_classes[0], TrafficClass)
 
 
-def test_negative_frame_filter_has_atleast_one_field(ATSInstance_entry, vlan_entry, MII_entry):
-    stream_example = {
-        "name": "Stream1",
-        "stream_identification": [{"vlanid": None}],
-        "drop_at_ingress": False,
-        "max_sdu_size": 1400,
-        "ipv": 5,
-        "ats": ATSInstance_entry,
-        "policer": None,
-    }
-    ports = SwitchPort(
-        name="Ingress_port_A",
-        silicon_port_no=1,
-        default_vlan_id=35,
-        mii_config=MII_entry,
-        traffic_classes=[],
-        ingress_streams=[stream_example],
-    )
-    with pytest.raises(ValidationError) as e:
-        switch_example = Switch.model_validate({"name": "switch1", "switch_config": {"ports": [ports], "vlans": [vlan_entry]}})
+def test_negative_protocol_for_source_port_frame_filter():
+    with pytest.raises(ValidationError) as exc_info:
+        FrameFilter(src_port=-20)
+    assert_single_error(exc_info, "FLYNC-TSN-MIN-VAL-152", "Protocol port must be greater than 0")
 
 
-def test_negative_protocol_for_source_port_frame_filter(ATSInstance_entry, vlan_entry, MII_entry):
+def test_negative_protocol_for_destination_port_frame_filter():
+    with pytest.raises(ValidationError) as exc_info:
+        FrameFilter(dst_port=-100)
+    assert_single_error(exc_info, "FLYNC-TSN-MIN-VAL-152", "Protocol port must be greater than 0")
 
-    stream_example = {
-        "name": "Stream1",
-        "stream_identification": [{"src_port": -20}],
-        "drop_at_ingress": False,
-        "max_sdu_size": 1400,
-        "ipv": 5,
-        "ats": ATSInstance_entry,
-        "policer": None,
-    }
-    with pytest.raises(ValidationError) as e:
-        ports = SwitchPort.model_validate(
+
+def test_negative_pcp_for_frame_filter():
+    with pytest.raises(ValidationError) as exc_info:
+        FrameFilter(pcp=10)
+    assert_single_error(exc_info, "FLYNC-TSN-MIN-VAL-150", "pcp value must be greater than or equal to 0")
+
+
+def test_negative_pcp_list_for_frame_filter():
+    with pytest.raises(ValidationError) as exc_info:
+        FrameFilter(pcp=[1, 8])
+    assert_single_error(exc_info, "FLYNC-TSN-MIN-VAL-150", "pcp value must be greater than or equal to 0")
+
+
+def test_negative_vlanid_int_for_frame_filter():
+    with pytest.raises(ValidationError) as exc_info:
+        FrameFilter(vlanid=4096)
+    assert_single_error(exc_info, "FLYNC-CMN-MIN-VAL-002", "range 0-4094")
+
+
+def test_negative_vlanid_valuerange_for_frame_filter():
+    with pytest.raises(ValidationError) as exc_info:
+        FrameFilter(vlanid=ValueRange(from_value=4095, to_value=4097))
+    assert_single_error(exc_info, "FLYNC-CMN-MIN-VAL-002", "range 0-4094")
+
+
+def test_negative_vlanid_list_of_vlanid_or_int_for_frame_filter():
+    with pytest.raises(ValidationError) as exc_info:
+        FrameFilter(vlanid=[1, ValueRange(from_value=4095, to_value=4097)])
+    assert_single_error(exc_info, "FLYNC-CMN-MIN-VAL-002", "range 0-4094")
+
+
+@pytest.mark.parametrize(
+    "values_field,value",
+    [
+        pytest.param("internal_priority_values", 9, id="internal value too high"),
+        pytest.param("internal_priority_values", -1, id="internal value too low"),
+        pytest.param("frame_priority_values", 8, id="frame value too high"),
+        pytest.param("frame_priority_values", -1, id="frame value too low"),
+    ],
+)
+def test_negative_priority_values_out_of_range(values_field, value):
+    with pytest.raises(ValidationError) as exc_info:
+        TrafficClass.model_validate(
             {
-                "name": "Ingress_port_A",
-                "silicon_port_no": 1,
-                "default_vlan_id": 35,
-                "mii_config": MII_entry,
-                "traffic_classes": [],
-                "ingress_streams": [stream_example],
+                "name": "Low_Priority_Traffic",
+                "priority": 1,
+                values_field: [value],
             }
         )
+    assert_single_error(exc_info, "FLYNC-TSN-MIN-VAL-153", "Priority value out of range")
 
 
-def test_negative_protocol_for_destination_port_frame_filter(ATSInstance_entry, vlan_entry, MII_entry):
-
-    stream_example = {
-        "name": "Stream1",
-        "stream_identification": [{"dst_port": -100}],
-        "drop_at_ingress": False,
-        "max_sdu_size": 1400,
-        "ipv": 5,
-        "ats": ATSInstance_entry,
-        "policer": None,
-    }
-    with pytest.raises(ValidationError) as e:
-        ports = SwitchPort.model_validate(
-            {
-                "name": "Ingress_port_A",
-                "silicon_port_no": 1,
-                "default_vlan_id": 35,
-                "mii_config": MII_entry,
-                "traffic_classes": [],
-                "ingress_streams": [stream_example],
-            }
-        )
-
-
-def test_negative_pcp_for_frame_filter(ATSInstance_entry, vlan_entry, MII_entry):
-
-    stream_example = {
-        "name": "Stream1",
-        "stream_identification": [{"pcp": 10}],
-        "drop_at_ingress": False,
-        "max_sdu_size": 1400,
-        "ipv": 5,
-        "ats": ATSInstance_entry,
-        "policer": None,
-    }
-    with pytest.raises(ValidationError) as e:
-        ports = SwitchPort.model_validate(
-            {
-                "name": "Ingress_port_A",
-                "silicon_port_no": 1,
-                "default_vlan_id": 35,
-                "mii_config": MII_entry,
-                "traffic_classes": [],
-                "ingress_streams": [stream_example],
-            }
-        )
-
-
-def test_negative_pcp_list_for_frame_filter(ATSInstance_entry, vlan_entry, MII_entry):
-
-    stream_example = {
-        "name": "Stream1",
-        "stream_identification": [{"pcp": [1, 8]}],
-        "drop_at_ingress": False,
-        "max_sdu_size": 1400,
-        "ipv": 5,
-        "ats": ATSInstance_entry,
-        "policer": None,
-    }
-    with pytest.raises(ValidationError) as e:
-        ports = SwitchPort.model_validate(
-            {
-                "name": "Ingress_port_A",
-                "silicon_port_no": 1,
-                "default_vlan_id": 35,
-                "mii_config": MII_entry,
-                "traffic_classes": [],
-                "ingress_streams": [stream_example],
-            }
-        )
-
-
-def test_negative_vlanid_int_for_frame_filter(ATSInstance_entry, vlan_entry, MII_entry):
-
-    stream_example = {
-        "name": "Stream1",
-        "stream_identification": [{"vlanid": 4096}],
-        "drop_at_ingress": False,
-        "max_sdu_size": 1400,
-        "ipv": 5,
-        "ats": ATSInstance_entry,
-        "policer": None,
-    }
-    with pytest.raises(ValidationError) as e:
-        ports = SwitchPort.model_validate(
-            {
-                "name": "Ingress_port_A",
-                "silicon_port_no": 1,
-                "default_vlan_id": 35,
-                "mii_config": MII_entry,
-                "traffic_classes": [],
-                "ingress_streams": [stream_example],
-            }
-        )
-
-
-def test_negative_vlanid_valuerange_for_frame_filter(ATSInstance_entry, vlan_entry, MII_entry):
-
-    stream_example = {
-        "name": "Stream1",
-        "stream_identification": [{"vlanid": ValueRange(from_value=4095, to_value=4097)}],
-        "drop_at_ingress": False,
-        "max_sdu_size": 1400,
-        "ipv": 5,
-        "ats": ATSInstance_entry,
-        "policer": None,
-    }
-    with pytest.raises(ValidationError) as e:
-        ports = SwitchPort.model_validate(
-            {
-                "name": "Ingress_port_A",
-                "silicon_port_no": 1,
-                "default_vlan_id": 35,
-                "mii_config": MII_entry,
-                "traffic_classes": [],
-                "ingress_streams": [stream_example],
-            }
-        )
-
-
-def test_negative_vlanid_list_of_vlanid_or_int_for_frame_filter(ATSInstance_entry, vlan_entry, MII_entry):
-
-    stream_example = {
-        "name": "Stream1",
-        "stream_identification": [{"vlanid": [1, ValueRange(from_value=4095, to_value=4097)]}],
-        "drop_at_ingress": False,
-        "max_sdu_size": 1400,
-        "ipv": 5,
-        "ats": ATSInstance_entry,
-        "policer": None,
-    }
-    with pytest.raises(ValidationError) as e:
-        ports = SwitchPort.model_validate(
-            {
-                "name": "Ingress_port_A",
-                "silicon_port_no": 1,
-                "default_vlan_id": 35,
-                "mii_config": MII_entry,
-                "traffic_classes": [],
-                "ingress_streams": [stream_example],
-            }
-        )
-
-
-def test_negative_pcp_for_frame_filter(ATSInstance_entry, vlan_entry, MII_entry):
-
-    stream_example = {
-        "name": "Stream1",
-        "stream_identification": [{"pcp": 10}],
-        "drop_at_ingress": False,
-        "max_sdu_size": 1400,
-        "ipv": 5,
-        "ats": ATSInstance_entry,
-        "policer": None,
-    }
-    with pytest.raises(ValidationError) as e:
-        ports = SwitchPort.model_validate(
-            {
-                "name": "Ingress_port_A",
-                "silicon_port_no": 1,
-                "default_vlan_id": 35,
-                "mii_config": MII_entry,
-                "traffic_classes": [],
-                "ingress_streams": [stream_example],
-            }
-        )
-
-
-def test_negative_pcp_list_for_frame_filter(ATSInstance_entry, vlan_entry, MII_entry):
-
-    stream_example = {
-        "name": "Stream1",
-        "stream_identification": [{"pcp": [1, 8]}],
-        "drop_at_ingress": False,
-        "max_sdu_size": 1400,
-        "ipv": 5,
-        "ats": ATSInstance_entry,
-        "policer": None,
-    }
-    with pytest.raises(ValidationError) as e:
-        ports = SwitchPort.model_validate(
-            {
-                "name": "Ingress_port_A",
-                "silicon_port_no": 1,
-                "default_vlan_id": 35,
-                "mii_config": MII_entry,
-                "traffic_classes": [],
-                "ingress_streams": [stream_example],
-            }
-        )
-
-
-def test_negative_vlanid_int_for_frame_filter(ATSInstance_entry, vlan_entry, MII_entry):
-
-    stream_example = {
-        "name": "Stream1",
-        "stream_identification": [{"vlanid": 4096}],
-        "drop_at_ingress": False,
-        "max_sdu_size": 1400,
-        "ipv": 5,
-        "ats": ATSInstance_entry,
-        "policer": None,
-    }
-    with pytest.raises(ValidationError) as e:
-        ports = SwitchPort.model_validate(
-            {
-                "name": "Ingress_port_A",
-                "silicon_port_no": 1,
-                "default_vlan_id": 35,
-                "mii_config": MII_entry,
-                "traffic_classes": [],
-                "ingress_streams": [stream_example],
-            }
-        )
-
-
-def test_negative_vlanid_valuerange_for_frame_filter(ATSInstance_entry, vlan_entry, MII_entry):
-
-    stream_example = {
-        "name": "Stream1",
-        "stream_identification": [{"vlanid": ValueRange(from_value=4095, to_value=4097)}],
-        "drop_at_ingress": False,
-        "max_sdu_size": 1400,
-        "ipv": 5,
-        "ats": ATSInstance_entry,
-        "policer": None,
-    }
-    with pytest.raises(ValidationError) as e:
-        ports = SwitchPort.model_validate(
-            {
-                "name": "Ingress_port_A",
-                "silicon_port_no": 1,
-                "default_vlan_id": 35,
-                "mii_config": MII_entry,
-                "traffic_classes": [],
-                "ingress_streams": [stream_example],
-            }
-        )
-
-
-def test_negative_vlanid_list_of_vlanid_or_int_for_frame_filter(ATSInstance_entry, vlan_entry, MII_entry):
-
-    stream_example = {
-        "name": "Stream1",
-        "stream_identification": [{"vlanid": [1, ValueRange(from_value=4095, to_value=4097)]}],
-        "drop_at_ingress": False,
-        "max_sdu_size": 1400,
-        "ipv": 5,
-        "ats": ATSInstance_entry,
-        "policer": None,
-    }
-    with pytest.raises(ValidationError) as e:
-        ports = SwitchPort.model_validate(
-            {
-                "name": "Ingress_port_A",
-                "silicon_port_no": 1,
-                "default_vlan_id": 35,
-                "mii_config": MII_entry,
-                "traffic_classes": [],
-                "ingress_streams": [stream_example],
-            }
-        )
-
-
-def test_positive_cbs_should_be_greater_than_max_frame_size(embedded_metadata_entry, SingleRateTwoColorMarker_entry, vlan_entry):
-
-    stream_example = {
-        "name": "Stream1",
-        "stream_identification": [],
-        "drop_at_ingress": False,
-        "max_sdu_size": 900,
-        "policer": SingleRateTwoColorMarker_entry,
-        "ipv": 5,
-        "ats": None,
-    }
-    ports = SwitchPort(
-        name="Ingress_port_A",
-        silicon_port_no=1,
-        default_vlan_id=35,
-        ingress_streams=[stream_example],
-    )
-    switch_example = Switch.model_validate(
-        {
-            "name": "switch1",
-            "switch_config": {
-                "meta": embedded_metadata_entry,
-                "ports": [ports],
-                "vlans": [vlan_entry],
-            },
-        }
+def test_negative_no_priority_values_provided():
+    with pytest.raises(ValidationError) as exc_info:
+        TrafficClass.model_validate({"name": "Low_Priority_Traffic", "priority": 1})
+    assert_single_error(
+        exc_info,
+        "FLYNC-TSN-MIN-REQ-154",
+        "At least one of frame_priority_values or internal_priority_values must be provided",
     )
 
 
-def test_positive_ebs_should_be_greater_than_max_frame_size(embedded_metadata_entry, DoubleRateThreeColorMarker_entry, vlan_entry):
-
-    stream_example = {
-        "name": "Stream1",
-        "stream_identification": [],
-        "drop_at_ingress": False,
-        "max_sdu_size": 900,
-        "policer": DoubleRateThreeColorMarker_entry,
-        "ipv": 5,
-        "ats": None,
-    }
-    ports = SwitchPort(
-        name="Ingress_port_A",
-        silicon_port_no=1,
-        default_vlan_id=35,
-        ingress_streams=[stream_example],
+def test_positive_priority_values_boundary():
+    traffic_class = TrafficClass(
+        name="Low_Priority_Traffic",
+        priority=1,
+        internal_priority_values=[0, 7],
+        frame_priority_values=[0, 7],
     )
-    switch_example = Switch.model_validate(
-        {
-            "name": "switch1",
-            "switch_config": {
-                "meta": embedded_metadata_entry,
-                "ports": [ports],
-                "vlans": [vlan_entry],
-            },
-        }
-    )
+    assert isinstance(traffic_class, TrafficClass)
 
 
-def test_negative_ebs_greater_than_cbs(vlan_entry):
-
-    DoubleRateThreeColorMarker_entry = DoubleRateThreeColorMarker(
-        type="double_rate_three_color",
-        cir=2000,
-        cbs=2000,
-        ebs=1000,
-        eir=1000,
-        coupling=False,
+def test_positive_single_priority_values_list():
+    traffic_class = TrafficClass(
+        name="Low_Priority_Traffic",
+        priority=1,
+        internal_priority_values=[2],
     )
-    stream_example = {
-        "name": "Stream1",
-        "stream_identification": [],
-        "drop_at_ingress": False,
-        "max_sdu_size": 900,
-        "policer": DoubleRateThreeColorMarker_entry,
-        "ipv": 5,
-        "ats": None,
-    }
-    ports = SwitchPort(
-        name="Ingress_port_A",
-        silicon_port_no=1,
-        default_vlan_id=35,
-        ingress_streams=[stream_example],
-    )
-    with pytest.raises(ValidationError) as e:
-        switch_example = Switch.model_validate({"name": "switch1", "switch_config": {"ports": [ports], "vlans": [vlan_entry]}})
+    assert isinstance(traffic_class, TrafficClass)
 
 
 def test_htb():
@@ -860,9 +422,10 @@ class Test_FrameFilter_Ethertype:
         ],
     )
     def test_negative_framefilter_ethertype(self, ethertype):
-        """Test FrameFilter accepts Ethertypes enum value directly."""
-        with pytest.raises(ValidationError, match="Invalid ethertype value"):
-            assert FrameFilter(ethertype=ethertype)
+        """Test FrameFilter rejects invalid Ethertype values."""
+        with pytest.raises(ValidationError) as exc_info:
+            FrameFilter(ethertype=ethertype)
+        assert_single_error(exc_info, None, "Invalid ethertype value")
 
     @pytest.mark.parametrize(
         "ethertype,assert_type",
