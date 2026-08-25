@@ -226,7 +226,7 @@ def render_catalog(records: list[ErrorRecord]) -> str:
             f"   :location: {r.location}\n\n"
             f"   {r.message}\n"
         )
-    return "\n".join(blocks) + "\n"
+    return "\n".join(blocks)
 
 
 def parse_catalog_ids(text: str) -> list[str]:
