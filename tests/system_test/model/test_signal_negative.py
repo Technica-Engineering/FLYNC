@@ -25,8 +25,10 @@ def test_standard_pdu_invalid_signal_bit_position():
     speed_signal = Signal(name="VehicleSpeed", bit_length=16, data_type=SignalDataType.UINT16)
     speed_instance = SignalInstance(signal=speed_signal, bit_position=32)  # PDU length < 32
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         StandardPDU(name="PDU_EngineStatus", length=4, signals=[speed_instance])
+
+    assert_single_error(exc_info, "FLYNC-CMN-MIN-VAL-029", "overflows length")
 
 
 @pytest.mark.xfail(reason="FLYNC-1126")
@@ -36,8 +38,11 @@ def test_frame_duplicate_pdu_instances():
     pdu_inst1 = PDUInstance(pdu_ref=pdu.name)
     pdu_inst2 = PDUInstance(pdu_ref=pdu.name)  # duplicate
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         CANFrame(name="CAN_Frame", length=8, can_id=0x100, id_format="standard_11bit", packed_pdus=[pdu_inst1, pdu_inst2])
+
+    errors = exc_info.value.errors()
+    assert len(errors) >= 1
 
 
 @pytest.mark.xfail(reason="FLYNC-1127")
@@ -49,10 +54,13 @@ def test_multiplexed_pdu_invalid_selector_value():
 
     pdu1 = StandardPDU(name="PDU_Gear1", length=2)
     mux_group = MuxGroup(selector_value=1, pdu=pdu1)
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         MultiplexedPDU(
             name="PDU_TransmissionStatus", length=2, selector_signal=selector_instance, mux_groups=[mux_group]  # smaller than selector requires
         )
+
+    errors = exc_info.value.errors()
+    assert len(errors) >= 1
 
 
 @pytest.mark.xfail(reason="FLYNC-1129")
@@ -72,22 +80,30 @@ def test_standard_pdu_signal_overlap():
     inst1 = SignalInstance(signal=sig1, bit_position=0)
     inst2 = SignalInstance(signal=sig2, bit_position=4)  # overlaps with inst1
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         StandardPDU(name="PDU_Overlap", length=2, signals=[inst1, inst2])
+
+    assert_single_error(exc_info, "FLYNC-CMN-MIN-CONS-030", "overlap")
 
 
 @pytest.mark.xfail(reason="FLYNC-1128")
 def test_receiver_invalid_pdu():
     """Test PDUReceiver references a PDU that does not exist."""
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         PDUReceiver(pdu_ref="NonExistentPDU")
+
+    errors = exc_info.value.errors()
+    assert len(errors) >= 1
 
 
 @pytest.mark.xfail(reason="FLYNC-663")
 def test_sender_invalid_pdu():
     """Test PDUSender references a PDU that does not exist."""
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         PDUSender(pdu_ref="NonExistentPDU")
+
+    errors = exc_info.value.errors()
+    assert len(errors) >= 1
 
 
 @pytest.mark.xfail(reason="FLYNC-1125")
@@ -96,8 +112,11 @@ def test_overlaps_frame_timing():
     cyclic = FrameCyclicTiming(cycle=0.1)
     event = FrameEventTiming(final_repetitions=5, repeating_time_range=0.2)
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         FrameTransmissionTiming(cyclic_timings=[cyclic], event_timings=[event])
+
+    errors = exc_info.value.errors()
+    assert len(errors) >= 1
 
 
 def test_invalid_lin_frame_in_can_interface():

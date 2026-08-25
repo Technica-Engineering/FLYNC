@@ -53,13 +53,15 @@ def test_bridge_port_invalid_reference():
     )
     iface = EthernetInterface(name="eth0", interface_config=ctrl_iface)
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         Controller(
             name="ctrl1",
             controller_metadata=embedded_metadata,
             ethernet_interfaces=[iface],
             virtual_switch=bridge,
         )
+
+    assert_single_error(exc_info, "FLYNC-ECU-MIN-REF-067", "is not a validcontroller interface or compute node")
 
 
 def test_ptp_conflict_between_interface_and_compute_node():

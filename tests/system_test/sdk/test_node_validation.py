@@ -6,7 +6,6 @@ to ensure it reports node problems and states accurately.
 from pathlib import Path
 
 import pytest
-import yaml
 
 from flync.model.flync_4_bus.can_bus import CANBus
 from flync.model.flync_4_bus.lin_bus import LINBus

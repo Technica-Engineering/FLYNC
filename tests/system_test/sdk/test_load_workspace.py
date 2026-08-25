@@ -95,18 +95,32 @@ def test_load_workspace_exsistence_attribute(attribute):
 
 # Verify handling invalid workspace directory path
 def test_load_workspace_invalid_yaml_path():
-    with pytest.raises(FileNotFoundError):
-        FLYNCWorkspace.load_workspace("flync_example", "/path/to/nonexistent/directory")
+    with pytest.raises(FileNotFoundError) as exc_info:
+        FLYNCWorkspace.load_workspace(
+            "flync_example",
+            "/path/to/nonexistent/directory",
+        )
+
+    # The loader lets the OS FileNotFoundError propagate; it references the
+    # unresolved (nonexistent) workspace path.
+    assert "nonexistent" in str(exc_info.value).lower()
 
 
 def test_load_workspace_empty_name():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError) as exc_info:
         FLYNCWorkspace.load_workspace("", absolute_path)
+
+    assert "workspace name" in str(exc_info.value)
+    assert "invalid value" in str(exc_info.value)
 
 
 def test_load_workspace_empty_path():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError) as exc_info:
         FLYNCWorkspace.load_workspace("flync_example", "")
+
+    error_message = str(exc_info.value).lower()
+    assert "workspace root" in error_message
+    assert "invalid value" in error_message
 
 
 # Verify handling missing mandatory directory
@@ -121,8 +135,10 @@ def test_load_workspace_missing_mandatory_folder(tmpdir, subfolder):
     destination_folder = Path(tmpdir) / "copy"
     shutil.copytree(absolute_path, destination_folder)
     shutil.rmtree(destination_folder / subfolder.relative_to(absolute_path))
-    with pytest.raises(FileNotFoundError):
+    with pytest.raises(FileNotFoundError) as exc_info:
         FLYNCWorkspace.load_workspace("flync_example", destination_folder)
+    # The OS FileNotFoundError propagates and references the removed mandatory folder.
+    assert subfolder.name in str(exc_info.value)
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
 
