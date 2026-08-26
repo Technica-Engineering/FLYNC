@@ -1622,26 +1622,6 @@ Every error and warning the FLYNC validators can raise, identified as
 
    f"Validation Error in HTB Config. Removing config from the interface.Incompatible HTB config. Ceil of child class should be less than parent's class. Class {child.classid}."
 
-.. err:: The 'general' attribute is deprecated. Please use 'communication' instead.
-   :id: FLYNC-GEN-WARN-LIFE-162
-   :module: GEN
-   :severity: WARN
-   :category: LIFECYCLE
-   :number: 162
-   :location: flync_model.FLYNCModel.warn_deprecated
-
-   "The 'general' attribute is deprecated. Please use 'communication' instead."
-
-.. err:: The 'general' attribute is deprecated. Please use 'communication' instead.
-   :id: FLYNC-GEN-WARN-LIFE-163
-   :module: GEN
-   :severity: WARN
-   :category: LIFECYCLE
-   :number: 163
-   :location: flync_model.FLYNCModel.general
-
-   "The 'general' attribute is deprecated. Please use 'communication' instead."
-
 .. err:: str(e)
    :id: FLYNC-GEN-WARN-REF-164
    :module: GEN

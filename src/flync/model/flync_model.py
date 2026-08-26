@@ -4,7 +4,6 @@ Top-level system model aggregating ECUs, topology, metadata, and communication c
 
 from typing import Annotated, Dict, List, Optional, Tuple
 
-import typing_extensions
 from pydantic import Field, model_validator
 from pydantic_core import PydanticCustomError
 
@@ -90,7 +89,7 @@ class FLYNCModel(FLYNCBaseModel):
             output_structure=OutputStrategy.FOLDER,
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
-    ] = Field(alias="general", default=None)
+    ] = Field(default=None)
     ecus: Annotated[
         List[ECU],
         External(
@@ -120,23 +119,11 @@ class FLYNCModel(FLYNCBaseModel):
     )
 
     @model_validator(mode="before")
-    def warn_deprecated(cls, data):
-        if "general" in data:
-            warn("The 'general' attribute is deprecated. Please use 'communication' instead.", category=Category.LIFECYCLE, error_number="162")
-        return data
-
-    @model_validator(mode="before")
     def warn_experimental(cls, data):
         """Experimental Classes"""
         if "apps" in data and data["apps"] is not None:
             warn("Apps are currently experimental! Subject to change, please use with care.", category=Category.LIFECYCLE, error_number="188")
         return data
-
-    @property
-    @typing_extensions.deprecated("The `general` attribute is deprecated, use `communication` instead.")
-    def general(self) -> Optional[FLYNCCommunicationConfig]:
-        warn("The 'general' attribute is deprecated. Please use 'communication' instead.", category=Category.LIFECYCLE, error_number="163")
-        return self.communication
 
     @model_validator(mode="before")
     @classmethod

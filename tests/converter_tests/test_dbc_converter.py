@@ -384,7 +384,7 @@ class TestBuildCanMessages:
 
 
 class TestWriteDbcFiles:
-    def test_no_general_warns(self, caplog):
+    def test_no_communication_warns(self, caplog):
         model = MagicMock()
         model.communication = None
         with caplog.at_level(logging.WARNING, logger="flync_converter.converters.dbc_converter"):
