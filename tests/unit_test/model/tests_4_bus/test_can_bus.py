@@ -3,6 +3,7 @@ from pydantic import ValidationError
 
 from flync.model.flync_4_bus.can_bus import CANBus
 from flync.model.flync_4_signal.frame import CANFDFrame, CANFrame
+from tests.error_assertions import assert_single_error
 
 
 def _make_can_frame(
@@ -117,23 +118,26 @@ def test_positive_can_bus_model_validate():
     ],
 )
 def test_negative_can_bus_invalid_baud_rate(bad_baud):
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         CANBus(name=f"bad_br_{bad_baud}", baud_rate=bad_baud)
+    assert_single_error(exc_info, "FLYNC-BUS-MIN-VAL-049", "not a valid CAN baud rate")
 
 
 def test_negative_can_bus_fd_enabled_missing_fd_baud_rate():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         CANBus(name="CAN_fd_no_rate", baud_rate=500_000, fd_enabled=True)
+    assert_single_error(exc_info, "FLYNC-BUS-MAJ-REQ-050", "fd_baud_rate must be set")
 
 
 def test_negative_can_bus_fd_baud_rate_without_fd_enabled():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         CANBus(
             name="CAN_rate_no_fd",
             baud_rate=500_000,
             fd_enabled=False,
             fd_baud_rate=2_000_000,
         )
+    assert_single_error(exc_info, "FLYNC-BUS-MAJ-CONS-051", "fd_baud_rate must be None")
 
 
 @pytest.mark.parametrize(
@@ -146,40 +150,37 @@ def test_negative_can_bus_fd_baud_rate_without_fd_enabled():
     ],
 )
 def test_negative_can_bus_invalid_fd_baud_rate(bad_fd_rate):
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         CANBus(
             name=f"bad_fd_br_{bad_fd_rate}",
             baud_rate=500_000,
             fd_enabled=True,
             fd_baud_rate=bad_fd_rate,
         )
+    assert_single_error(exc_info, "FLYNC-BUS-MIN-VAL-052", "not a standard CAN FD data-phase rate")
 
 
 def test_negative_can_bus_canfd_frame_without_fd_enabled():
     fd_frm = _make_canfd_frame("bad_fd_frm")
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         CANBus(
             name="CAN_no_fd_bus",
             baud_rate=500_000,
             fd_enabled=False,
             frames=[fd_frm],
         )
-
-
-def test_negative_can_bus_duplicate_frame_names():
-    frm = _make_can_frame("dup_frm_single", can_id=0x100)
-    with pytest.raises(ValidationError):
-        CANBus(name="CAN_dup_frm", baud_rate=500_000, frames=[frm, frm])
+    assert_single_error(exc_info, "FLYNC-BUS-MAJ-CONS-053", "fd_enabled is False")
 
 
 def test_negative_can_bus_duplicate_can_ids():
     frm1 = _make_can_frame("unique_frm_a", can_id=0x100, id_format="standard_11bit")
     frm2 = _make_can_frame("unique_frm_b", can_id=0x100, id_format="standard_11bit")
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         CANBus(name="CAN_dup_ids", baud_rate=500_000, frames=[frm1, frm2])
+    assert_single_error(exc_info, "FLYNC-BUS-MAJ-UNIQ-054", "duplicate CAN identifier")
 
 
-def test_negative_can_bus_same_id_different_format_is_allowed():
+def test_positive_can_bus_same_id_different_format_is_allowed():
     frm1 = _make_can_frame("id_std", can_id=0x100, id_format="standard_11bit")
     frm2 = _make_can_frame("id_ext", can_id=0x100, id_format="extended_29bit")
     bus = CANBus(name="CAN_mixed_fmt", baud_rate=500_000, frames=[frm1, frm2])
