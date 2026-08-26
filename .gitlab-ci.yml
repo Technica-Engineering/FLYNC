@@ -14,89 +14,72 @@ stages:
   - docs
   - deploy
 
-lint:
+# lint, format, isort and type_check are one concern, so they run as a single
+# parallel:matrix job and collapse into one node in the pipeline graph. Children
+# still run in parallel, so this costs no wall-clock time.
+quality:
   extends: .base
   stage: static-analysis
   allow_failure: false
+  parallel:
+    matrix:
+      - CHECK: ["lint", "format", "isort", "type_check"]
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
     - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
   script:
-    - uv sync --frozen --no-install-project --only-group static-analysis
-    - uv run flake8 --max-line-length 149 src
-    - uv run flake8 --max-line-length 149 src --format=html --htmldir=flake8-report
+    - |
+      set -eo pipefail
+      mkdir -p quality-reports
+      case "$CHECK" in
+        lint)
+          uv sync --frozen --no-install-project --only-group static-analysis
+          uv run flake8 --max-line-length 149 src
+          uv run flake8 --max-line-length 149 src --format=html --htmldir=quality-reports/flake8
+          ;;
+        format)
+          uv sync --frozen --no-install-project --only-group static-analysis
+          uv run black --target-version py312 --check --diff --color src > quality-reports/black-src.diff
+          uv run black --target-version py312 --check --diff --color tests > quality-reports/black-tests.diff
+          ;;
+        isort)
+          uv sync --frozen --no-install-project --only-group static-analysis
+          uv run isort --check --diff --color --line-length 149 src > quality-reports/isort-src.diff
+          uv run isort --check --diff --color --line-length 149 tests > quality-reports/isort-tests.diff
+          ;;
+        type_check)
+          uv sync --frozen --group static-analysis --extra gui --extra tui
+          uv run mypy src --show-error-codes --pretty --install-types --non-interactive | tee quality-reports/mypy.txt
+          ;;
+      esac
   artifacts:
     expire_in: 2 days
-    paths:
-      - flake8-report
     when: on_failure
+    paths:
+      - quality-reports
 
-format:
+# A matrix of one: adding the next integrity check is one entry plus one case
+# branch, with no renaming and no rewiring of what depends on this job.
+integrity:
   extends: .base
   stage: static-analysis
-  allow_failure: false
+  parallel:
+    matrix:
+      - CHECK: ["error-catalog"]
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
     - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
   script:
-    - uv sync --frozen --no-install-project --only-group static-analysis
-    - mkdir format-reports
-    - uv run black --target-version py312 --check --diff --color src > format-reports/black-report-src.diff
-    - uv run black --target-version py312 --check --diff --color tests > format-reports/black-report-tests.diff
-  artifacts:
-    expire_in: 2 days
-    paths:
-      - format-reports
-    when: on_failure
-
-isort:
-  extends: .base
-  stage: static-analysis
-  allow_failure: false
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
-    - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
-  script:
-    - uv sync --frozen --no-install-project --only-group static-analysis
-    - mkdir format-reports
-    - uv run isort --check --diff --color --line-length 149 src > format-reports/isort-report-src.diff
-    - uv run isort --check --diff --color --line-length 149 tests > format-reports/isort-report-tests.diff
-  artifacts:
-    expire_in: 2 days
-    paths:
-      - format-reports
-    when: on_failure
-
-type_check:
-  extends: .base
-  stage: static-analysis
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
-    - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
-  script:
-    - uv sync --frozen --group static-analysis --extra gui --extra tui
-    - mkdir type-check-reports
-    - uv run mypy src --show-error-codes --pretty --install-types --non-interactive | tee type-check-reports/mypy-report.txt
-  artifacts:
-    expire_in: 2 days
-    paths:
-      - type-check-reports/
-    when: on_failure
-
-error-catalog-integrity:
-  extends: .base
-  stage: static-analysis
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
-    - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
-  script:
-    - uv sync --frozen
-    - uv run python src/flync_cli/main.py errors validate-catalog
+    - |
+      set -eo pipefail
+      case "$CHECK" in
+        error-catalog)
+          uv sync --frozen
+          uv run python src/flync_cli/main.py errors validate-catalog
+          ;;
+      esac
 
 examples_validation:
   extends: .base
@@ -231,7 +214,7 @@ docs-build:
   allow_failure: true
   needs:
     - job: test-summary
-    - job: error-catalog-integrity
+    - job: integrity
   stage: docs
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
