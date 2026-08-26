@@ -2,11 +2,12 @@
 
 from ipaddress import IPv4Address, IPv4Network, IPv6Address, IPv6Network
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic.networks import IPvAnyAddress
 
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.datatypes.ipaddress import IPv4AddressEntry, IPv6AddressEntry
+from flync.core.utils.exceptions import Category, err_major
 from flync.model.flync_4_ecu.sockets import IPv4AddressEndpoint, IPv6AddressEndpoint
 
 
@@ -32,6 +33,27 @@ class RouteEntry(FLYNCBaseModel):
     destination: IPv4AddressEntry | IPv6AddressEntry = Field()
     default_gateway: IPvAnyAddress = Field()
     egress_interface: str = Field()
+
+    @model_validator(mode="after")
+    def validate_gateway_family_matches_destination(self) -> "RouteEntry":
+        """
+        Raise ``err_major`` if ``default_gateway`` does not share the address family of ``destination``.
+
+        A route that mixes IPv4 and IPv6 (e.g. an IPv4 destination with an IPv6 gateway) is not routable as a
+        single entry and likely a configuration mistake.
+        """
+        mismatch = (isinstance(self.destination, IPv4AddressEntry) and isinstance(self.default_gateway, IPv6Address)) or (
+            isinstance(self.destination, IPv6AddressEntry) and isinstance(self.default_gateway, IPv4Address)
+        )
+        if mismatch:
+            raise err_major(
+                "default_gateway '{gateway}' does not belong to the same address family as destination '{dest_address}'",
+                category=Category.CONSISTENCY,
+                error_number="247",
+                gateway=self.default_gateway,
+                dest_address=self.destination.address,
+            )
+        return self
 
 
 def gateway_in_subnet(route: RouteEntry, vci) -> bool:

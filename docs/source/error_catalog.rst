@@ -2401,3 +2401,13 @@ Every error and warning the FLYNC validators can raise, identified as
    :location: someip_simple_datatypes.Bitfield.validate_bitpositions_to_be_unique
 
    f"{self.name}: Bitposition {field.bitposition} is claimed by '{owner_by_bitposition[field.bitposition]}' and '{field.name}'."
+
+.. err:: default_gateway '{gateway}' does not belong to the same address family as des...
+   :id: FLYNC-ECU-MAJ-CONS-247
+   :module: ECU
+   :severity: MAJ
+   :category: CONSISTENCY
+   :number: 247
+   :location: router.RouteEntry.validate_gateway_family_matches_destination
+
+   "default_gateway '{gateway}' does not belong to the same address family as destination '{dest_address}'"
