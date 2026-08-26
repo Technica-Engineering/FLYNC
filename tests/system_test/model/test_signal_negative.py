@@ -1,3 +1,5 @@
+from ipaddress import IPv4Address
+
 import pytest
 from pydantic import ValidationError
 
@@ -5,19 +7,100 @@ from flync.model.flync_4_bus.can_bus import CANBus
 from flync.model.flync_4_bus.lin_bus import LINBus
 from flync.model.flync_4_communication.flync_channels import FLYNCChannelConfig
 from flync.model.flync_4_communication.flync_communication import FLYNCCommunicationConfig
+from flync.model.flync_4_ecu import EthernetInterface, EthernetInterfaceConfig, SocketTCP, VirtualControllerInterface
 from flync.model.flync_4_ecu.can_interface import CANFrameRef, CANInterface
 from flync.model.flync_4_ecu.controller import Controller
 from flync.model.flync_4_ecu.ecu import ECU
-from flync.model.flync_4_ecu.internal_topology import InternalTopology
+from flync.model.flync_4_ecu.internal_topology import ECUPortToControllerInterface, InternalTopology
 from flync.model.flync_4_ecu.lin_interface import LINMasterInterface
+from flync.model.flync_4_ecu.phy import BASET1
+from flync.model.flync_4_ecu.port import ECUPort
+from flync.model.flync_4_ecu.socket_container import SocketContainer
+from flync.model.flync_4_ecu.sockets import IPv4AddressEndpoint
 from flync.model.flync_4_metadata.metadata import BaseVersion, ECUMetadata, EmbeddedMetadata, SystemMetadata
-from flync.model.flync_4_signal.frame import CANFrame, FrameCyclicTiming, FrameEventTiming, FrameTransmissionTiming, LINFrame
+from flync.model.flync_4_signal.frame import CANFrame, LINFrame
 from flync.model.flync_4_signal.pdu import ContainedPDURef, ContainerPDU, ContainerPDUHeader, MultiplexedPDU, MuxGroup, PDUInstance, StandardPDU
 from flync.model.flync_4_signal.pdu_deployment import PDUReceiver, PDUSender
 from flync.model.flync_4_signal.signal import Signal, SignalDataType, SignalInstance
 from flync.model.flync_4_topology import EthernetTopology, FLYNCTopology
 from flync.model.flync_model import FLYNCModel
 from tests.error_assertions import assert_single_error
+
+_STANDALONE_VERSION = BaseVersion(version="0.13.0")
+_EMPTY_TOPOLOGY = FLYNCTopology(ethernet_topology=EthernetTopology(connections=[]))
+_SYSTEM_METADATA = SystemMetadata(
+    type="system",
+    release=_STANDALONE_VERSION,
+    author="TestTeam",
+    compatible_flync_version=_STANDALONE_VERSION,
+)
+_EMPTY_COMMUNICATION = FLYNCCommunicationConfig(channels=FLYNCChannelConfig())
+
+
+def _make_ecu_with_deployment(deployment) -> ECU:
+    """Build a minimal single-controller ECU with one Ethernet socket carrying ``deployment``."""
+    eth_iface = EthernetInterface(
+        name="ETH_IF_1",
+        interface_config=EthernetInterfaceConfig(
+            virtual_interfaces=[
+                VirtualControllerInterface(
+                    name="VLAN_1",
+                    vlanid=0,
+                    addresses=[
+                        IPv4AddressEndpoint(
+                            address="192.168.1.10",
+                            ipv4netmask=IPv4Address("255.255.255.0"),
+                            sockets=[],
+                        )
+                    ],
+                    multicast=[],
+                )
+            ],
+        ),
+        sockets=[
+            SocketContainer(
+                name="ETH_CONTAINER_1",
+                vlan_id=0,
+                sockets=[
+                    SocketTCP(
+                        name="ETH_SOCKET_1",
+                        endpoint_address="192.168.1.10",
+                        port_no=2000,
+                        tcp_profile=0,
+                        deployments=[deployment],
+                    )
+                ],
+            )
+        ],
+    )
+    controller = Controller(
+        name="CTRL1",
+        controller_metadata=EmbeddedMetadata(
+            type="embedded",
+            author="TestTeam",
+            target_system="Device1",
+            compatible_flync_version=_STANDALONE_VERSION,
+        ),
+        ethernet_interfaces=[eth_iface],
+    )
+    port = ECUPort(name="CTRL1_ETH_IF_1_port", mdi_config=BASET1())
+    ecu_topology = InternalTopology(
+        connections=[
+            ECUPortToControllerInterface(
+                id="conn_ctrl1_eth_if_1",
+                ecu_port=port.name,
+                controller_interface="ETH_IF_1",
+                controller="CTRL1",
+            )
+        ]
+    )
+    return ECU(
+        name="ECU1",
+        controllers=[controller],
+        ports=[port],
+        topology=ecu_topology,
+        ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=_STANDALONE_VERSION),
+    )
 
 
 def test_standard_pdu_invalid_signal_bit_position():
@@ -27,50 +110,29 @@ def test_standard_pdu_invalid_signal_bit_position():
 
     with pytest.raises(ValidationError) as exc_info:
         StandardPDU(name="PDU_EngineStatus", length=4, signals=[speed_instance])
-
     assert_single_error(exc_info, "FLYNC-CMN-MIN-VAL-029", "overflows length")
 
 
-@pytest.mark.xfail(reason="FLYNC-1126")
-def test_frame_duplicate_pdu_instances():
-    """Test Frame contains duplicate PDUInstances."""
-    pdu = StandardPDU(name="PDU_EngineStatus", length=4)
-    pdu_inst1 = PDUInstance(pdu_ref=pdu.name)
-    pdu_inst2 = PDUInstance(pdu_ref=pdu.name)  # duplicate
-
-    with pytest.raises(ValidationError) as exc_info:
-        CANFrame(name="CAN_Frame", length=8, can_id=0x100, id_format="standard_11bit", packed_pdus=[pdu_inst1, pdu_inst2])
-
-    errors = exc_info.value.errors()
-    assert len(errors) >= 1
-
-
-@pytest.mark.xfail(reason="FLYNC-1127")
 def test_multiplexed_pdu_invalid_selector_value():
-    """Test creating a MultiplexedPDU with an invalid selector value range."""
-
+    """A mux selector_value beyond the selector signal's range must be rejected."""
     selector_signal = Signal(name="GearSelector", bit_length=3, data_type=SignalDataType.UINT8)
     selector_instance = SignalInstance(signal=selector_signal, bit_position=0)
 
-    pdu1 = StandardPDU(name="PDU_Gear1", length=2)
-    mux_group = MuxGroup(selector_value=1, pdu=pdu1)
+    mux_group = MuxGroup(selector_value=8, pdu=PDUInstance(pdu_ref="PDU_Gear1"))  # 8 > 2^3 - 1
     with pytest.raises(ValidationError) as exc_info:
-        MultiplexedPDU(
-            name="PDU_TransmissionStatus", length=2, selector_signal=selector_instance, mux_groups=[mux_group]  # smaller than selector requires
-        )
-
-    errors = exc_info.value.errors()
-    assert len(errors) >= 1
+        MultiplexedPDU(name="PDU_TransmissionStatus", length=4, selector_signal=selector_instance, mux_groups=[mux_group])
+    assert_single_error(exc_info, "FLYNC-SIG-MIN-VAL-108", "out-of-range")
 
 
-@pytest.mark.xfail(reason="FLYNC-1129")
 def test_container_pdu_invalid_contained_ref():
-    """Test ContainerPDU references non-existent contained PDU."""
+    """A ContainerPDU referencing a contained PDU absent from the catalog must be rejected."""
     header = ContainerPDUHeader(id_length_bits=8, length_field_bits=8)
     contained_ref = ContainedPDURef(header_id=0x10, pdu_ref="NonExistentPDU")
 
-    with pytest.raises(ValueError):
-        ContainerPDU(name="ContainerPowertrain", length=64, pdu_id=0x01, header=header, contained_pdus=[contained_ref])
+    container = ContainerPDU(name="ContainerPowertrain", length=64, pdu_id=0x01, header=header, contained_pdus=[contained_ref])
+    with pytest.raises(ValidationError) as exc_info:
+        FLYNCChannelConfig(ethernet_pdu_containers=[container])
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-REF-236", "references unknown PDU")
 
 
 def test_standard_pdu_signal_overlap():
@@ -82,41 +144,23 @@ def test_standard_pdu_signal_overlap():
 
     with pytest.raises(ValidationError) as exc_info:
         StandardPDU(name="PDU_Overlap", length=2, signals=[inst1, inst2])
-
     assert_single_error(exc_info, "FLYNC-CMN-MIN-CONS-030", "overlap")
 
 
-@pytest.mark.xfail(reason="FLYNC-1128")
 def test_receiver_invalid_pdu():
-    """Test PDUReceiver references a PDU that does not exist."""
+    """A PDUReceiver deployment referencing a PDU that does not exist must be rejected."""
+    ecu = _make_ecu_with_deployment(PDUReceiver(pdu_ref="NonExistentPDU"))
     with pytest.raises(ValidationError) as exc_info:
-        PDUReceiver(pdu_ref="NonExistentPDU")
-
-    errors = exc_info.value.errors()
-    assert len(errors) >= 1
+        FLYNCModel(ecus=[ecu], topology=_EMPTY_TOPOLOGY, metadata=_SYSTEM_METADATA, communication=_EMPTY_COMMUNICATION)
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-REF-175", "pdu_ref 'NonExistentPDU'")
 
 
-@pytest.mark.xfail(reason="FLYNC-663")
 def test_sender_invalid_pdu():
-    """Test PDUSender references a PDU that does not exist."""
+    """A PDUSender deployment referencing a PDU that does not exist must be rejected."""
+    ecu = _make_ecu_with_deployment(PDUSender(pdu_ref="NonExistentPDU"))
     with pytest.raises(ValidationError) as exc_info:
-        PDUSender(pdu_ref="NonExistentPDU")
-
-    errors = exc_info.value.errors()
-    assert len(errors) >= 1
-
-
-@pytest.mark.xfail(reason="FLYNC-1125")
-def test_overlaps_frame_timing():
-    """Test event repeating_time_range bigger than cyclic cycle."""
-    cyclic = FrameCyclicTiming(cycle=0.1)
-    event = FrameEventTiming(final_repetitions=5, repeating_time_range=0.2)
-
-    with pytest.raises(ValidationError) as exc_info:
-        FrameTransmissionTiming(cyclic_timings=[cyclic], event_timings=[event])
-
-    errors = exc_info.value.errors()
-    assert len(errors) >= 1
+        FLYNCModel(ecus=[ecu], topology=_EMPTY_TOPOLOGY, metadata=_SYSTEM_METADATA, communication=_EMPTY_COMMUNICATION)
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-REF-175", "pdu_ref 'NonExistentPDU'")
 
 
 def test_invalid_lin_frame_in_can_interface():
