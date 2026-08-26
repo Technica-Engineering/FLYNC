@@ -9,7 +9,22 @@ from flync.core.utils.exceptions import Category, err_major
 
 
 class CANFrameEgress(FLYNCBaseModel):
-    """Forwarder egress that re-emits the forwarded PDU on a CAN frame."""
+    """Forwarder egress that re-emits the forwarded PDU on a CAN frame.
+
+    Parameters
+    ----------
+    egress_type : Literal["can_frame"]
+        Type discriminator for this egress.
+
+    bus_ref : str
+        Reference to the target CAN bus.
+
+    frame_ref : int
+        Reference to the target CAN frame.
+
+    extract_pdu_ref : str, optional
+        Optional reference to a PDU to extract from the forwarded data.
+    """
 
     egress_type: Literal["can_frame"] = Field(default="can_frame")
     bus_ref: str = Field()
@@ -18,7 +33,19 @@ class CANFrameEgress(FLYNCBaseModel):
 
 
 class EthSocketEgress(FLYNCBaseModel):
-    """Forwarder egress that re-emits the forwarded PDU on an Ethernet socket (unicast/multicast follows the target's endpoint_address)."""
+    """Forwarder egress that re-emits the forwarded PDU on an Ethernet socket (unicast/multicast follows the target's endpoint_address).
+
+    Parameters
+    ----------
+    egress_type : Literal["eth_socket"]
+        Type discriminator for this egress.
+
+    socket_ref : str
+        Reference to the target Ethernet socket.
+
+    extract_pdu_ref : str, optional
+        Optional reference to a PDU to extract from the forwarded data.
+    """
 
     egress_type: Literal["eth_socket"] = Field(default="eth_socket")
     socket_ref: str = Field()
@@ -32,7 +59,19 @@ class ForwarderEgress(RootModel):
 
 
 class PDUForwarder(FLYNCBaseModel):
-    """Socket deployment that consumes a PDU on its parent socket and re-emits it on one or more egresses."""
+    """Socket deployment that consumes a PDU on its parent socket and re-emits it on one or more egresses.
+
+    Parameters
+    ----------
+    deployment_type : Literal["pdu_forwarder"]
+        Type discriminator for this forwarder.
+
+    pdu_ref : str
+        Reference to the PDU being forwarded.
+
+    egresses : List[:class:`ForwarderEgress`]
+        List of egress targets where the forwarded PDU is re-emitted. Must contain at least one egress.
+    """
 
     deployment_type: Literal["pdu_forwarder"] = Field(default="pdu_forwarder")
     pdu_ref: str = Field()
@@ -47,7 +86,16 @@ class PDUForwarder(FLYNCBaseModel):
 
 
 class CANFrameForwarder(FLYNCBaseModel):
-    """CAN-interface forwarder that consumes an ingress frame and re-emits it on one or more egresses."""
+    """CAN-interface forwarder that consumes an ingress frame and re-emits it on one or more egresses.
+
+    Parameters
+    ----------
+    frame_ref : str
+        Reference to the CAN frame being forwarded.
+
+    egresses : List[:class:`ForwarderEgress`]
+        List of egress targets where the forwarded frame is re-emitted. Must contain at least one egress.
+    """
 
     frame_ref: str = Field()
     egresses: List[ForwarderEgress] = Field(min_length=1)

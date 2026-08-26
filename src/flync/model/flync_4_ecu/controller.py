@@ -583,29 +583,32 @@ class Controller(FLYNCBaseModel):
     name : str
         Name of the controller.
 
-    controller_metadata : \
-        :class:`~flync.model.flync_4_metadata.metadata.EmbeddedMetadata`
+    controller_metadata : :class:`~flync.model.flync_4_metadata.metadata.EmbeddedMetadata`
         Metadata describing the embedded controller.
 
-    ethernet_interfaces : list of :class:`~EthernetInterface`
+    ethernet_interfaces : list of :class:`~EthernetInterface`, optional
         Ethernet interfaces of the controller.
 
-    virtual_switch: :class:`VirtualSwitch`
-        Represents a software switch inside a controller in case there are \
-            more than one interface or virtual machines/ compute nodes.
+    can_interfaces : list of :class:`~flync.model.flync_4_ecu.can_interface.CANInterface`, optional
+        CAN bus interfaces of the controller.
 
-    app_bindings: :class:`~flync.model.flync_4_app.AppBindings`, optional
+    lin_interfaces : list of :class:`~flync.model.flync_4_ecu.lin_interface.AnyLINInterface`, optional
+        LIN bus interfaces of the controller.
+
+    virtual_switch : :class:`VirtualSwitch`, optional
+        Represents a software switch inside a controller in case there are more than one interface or virtual machines/compute nodes.
+
+    app_bindings : :class:`~flync.model.flync_4_app.AppBindings`, optional
         Applications a controller should bind to.
 
-    state_memberships : list of \
-    :class:`~flync.model.flync_4_nm.StateMembershipRef`, optional
+    state_memberships : list of :class:`~flync.model.flync_4_nm.StateMembershipRef`, optional
         Assignments of this controller to state management groups.
         Stored in ``state_memberships.flync.yaml`` inside the controller folder.
 
     Private Attributes
     ------------------
-    _type:
-        The type of the object generated. Defaults to "Controller".
+    _type : Literal["controller"]
+        The type of the object generated. Defaults to ``"controller"``.
     """
 
     name: Annotated[

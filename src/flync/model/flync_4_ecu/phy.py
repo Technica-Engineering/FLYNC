@@ -106,8 +106,8 @@ class MII(FLYNCBaseModel):
     type : Literal["mii"]
         Interface type. Defaults to ``"mii"``.
 
-    speed : int
-        Supported link speed in megabits per second. Valid values are 10 or 100.
+    speed : int, optional
+        Supported link speed in megabits per second. Valid values are 10 or 100. Defaults to ``100``.
 
     mode : Literal["mac", "phy"]
         Operating mode, either MAC or PHY.
@@ -128,8 +128,8 @@ class RMII(FLYNCBaseModel):
     type : Literal["rmii"]
         Interface type. Defaults to ``"rmii"``.
 
-    speed : int
-        Supported link speed in megabits per second. Valid values are 10 or 100.
+    speed : int, optional
+        Supported link speed in megabits per second. Valid values are 10 or 100. Defaults to ``100``.
 
     mode : Literal["mac", "phy"]
         Operating mode, either MAC or PHY.

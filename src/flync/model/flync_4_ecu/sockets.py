@@ -202,37 +202,39 @@ class TCPOption(FLYNCBaseModel):
     tcp_profile_id : int
         Unique identifier of the TCP profile.
 
-    nagle : strict_bool
-        Enable or disable Nagle algorithm.
+    nagle : bool, optional
+        Enable or disable Nagle algorithm. Defaults to ``False``.
 
-    keepalive_enabled : bool
-        Enable or disable the TCP keep-alive option.
+    keepalive_enabled : bool, optional
+        Enable or disable the TCP keep-alive option. Defaults to ``True``.
 
-    keepidle : int
-        Seconds the connection must stay idle before the first
-        keep-alive probe is sent.
+    keepidle : int, optional
+        Seconds the connection must stay idle before the first keep-alive probe is sent.
+        Defaults to ``10``.
 
-    keepcount : int
-        Maximum number of keep-alive probes that may be sent before the
-        connection is dropped.
+    keepcount : int, optional
+        Maximum number of keep-alive probes that may be sent before the connection is dropped.
+        Defaults to ``10``.
 
-    keepintvl : int
-        Seconds between successive keep-alive probes.
+    keepintvl : int, optional
+        Seconds between successive keep-alive probes. Defaults to ``2``.
 
-    user_timeout : int
+    user_timeout : int, optional
         Maximum time in seconds that unacknowledged data may remain before the connection is closed.
+        Defaults to ``28``.
 
-    congestion_avoidance : str
-        Congestion-avoidance algorithm to use (e.g., ``Reno``, ``cubic``, or ``bbr``).
+    congestion_avoidance : Literal["reno", "cubic", "bbr"], optional
+        Congestion-avoidance algorithm to use. Defaults to ``"reno"``.
 
-    tcp_maxseg : int
-        Maximum segment size for outgoing TCP packets.
+    tcp_maxseg : int, optional
+        Maximum segment size for outgoing TCP packets. Defaults to ``1460``.
 
-    tcp_quickack : bool
-        Enable or disable the "quick-ack" feature.
+    tcp_quickack : bool, optional
+        Enable or disable the "quick-ack" feature. Defaults to ``False``.
 
-    tcp_syncnt : int
+    tcp_syncnt : int, optional
         Number of SYN retransmissions TCP may perform before aborting the connection attempt.
+        Defaults to ``6``.
     """
 
     tcp_profile_id: int = Field()
@@ -254,8 +256,8 @@ class UDPOption(FLYNCBaseModel):
 
     Parameters
     ----------
-    udp_cork : bool
-        Enables buffering of UDP messages before they are sent.
+    udp_cork : bool, optional
+        Enables buffering of UDP messages before they are sent. Defaults to ``False``.
     """
 
     udp_cork: Optional[StrictBool] = Field(default=False)

@@ -31,11 +31,12 @@ class MACAddressEntry(FLYNCBaseModel):
     """
     Represents an MAC address entry for a network interface.
 
-    Parameters:
-        - address (str):
-            Source MAC address to filter by. Format: "xx:xx:xx:xx:xx:xx"
-        - macmask (str):
-            The mask in MAC format. Format: "xx:xx:xx:xx:xx:xx"
+    Parameters
+    ----------
+    address : str
+        Source MAC address to filter by. Format: "xx:xx:xx:xx:xx:xx"
+    macmask : str
+        The mask in MAC format. Format: "xx:xx:xx:xx:xx:xx". Defaults to ``"xx:xx:xx:xx:xx:xx"``.
     """
 
     address: FLYNCMacAddress = Field()
@@ -45,6 +46,11 @@ class MACAddressEntry(FLYNCBaseModel):
 class MACAddressUnicast(MACAddressEntry):
     """
     Represents a Unicast MAC address entry for a network interface.
+
+    Parameters
+    ----------
+    address : str
+        Multicast MAC address. Format: ``"xx:xx:xx:xx:xx:xx"``.
     """
 
     address: Annotated[
@@ -57,6 +63,11 @@ class MACAddressUnicast(MACAddressEntry):
 class MACAddressMulticast(MACAddressEntry):
     """
     Represents a Multicast MAC address entry for a network interface.
+
+    Parameters
+    ----------
+    address : str
+        Multicast MAC address. Format: ``"xx:xx:xx:xx:xx:xx"``.
     """
 
     address: Annotated[

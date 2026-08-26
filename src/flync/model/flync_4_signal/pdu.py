@@ -38,7 +38,7 @@ class PDU(FLYNCBaseModel):
         Unique name of the PDU.
 
     length : int
-        Length of the PDU payload in bytes.
+        Length of the PDU payload in bytes. Must be greater than 0.
 
     pdu_usage : Literal[str], optional
         Tag identifying special usage of the PDU. One of: "application",
@@ -81,7 +81,7 @@ class PDUInstance(FLYNCBaseModel):
     bit_position : int, optional
         Non-negative bit offset where this PDU begins within the frame.
     update_bit_position : int, optional
-        Bit position of the update indication bit, when applicable.
+        Bit position of the update indication bit, when applicable. Must be greater than or equal to 0.
     """
 
     pdu_ref: str = Field()
@@ -122,7 +122,7 @@ class MuxGroup(FLYNCBaseModel):
     Parameters
     ----------
     selector_value : int
-        The value of the selector signal that activates this group.
+        The value of the selector signal that activates this group. Must be greater than or equal to 0.
     pdu : :class:`PDUInstance`
         The PDU Instance that is active for this selector_value.
     """
@@ -143,7 +143,7 @@ class MultiplexedPDU(PDU):
         Optional PDU Instances with signals that are always present regardless of the active mux group.
         A single PDU Instance (unwrapped mapping) is accepted as well and coerced into a one-element list.
     mux_groups : list of :class:`MuxGroup`
-        One entry per distinct selector value.
+        One entry per distinct selector value. Must contain at least one mux group.
     """
 
     type: Literal["multiplexed"] = Field(default="multiplexed")
@@ -194,13 +194,14 @@ class ContainedPDURef(FLYNCBaseModel):
     Parameters
     ----------
     header_id : int
-        Numeric identifier greater zero placed in the slot header for this contained PDU.
+        Numeric identifier greater than 0 placed in the slot header for this contained PDU.
     pdu_ref : str
         Name of the referenced PDU.
     offset : int, optional
         Bit offset of this slot (header + payload) within the container payload.
         When multiple PDUs are packed sequentially this encodes the start position
         of each slot so receivers can locate it without parsing preceding slots.
+        Must be greater than or equal to 0.
     """
 
     header_id: Annotated[int, Field(gt=0, strict=True)] = Field()
@@ -241,7 +242,7 @@ class ContainerPDU(PDU):
     Parameters
     ----------
     pdu_id : int
-        Numeric identifier for this container PDU on the network.
+        Numeric identifier for this container PDU on the network. Must be greater than or equal to 0.
     header : :class:`ContainerPDUHeader`
         Per-slot header format specifying the bit widths of the ID and length fields.
     contained_pdus : list of :class:`ContainedPDURef`
