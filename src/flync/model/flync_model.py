@@ -398,9 +398,9 @@ class FLYNCModel(FLYNCBaseModel):
         known_services = self.get_someip_services_by_identity()
         for app in self.apps or []:
             for ref in (app.service_consumer_refs or []) + (app.service_provider_refs or []):
-                if (ref.service_name, ref.major_version) not in known_services:
+                if (ref.service_id, ref.major_version) not in known_services:
                     raise err_major(
-                        f"App {app.name} references service ({ref.service_name}, major_version={ref.major_version}) "
+                        f"App {app.name} references service (service_id={ref.service_id:#06x}, major_version={ref.major_version}) "
                         "that is not defined in the system's SOME/IP configuration.",
                         category=Category.REFERENCE,
                         error_number="186",
@@ -422,12 +422,12 @@ class FLYNCModel(FLYNCBaseModel):
         deployment on that same controller."""
         services_by_identity = self.get_someip_services_by_identity()
         for controller, consumed_instances, app, ref in self._iter_bound_app_consumer_refs():
-            svc = services_by_identity.get((ref.service_name, ref.major_version))
-            key = (svc.id, ref.major_version, ref.instance_id) if svc else None
+            svc = services_by_identity.get((ref.service_id, ref.major_version))
+            key = (ref.service_id, ref.major_version, ref.instance_id) if svc else None
             if key not in consumed_instances:
                 raise err_major(
                     f"App '{app.name}' bound to controller '{controller.name}' expects to consume "
-                    f"({ref.service_name}, instance_id={ref.instance_id}, major_version={ref.major_version}), "
+                    f"(service_id={ref.service_id:#06x}, instance_id={ref.instance_id}, major_version={ref.major_version}), "
                     "but the controller does not deploy it as a SOME/IP consumer.",
                     category=Category.CONSISTENCY,
                     error_number="245",
@@ -670,11 +670,11 @@ class FLYNCModel(FLYNCBaseModel):
             return self.communication.someip_config.services
         return []
 
-    def get_someip_services_by_identity(self) -> Dict[Tuple[str, int], SOMEIPServiceInterface]:
+    def get_someip_services_by_identity(self) -> Dict[Tuple[int, int], SOMEIPServiceInterface]:
         """
-        Return the system-wide SOME/IP service interfaces keyed by ``(name, major_version)``.
+        Return the system-wide SOME/IP service interfaces keyed by ``(service_id, major_version)``.
         """
-        return {(svc.name, svc.major_version): svc for svc in self.get_all_someip_services()}
+        return {(svc.id, svc.major_version): svc for svc in self.get_all_someip_services()}
 
     def _iter_bound_app_consumer_refs(self):
         """

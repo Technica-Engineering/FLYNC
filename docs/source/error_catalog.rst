@@ -1782,7 +1782,7 @@ Every error and warning the FLYNC validators can raise, identified as
 
    f"'{field}' must be a list of items, but a single mapping was given. Did you forget to add '- ' before each item to make it a list?"
 
-.. err:: App {app.name} references service ({ref.service_name}, major_version={ref.maj...
+.. err:: App {app.name} references service (service_id={ref.service_id:#06x}, major_ve...
    :id: FLYNC-GEN-MAJ-REF-186
    :module: GEN
    :severity: MAJ
@@ -1790,7 +1790,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :number: 186
    :location: flync_model.FLYNCModel.validate_service_refs_in_apps
 
-   f"App {app.name} references service ({ref.service_name}, major_version={ref.major_version}) that is not defined in the system's SOME/IP configuration."
+   f"App {app.name} references service (service_id={ref.service_id:#06x}, major_version={ref.major_version}) that is not defined in the system's SOME/IP configuration."
 
 .. err:: App '{name}' referenced in app_bindings of {controller_name} was not found or...
    :id: FLYNC-CMN-MAJ-REF-187
@@ -2332,7 +2332,7 @@ Every error and warning the FLYNC validators can raise, identified as
 
    self.__duplicate_deployment_message('consumer', deployment)
 
-.. err:: App '{self.name}' both consumes and provides the same service instance ({ref....
+.. err:: App '{self.name}' both consumes and provides the same service instance (servi...
    :id: FLYNC-CMN-WARN-CONS-242
    :module: CMN
    :severity: WARN
@@ -2340,7 +2340,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :number: 242
    :location: application.App.warn_self_consumed_instances
 
-   f"App '{self.name}' both consumes and provides the same service instance ({ref.service_name}, instance_id={ref.instance_id}, major_version={ref.major_version})."
+   f"App '{self.name}' both consumes and provides the same service instance (service_id={ref.service_id:#06x}, instance_id={ref.instance_id}, major_version={ref.major_version})."
 
 .. err:: self.__duplicate_deployment_message('provider', deployment)
    :id: FLYNC-ECU-MAJ-UNIQ-243
@@ -2370,7 +2370,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :number: 245
    :location: flync_model.FLYNCModel.validate_app_bindings_consume_deployed_services
 
-   f"App '{app.name}' bound to controller '{controller.name}' expects to consume ({ref.service_name}, instance_id={ref.instance_id}, major_version={ref.major_version}), but the controller does not deploy it as a SOME/IP consumer."
+   f"App '{app.name}' bound to controller '{controller.name}' expects to consume (service_id={ref.service_id:#06x}, instance_id={ref.instance_id}, major_version={ref.major_version}), but the controller does not deploy it as a SOME/IP consumer."
 
 .. err:: {self.name}: Bitposition {field.bitposition} is claimed by '{owner_by_bitposi...
    :id: FLYNC-SOM-MIN-UNIQ-246

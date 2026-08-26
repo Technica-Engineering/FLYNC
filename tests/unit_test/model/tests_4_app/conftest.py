@@ -5,7 +5,7 @@ import pytest
 APP_NAME = "telemetry_app"
 
 #: The service instance an app's consumer reference names; provider references vary from it per test.
-SERVICE_REFERENCE = dict(service_name="TelemetryService", instance_id=5, major_version=1)
+SERVICE_REFERENCE = dict(service_id=0x101, instance_id=5, major_version=1)
 
 
 @pytest.fixture

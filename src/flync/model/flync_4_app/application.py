@@ -21,8 +21,8 @@ class ServiceConsumerReference(FLYNCBaseModel):
     type: Literal["consumer"]
         Type of the service reference.
 
-    service_name: str
-        Name of the referenced service instance.
+    service_id: int
+        Service ID of the referenced service instance.
 
     instance_id: int
         Instance ID of the referenced service instance.
@@ -32,7 +32,7 @@ class ServiceConsumerReference(FLYNCBaseModel):
     """
 
     type: Literal["consumer"] = Field(default="consumer", description="Type of the service reference.")
-    service_name: str = Field(default="consumer", description="Name of the referenced service instance.")
+    service_id: Annotated[int, Field(gt=0, lt=0xFFFF)] = Field(description="Service ID of the referenced service instance.")
     instance_id: int = Field(description="Instance ID of the referenced service instance.")
     major_version: int = Field(description="Major version of the referenced service instance.")
 
@@ -46,8 +46,8 @@ class ServiceProviderReference(FLYNCBaseModel):
     type: Literal["provider"]
         Type of the service reference.
 
-    service_name: str
-        Name of the referenced service instance.
+    service_id: int
+        Service ID of the referenced service instance.
 
     instance_id: int
         Instance ID of the referenced service instance.
@@ -57,7 +57,7 @@ class ServiceProviderReference(FLYNCBaseModel):
     """
 
     type: Literal["provider"] = Field(default="provider", description="Type of the service reference.")
-    service_name: str = Field(default="provider", description="Name of the referenced service instance.")
+    service_id: Annotated[int, Field(gt=0, lt=0xFFFF)] = Field(description="Service ID of the referenced service instance.")
     instance_id: int = Field(description="Instance ID of the referenced service instance.")
     major_version: int = Field(description="Major version of the referenced service instance.")
 
@@ -89,12 +89,12 @@ class App(FLYNCBaseModel):
     @model_validator(mode="after")
     def warn_self_consumed_instances(self):
         """Warn when a service instance is referenced in both service_consumer_refs and service_provider_refs."""
-        provided = {(ref.service_name, ref.instance_id, ref.major_version) for ref in self.service_provider_refs or []}
+        provided = {(ref.service_id, ref.instance_id, ref.major_version) for ref in self.service_provider_refs or []}
         for ref in self.service_consumer_refs or []:
-            if (ref.service_name, ref.instance_id, ref.major_version) in provided:
+            if (ref.service_id, ref.instance_id, ref.major_version) in provided:
                 warn(
                     f"App '{self.name}' both consumes and provides the same service instance "
-                    f"({ref.service_name}, instance_id={ref.instance_id}, major_version={ref.major_version}).",
+                    f"(service_id={ref.service_id:#06x}, instance_id={ref.instance_id}, major_version={ref.major_version}).",
                     category=Category.CONSISTENCY,
                     error_number="242",
                 )

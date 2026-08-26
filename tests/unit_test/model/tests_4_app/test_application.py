@@ -15,13 +15,13 @@ def test_app_referencing_same_service_instance_as_consumer_and_provider_emits_wa
 
     result = validate_with_policy(App, app_data(), path=None)
 
-    assert_single_warning(result, SELF_CONSUMED_INSTANCE_WARNING_ID, SERVICE_REFERENCE["service_name"])
+    assert_single_warning(result, SELF_CONSUMED_INSTANCE_WARNING_ID, f"{SERVICE_REFERENCE['service_id']:#06x}")
 
 
 @pytest.mark.parametrize(
     "provider_difference",
     [
-        pytest.param(dict(service_name="OtherService"), id="different_service_name"),
+        pytest.param(dict(service_id=SERVICE_REFERENCE["service_id"] + 1), id="different_service_id"),
         pytest.param(dict(instance_id=SERVICE_REFERENCE["instance_id"] + 1), id="different_instance_id"),
         pytest.param(dict(major_version=SERVICE_REFERENCE["major_version"] + 1), id="different_major_version"),
     ],

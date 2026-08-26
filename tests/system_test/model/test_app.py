@@ -81,10 +81,10 @@ def _make_provider(instance_id: int = INSTANCE_ID) -> SOMEIPServiceProvider:
 
 
 def _make_app() -> App:
-    """Return the app consuming instance :data:`INSTANCE_ID` of :data:`SERVICE_NAME`."""
+    """Return the app consuming instance :data:`INSTANCE_ID` of service :data:`SERVICE_ID`."""
     return App(
         name=APP_NAME,
-        service_consumer_refs=[dict(service_name=SERVICE_NAME, instance_id=INSTANCE_ID, major_version=MAJOR_VERSION)],
+        service_consumer_refs=[dict(service_id=SERVICE_ID, instance_id=INSTANCE_ID, major_version=MAJOR_VERSION)],
     )
 
 
