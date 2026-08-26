@@ -11,13 +11,17 @@ console = Console(force_terminal=True)
 
 
 def run_validation(path):
-    """Run validation by calling the CLI command `flync validate`. Return with error if there is validation errors present."""
-    resolved_path = Path(path).resolve()
-    result = validate(path=str(resolved_path), quiet=True)
-    loaded_ws = result.workspace
-    has_errors = any(err.get("type") != "warning" for errs in result.errors.values() for err in errs)
-    if has_errors:
+    """
+    Validate the workspace at *path* and hand it to a command that needs one.
+
+    ``validate`` exits non-zero itself when the model does not pass, so the only case left here is a result that passed and still carries
+    no workspace: the callers dereference it straight away.
+    """
+
+    result = validate(path=str(Path(path).resolve()), quiet=True)
+
+    if result.workspace is None:
         console.print("⚠️ [bold red] Validate your model first with `flync validate`.[/bold red]")
         sys.exit(1)
-    else:
-        return loaded_ws
+
+    return result.workspace

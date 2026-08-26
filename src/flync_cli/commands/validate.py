@@ -8,7 +8,7 @@ import typer
 from rich.console import Console
 from typing_extensions import Annotated
 
-from flync.sdk.context.diagnostics_result import WorkspaceState
+from flync.sdk.context.diagnostics_result import DiagnosticsResult, WorkspaceState
 from flync.sdk.helpers.validation_helpers import validate_external_node, validate_workspace
 from flync_cli.utils.error_table import print_validation_result
 
@@ -29,8 +29,12 @@ def validate(
     ] = "",
     config_name: Annotated[str, typer.Option("--config", "-c", help="Name of configuration.")] = "flync_config",
     quiet: Annotated[bool, typer.Option("--quiet", "-q", help="Only show final result of the validation.")] = False,
-):
-    """Validate a FLYNC model at the given path, optionally suppressing output."""
+) -> DiagnosticsResult:
+    """
+    Validate a FLYNC model at the given path, exiting non-zero unless it passed.
+
+    The exit code is all a CI job sees. Warnings stay at zero: they are diagnostics, not failures.
+    """
 
     resolved_path = Path(path).resolve()
 
@@ -48,16 +52,18 @@ def validate(
     if not quiet:
         print_validation_result(result)
 
-    has_errors = any(err.get("type") != "warning" for errs in result.errors.values() for err in errs)
-
-    exit_err = False
-
-    if (result.state is not WorkspaceState.VALID) and has_errors:
-        exit_err = True
+    if not result.passed:
         color = "bold red"
     elif result.state is WorkspaceState.WARNING:
         color = "bold yellow"
     else:
         color = "bold green"
     console.print(f">>> Validation Result for {config_name}: [{color}] {result.state.upper()} [/{color}] ")
-    return result if result.workspace else sys.exit(exit_err)
+
+    if not result.passed:
+        if quiet:
+            # The caller asked for the summary only, so point at the command that prints the whole list.
+            console.print("⚠️ [bold red] Run `flync validate` on this path for the full list.[/bold red]")
+        sys.exit(1)
+
+    return result
