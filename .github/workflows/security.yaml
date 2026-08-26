@@ -1,0 +1,387 @@
+name: Security
+
+on:
+  push:
+    branches:
+    - main
+    - release-*
+  pull_request:
+    branches:
+    - main
+    - release-*
+  schedule:
+    # The vulnerability DB moves daily, so a clean dependency set can turn red
+    # with no commit behind it.
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Code scanning rejects concurrent uploads to the same category, which push,
+# cron and dispatch can otherwise trigger at once on main.
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Third-party actions are pinned by commit SHA rather than by tag: a tag is a
+# movable ref, and this is the workflow that is meant to raise that bar.
+# Renovate updates a pinned digest the same way it updates a tag.
+env:
+  SCANNER_VERSION: "v0.74.0"
+  # Neither of these is named TRIVY_*: Trivy picks up every such variable as its
+  # own config, which would silently apply them to jobs that must not have them.
+  #
+  # The scan itself records every severity, so code scanning keeps the whole
+  # picture and can filter on its own. GATE_SEVERITY is what the run summary
+  # calls out, and what will gate the build once exit-code flips to "1".
+  GATE_SEVERITY: "HIGH,CRITICAL"
+  # trivy-action caches the DB under the workspace, inside the scan target.
+  SKIP_DIRS: ".cache"
+
+jobs:
+  trivy-vuln:
+    name: Dependency vulnerabilities
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The install step below builds third-party packages, which runs their
+          # code on this runner. Leaving the job token in .git/config would put
+          # it within reach of that code.
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          enable-cache: true
+
+      # Trivy reads uv.lock for runtime dependencies only: its uv parser excludes
+      # every dependency group, and --include-dev-deps covers npm, yarn and gradle
+      # but not uv. Installing the full set puts the group and extra packages on
+      # disk as wheel metadata, which Trivy reads as packages in their own right,
+      # so the scan covers what CI executes as well as what consumers install.
+      #
+      # One package stays outside that coverage: pydantic-2-mermaid is installed
+      # from a git revision (see [tool.uv.sources] in pyproject.toml), and Trivy
+      # cannot match a git-sourced distribution against any advisory. Its pinned
+      # revision is the only control over that package.
+      - name: Install the full dependency set
+        run: uv sync --frozen --all-groups --all-extras --no-install-project
+
+      # A scan that resolves nothing and a dependency set with nothing wrong in it
+      # produce the same empty report, so assert the inputs before trusting a pass.
+      - name: Verify scan inputs
+        run: |
+          [ -s uv.lock ] || { echo "::error::uv.lock is missing or empty."; exit 1; }
+          pkgs=$(find .venv -type f -path "*.dist-info/METADATA" | wc -l)
+          echo "Installed distributions on disk: ${pkgs}"
+          if [ "$pkgs" -eq 0 ]; then
+            echo "::error::No installed distributions under .venv - the scan would cover runtime dependencies only."
+            exit 1
+          fi
+
+      - name: Run Trivy
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln
+          # No severity filter here. Filtering at scan time would drop the lower
+          # severities from the SARIF as well, so they could never be reviewed or
+          # trended later; GATE_SEVERITY decides what the summary calls out.
+          skip-dirs: ${{ env.SKIP_DIRS }}
+          # Passed explicitly so the log records which suppressions were loaded.
+          trivyignores: .trivyignore
+          format: json
+          output: trivy-vuln.json
+          # Reports only for now; flip to "1" once the backlog is triaged.
+          # Review by 2026-11-30. Until that flip, a CRITICAL finding and a
+          # .trivyignore entry that has passed its exp: date both still produce a
+          # green check, and the code scanning alerts raised from the SARIF below
+          # are the only signal. Making the code scanning check required in branch
+          # protection is what turns this pipeline into a gate.
+          exit-code: "0"
+          version: ${{ env.SCANNER_VERSION }}
+          cache: true
+
+      - name: Convert report to SARIF
+        if: always() && hashFiles('trivy-vuln.json') != ''
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: convert
+          scan-ref: trivy-vuln.json
+          format: sarif
+          output: trivy-vuln.sarif
+          version: ${{ env.SCANNER_VERSION }}
+          cache: false
+
+      - name: Summarise findings
+        if: always()
+        run: |
+          {
+            echo "## Trivy dependency scan"
+            echo
+            if [ ! -s trivy-vuln.json ]; then
+              echo "No report produced."
+              exit 0
+            fi
+            echo "Scanned targets:"
+            jq -r '.Results[]?.Target | "- `\(.)`"' trivy-vuln.json | sort -u
+            echo
+            # Counted per CVE and package rather than per row: uv.lock and the
+            # installed distribution both carry the runtime dependencies, so the
+            # rows double up.
+            gated=$(jq --arg sev "$GATE_SEVERITY" '
+              [ .Results[]?.Vulnerabilities[]?
+                | select(.Severity as $s | ($sev | split(",")) | index($s))
+                | [.VulnerabilityID, .PkgName] ] | unique | length
+            ' trivy-vuln.json)
+            total=$(jq '[.Results[]?.Vulnerabilities[]? | [.VulnerabilityID, .PkgName]] | unique | length' trivy-vuln.json)
+            echo "**${gated}** finding(s) at \`${GATE_SEVERITY}\`, **${total}** across all severities."
+            echo
+            echo "| ID | Severity | Package | Installed | Fixed in |"
+            echo "|---|---|---|---|---|"
+            jq -r --arg sev "$GATE_SEVERITY" '
+              .Results[]?.Vulnerabilities[]?
+              | select(.Severity as $s | ($sev | split(",")) | index($s))
+              | "| \(.VulnerabilityID) | \(.Severity) | \(.PkgName) | \(.InstalledVersion) | \(.FixedVersion // "-") |"
+            ' trivy-vuln.json | sort -u
+            echo
+            echo "Lower severities are left out of this table. They are in the code scanning alerts and in the \`trivy-vuln\` artifact."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Archive artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: trivy-vuln
+          path: |
+            trivy-vuln.json
+            trivy-vuln.sarif
+          if-no-files-found: warn
+          retention-days: 28
+
+  # Held apart from trivy-vuln because that job builds third-party packages, and
+  # this is the token that can write code scanning results. A pull request from a
+  # fork has no security-events write access, so the job is skipped there.
+  publish-vuln-sarif:
+    name: Publish vulnerability findings
+    needs: trivy-vuln
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    steps:
+      # upload-sarif resolves the ref and the commit from the checkout.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Tolerated rather than required: trivy-vuln archives nothing when Trivy
+      # produced no report at all, and its own input checks already fail loudly
+      # when the scan resolved nothing.
+      - name: Download report
+        id: download
+        continue-on-error: true
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: trivy-vuln
+
+      - name: Upload SARIF to code scanning
+        if: steps.download.outcome == 'success' && hashFiles('trivy-vuln.sarif') != ''
+        uses: github/codeql-action/upload-sarif@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28 # v4
+        with:
+          sarif_file: trivy-vuln.sarif
+          category: trivy-vuln
+
+  trivy-secret:
+    name: Committed secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Scans the working tree only, never git history: `trivy fs` walks the
+      # checked-out files, and a deeper fetch-depth does not change that. A
+      # credential that was committed and later removed stays exploitable and
+      # stays invisible here. GitHub secret scanning with push protection is the
+      # control that covers history and blocks new pushes, and it has to remain
+      # enabled on the repository for that gap to stay covered.
+      - name: Run Trivy secret scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: secret
+          skip-dirs: ${{ env.SKIP_DIRS }}
+          trivyignores: .trivyignore
+          format: json
+          output: trivy-secret.json
+          exit-code: "1"
+          version: ${{ env.SCANNER_VERSION }}
+          # The secret scanner never reads the vulnerability DB, so there is
+          # nothing here worth restoring or saving.
+          cache: false
+
+      # Trivy censors the credential itself but still records two lines of source
+      # either side of it, which would outlive the fix in the artifact. The report
+      # is destroyed rather than published if that fails, because the archive step
+      # below runs whatever the outcome here.
+      - name: Strip source context from report
+        if: always()
+        run: |
+          [ -s trivy-secret.json ] || exit 0
+          if ! jq '(.Results[]?.Secrets[]?) |= del(.Code, .Match)' trivy-secret.json > redacted.json; then
+            rm -f trivy-secret.json redacted.json
+            echo "::error::Redaction failed; the raw report was deleted rather than published."
+            exit 1
+          fi
+          mv redacted.json trivy-secret.json
+
+      # The repository is public, so this summary is public too. It reports what
+      # was found without pointing at the line, which would hand a reader the
+      # location of a live credential before it can be rotated.
+      - name: Summarise findings
+        if: always()
+        run: |
+          {
+            echo "## Trivy secret scan"
+            echo
+            if [ ! -s trivy-secret.json ]; then
+              echo "No report produced."
+              exit 0
+            fi
+            total=$(jq '[.Results[]?.Secrets // [] | length] | add // 0' trivy-secret.json)
+            echo "**${total}** finding(s)."
+            if [ "$total" -gt 0 ]; then
+              echo
+              echo "| Rule | Severity | Count |"
+              echo "|---|---|---|"
+              jq -r '
+                [.Results[]? | (.Secrets // [])[] | {rule: .RuleID, sev: .Severity}]
+                | group_by([.rule, .sev])[]
+                | "| \(.[0].rule) | \(.[0].sev) | \(length) |"
+              ' trivy-secret.json
+              echo
+              echo "File paths and line numbers are in the \`trivy-secret\` artifact, not here."
+              echo "Rotate the credential first, then remove it from the tree and from history."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Archive artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: trivy-secret
+          path: trivy-secret.json
+          if-no-files-found: warn
+          retention-days: 28
+
+  trivy-license:
+    name: Dependency licences
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          enable-cache: true
+
+      # Trivy performs no licence detection on uv.lock at all. The licences live
+      # in the METADATA of each installed distribution, which Trivy reads through
+      # its pip support: that needs a requirements.txt to anchor the scan and a
+      # site-packages directory, located below through VIRTUAL_ENV.
+      #
+      # Scoped to what consumers actually receive, which is the runtime
+      # dependencies plus every extra. Nothing under [dependency-groups] is
+      # distributed, and including it would bury a copyleft runtime dependency
+      # under the licences of the toolchain. --no-default-groups is required
+      # because pyproject.toml sets default-groups = ["dev"].
+      - name: Install the distributed dependency set
+        run: |
+          uv sync --frozen --all-extras --no-default-groups --no-install-project
+          uv export --frozen --all-extras --no-default-groups --no-emit-project \
+            --no-hashes --format requirements.txt --output-file requirements.txt
+
+      - name: Verify scan inputs
+        run: |
+          [ -s requirements.txt ] || { echo "::error::requirements.txt was not exported."; exit 1; }
+          pkgs=$(find .venv -type f -path "*.dist-info/METADATA" | wc -l)
+          echo "Installed distributions on disk: ${pkgs}"
+          if [ "$pkgs" -eq 0 ]; then
+            echo "::error::No installed distributions under .venv - no licence would be detected."
+            exit 1
+          fi
+
+      - name: Run Trivy licence scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: license
+          skip-dirs: ${{ env.SKIP_DIRS }}
+          trivyignores: .trivyignore
+          format: json
+          output: trivy-license.json
+          # Reports only: there is no allow list or deny list behind this yet, so
+          # a copyleft licence reaching consumers is recorded and not blocked.
+          # Review by 2026-11-30.
+          exit-code: "0"
+          version: ${{ env.SCANNER_VERSION }}
+          cache: true
+        env:
+          VIRTUAL_ENV: ${{ github.workspace }}/.venv
+
+      # The annotation stays outside the summary redirect: a workflow command
+      # written to $GITHUB_STEP_SUMMARY is recorded there as literal text and is
+      # never rendered as an annotation.
+      - name: Summarise licences
+        if: always()
+        run: |
+          if [ ! -s trivy-license.json ]; then
+            printf '## Trivy licence scan\n\nNo report produced.\n' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          total=$(jq '[.Results[]?.Licenses // [] | length] | add // 0' trivy-license.json)
+          if [ "$total" -eq 0 ]; then
+            printf '## Trivy licence scan\n\nNo licence was resolved for any package. Treat this as a scan failure, not a clean result.\n' >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::No licence resolved for any package - the scan found nothing to classify."
+            exit 1
+          fi
+          {
+            echo "## Trivy licence scan"
+            echo
+            echo "**${total}** classified licence(s) across the distributed dependency set (runtime plus every extra)."
+            echo
+            echo "| Severity | Licence | Package |"
+            echo "|---|---|---|"
+            jq -r '
+              .Results[]? as $r
+              | ($r.Licenses // [])[]
+              | "| \(.Severity) | \(.Name) | \(.PkgName // .FilePath // "-") |"
+            ' trivy-license.json | sort -u
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Archive artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: trivy-license
+          path: trivy-license.json
+          if-no-files-found: warn
+          retention-days: 28

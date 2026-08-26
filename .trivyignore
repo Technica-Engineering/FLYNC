@@ -1,0 +1,6 @@
+# Trivy suppressions. Every entry needs a reason and an expiry date:
+#
+#   # <why this is accepted>
+#   CVE-2019-14697 exp:2026-12-31
+#
+# Entries without `exp:` should be rejected in review.
