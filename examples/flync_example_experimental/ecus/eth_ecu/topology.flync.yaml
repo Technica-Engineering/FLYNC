@@ -1,0 +1,5 @@
+connections:
+  - type: ecu_port_to_controller_interface
+    id: conn1
+    ecu_port: eth_ecu_p1
+    controller_interface: eth_ecu_c1_iface1 

@@ -1,0 +1,22 @@
+tcp_profiles:
+  - tcp_profile_id: 1
+    nagle: False
+    keepalive_enabled: True
+    keepidle: 10
+    keepcount: 10
+    keepintvl: 2
+    user_timeout: 28
+    congestion_avoidance: reno
+    tcp_maxseg: False
+    tcp_syncnt: 6
+  - tcp_profile_id: 2
+    nagle: True
+    keepalive_enabled: True
+    keepidle: 10
+    keepcount: 10
+    keepintvl: 2
+    user_timeout: 14
+    congestion_avoidance: cubic
+    tcp_maxseg: False
+    tcp_syncnt: 6
+  

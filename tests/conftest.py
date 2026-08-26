@@ -30,3 +30,15 @@ def example_workspace_path():
     to load the common example workspace without modifications.
     """
     return (Path(__file__).parent.parent / "examples" / "flync_example").absolute()
+
+
+@pytest.fixture(scope="session")
+def example_experimental_workspace_path():
+    """Return path to the experimental example FLYNC workspace.
+
+    ``flync_example_experimental`` is a sandbox copy of ``flync_example`` that
+    developers may freely modify without affecting the canonical example that
+    most tests depend on. It mirrors ``example_workspace_path`` so tests can
+    exercise a workspace they are allowed to mutate.
+    """
+    return (Path(__file__).parent.parent / "examples" / "flync_example_experimental").absolute()

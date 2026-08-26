@@ -1,0 +1,8 @@
+ports:
+  - name: z2_p1
+    mdi_config:
+      mode: base_t1
+      speed: 1000
+      duplex: full
+      role: slave
+      autonegotiation: false

@@ -1,0 +1,18 @@
+bus_ref: PowertrainCAN
+sender_frames: []
+receiver_frames:
+  - bus_ref: PowertrainCAN
+    frame_ref: 257   # Frame_EngineStatus (0x101)
+  - bus_ref: PowertrainCAN
+    frame_ref: 513   # Frame_VehicleDynamics (0x201)
+  - bus_ref: PowertrainCAN
+    frame_ref: 769   # Frame_TransmissionStatus (0x301)
+
+forwarder_frames:
+  - frame_ref: Frame_EngineStatus
+    egresses:
+      - egress_type: can_frame
+        bus_ref: DiagCAN
+        frame_ref: 2024  # Frame_EngineDiagResponse (0x7E8)
+      - egress_type: eth_socket
+        socket_ref: pdu_engine_status_tx

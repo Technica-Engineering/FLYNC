@@ -1,0 +1,71 @@
+name: PDU_NmMessage
+type: standard
+length: 8
+pdu_usage: network_management
+description: >-
+  Vehicle-wide NM message of the VEHICLE group. The relevance vector
+  carries one bit per vehicle FUNCTION (autonomous driving, online
+  communication, comfort), not per node.
+  Layout: sender id, control vector, relevance vector
+  (one flag per derived participant bit), opaque user data.
+
+signals:
+  - bit_position: 0
+    endianness: LE
+    signal:
+      name: sender_id
+      description: Identifier of the sending node.
+      bit_length: 8
+      data_type: uint8
+
+  - bit_position: 8
+    endianness: LE
+    signal:
+      name: control_vector
+      description: >-
+        Control bits of the NM message: repeat_message_request asks all
+        members to re-announce their state, sleep_ready signals the member
+        has released and is ready to let the group sleep, active_wakeup marks
+        the member that caused the wake-up, relevance_vector_present flags a
+        valid relevance_vector.
+      bit_length: 8
+      data_type: uint8
+      value_encoding:
+        type: bitmask_flags
+        flags:
+          - mask: 0x1
+            label: repeat_message_request
+          - mask: 0x2
+            label: sleep_ready
+          - mask: 0x4
+            label: active_wakeup
+          - mask: 0x8
+            label: relevance_vector_present
+
+  - bit_position: 16
+    endianness: LE
+    signal:
+      name: relevance_vector
+      description: >-
+        Relevance bitmask — one flag per participant bit of the owning
+        state management group, derived from the entity-side memberships
+        of this workspace.
+      bit_length: 32
+      data_type: uint32
+      value_encoding:
+        type: bitmask_flags
+        flags:
+          - mask: 0x1
+            label: AutonomousDriving
+          - mask: 0x2
+            label: OnlineCommunication
+          - mask: 0x4
+            label: Comfort
+
+  - bit_position: 48
+    endianness: LE
+    signal:
+      name: user_data
+      description: Opaque user-data area for OEM/application-specific extensions.
+      bit_length: 16
+      data_type: bytearray

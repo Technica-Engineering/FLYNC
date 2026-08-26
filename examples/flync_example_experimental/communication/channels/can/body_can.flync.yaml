@@ -1,0 +1,55 @@
+name: BodyCAN
+description: >-
+  Body domain bus at 500 kbit/s. NM is fed by the zonal gateway; every node
+  transmits its own NM frame carrying the ordinary NM PDU. Each node owns
+  its own relevance bit in the NM PDU, so a node is kept awake only while
+  its bit is requested while others on the same bus may stay asleep (CAN
+  resolves the NM state per node).
+version: "1.0"
+baud_rate: 500000
+
+frames:
+  - name: Frame_Nm_Gateway
+    type: can
+    frame_usage: network_management
+    description: NM frame transmitted by the zonal gateway (Ethernet -> CAN provider).
+    length: 8
+    can_id: 1296         # 0x510
+    id_format: standard_11bit
+    packed_pdus:
+      - pdu_ref: PDU_NmMessage
+        bit_position: 0
+    timing:
+      cyclic_timings:
+        - cycle: 0.5
+      event_timings: []
+
+  - name: Frame_Nm_Node1
+    type: can
+    frame_usage: network_management
+    description: NM frame transmitted by can_node_1.
+    length: 8
+    can_id: 1297         # 0x511
+    id_format: standard_11bit
+    packed_pdus:
+      - pdu_ref: PDU_NmMessage
+        bit_position: 0
+    timing:
+      cyclic_timings:
+        - cycle: 0.5
+      event_timings: []
+
+  - name: Frame_Nm_Node2
+    type: can
+    frame_usage: network_management
+    description: NM frame transmitted by can_node_2.
+    length: 8
+    can_id: 1298         # 0x512
+    id_format: standard_11bit
+    packed_pdus:
+      - pdu_ref: PDU_NmMessage
+        bit_position: 0
+    timing:
+      cyclic_timings:
+        - cycle: 0.5
+      event_timings: []

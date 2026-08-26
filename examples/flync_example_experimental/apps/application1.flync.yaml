@@ -1,0 +1,8 @@
+service_consumer_refs:
+  - service_name: Enhanced Testability Services
+    instance_id: 1
+    major_version: 1
+service_provider_refs:
+  - service_name: Enhanced Testability Services
+    instance_id: 1
+    major_version: 1

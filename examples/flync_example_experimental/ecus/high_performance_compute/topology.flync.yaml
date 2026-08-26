@@ -1,0 +1,29 @@
+connections:
+  - type: ecu_port_to_switch_port
+    id: conn1
+    ecu_port: hpc1_p1
+    switch_port: hpc_s1_p0
+  - type: ecu_port_to_switch_port
+    id: conn2
+    ecu_port: hpc1_p2
+    switch_port: hpc_s1_p4
+  - type: ecu_port_to_switch_port
+    id: conn3
+    ecu_port: hpc1_p3
+    switch_port: hpc_s1_p3
+  - type: switch_port_to_controller_interface
+    id: conn4
+    switch_port: hpc_s1_p1
+    controller_interface: hpc_c1_iface1
+  - type: switch_port_to_controller_interface
+    id: conn5
+    switch_port: hpc_s1_p2
+    controller_interface: hpc_c2_iface1
+  - type: ecu_port_to_switch_port
+    id: conn6
+    ecu_port: hpc1_p5
+    switch_port: hpc_s1_p6
+  - type: switch_port_to_host_controller_interface
+    id: conn7
+    switch_port: hpc_s1_cpu_port
+    host_controller_interface: hpc_switch1_host_iface1

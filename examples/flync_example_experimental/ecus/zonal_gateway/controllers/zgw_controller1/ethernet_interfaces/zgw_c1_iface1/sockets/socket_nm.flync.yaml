@@ -1,0 +1,18 @@
+vlan_id: 40
+sockets:
+- name: nm_rx_socket
+  endpoint_address: 10.0.40.22
+  endpoint_type: multicast
+  port_no: 1200
+  protocol: udp
+  multicast_tx:
+  - 224.0.0.1
+  deployments:
+  - deployment_type: pdu_receiver
+    pdu_ref: EthNmContainerA
+  # The gateway bridges in BOTH directions: it receives the CAN-side NM
+  # frames (receiver_frames 0x511/0x512) and re-emits the group state onto
+  # the backbone here, so backbone listeners (e.g. the BodyLIN master and
+  # the observer) also see relevance bits requested on BodyCAN.
+  - deployment_type: pdu_sender
+    pdu_ref: EthNmContainerA

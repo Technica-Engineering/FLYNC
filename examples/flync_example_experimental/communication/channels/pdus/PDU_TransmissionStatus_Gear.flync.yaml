@@ -1,0 +1,48 @@
+name: PDU_TransmissionStatus_Gear
+type: standard
+length: 8
+description: Gear position data, active when the GearInfoMux selector value is 0.
+
+signals:
+  - bit_position: 8
+    endianness: LE
+
+    signal:
+      name: CurrentGear
+      description: Currently engaged gear.
+      bit_length: 8
+      data_type: uint8
+      value_encoding:
+        type: text_table
+        entries:
+          - value: 0
+            label: Park
+          - value: 1
+            label: Reverse
+          - value: 2
+            label: Neutral
+          - value: 3
+            label: Drive_D1
+          - value: 4
+            label: Drive_D2
+          - value: 5
+            label: Drive_D3
+          - value: 6
+            label: Drive_D4
+  - bit_position: 16
+    endianness: LE
+
+    signal:
+      name: GearShiftMode
+      description: Automatic / manual / sport shift mode.
+      bit_length: 4
+      data_type: uint8
+      value_encoding:
+        type: text_table
+        entries:
+          - value: 0
+            label: Automatic
+          - value: 1
+            label: Manual
+          - value: 2
+            label: Sport

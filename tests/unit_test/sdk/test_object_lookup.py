@@ -9,7 +9,7 @@ def test_has_object_index_and_name_path_found(loaded_workspace_with_object_map):
     ws = loaded_workspace_with_object_map
     eth_ecu_id = "ecus.eth_ecu"
     assert ws.has_object(eth_ecu_id)
-    assert ws.has_object("ecus.6.switches.z1_switch1.switch_config.ports.z1_s1_p0.ingress_streams.0.stream_identification.0")
+    assert ws.has_object("ecus.5.switches.z1_switch1.switch_config.ports.z1_s1_p0.ingress_streams.0.stream_identification.0")
     assert ws.has_object("ecus.2.controllers.0.controller_metadata.controller_metadata.compatible_flync_version")
     assert ws.has_object("ecus.2.controllers.eth_ecu_controller1.controller_metadata.controller_metadata.compatible_flync_version")
     eth_ecu = ws.get_object(eth_ecu_id).model

@@ -1,0 +1,12 @@
+ports:
+  - name: eth_ecu_p1
+    mdi_config:
+      mode: base_t1
+      speed: 1000
+      duplex: full
+      role: slave
+      autonegotiation: false
+    mii_config:
+      type: sgmii
+      speed: 1000
+      mode: phy

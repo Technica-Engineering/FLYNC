@@ -1,0 +1,341 @@
+meta:
+  author: Dev
+  compatible_flync_version:
+    version_schema: semver
+    version: 0.11.0
+  target_system: flync_os
+ports:
+- name: hpc_s1_p0
+  silicon_port_no: 0
+  default_vlan_id: 1
+  mii_config:
+    type: rmii
+    speed: 100
+    mode: mac
+  ptp_config:
+      cmlds_linkport_enabled: false
+      ptp_ports:
+        - domain_id: 0
+          src_port_identity: 2
+          sync_config:
+            type: time_receiver
+            sync_timeout: 3
+            sync_followup_timeout: 10
+          pdelay_config:
+            log_tx_period: 1
+  ingress_streams:
+    - name: stream_0
+      stream_identification:
+        - vlanid: [10, 20, 30, 40]
+          dst_ipv4:
+            address: 10.0.0.0
+            ipv4netmask: 255.255.0.0
+          protocol: udp
+          dst_port:
+            from_value: 32000
+            to_value: 33000
+      drop_at_ingress: false
+      max_sdu_size: 1522
+      policer:
+        type: single_rate_two_color
+        cir: 10000
+        cbs: 10000
+        eir: 0
+        ebs: 5000
+        coupling: false
+    - name: stream_1
+      stream_identification:
+        - vlanid: 10
+          dst_ipv4:
+            address: 224.0.0.0
+            ipv4netmask: 255.0.0.0
+          protocol: tcp
+      drop_at_ingress: false
+      max_sdu_size: 1522
+      policer:
+        type: double_rate_three_color
+        cir: 10000
+        cbs: 10000
+        eir: 20000
+        ebs: 2000
+        coupling: true
+  traffic_classes:
+    - name: high_prio
+      priority: 7
+      frame_priority_values: [7, 6, 5, 4]
+      selection_mechanisms:
+        type: cbs
+        idleslope: 50000
+    - name: best_effort
+      priority: 1
+      frame_priority_values: [3, 2, 1, 0]
+      selection_mechanisms:
+        type: cbs
+        idleslope: 10000
+  macsec_config:
+    vlan_bypass: []
+    mka_enabled: true
+    hello_time: 1000
+    bounded_hello_time: 2000
+    life_time: 100000
+    sak_retire_time: 20000
+    macsec_mode: integrity
+    kay_on: true
+    key_role: key_server_never
+    delay_protect: false
+    participant_activation: always
+
+- name: hpc_s1_p1
+  silicon_port_no: 1
+  default_vlan_id: 1
+  mii_config:
+    type: rmii
+    speed: 100
+    mode: mac
+  ptp_config:
+      cmlds_linkport_enabled: false
+      ptp_ports:
+        - domain_id: 0
+          src_port_identity: 3
+          sync_config:
+            type: time_transmitter
+            log_tx_period: -3
+            two_step: true
+            tlv: []
+  macsec_config:
+      vlan_bypass: []
+      mka_enabled: true
+      hello_time: 1000
+      bounded_hello_time: 2000
+      life_time: 100000
+      sak_retire_time: 20000
+      macsec_mode: integrity
+      kay_on: true
+      key_role: key_server_never
+      delay_protect: false
+      participant_activation: always
+
+- name: hpc_s1_p2
+  silicon_port_no: 2
+  default_vlan_id: 1
+  mii_config:
+    type: rmii
+    speed: 100
+    mode: mac
+  macsec_config:
+      vlan_bypass: []
+      mka_enabled: true
+      hello_time: 1000
+      bounded_hello_time: 2000
+      life_time: 100000
+      sak_retire_time: 20000
+      macsec_mode: integrity
+      kay_on: true
+      key_role: key_server_never
+      delay_protect: false
+      participant_activation: always
+
+- name: hpc_s1_p3
+  silicon_port_no: 3
+  default_vlan_id: 1
+  ptp_config:
+      cmlds_linkport_enabled: false
+      ptp_ports:
+        - domain_id: 0
+          src_port_identity: 4
+          sync_config:
+            type: time_transmitter
+            log_tx_period: -3
+            two_step: true
+            tlv: []
+  ingress_streams:
+    - name: stream_0
+      stream_identification:
+        - vlanid: [10, 20, 30, 40]
+          dst_ipv4:
+            address: 10.0.0.0
+            ipv4netmask: 255.255.0.0
+          protocol: udp
+          dst_port:
+            from_value: 32000
+            to_value: 33000
+      drop_at_ingress: false
+      max_sdu_size: 1522
+      policer:
+        type: single_rate_two_color
+        cir: 10000
+        cbs: 10000
+        eir: 0
+        ebs: 5000
+        coupling: false
+    - name: stream_1
+      stream_identification:
+        - vlanid: 10
+          dst_ipv4:
+            address: 224.0.0.0
+            ipv4netmask: 255.0.0.0
+          protocol: tcp
+      drop_at_ingress: false
+      max_sdu_size: 1522
+      policer:
+        type: double_rate_three_color
+        cir: 10000
+        cbs: 10000
+        eir: 20000
+        ebs: 2000
+        coupling: true
+  traffic_classes:
+    - name: high_prio
+      priority: 7
+      frame_priority_values: [7, 6, 5, 4]
+      selection_mechanisms:
+        type: cbs
+        idleslope: 50000
+    - name: best_effort
+      priority: 1
+      frame_priority_values: [3, 2, 1, 0]
+      selection_mechanisms:
+        type: cbs
+        idleslope: 10000
+  macsec_config:
+      vlan_bypass: []
+      mka_enabled: true
+      hello_time: 1000
+      bounded_hello_time: 2000
+      life_time: 100000
+      sak_retire_time: 20000
+      macsec_mode: integrity
+      kay_on: true
+      key_role: key_server_never
+      delay_protect: false
+      participant_activation: always
+
+- name: hpc_s1_p4
+  silicon_port_no: 4
+  default_vlan_id: 1
+  ptp_config:
+      cmlds_linkport_enabled: false
+      ptp_ports:
+        - domain_id: 0
+          src_port_identity: 5
+          sync_config:
+            type: time_transmitter
+            log_tx_period: -3
+            two_step: true
+            tlv: []
+  ingress_streams:
+    - name: stream_0
+      stream_identification:
+        - vlanid: [10, 20, 30, 40]
+          dst_ipv4:
+            address: 10.0.0.0
+            ipv4netmask: 255.255.0.0
+          protocol: udp
+          dst_port:
+            from_value: 32000
+            to_value: 33000
+      drop_at_ingress: false
+      max_sdu_size: 1522
+      policer:
+        type: single_rate_two_color
+        cir: 10000
+        cbs: 10000
+        eir: 0
+        ebs: 5000
+        coupling: false
+    - name: stream_1
+      stream_identification:
+        - vlanid: 10
+          dst_ipv4:
+            address: 224.0.0.0
+            ipv4netmask: 255.0.0.0
+          protocol: tcp
+      drop_at_ingress: false
+      max_sdu_size: 1522
+      policer:
+        type: double_rate_three_color
+        cir: 10000
+        cbs: 10000
+        eir: 20000
+        ebs: 2000
+        coupling: true
+  traffic_classes:
+    - name: high_prio
+      priority: 7
+      frame_priority_values: [7, 6, 5, 4]
+      selection_mechanisms:
+        type: cbs
+        idleslope: 50000
+    - name: best_effort
+      priority: 1
+      frame_priority_values: [3, 2, 1, 0]
+      selection_mechanisms:
+        type: cbs
+        idleslope: 10000
+  macsec_config:
+      vlan_bypass: []
+      mka_enabled: true
+      hello_time: 1000
+      bounded_hello_time: 2000
+      life_time: 100000
+      sak_retire_time: 20000
+      macsec_mode: integrity
+      kay_on: true
+      key_role: key_server_never
+      delay_protect: false
+      participant_activation: always
+
+- name: hpc_s1_p6
+  silicon_port_no: 6
+  default_vlan_id: 1
+  mii_config:
+    type: sgmii
+    speed: 1000
+    mode: mac
+
+- name: hpc_s1_cpu_port
+  silicon_port_no: 5
+  default_vlan_id: 30
+
+vlans:
+- name: VLAN10
+  id: 10
+  default_priority: 0
+  ports:
+    - hpc_s1_p0
+    - hpc_s1_p1
+
+- name: VLAN20
+  id: 20
+  default_priority: 0
+  ports:
+    - hpc_s1_p0
+    - hpc_s1_p1
+    - hpc_s1_p4
+
+- name: VLAN30
+  id: 30
+  default_priority: 0
+  ports:
+    - hpc_s1_p0
+    - hpc_s1_p2
+    - hpc_s1_cpu_port
+
+- name: VLAN40
+  id: 40
+  default_priority: 0
+  ports:
+    - hpc_s1_p6
+    - hpc_s1_p2
+    - hpc_s1_p3
+    - hpc_s1_p4
+    - hpc_s1_p1
+    - hpc_s1_p0
+    - hpc_s1_cpu_port
+
+- name: VLAN50
+  id: 50
+  default_priority: 0
+  ports:
+    - hpc_s1_p1
+    - hpc_s1_cpu_port

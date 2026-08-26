@@ -1,0 +1,21 @@
+name: PDU_TransmissionStatus
+type: multiplexed
+length: 8
+description: Transmission status, multiplexed on GearInfoMux selector.
+
+selector_signal:
+  bit_position: 0
+  endianness: LE
+  signal:
+    name: GearInfoMux
+    description: Multiplexer selector for TransmissionStatus PDU.
+    bit_length: 4
+    data_type: uint8
+
+mux_groups:
+  - selector_value: 0
+    pdu:
+      pdu_ref: PDU_TransmissionStatus_Gear
+  - selector_value: 1
+    pdu:
+      pdu_ref: PDU_TransmissionStatus_Torque

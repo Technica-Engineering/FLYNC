@@ -1,0 +1,13 @@
+mac_address: 00:11:06:01:01:01
+mii_config:
+  type: sgmii
+  speed: 1000
+  mode: phy
+virtual_interfaces:
+  - name: zgw_c1_i1_viface1
+    vlanid: 40
+    addresses:
+      - address: 10.0.40.22
+        ipv4netmask: 255.255.255.0
+    multicast:
+    - 224.0.0.1
