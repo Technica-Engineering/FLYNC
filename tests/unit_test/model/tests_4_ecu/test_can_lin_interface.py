@@ -10,6 +10,7 @@ from flync.model.flync_4_ecu.lin_interface import (
     LINMasterInterface,
     LINSlaveInterface,
 )
+from tests.error_assertions import assert_single_error
 
 
 def _can_forwarder(frame_ref="0x100", bus_ref="DiagCAN", egress_frame=0x200):
@@ -60,19 +61,23 @@ def test_positive_can_interface_model_validate():
 
 
 def test_negative_can_interface_missing_bus_ref():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         CANInterface(name="no_bus_iface")
+
+    assert_single_error(exc_info, None, "bus_ref")
 
 
 def test_negative_can_interface_duplicate_forwarder_frame_ref():
     forwarder_1 = _can_forwarder(frame_ref="0x100")
     forwarder_2 = _can_forwarder(frame_ref="0x100")
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         CANInterface(
             name="dup_fwd_iface",
             bus_ref="DiagCAN",
             forwarder_frames=[forwarder_1, forwarder_2],
         )
+
+    assert_single_error(exc_info, "FLYNC-ECU-MAJ-UNIQ-058", "duplicate frame_ref(s) in forwarder_frames")
 
 
 def test_positive_lin_master_minimal():
@@ -132,18 +137,29 @@ def test_positive_lin_slave_valid_nad_bounds(nad):
 
 
 def test_negative_lin_master_missing_timing():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         LINMasterInterface(name="no_timing", bus_ref="BodyLIN", lin_protocol="2.1", p2_min=50.0)
+
+    assert_single_error(exc_info, None, "st_min")
 
 
 def test_negative_lin_invalid_protocol():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         LINMasterInterface(name="bad_proto", bus_ref="BodyLIN", lin_protocol="9.9", p2_min=50.0, st_min=10.0)
 
+    assert_single_error(exc_info, None, "Input should be")
 
-@pytest.mark.parametrize("bad_nad", [-1, 0x100, 999])
-def test_negative_lin_slave_nad_out_of_range(bad_nad):
-    with pytest.raises(ValidationError):
+
+@pytest.mark.parametrize(
+    "bad_nad,expected_fragment",
+    [
+        pytest.param(-1, "greater than or equal to 0", id="too_low"),
+        pytest.param(0x100, "less than or equal to 255", id="too_high"),
+        pytest.param(999, "less than or equal to 255", id="way_high"),
+    ],
+)
+def test_negative_lin_slave_nad_out_of_range(bad_nad, expected_fragment):
+    with pytest.raises(ValidationError) as exc_info:
         LINSlaveInterface(
             name="bad_nad",
             bus_ref="BodyLIN",
@@ -151,6 +167,8 @@ def test_negative_lin_slave_nad_out_of_range(bad_nad):
             configured_nad=bad_nad,
             initial_nad=0x20,
         )
+
+    assert_single_error(exc_info, None, expected_fragment)
 
 
 def test_positive_any_lin_interface_discriminates_master():
@@ -169,5 +187,7 @@ def test_positive_any_lin_interface_discriminates_slave():
 
 def test_negative_any_lin_interface_unknown_node_type():
     adapter = TypeAdapter(AnyLINInterface)
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         adapter.validate_python({"name": "x", "node_type": "gateway", "bus_ref": "BodyLIN", "lin_protocol": "2.1"})
+
+    assert_single_error(exc_info, None, "does not match any of the expected tags")

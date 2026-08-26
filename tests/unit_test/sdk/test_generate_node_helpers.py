@@ -269,7 +269,7 @@ def test_generate_node_set_attribue(get_flync_example_path, tmp_path):
                         "type": "switch_port_to_controller_interface",
                         "id": "generated_conn2",
                         "switch_port": "z2_s1_p1",
-                        "controller_interface": "z2_c1_iface2",
+                        "controller_interface": "z2_c1_iface1",
                     },
                 ]
             },

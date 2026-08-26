@@ -21,6 +21,7 @@ from flync.model.flync_4_ecu.controller import (
 )
 from flync.model.flync_4_ecu.internal_topology import (
     InternalTopology,
+    SwitchPortToControllerInterface,
     SwitchPortToXConnection,
 )
 from flync.model.flync_4_ecu.mac_multicast_endpoint import (
@@ -204,6 +205,7 @@ class ECU(FLYNCBaseModel):
             conn.bind(self.switches or [], self.controllers, self.ports or [])
 
         self.__validate_switch_port_connections(connections)
+        self.__validate_single_physical_connection_per_interface(connections)
 
         for conn in connections:
             conn.validate_compatibility()
@@ -233,6 +235,22 @@ class ECU(FLYNCBaseModel):
                         error_number="210",
                     )
                 seen_switch_ports.add(id(switch_port))
+
+    def __validate_single_physical_connection_per_interface(self, connections):
+        """Raise if the same physical controller interface is connected to more than one switch port."""
+        seen: dict[tuple, str] = {}
+        for conn in connections:
+            if not isinstance(conn, SwitchPortToControllerInterface):
+                continue
+            key = (conn.controller_name, conn.iface_name)
+            if key in seen:
+                raise err_major(
+                    "Physical controller interface '{iface}' is connected more than once in the internal topology",
+                    category=Category.UNIQUENESS,
+                    error_number="250",
+                    iface=conn.iface_name,
+                )
+            seen[key] = conn.id
 
     @model_validator(mode="after")
     def validate_no_unconnected_components(self):

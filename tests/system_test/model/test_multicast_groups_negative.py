@@ -3,7 +3,7 @@ from pydantic import ValidationError
 
 from flync.core.utils.exceptions_handling import validate_with_policy
 from flync.model.flync_4_ecu.multicast_groups import MulticastGroupMembership
-from tests.error_assertions import assert_single_error
+from tests.error_assertions import assert_single_error, assert_single_warning
 
 
 @pytest.mark.parametrize(
@@ -77,19 +77,13 @@ def test_invalid_vlan_float():
 
 def test_reserved_vlan_emits_warning():
     """VLAN 4095 is reserved by IEEE 802.1Q — model loads but a warning is recorded."""
-    model, errors = validate_with_policy(
+    result = validate_with_policy(
         MulticastGroupMembership,
         {"group": "239.1.1.1", "vlan": 4095},
         path=None,
     )
 
-    assert model is not None
-    assert model.vlan == 4095
-
-    warnings = [e for e in errors if e.get("type") == "warning"]
-    assert len(warnings) == 1
-    assert "4095" in warnings[0]["msg"]
-    assert "reserved" in warnings[0]["msg"].lower()
+    assert_single_warning(result, "FLYNC-CMN-WARN-VAL-003", "reserved")
 
 
 def test_invalid_mode():

@@ -2391,3 +2391,33 @@ Every error and warning the FLYNC validators can raise, identified as
    :location: router.RouteEntry.validate_gateway_family_matches_destination
 
    "default_gateway '{gateway}' does not belong to the same address family as destination '{dest_address}'"
+
+.. err:: Interface name '{name}' is used by more than one interface type: {types}
+   :id: FLYNC-ECU-MAJ-UNIQ-248
+   :module: ECU
+   :severity: MAJ
+   :category: UNIQUENESS
+   :number: 248
+   :location: controller.Controller.validate_unique_interface_names_across_types
+
+   "Interface name '{name}' is used by more than one interface type: {types}"
+
+.. err:: MAC address '{mac}' is used by more than one Ethernet interface on controller...
+   :id: FLYNC-ECU-MAJ-UNIQ-249
+   :module: ECU
+   :severity: MAJ
+   :category: UNIQUENESS
+   :number: 249
+   :location: controller.Controller.validate_unique_ethernet_mac_addresses
+
+   "MAC address '{mac}' is used by more than one Ethernet interface on controller '{controller}'"
+
+.. err:: Physical controller interface '{iface}' is connected more than once in the in...
+   :id: FLYNC-ECU-MAJ-UNIQ-250
+   :module: ECU
+   :severity: MAJ
+   :category: UNIQUENESS
+   :number: 250
+   :location: ecu.ECU.__validate_single_physical_connection_per_interface
+
+   "Physical controller interface '{iface}' is connected more than once in the internal topology"

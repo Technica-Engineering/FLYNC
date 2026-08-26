@@ -692,6 +692,53 @@ class Controller(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
+    def validate_unique_interface_names_across_types(self):
+        """
+        Validate that interface names are unique across all interface types (ethernet, CAN, and LIN).
+
+        A name that is already unique within a single type is left to :meth:`validate_unique_interface_names`;
+        this check only flags names reused by more than one interface type, which would create ambiguous references.
+        """
+        name_types: dict[str, set] = {}
+        for label, interfaces in (
+            ("ethernet", self.ethernet_interfaces or []),
+            ("CAN", self.can_interfaces or []),
+            ("LIN", self.lin_interfaces or []),
+        ):
+            for iface in interfaces:
+                name_types.setdefault(iface.name, set()).add(label)
+
+        for name, types in name_types.items():
+            if len(types) > 1:
+                raise err_major(
+                    "Interface name '{name}' is used by more than one interface type: {types}",
+                    category=Category.UNIQUENESS,
+                    error_number="248",
+                    name=name,
+                    types=", ".join(sorted(types)),
+                )
+        return self
+
+    @model_validator(mode="after")
+    def validate_unique_ethernet_mac_addresses(self):
+        """Validate that physical Ethernet interfaces on this controller use distinct MAC addresses."""
+        seen: set = set()
+        for eth in self.ethernet_interfaces or []:
+            mac = eth.interface_config.mac_address if eth.interface_config is not None else None
+            if mac is None:
+                continue
+            if mac in seen:
+                raise err_major(
+                    "MAC address '{mac}' is used by more than one Ethernet interface on controller '{controller}'",
+                    category=Category.UNIQUENESS,
+                    error_number="249",
+                    mac=mac,
+                    controller=self.name,
+                )
+            seen.add(mac)
+        return self
+
+    @model_validator(mode="after")
     def check_ports_virtual_switch_are_interfaces_or_compute_nodes(self):
         interface_names = []
         compute_node_names = []
