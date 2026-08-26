@@ -17,6 +17,7 @@ class Ethertype(Enum):
     ARP            0x0806   Address Resolution Protocol
     ASAM_CMP       0x99FE   ASAM Capture Module Protocol
     AVTP           0x22F0   IEEE 1722 Audio Video Transport Protocol
+    EAPoL          0x888E   EAP over LAN including MACsec Key Agreement (MKA)
     ETH_FLOWCTRL   0x8808   Ethernet flow control (PAUSE / IEEE 802.3x)
     HSR            0x892F   High-availability Seamless Redundancy (IEC 62439-3)
     IPv4           0x0800   Internet Protocol version 4
@@ -61,6 +62,7 @@ class Ethertype(Enum):
     ARP = 0x0806
     ASAM_CMP = 0x99FE
     AVTP = 0x22F0
+    EAPoL = 0x888E
     ETH_FLOWCTRL = 0x8808
     HSR = 0x892F
     IPv4 = 0x0800
