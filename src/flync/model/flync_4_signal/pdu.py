@@ -79,7 +79,7 @@ class PDUInstance(FLYNCBaseModel):
     pdu_ref : str
         Name of the referenced PDU.
     bit_position : int, optional
-        Non-negative bit offset where this PDU begins within the frame.
+        Bit offset where this PDU begins within the frame. Must be greater than or equal to 0.
     update_bit_position : int, optional
         Bit position of the update indication bit, when applicable. Must be greater than or equal to 0.
     """
