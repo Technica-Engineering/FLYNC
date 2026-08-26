@@ -32,9 +32,6 @@ class PrimitiveDatatype(Datatype):
     endianness : Literal["BE", "LE"], optional
         Byte order used for encoding multibyte values.
         Defaults to big-endian ("BE").
-
-    bit_size : int
-        Size in bits of the primitive datatype.
     """
 
 
@@ -58,6 +55,7 @@ class Boolean(PrimitiveDatatype):
 
     bit_size : int
         Storage size in bits: 8.
+        Defaults to 8.
 
     """
 
@@ -106,6 +104,7 @@ class UInt8(BaseInt):
 
     bit_size : int
         Storage size in bits: 8.
+        Defaults to 8.
     """
 
     name: str = Field(default="UINT8")
@@ -136,6 +135,7 @@ class UInt16(BaseInt):
 
     bit_size : int
         Storage size in bits: 16.
+        Defaults to 16.
     """
 
     name: str = Field(default="UINT16")
@@ -166,6 +166,7 @@ class UInt32(BaseInt):
 
     bit_size : int
         Storage size in bits: 32.
+        Defaults to 32.
     """
 
     name: str = Field(default="UINT32")
@@ -196,6 +197,7 @@ class UInt64(BaseInt):
 
     bit_size : int
         Storage size in bits: 64.
+        Defaults to 64.
     """
 
     name: str = Field(default="UINT64")
@@ -225,6 +227,7 @@ class Int8(BaseInt):
 
     bit_size : int
         Storage size in bits: 8.
+        Defaults to 8.
     """
 
     name: str = Field(default="INT8")
@@ -255,6 +258,7 @@ class Int16(BaseInt):
 
     bit_size : int
         Storage size in bits: 16.
+        Defaults to 16.
     """
 
     name: str = Field(default="INT16")
@@ -284,7 +288,7 @@ class Int32(BaseInt):
         Defaults to big-endian ("BE").
 
     bit_size : int
-        Storage size in bits: 32.
+        Storage size in bits: 32. Defaults to 32.
     """
 
     name: str = Field(default="INT32")
@@ -314,7 +318,7 @@ class Int64(BaseInt):
         Defaults to big-endian ("BE").
 
     bit_size : int
-        Storage size in bits: 64.
+        Storage size in bits: 64. Defaults to 64.
     """
 
     name: str = Field(default="INT64")
@@ -344,7 +348,7 @@ class Float32(PrimitiveDatatype):
         Defaults to big-endian ("BE").
 
     bit_size : int
-        Storage size in bits: 32.
+        Storage size in bits: 32. Defaults to 32.
     """
 
     name: str = Field(default="FLOAT32")
@@ -374,7 +378,7 @@ class Float64(BaseFloat):
         Defaults to big-endian ("BE").
 
     bit_size : int
-        Storage size in bits: 64.
+        Storage size in bits: 64. Defaults to 64.
     """
 
     name: str = Field(default="FLOAT64")
@@ -415,7 +419,7 @@ class BitfieldEntry(BaseModel):
         Name of the individual bitfield.
 
     bitposition : int
-        Bit position of the individual bitfield within the enclosing bitfield datatype.
+        Bit position of the individual bitfield within the enclosing bitfield datatype. Must be greater than or equal to 0.
 
     description : str, optional
         Human-readable description of the field.
@@ -440,7 +444,7 @@ class Bitfield(Datatype):
     Parameters
     ----------
     name : str
-        Unique name of the datatype.
+        Unique name of the datatype. Defaults to "Bitfield".
 
     description : str, optional
         Human-readable description of the datatype.
@@ -455,7 +459,7 @@ class Bitfield(Datatype):
     length : Literal[8, 16, 32, 64], optional
         Size of the bitfield in bits.
 
-    fields : list of :class:`BitfieldEntry`
+    fields : list of :class:`BitfieldEntry`, optional
         List of bitfield entries that define the individual bit ranges.
         Each entry must fit into ``length`` and claim a bitposition no other entry claims.
     """
@@ -540,7 +544,7 @@ class Enum(Datatype):
     Parameters
     ----------
     name : str
-        Unique name of the datatype.
+        Unique name of the datatype. Defaults to "Enum".
 
     description : str, optional
         Human-readable description of the datatype.
@@ -637,13 +641,13 @@ class FixedLengthString(BaseString):
     Parameters
     ----------
     name : str
-        Name of the String.
+        Name of the String. Defaults to "FixedLengthString".
 
     type : Literal["fixed_length_string"]
         Discriminator used to identify this datatype.
 
     length : int
-        Total length of the string in bytes, including zero-termination and any padding.
+        Total length of the string in bytes, including zero-termination and any padding. Must be greater than or equal to 1.
 
     length_of_length_field : Literal[0, 8, 16, 32]
         Size of the optional length field in bits.
@@ -674,15 +678,15 @@ class DynamicLengthString(BaseString):
     Parameters
     ----------
     name : str
-        Name of the String.
+        Name of the String. Defaults to "DynamicLengthString".
 
     type : Literal["dynamic_length_string"]
         Discriminator used to identify this datatype.
 
-    max_length: Optional[int]
-        Maximum string length in bytes. None means no limit.
+    max_length: Optional[int], optional
+        Maximum string length in bytes. None means no limit. Must be greater than or equal to 0.
 
-    min_length: Optional[int]
+    min_length: Optional[int], optional
         Minimum string length in bytes. None means 0.
 
     length_of_length_field : Literal[8, 16, 32]

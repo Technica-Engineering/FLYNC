@@ -49,27 +49,35 @@ class SOMEIPFieldTimings(FLYNCBaseModel):
 
     getter_req_debounce : int
         Minimum time in milliseconds between 2 request messages for same getter method/service.
+        Defaults to 0.
 
     getter_req_max_retention : int
         Maximum time in milliseconds indicating how long a getter request may be withheld.
+        Defaults to 0.
 
     getter_res_max_retention: int
         Maximum time in milliseconds indicating how long a getter response may be withheld.
+        Defaults to 0.
 
     setter_req_debounce: int
         Minimum time in milliseconds between 2 request messages for same setter method/service.
+        Defaults to 0.
 
     setter_req_max_retention: int
         Maximum time in milliseconds indicating how long a setter request may be withheld.
+        Defaults to 0.
 
     setter_res_max_retention: int
         Maximum time in milliseconds indicating how long a setter response may be withheld.
+        Defaults to 0.
 
     notifier_debounce: int
         Minimum time in milliseconds between 2 notification messages for same service.
+        Defaults to 0.
 
     notifier_max_retention: int
         Maximum time in milliseconds indicating how long a notification may be withheld.
+        Defaults to 0.
     """
 
     profile_id: str = Field(description="Timing profile for fields.")
@@ -125,9 +133,11 @@ class SOMEIPEventTimings(FLYNCBaseModel):
 
     debounce: int
         Minimum time in milliseconds between 2 event messages for same service.
+        Defaults to 0.
 
     max_retention: int
         Maximum time in milliseconds indicating how long an event may be withheld.
+        Defaults to 0.
     """
 
     profile_id: str = Field(description="Timing profile for events.")
@@ -157,12 +167,15 @@ class SOMEIPMethodTimings(FLYNCBaseModel):
 
     req_debounce : int
         Minimum time in milliseconds between 2 request messages for same method/service.
+        Defaults to 0.
 
     req_max_retention : int
         Maximum time in milliseconds indicating how long a request may be withheld.
+        Defaults to 0.
 
     res_max_retention: int
         Maximum time in milliseconds indicating how long a response may be withheld.
+        Defaults to 0.
     """
 
     profile_id: str = Field(description="Timing profile for methods.")
@@ -218,8 +231,9 @@ class SOMEIPField(FLYNCBaseModel):
     name : str
         Name of the Field.
 
-    parameters list[:class:`~SOMEIPParameters`]
+    parameters : list of :class:`~SOMEIPParameter`, optional
         List of Parameters of the Field.
+        Defaults to an empty list.
 
     description : str, optional
         Description of the Field.
@@ -239,6 +253,7 @@ class SOMEIPField(FLYNCBaseModel):
 
     reliable : bool
         Indicates whether the event is transmitted reliably.
+        Defaults to False.
 
     notifier_e2e : :class:`~E2EConfig`, optional
         E2E configuration for the field notifier.
@@ -297,7 +312,7 @@ class SOMEIPParameter(FLYNCBaseModel):
     description : str, optional
         Human-readable description of the datatype.
 
-    type : :class:`~flync.model.flync_4_someip.someip_complex_datatypes.AllTypes`
+    datatype : :class:`~flync.model.flync_4_someip.someip_complex_datatypes.AllTypes`
         Datatype of the Parameter.
     """
 
@@ -328,12 +343,14 @@ class SOMEIPEvent(FLYNCBaseModel):
 
     reliable : bool
         Indicates whether the event is transmitted reliably.
+        Defaults to False.
 
     e2e : :class:`~E2EConfig`, optional
         E2E configuration for the event.
 
-    parameters list[:class:`~SOMEIPParameters`]
-        Parameters of the event
+    parameters : list of :class:`~SOMEIPParameter`, optional
+        Parameters of the event.
+        Defaults to an empty list.
 
     someip_timing : str, optional
         Name of the timings definition.
@@ -428,12 +445,14 @@ class SOMEIPMethod(FLYNCBaseModel):
 
     reliable : bool
         Indicates whether the event is transmitted reliably.
+        Defaults to False.
 
-    someip_tp : :class:`~SOMEIPTP`
+    someip_tp : :class:`~SOMEIPTP`, optional
         SOME/IP Transport Protocol configuration for this method.
 
-    input_parameters : list[:class:`~SOMEIPParameters`]
-        The parameters of the Request
+    input_parameters : list of :class:`~SOMEIPParameter`, optional
+        The parameters of the Request.
+        Defaults to an empty list.
 
     someip_timing : str, optional
         Name of the timings definition.
@@ -472,7 +491,7 @@ class SOMEIPRequestResponseMethod(SOMEIPMethod):
     Parameters
     ----------
 
-    output_parameters : list[:class:`~SOMEIPParameters`], optional
+    output_parameters : list of :class:`~SOMEIPParameter`, optional
         The parameters of the Response
 
     """
@@ -517,23 +536,29 @@ class SOMEIPServiceInterface(FLYNCBaseModel):
     major_version : int
         The major version of this service interface.
         Must be greater than 0 and lower or equal than 0xFF.
+        Defaults to 0.
 
     minor_version : int
         The minor version of this service interface.
         Must be greater than 0 and lower or equal than 0xFFFFFFFF.
+        Defaults to 0.
 
-    fields : List[ :class:`~SOMEIPField`]
+    fields : List[ :class:`~SOMEIPField`], optional
         Fields of the service.
+        Defaults to an empty list.
 
-    events : List[:class:`~SOMEIPEvent`]
+    events : List[:class:`~SOMEIPEvent`], optional
         Events of the service.
+        Defaults to an empty list.
 
-    eventgroups : List[:class:`~SOMEIPEventgroup`]
+    eventgroups : List[:class:`~SOMEIPEventgroup`], optional
         Eventgroups of the service.
+        Defaults to an empty list.
 
     methods : List[ :class:`~SOMEIPFireAndForgetMethod` | \
-    :class:`~SOMEIPRequestResponseMethod` ]
+    :class:`~SOMEIPRequestResponseMethod` ], optional
         Methods of the service.
+        Defaults to an empty list.
 
     meta : :class:`~flync.model.flync_4_metadata.SOMEIPServiceMetadata`
         Metadata for the SOME/IP Service.
@@ -776,6 +801,7 @@ class SDConfig(FLYNCBaseModel):
     port : int
         Port which the service discovery operates on.
         Must be greater than 0 and lower than 0xFFFF.
+        Defaults to 30490.
 
     sd_timings : List[ :class:`~SDTimings` ]
         Timing Configurations for SOME/IP-SD.
@@ -804,11 +830,14 @@ class SOMEIPConfig(FLYNCBaseModel):
     version: Literal[ "1.0" ]
         The version of this config.
 
+    sd_config: :class:`~SDConfig`
+        Configuration of the Service-Discovery.
+
     services: list[ :class:`~SOMEIPServiceInterface` ]
         List of SOME/IP Services.
 
-    sd_config: :class:`~SDConfig`
-        Configuration of the Service-Discovery.
+    someip_timings: :class:`~SOMEIPTimingProfile`
+        Configuration of the SOME/IP timings.
     """
 
     version: Literal["1.0"] = Field(default="1.0", description="the version of this config")

@@ -116,7 +116,7 @@ class SOMEIPSDDeployment(FLYNCBaseModel):
 
     deployment_type: Literal["someip_sd"]
 
-    multicast : Optional[:class:`~MulticastSDEndpoint`]
+    multicast : Optional[:class:`~MulticastSDEndpoint`], optional
         Multicast configuration for an SD endpoint.
     """
 
@@ -139,7 +139,7 @@ class SOMEIPServiceDeployment(abc.ABC, FLYNCBaseModel):
 
     major_version : int
         The major version of this service interface.
-        Must be greater than 0 and less or equal 255.
+        Must be greater than 0 and less or equal 255. Defaults to 0.
 
     instance_id: int
         Id of the Service Instance.
@@ -188,7 +188,7 @@ class SOMEIPServiceConsumer(SOMEIPServiceDeployment):
 
     major_version : int
         The major version of this service interface.
-        Must be greater than 0 and less or equal 255.
+        Must be greater than 0 and less or equal 255. Defaults to 0.
 
     consumed_eventgroups : List[str], optional
     """
@@ -253,7 +253,7 @@ class SOMEIPServiceProvider(SOMEIPServiceDeployment):
 
     minor_version : int
         The minor version of this service interface.
-        Must be greater than 0 and less than 0xFFFFFFFF.
+        Must be greater than 0 and less than 0xFFFFFFFF. Defaults to 0.
 
     provided_eventgroups : List[str], optional
         If set, only the named eventgroups are offered/sent on this socket.
