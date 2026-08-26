@@ -100,19 +100,19 @@ class AnnouncementPhaseTiming(FLYNCBaseModel):
     ----------
     duration_ms : int
         Total duration of the announcement phase in milliseconds, during which
-        every member transmits so the member set can resynchronize.
+        every member transmits so the member set can resynchronize. Must be greater than 0.
 
     burst_count : int, optional
         Number of NM PDUs sent back-to-back at the start of the phase (the
         initial burst) at ``burst_cycle_time_ms`` before the normal cadence
         resumes. Must be set together with ``burst_cycle_time_ms``; the burst
-        must fit within ``duration_ms``.
+        must fit within ``duration_ms``. Must be greater than 0.
 
     burst_cycle_time_ms : int, optional
         Faster transmission period used for those initial burst PDUs to
         propagate the state change quickly, before falling back to the group's
         ``cycle_time_ms``. Must be set together with ``burst_count`` and be
-        shorter than ``cycle_time_ms``.
+        shorter than ``cycle_time_ms``. Must be greater than 0.
     """
 
     duration_ms: int = Field(gt=0)
@@ -145,12 +145,12 @@ class SleepTiming(FLYNCBaseModel):
         bit is still requested the network stays awake regardless of it. The
         timer restarts on every NM PDU sent or received, so ongoing NM traffic
         keeps the group awake; actual sleep follows only once every registered
-        bit is released and ``wait_before_sleep_ms`` has elapsed.
+        bit is released and ``wait_before_sleep_ms`` has elapsed. Must be greater than 0.
 
     wait_before_sleep_ms : int
         Time in milliseconds a node waits, after the network has gone quiet
         and all its registered bits are released, before it finally enters
-        sleep - the last delay of the sleep progression.
+        sleep - the last delay of the sleep progression. Must be greater than 0.
     """
 
     timeout_ms: int = Field(gt=0)
@@ -180,7 +180,7 @@ class GroupTiming(FLYNCBaseModel):
 
     cycle_time_ms : int
         Cyclic transmission period of the NM PDU in milliseconds during normal
-        operation.
+        operation. Must be greater than 0.
 
     announcement : AnnouncementPhaseTiming, optional
         Timing of the announcement phase that runs on state changes (e.g.
@@ -358,11 +358,11 @@ class StateManagementConfig(FLYNCBaseModel):
 
     Parameters
     ----------
-    groups : list of :class:`StateManagementGroup`
-        The central registry of state management groups.
+    groups : list of :class:`StateManagementGroup`, optional
+        The central registry of state management groups. Defaults to an empty list.
 
-    timing_profiles : list of :class:`GroupTiming`
-        The reusable NM timing profiles referenced by the groups.
+    timing_profiles : list of :class:`GroupTiming`, optional
+        The reusable NM timing profiles referenced by the groups. Defaults to an empty list.
     """
 
     groups: Annotated[
