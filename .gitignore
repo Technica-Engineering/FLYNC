@@ -69,6 +69,11 @@ exports/
 
 # Sphinx documentation
 docs/_build/
+docs/source/_static/mermaid
+docs/source/_static/images/ecu_variants
+docs/source/_static/flync_example
+docs/source/_static/flync_example_experimental
+docs/source/flync_cli/usage.md
 
 # PyBuilder
 target/
