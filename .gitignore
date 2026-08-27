@@ -139,3 +139,14 @@ generated/
 tests/unit_test/sdk/approved_files/*.received.txt
 dependency_graph_cache*
 tests/converter_tests/generated_test_output/
+
+# trivy
+# The DB cache lives under .cache/trivy, already covered above.
+/trivy-*.json
+/trivy-*.sarif
+# Concatenated ignore file that trivy-action writes when passed `trivyignores`.
+/trivyignores
+# Exported by the licence scan to give Trivy a pip entry point. A local secret
+# scan also writes an unredacted trivy-secret.json; only CI strips the source
+# context, so keep both out of commits.
+/requirements.txt
