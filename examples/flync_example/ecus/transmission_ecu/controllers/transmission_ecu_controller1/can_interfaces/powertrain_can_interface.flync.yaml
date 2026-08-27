@@ -1,0 +1,5 @@
+bus_ref: PowertrainCAN
+sender_frames:
+  - bus_ref: PowertrainCAN
+    frame_ref: 769   # Frame_TransmissionStatus (0x301)
+receiver_frames: []

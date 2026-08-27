@@ -101,7 +101,7 @@ compute_nodes:
                 address: 10.0.40.0
                 ipv4netmask: 255.255.255.0
               protocol: udp
-          child_classes: []    
+          child_classes: []
   - name: eth_ecu_vm2
     mac_address: 00:11:01:01:01:03
     virtual_interfaces:

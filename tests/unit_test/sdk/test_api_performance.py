@@ -1,4 +1,5 @@
 import shutil
+import time
 import tracemalloc
 
 import pytest
@@ -22,6 +23,21 @@ def __performance_assertion(api: str, duration_ms: float, memory_mb: float):
     assert memory_mb < expected["max_memory_mb"], f"{api} used {memory_mb}MB, exceeded {expected['max_memory_mb']}MB"
 
 
+def __benchmark_duration_ms(benchmark, func):
+    """Runs the benchmarked callable and returns (return_value, mean_duration_ms).
+
+    pytest-benchmark disables itself under xdist (so ``benchmark.stats`` is ``None``),
+    but still runs the callable once. Fall back to a manual timing in that case so the
+    duration assertion still applies.
+    """
+    result = benchmark(func)
+    if benchmark.stats is not None:
+        return result, benchmark.stats["mean"] * 1000
+    start = time.perf_counter()
+    func()
+    return result, (time.perf_counter() - start) * 1000
+
+
 @pytest.mark.performance
 @pytest.mark.critical_api
 def test_validate_workspace_benchmark(benchmark, get_relative_flync_example_path):
@@ -36,8 +52,7 @@ def test_validate_workspace_benchmark(benchmark, get_relative_flync_example_path
         assert result.state in (WorkspaceState.VALID, WorkspaceState.WARNING)
         return memory_mb
 
-    memory_mb = benchmark(run_validate)
-    mean_ms = benchmark.stats["mean"] * 1000
+    memory_mb, mean_ms = __benchmark_duration_ms(benchmark, run_validate)
     __performance_assertion(validate_workspace.__name__, mean_ms, memory_mb)
 
 
@@ -58,7 +73,6 @@ def test_dump_flync_workspace_benchmark(benchmark, loaded_workspace_with_object_
         tracemalloc.stop()
         return peak / 1024 / 1024
 
-    memory_mb = benchmark(run_dump)
-    mean_ms = benchmark.stats["mean"] * 1000
+    memory_mb, mean_ms = __benchmark_duration_ms(benchmark, run_dump)
 
     __performance_assertion(dump_flync_workspace.__name__, mean_ms, memory_mb)

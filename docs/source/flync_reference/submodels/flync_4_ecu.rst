@@ -118,8 +118,8 @@ LIN Interfaces
 .. autoclass:: flync.model.flync_4_ecu.lin_interface.LINSlaveInterface()
 .. autoclass:: flync.model.flync_4_ecu.lin_interface.LINFrameRef()
 
-Virtual Switch
-==============
+Virtual Switch (experimental)
+=============================
 
 .. admonition:: Expand for a YAML example - 📄 ``virtual_switch.flync.yaml``
    :collapsible: closed
@@ -127,7 +127,7 @@ Virtual Switch
    .. note::
       A Virtual Switch is defined in a separate file per Controller.
 
-   .. literalinclude:: ../../_static/flync_example/ecus/eth_ecu/controllers/eth_ecu_controller1/virtual_switch.flync.yaml
+   .. literalinclude:: ../../_static/flync_example_experimental/ecus/eth_ecu/controllers/eth_ecu_controller1/virtual_switch.flync.yaml
       :language: yaml
 
 .. autoclass:: flync.model.flync_4_ecu.VirtualSwitch()

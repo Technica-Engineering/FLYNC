@@ -162,7 +162,10 @@ def test_load_workspace_missing_mandatory_file(tmpdir, file):
     path_to_remove.unlink()
     try:
         loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
-        assert loaded_ws.load_errors != []
+        assert loaded_ws.load_errors != [], (
+            f"Removed mandatory file '{path_to_remove.relative_to(destination_folder)}' but the "
+            f"workspace still loaded with no errors. The file is not actually required for this ECU."
+        )
     except ValidationError:
         pass
     if destination_folder.exists():
@@ -271,8 +274,8 @@ def test_load_workspace_key_value_misplaced(tmpdir):
         shutil.rmtree(destination_folder)
 
 
-# Verify handling missing dashe in list items
-def test_load_workspace_missing_dashe(tmpdir):
+# Verify handling missing dash in list items
+def test_load_workspace_missing_dash(tmpdir):
     destination_folder = Path(tmpdir) / "copy"
     shutil.copytree(absolute_path, destination_folder)
     file_to_update = (
@@ -287,8 +290,8 @@ def test_load_workspace_missing_dashe(tmpdir):
     )
     update_yaml_content(
         file_to_update,
-        "multicast:\n            - 224.0.0.1",
-        "multicast:\n            224.0.0.1",
+        "    multicast:\n      - 224.0.0.1",
+        "    multicast:\n      224.0.0.1",
     )
     try:
         loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
@@ -313,12 +316,12 @@ def test_load_workspace_missing_key_value(tmpdir):
         / "eth_ecu_c1_iface1"
         / "interface_config.flync.yaml"
     )
-    update_yaml_content(file_to_update, "name: eth_ecu_c1_iface1", "")
+    update_yaml_content(file_to_update, "name: eth_ecu_c1_iface1_viface1", "name:")
     try:
         loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
         assert loaded_ws.load_errors != []
     except ValidationError as exc_info:
-        assert "name\n  Field required" in str(exc_info)
+        assert "name\n  Input should be a valid string" in str(exc_info)
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
 

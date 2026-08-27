@@ -20,6 +20,7 @@ from flync.model.flync_4_someip.service_interface import SDTimings, SOMEIPServic
 from flync.model.flync_4_topology.ethernet_topology import EthernetTopology
 from flync.sdk.context.diagnostics_result import WorkspaceState
 from flync.sdk.helpers.validation_helpers import validate_external_node
+from tests.example_paths import FLYNC_EXAMPLE_EXPERIMENTAL as EXPERIMENTAL_EXAMPLE
 
 from .helper import (
     absolute_path,
@@ -88,21 +89,21 @@ def test_validate_valid_external_tcp_profiles():
 
 
 @pytest.mark.parametrize(
-    "node_type,path_glob",
+    "node_type,path_glob,base_path",
     [
-        (SystemMetadata, "system_metadata.flync.yaml"),
-        (EthernetTopology, "topology/system_topology.flync.yaml"),
-        (ControllerInterface, "ecus/*/controllers/*/ethernet_interfaces/*/interface_config.flync.yaml"),
-        (VirtualSwitch, "ecus/*/controllers/*/virtual_switch.flync.yaml"),
-        (CANBus, "communication/channels/can/*.flync.yaml"),
-        (LINBus, "communication/channels/lin/*.flync.yaml"),
-        (PDU, "communication/channels/pdus/*.flync.yaml"),
-        (ContainerPDU, "communication/channels/ethernet_pdu_containers/*.flync.yaml"),
-        (SDTimings, "communication/someip/someip_timings.flync.yaml"),
+        (SystemMetadata, "system_metadata.flync.yaml", absolute_path),
+        (EthernetTopology, "topology/ethernet_topology.flync.yaml", absolute_path),
+        (ControllerInterface, "ecus/*/controllers/*/ethernet_interfaces/*/interface_config.flync.yaml", absolute_path),
+        (VirtualSwitch, "ecus/*/controllers/*/virtual_switch.flync.yaml", EXPERIMENTAL_EXAMPLE),
+        (CANBus, "communication/channels/can/*.flync.yaml", absolute_path),
+        (LINBus, "communication/channels/lin/*.flync.yaml", absolute_path),
+        (PDU, "communication/channels/pdus/*.flync.yaml", absolute_path),
+        (ContainerPDU, "communication/channels/ethernet_pdu_containers/*.flync.yaml", absolute_path),
+        (SDTimings, "communication/someip/someip_timings.flync.yaml", absolute_path),
     ],
     ids=[
         "system_metadata",
-        "system_topology",
+        "ethernet_topology",
         "controller_interface",
         "virtual_switch",
         "can_bus",
@@ -112,10 +113,10 @@ def test_validate_valid_external_tcp_profiles():
         "someip_timings",
     ],
 )
-def test_validate_valid_external_example_node_files(node_type, path_glob):
+def test_validate_valid_external_example_node_files(node_type, path_glob, base_path):
     """Validates all supported external example files for the given FLYNC node type."""
 
-    node_paths = list(absolute_path.glob(path_glob))
+    node_paths = list(base_path.glob(path_glob))
     assert node_paths, f"Expected files for path pattern '{path_glob}'"
     for node_path in node_paths:
         result = validate_external_node(node_type, node_path)
@@ -176,8 +177,8 @@ def test_validate_external_node_supported_but_invalid_type(node_type):
     [
         pytest.param(
             "EthernetTopology",
-            Path("topology") / "system_topology.flync.yaml",
-            id="system_topology_by_string",
+            Path("topology") / "ethernet_topology.flync.yaml",
+            id="ethernet_topology_by_string",
         ),
         pytest.param(
             "SystemMetadata",

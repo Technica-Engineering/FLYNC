@@ -82,6 +82,13 @@ class TestAddEcuPortNodes:
         add_ecu_port_nodes([], ecu_nodes, node_types)
         assert len(ecu_nodes["ports"]) == 0
 
+    def test_none_ports(self):
+        """CAN/LIN-only ECUs declare no ports, so ``ecu.ports`` is ``None``."""
+        ecu_nodes = {"ports": set()}
+        node_types = {}
+        add_ecu_port_nodes(None, ecu_nodes, node_types)
+        assert len(ecu_nodes["ports"]) == 0
+
 
 class TestAddIfaceNodes:
     def test_adds_interface_without_vlan_filter(self):

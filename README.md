@@ -74,7 +74,7 @@ FLYNC workspaces organize vehicle configurations in modular `.flync.yaml` files:
 my_project/
 ├── system_metadata.flync.yaml
 ├── topology/
-│   └── system_topology.flync.yaml
+│   └── ethernet_topology.flync.yaml
 └── ecus/
     ├── hpc/
     │   ├── ecu_metadata.flync.yaml
@@ -117,7 +117,7 @@ ports:
       mode: phy
 ```
 
-**System topology** (`topology/system_topology.flync.yaml`):
+**System topology** (`topology/ethernet_topology.flync.yaml`):
 
 ```yaml
 connections:

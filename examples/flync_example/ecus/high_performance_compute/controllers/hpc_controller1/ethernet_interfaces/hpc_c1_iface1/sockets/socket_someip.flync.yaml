@@ -21,18 +21,11 @@ sockets:
   deployments:
   - deployment_type: someip_consumer
     service: 0x0101
-    instance_id: 0xf4
+    instance_id: 0x00f4
     major_version: 1
     consumed_eventgroups:
     - eg2_all
     - eg5_events_and_fields_unreliable
-    someip_sd_timings_profile: client_default
-  - deployment_type: someip_consumer
-    service: 0x0101
-    instance_id: 1
-    major_version: 1
-    consumed_eventgroups:
-    - eg2_all
     someip_sd_timings_profile: client_default
 - name: someip_client_socket_udp2
   endpoint_address: 10.0.20.5
@@ -42,7 +35,7 @@ sockets:
   deployments:
   - deployment_type: someip_consumer
     service: 0x0101
-    instance_id: 0xf4
+    instance_id: 0x00f4
     major_version: 1
     consumed_eventgroups:
     - eg6_events_multicast
@@ -56,7 +49,7 @@ sockets:
   deployments:
   - deployment_type: someip_consumer
     service: 0x0101
-    instance_id: 0xf4
+    instance_id: 0x00f4
     major_version: 1
     consumed_eventgroups:
     - eg2_all
@@ -71,7 +64,7 @@ sockets:
   deployments:
   - deployment_type: someip_provider
     service: 0x0101
-    instance_id: 1
+    instance_id: 2
     major_version: 1
     minor_version: 0
     someip_sd_timings_profile: server_default
@@ -84,7 +77,7 @@ sockets:
   deployments:
   - deployment_type: someip_provider
     service: 0x0101
-    instance_id: 1
+    instance_id: 2
     major_version: 1
     minor_version: 0
     someip_sd_timings_profile: server_default

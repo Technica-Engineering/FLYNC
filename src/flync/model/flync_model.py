@@ -208,7 +208,7 @@ class FLYNCModel(FLYNCBaseModel):
     @model_validator(mode="after")
     def require_ethernet_topology_when_used(self):
         """
-        The ethernet topology (``topology/system_topology.flync.yaml``) is optional, but system-wide features that
+        The ethernet topology (``topology/ethernet_topology.flync.yaml``) is optional, but system-wide features that
         rely on inter-ECU Ethernet connectivity (cross-ECU multicast, SOME/IP multicast) cannot be validated without
         it. Raise instead of silently skipping those checks.
         """
@@ -218,7 +218,7 @@ class FLYNCModel(FLYNCBaseModel):
         reasons = self._ethernet_topology_dependent_features()
         if reasons:
             raise err_major(
-                "The ethernet topology file (topology/system_topology.flync.yaml) is required because system-wide "
+                "The ethernet topology file (topology/ethernet_topology.flync.yaml) is required because system-wide "
                 "Ethernet features are used: {reasons}",
                 reasons=reasons,
                 category=Category.REQUIRED,

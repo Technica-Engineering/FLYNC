@@ -25,4 +25,4 @@ def test_provided_services():
             provided_services = ecu.get_provided_services()
 
     assert provided_services[0]._service_ref.name == "Enhanced Testability Services"
-    assert provided_services[0].instance_id == int("1", 16)
+    assert provided_services[0].instance_id == 2

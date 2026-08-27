@@ -6,83 +6,9 @@ import pytest
 from typer.testing import CliRunner
 
 from flync.sdk.context.diagnostics_result import DiagnosticsResult, WorkspaceState
-from flync_cli.commands.validate import app, validate
+from flync_cli.commands.validate import app
 
 runner = CliRunner()
-
-
-@pytest.mark.skip(reason="Mock will create broken workspace. Tests false positive.")
-class TestValidateAll:
-    def test_returns_workspace_on_success(self, tmp_path):
-        ws = MagicMock()
-        with patch("flync_cli.commands.validate.FLYNCWorkspace.load_workspace", return_value=ws):
-            result = validate(tmp_path, quiet=True)
-        assert result is ws
-
-    def test_returns_none_on_exception_when_quiet(self, tmp_path):
-        with patch(
-            "flync_cli.commands.validate.FLYNCWorkspace.load_workspace",
-            side_effect=ValueError("bad config"),
-        ):
-            result = validate(tmp_path, quiet=True)
-        assert result is None
-
-    def test_raises_system_exit_on_exception_when_loud(self, tmp_path):
-        with patch(
-            "flync_cli.commands.validate.FLYNCWorkspace.load_workspace",
-            side_effect=ValueError("bad config"),
-        ):
-            with pytest.raises(SystemExit):
-                validate(tmp_path, quiet=False)
-
-    def test_success_does_not_raise(self, tmp_path):
-        ws = MagicMock()
-        with patch("flync_cli.commands.validate.FLYNCWorkspace.load_workspace", return_value=ws):
-            validate(tmp_path, quiet=False)
-
-
-@pytest.mark.skip(reason="Mock will create broken workspace. Tests false positive.")
-class TestValidateCommand:
-    def test_all_level_exits_zero(self, tmp_path):
-        ws = MagicMock()
-        with patch("flync_cli.commands.validate.FLYNCWorkspace.load_workspace", return_value=ws):
-            result = runner.invoke(app, ["All", str(tmp_path)])
-        assert result.exit_code == 0
-
-    def test_all_level_prints_configured_message(self, tmp_path):
-        ws = MagicMock()
-        with patch("flync_cli.commands.validate.FLYNCWorkspace.load_workspace", return_value=ws):
-            result = runner.invoke(app, ["All", str(tmp_path)])
-        assert "properly configured" in result.output
-
-    def test_ecus_level_not_yet_implemented(self, tmp_path):
-        result = runner.invoke(app, ["Ecus", str(tmp_path)])
-        assert result.exit_code == 0
-        assert "Not yet" in result.output
-
-    def test_file_level_not_yet_implemented(self, tmp_path):
-        result = runner.invoke(app, ["File", str(tmp_path)])
-        assert result.exit_code == 0
-        assert "Not yet" in result.output
-
-    def test_topology_level_not_yet_implemented(self, tmp_path):
-        result = runner.invoke(app, ["Topology", str(tmp_path)])
-        assert result.exit_code == 0
-        assert "Not yet" in result.output
-
-    def test_metadata_level_not_yet_implemented(self, tmp_path):
-        result = runner.invoke(app, ["Metadata", str(tmp_path)])
-        assert result.exit_code == 0
-        assert "Not yet" in result.output
-
-    def test_general_level_not_yet_implemented(self, tmp_path):
-        result = runner.invoke(app, ["General", str(tmp_path)])
-        assert result.exit_code == 0
-        assert "Not yet" in result.output
-
-    def test_invalid_level_is_rejected(self, tmp_path):
-        result = runner.invoke(app, ["NotALevel", str(tmp_path)])
-        assert result.exit_code != 0
 
 
 def _diagnostic(kind):
@@ -184,3 +110,35 @@ class TestRunValidation:
         with pytest.raises(SystemExit) as exc_info:
             self._run(tmp_path, _result(WorkspaceState.VALID))
         assert exc_info.value.code == 1
+
+
+class TestValidateExampleWorkspace:
+    """
+    End-to-end run of ``flync validate`` against the bundled clean example workspace.
+
+    The example is free of diagnostics, so it validates to ``VALID`` and exits 0.
+    """
+
+    def test_example_passes_validation(self, example_workspace_path):
+        result = runner.invoke(app, [str(example_workspace_path)])
+        assert result.exit_code == 0
+        assert "VALID" in result.output
+
+    def test_quiet_still_reports_the_outcome(self, example_workspace_path):
+        result = runner.invoke(app, [str(example_workspace_path), "--quiet"])
+        assert result.exit_code == 0
+        assert "Validation Result" in result.output
+
+    def test_stray_file_is_tolerated_and_validates(self, example_workspace_path, tmp_path):
+        """An unrecognized extra file must never turn a passing workspace into a failure."""
+
+        import shutil
+
+        workspace = tmp_path / "with_stray_file"
+        shutil.copytree(example_workspace_path, workspace)
+        (workspace / "ecus" / "readme.md").write_text("extra file")
+
+        result = runner.invoke(app, [str(workspace)])
+
+        assert result.exit_code == 0
+        assert "VALID" in result.output

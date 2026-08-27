@@ -23,7 +23,7 @@ END_NOTE = "    end note"
 
 def add_ecu_port_nodes(ports, ecu_nodes, node_types):
     """Register ECU ports as nodes in the UML diagram."""
-    for port in ports:
+    for port in ports or []:
         port_name = port.name
         ecu_nodes["ports"].add(port_name)
         node_types[port_name] = "ecu_port"

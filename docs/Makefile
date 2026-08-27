@@ -8,6 +8,7 @@ SPHINXBUILD   ?= uv run python -m sphinx.cmd.build
 SOURCEDIR     = source
 BUILDDIR      = build
 EXAMPLE_NAME  = flync_example
+EXAMPLE_NAME2 = flync_example_experimental
 EXAMPLE_SOURCE= ../examples/
 EXAMPLE_DST	  = ./source/_static/
 
@@ -25,12 +26,13 @@ generations:
 	uv run typer flync_cli.main utils docs --name flync --title Usage --output $(SOURCEDIR)/flync_cli/usage.md
 
 clear:
-# remove mermaid files again
+# remove mermaid files
 	rm -r $(EXAMPLE_DST)/mermaid
 # remove ecu_variant diagrams
 	rm -r $(EXAMPLE_DST)/images/ecu_variants
-# remove flync_example again
+# remove flync_example
 	rm -r $(EXAMPLE_DST)$(EXAMPLE_NAME)
+	rm -r $(EXAMPLE_DST)$(EXAMPLE_NAME2)
 # remove generated cli usage page
 	rm $(SOURCEDIR)/flync_cli/usage.md
 
@@ -39,6 +41,7 @@ clear:
 html: generations
 # copy flync_example for yaml references during runtime of docs build
 	cp -a $(EXAMPLE_SOURCE)$(EXAMPLE_NAME) $(EXAMPLE_DST)
+	cp -a $(EXAMPLE_SOURCE)$(EXAMPLE_NAME2) $(EXAMPLE_DST)
 # build html docs
 	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 

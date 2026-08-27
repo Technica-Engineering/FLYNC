@@ -12,8 +12,7 @@ import pytest
 
 from flync.sdk.context.workspace_config import WorkspaceConfiguration
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
-
-from .helper import absolute_path
+from tests.example_paths import FLYNC_EXAMPLE_EXPERIMENTAL as absolute_path
 
 PORTS = "ecus/zonal_platform1/ports.flync.yaml"
 

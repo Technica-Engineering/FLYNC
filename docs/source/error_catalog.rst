@@ -2112,7 +2112,7 @@ Every error and warning the FLYNC validators can raise, identified as
 
    f'Deployed provided service on TCP socket ({socket.name}) of ECU ({ecu.name}) has multicast configuration for eventgroups ({[mcast.eventgroups for mcast in provider.multicast_config]}); SOME/IP eventgroup multicast requires a UDP socket'
 
-.. err:: The ethernet topology file (topology/system_topology.flync.yaml) is required ...
+.. err:: The ethernet topology file (topology/ethernet_topology.flync.yaml) is require...
    :id: FLYNC-GEN-MAJ-REQ-219
    :module: GEN
    :severity: MAJ
@@ -2120,7 +2120,7 @@ Every error and warning the FLYNC validators can raise, identified as
    :number: 219
    :location: flync_model.FLYNCModel.require_ethernet_topology_when_used
 
-   'The ethernet topology file (topology/system_topology.flync.yaml) is required because system-wide Ethernet features are used: {reasons}'
+   'The ethernet topology file (topology/ethernet_topology.flync.yaml) is required because system-wide Ethernet features are used: {reasons}'
 
 .. err:: Multiple ECUs declare Ethernet ports but no ethernet topology (external conne...
    :id: FLYNC-GEN-WARN-CONS-220

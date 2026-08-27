@@ -1,11 +1,10 @@
 import shutil
 import subprocess
 from pathlib import Path
-from sys import executable
 
+from tests.example_paths import FLYNC_EXAMPLE_EXPERIMENTAL as absolute_path
 from tests.system_test.sdk.helper import update_yaml_content
 
-absolute_path = Path(__file__).parents[5] / "examples" / "flync_example"
 VALIDATE_WORKSPACE_SCRIPT = Path(__file__).resolve().parents[5] / "src" / "flync" / "sdk" / "helpers" / "validate_workspace.py"
 
 

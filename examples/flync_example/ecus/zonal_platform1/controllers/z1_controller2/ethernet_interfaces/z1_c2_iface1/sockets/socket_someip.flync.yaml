@@ -23,8 +23,8 @@ sockets:
     - 224.0.0.15
     deployments:
       - deployment_type: someip_provider
-        service: 0x101
-        instance_id: 1
+        service: 0x0101
+        instance_id: 0x00f4
         major_version: 1
         someip_sd_timings_profile: server_default
         multicast_config:
@@ -43,7 +43,7 @@ sockets:
     - 224.0.0.15
     deployments:
       - deployment_type: someip_provider
-        service: 0x101
-        instance_id: 2
+        service: 0x0101
+        instance_id: 0x00f4
         major_version: 1
         someip_sd_timings_profile: server_default

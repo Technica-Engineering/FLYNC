@@ -2,6 +2,20 @@ from flync.sdk.context.workspace_config import ListObjectsMode
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace, WorkspaceConfiguration
 from flync.sdk.workspace.objects import SemanticObject
 
+
+def _index_path_for_name(ws, name_path):
+    """Return the positional ``ecus.<n>`` path that maps to the same model as ``name_path``.
+
+    Resolving the slot from the name keeps the assertions correct even if ECUs
+    are added to or reordered within the example.
+    """
+    target_model = ws.get_object(name_path).model
+    for obj_id in ws.list_objects():
+        if obj_id.startswith("ecus.") and obj_id.split(".", 2)[1].isdigit() and ws.get_object(obj_id).model is target_model:
+            return obj_id
+    raise AssertionError(f"No positional path found for {name_path!r}")
+
+
 # -- has_object ----------------------------------------------------------------
 
 
@@ -9,9 +23,11 @@ def test_has_object_index_and_name_path_found(loaded_workspace_with_object_map):
     ws = loaded_workspace_with_object_map
     eth_ecu_id = "ecus.eth_ecu"
     assert ws.has_object(eth_ecu_id)
-    assert ws.has_object("ecus.5.switches.z1_switch1.switch_config.ports.z1_s1_p0.ingress_streams.0.stream_identification.0")
-    assert ws.has_object("ecus.2.controllers.0.controller_metadata.controller_metadata.compatible_flync_version")
-    assert ws.has_object("ecus.2.controllers.eth_ecu_controller1.controller_metadata.controller_metadata.compatible_flync_version")
+    z1_index = _index_path_for_name(ws, "ecus.zonal_platform1")
+    eth_ecu_index = _index_path_for_name(ws, eth_ecu_id)
+    assert ws.has_object(f"{z1_index}.switches.z1_switch1.switch_config.ports.z1_s1_p0.ingress_streams.0.stream_identification.0")
+    assert ws.has_object(f"{eth_ecu_index}.controllers.0.controller_metadata.controller_metadata.compatible_flync_version")
+    assert ws.has_object(f"{eth_ecu_index}.controllers.eth_ecu_controller1.controller_metadata.controller_metadata.compatible_flync_version")
     eth_ecu = ws.get_object(eth_ecu_id).model
     eth_ecu_objects = ws.get_semantic_objects_from_model(eth_ecu)
     assert len(eth_ecu_objects) == 2

@@ -1,8 +1,7 @@
-from pathlib import Path
-
 import pytest
 
 from flync.sdk.utils.model_dependencies import cleanup_old_caches
+from tests.example_paths import FLYNC_EXAMPLE, FLYNC_EXAMPLE_EXPERIMENTAL
 
 
 def pytest_configure(config):
@@ -13,8 +12,7 @@ def pytest_configure(config):
     cleanup_old_caches(force=True)
     from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 
-    example_path = Path(__file__).parent.parent / "examples" / "flync_example"
-    FLYNCWorkspace.load_workspace("flync_example", example_path)
+    FLYNCWorkspace.load_workspace("flync_example", FLYNC_EXAMPLE)
 
 
 # ============================================================================
@@ -29,7 +27,7 @@ def example_workspace_path():
     This fixture is used across multiple test suites (workspace_config, sdk, etc.)
     to load the common example workspace without modifications.
     """
-    return (Path(__file__).parent.parent / "examples" / "flync_example").absolute()
+    return FLYNC_EXAMPLE.absolute()
 
 
 @pytest.fixture(scope="session")
@@ -41,4 +39,4 @@ def example_experimental_workspace_path():
     most tests depend on. It mirrors ``example_workspace_path`` so tests can
     exercise a workspace they are allowed to mutate.
     """
-    return (Path(__file__).parent.parent / "examples" / "flync_example_experimental").absolute()
+    return FLYNC_EXAMPLE_EXPERIMENTAL.absolute()

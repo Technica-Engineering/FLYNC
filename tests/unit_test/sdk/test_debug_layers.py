@@ -35,14 +35,13 @@ from flync.sdk.helpers.debug_layers.layer1_structure import StructureIssue, chec
 from flync.sdk.helpers.debug_layers.layer2_yaml import YAMLIssue, check_yaml_syntax
 from flync.sdk.helpers.debug_layers.layer3_4_5_workspace import run_workspace_validation
 from flync.sdk.helpers.debug_layers.runner import run_debug
-
-EXAMPLES = Path(__file__).parents[3] / "examples" / "flync_example"
+from tests.example_paths import FLYNC_EXAMPLE_EXPERIMENTAL as EXAMPLES
 
 # Paths relative to the workspace root
 _IFACE_CFG = "ecus/eth_ecu/controllers/eth_ecu_controller1" "/ethernet_interfaces/eth_ecu_c1_iface1/interface_config.flync.yaml"
 _DIAG_CAN = "communication/channels/can/diag_can.flync.yaml"
 _SOCKET_PDU = "ecus/zonal_platform1/controllers/z1_controller2" "/ethernet_interfaces/z1_c2_iface1/sockets/socket_pdu.flync.yaml"
-_TOPOLOGY = "topology/system_topology.flync.yaml"
+_TOPOLOGY = "topology/ethernet_topology.flync.yaml"
 _CAN_IFACE = "ecus/high_performance_compute/controllers/hpc_controller1" "/can_interfaces/diag_can_interface.flync.yaml"
 _POWERTRAIN_CAN_IFACE = "ecus/high_performance_compute/controllers/hpc_controller1" "/can_interfaces/powertrain_can_interface.flync.yaml"
 _LIN_BUS = "communication/channels/lin/body_lin.flync.yaml"

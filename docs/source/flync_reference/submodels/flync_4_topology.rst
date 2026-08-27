@@ -21,7 +21,7 @@ Ethernet Topology
    .. note::
       In ethernet_topology the external connections between ECUs of the system are described (if more than one ECU is specified).
 
-   .. literalinclude:: ../../_static/flync_example/topology/system_topology.flync.yaml
+   .. literalinclude:: ../../_static/flync_example/topology/ethernet_topology.flync.yaml
       :language: yaml
 
 
@@ -63,4 +63,3 @@ via :meth:`~flync.model.flync_model.FLYNCModel.get_can_bus_topology` and
 .. autoclass:: flync.model.flync_4_topology.CANBusTopology()
 .. autoclass:: flync.model.flync_4_topology.LINBusTopology()
 .. autoclass:: flync.model.flync_4_topology.BusAttachmentPoint()
-
