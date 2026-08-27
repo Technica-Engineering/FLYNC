@@ -101,14 +101,16 @@ class TestRunValidation:
         assert self._run(tmp_path, result) is result.workspace
 
     def test_exits_on_errors_with_guidance(self, tmp_path, capsys):
+        result = _result(WorkspaceState.INVALID, (ERROR,))
         with pytest.raises(SystemExit) as exc_info:
-            self._run(tmp_path, _result(WorkspaceState.INVALID, (ERROR,)))
+            self._run(tmp_path, result)
         assert exc_info.value.code == 1
         assert "flync validate" in capsys.readouterr().out
 
     def test_exits_when_no_workspace_came_back(self, tmp_path):
+        result = _result(WorkspaceState.VALID)
         with pytest.raises(SystemExit) as exc_info:
-            self._run(tmp_path, _result(WorkspaceState.VALID))
+            self._run(tmp_path, result)
         assert exc_info.value.code == 1
 
 

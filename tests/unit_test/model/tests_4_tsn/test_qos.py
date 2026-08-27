@@ -304,14 +304,16 @@ def test_negative_vlanid_int_for_frame_filter():
 
 
 def test_negative_vlanid_valuerange_for_frame_filter():
+    vlanid = ValueRange(from_value=4095, to_value=4097)
     with pytest.raises(ValidationError) as exc_info:
-        FrameFilter(vlanid=ValueRange(from_value=4095, to_value=4097))
+        FrameFilter(vlanid=vlanid)
     assert_single_error(exc_info, "FLYNC-CMN-MIN-VAL-002", "range 0-4094")
 
 
 def test_negative_vlanid_list_of_vlanid_or_int_for_frame_filter():
+    vlanids = [1, ValueRange(from_value=4095, to_value=4097)]
     with pytest.raises(ValidationError) as exc_info:
-        FrameFilter(vlanid=[1, ValueRange(from_value=4095, to_value=4097)])
+        FrameFilter(vlanid=vlanids)
     assert_single_error(exc_info, "FLYNC-CMN-MIN-VAL-002", "range 0-4094")
 
 
