@@ -1,4 +1,4 @@
-"""Tests for flync_converter.converters.dbc_converter."""
+"""Tests for flync_converter.converters.dbc."""
 
 import logging
 from unittest.mock import MagicMock, patch
@@ -7,8 +7,14 @@ import pytest
 
 from flync.model.flync_4_signal.pdu import ContainerPDU, MultiplexedPDU, StandardPDU
 from flync_converter.base import ConverterConfig
-from flync_converter.converters.dbc_converter import (
-    DbcConverter,
+from flync_converter.converters.dbc import DbcConverter, DbcConverterConfig
+from flync_converter.converters.dbc.decoder import (
+    _build_pdu_for_message,
+    _to_flync_frame,
+    decode_dbc_files,
+    map_data_type,
+)
+from flync_converter.converters.dbc.encoder import (
     _build_can_messages,
     _collect_frame_participants,
     _decode_multiplexed_pdu,
@@ -16,9 +22,53 @@ from flync_converter.converters.dbc_converter import (
     decode_pdu,
     decode_signal,
     decode_signal_instance,
-    load_dbc_files,
     write_dbc_files,
 )
+from flync_converter.converters.dbc.loading import (
+    _attribute_value,
+    _fd_baud_rate,
+    _nominal_baud_rate,
+    load_dbc_files,
+)
+
+_BUS_A_DBC = """\
+VERSION "1.0"
+
+NS_ :
+
+BS_:
+
+BU_: NODE1 NODE2 NODE3
+
+BO_ 256 SpeedMsg: 8 NODE1
+ SG_ Speed : 0|16@1+ (0.01,0) [0|300] "km/h" NODE2,NODE3
+ SG_ Mode : 16|4@1+ (1,0) [0|15] "" NODE2
+ SG_ Sel : 20|4@1+ (1,0) [0|15] "" NODE2
+ SG_ Data1 M : 24|8@1+ (1,0) [0|255] "" NODE2
+ SG_ Data2 m0 : 32|8@1+ (1,0) [0|255] "" NODE2
+ SG_ Data2 m1 : 32|8@1+ (1,0) [0|255] "" NODE2
+
+VAL_ 256 Speed 0 "Off" 1 "On" 3 "Auto" ;
+"""
+
+_BUS_B_DBC = """\
+VERSION ""
+
+NS_ :
+
+BS_:
+
+BU_: NODE3 NODE4
+
+BO_ 512 TempMsg: 8 NODE3
+ SG_ Temp : 0|16@1- (0.1,0) [-40|120] "degC" NODE4
+"""
+
+
+def _write_dbc(tmp_path, name, content):
+    path = tmp_path / name
+    path.write_text(content, encoding="utf-8")
+    return path
 
 
 def _mock_signal(name="spd", bit_length=8, is_signed=False, factor=1.0, offset=0.0, unit="km/h", description=None):
@@ -128,7 +178,7 @@ class TestDecodeStandardPdu:
         pdu = MagicMock()
         pdu.signals = []
         pdu.signal_groups = [MagicMock()]
-        with caplog.at_level(logging.WARNING, logger="flync_converter.converters.dbc_converter"):
+        with caplog.at_level(logging.WARNING, logger="flync_converter.converters.dbc.encoder"):
             result = _decode_standard_pdu(pdu, 0, None)
         assert "Signal Group not supported" in caplog.text
         assert result == []
@@ -170,7 +220,7 @@ class TestDecodeMultiplexedPdu:
         pdu.selector_signal = sel_inst
         pdu.static_group = None
         pdu.mux_groups = [grp]
-        with caplog.at_level(logging.WARNING, logger="flync_converter.converters.dbc_converter"):
+        with caplog.at_level(logging.WARNING, logger="flync_converter.converters.dbc.encoder"):
             result = _decode_multiplexed_pdu(MagicMock(), pdu, 0, None, pdus={})
         assert len(result) == 1  # only the selector
         assert "Referenced mux PDU 'missing_pdu' not found" in caplog.text
@@ -185,7 +235,7 @@ class TestDecodeMultiplexedPdu:
         pdu.selector_signal = sel_inst
         pdu.static_group = None
         pdu.mux_groups = [grp]
-        with caplog.at_level(logging.WARNING, logger="flync_converter.converters.dbc_converter"):
+        with caplog.at_level(logging.WARNING, logger="flync_converter.converters.dbc.encoder"):
             _decode_multiplexed_pdu(MagicMock(), pdu, 0, None, pdus={"grp_pdu": grp_pdu})
         assert "Signal Group inside MuxGroup not supported" in caplog.text
 
@@ -237,13 +287,13 @@ class TestDecodePdu:
 
         hdr = ContainerPDUHeader.model_construct(id_length_bits=16, length_field_bits=16)
         container = ContainerPDU.model_construct(name="c", length=8, pdu_id=0, header=hdr, contained_pdus=[], type="container")
-        with caplog.at_level(logging.WARNING, logger="flync_converter.converters.dbc_converter"):
+        with caplog.at_level(logging.WARNING, logger="flync_converter.converters.dbc.encoder"):
             result = decode_pdu(MagicMock(), container, 0)
         assert "ContainerPDU not implemented" in caplog.text
         assert result == []
 
     def test_unknown_type_warns_and_returns_empty(self, caplog):
-        with caplog.at_level(logging.WARNING, logger="flync_converter.converters.dbc_converter"):
+        with caplog.at_level(logging.WARNING, logger="flync_converter.converters.dbc.encoder"):
             result = decode_pdu(MagicMock(), MagicMock(spec_set=[]), 0)
         assert result == []
 
@@ -387,14 +437,14 @@ class TestWriteDbcFiles:
     def test_no_communication_warns(self, caplog):
         model = MagicMock()
         model.communication = None
-        with caplog.at_level(logging.WARNING, logger="flync_converter.converters.dbc_converter"):
+        with caplog.at_level(logging.WARNING, logger="flync_converter.converters.dbc.encoder"):
             write_dbc_files(model, "/tmp")
         assert "Could not find communication/channels" in caplog.text
 
     def test_no_channels_warns(self, caplog):
         model = MagicMock()
         model.communication.channels = None
-        with caplog.at_level(logging.WARNING, logger="flync_converter.converters.dbc_converter"):
+        with caplog.at_level(logging.WARNING, logger="flync_converter.converters.dbc.encoder"):
             write_dbc_files(model, "/tmp")
         assert "Could not find communication/channels" in caplog.text
 
@@ -430,7 +480,10 @@ class TestLoadDbcFiles:
         mock_db = MagicMock()
         with patch("cantools.database.load_file", return_value=mock_db):
             result = load_dbc_files(str(tmp_path))
-        assert result == [mock_db]
+        assert len(result) == 1
+        db, path = result[0]
+        assert db is mock_db
+        assert path.name == "bus.dbc"
 
     def test_loads_multiple_dbc_files(self, tmp_path):
         (tmp_path / "a.dbc").write_text("")
@@ -439,6 +492,7 @@ class TestLoadDbcFiles:
         with patch("cantools.database.load_file", return_value=mock_db):
             result = load_dbc_files(str(tmp_path))
         assert len(result) == 2
+        assert {path.name for _, path in result} == {"a.dbc", "b.dbc"}
 
     def test_ignores_non_dbc_files(self, tmp_path):
         (tmp_path / "file.yaml").write_text("")
@@ -447,8 +501,8 @@ class TestLoadDbcFiles:
 
 
 class TestDbcConverter:
-    def test_can_decode_is_false(self):
-        assert DbcConverter().can_decode() is False
+    def test_can_decode_is_true(self):
+        assert DbcConverter().can_decode() is True
 
     def test_encode_requires_config(self):
         converter = DbcConverter()
@@ -472,10 +526,276 @@ class TestDbcConverter:
         conv.encode(model)
         assert list(tmp_path.glob("*.dbc")) == []
 
-    def test_decode_returns_none_for_empty_dir(self, tmp_path):
+    def test_decode_empty_dir_returns_empty_model(self, tmp_path):
         conv = DbcConverter(ConverterConfig(config_path=str(tmp_path)))
         result = conv.decode()
-        assert result is None
+        assert result.communication.channels.can_buses == []
+        assert result.communication.channels.pdus == []
+        assert result.ecus == []
 
     def test_name_is_dbc(self):
         assert DbcConverter.name == "dbc"
+
+
+class TestDbcConverterConfig:
+    def test_defaults(self):
+        cfg = DbcConverterConfig(config_path="/tmp")
+        assert cfg.baud_rate_default == 500_000
+        assert cfg.fd_baud_rate_default == 2_000_000
+
+
+class TestBaudRateAttributes:
+    def _db(self, applied=None, defs=None):
+        db = MagicMock()
+        applied = dict(applied or {})
+        defs = dict(defs or {})
+        db.dbc.attributes = applied
+        db.dbc.attribute_definitions = defs
+        return db
+
+    def test_applied_value_wins(self):
+        db = self._db()
+        db.dbc.attributes["Baudrate"] = MagicMock(value=250_000)
+        db.dbc.attribute_definitions["Baudrate"] = MagicMock(default_value=500_000)
+        cfg = DbcConverterConfig(config_path="")
+        assert _nominal_baud_rate(db, cfg) == 250_000
+
+    def test_definition_default_used(self):
+        db = self._db()
+        db.dbc.attribute_definitions["Baudrate"] = MagicMock(default_value=500_000)
+        cfg = DbcConverterConfig(config_path="")
+        assert _nominal_baud_rate(db, cfg) == 500_000
+
+    def test_absent_uses_default(self):
+        cfg = DbcConverterConfig(config_path="")
+        assert _nominal_baud_rate(self._db(), cfg) == 500_000
+        assert _fd_baud_rate(self._db(), cfg) == 2_000_000
+
+    def test_disallowed_value_falls_back(self):
+        db = self._db()
+        db.dbc.attribute_definitions["Baudrate"] = MagicMock(default_value=123_456)
+        cfg = DbcConverterConfig(config_path="")
+        assert _nominal_baud_rate(db, cfg) == 500_000
+
+    def test_fd_baud_rate_from_attribute(self):
+        db = self._db()
+        db.dbc.attribute_definitions["BaudrateCANFD"] = MagicMock(default_value=2_000_000)
+        cfg = DbcConverterConfig(config_path="")
+        assert _fd_baud_rate(db, cfg) == 2_000_000
+
+    def test_non_int_attribute_value_ignored(self):
+        db = self._db()
+        db.dbc.attributes["Baudrate"] = MagicMock(value="fast")
+        cfg = DbcConverterConfig(config_path="")
+        assert _nominal_baud_rate(db, cfg) == 500_000
+        assert _attribute_value(db, "Baudrate") is None
+
+
+class TestMapDataType:
+    @pytest.mark.parametrize(
+        "length,is_signed,is_float,expected",
+        [
+            (8, False, False, "uint8"),
+            (4, False, False, "uint8"),
+            (16, True, False, "int16"),
+            (8, True, False, "int8"),
+            (32, False, False, "uint32"),
+            (32, False, True, "float32"),
+            (64, False, True, "float64"),
+            (64, False, False, "uint64"),
+        ],
+        ids=["u8", "sub_byte_unsigned", "i16", "i8", "u32", "f32", "f64", "u64"],
+    )
+    def test_mapping(self, length, is_signed, is_float, expected):
+        assert map_data_type(length, is_signed, is_float).value == expected
+
+
+class TestDecodeDbcFiles:
+    def test_decodes_buses_frames_pdus_and_ecus(self, tmp_path):
+        _write_dbc(tmp_path, "BusA.dbc", _BUS_A_DBC)
+        _write_dbc(tmp_path, "BusB.dbc", _BUS_B_DBC)
+
+        model = decode_dbc_files(load_dbc_files(str(tmp_path)))
+
+        buses = model.communication.channels.can_buses
+        assert [b.name for b in buses] == ["BusA", "BusB"]
+        assert all(b.baud_rate == 500_000 for b in buses)
+
+        frame_names = {f.name for b in buses for f in b.frames}
+        assert frame_names == {"SpeedMsg", "TempMsg"}
+        speed_frame = next(f for b in buses for f in b.frames if f.name == "SpeedMsg")
+        assert speed_frame.can_id == 0x100
+        assert speed_frame.type == "can"
+        assert speed_frame.id_format == "standard_11bit"
+
+    def test_multiplexed_message(self, tmp_path):
+        _write_dbc(tmp_path, "BusA.dbc", _BUS_A_DBC)
+        model = decode_dbc_files(load_dbc_files(str(tmp_path)))
+
+        pdu_names = {p.name for p in model.communication.channels.pdus}
+        assert "BusA_SpeedMsg" in pdu_names
+        mux = next(p for p in model.communication.channels.pdus if p.name == "BusA_SpeedMsg")
+        assert isinstance(mux, MultiplexedPDU)
+        assert mux.selector_signal.signal.name == "Data1"
+        assert {g.selector_value for g in mux.mux_groups} == {0, 1}
+
+        static = next(p for p in model.communication.channels.pdus if p.name == "BusA_SpeedMsg_static")
+        speed = next(si for si in static.signals if si.signal.name == "Speed")
+        assert speed.signal.factor == 0.01
+        assert speed.signal.value_encoding is not None
+        labels = [e.label for e in speed.signal.value_encoding.entries]
+        assert labels == ["Off", "On", "Auto"]
+
+    def test_standard_message_signed_signal(self, tmp_path):
+        _write_dbc(tmp_path, "BusB.dbc", _BUS_B_DBC)
+        model = decode_dbc_files(load_dbc_files(str(tmp_path)))
+
+        pdu = next(p for p in model.communication.channels.pdus if p.name == "BusB_TempMsg")
+        assert isinstance(pdu, StandardPDU)
+        temp = pdu.signals[0].signal
+        assert temp.bit_length == 16
+        assert temp.data_type.value == "int16"
+        assert temp.factor == 0.1
+        assert temp.offset == 0.0
+        assert temp.lower_limit == -40.0
+        assert temp.upper_limit == 120.0
+        assert temp.unit == "degC"
+
+    def test_ecus_synthesized_with_sender_receiver_refs(self, tmp_path):
+        _write_dbc(tmp_path, "BusA.dbc", _BUS_A_DBC)
+        _write_dbc(tmp_path, "BusB.dbc", _BUS_B_DBC)
+        model = decode_dbc_files(load_dbc_files(str(tmp_path)))
+
+        ecu_by_name = {e.name: e for e in model.ecus}
+        assert set(ecu_by_name) == {"NODE1", "NODE2", "NODE3", "NODE4"}
+
+        node1 = ecu_by_name["NODE1"]
+        iface = node1.controllers[0].can_interfaces[0]
+        assert iface.bus_ref == "BusA"
+        assert {sf.frame_ref for sf in iface.sender_frames} == {0x100}
+        assert iface.receiver_frames == []
+
+        node3 = ecu_by_name["NODE3"]
+        ifaces = {i.bus_ref: i for i in node3.controllers[0].can_interfaces}
+        assert set(ifaces) == {"BusA", "BusB"}
+        assert {rf.frame_ref for rf in ifaces["BusA"].receiver_frames} == {0x100}
+        assert {sf.frame_ref for sf in ifaces["BusB"].sender_frames} == {0x200}
+
+
+class TestBuildPduForMessage:
+    def test_standard_message_no_aux_pdus(self):
+        msg = MagicMock()
+        msg.name = "Foo"
+        msg.is_multiplexer = False
+        sig = MagicMock()
+        sig.name = "A"
+        sig.length = 8
+        sig.is_signed = False
+        sig.is_float = False
+        sig.scale = 1.0
+        sig.offset = 0.0
+        sig.unit = None
+        sig.start = 0
+        sig.byte_order = "little_endian"
+        sig.minimum = None
+        sig.maximum = None
+        sig.comment = None
+        sig.raw_initial = None
+        sig.choices = None
+        sig.is_multiplexer = False
+        sig.multiplexer_signal = None
+        sig.multiplexer_ids = None
+        msg.signals = [sig]
+
+        pdu, extra = _build_pdu_for_message(msg, "BUS")
+        assert isinstance(pdu, StandardPDU)
+        assert extra == []
+
+    def test_to_flync_frame_can_and_fd(self):
+        std_msg = MagicMock()
+        std_msg.name = "M1"
+        std_msg.length = 8
+        std_msg.frame_id = 0x100
+        std_msg.is_extended_frame = False
+        std_msg.is_fd = False
+        std_msg.comment = None
+        frame = _to_flync_frame(std_msg, "BUS_M1")
+        assert frame.type == "can"
+        assert frame.packed_pdus[0].pdu_ref == "BUS_M1"
+
+        fd_msg = MagicMock()
+        fd_msg.name = "M2"
+        fd_msg.length = 64
+        fd_msg.frame_id = 0x200
+        fd_msg.is_extended_frame = True
+        fd_msg.is_fd = True
+        fd_msg.comment = "hi"
+        frame = _to_flync_frame(fd_msg, "BUS_M2")
+        assert frame.type == "can_fd"
+        assert frame.id_format == "extended_29bit"
+        assert frame.description == "hi"
+
+
+class TestRoundTrip:
+    """Decode DBC -> FLYNC -> encode -> reload, checking the result is preserved."""
+
+    def _round_trip(self, tmp_path):
+        for name, content in (("BusA.dbc", _BUS_A_DBC), ("BusB.dbc", _BUS_B_DBC)):
+            _write_dbc(tmp_path, name, content)
+        out_dir = tmp_path / "out"
+        out_dir.mkdir()
+        model = decode_dbc_files(load_dbc_files(str(tmp_path)))
+        write_dbc_files(model, str(out_dir))
+        import cantools.database as cdb
+
+        return [cdb.load_file(str(out_dir / n)) for n in ("BusA.dbc", "BusB.dbc")]
+
+    def test_buses_and_frames_preserved(self, tmp_path):
+        bus_a_db, bus_b_db = self._round_trip(tmp_path)
+        by_id = {m.frame_id: m for m in bus_a_db.messages}
+        assert 0x100 in by_id
+        assert by_id[0x100].name == "SpeedMsg"
+        assert by_id[0x100].length == 8
+        assert 0x200 in {m.frame_id for m in bus_b_db.messages}
+
+    def test_standard_signal_attributes_preserved(self, tmp_path):
+        _, bus_b_db = self._round_trip(tmp_path)
+        (temp,) = bus_b_db.messages
+        (signal,) = temp.signals
+        assert signal.name == "Temp"
+        assert signal.start == 0
+        assert signal.length == 16
+        assert signal.is_signed is True
+
+    def test_multiplexed_round_trip(self, tmp_path):
+        bus_a_db, _ = self._round_trip(tmp_path)
+        msg = next(m for m in bus_a_db.messages if m.name == "SpeedMsg")
+
+        assert [(s.name, s.start, s.length) for s in msg.signals] == [
+            ("Speed", 0, 16),
+            ("Mode", 16, 4),
+            ("Sel", 20, 4),
+            ("Data1", 24, 8),
+            ("Data2", 32, 8),
+            ("Data2", 32, 8),
+        ]
+
+        # Static (non-multiplexed) signals survive unchanged.
+        static = [s.name for s in msg.signals if not s.is_multiplexer and s.multiplexer_signal is None]
+        assert static == ["Speed", "Mode", "Sel"]
+
+        # The selector still marks the multiplexer.
+        selector = next(s for s in msg.signals if s.name == "Data1")
+        assert selector.is_multiplexer is True
+        assert selector.start == 24
+
+        # Every muxed alternative is preserved with its id.
+        muxed = [s for s in msg.signals if s.multiplexer_signal == "Data1"]
+        assert sorted(mid for s in muxed for mid in (s.multiplexer_ids or [])) == [0, 1]
+        assert all(s.start == 32 and s.length == 8 for s in muxed)
+
+    def test_value_encoding_round_trip(self, tmp_path):
+        bus_a_db, _ = self._round_trip(tmp_path)
+        msg = next(m for m in bus_a_db.messages if m.name == "SpeedMsg")
+        speed = next(s for s in msg.signals if s.name == "Speed")
+        assert dict(speed.choices) == {0: "Off", 1: "On", 3: "Auto"}

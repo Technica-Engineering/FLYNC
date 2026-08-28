@@ -8,6 +8,28 @@ Release Notes
 Release 0.14
 ------------
 
+DBC to FLYNC decoding
+'''''''''''''''''''''
+
+The DBC converter now supports decoding DBC files back into a full FLYNC model
+(:meth:`flync_converter.converters.dbc.DbcConverter.decode`), not just
+encoding FLYNC to DBC. Customizing the decoding is possible through the new
+:class:`flync_converter.converters.dbc.DbcConverterConfig`
+(``baud_rate_default``, ``fd_baud_rate_default``).
+
+Key decoding behaviours:
+
+* Each DBC ``BU_:`` node is synthesized as one ECU with a CAN controller and one
+  interface per bus it participates on.
+* The bus bit rates are read from the cantools ``Baudrate`` / ``BaudrateCANFD``
+  attributes (with configurable fallbacks, default ``500000`` / ``2000000``).
+* Multiplexed messages are reconstructed as a
+  :class:`~flync.model.flync_4_signal.pdu.MultiplexedPDU` with the ``M`` selector
+  signal and per-id mux groups plus the static group.
+* Signal value tables (``VAL_``), factors, offsets, ranges and units are preserved.
+* Signals/PDUs are namespaced with the DBC bus (file stem) name, e.g.
+  ``BusA_SpeedMsg``.
+
 Optional Extras
 '''''''''''''''
 

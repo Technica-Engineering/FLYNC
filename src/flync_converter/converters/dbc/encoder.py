@@ -1,59 +1,43 @@
-"""
-Converter between the FLYNC model and CAN database (DBC) files.
-
-:func:`load_dbc_files` reads DBC files into cantools databases and :func:`write_dbc_files` writes a FLYNC
-model back out; the ``decode_*`` helpers translate cantools signals and messages into FLYNC signals and
-PDUs (standard, multiplexed and container). :class:`DbcConverter` registers this conversion as a plugin.
-"""
+"""Encode a FLYNC model into DBC files (FLYNC to DBC direction)."""
 
 import logging
+from collections import OrderedDict
 from pathlib import Path
 from typing import List, Literal, Optional
 
 import cantools.database
 from cantools.database.can.database import Database
 from cantools.database.can.message import Message
-from cantools.database.can.signal import Signal
+from cantools.database.can.signal import NamedSignalValue, Signal
 from cantools.database.conversion import LinearConversion
 
 from flync.model import FLYNCModel  # type: ignore[import-untyped]
-from flync.model.flync_4_signal import (
-    ContainerPDU,
-    MultiplexedPDU,
-    SignalInstance,
-    StandardPDU,
-)
+from flync.model.flync_4_signal import ContainerPDU, MultiplexedPDU, SignalInstance, StandardPDU
 from flync.model.flync_4_signal.pdu import PDU
-
-from ..base.base_converter import BaseConverter
-from ..registry import hookimpl
+from flync.model.flync_4_signal.value_encoding import TextTable
 
 logger = logging.getLogger(__name__)
 
 
-def load_dbc_files(root_folder):
-    """Recursively load all DBC files from a folder.
+def _value_encoding_choices(signal) -> Optional[OrderedDict[int, "str | NamedSignalValue"]]:
+    """Convert a FLYNC signal ``value_encoding`` into a cantools ``VAL_`` choices dict.
 
-    Args:
-        root_folder: Root folder path to search for DBC files.
-
-    Returns:
-        List of loaded cantools Database objects (one per DBC file).
+    Returns ``None`` when the signal carries no value encoding.  Range entries
+    are expanded to one choice per raw integer value to match the DBC ``VAL_``
+    format (which has no range concept).
     """
-
-    dbc_files = []
-
-    root = Path(root_folder)
-    logger.debug("Scanning for DBC files under: %s", root_folder)
-
-    for dbc_file in root.rglob("*.dbc"):
-        logger.debug("Loading DBC file: %s", dbc_file)
-        tmp = cantools.database.load_file(dbc_file)
-        dbc_files.append(tmp)
-
-    logger.debug("Finished loading DBC files: %d total files found", len(dbc_files))
-
-    return dbc_files
+    encoding = getattr(signal, "value_encoding", None)
+    if not isinstance(encoding, TextTable):
+        return None
+    choices: "OrderedDict[int, str | NamedSignalValue]" = OrderedDict()
+    for entry in encoding.entries:
+        from_value = entry.from_value
+        to_value = entry.to_value
+        if from_value is None or to_value is None:
+            continue
+        for value in range(from_value, to_value + 1):
+            choices[value] = entry.label
+    return choices
 
 
 def decode_signal(
@@ -84,6 +68,9 @@ def decode_signal(
         unit=signal.unit or "",
         comment={"EN": signal.description} if signal.description else None,
     )
+    choices = _value_encoding_choices(signal)
+    if choices:
+        ret.choices = choices
 
     return ret
 
@@ -262,62 +249,3 @@ def write_dbc_files(flync_model: FLYNCModel, root_folder: str):
             database_format="dbc",
             sort_signals=lambda signals: sorted(signals, key=lambda sig: sig.start),
         )
-
-
-class DbcConverter(BaseConverter):
-    """Converter between FLYNCModel and DBC format.
-
-    Currently only supports encoding (FLYNC to DBC). Decoding is not yet
-    implemented.
-    """
-
-    name = "dbc"
-
-    def can_decode(self):
-        """Return False — DBC decode is not yet implemented."""
-        return False
-
-    def encode(self, source: FLYNCModel):
-        """Encode a FLYNCModel into target representation.
-
-        Args:
-            source (FLYNCModel): The model to encode.
-        """
-
-        if self.config is None:
-            raise ValueError("config must be set before encoding")
-
-        logger.debug("Encoding FLYNCModel to DBC at: %s", self.config.config_path)
-        Path(self.config.config_path).mkdir(parents=True, exist_ok=True)
-
-        write_dbc_files(source, self.config.config_path)
-
-        logger.debug("DBC encode complete: %s", self.config.config_path)
-
-    def decode(self) -> FLYNCModel:
-        """Decode data into a FLYNCBaseModel.
-
-        Returns:
-            FLYNCBaseModel: The decoded model.
-        """
-
-        if self.config is None:
-            raise ValueError("config must be set before decoding")
-        logger.debug(
-            "Decoding FLYNCModel from DBC path: %s",
-            self.config.config_path,
-        )
-
-        dbc_models = load_dbc_files(self.config.config_path)
-        logger.debug("Validating FLYNCModel from %d keys", len(dbc_models))
-
-        # Here we will add the DBC to FLYNC Conversion later
-        model = None
-        logger.debug("DBC decode complete")
-        return model  # type: ignore[return-value]
-
-
-@hookimpl
-def register_converters():
-    """Register the DbcConverter with the pluggy plugin manager."""
-    return [DbcConverter()]

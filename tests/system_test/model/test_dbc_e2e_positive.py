@@ -16,7 +16,7 @@ from flync.model.flync_4_signal import CANFrame, MultiplexedPDU, MuxGroup, PDUIn
 from flync.model.flync_4_signal.signal import Signal
 from flync.model.flync_4_topology.ethernet_topology import EthernetTopology, FLYNCTopology
 from flync.model.flync_model import FLYNCModel
-from flync_converter.converters.dbc_converter import write_dbc_files
+from flync_converter.converters.dbc.encoder import write_dbc_files
 
 FLYNC_VERSION = "0.13.0"
 
