@@ -45,7 +45,7 @@ class CANBus(FLYNCBaseModel):
     description : str, optional
         Optional human-readable description.
     version : str
-        Version string.  Defaults to ``""``.
+        Version string (maximum length 128).  Defaults to ``""``.
     baud_rate : int
         Nominal bit rate in bits/s.  Must be one of: 10 000, 20 000, 50 000, 100 000, 125 000, 250 000, 500 000, or 1 000 000.
     fd_enabled : bool

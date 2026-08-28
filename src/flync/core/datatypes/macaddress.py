@@ -33,7 +33,7 @@ class MACAddressEntry(FLYNCBaseModel):
 
     Parameters
     ----------
-    address : str
+    address : MacAddress
         Source MAC address to filter by. Format: "xx:xx:xx:xx:xx:xx"
     macmask : str
         The mask in MAC format. Format: "xx:xx:xx:xx:xx:xx". Defaults to ``"xx:xx:xx:xx:xx:xx"``.
@@ -49,7 +49,7 @@ class MACAddressUnicast(MACAddressEntry):
 
     Parameters
     ----------
-    address : str
+    address : MacAddress
         Multicast MAC address. Format: ``"xx:xx:xx:xx:xx:xx"``.
     """
 
@@ -66,7 +66,7 @@ class MACAddressMulticast(MACAddressEntry):
 
     Parameters
     ----------
-    address : str
+    address : MacAddress
         Multicast MAC address. Format: ``"xx:xx:xx:xx:xx:xx"``.
     """
 

@@ -22,7 +22,7 @@ class ServiceConsumerReference(FLYNCBaseModel):
         Type of the service reference.
 
     service_id: int
-        Service ID of the referenced service instance.
+        Service ID of the referenced service instance (> 0 and < 65535).
 
     instance_id: int
         Instance ID of the referenced service instance.
@@ -47,7 +47,7 @@ class ServiceProviderReference(FLYNCBaseModel):
         Type of the service reference.
 
     service_id: int
-        Service ID of the referenced service instance.
+        Service ID of the referenced service instance (> 0 and < 65535).
 
     instance_id: int
         Instance ID of the referenced service instance.

@@ -24,17 +24,19 @@ class MulticastGroupMembership(FLYNCBaseModel):
 
     Parameters
     ----------
-    group : IPv4Multicast or IPv6Multicast or MACAddressMulticast
+    group : :class:`~pydantic.networks.IPvAnyAddress` or :class:`~MacAddress`
         Multicast group address.
     description : str, optional
         Description of the multicast group membership.
-    mode : "tx" or "rx", optional
+    mode : Literal["tx"] or Literal["rx"], optional
         Mode of multicast group membership.
     vlan : int, optional
         VLAN ID associated with the multicast group membership.
         Use ``None`` for untagged.
-    src_ip : str, optional
+    src_ip : :class:`~pydantic.networks.IPvAnyAddress`, optional
         Source IP address. Only applicable for "tx" mode.
+    solicited_node_multicast : bool, optional
+        Whether this is a solicited node multicast address (defaults to ``False``).
     """
 
     group: Annotated[

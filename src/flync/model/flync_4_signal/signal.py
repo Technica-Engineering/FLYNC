@@ -147,6 +147,7 @@ class Signal(FLYNCBaseModel):
         Optional textual description of the signal.
     bit_length : int
         Length of the signal in bits.
+        Must be greater than 0.
     data_type : :class:`SignalDataType`
         Base data type of the signal.
     factor : float

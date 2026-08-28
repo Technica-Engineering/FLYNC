@@ -110,7 +110,7 @@ class VirtualControllerInterface(FLYNCBaseModel):
     :class:`~flync.model.flync_4_ecu.sockets.IPv6AddressEndpoint`
         Assigned IPv4 and IPv6 address endpoints.
 
-    multicast : list of :class:`IPv4Address` or :class:`IPv6Address` or str, optional
+    multicast : list of :class:`~pydantic.networks.IPvAnyAddress` or :class:`~MacAddress`, optional
         Allowed multicast addresses.
     """
 
@@ -500,16 +500,17 @@ class EthernetInterface(ControllerInterface):
     An Ethernet Interface of a Controller.
 
     Parameters
-    ==========
+    ----------
 
     name : str
         Name of the ethernet interface, implied from the folder name on disk.
 
-    interface_config: :class:`~EthernetInterfaceConfig`
+    interface_config : :class:`~EthernetInterfaceConfig`
         Configuration of the Ethernet interface.
 
-    sockets: optional list of \
-        :class:`~flync.model.flync_4_ecu.socket_container.SocketContainer`
+    sockets : list of \
+        :class:`~flync.model.flync_4_ecu.socket_container.SocketContainer`, optional
+        Socket containers for this Ethernet interface.
 
     Private Attributes
     ------------------

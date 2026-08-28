@@ -67,8 +67,11 @@ class ECU(FLYNCBaseModel):
         Internal topology defining the connectivity between ECU components. May be omitted for a CAN/LIN-only ECU,
         but is required as soon as the ECU declares any Ethernet interface or switch.
 
-    multicast_groups : list of :class:`~flync.model.flync_4_ecu.multicast_groups. MulticastGroupMembership`, optional
+    multicast_groups : list of :class:`~flync.model.flync_4_ecu.multicast_groups.MulticastGroupMembership`, optional
         Multicast group memberships of the ECU. This field is populated automatically internally.
+
+    mac_multicast_endpoints : :class:`~flync.model.flync_4_ecu.mac_multicast_endpoint.MACMulticastEndpoints`, optional
+        MAC multicast endpoints configuration for the ECU.
 
     ecu_metadata : :class:`~flync.model.flync_4_metadata.metadata.ECUMetadata`
         Metadata information describing the ECU.

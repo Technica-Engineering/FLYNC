@@ -28,8 +28,8 @@ class BASET1(FLYNCBaseModel):
     role : Literal["master", "slave"]
         Role of the PHY, either master or slave.
 
-    autonegotiation : bool
-        Indicates whether autonegotiation is enabled.
+    autonegotiation : bool, optional
+        Indicates whether autonegotiation is enabled (defaults to ``False``).
     """
 
     mode: Literal["base_t1"] = Field(default="base_t1")
@@ -57,8 +57,8 @@ class BASET1S(FLYNCBaseModel):
     role : Literal["master", "slave"]
         Role of the PHY, either master or slave.
 
-    autonegotiation : bool
-        Indicates whether autonegotiation is enabled.
+    autonegotiation : bool, optional
+        Indicates whether autonegotiation is enabled (defaults to ``False``).
     """
 
     mode: Literal["base_t1s"] = Field(default="base_t1s")
@@ -86,8 +86,8 @@ class BASET(FLYNCBaseModel):
     role : Literal["master", "slave"]
         Role of the PHY, either master or slave. Defaults to ``"slave"``.
 
-    autonegotiation : bool
-        Indicates whether autonegotiation is enabled.
+    autonegotiation : bool, optional
+        Indicates whether autonegotiation is enabled (defaults to ``False``).
     """
 
     mode: Literal["base_t"] = Field(default="base_t")

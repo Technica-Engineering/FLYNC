@@ -20,8 +20,8 @@ class IntegrityWithoutConfidentiality(FLYNCBaseModel):
     type : Literal["integrity_without_confidentiality"]
         Identifier for the cipher type. Always ``"integrity_without_confidentiality"``.
 
-    offset_preference : Literal[0]
-        Preference for offset timing. Always 0 for this cipher.
+    offset_preference : Literal[0], optional
+        Preference for offset timing (defaults to ``0``). Always 0 for this cipher.
     """
 
     type: Literal["integrity_without_confidentiality"] = Field(default="integrity_without_confidentiality")
@@ -40,8 +40,8 @@ class IntegrityWithConfidentiality(FLYNCBaseModel):
         Identifier for the cipher type.
         Always ``"integrity_with_confidentiality"``.
 
-    offset_preference : Literal[0, 30, 50]
-        Offset timing preference for transmission (in nanoseconds).
+    offset_preference : Literal[0, 30, 50], optional
+        Offset timing preference for transmission in nanoseconds (defaults to ``0``).
         Allows choosing between no offset, 30 ns, or 50 ns.
     """
 
@@ -81,11 +81,11 @@ class MACsecConfig(FLYNCBaseModel):
     sak_retire_time : int
         During a key rotation, time to retire the previous SAK key (milliseconds).
 
-    hello_time_rampup : list of int
-        Periods between initial MKA messages after linkup (milliseconds).
+    hello_time_rampup : list of int, optional
+        Periods between initial MKA messages after linkup in milliseconds (defaults to ``[]``).
 
-    sak_rekey_time : int
-        Minimum interval (in seconds) before rekeying the SAK.
+    sak_rekey_time : int, optional
+        Minimum interval in seconds before rekeying the SAK (defaults to ``3``).
 
     macsec_mode : Literal["disabled", "integrity", \
     "integrity_confidentiality"]
@@ -104,8 +104,8 @@ class MACsecConfig(FLYNCBaseModel):
     participant_activation : Literal["disabled", "onoperup", "always"]
         Strategy for participant activation.
 
-    sci_included : bool
-        Whether to include the Secure Channel Identifier (SCI) in MACsec frames.
+    sci_included : bool, optional
+        Whether to include the Secure Channel Identifier (SCI) in MACsec frames (defaults to ``False``).
 
     cipher_preference : list of :class:`DiscriminatedCipher`
         List of preferred ciphers to negotiate, ordered by priority.

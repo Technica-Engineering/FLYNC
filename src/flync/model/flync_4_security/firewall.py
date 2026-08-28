@@ -55,12 +55,18 @@ class Firewall(FLYNCBaseModel):
 
     Parameters
     ----------
-    default_action : Literal['reject', 'accept', 'drop']
-        The action to apply to packets that do not match any rule.
+    default_action : Literal['reject', 'accept', 'drop'], optional
+        The action to apply to packets that do not match any rule (defaults to ``'reject'``).
         Can be one of ``'reject'``, ``'accept'``, or ``'drop'``.
 
-    rules : list of :class:`FirewallRule`
-        A list of ``FirewallRule`` objects that define matching conditions and actions.
+    input_rules : list of :class:`FirewallRule`, optional
+        A list of ``FirewallRule`` objects that define input traffic matching conditions and actions.
+
+    output_rules : list of :class:`FirewallRule`, optional
+        A list of ``FirewallRule`` objects that define output traffic matching conditions and actions.
+
+    forward_rules : list of :class:`FirewallRule`, optional
+        A list of ``FirewallRule`` objects that define forwarded traffic matching conditions and actions.
     """
 
     default_action: Optional[Literal["reject", "accept", "drop"]] = Field(default="reject")

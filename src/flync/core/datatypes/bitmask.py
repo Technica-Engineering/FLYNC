@@ -40,10 +40,12 @@ class Bitmask(FLYNCBaseModel):
         or bytes and is ignored. A plain integer is accepted as well and is widened to whole
         bytes. Both the bit width of the literal (leading zeros included) and its notation are
         kept and written back on dump, so the pattern survives a load/dump cycle unchanged.
+        Must be greater or equal to 0.
 
     mask : int, optional
         Bits that are significant, written like ``data`` and describing the same number of
         bits. Defaults to all bits of ``data``; that default is not written back on dump.
+        Must be greater or equal to 1.
     """
 
     data: int = Field(ge=0)

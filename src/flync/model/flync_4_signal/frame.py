@@ -42,6 +42,7 @@ class FrameCyclicTiming(FLYNCBaseModel):
     ----------
     cycle : float
         Cycle time in seconds.
+        Must be greater than 0.
     """
 
     cycle: float = Field(gt=0)

@@ -100,12 +100,14 @@ class BitfieldState(FLYNCBaseModel):
     ----------
     label : str
         Symbolic name of this state (e.g. ``"ProblemFailure"``).
-    value : int
-        Single bit. Optional; defaults to None for range entries.
-    from_value : int
-        Inclusive lower bound for ``(raw & group.mask)``. Optional; defaults to `value` for single-bit entries.
-    to_value : int
-        Inclusive upper bound for ``(raw & group.mask)``. Optional; defaults to `value` for single-bit entries.
+    value : int, optional
+        Single bit. Defaults to None for range entries.
+    from_value : int, optional
+        Inclusive lower bound for ``(raw & group.mask)``. Defaults to `value` for single-bit entries.
+        Must be greater or equal to 0.
+    to_value : int, optional
+        Inclusive upper bound for ``(raw & group.mask)``. Defaults to `value` for single-bit entries.
+        Must be greater or equal to 0.
     """
 
     label: str = Field()

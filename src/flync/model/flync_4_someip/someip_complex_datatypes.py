@@ -44,8 +44,8 @@ class ArrayType(ComplexDatatype):
 
     Parameters
     ----------
-    name : str
-        Name of Array.
+    name : str, optional
+        Name of Array (defaults to ``"Array"``).
 
     type : Literal["array"]
         Discriminator identifying this datatype as an array.
@@ -203,8 +203,8 @@ class UnionMember(Datatype):
     name : str
         Name of the union member.
 
-    mandatory : bool
-        Whether the union member is mandatory.
+    mandatory : bool, optional
+        Whether the union member is mandatory (defaults to ``None``).
     """
 
     type: Annotated[
@@ -236,8 +236,8 @@ class Union(Datatype):
 
     Parameters
     ----------
-    name : str
-        Name of the Union.
+    name : str, optional
+        Name of the Union (defaults to ``"Union"``).
 
     type : Literal["union"]
         Discriminator used to identify this datatype.

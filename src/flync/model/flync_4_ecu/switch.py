@@ -74,9 +74,10 @@ class SwitchPort(FLYNCBaseModel):
 
     silicon_port_no : int
         Silicon hardware port number (vendor-specific).
+        Must be greater or equal to 0.
 
     default_vlan_id : int
-        VLAN ID to be added to an untagged frame ingressing on the port.
+        VLAN ID to be added to an untagged frame ingressing on the port (>= 0 and <= 4095).
         Use ``None`` for an untagged port (no default VLAN).
 
     mii_config : :class:`~flync.model.flync_4_ecu.phy.MII` or :class:`~flync.model.flync_4_ecu.phy.RMII` or \
@@ -209,6 +210,11 @@ class PortScopedAction(FLYNCBaseModel):
     :meth:`Switch._fill_empty_tcam_port_lists`), while the field serializer ensures
     serialization reflects the user's original input: an empty list is dumped as an
     empty list, and an omitted list stays omitted (under ``exclude_unset``).
+
+    Parameters
+    ----------
+    ports : list of str, optional
+        Switch ports to which this action applies. Defaults to all ports if omitted.
     """
 
     ports: Annotated[Optional[List[str]], BeforeValidator(none_to_empty_list)] = Field(default_factory=list)
@@ -321,6 +327,7 @@ class FrameMask(Bitmask):
 
     offset : int
         Byte position in the frame where the pattern match begins.
+        Must be greater or equal to 0.
     """
 
     offset: int = Field(ge=0)
@@ -339,10 +346,11 @@ class TCAMRule(FLYNCBaseModel):
     Parameters
     ----------
     name : str
-        Name for the description of the TCAM rule.
+        Name for the description of the TCAM rule (minimum length 1).
 
     id : StrictInt
-        Unique TCAM rule ID. Must be greater or equal to 0.
+        Unique TCAM rule ID.
+        Must be greater or equal to 0.
 
     match_filter : :class:`~flync.model.flync_4_tsn.FrameFilter`, optional
         Packet-matching filter for layer-based matching on MAC/IP/VLAN/ports.
@@ -355,6 +363,7 @@ class TCAMRule(FLYNCBaseModel):
     frame_window : int, optional
         Maximum number of leading frame bytes the ``frame_mask`` entries may inspect.
         Unbounded when omitted.
+        Must be greater or equal to 1.
 
     match_ports : list of str, Optional
         Ports to which the rule is bound. Defaults to all ports of the switch if kept empty or undefined.

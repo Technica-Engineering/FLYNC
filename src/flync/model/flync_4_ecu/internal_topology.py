@@ -35,12 +35,6 @@ class InternalConnection(FLYNCBaseModel):
     id : str
         Unique identifier for the connection.
 
-    component1_name : str, optional
-        Name of the first component in the connection.
-
-    component2_name : str, optional
-        Name of the second component in the connection.
-
     Private Attributes
     ------------------
     _ecu : :class:`~flync.model.flync_4_ecu.ecu.ECU`
@@ -515,6 +509,9 @@ class ControllerInterfaceToControllerInterface(ControllerInterfaceToXConnection)
         Name of the second controller
         interface (alias: ``controller_interface2``).
 
+    controller2_name : str, optional
+        Name of the parent controller that owns the second interface (alias: ``controller2``).
+
     Private Attributes
     ------------------
     _iface : \
@@ -525,6 +522,10 @@ class ControllerInterfaceToControllerInterface(ControllerInterfaceToXConnection)
     _iface2 : \
     :class:`~flync.model.flync_4_ecu.controller.ControllerInterface`
         Internal reference to the second controller interface.
+        Managed privately.
+
+    _controller2 : :class:`~flync.model.flync_4_ecu.controller.Controller`
+        Internal reference to the controller that owns the second interface.
         Managed privately.
     """
 

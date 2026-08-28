@@ -17,8 +17,8 @@ class BaseVersion(FLYNCBaseModel):
 
     Parameters
     ----------
-    version_schema : Literal["semver", "pep440"]
-        Versioning scheme that defines how the version string is interpreted.
+    version_schema : Literal["semver", "pep440"], optional
+        Versioning scheme that defines how the version string is interpreted (defaults to ``"semver"``).
 
     version : str
         Version value expressed according to the selected ``version_schema``. Must be provided as a raw string.

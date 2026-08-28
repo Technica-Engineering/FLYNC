@@ -95,7 +95,7 @@ class Socket(FLYNCBaseModel):
         The type of the socket endpoint, which can be either "multicast" or "unicast".  This field is per default automatically determined
         based on the value of ``endpoint_address``, but can be overridden by explicitly providing a value.
 
-    multicast_tx : list of :class:`IPv4Multicast` or :class:`IPv6Multicast`, optional
+    multicast_tx : list of :class:`~pydantic.networks.IPvAnyAddress`, optional
         Multicast addresses that the socket is allowed to transmit to (only applicable for sockets with a multicast endpoint_type).
     """
 

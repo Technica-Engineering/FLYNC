@@ -26,10 +26,10 @@ class FLYNCCommunicationConfig(FLYNCBaseModel):
     Parameters
     ----------
     tcp_profiles : list of \
-    :class:`~flync.model.flync_4_ecu.sockets.TCPOption`
+    :class:`~flync.model.flync_4_ecu.sockets.TCPOption`, optional
         List of TCP profiles that define the selectable TCP socket options.
 
-    someip_config : :class:`~flync.model.flync_4_someip.SOMEIPConfig`
+    someip_config : :class:`~flync.model.flync_4_someip.SOMEIPConfig`, optional
         Configuration block that holds the global SOME/IP service interface definition, SOME/IP timings, and SD timings profiles
         used by every ECU in the system.
 

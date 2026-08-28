@@ -39,14 +39,15 @@ class ATSInstance(FLYNCBaseModel):
     ----------
     committed_information_rate : int
         Guaranteed data rate in kilobits per second (kbps).
+        Must be greater or equal to 0.
 
     committed_burst_size : int
-        Maximum burst size allowed within the committed rate
-        in kilobytes (kB).
+        Maximum burst size allowed within the committed rate in kilobytes (kB).
+        Must be greater or equal to 0.
 
     max_residence_time : int
-        Maximum time a frame can reside within the switch
-        in microseconds (µs).
+        Maximum time a frame can reside within the switch in microseconds (µs).
+        Must be greater or equal to 0.
     """
 
     committed_information_rate: int = Field(..., ge=0)
@@ -208,8 +209,8 @@ class DoubleRateThreeColorMarker(FLYNCBaseModel):
         Excess Burst Size in kilobytes (kB).
         Must be greater than 0.
 
-    coupling : bool
-        Coupling flag.
+    coupling : bool, optional
+        Coupling flag (defaults to ``True``).
         Determines whether the excess bucket draws from the committed
         bucket.
     """
@@ -400,8 +401,8 @@ class Stream(FLYNCBaseModel):
     name : str
         Unique name of the stream.
 
-    stream_identification : list of :class:`FrameFilter`
-        List of filters used to identify stream traffic.
+    stream_identification : list of :class:`FrameFilter`, optional
+        List of filters used to identify stream traffic (defaults to ``[]``).
 
     drop_at_ingress : bool, optional
         Whether to drop traffic at ingress. Default is False.
@@ -409,6 +410,7 @@ class Stream(FLYNCBaseModel):
     max_sdu_size : int, optional
         Maximum size of the Service Data Unit in bytes.
         Default is 1522 bytes.
+        Must be greater or equal to 0.
 
     policer : :class:`SingleRateTwoColorMarker`, \
     :class:`SingleRateThreeColorMarker`, \
