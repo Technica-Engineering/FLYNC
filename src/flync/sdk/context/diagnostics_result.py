@@ -21,13 +21,19 @@ class WorkspaceState(str, Enum):
     Enumeration of possible workspace validation states.
 
     Attributes:
-        UNKNOWN: State has not been determined.
-        EMPTY: No model was loaded; the workspace is empty.
-        LOADING: The workspace is currently being loaded.
-        VALID: All documents validated successfully with no errors.
-        WARNING: Validation completed but some documents have non-fatal errors.
-        INVALID: The model could not be constructed due to validation errors.
-        BROKEN: An unexpected exception occurred during loading.
+        **UNKNOWN**: State has not been determined.
+
+        **EMPTY**: No model was loaded; the workspace is empty.
+
+        **LOADING**: The workspace is currently being loaded.
+
+        **VALID**: All documents validated successfully with no errors.
+
+        **WARNING**: Validation completed but some documents have non-fatal errors.
+
+        **INVALID**: The model could not be constructed due to validation errors.
+
+        **BROKEN**: An unexpected exception occurred during loading.
     """
 
     UNKNOWN = "unknown"
