@@ -9,7 +9,9 @@ from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 
 from .helper import (
     append_yaml_content,
+    entry_named,
     model_has_socket,
+    patch_yaml,
     update_yaml_content,
 )
 
@@ -383,10 +385,9 @@ def test_validate_workspace_surfaces_unknown_pdu_ref(tmpdir):
 
     destination_folder = Path(tmpdir) / "copy"
     shutil.copytree(absolute_path, destination_folder)
-    # Target the Frame_EngineDiagResponse line; its PDU ref name only appears
-    # once in this file and is independent of the LightDiagRequest content.
     diag_can = destination_folder / "communication" / "channels" / "can" / "diag_can.flync.yaml"
-    update_yaml_content(diag_can, "pdu_ref: PDU_EngineStatus", "pdu_ref: nonexistent_pdu")
+    with patch_yaml(diag_can) as channel:
+        entry_named(channel["frames"], "Frame_EngineDiagResponse")["packed_pdus"][0]["pdu_ref"] = "nonexistent_pdu"
 
     result = validate_workspace(destination_folder)
 
