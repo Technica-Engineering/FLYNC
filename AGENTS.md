@@ -31,6 +31,13 @@ uv dependency groups are defined via PEP 735 `[dependency-groups]` in `pyproject
 
 **`qt` is deliberately outside `dev`.** `pytest-qt` aborts collection when no Qt binding is importable, so installing it without the `gui` extra would break every `uv run pytest` on a core install. Always pair them: `uv sync --group test --group qt --extra gui --extra tui`.
 
+### Documentation
+
+Documentation can be found in `docs` and should be updated by every significant change:
+
+* Update Release Notes in `docs/source/release_notes.rst` for significant changes
+* Update the Model Change History in `docs/source/model_change_history.rst` for model changes
+
 ### Entry Points
 
 The project registers these CLI commands via `[project.scripts]`:

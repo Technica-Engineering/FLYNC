@@ -17,6 +17,7 @@ The source is structured in 3 main parts:
 - :doc:`flync_reference/core`  -   Additional functionalities for the model, such as utils, field annotations and validators.
 - :doc:`flync_reference/model`  -   The heart of FLYNC is a pydantic model. Find a comprehensive reference of the model in this section.
 - :doc:`flync_reference/sdk`  -  Pythonic API for developers to interact with the project modules and integrating FLYNC capabilities into applications.
+- :doc:`model_change_history`  -  How the model and public API changed between releases, and what to update when updating a project.
 
 
 .. _writing_flync_config:

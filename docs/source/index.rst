@@ -119,5 +119,6 @@ Resources
    flync_cli/index
    flync_converter/index
    error_catalog
+   model_change_history
    license
    contact
