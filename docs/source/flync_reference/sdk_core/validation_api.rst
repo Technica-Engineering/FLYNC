@@ -121,7 +121,7 @@ You can also scope the query to a subtree by passing a different root:
 
 .. code-block:: python
 
-   from flync.model.ecu.ecu_config import EcuConfig
+   from flync.model.flync_4_ecu.ecu import ECU
 
    ecu_nodes = available_flync_nodes(EcuConfig)
 
@@ -178,10 +178,10 @@ Example — using a type
 
 .. code-block:: python
 
-   from flync.model.ecu.ecu_config import EcuConfig
+   from flync.model.flync_4_ecu.ecu import ECU
    from flync.sdk.helpers.validation_helpers import validate_external_node
 
-   result = validate_external_node(EcuConfig, "/path/to/ecus/my_ecu")
+   result = validate_external_node(ECU, "/path/to/ecus/my_ecu")
 
    if result.state == WorkspaceState.VALID:
        ecu = result.model   # EcuConfig instance
