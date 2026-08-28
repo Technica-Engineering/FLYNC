@@ -153,13 +153,13 @@ class ECUMetadata(BaseMetadata):
 
     hardware : \
         :class:`~flync.model.flync_4_metadata.metadata.HardwareBaseMetadata`\
-        | None
-        Optional hardware metadata associated with the ECU.
+        | None, optional
+        Hardware metadata associated with the ECU.
 
     software : \
         :class:`~flync.model.flync_4_metadata.metadata.SoftwareBaseMetadata`\
-        | None
-        Optional software metadata associated with the ECU.
+        | None , optional
+        Software metadata associated with the ECU.
     """
 
     type: Literal["ecu"] = Field("ecu")
@@ -176,14 +176,14 @@ class EmbeddedMetadata(BaseMetadata):
     type : Literal["embedded"]
         Literal identifier specifying an embedded device.
 
-    hardware : :class:`~flync.model.flync_4_metadata.metadata.HardwareBaseMetadata` | None
-        Optional hardware metadata associated with the embedded device.
+    hardware : :class:`~flync.model.flync_4_metadata.metadata.HardwareBaseMetadata` | None , optional
+        Hardware metadata associated with the embedded device.
 
-    app : :class:`~flync.model.flync_4_metadata.metadata.SoftwareBaseMetadata` | None
-        Optional software metadata for the application.
+    app : :class:`~flync.model.flync_4_metadata.metadata.SoftwareBaseMetadata` | None , optional
+        Software metadata for the application.
 
-    bootloader : :class:`~flync.model.flync_4_metadata.metadata.SoftwareBaseMetadata` | None
-        Optional software metadata for the bootloader.
+    bootloader : :class:`~flync.model.flync_4_metadata.metadata.SoftwareBaseMetadata` | None , optional
+        Software metadata for the bootloader.
 
     target_system : str
         Name of the Embedded target device.

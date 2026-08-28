@@ -66,7 +66,7 @@ integrity:
   stage: static-analysis
   parallel:
     matrix:
-      - CHECK: ["error-catalog"]
+      - CHECK: ["error-catalog", "model-docstrings"]
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
@@ -78,6 +78,11 @@ integrity:
         error-catalog)
           uv sync --frozen
           uv run python src/flync_cli/main.py errors validate-catalog
+          ;;
+        # Reports warnings and succeeds: the existing docstrings are not clean yet. Add --strict to turn it into a gate.
+        model-docstrings)
+          uv sync --frozen
+          uv run python scripts/ci/check_model_docstrings.py --strict
           ;;
       esac
 
