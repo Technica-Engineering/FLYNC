@@ -35,13 +35,13 @@ class FLYNCChannelConfig(FLYNCBaseModel):
 
     Parameters
     ----------
-    pdus : list of :class:`StandardPDU` | :class:`MultiplexedPDU`, optional
+    pdus : list of :class:`~flync.model.flync_4_signal.StandardPDU` | :class:`~flync.model.flync_4_signal.MultiplexedPDU`, optional
         Shared PDU definitions that may be referenced from any channel.
-    can_buses : list of :class:`CANBus`, optional
+    can_buses : list of :class:`~flync.model.flync_4_bus.CANBus`, optional
         CAN and CAN FD bus configurations.
-    lin_buses : list of :class:`LINBus`, optional
+    lin_buses : list of :class:`~flync.model.flync_4_bus.LINBus`, optional
         LIN bus configurations.
-    ethernet_pdu_containers : list of :class:`ContainerPDU`, optional
+    ethernet_pdu_containers : list of :class:`~flync.model.flync_4_signal.ContainerPDU`, optional
         Ethernet Container PDU definitions.
     """
 
