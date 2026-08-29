@@ -202,20 +202,28 @@ def _collect_unknown_muxed_pdu_refs(pdu: MultiplexedPDU, pdu_registry: Mapping[s
     return unknown
 
 
-def _resolve_placement_range(inst: PDUInstance, label: str, pdu_registry: Mapping[str, PDU]) -> Optional[BitRange]:
-    """Return the bit range a :class:`PDUInstance` occupies, or ``None`` when it cannot be resolved.
+def _resolve_signal_ranges(inst: PDUInstance, label: str, pdu_registry: Mapping[str, PDU]) -> List[BitRange]:
+    """Return the actual per-signal bit ranges a :class:`PDUInstance` occupies.
 
-    The extent is ``[bit_position, bit_position + referenced_pdu.length * 8)`` — the signals inside the
-    referenced PDU are irrelevant (this mirrors how frame PDU placements are validated). Unplaced
-    instances (``bit_position is None``) and references missing from ``pdu_registry`` yield ``None``;
-    the reference itself is validated by :meth:`FLYNCChannelConfig.validate_multiplexed_pdu_refs`.
+    Resolves each placed signal inside the referenced PDU to its ``[bit_position + signal_offset,
+    bit_position + signal_offset + signal_length)`` range instead of the whole PDU's bounding box. This
+    lets multiplexed payloads sit in the "gap" between sparse static signals without a false overlap,
+    while still flagging any signal that genuinely intersects another.
     """
-    if inst.bit_position is None:
-        return None
-    ref_pdu = pdu_registry.get(inst.pdu_ref)
-    if ref_pdu is None:
-        return None
-    return (f"{label} '{inst.pdu_ref}'", inst.bit_position, inst.bit_position + ref_pdu.length * 8)
+    if inst.bit_position is None or (ref_pdu := pdu_registry.get(inst.pdu_ref)) is None:
+        return []
+    signals = getattr(ref_pdu, "signals", None)
+    if not signals:
+        # Nothing is known to be empty inside a signal-less PDU, so keep the
+        # full footprint (mirrors the old bounding-box behaviour).
+        return [(f"{label} '{inst.pdu_ref}'", inst.bit_position, inst.bit_position + ref_pdu.length * 8)]
+    ranges: List[BitRange] = []
+    for si in signals:
+        if getattr(si, "bit_position", None) is None:
+            continue
+        start = inst.bit_position + si.bit_position
+        ranges.append((f"{label} '{si.signal.name}'", start, start + si.signal.bit_length))
+    return ranges
 
 
 def _validate_multiplexed_pdu_placements(pdus: Iterable[PDU], pdu_registry: Mapping[str, PDU]) -> None:
@@ -232,19 +240,23 @@ def _validate_multiplexed_pdu_placements(pdus: Iterable[PDU], pdu_registry: Mapp
             continue
         context = f"MultiplexedPDU '{pdu.name}'"
         sel = pdu.selector_signal
-        static_ranges = [r for r in (_resolve_placement_range(inst, "static_group", pdu_registry) for inst in (pdu.static_group or [])) if r]
-        group_ranges = [
-            r
-            for r in (_resolve_placement_range(group.pdu, f"mux_group(selector={group.selector_value})", pdu_registry) for group in pdu.mux_groups)
-            if r
-        ]
+        static_placements = list(pdu.static_group or [])
         sel_ranges: List[BitRange] = []
         if sel.bit_position is not None:
             sel_ranges.append((sel.signal.name, sel.bit_position, sel.bit_position + sel.signal.bit_length))
-        check_bit_ranges_within(context, [*sel_ranges, *static_ranges, *group_ranges], pdu.length * 8)
-        check_bit_ranges_no_overlap(context, [*sel_ranges, *static_ranges])
-        for group_range in group_ranges:
-            check_bit_ranges_no_overlap(context, [*sel_ranges, *static_ranges, group_range])
+        # Overlap and within checks use the referenced PDUs' actual per-signal ranges
+        # rather than their full (byte-aligned) bounding boxes, so sparse static
+        # signals sitting in the "gap" between the selector and/or a muxed payload
+        # don't produce false hits.
+        static_signals = [r for inst in static_placements for r in _resolve_signal_ranges(inst, "static_group", pdu_registry)]
+        group_signals = [
+            r for group in pdu.mux_groups for r in _resolve_signal_ranges(group.pdu, f"mux_group(selector={group.selector_value})", pdu_registry)
+        ]
+        check_bit_ranges_within(context, [*sel_ranges, *static_signals, *group_signals], pdu.length * 8)
+        check_bit_ranges_no_overlap(context, [*sel_ranges, *static_signals])
+        for group in pdu.mux_groups:
+            group_ranges = _resolve_signal_ranges(group.pdu, f"mux_group(selector={group.selector_value})", pdu_registry)
+            check_bit_ranges_no_overlap(context, [*sel_ranges, *static_signals, *group_ranges])
 
 
 def _validate_frame_pdu_placements(kind: str, bus, pdu_registry: Mapping[str, PDU]) -> None:

@@ -54,9 +54,16 @@ _SG_INT_TYPES = (SignalDataType.INT8, SignalDataType.INT16, SignalDataType.INT32
 
 
 def map_data_type(bit_length: int, is_signed: bool, is_float: bool) -> SignalDataType:
-    """Map DBC signal length/sign/floatness to the smallest fitting FLYNC data type."""
+    """Map DBC signal length/sign/floatness to the smallest fitting FLYNC data type.
+
+    Integer signals wider than 64 bits (diagnostic/crypto blobs) cannot be
+    represented as a fixed-width integer, so they map to ``bytearray`` (which
+    accepts any multiple-of-8 bit length).
+    """
     if is_float:
         return SignalDataType.FLOAT32 if bit_length <= 32 else SignalDataType.FLOAT64
+    if bit_length > 64:
+        return SignalDataType.BYTEARRAY
     types = _SG_INT_TYPES if is_signed else _UG_INT_TYPES
     return types[_bit_width_index(bit_length)]
 
@@ -65,6 +72,8 @@ def _coerce_initial_value(raw_initial, data_type: SignalDataType):
     """Return a FLYNC-compatible ``initial_value`` or ``None`` when it cannot be represented."""
     result = None
     if data_type.is_float() and raw_initial is not None:
+        result = raw_initial
+    elif data_type == SignalDataType.BYTEARRAY and isinstance(raw_initial, bytes):
         result = raw_initial
     elif isinstance(raw_initial, int) and not isinstance(raw_initial, bool):
         result = raw_initial
@@ -90,12 +99,43 @@ def _to_flync_signal(s: Signal) -> FLYNCSignal:
         kwargs["lower_limit"] = s.minimum
     if s.maximum is not None:
         kwargs["upper_limit"] = s.maximum
-    if s.choices:
+
+    choices = _in_range_choices(s, data_type)
+    if choices:
         kwargs["value_encoding"] = TextTable(
             type="text_table",
-            entries=[TextEntry(value=int(value), label=getattr(label, "name", str(label))) for value, label in s.choices.items()],
+            entries=[TextEntry(value=int(value), label=getattr(label, "name", str(label))) for value, label in choices.items()],
         )
     return FLYNCSignal(**kwargs)
+
+
+def _in_range_choices(s: Signal, data_type: SignalDataType) -> Optional[Dict[int, object]]:
+    """Return ``s.choices`` filtered to entries representable by the FLYNC signal.
+
+    Complex types (``bytearray``) have no text-table encoding, and raw values
+    that fall outside the signal's bit range (common in hand-edited DBCs, e.g.
+    a ``7-bit`` signal with a ``VAL_`` entry at ``127``) are dropped since FLYNC
+    cannot represent them. Drops are surfaced as warnings.
+    """
+    if not s.choices:
+        return None
+    if data_type.is_complex_datattype():
+        logger.warning("Value table dropped for bytearray signal '%s'", s.name)
+        return None
+    if s.is_signed:
+        lo, hi = -(1 << (s.length - 1)), (1 << (s.length - 1)) - 1
+    else:
+        lo, hi = 0, (1 << s.length) - 1
+    dropped = [int(v) for v in s.choices if not (lo <= int(v) <= hi)]
+    if dropped:
+        logger.warning(
+            "Value table entries for signal '%s' outside bit range [%d, %d] dropped: %s",
+            s.name,
+            lo,
+            hi,
+            sorted(dropped),
+        )
+    return {value: label for value, label in s.choices.items() if lo <= int(value) <= hi}
 
 
 def _to_flync_signal_instance(s: Signal) -> SignalInstance:
@@ -280,11 +320,14 @@ def decode_dbc_files(dbc_files, config: Optional[DbcConverterConfig] = None) -> 
     buses = []
     frame_senders: Dict[Tuple[str, int], set] = defaultdict(set)
     frame_receivers: Dict[Tuple[str, int], set] = defaultdict(set)
+    declared_nodes: set = set()
 
     for db, path in dbc_files:
         bus_name = path.stem
         baud_rate = _nominal_baud_rate(db, config)
         fd_enabled = any(m.is_fd for m in db.messages)
+
+        declared_nodes.update(node.name for node in db.nodes)
 
         frames = []
         for message in db.messages:
@@ -304,7 +347,7 @@ def decode_dbc_files(dbc_files, config: Optional[DbcConverterConfig] = None) -> 
             )
         )
 
-    ecus = _to_flync_ecus(frame_senders, frame_receivers)
+    ecus = _to_flync_ecus(frame_senders, frame_receivers, declared_nodes)
     version = _flync_version()
 
     return FLYNCModel(
@@ -324,8 +367,17 @@ def decode_dbc_files(dbc_files, config: Optional[DbcConverterConfig] = None) -> 
     )
 
 
-def _to_flync_ecus(frame_senders: Dict[Tuple[str, int], set], frame_receivers: Dict[Tuple[str, int], set]) -> List[ECU]:
-    """Synthesize one ECU per DBC node with a single CAN controller and per-bus interfaces."""
+def _to_flync_ecus(
+    frame_senders: Dict[Tuple[str, int], set],
+    frame_receivers: Dict[Tuple[str, int], set],
+    declared_nodes: Optional[set] = None,
+) -> List[ECU]:
+    """Synthesize one ECU per DBC node with a single CAN controller and per-bus interfaces.
+
+    The node set is the union of every node declared in the ``BU_:`` line and
+    every participant observed on a frame, so a node that is declared but never
+    participates in a message is still retained and not silently dropped.
+    """
     membership: Dict[str, Dict[str, Dict[str, set]]] = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))
     for (bus, fid), nodes in frame_senders.items():
         for node in nodes:
@@ -334,9 +386,13 @@ def _to_flync_ecus(frame_senders: Dict[Tuple[str, int], set], frame_receivers: D
         for node in nodes:
             membership[node][bus]["recv"].add(fid)
 
+    node_names = set(membership)
+    if declared_nodes:
+        node_names |= declared_nodes
+
     version = _flync_version()
     ecus = []
-    for node in sorted(membership.keys()):
+    for node in sorted(node_names):
         can_interfaces = []
         for bus in sorted(membership[node].keys()):
             roles = membership[node][bus]
@@ -348,6 +404,13 @@ def _to_flync_ecus(frame_senders: Dict[Tuple[str, int], set], frame_receivers: D
                     receiver_frames=[CANFrameRef(bus_ref=bus, frame_ref=fid) for fid in sorted(roles.get("recv", set()))],
                 )
             )
+        if not can_interfaces:
+            logger.warning(
+                "Node '%s' is declared in BU_: but participates in no message/interface; "
+                "cannot represent it as a FLYNC ECU and it will be omitted.",
+                node,
+            )
+            continue
         controller = Controller(
             name="CONTROLLER",
             controller_metadata=EmbeddedMetadata(

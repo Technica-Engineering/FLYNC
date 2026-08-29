@@ -72,6 +72,3 @@ should recreate their virtual environment:
 
 The build backend is **hatchling** with ``uv-dynamic-versioning`` for version
 resolution from git tags. The ``uv.lock`` file replaces ``poetry.lock``.
-
-Release 0.11
-------------

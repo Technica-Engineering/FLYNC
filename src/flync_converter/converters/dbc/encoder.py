@@ -8,6 +8,7 @@ from typing import List, Literal, Optional
 import cantools.database
 from cantools.database.can.database import Database
 from cantools.database.can.message import Message
+from cantools.database.can.node import Node
 from cantools.database.can.signal import NamedSignalValue, Signal
 from cantools.database.conversion import LinearConversion
 
@@ -40,6 +41,43 @@ def _value_encoding_choices(signal) -> Optional[OrderedDict[int, "str | NamedSig
     return choices
 
 
+_SCIENTIFIC_NOTATION_THRESHOLD = 10**16
+
+
+def _as_dbc_number(value: Optional[float | int]) -> Optional[float | int]:
+    """Render integral values without a trailing ``.0`` in the DBC output.
+
+    Cantools serialises the linear conversion as ``(scale,offset)`` using plain
+    ``str()``, so a float ``1.0``/``0.0`` becomes ``(1.0,0.0)``.  Erasing the
+    redundant fractional part for whole numbers gives the conventional
+    ``(1,0)`` used by most DBC tools.
+
+    Very large whole values (e.g. raw bounds of wide bitfields/BYTEARRAY blobs)
+    stay as floats so they render in scientific notation — ``0|1.34e+154`` —
+    rather than an unwieldy run of digits.
+    """
+    if value is None:
+        return None
+    if isinstance(value, int) and not isinstance(value, bool):
+        return value if abs(value) < _SCIENTIFIC_NOTATION_THRESHOLD else float(value)
+    if isinstance(value, float) and value.is_integer():
+        return int(value) if abs(value) < _SCIENTIFIC_NOTATION_THRESHOLD else value
+    return value
+
+
+def _raw_value_bounds(signal) -> tuple[int, int]:
+    """Inclusive ``(lo, hi)`` raw representable range for a signal.
+
+    Unsigned integers and ``BYTEARRAY`` blobs range over ``0 .. 2**N - 1``;
+    signed integers range over ``-(2**(N-1)) .. 2**(N-1) - 1``.  This mirrors
+    the DBC ``[minimum|maximum]`` convention (a 512-bit BYTEARRAY renders as
+    ``0|1.34e+154``, i.e. the full unsigned width).
+    """
+    if signal.data_type.is_signed_integer():
+        return -(1 << (signal.bit_length - 1)), (1 << (signal.bit_length - 1)) - 1
+    return 0, (1 << signal.bit_length) - 1
+
+
 def decode_signal(
     signal,
     bit_pos: int,
@@ -50,6 +88,9 @@ def decode_signal(
     multiplexer_ids=None,
 ):
     """Convert a FLYNC signal definition to a cantools Signal object."""
+    raw_min, raw_max = _raw_value_bounds(signal)
+    minimum = _as_dbc_number(signal.lower_limit) if signal.lower_limit is not None else _as_dbc_number(raw_min)
+    maximum = _as_dbc_number(signal.upper_limit) if signal.upper_limit is not None else _as_dbc_number(raw_max)
     ret = Signal(
         name=signal.name,
         start=bit_pos,
@@ -57,8 +98,8 @@ def decode_signal(
         byte_order=byte_order,
         is_signed=signal.data_type.is_signed_integer(),
         conversion=LinearConversion(
-            scale=signal.factor,
-            offset=signal.offset,
+            scale=_as_dbc_number(signal.factor),  # type: ignore[arg-type]
+            offset=_as_dbc_number(signal.offset),  # type: ignore[arg-type]
             is_float=signal.data_type.is_float(),
         ),
         receivers=receivers,
@@ -67,6 +108,8 @@ def decode_signal(
         multiplexer_ids=multiplexer_ids,
         unit=signal.unit or "",
         comment={"EN": signal.description} if signal.description else None,
+        minimum=minimum,  # type: ignore[arg-type]
+        maximum=maximum,  # type: ignore[arg-type]
     )
     choices = _value_encoding_choices(signal)
     if choices:
@@ -238,14 +281,15 @@ def write_dbc_files(flync_model: FLYNCModel, root_folder: str):
 
     pdus = {pdu.name: pdu for pdu in flync_model.communication.channels.pdus or []}
     frame_senders, frame_receivers = _collect_frame_participants(flync_model)
+    nodes = [Node(ecu.name) for ecu in flync_model.ecus]
 
     for can_bus in flync_model.communication.channels.can_buses or []:
         messages = _build_can_messages(flync_model, can_bus, pdus, frame_senders, frame_receivers)
-        db = Database(messages=messages)
+        db = Database(messages=messages, nodes=nodes)
         fn = Path(root_folder) / Path(f"{can_bus.name}.dbc")
         cantools.database.dump_file(
             db,
             str(fn),
             database_format="dbc",
-            sort_signals=lambda signals: sorted(signals, key=lambda sig: sig.start),
+            sort_signals=lambda signals: sorted(signals, key=lambda sig: sig.start, reverse=True),
         )

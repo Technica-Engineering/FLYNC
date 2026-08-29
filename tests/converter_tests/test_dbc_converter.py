@@ -81,6 +81,8 @@ def _mock_signal(name="spd", bit_length=8, is_signed=False, factor=1.0, offset=0
     sig.offset = offset
     sig.unit = unit
     sig.description = description
+    sig.lower_limit = None
+    sig.upper_limit = None
     return sig
 
 
@@ -100,6 +102,43 @@ class TestDecodeSignal:
         assert result.length == 8
         assert result.byte_order == "little_endian"
         assert not result.is_signed
+
+    def test_small_raw_bounds_are_integers(self):
+        sig = _mock_signal(name="byte", bit_length=8)
+        result = decode_signal(sig, bit_pos=0)
+        assert result.minimum == 0
+        assert result.maximum == 255
+        assert isinstance(result.maximum, int)
+
+    def test_large_raw_bounds_use_scientific_notation(self):
+        sig = _mock_signal(name="blob", bit_length=64)
+        result = decode_signal(sig, bit_pos=0)
+        assert result.maximum == float(2**64 - 1)
+        assert isinstance(result.maximum, float)
+        assert str(result.maximum) == "1.8446744073709552e+19"
+
+        wide = decode_signal(_mock_signal(name="wide", bit_length=512), bit_pos=0)
+        assert isinstance(wide.maximum, float)
+        assert str(wide.maximum).startswith("1.3407807929942597e+154")
+
+    def test_integral_float_limits_render_as_integers(self):
+        sig = _mock_signal(name="f", bit_length=16)
+        sig.lower_limit = -40.0
+        sig.upper_limit = 120.0
+        result = decode_signal(sig, bit_pos=0)
+        assert result.minimum == -40
+        assert result.maximum == 120
+        assert isinstance(result.minimum, int)
+        assert isinstance(result.maximum, int)
+
+    def test_large_float_limit_stays_scientific(self):
+        sig = _mock_signal(name="f", bit_length=64)
+        sig.lower_limit = 0.0
+        sig.upper_limit = float("1.8446744074e+19")
+        result = decode_signal(sig, bit_pos=0)
+        assert result.minimum == 0
+        assert isinstance(result.maximum, float)
+        assert str(result.maximum) == "1.8446744074e+19"
 
     def test_big_endian_and_signed(self):
         sig = _mock_signal(name="temp", bit_length=16, is_signed=True)
@@ -498,6 +537,20 @@ class TestLoadDbcFiles:
         (tmp_path / "file.yaml").write_text("")
         (tmp_path / "file.json").write_text("")
         assert load_dbc_files(str(tmp_path)) == []
+
+    def test_loads_single_dbc_file_path(self, tmp_path):
+        # Passing a single *.dbc file (not a directory) must still be loaded, so
+        # the converter works when pointed directly at a file (as the round-trip
+        # example scripts do).
+        dbc_file = tmp_path / "bus.dbc"
+        dbc_file.write_text("")
+        mock_db = MagicMock()
+        with patch("cantools.database.load_file", return_value=mock_db):
+            result = load_dbc_files(str(dbc_file))
+        assert len(result) == 1
+        db, path = result[0]
+        assert db is mock_db
+        assert path == dbc_file
 
 
 class TestDbcConverter:

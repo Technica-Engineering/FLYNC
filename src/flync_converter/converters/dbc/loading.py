@@ -33,7 +33,12 @@ def load_dbc_files(root_folder) -> List[Tuple[Database, Path]]:
     root = Path(root_folder)
     logger.debug("Scanning for DBC files under: %s", root_folder)
 
-    for dbc_file in sorted(root.rglob("*.dbc")):
+    if root.is_file():
+        candidates = [root]
+    else:
+        candidates = sorted(root.rglob("*.dbc"))
+
+    for dbc_file in candidates:
         logger.debug("Loading DBC file: %s", dbc_file)
         tmp = cast(Database, cantools.database.load_file(dbc_file))
         dbc_files.append((tmp, dbc_file))
