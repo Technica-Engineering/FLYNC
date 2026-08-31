@@ -10,6 +10,7 @@ from flync_converter.base import ConverterConfig
 from flync_converter.converters.dbc import DbcConverter, DbcConverterConfig
 from flync_converter.converters.dbc.decoder import (
     _build_pdu_for_message,
+    _comment_text,
     _to_flync_frame,
     decode_dbc_files,
     map_data_type,
@@ -179,6 +180,23 @@ class TestDecodeSignal:
         assert result.is_multiplexer
         assert result.multiplexer_signal == "mux_sel"
         assert result.multiplexer_ids == [0, 1]
+
+
+class TestCommentText:
+    def test_str_comment_passthrough(self):
+        assert _comment_text("hello") == "hello"
+
+    def test_language_dict_prefers_english(self):
+        assert _comment_text({"EN": "Brake", "DE": "Bremse"}) == "Brake"
+
+    def test_language_dict_falls_back_to_first_non_empty(self):
+        assert _comment_text({"DE": "Bremse"}) == "Bremse"
+
+    def test_empty_dict_returns_none(self):
+        assert _comment_text({}) is None
+
+    def test_none_returns_none(self):
+        assert _comment_text(None) is None
 
 
 class TestDecodeSignalInstance:

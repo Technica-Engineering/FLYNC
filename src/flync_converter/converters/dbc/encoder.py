@@ -56,13 +56,16 @@ def _as_dbc_number(value: Optional[float | int]) -> Optional[float | int]:
     stay as floats so they render in scientific notation — ``0|1.34e+154`` —
     rather than an unwieldy run of digits.
     """
+    ret: Optional[float | int] = value
+
     if value is None:
-        return None
-    if isinstance(value, int) and not isinstance(value, bool):
-        return value if abs(value) < _SCIENTIFIC_NOTATION_THRESHOLD else float(value)
-    if isinstance(value, float) and value.is_integer():
-        return int(value) if abs(value) < _SCIENTIFIC_NOTATION_THRESHOLD else value
-    return value
+        ret = None
+    elif isinstance(value, int) and not isinstance(value, bool):
+        ret = value if abs(value) < _SCIENTIFIC_NOTATION_THRESHOLD else float(value)
+    elif isinstance(value, float) and value.is_integer():
+        ret = int(value) if abs(value) < _SCIENTIFIC_NOTATION_THRESHOLD else value
+
+    return ret
 
 
 def _raw_value_bounds(signal) -> tuple[int, int]:

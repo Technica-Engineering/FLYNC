@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 def _comment_text(comment) -> Optional[str]:
     """Normalize a cantools comment (``str`` or language-keyed ``dict``) to text."""
     if isinstance(comment, dict):
-        return comment.get("EN") or (list(comment.values())[0] if comment else None)
+        return comment.get("EN") or (next(iter(comment.values())) if comment else None)
     return comment
 
 
