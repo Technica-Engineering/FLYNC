@@ -3,7 +3,7 @@
 import string
 from typing import Optional, Self
 
-from pydantic import Field, PrivateAttr, field_serializer, model_validator
+from pydantic import Field, field_serializer, model_validator
 
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_minor
@@ -50,8 +50,8 @@ class Bitmask(FLYNCBaseModel):
 
     data: int = Field(ge=0)
     mask: Optional[int] = Field(default=None, ge=1)
-    _width: int = PrivateAttr(default=8)
-    _base: int = PrivateAttr(default=16)
+    _width: int = 8
+    _base: int = 16
 
     @model_validator(mode="wrap")
     @classmethod
