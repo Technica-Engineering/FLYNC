@@ -77,6 +77,7 @@ integrity:
       case "$CHECK" in
         error-catalog)
           uv sync --frozen
+          uv run python src/flync_cli/main.py errors generate-catalog
           uv run python src/flync_cli/main.py errors validate-catalog
           ;;
         # Reports warnings and succeeds: the existing docstrings are not clean yet. Add --strict to turn it into a gate.
