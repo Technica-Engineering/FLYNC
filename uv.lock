@@ -777,7 +777,7 @@ docs = [
     { name = "sphinx-autodoc-typehints" },
     { name = "sphinx-copybutton", specifier = "==0.5.2" },
     { name = "sphinx-design", specifier = ">=0.7.0,<0.8.0" },
-    { name = "sphinx-needs", specifier = "==8.3.1" },
+    { name = "sphinx-needs", specifier = "==8.4.0" },
     { name = "sphinxcontrib-mermaid", specifier = ">=2.0.0,<3.0.0" },
     { name = "sphinxcontrib-plantuml", specifier = "==0.31" },
 ]
@@ -2161,7 +2161,7 @@ wheels = [
 
 [[package]]
 name = "sphinx-needs"
-version = "8.3.1"
+version = "8.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jsonschema-rs" },
@@ -2173,9 +2173,9 @@ dependencies = [
     { name = "sphinxcontrib-jquery" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/53/9e/1264611eedd3e4149a520af9ec07bc146d6af6749f3000ab4ad583fd6cf9/sphinx_needs-8.3.1.tar.gz", hash = "sha256:ecc9807c06dd3698ecf78d3a6c0867a3bbaed56204f8cbc21fdd3e1282c2d2bb", size = 27678227, upload-time = "2026-08-11T19:32:34.699Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e8/5e/a181c09d8828e0709835ac425f1e47501ede5c080dc22092dac4781f422d/sphinx_needs-8.4.0.tar.gz", hash = "sha256:016cc98ac8397d7bf7ed2c9642bb4f42fc77c5b448ffb37785c465a69817ce91", size = 28020728, upload-time = "2026-08-27T11:49:11.597Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3c/e4/004adde6c1e4a40e750174ad8fee646b3065ce68c5a5e61a808c097e6f5f/sphinx_needs-8.3.1-py3-none-any.whl", hash = "sha256:cca706698cbb0c2fac5c8bf21fc30cd825473f97123783713cf5c9a9d01216c2", size = 2712423, upload-time = "2026-08-11T19:32:31.062Z" },
+    { url = "https://files.pythonhosted.org/packages/96/dd/91814ae1812638560f18e7062276e406f2beb4105a7597976458b6cc6d20/sphinx_needs-8.4.0-py3-none-any.whl", hash = "sha256:17d0bd4dcb9ca13a1da955dddb9e14867b913d96bc212f95b336211e63d5cf1f", size = 2760435, upload-time = "2026-08-27T11:49:08.586Z" },
 ]
 
 [[package]]
