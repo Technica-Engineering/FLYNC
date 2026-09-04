@@ -19,7 +19,6 @@ from pydantic import (
     ConfigDict,
     Field,
     IPvAnyAddress,
-    conset,
     field_serializer,
     model_validator,
 )
@@ -393,10 +392,7 @@ class SOMEIPEventgroup(FLYNCBaseModel):
     name: str = Field(description="name of the eventgroup")
     description: Optional[str] = Field(default="")
     id: Annotated[int, Field(gt=0, le=0xFFFF, strict=True)] = Field(description="identifies the eventgroup")
-    events: Annotated[
-        List[SOMEIPEvent | SOMEIPField],
-        conset(item_type=SOMEIPEvent | SOMEIPField, min_length=1),
-    ] = Field(description="the events this eventgroup contains")
+    events: List[SOMEIPEvent | SOMEIPField] = Field(description="the events this eventgroup contains")
 
     @property
     def fields(self) -> List[SOMEIPField]:
