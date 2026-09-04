@@ -1,5 +1,6 @@
 """Tests for the generate_system_uml CLI command and node-builder helpers."""
 
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -37,7 +38,9 @@ from flync_cli.commands.generate_system_uml import (
     parse_and_generate_uml,
 )
 
-from .helpers import make_ecu, make_interface, make_port
+from .cli_assertions import assert_cli_ok
+from .helpers import make_controller, make_ecu, make_interface, make_port
+from .rich_output import plain
 
 runner = CliRunner()
 
@@ -58,8 +61,12 @@ def _empty_all_nodes():
 
 
 def _make_ws():
+    """A workspace whose single ECU carries one Ethernet controller, so it lands on the diagram."""
     ws = MagicMock()
     ecu = make_ecu()
+    ecu.ports = []
+    ecu.controllers = [make_controller()]
+    ecu.switches = []
     ws.flync_model.get_all_ecus.return_value = [ecu.name]
     ws.flync_model.get_ecu_by_name.return_value = ecu
     ws.flync_model.ecus = [ecu]
@@ -671,9 +678,10 @@ class TestAddInterEcuUml:
 class TestParseAndGenerateUml:
     def test_basic_output_starts_and_ends(self):
         model = MagicMock()
-        lines = parse_and_generate_uml(model, None, [], [], [])
+        lines, included_ecus = parse_and_generate_uml(model, None, [], [], [])
         assert lines[0] == "@startuml"
         assert lines[-1] == "@enduml"
+        assert included_ecus == set()
 
     @pytest.mark.skip(reason="Review again. Mock broken.")
     def test_ecu_with_controller_appears_in_uml(self):
@@ -689,7 +697,7 @@ class TestParseAndGenerateUml:
         ecu.topology.connections = []
         model = MagicMock()
         model.get_ecu_by_name.return_value = ecu
-        lines = parse_and_generate_uml(model, None, [], [ecu], [])
+        lines, _ = parse_and_generate_uml(model, None, [], [ecu], [])
         assert any("ECU_A" in line for line in lines)
         assert any("CTRL0" in line for line in lines)
 
@@ -700,7 +708,7 @@ class TestParseAndGenerateUml:
         conn.ecu1_port.name = "PA"
         conn.ecu2_port.name = "PB"
         conn.id = "link1"
-        lines = parse_and_generate_uml(model, None, [], [], [conn])
+        lines, _ = parse_and_generate_uml(model, None, [], [], [conn])
         assert any("O--O" in line for line in lines)
 
 
@@ -708,13 +716,11 @@ class TestGenerateSystemUmlCommand:
 
     def test_exits_zero_with_valid_workspace(self, tmp_path):
         ws, ecu = _make_ws()
-        ecu.ports = []
-        ecu.controllers = []
-        ecu.switches = []
         output_file = str(tmp_path / "out.puml")
         with patch("flync_cli.commands.generate_system_uml.load_workspace", return_value=ws):
             result = runner.invoke(app, [str(tmp_path), "--output", output_file])
         assert result.exit_code == 0
+        assert f'package "{ecu.name}"' in Path(output_file).read_text()
 
     @pytest.mark.skip(reason="Review again.")
     def test_validate_failure_exits(self, tmp_path):
@@ -724,9 +730,6 @@ class TestGenerateSystemUmlCommand:
 
     def test_all_info_flags(self, tmp_path):
         ws, ecu = _make_ws()
-        ecu.ports = []
-        ecu.controllers = []
-        ecu.switches = []
         output_file = str(tmp_path / "out.puml")
         with patch("flync_cli.commands.generate_system_uml.load_workspace", return_value=ws):
             result = runner.invoke(
@@ -745,10 +748,6 @@ class TestGenerateSystemUmlCommand:
 
     def test_target_ecu_flag(self, tmp_path):
         ws, ecu = _make_ws()
-        ecu.ports = []
-        ecu.controllers = []
-        ecu.switches = []
-        ws.flync_model.get_ecu_by_name.return_value = ecu
         output_file = str(tmp_path / "out.puml")
         with patch("flync_cli.commands.generate_system_uml.load_workspace", return_value=ws):
             result = runner.invoke(
@@ -759,9 +758,6 @@ class TestGenerateSystemUmlCommand:
 
     def test_write_error_exits_nonzero(self, tmp_path):
         ws, ecu = _make_ws()
-        ecu.ports = []
-        ecu.controllers = []
-        ecu.switches = []
         output_file = str(tmp_path / "out.puml")
         with (
             patch("flync_cli.commands.generate_system_uml.load_workspace", return_value=ws),
@@ -774,3 +770,52 @@ class TestGenerateSystemUmlCommand:
             result = runner.invoke(app, [str(tmp_path), "--output", output_file])
         assert result.exit_code != 0
         assert "disk full" in result.output
+
+
+class TestWorkspaceWithoutEthernet:
+    """
+    A CAN/LIN-only workspace has no ethernet_topology, and its ECUs have no ports and no switches.
+
+    All three are Optional in the model and were dereferenced unguarded, so pointing the generator at examples/can_lin_example raised
+    AttributeError. Nothing crashes now, but nothing is drawable either: the command says so instead of writing a bare
+    @startuml/@enduml pair.
+    """
+
+    CAN_LIN = Path(__file__).parents[2] / "examples" / "can_lin_example"
+
+    def test_can_lin_workspace_warns_and_writes_nothing(self, tmp_path):
+        output_file = tmp_path / "out.puml"
+        result = runner.invoke(app, [str(self.CAN_LIN), "--output", str(output_file)])
+
+        assert_cli_ok(result)
+        assert "no Ethernet interfaces and no switches" in plain(result.output)
+        assert "CAN/LIN-only systems are not supported yet by this System UML generator" in plain(result.output)
+        assert not output_file.exists()
+
+    def test_ecu_without_ports_or_switches_is_skipped_not_fatal(self, tmp_path):
+        """``ports`` and ``switches`` arrive as None, not as an empty list."""
+
+        ws, ecu = _make_ws()
+        ecu.ports = None
+        ecu.switches = None
+        ecu.controllers = []
+        output_file = tmp_path / "out.puml"
+        with patch("flync_cli.commands.generate_system_uml.load_workspace", return_value=ws):
+            result = runner.invoke(app, [str(tmp_path), "--output", str(output_file)])
+
+        assert_cli_ok(result)
+        assert "not supported yet by this System UML generator" in plain(result.output)
+        assert not output_file.exists()
+
+    def test_vlan_filter_that_matches_nothing_names_the_vlan(self, tmp_path):
+        """An empty diagram from a VLAN filter is a different problem, and says so."""
+
+        ws, _ = _make_ws()
+        output_file = tmp_path / "out.puml"
+        with patch("flync_cli.commands.generate_system_uml.load_workspace", return_value=ws):
+            result = runner.invoke(app, [str(tmp_path), "--output", str(output_file), "--vlan-id", "999"])
+
+        assert_cli_ok(result)
+        assert "no Ethernet interface or switch port carries VLAN 999" in plain(result.output)
+        assert "CAN/LIN-only" not in plain(result.output)
+        assert not output_file.exists()

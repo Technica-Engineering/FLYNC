@@ -27,10 +27,17 @@ def make_interface(name="ETH0", vlan_id=10, ips=None):
     return iface
 
 
-def make_controller(name="ETH_CTRL", iface_name="ETH0"):
+def make_ethernet_interface(name="ETH0", vlan_id=10):
+    """A Controller holds EthernetInterface wrappers, each carrying the config under ``interface_config``."""
+    eth_iface = MagicMock()
+    eth_iface.interface_config = make_interface(name=name, vlan_id=vlan_id)
+    return eth_iface
+
+
+def make_controller(name="ETH_CTRL", iface_name="ETH0", vlan_id=10):
     ctrl = MagicMock()
     ctrl.name = name
-    ctrl.interfaces = [make_interface(name=iface_name)]
+    ctrl.ethernet_interfaces = [make_ethernet_interface(name=iface_name, vlan_id=vlan_id)]
     ctrl.get_all_ips.return_value = ["192.168.1.1"]
     return ctrl
 

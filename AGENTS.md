@@ -158,7 +158,7 @@ Example: `FLYNC-ECU-MAJ-VAL-001`
 
 | Segment | Values |
 |---|---|
-| **Module** | Auto-resolved from the `KEY` variable in each domain package's `__init__.py` (e.g. `ECU`, `SIG`, `SOMEIP`, `TOPO`, `TSN`, `SEC`, `META`, `NM`, `COM`, `APP`, `BUS`, `GEN`, `CMN`) |
+| **Module** | Auto-resolved from the `KEY` variable in each domain package's `__init__.py`. Declared today: `ECU`, `SIG`, `SOM`, `TOP`, `TSN`, `SEC`, `MET`, `BUS`. Packages without a `KEY` fall through to `CMN`; `flync.model.flync_model` and `version_migrators` resolve to `GEN` |
 | **Severity** | `WARN` (warning), `MIN` (minor), `MAJ` (major), `FAT` (fatal) |
 | **Category** | `VAL` (value range), `REQ` (required), `CONS` (consistency), `UNIQ` (uniqueness), `REF` (reference), `FMT` (format), `COMP` (compatibility), `STRUCT` (structural), `LIFE` (lifecycle) |
 | **Number** | Zero-padded 3-digit number, globally unique across the entire codebase (monotonically increasing, never reused) |

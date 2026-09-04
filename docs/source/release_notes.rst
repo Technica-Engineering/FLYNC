@@ -52,6 +52,18 @@ dead commands:
 * The renamed/removed commands above are still reachable under their old names as hidden, deprecated
   aliases that print a pointer to the new command.
 
+System UML on non-Ethernet workspaces
+'''''''''''''''''''''''''''''''''''''
+
+``flync generate-system-uml`` no longer crashes with an ``AttributeError`` on a workspace without
+Ethernet wiring. ``FLYNCTopology.ethernet_topology``, ``ECU.ports``, ``ECU.switches`` and
+``ECU.topology`` are all optional in the model and are now handled as such.
+
+An ECU still reaches the diagram only through its Ethernet interfaces or its switches, so a
+CAN/LIN-only workspace has nothing to draw. Rather than writing a file that renders to a blank
+image, the command now prints a warning naming the reason and writes no file. It still exits 0.
+The same warning covers a ``--vlan-id`` filter that matches nothing.
+
 DBC to FLYNC decoding
 '''''''''''''''''''''
 

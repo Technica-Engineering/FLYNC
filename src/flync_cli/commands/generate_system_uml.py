@@ -457,7 +457,7 @@ def add_inter_ecu_uml(conn, all_nodes, uml_lines, vlan_id):
 
 
 def parse_and_generate_uml(flync, vlan_id, options, ecus, connections):
-    """Generate PlantUML diagram content for the given ECUs and connections."""
+    """Generate PlantUML diagram content, and the names of the ECUs that actually made it onto it."""
     uml_lines = [
         "@startuml",
         "skinparam linetype ortho",
@@ -486,9 +486,10 @@ def parse_and_generate_uml(flync, vlan_id, options, ecus, connections):
             "controllers": {},
             "switches": {},
         }
-        add_ecu_port_nodes(ecu.ports, ecu_nodes, all_nodes["node_types"])
+        # ports and switches are optional on an ECU: a CAN/LIN-only node has neither and still belongs on the diagram.
+        add_ecu_port_nodes(ecu.ports or [], ecu_nodes, all_nodes["node_types"])
         add_controller_nodes(ecu.controllers, vlan_id, ecu_nodes, all_nodes, options)
-        add_switch_nodes(ecu.switches, vlan_id, ecu_nodes, all_nodes, options)
+        add_switch_nodes(ecu.switches or [], vlan_id, ecu_nodes, all_nodes, options)
 
         if ecu_nodes["controllers"] or ecu_nodes["switches"]:
             all_nodes["included_ecus"].add(ecu_name)
@@ -502,10 +503,10 @@ def parse_and_generate_uml(flync, vlan_id, options, ecus, connections):
 
     for ecu_name in all_nodes["included_ecus"]:
         ecu_actual = flync.get_ecu_by_name(ecu_name)
+        # An ECU without an internal topology has nothing to wire up, which is the normal case for a single-controller CAN node.
         topology = ecu_actual.topology
-
-        topology_connections = topology.connections
-        generate_intra_ecu_uml(topology_connections, uml_lines, all_nodes, vlan_id)
+        if topology is not None:
+            generate_intra_ecu_uml(topology.connections, uml_lines, all_nodes, vlan_id)
 
     uml_lines.append("' Inter-ECU Connections")
 
@@ -513,7 +514,26 @@ def parse_and_generate_uml(flync, vlan_id, options, ecus, connections):
         add_inter_ecu_uml(conn, all_nodes, uml_lines, vlan_id)
 
     uml_lines.append("@enduml")
-    return uml_lines
+    return uml_lines, all_nodes["included_ecus"]
+
+
+NO_ETHERNET_REASON = (
+    "this workspace has no Ethernet interfaces and no switches - CAN/LIN-only systems are not supported yet by this System UML generator"
+)
+
+
+def warn_nothing_to_diagram(vlan_id):
+    """
+    Say why the diagram came out empty, rather than writing a file that renders to a blank image.
+
+    An ECU reaches the diagram through its Ethernet interfaces or its switches. A CAN/LIN-only ECU has neither, so it is
+    filtered out and the result is a bare @startuml/@enduml pair.
+    """
+    if vlan_id is not None:
+        reason = f"no Ethernet interface or switch port carries VLAN {vlan_id}, so the diagram would be empty"
+    else:
+        reason = NO_ETHERNET_REASON
+    console.print(f"[yellow]Warning: {reason}. No file written.[/yellow]")
 
 
 @app.command(
@@ -571,16 +591,23 @@ def generate_system_uml(
     if show_qos:
         options.append("qos")
 
+    connections: list = []
+
     if target_ecu:
-        find_target_ecu = flync_model.get_ecu_by_name(target_ecu)
-        ecus = [find_target_ecu]
-        connections: list = []
+        ecus = [flync_model.get_ecu_by_name(target_ecu)]
     else:
         ecus = flync_model.ecus
-        assert flync_model.topology.ethernet_topology is not None
-        connections = flync_model.topology.ethernet_topology.connections
+        # ethernet_topology is optional: a CAN/LIN-only workspace has no ECU-to-ECU Ethernet wiring.
+        ethernet_topology = flync_model.topology.ethernet_topology
+        if ethernet_topology is not None:
+            connections = ethernet_topology.connections
 
-    uml_lines = parse_and_generate_uml(flync_model, vlan_id, options, ecus, connections)
+    uml_lines, included_ecus = parse_and_generate_uml(flync_model, vlan_id, options, ecus, connections)
+
+    if not included_ecus:
+        warn_nothing_to_diagram(vlan_id)
+        raise typer.Exit(code=0)
+
     output_path = Path(output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     try:
