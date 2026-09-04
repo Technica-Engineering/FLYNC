@@ -7,15 +7,15 @@ sections. Diagram content can be restricted to a single VLAN.
 """
 
 from pathlib import Path
-from typing import Optional
+from typing import Optional, cast
 
 import typer
-from rich.console import Console
 
+from flync.model.flync_model import FLYNCModel
+from flync_cli.utils.console import console
 from flync_cli.utils.mapping import get_mapping
-from flync_cli.utils.run_validation import run_validation
+from flync_cli.utils.workspace import WorkspacePathArg, load_workspace
 
-console = Console(force_terminal=True)
 app = typer.Typer()
 
 END_NOTE = "    end note"
@@ -520,7 +520,7 @@ def parse_and_generate_uml(flync, vlan_id, options, ecus, connections):
     help="Generate a UML representation of a given system configuration. Java (JRE 11+) must be on your PATH for PlantUML rendering to work."
 )
 def generate_system_uml(
-    path: str = typer.Argument(help="Path to FLYNC config  directory containing ecus/"),
+    path: WorkspacePathArg = None,
     output: str = typer.Option(
         "exports/uml/system_uml.puml",
         "--output",
@@ -559,7 +559,8 @@ def generate_system_uml(
     ),
 ):
     """Generate PlantUML diagram representing the system architecture with optional feature annotations."""
-    loaded_ws = run_validation(path)
+    loaded_ws = load_workspace(path)
+    flync_model = cast(FLYNCModel, loaded_ws.flync_model)
     options = []
     if show_macsec:
         options.append("macsec")
@@ -571,14 +572,15 @@ def generate_system_uml(
         options.append("qos")
 
     if target_ecu:
-        find_target_ecu = loaded_ws.flync_model.get_ecu_by_name(target_ecu)
+        find_target_ecu = flync_model.get_ecu_by_name(target_ecu)
         ecus = [find_target_ecu]
-        connections = []
+        connections: list = []
     else:
-        ecus = loaded_ws.flync_model.ecus
-        connections = loaded_ws.flync_model.topology.ethernet_topology.connections
+        ecus = flync_model.ecus
+        assert flync_model.topology.ethernet_topology is not None
+        connections = flync_model.topology.ethernet_topology.connections
 
-    uml_lines = parse_and_generate_uml(loaded_ws.flync_model, vlan_id, options, ecus, connections)
+    uml_lines = parse_and_generate_uml(flync_model, vlan_id, options, ecus, connections)
     output_path = Path(output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     try:

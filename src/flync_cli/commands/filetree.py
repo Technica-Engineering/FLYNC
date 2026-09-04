@@ -1,10 +1,10 @@
-"""``flync debug`` command: dumps internal FLYNC model structures for troubleshooting."""
+"""``flync filetree`` command: exports the expected filetree of a FLYNC configuration to a txt file."""
 
 from typing import Optional
 
 import typer
 from pydantic import BaseModel
-from rich.console import Console
+from typing_extensions import Annotated
 
 from flync.model import FLYNCModel
 from flync.model.flync_4_communication import FLYNCChannelConfig, FLYNCCommunicationConfig
@@ -12,22 +12,9 @@ from flync.model.flync_4_ecu import ECU, Controller, EthernetInterface
 from flync.model.flync_4_someip import SOMEIPConfig
 from flync.model.flync_4_topology import FLYNCTopology
 from flync.sdk.helpers.debug import print_field_subtree, print_flync_structure
+from flync_cli.utils.console import console
 
 app = typer.Typer()
-console = Console(force_terminal=True)
-
-
-@app.command(help="Run layered validation to debug a FLYNC model step by step")
-def debug(
-    dir_path: str = typer.Argument(help="Path to FLYNC config directory"),
-):
-    """Run the layered debug validator against the FLYNC config directory at ``dir_path``."""
-    from pathlib import Path
-
-    from flync.sdk.helpers.debug_layers import run_debug
-
-    run_debug(Path(dir_path).resolve())
-
 
 # Each value is either:
 #   - a BaseModel subclass  →  passed directly to print_flync_structure
@@ -71,19 +58,11 @@ _CLASS_MAP: dict[str, type[BaseModel] | tuple[type[BaseModel], str]] = {
 }
 
 
-@app.command(help="Display the repo structure of the current FLYNC model")
-def display_repo_structure(
-    cls_name: Optional[str] = typer.Option(
-        None,
-        "--class",
-        help=("Sub-tree to visualise. " f"Choices: {', '.join(_CLASS_MAP)}. " "Defaults to the full FLYNCModel."),
-    ),
-):
-    """Print the field structure of a FLYNC model or one of its named sub-trees.
+def _show_filetree(cls_name: Optional[str]):
+    """Write the field structure of a FLYNC model or one of its named sub-trees to a txt file and return its path.
 
-    With no ``--class``, renders the full FLYNCModel. Otherwise looks up
-    ``cls_name`` in ``_CLASS_MAP`` and renders either the mapped BaseModel
-    subclass directly or, for leaf item types, the named field of the
+    With no ``cls_name``, renders the full FLYNCModel. Otherwise looks up ``cls_name`` in ``_CLASS_MAP`` and
+    renders either the mapped BaseModel subclass directly or, for leaf item types, the named field of the
     mapped parent class.
     """
     if cls_name is None:
@@ -100,4 +79,19 @@ def display_repo_structure(
         else:
             out = print_flync_structure(model_cls=entry)
 
-    console.print("Repo structure saved at ", out)
+    console.print("Filetree exported to ", out)
+    return out
+
+
+@app.command(help="Export the expected filetree of a FLYNC configuration to a txt file.")
+def filetree(
+    cls_name: Annotated[
+        Optional[str],
+        typer.Option(
+            "--class",
+            help=("Sub-tree to visualise. " f"Choices: {', '.join(_CLASS_MAP)}. " "Defaults to the full FLYNCModel."),
+        ),
+    ] = None,
+):
+    """Export the expected filetree of a FLYNC model or one of its named sub-trees."""
+    _show_filetree(cls_name)

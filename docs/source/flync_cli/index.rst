@@ -13,10 +13,11 @@ Commands
 --------
 
 - **validate** - Load and validate a FLYNC workspace, reporting all errors.
-- **info** - Display workspace inventory (ECUs, controllers, switches, ports, sockets, services, IP addresses).
-- **vlan-info** - Show per-VLAN membership, interfaces, and IP addresses.
-- **service-info** - Inspect SOME/IP service deployments across ECUs.
+- **info** - Command group displaying workspace inventory: ``ecus``, ``controllers``, ``switches``, ``ports``,
+  ``ip``, ``sockets``, ``services``, ``instances``, ``vlans``.
+- **filetree** - Export the expected filetree of a FLYNC configuration to a txt file.
 - **generate-system-uml** - Generate PlantUML topology diagrams.
+- **config** - Store, show, or clear the workspace path used when a command omits its path argument in a CLI session.
 - **errors** - Inspect and maintain the :doc:`../error_catalog`.
 
 Show all available commands

@@ -131,15 +131,18 @@ tests/
 
 | Module | Description |
 |---|---|
-| `main.py` | Root Typer app that wires up commands from the 7 modules under `commands/` via `add_typer`. Only `errors` is registered as a named subcommand group (`name="errors"`); the others attach their commands at the top level |
-| `commands/validate.py` | Workspace validation (semantic checks, reference resolution) |
-| `commands/info.py` | ECU/controller/interface info in Rich tables |
-| `commands/vlan_info.py` | VLAN and multicast group information |
+| `main.py` | Root Typer app that wires up commands from `commands/` via `add_typer`. `info`, `config`, and `errors` are registered as named subcommand groups; `validate`, `filetree`, and `generate-system-uml` attach at the top level. Also hosts the hidden, deprecated top-level aliases (`display-vlan-info`, `display-service-info`, `display-repo-structure`, `debug`) |
+| `commands/validate.py` | Workspace validation (semantic checks, reference resolution); `--verbose` runs the layered debug checks from `flync.sdk.helpers.debug_layers` |
+| `commands/info.py` | The `info` command group: `ecus`, `controllers`, `switches`, `ports`, `ip`, `sockets`, `services`, `instances`, `vlans` — plus their hidden `list-*` aliases |
+| `commands/config.py` | The `config` command group: `set`/`show`/`clear` the session-persisted workspace path |
+| `commands/filetree.py` | Exports the expected filetree of a FLYNC configuration (or a model sub-tree) to a txt file |
 | `commands/generate_system_uml.py` | PlantUML system diagram generation from workspace |
-| `commands/service_info.py` | SOME/IP service consumer/provider deployments |
-| `commands/debug_flync.py` | Debug print helpers for model subtrees and structure |
 | `commands/errors.py` | FLYNC error catalog inspection and maintenance |
-| `utils/` | Shared utilities: error table rendering, error catalog scanning, connection mapping, validation runner |
+| `utils/workspace.py` | Session-persisted workspace path (backing `config`) and `load_workspace()`, the shared "resolve path, validate, hand back the workspace" used by every command |
+| `utils/model_views.py` | Shared model-traversal generators (sockets, IP assignments, VLAN membership, SOME/IP deployments) behind the `info` reports |
+| `utils/console.py` | The one shared Rich `Console` instance used across the CLI |
+| `utils/deprecation.py` | `warn_deprecated()`, printed by every hidden deprecated alias |
+| `utils/` (remaining) | Error table rendering, error catalog scanning, connection mapping |
 
 ## Error Catalog
 

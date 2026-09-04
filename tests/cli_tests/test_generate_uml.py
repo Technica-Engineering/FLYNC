@@ -712,7 +712,7 @@ class TestGenerateSystemUmlCommand:
         ecu.controllers = []
         ecu.switches = []
         output_file = str(tmp_path / "out.puml")
-        with patch("flync_cli.commands.generate_system_uml.run_validation", return_value=ws):
+        with patch("flync_cli.commands.generate_system_uml.load_workspace", return_value=ws):
             result = runner.invoke(app, [str(tmp_path), "--output", output_file])
         assert result.exit_code == 0
 
@@ -728,7 +728,7 @@ class TestGenerateSystemUmlCommand:
         ecu.controllers = []
         ecu.switches = []
         output_file = str(tmp_path / "out.puml")
-        with patch("flync_cli.commands.generate_system_uml.run_validation", return_value=ws):
+        with patch("flync_cli.commands.generate_system_uml.load_workspace", return_value=ws):
             result = runner.invoke(
                 app,
                 [
@@ -750,7 +750,7 @@ class TestGenerateSystemUmlCommand:
         ecu.switches = []
         ws.flync_model.get_ecu_by_name.return_value = ecu
         output_file = str(tmp_path / "out.puml")
-        with patch("flync_cli.commands.generate_system_uml.run_validation", return_value=ws):
+        with patch("flync_cli.commands.generate_system_uml.load_workspace", return_value=ws):
             result = runner.invoke(
                 app,
                 [str(tmp_path), "--output", output_file, "--target-ecu", "ECU1"],
@@ -764,7 +764,7 @@ class TestGenerateSystemUmlCommand:
         ecu.switches = []
         output_file = str(tmp_path / "out.puml")
         with (
-            patch("flync_cli.commands.generate_system_uml.run_validation", return_value=ws),
+            patch("flync_cli.commands.generate_system_uml.load_workspace", return_value=ws),
             patch("flync_cli.commands.generate_system_uml.Path") as mock_path_cls,
         ):
             mock_p = MagicMock()

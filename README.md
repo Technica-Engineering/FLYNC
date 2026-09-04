@@ -152,20 +152,26 @@ for ecu in model.ecus:
 ### Example: CLI
 
 ```bash
-# Validate a workspace
-flync validate path/to/my_project
+# Store a workspace path once, so the commands below can omit it
+flync config set path/to/my_project
 
-# Show ECU / controller / interface information
-flync info path/to/my_project
+# Validate a workspace
+flync validate
+
+# Show ECU / controller / interface / socket / IP information
+flync info ecus
+flync info sockets
+flync info ip
 
 # Generate a PlantUML system diagram
-flync generate-system-uml path/to/my_project
+flync generate-system-uml
 
-# Show SOME/IP service deployments
-flync service-info path/to/my_project
+# Show SOME/IP services and one service instance's deployments
+flync info services
+flync info instances 0x0101 1
 
-# Show VLAN and multicast group information
-flync vlan-info path/to/my_project
+# Show VLAN membership
+flync info vlans
 ```
 
 ## CLI Tools

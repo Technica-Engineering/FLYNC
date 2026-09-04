@@ -14,6 +14,44 @@ Release Notes
 Release 0.14
 ------------
 
+CLI restructure
+''''''''''''''''
+
+The ``flync`` CLI command tree was reorganized for consistency and to fix a handful of broken or
+dead commands:
+
+* ``flync info`` is now a real command group: ``ecus``, ``controllers``, ``switches``, ``ports``,
+  ``ip``, ``sockets``, ``services``, ``instances``, ``vlans``.
+
+  * ``info sockets`` (previously ``info list-sockets``, which silently printed nothing) now shows
+    socket endpoints grouped by ECU and VLAN, with their interface, virtual interface, MAC, IP,
+    protocol and port.
+  * ``info instances`` (replaces the top-level ``display-service-info``) looks a service instance
+    up by its **service ID and major version** instead of its name, and reports a clear error - with
+    the list of available services - for an id/major that does not exist.
+  * ``info services`` (previously ``info list-services``) now lists each service's ID, major
+    version, and its providing/consuming ECUs, not just its name.
+  * ``info ports`` (previously ``info list-ports``) is grouped by ECU and drops the row numbering
+    that did not correspond to anything in the model.
+  * ``info ip`` (previously ``info list-ips``) now shows each address's VLAN and subnet.
+  * ``info vlans`` (replaces the top-level ``display-vlan-info``, which raised an ``AttributeError``)
+    is grouped by VLAN and fixes the traceback; the VLAN ID is now an optional ``--vlan-id`` filter.
+
+* ``flync display-repo-structure`` is renamed to ``flync filetree``, with an updated description:
+  it exports the expected filetree of a FLYNC configuration to a txt file.
+* ``flync validate``:
+
+  * ``--quiet`` is removed.
+  * ``--verbose`` now runs the layered debug checks (folder structure, YAML syntax, schema, field
+    values, system-wide) that ``flync debug`` used to run.
+  * The standalone ``flync debug`` command is removed.
+
+* ``flync config set|show|clear`` stores a default workspace path for the session. Every command's
+  ``path`` argument is now optional and falls back to the stored path; an explicit argument always
+  wins.
+* The renamed/removed commands above are still reachable under their old names as hidden, deprecated
+  aliases that print a pointer to the new command.
+
 DBC to FLYNC decoding
 '''''''''''''''''''''
 

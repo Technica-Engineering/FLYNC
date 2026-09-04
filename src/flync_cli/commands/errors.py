@@ -1,9 +1,9 @@
 """``flync errors`` — helper commands for the error catalog."""
 
 import typer
-from rich.console import Console
 from rich.table import Table
 
+from flync_cli.utils.console import console
 from flync_cli.utils.errors import (
     CATALOG_PATH,
     next_error_number,
@@ -13,7 +13,6 @@ from flync_cli.utils.errors import (
 )
 
 app = typer.Typer(help="Inspect and maintain the FLYNC error catalog.")
-console = Console(force_terminal=True)
 
 
 @app.command(name="get-next-number", help="Print the next free globally-unique error number.")

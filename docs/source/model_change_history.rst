@@ -243,6 +243,22 @@ Breaking — CLI / converter
   ``generate-catalogue`` → ``generate-catalog`` (``get-next-number`` unchanged). Generated
   doc moved to ``docs/source/error_catalog.rst``.
 * ``flync validate`` now exits **non-zero** on validation errors (``sys.exit(1)``) — CI-visible.
+* ``flync info`` is now a real command group instead of one command with an enum argument:
+  ``info list-ecus`` → ``info ecus``, ``list-controllers`` → ``controllers``, ``list-switches`` →
+  ``switches``, ``list-ports`` → ``ports``, ``list-ips`` → ``ip``, ``list-sockets`` (previously
+  dead — silently printed nothing) → ``sockets``, ``list-services`` → ``services``. New:
+  ``info instances`` (looks up a SOME/IP service instance by ``service_id`` + ``major_version``,
+  not by name) and ``info vlans`` (grouped by VLAN, replacing the crashing top-level
+  ``display-vlan-info``).
+* ``flync display-service-info`` → ``flync info instances`` (name lookup replaced by
+  service ID + major version).
+* ``flync display-repo-structure`` → ``flync filetree``.
+* ``flync validate --quiet`` removed; ``flync debug`` removed (its layered checks moved to
+  ``flync validate --verbose``).
+* Every command's ``path`` argument is now optional, falling back to the workspace stored with
+  the new ``flync config set``.
+* All of the above old names remain callable as hidden, deprecated aliases (they print a
+  pointer to the replacement) — only ``--quiet`` has no replacement flag.
 
 Breaking — Python API
 ---------------------
@@ -270,6 +286,10 @@ Additive (0.14.x)
 * ``FLYNCBaseModel`` sets ``validate_assignment=True``.
 * Converter front-end loading refactored into ``cli/_optional.py`` with actionable install
   hints; entry points preserved.
+* New ``flync config set|show|clear`` command group persists a default workspace path for the
+  session (stored via ``platformdirs``); ``flync info ip``/``sockets``/``vlans`` reports now
+  include VLAN and subnet information that the old ``list-ips``/``list-sockets``/
+  ``display-vlan-info`` did not.
 
 Internal only
 -------------

@@ -1,38 +1,13 @@
 """Shared pytest fixtures for flync_cli tests."""
 
-from unittest.mock import MagicMock
+import os
 
-import pytest
-from typer.testing import CliRunner
-
-from .helpers import make_ecu, make_interface
-
-
-@pytest.fixture
-def cli_runner():
-    return CliRunner()
-
-
-@pytest.fixture
-def mock_ecu():
-    return make_ecu()
-
-
-@pytest.fixture
-def mock_model(mock_ecu):
-    model = MagicMock()
-    model.ecus = [mock_ecu]
-    model.get_all_ecus.return_value = [mock_ecu.name]
-    model.get_ecu_by_name.return_value = mock_ecu
-    service = MagicMock()
-    service.name = "TestService"
-    model.communication.someip_config.services = [service]
-    model.topology.ethernet_topology.connections = []
-    return model
-
-
-@pytest.fixture
-def mock_workspace(mock_model):
-    ws = MagicMock()
-    ws.flync_model = mock_model
-    return ws
+# flync_cli.utils.console builds its shared Console at import time from the process's terminal size.
+# Force it wide here (before that import can happen, and overriding any real COLUMNS/LINES the test
+# runner inherited) so report-content assertions on wide tables don't depend on the ambient tty width.
+#
+# test_info.py, test_model_views.py and test_validate.py no longer depend on this: they pin their own
+# width per test via tests.cli_tests.rich_output.capture(). It is kept for test_generate_uml.py, which
+# still reads the shared console directly and is scoped for its own follow-up rewrite.
+os.environ["COLUMNS"] = "200"
+os.environ["LINES"] = "50"
