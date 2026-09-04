@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Coverage for src/flync/sdk/helpers/debug.py: 92%</title>
+    <title>Coverage for src/flync/sdk/helpers/debug.py: 97%</title>
     <link rel="icon" sizes="32x32" href="favicon_32_cb_c827f16f.png">
     <link rel="stylesheet" href="style_cb_4667309f.css" type="text/css">
     <script src="coverage_html_cb_dd2e7eb5.js" defer></script>
@@ -12,7 +12,7 @@
     <div class="content">
         <h1>
             <span class="text">Coverage for </span><b>src<span class="sep">/</span>flync<span class="sep">/</span>sdk<span class="sep">/</span>helpers<span class="sep">/</span>debug.py</b>:
-            <span class="pc_cov">92%</span>
+            <span class="pc_cov">97%</span>
         </h1>
         <aside id="help_panel_wrapper">
             <input id="help_panel_state" type="checkbox">
@@ -55,8 +55,8 @@
         </aside>
         <h2>
             <span class="text">112 statements &nbsp;</span>
-            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">103<span class="text"> run</span></button>
-            <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">9<span class="text"> missing</span></button>
+            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">109<span class="text"> run</span></button>
+            <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">3<span class="text"> missing</span></button>
             <button type="button" class="exc show_exc button_toggle_exc" value="exc" data-shortcut="x" title="Toggle lines excluded">0<span class="text"> excluded</span></button>
         </h2>
         <p class="text">
@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_484f350866509b46___init___py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
-            created at 2026-09-04 07:57 +0000
+            created at 2026-09-04 14:09 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -120,8 +120,8 @@
     <p class="run"><span class="n"><a id="t38" href="#t38">38</a></span><span class="t">    <span class="key">while</span> <span class="key">True</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t39" href="#t39">39</a></span><span class="t">        <span class="com"># Annotated[X, ...] carries extra metadata in __metadata__; the real type is arg 0</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t40" href="#t40">40</a></span><span class="t">        <span class="key">if</span> <span class="nam">hasattr</span><span class="op">(</span><span class="nam">tp</span><span class="op">,</span> <span class="str">&quot;__metadata__&quot;</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t41" href="#t41">41</a></span><span class="t">            <span class="nam">tp</span> <span class="op">=</span> <span class="nam">get_args</span><span class="op">(</span><span class="nam">tp</span><span class="op">)</span><span class="op">[</span><span class="num">0</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t42" href="#t42">42</a></span><span class="t">            <span class="key">continue</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t41" href="#t41">41</a></span><span class="t">            <span class="nam">tp</span> <span class="op">=</span> <span class="nam">get_args</span><span class="op">(</span><span class="nam">tp</span><span class="op">)</span><span class="op">[</span><span class="num">0</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t42" href="#t42">42</a></span><span class="t">            <span class="key">continue</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t43" href="#t43">43</a></span><span class="t">        <span class="nam">origin</span> <span class="op">=</span> <span class="nam">get_origin</span><span class="op">(</span><span class="nam">tp</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t44" href="#t44">44</a></span><span class="t">        <span class="com"># Union[X, None] is how Optional[X] is stored at runtime</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t45" href="#t45">45</a></span><span class="t">        <span class="key">if</span> <span class="nam">origin</span> <span class="key">is</span> <span class="nam">Union</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
@@ -235,10 +235,10 @@
     <p class="pln"><span class="n"><a id="t153" href="#t153">153</a></span><span class="t">    <span class="str">&quot;&quot;&quot;Build the child lines for a folder-node field: list-item placeholder or nested model.&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t154" href="#t154">154</a></span><span class="t">    <span class="nam">is_list</span><span class="op">,</span> <span class="nam">inner</span> <span class="op">=</span> <span class="nam">_unwrap_type</span><span class="op">(</span><span class="nam">ann</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t155" href="#t155">155</a></span><span class="t">    <span class="key">if</span> <span class="key">not</span> <span class="nam">_is_pydantic_model</span><span class="op">(</span><span class="nam">inner</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t156" href="#t156">156</a></span><span class="t">        <span class="key">return</span> <span class="op">[</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t156" href="#t156">156</a></span><span class="t">        <span class="key">return</span> <span class="op">[</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t157" href="#t157">157</a></span><span class="t">    <span class="key">if</span> <span class="nam">is_list</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t158" href="#t158">158</a></span><span class="t">        <span class="key">return</span> <span class="nam">_build_list_item_lines</span><span class="op">(</span><span class="nam">field_name</span><span class="op">,</span> <span class="nam">inner</span><span class="op">,</span> <span class="nam">child_prefix</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t159" href="#t159">159</a></span><span class="t">    <span class="key">return</span> <span class="nam">_build_lines</span><span class="op">(</span><span class="nam">inner</span><span class="op">,</span> <span class="nam">child_prefix</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t159" href="#t159">159</a></span><span class="t">    <span class="key">return</span> <span class="nam">_build_lines</span><span class="op">(</span><span class="nam">inner</span><span class="op">,</span> <span class="nam">child_prefix</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t160" href="#t160">160</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t161" href="#t161">161</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t162" href="#t162">162</a></span><span class="t"><span class="key">def</span> <span class="nam">_build_list_item_lines</span><span class="op">(</span><span class="nam">field_name</span><span class="op">:</span> <span class="nam">str</span><span class="op">,</span> <span class="nam">inner</span><span class="op">:</span> <span class="nam">type</span><span class="op">[</span><span class="nam">BaseModel</span><span class="op">]</span><span class="op">,</span> <span class="nam">child_prefix</span><span class="op">:</span> <span class="nam">str</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="nam">list</span><span class="op">[</span><span class="nam">str</span><span class="op">]</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
@@ -308,9 +308,9 @@
     <p class="pln"><span class="n"><a id="t226" href="#t226">226</a></span><span class="t"><span class="str">    Returns the Path of the file that was written.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t227" href="#t227">227</a></span><span class="t"><span class="str">    &quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t228" href="#t228">228</a></span><span class="t">    <span class="key">if</span> <span class="nam">model_cls</span> <span class="key">is</span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t229" href="#t229">229</a></span><span class="t">        <span class="key">from</span> <span class="nam">flync</span><span class="op">.</span><span class="nam">model</span><span class="op">.</span><span class="nam">flync_model</span> <span class="key">import</span> <span class="nam">FLYNCModel</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t229" href="#t229">229</a></span><span class="t">        <span class="key">from</span> <span class="nam">flync</span><span class="op">.</span><span class="nam">model</span><span class="op">.</span><span class="nam">flync_model</span> <span class="key">import</span> <span class="nam">FLYNCModel</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t230" href="#t230">230</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t231" href="#t231">231</a></span><span class="t">        <span class="nam">model_cls</span> <span class="op">=</span> <span class="nam">FLYNCModel</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t231" href="#t231">231</a></span><span class="t">        <span class="nam">model_cls</span> <span class="op">=</span> <span class="nam">FLYNCModel</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t232" href="#t232">232</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t233" href="#t233">233</a></span><span class="t">    <span class="nam">lines</span> <span class="op">=</span> <span class="op">[</span><span class="str">&quot;!! required&quot;</span><span class="op">,</span> <span class="str">&quot;&quot;</span><span class="op">,</span> <span class="fst">f&quot;</span><span class="op">{</span><span class="nam">model_cls</span><span class="op">.</span><span class="nam">__name__</span><span class="op">}</span><span class="fst">/</span><span class="fst">&quot;</span><span class="op">]</span> <span class="op">+</span> <span class="nam">_build_lines</span><span class="op">(</span><span class="nam">model_cls</span><span class="op">,</span> <span class="str">&quot;&quot;</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t234" href="#t234">234</a></span><span class="t">    <span class="nam">content</span> <span class="op">=</span> <span class="str">&quot;\n&quot;</span><span class="op">.</span><span class="nam">join</span><span class="op">(</span><span class="nam">lines</span><span class="op">)</span> <span class="op">+</span> <span class="str">&quot;\n&quot;</span>&nbsp;</span><span class="r"></span></p>
@@ -328,7 +328,7 @@
             <a class="nav" href="z_484f350866509b46___init___py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
-            created at 2026-09-04 07:57 +0000
+            created at 2026-09-04 14:09 +0000
         </p>
     </div>
 </footer>

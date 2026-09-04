@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Coverage for src/flync/sdk/helpers/debug_layers/layer1_structure.py: 95%</title>
+    <title>Coverage for src/flync/sdk/helpers/debug_layers/layer1_structure.py: 97%</title>
     <link rel="icon" sizes="32x32" href="favicon_32_cb_c827f16f.png">
     <link rel="stylesheet" href="style_cb_4667309f.css" type="text/css">
     <script src="coverage_html_cb_dd2e7eb5.js" defer></script>
@@ -12,7 +12,7 @@
     <div class="content">
         <h1>
             <span class="text">Coverage for </span><b>src<span class="sep">/</span>flync<span class="sep">/</span>sdk<span class="sep">/</span>helpers<span class="sep">/</span>debug_layers<span class="sep">/</span>layer1_structure.py</b>:
-            <span class="pc_cov">95%</span>
+            <span class="pc_cov">97%</span>
         </h1>
         <aside id="help_panel_wrapper">
             <input id="help_panel_state" type="checkbox">
@@ -55,8 +55,8 @@
         </aside>
         <h2>
             <span class="text">129 statements &nbsp;</span>
-            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">123<span class="text"> run</span></button>
-            <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">6<span class="text"> missing</span></button>
+            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">125<span class="text"> run</span></button>
+            <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">4<span class="text"> missing</span></button>
             <button type="button" class="exc show_exc button_toggle_exc" value="exc" data-shortcut="x" title="Toggle lines excluded">0<span class="text"> excluded</span></button>
         </h2>
         <p class="text">
@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_484f350866509b46_layer2_yaml_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
-            created at 2026-09-04 07:57 +0000
+            created at 2026-09-04 14:09 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -175,7 +175,7 @@
     <p class="run run2"><span class="n"><a id="t93" href="#t93">93</a></span><span class="t"><span class="op">)</span> <span class="op">-&gt;</span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t94" href="#t94">94</a></span><span class="t">    <span class="str">&quot;&quot;&quot;Recursively walk model_cls, recording each expected name and where it lives.&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t95" href="#t95">95</a></span><span class="t">    <span class="key">if</span> <span class="nam">model_cls</span> <span class="key">in</span> <span class="nam">visited</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t96" href="#t96">96</a></span><span class="t">        <span class="key">return</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t96" href="#t96">96</a></span><span class="t">        <span class="key">return</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t97" href="#t97">97</a></span><span class="t">    <span class="nam">visited</span><span class="op">.</span><span class="nam">add</span><span class="op">(</span><span class="nam">model_cls</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t98" href="#t98">98</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t99" href="#t99">99</a></span><span class="t">    <span class="key">for</span> <span class="nam">field_name</span><span class="op">,</span> <span class="nam">field_info</span><span class="op">,</span> <span class="nam">ext</span> <span class="key">in</span> <span class="nam">_get_ext_fields</span><span class="op">(</span><span class="nam">model_cls</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
@@ -299,7 +299,7 @@
     <p class="run"><span class="n"><a id="t217" href="#t217">217</a></span><span class="t">    <span class="key">if</span> <span class="nam">is_list</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t218" href="#t218">218</a></span><span class="t">        <span class="nam">_check_list_field_items</span><span class="op">(</span><span class="nam">name</span><span class="op">,</span> <span class="nam">inner</span><span class="op">,</span> <span class="nam">target</span><span class="op">,</span> <span class="nam">root_path</span><span class="op">,</span> <span class="nam">known_names</span><span class="op">,</span> <span class="nam">issues</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t219" href="#t219">219</a></span><span class="t">    <span class="key">else</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t220" href="#t220">220</a></span><span class="t">        <span class="nam">_check_dir</span><span class="op">(</span><span class="nam">inner</span><span class="op">,</span> <span class="nam">target</span><span class="op">,</span> <span class="nam">root_path</span><span class="op">,</span> <span class="nam">known_names</span><span class="op">,</span> <span class="nam">issues</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t220" href="#t220">220</a></span><span class="t">        <span class="nam">_check_dir</span><span class="op">(</span><span class="nam">inner</span><span class="op">,</span> <span class="nam">target</span><span class="op">,</span> <span class="nam">root_path</span><span class="op">,</span> <span class="nam">known_names</span><span class="op">,</span> <span class="nam">issues</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t221" href="#t221">221</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t222" href="#t222">222</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t223" href="#t223">223</a></span><span class="t"><span class="key">def</span> <span class="nam">_check_list_field_items</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
@@ -436,7 +436,7 @@
             <a class="nav" href="z_484f350866509b46_layer2_yaml_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
-            created at 2026-09-04 07:57 +0000
+            created at 2026-09-04 14:09 +0000
         </p>
     </div>
 </footer>
