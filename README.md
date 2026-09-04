@@ -39,7 +39,7 @@ FLYNC models the full automotive E/E architecture across 12 domains:
 |---|---|
 | **ECU** | Controllers, Ethernet/CAN/LIN interfaces, ports, PHY types (RGMII, SGMII, BASET…), switches, VLANs, multicast |
 | **Signal / PDU / Frame** | Full signal-to-frame stack, data types, PDUs (standard/multiplexed/container), CAN/LIN/CAN-FD frames, forwarding |
-| **SOME/IP** | AUTOSAR SOME/IP service interfaces, events, methods, fields, eventgroups, UDP/TCP deployment |
+| **SOME/IP** | Open SOME/IP service interfaces, events, methods, fields, eventgroups, UDP/TCP deployment |
 | **Topology** | Physical and logical network topology, switch/port interconnections, ECU connections |
 | **TSN** | QoS shaping (CBS, ATS, HTB), traffic classes, PTP time synchronization |
 | **Security** | Firewall rules, MACsec encryption (integrity + confidentiality) |

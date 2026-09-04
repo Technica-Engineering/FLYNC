@@ -90,7 +90,7 @@ tests/
 |---|---|---|
 | `flync_4_ecu` | **ECU** | Full ECU detail: controllers, Ethernet/CAN/LIN interfaces, ports, sockets, PHY types (RGMII, SGMII, BASET...), switches, VLANs, multicast |
 | `flync_4_signal` | **Signal / PDU / Frame** | Full signal-to-frame stack: data types, PDUs (standard/multiplexed/container), CAN/LIN/CAN-FD frames, signal deployment, forwarding |
-| `flync_4_someip` | **SOME/IP** | AUTOSAR SOME/IP: service interfaces, events, methods, fields, eventgroups, UDP/TCP deployment, type system |
+| `flync_4_someip` | **SOME/IP** | Open SOME/IP: service interfaces, events, methods, fields, eventgroups, UDP/TCP deployment, type system |
 | `flync_4_topology` | **Topology** | Physical/logical network topology: switch/port interconnections, ECU connections |
 | `flync_4_tsn` | **TSN** | Time-Sensitive Networking: QoS shaping (CBS, ATS, HTB), traffic classes, PTP time sync |
 | `flync_4_security` | **Security** | Firewall rules, MACsec encryption (integrity + confidentiality) |
