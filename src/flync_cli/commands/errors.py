@@ -6,6 +6,7 @@ from rich.table import Table
 from flync_cli.utils.console import console
 from flync_cli.utils.errors import (
     CATALOG_PATH,
+    CatalogReport,
     next_error_number,
     render_catalog,
     scan_error_calls,
@@ -13,6 +14,48 @@ from flync_cli.utils.errors import (
 )
 
 app = typer.Typer(help="Inspect and maintain the FLYNC error catalog.")
+
+_ALL_ERRORS_KINDS = {
+    "unnumbered",
+    "invalid_category",
+    "uncategorised",
+    "duplicate_numbers",
+    "missing_from_catalog",
+    "orphaned_in_catalog",
+}
+_GENERATE_BLOCKING_KINDS = {
+    "unnumbered",
+    "duplicate_numbers",
+    "invalid_category",
+}
+
+
+def _drift_rows(report: CatalogReport) -> dict[str, list[tuple[str, str]]]:
+    """Pre-compute ``(issue label, detail)`` rows for every drift kind."""
+    return {
+        "unnumbered": [("unnumbered", f"{r.file}:{r.lineno} ({r.location})") for r in report.unnumbered],
+        "invalid_category": [("invalid category", f"{r.bad_category!r} at {r.file}:{r.lineno} ({r.location})") for r in report.invalid_category],
+        "uncategorised": [("uncategorised", f"{r.error_id} — {r.file}:{r.lineno}") for r in report.uncategorised],
+        "duplicate_numbers": [
+            ("duplicate number", f"{number}: " + ", ".join(f"{r.file}:{r.lineno}" for r in rs)) for number, rs in report.duplicate_numbers.items()
+        ],
+        "missing_from_catalog": [("missing from catalog", e) for e in report.missing_from_catalog],
+        "orphaned_in_catalog": [("orphaned in catalog", e) for e in report.orphaned_in_catalog],
+    }
+
+
+def _drift_table(report: CatalogReport, kinds: set[str] | None = None) -> Table:
+    """Render a table of the requested catalog drift issues (default: all kinds)."""
+    rows = _drift_rows(report)
+    if kinds is None:
+        kinds = _ALL_ERRORS_KINDS
+    table = Table(show_lines=True, title="Catalog drift")
+    table.add_column("Issue", style="red")
+    table.add_column("Detail", style="yellow", overflow="fold")
+    for kind in kinds:
+        for label, detail in rows.get(kind, []):
+            table.add_row(label, detail)
+    return table
 
 
 @app.command(name="get-next-number", help="Print the next free globally-unique error number.")
@@ -32,22 +75,7 @@ def validate():
         console.print(f"[green]Catalog is in sync with {len(records)} error call sites.[/green]")
         return
 
-    table = Table(show_lines=True, title="Catalog drift")
-    table.add_column("Issue", style="red")
-    table.add_column("Detail", style="yellow", overflow="fold")
-    for r in report.unnumbered:
-        table.add_row("unnumbered", f"{r.file}:{r.lineno} ({r.location})")
-    for r in report.invalid_category:
-        table.add_row("invalid category", f"{r.bad_category!r} at {r.file}:{r.lineno} ({r.location})")
-    for r in report.uncategorised:
-        table.add_row("uncategorised", f"{r.error_id} — {r.file}:{r.lineno}")
-    for number, rs in report.duplicate_numbers.items():
-        table.add_row("duplicate number", f"{number}: " + ", ".join(f"{r.file}:{r.lineno}" for r in rs))
-    for error_id in report.missing_from_catalog:
-        table.add_row("missing from catalog", error_id)
-    for error_id in report.orphaned_in_catalog:
-        table.add_row("orphaned in catalog", error_id)
-    console.print(table)
+    console.print(_drift_table(report))
     raise typer.Exit(code=1)
 
 
@@ -57,7 +85,8 @@ def generate():
     records = scan_error_calls()
     report = validate_catalog(records, None)
     if report.unnumbered or report.duplicate_numbers or report.invalid_category:
-        console.print("[red]Cannot generate: fix unnumbered / duplicate / invalid-category call sites first (see validate-catalog).[/red]")
+        console.print("[red]Cannot generate: fix the drift listed below first, then re-run.[/red]")
+        console.print(_drift_table(report, kinds=_GENERATE_BLOCKING_KINDS))
         raise typer.Exit(code=1)
 
     CATALOG_PATH.write_text(render_catalog(records), encoding="utf-8")
