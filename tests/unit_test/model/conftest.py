@@ -151,13 +151,13 @@ def ATSInstance_entry():
 
 @pytest.fixture
 def integrity_without_confidentiality_entry():
-    integrity_without_confidentiality_entry = IntegrityWithoutConfidentiality(type="integrity_without_confidentiality", offset_preference=0)
+    integrity_without_confidentiality_entry = IntegrityWithoutConfidentiality(type="integrity_without_confidentiality", confidentiality_offset=0)
     yield integrity_without_confidentiality_entry
 
 
 @pytest.fixture
 def integrity_with_confidentiality_entry():
-    integrity_with_confidentiality_entry = IntegrityWithConfidentiality(type="integrity_with_confidentiality", offset_preference=0)
+    integrity_with_confidentiality_entry = IntegrityWithConfidentiality(type="integrity_with_confidentiality", confidentiality_offset=0)
     yield integrity_with_confidentiality_entry
 
 

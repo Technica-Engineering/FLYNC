@@ -70,6 +70,7 @@ ports:
         idleslope: 10000
   macsec_config:
       vlan_bypass: []
+      ckn: hpc1_z1
       mka_enabled: true
       hello_time: 1000
       bounded_hello_time: 2000
@@ -101,6 +102,7 @@ ports:
             log_tx_period: 1
   macsec_config:
       vlan_bypass: []
+      ckn: z1_s1_c1
       mka_enabled: true
       hello_time: 1000
       bounded_hello_time: 2000
@@ -131,6 +133,7 @@ ports:
             tlv: []
   macsec_config:
       vlan_bypass: []
+      ckn: z1_s1_c2
       mka_enabled: true
       hello_time: 1000
       bounded_hello_time: 2000

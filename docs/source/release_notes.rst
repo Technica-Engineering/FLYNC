@@ -122,3 +122,32 @@ should recreate their virtual environment:
 
 The build backend is **hatchling** with ``uv-dynamic-versioning`` for version
 resolution from git tags. The ``uv.lock`` file replaces ``poetry.lock``.
+
+MACsec cipher configuration
+'''''''''''''''''''''''''''
+
+The MACsec model (`flync_4_security`) was extended:
+
+* New :class:`~flync.model.flync_4_security.CipherSuiteBaseModel` base class holding the
+  `cipher_suite` field, from which both :class:`IntegrityWithoutConfidentiality
+  <flync.model.flync_4_security.IntegrityWithoutConfidentiality>` and
+  :class:`IntegrityWithConfidentiality
+  <flync.model.flync_4_security.IntegrityWithConfidentiality>` inherit. Each cipher entry
+  now carries ``cipher_suite: GCM-AES-128 | GCM-AES-256 | GCM-AES-XPN-128 |
+  GCM-AES-XPN-256`` (default ``GCM-AES-XPN-256``).
+* New helper method
+  :meth:`CipherSuiteBaseModel.xpn <flync.model.flync_4_security.CipherSuiteBaseModel.xpn>`
+  returning ``True`` for the XPN cipher suites (``GCM-AES-XPN-128`` / ``GCM-AES-XPN-256``).
+* New optional ``MACsecConfig.ethertype_bypass`` field (list of
+  :class:`~flync.core.datatypes.Ethertype`, default ``[]``) naming the Ethertypes that
+  shall not be protected with MACsec.
+* New optional ``MACsecConfig.src_mac_address_bypass`` and
+  ``MACsecConfig.dest_mac_address_bypass`` fields (lists of
+  :class:`~flync.core.datatypes.FLYNCMacAddress`, default ``[]``) naming, respectively, the
+  source and destination MAC addresses that shall not be protected with MACsec.
+* New **required** ``MACsecConfig.ckn`` field (string, 1-32 octets, i.e. characters in
+  the range 0x00-0xFF) holding the Connectivity Association Key Name (CKN) used to identify
+  the CAK. Because it is required, every existing ``macsec_config`` must add a ``ckn`` entry.
+* New optional ``MACsecConfig.replay_protection_window`` field (int, default ``0``) giving
+  the size of the replay protection window. A non-zero value emits a warning
+  (``FLYNC-SEC-WARN-VAL-251``).

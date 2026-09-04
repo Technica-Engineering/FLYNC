@@ -26,6 +26,7 @@ ptp_config:
         log_tx_period: 1
 macsec_config:
   vlan_bypass: []
+  ckn: z2_s1_c2
   mka_enabled: true
   hello_time: 1000
   bounded_hello_time: 2000

@@ -144,6 +144,27 @@ uses ``extra="forbid"``, a top-level ``general:`` key is now **rejected** with
 ``extra_forbidden`` (no FLYNC ID). The folder remains ``communication/`` — this only matters
 for flat/single-document ``FLYNCModel`` construction that used ``general:``.
 
+``MACsecConfig`` requires a ``ckn``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``MACsecConfig`` gained a **required** string field ``ckn`` (Connectivity Association Key
+Name, 1-32 octets, i.e. characters in the range 0x00-0xFF, no default). Every existing
+``macsec_config`` block must add a ``ckn`` entry or it fails validation. A value containing
+characters outside 0x00-0xFF raises ``FLYNC-SEC-MIN-FMT-252``:
+
+.. code-block:: yaml
+
+   # before
+   macsec_config:
+     vlan_bypass: []
+     ...
+
+   # after
+   macsec_config:
+     vlan_bypass: []
+     ckn: 0123456789abcdef0123456789abcdef
+     ...
+
 Topology: ``SystemTopology`` → ``EthernetTopology`` (+ split)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -270,6 +291,8 @@ Breaking — Python API
 * SOME/IP datatypes split: ``someip_datatypes.py`` → ``someip_simple_datatypes.py`` +
   ``someip_complex_datatypes.py`` (``AllTypes`` re-exported from the package ``__init__``);
   the direct module path ``flync_4_someip.someip_datatypes`` is gone.
+* MACsec: Renamed the ``offset_preference`` field on both ``IntegrityWithoutConfidentiality`` and
+  ``IntegrityWithConfidentiality`` to ``confidentiality_offset`` (same semantics and defaults).
 
 Additive (0.14.x)
 -----------------
@@ -284,6 +307,21 @@ Additive (0.14.x)
 * SOME/IP models relaxed ``extra="forbid"`` → unknown extra keys ignored
   (``SOMEIPServiceInterface``, ``SOMEIPMethod``/``Field``/``Event``/``Eventgroup``).
 * ``FLYNCBaseModel`` sets ``validate_assignment=True``.
+* New MACsec cipher configuration: ``CipherSuiteBaseModel`` base class with a ``cipher_suite``
+  field (``GCM-AES-128``/``GCM-AES-256``/``GCM-AES-XPN-128``/``GCM-AES-XPN-256``, default
+  ``GCM-AES-XPN-256``); both ``IntegrityWithoutConfidentiality`` and
+  ``IntegrityWithConfidentiality`` inherit from it and gain ``cipher_suite`` plus an
+  ``xpn()`` helper (``True`` for the XPN suites). New optional ``MACsecConfig.ethertype_bypass``
+  (list of ``core.datatypes.Ethertype``, default ``[]``) — Ethertypes not protected with
+  MACsec. New optional ``MACsecConfig.src_mac_address_bypass`` /
+  ``dest_mac_address_bypass`` (lists of ``core.datatypes.FLYNCMacAddress``, default ``[]``)
+  — source/destination MAC addresses not protected with MACsec. New optional
+  ``MACsecConfig.replay_protection_window`` (int, default ``0``, ``>=0``);
+  a non-zero value warns ``FLYNC-SEC-WARN-VAL-251``.
+* ``IntegrityWithConfidentiality`` now rejects a non-zero ``confidentiality_offset`` with a
+  XPN ``cipher_suite`` (``GCM-AES-XPN-128``/``GCM-AES-XPN-256``); Non XPN is required for any
+  confidentiality offset other than ``0`` (``FLYNC-SEC-MIN-CONS-253``). Breaking for configs
+  that set ``confidentiality_offset`` to ``30``/``50`` on a non-XPN cipher.
 * Converter front-end loading refactored into ``cli/_optional.py`` with actionable install
   hints; entry points preserved.
 * New ``flync config set|show|clear`` command group persists a default workspace path for the

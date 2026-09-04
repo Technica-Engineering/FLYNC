@@ -16,6 +16,7 @@ virtual_interfaces:
         ipv4netmask: 255.255.255.0
 macsec_config:
   vlan_bypass: []
+  ckn: hpc_s1_c2
   mka_enabled: true
   hello_time: 1000
   bounded_hello_time: 2000

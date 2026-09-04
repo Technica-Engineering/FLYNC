@@ -33,6 +33,7 @@ ptp_config:
         tlv: []
 macsec_config:
   vlan_bypass: []
+  ckn: z1_s1_c1
   mka_enabled: true
   hello_time: 1000
   bounded_hello_time: 2000
