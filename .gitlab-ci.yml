@@ -23,7 +23,7 @@ quality:
   allow_failure: false
   parallel:
     matrix:
-      - CHECK: ["lint", "format", "isort", "type_check"]
+      - CHECK: ["lint", "format", "isort", "pre_commit_check", "type_check"]
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
@@ -47,6 +47,10 @@ quality:
           uv sync --frozen --no-install-project --only-group static-analysis
           uv run isort --check --diff --color --line-length 149 src > quality-reports/isort-src.diff
           uv run isort --check --diff --color --line-length 149 tests > quality-reports/isort-tests.diff
+          ;;
+        pre_commit_check)
+          uv sync --frozen --no-install-project --only-group dev
+          uv run pre-commit run --all-files
           ;;
         type_check)
           uv sync --frozen --group static-analysis --extra gui --extra tui

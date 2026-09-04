@@ -29,7 +29,7 @@ ports:
   - name: switch1_cpu_port
     silicon_port_no: 3
     default_vlan_id: 30
-    
+
 vlans:
   - name: VLAN10
     id: 10

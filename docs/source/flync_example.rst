@@ -511,7 +511,7 @@ A **Signal** is the smallest data element in the ``FLYNC`` model: a single value
               entries:
                 - value: 65535
                   label: Signal_Not_Available
-                  
+
         - bit_position: 16
           endianness: LE
 

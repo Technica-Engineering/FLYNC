@@ -3,9 +3,9 @@
 import pytest
 from pydantic import ValidationError
 
-from flync.core.datatypes.macaddress import FLYNCMacAddress, MACAddressEntry
+from flync.core.datatypes.macaddress import MACAddressEntry
 from flync.core.validators.address import before_validate_mac_address
-from flync.model.flync_4_ecu.controller import ComputeNodes, ControllerInterface
+from flync.model.flync_4_ecu.controller import ComputeNodes
 from flync.model.flync_4_ecu.mac_multicast_endpoint import MACMulticastEndpoint
 
 # --- before_validate_mac_address unit tests ---

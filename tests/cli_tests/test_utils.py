@@ -1,9 +1,5 @@
 """Tests for flync_cli utility modules."""
 
-import re
-
-from pydantic import BaseModel, ValidationError
-
 from flync_cli.utils.error_table import sanitize_error_message
 from flync_cli.utils.mapping import get_mapping
 

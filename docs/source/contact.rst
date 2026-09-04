@@ -28,4 +28,4 @@ FLYNC is currently maintained by:
 - **Iago Alvarez** - Lead Engineer, Technica Engineering
 - **Dr. Lars Völker** - Technical Fellow, Technica Engineering
 
-Support contact: `flync@technica-engineering.de <mailto:flync@technica-engineering.de>`_ 
+Support contact: `flync@technica-engineering.de <mailto:flync@technica-engineering.de>`_

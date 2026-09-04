@@ -69,22 +69,16 @@ class SVG:
 
     def rect(self, x, y, w, h, *, fill="none", stroke="none", sw=1.0, rx=4):
         self.parts.append(
-            f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{rx}" ry="{rx}" '
-            f'fill="{fill}" stroke="{stroke}" stroke-width="{sw}"/>'
+            f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{rx}" ry="{rx}" fill="{fill}" stroke="{stroke}" stroke-width="{sw}"/>'
         )
 
     def line(self, x1, y1, x2, y2, *, dashed=False, sw=1.0):
         dash = ' stroke-dasharray="4 3"' if dashed else ""
-        self.parts.append(
-            f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="#000000" stroke-width="{sw}"{dash}/>'
-        )
+        self.parts.append(f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="#000000" stroke-width="{sw}"{dash}/>')
 
     def text(self, x, y, content, *, size=12, anchor="start", bold=False):
         weight = ' font-weight="bold"' if bold else ""
-        self.parts.append(
-            f'<text x="{x}" y="{y}" text-anchor="{anchor}" font-size="{size}"{weight}>'
-            f"{escape(content)}</text>"
-        )
+        self.parts.append(f'<text x="{x}" y="{y}" text-anchor="{anchor}" font-size="{size}"{weight}>' f"{escape(content)}</text>")
 
     def options(self, x, y, opts, *, size=11, anchor="start"):
         parts = []
@@ -95,9 +89,7 @@ class SVG:
                 parts.append(f'<tspan font-weight="bold">{escape(label)}</tspan>')
             else:
                 parts.append(escape(label))
-        self.parts.append(
-            f'<text x="{x}" y="{y}" text-anchor="{anchor}" font-size="{size}">{"".join(parts)}</text>'
-        )
+        self.parts.append(f'<text x="{x}" y="{y}" text-anchor="{anchor}" font-size="{size}">{"".join(parts)}</text>')
 
     def vlan_oval(self, cx, cy, vlan_id, *, w=58, h=22):
         fill, stroke = vlan_color(vlan_id)
@@ -133,9 +125,7 @@ class SVG:
             f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {self.w} {self.h}" '
             f'width="{self.w}" height="{self.h}" font-family="Helvetica, Arial, sans-serif" '
             f'font-size="12">'
-            '<rect width="100%" height="100%" fill="#ffffff"/>'
-            + "\n".join(self.parts)
-            + "</svg>"
+            '<rect width="100%" height="100%" fill="#ffffff"/>' + "\n".join(self.parts) + "</svg>"
         )
 
 
@@ -725,10 +715,7 @@ def _is_ecu_dir(p: Path) -> bool:
 def _render_one(ecu_path: Path, output: Path | None, *, output_dir: Path | None = None) -> Path:
     diagnostics = validate_external_node(ECU, ecu_path)
     if diagnostics.model is None:
-        raise RuntimeError(
-            f"failed to load ECU model from {ecu_path}; "
-            f"run validate_workspace for details."
-        )
+        raise RuntimeError(f"failed to load ECU model from {ecu_path}; " f"run validate_workspace for details.")
     svg = build_svg(diagnostics.model)
     if output is not None:
         out = output
@@ -749,10 +736,7 @@ def main() -> int:
         "--output",
         type=Path,
         default=None,
-        help=(
-            "In single-ECU mode: output SVG file path. "
-            "In batch mode: output directory; each ECU is written to <output>/<ecu_name>.svg."
-        ),
+        help=("In single-ECU mode: output SVG file path. " "In batch mode: output directory; each ECU is written to <output>/<ecu_name>.svg."),
     )
     args = parser.parse_args()
 

@@ -65,4 +65,3 @@ Shapers
 .. autoclass:: flync.model.flync_4_tsn.HTBInstance()
 .. autoclass:: flync.model.flync_4_tsn.HTBFilter()
 .. autoclass:: flync.model.flync_4_tsn.ChildClass()
-

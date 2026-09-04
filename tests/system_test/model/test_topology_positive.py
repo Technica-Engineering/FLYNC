@@ -3,7 +3,6 @@ from pathlib import Path
 
 import pytest
 
-from flync.core.datatypes.macaddress import MacAddress
 from flync.model.flync_4_ecu import *
 from flync.model.flync_4_ecu.controller import *
 from flync.model.flync_4_ecu.internal_topology import *

@@ -1,12 +1,10 @@
 import json
-from typing import Type
 
 import pytest
 import yaml
 
-from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.model import FLYNCModel  # type: ignore[import-untyped]
-from flync_converter import BaseConverter, ConverterConfig, FLYNCConverter, JsonConverter, YamlConverter
+from flync_converter import ConverterConfig, FLYNCConverter, JsonConverter, YamlConverter
 
 converters = [
     pytest.param(

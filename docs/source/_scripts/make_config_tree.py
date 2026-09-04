@@ -1,7 +1,6 @@
 import os
 import pathlib
 
-from rich import print
 from rich.text import Text
 from rich.tree import Tree
 from rich.console import Console

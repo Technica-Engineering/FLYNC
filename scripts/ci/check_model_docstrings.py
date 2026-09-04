@@ -124,7 +124,6 @@ per constraint type (e.g. ``ge`` accepts ``">= 0"``, ``"at least 0"``, ``"minimu
 
 import argparse
 import ast
-import enum
 import importlib
 import inspect
 import pkgutil
@@ -161,7 +160,7 @@ CHECK_EXPLANATIONS = {
 
 # Section headings that end the Parameters block.
 # The parser stops when it encounters any of these as an unindented line.
-SECTION_STOP_HEADINGS = {"Private Attributes", "Notes", "Examples","See Also"}
+SECTION_STOP_HEADINGS = {"Private Attributes", "Notes", "Examples", "See Also"}
 
 # Minimum number of dashes required to recognise a NumPy section underline.
 MIN_UNDERLINE_DASHES = 3
@@ -200,7 +199,18 @@ _CONSTRAINTS: dict[type, tuple[str, str, tuple[str, ...]]] = {
     annotated_types.Ge: (
         "ge",
         "greater or equal",
-        ("greater or equal", "greater than or equal", "at least", "minimum", "min.", "no less than", "not less than", "non-negative", "positive", ">="),
+        (
+            "greater or equal",
+            "greater than or equal",
+            "at least",
+            "minimum",
+            "min.",
+            "no less than",
+            "not less than",
+            "non-negative",
+            "positive",
+            ">=",
+        ),
     ),
     annotated_types.Gt: (
         "gt",
@@ -904,7 +914,6 @@ def _check_bounds(cls: type, name: str, field: object, type_string: str, descrip
     for constraint, wording, phrases, value in field_constraints(field):
         if not describes_bound(combined, phrases, value):
             findings.append(Finding("bounds", cls, name, f"{constraint}={value} ('{wording} {value}') is not stated in the description"))
-
 
 
 def _has_stated_default(field: object) -> bool:

@@ -51,7 +51,6 @@ class BaseConverter(ABC):
         Returns:
             bool: True if decoding is possible from the configured location.
         """
-        pass
 
     @abstractmethod
     def encode(self, source: FLYNCModel):
@@ -63,7 +62,6 @@ class BaseConverter(ABC):
         Raises:
             ConverterError: If encoding fails (implementation specific).
         """
-        pass
 
     @abstractmethod
     def decode(self) -> FLYNCModel:
@@ -75,4 +73,3 @@ class BaseConverter(ABC):
         Raises:
             ConverterError: If decoding fails (implementation specific).
         """
-        pass
