@@ -78,6 +78,32 @@ jobs:
           path: flake8-report
           retention-days: 28
 
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.0.1
+        with:
+          enable-cache: true
+
+      - name: Prepare
+        run: uv sync --frozen --no-install-project --only-group dev
+
+      - name: Run pre-commit
+        run: |
+          set -o pipefail
+          uv run pre-commit run --all-files
+
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: lint-artifacts
+          path: flake8-report
+          retention-days: 28
+
   type-check:
     runs-on: ubuntu-latest
     steps:
