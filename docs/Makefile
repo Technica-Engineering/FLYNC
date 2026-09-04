@@ -24,6 +24,8 @@ generations:
 	uv run python3 ./source/_scripts/generate_ecu_diagram.py $(EXAMPLE_SOURCE)/ecu_variants -o $(EXAMPLE_DST)/images/ecu_variants
 # create cli docu
 	uv run typer flync_cli.main utils docs --name flync --title Usage --output $(SOURCEDIR)/flync_cli/usage.md
+# generate error catalog
+	uv run python3 ../src/flync_cli/main.py errors generate-catalog
 
 clear:
 # remove mermaid files

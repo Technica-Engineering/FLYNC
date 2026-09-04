@@ -122,9 +122,10 @@ jobs:
           uv sync --frozen
           mkdir error-catalog-check
 
-      - name: Run validate-catalog
+      - name: Run generate & validate-catalog
         run: |
           set -o pipefail
+          uv run python src/flync_cli/main.py errors generate-catalog
           uv run python src/flync_cli/main.py errors validate-catalog | tee error-catalog-check/error-catalog-check.txt
 
       - name: Archive artifacts
