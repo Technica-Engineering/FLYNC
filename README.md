@@ -83,7 +83,7 @@
 | src/flync/model/flync\_4\_signal/value\_encoding.py             |       94 |        1 |     99% |       127 |
 | src/flync/model/flync\_4\_someip/\_\_init\_\_.py                |        8 |        0 |    100% |           |
 | src/flync/model/flync\_4\_someip/deployment.py                  |       79 |        1 |     99% |       176 |
-| src/flync/model/flync\_4\_someip/service\_interface.py          |      218 |        3 |     99% |404, 599, 864 |
+| src/flync/model/flync\_4\_someip/service\_interface.py          |      218 |        3 |     99% |400, 595, 860 |
 | src/flync/model/flync\_4\_someip/someip\_complex\_datatypes.py  |       50 |        0 |    100% |           |
 | src/flync/model/flync\_4\_someip/someip\_simple\_datatypes.py   |      149 |        0 |    100% |           |
 | src/flync/model/flync\_4\_topology/\_\_init\_\_.py              |        4 |        0 |    100% |           |
@@ -126,7 +126,7 @@
 | src/flync/sdk/workspace/source.py                               |       11 |        0 |    100% |           |
 | src/flync\_cli/\_\_init\_\_.py                                  |        2 |        0 |    100% |           |
 | src/flync\_cli/commands/config.py                               |       29 |        0 |    100% |           |
-| src/flync\_cli/commands/errors.py                               |       42 |        4 |     90% |43, 45, 47, 49 |
+| src/flync\_cli/commands/errors.py                               |       43 |        0 |    100% |           |
 | src/flync\_cli/commands/filetree.py                             |       29 |        0 |    100% |           |
 | src/flync\_cli/commands/generate\_system\_uml.py                |      365 |        6 |     98% |187, 211-212, 384, 387, 405 |
 | src/flync\_cli/commands/info.py                                 |      264 |        2 |     99% |  142, 348 |
@@ -178,7 +178,7 @@
 | src/flync\_converter/hookspec.py                                |        4 |        0 |    100% |           |
 | src/flync\_converter/registry.py                                |       32 |       19 |     41% |23-30, 37-49, 56-59 |
 | src/flync\_converter/utils.py                                   |       75 |        4 |     95% |63-64, 93-94 |
-| **TOTAL**                                                       | **10912** |  **756** | **93%** |           |
+| **TOTAL**                                                       | **10913** |  **752** | **93%** |           |
 
 
 ## Setup coverage badge
