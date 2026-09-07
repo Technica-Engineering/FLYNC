@@ -88,18 +88,18 @@ tests/
 
 | Package | Domain | Description |
 |---|---|---|
+| `flync_4_app` | **Application** (experimental) | Applications consuming/providing SOME/IP services |
+| `flync_4_bus` | **Bus** | CANBus and LINBus models |
+| `flync_4_communication` | **Communication** | System-wide TCP profiles, SOME/IP service-level settings |
 | `flync_4_ecu` | **ECU** | Full ECU detail: controllers, Ethernet/CAN/LIN interfaces, ports, sockets, PHY types (RGMII, SGMII, BASET...), switches, VLANs, multicast |
+| `flync_4_metadata` | **Metadata** | System/ECU metadata: OEM, platform, versioning, HW/SW BOM |
+| `flync_4_nm` | **Network Management** | State management groups, timing profiles for wake-up/sleep coordination |
+| `flync_4_safety` | **Safety** | E2E communication protection |
+| `flync_4_security` | **Security** | Firewall rules, MACsec encryption (integrity + confidentiality) |
 | `flync_4_signal` | **Signal / PDU / Frame** | Full signal-to-frame stack: data types, PDUs (standard/multiplexed/container), CAN/LIN/CAN-FD frames, signal deployment, forwarding |
 | `flync_4_someip` | **SOME/IP** | Open SOME/IP: service interfaces, events, methods, fields, eventgroups, UDP/TCP deployment, type system. For SOME/IP, only the Open SOME/IP Spec may be used (https://github.com/some-ip-com/open-someip-spec) |
 | `flync_4_topology` | **Topology** | Physical/logical network topology: switch/port interconnections, ECU connections |
 | `flync_4_tsn` | **TSN** | Time-Sensitive Networking: QoS shaping (CBS, ATS, HTB), traffic classes, PTP time sync |
-| `flync_4_security` | **Security** | Firewall rules, MACsec encryption (integrity + confidentiality) |
-| `flync_4_metadata` | **Metadata** | System/ECU metadata: OEM, platform, versioning, HW/SW BOM |
-| `flync_4_nm` | **Network Management** | State management groups, timing profiles for wake-up/sleep coordination |
-| `flync_4_communication` | **Communication** | System-wide TCP profiles, SOME/IP service-level settings |
-| `flync_4_app` | **Application** (experimental) | Applications consuming/providing SOME/IP services |
-| `flync_4_bus` | **Bus** | CANBus and LINBus models |
-| `flync_4_safety` | **Safety** | E2E communication protection |
 
 ## Core Overview
 
