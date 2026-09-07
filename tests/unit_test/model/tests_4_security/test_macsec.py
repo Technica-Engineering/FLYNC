@@ -401,8 +401,9 @@ def test_positive_mka_enabled_with_non_disabled_macsec_mode():
 
 
 def test_negative_life_time_less_than_hello_time():
+    config = _macsec_config({"life_time": 100, "hello_time": 1000})
     with pytest.raises(ValidationError) as exc_info:
-        MACsecConfig.model_validate(_macsec_config({"life_time": 100, "hello_time": 1000}))
+        MACsecConfig.model_validate(config)
     assert_single_error(exc_info, "FLYNC-SEC-MIN-CONS-101", "Life time should be greater than hello time")
 
 
@@ -454,8 +455,9 @@ def test_positive_mac_address_bypass():
     ids=["src", "dest"],
 )
 def test_negative_mac_address_bypass_invalid_mac(field):
+    config = _macsec_config({field: ["not-a-mac"]})
     with pytest.raises(ValidationError):
-        MACsecConfig.model_validate(_macsec_config({field: ["not-a-mac"]}))
+        MACsecConfig.model_validate(config)
 
 
 def test_cn_required_missing_rejected():
@@ -473,13 +475,15 @@ def test_positive_ckn(ckn):
 
 @pytest.mark.parametrize("ckn", ["", "a" * 33], ids=["empty", "over-32"])
 def test_negative_ckn_length(ckn):
+    config = _macsec_config({"ckn": ckn})
     with pytest.raises(ValidationError):
-        MACsecConfig.model_validate(_macsec_config({"ckn": ckn}))
+        MACsecConfig.model_validate(config)
 
 
 def test_negative_ckn_non_octet():
+    config = _macsec_config({"ckn": "\u0101" * 4})
     with pytest.raises(ValidationError) as exc_info:
-        MACsecConfig.model_validate(_macsec_config({"ckn": "\u0101" * 4}))
+        MACsecConfig.model_validate(config)
     assert_single_error(exc_info, "FLYNC-SEC-MIN-FMT-252", "ckn")
 
 
