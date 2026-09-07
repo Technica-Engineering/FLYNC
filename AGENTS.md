@@ -249,6 +249,17 @@ uv run mypy src --show-error-codes --pretty --install-types --non-interactive  #
 
 **mypy needs the optional extras.** `src/flync_converter/cli/gui/` and `cli/tui/` import PySide6 and textual at module level, so a core-only env produces `import-not-found` errors. Run `uv sync --group static-analysis --extra gui --extra tui` first; CI does the same.
 
+### Docstrings are mandatory
+
+Every Pydantic model in `flync.core` and `flync.model` **must** have a NumPy-style docstring with a `Parameters` section documenting every field — name, type, and `, optional` where the field has a default. This is not optional polish: it is the source the Sphinx API reference and the generated docs are built from.
+
+```bash
+uv run python scripts/ci/check_model_docstrings.py
+```
+
+This scans every model in those packages and reports, per class, any field that's `[missing]` from the docstring or whose documented `[type]` doesn't match its annotation. Run it after adding or changing a model and fix every finding it reports before considering the change done — do not leave warnings for a future pass. It also runs in CI (`model-docstring-check` in `push_and_pr.yaml`), currently non-gating (reports warnings without failing the build), but treat it as gating in your own work regardless.
+
+
 ### Auto-format a single file
 
 ```bash
