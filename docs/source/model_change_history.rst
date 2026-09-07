@@ -56,8 +56,9 @@ It is always recommended to use ``flync validate`` on your workspace root.
 ==================================
 
 This is the current release. Several convenience aliases from earlier releases were dropped,
-multiplexed PDUs were reworked, App service references were re-keyed, topology was split,
-and the validator modules were reorganized.
+multiplexed PDUs were reworked, App service references were re-keyed, topology was split, a
+switch's ``host_controller`` became a full ``Controller`` in its own folder, and the validator
+modules were reorganized.
 
 Breaking — YAML schema
 ----------------------
@@ -187,6 +188,52 @@ YAML key still loads with a deprecation warning:
 
 CAN/LIN bus topologies (``can_bus_topology`` / ``lin_bus_topology``) are **derived
 automatically** at validation — no YAML authoring required.
+
+``Switch.host_controller``: inline interface → full ``Controller`` in its own folder
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Each switch folder is now split into two parts on disk: a ``switch.flync.yaml`` file (new ``SwitchConfig``)
+and, optionally, a ``switch_host_controller/`` sub-folder holding a regular
+:class:`~flync.model.flync_4_ecu.controller.Controller` (name, Ethernet interfaces, virtual
+interfaces, ...) for the CPU that manages the switch. ``Switch.host_controller`` changed type from
+an inline ``EthernetInterfaceConfig`` (a single interface) to an ``Optional[Controller]`` loaded
+from that folder. ``Switch`` gained a ``switch_config`` attribute.
+
+.. code-block:: text
+
+   # before (0.13.x)
+   switches/
+     hpc_switch1.flync.yaml        # meta, ports, vlans, tcam_rules, inline host_controller
+
+   # after (0.14.x)
+   switches/
+     hpc_switch1/
+       switch.flync.yaml           # meta, ports, vlans, tcam_rules
+       switch_host_controller/     # optional — a full Controller
+         controller_metadata.flync.yaml
+         ethernet_interfaces/
+           hpc_switch1_host_iface1/
+             interface_config.flync.yaml
+
+Because the host controller is now a real ``Controller`` with its own interfaces, the on-die link
+between the switch's CPU port and the host controller's interface must be modeled explicitly with a
+new internal-topology connection type, ``switch_port_to_host_controller_interface``:
+
+.. code-block:: yaml
+
+   connections:
+     - type: switch_port_to_host_controller_interface
+       id: conn4
+       switch_port: z1_s1_cpu_port
+       host_controller_interface: z1_switch1_host_iface1
+
+* Connection references a host controller interface, but the switch has no host controller:
+  ``FLYNC-ECU-MAJ-REF-239``
+* Referenced host controller interface not found on the switch's host controller:
+  ``FLYNC-ECU-MAJ-REF-240``
+
+No MII/MACsec/gPTP/HTB compatibility checks are performed for this connection type — the switch and
+its host controller sit on the same die/package, so there is no PHY or cabling involved.
 
 New/strengthened topology and interface rules
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
