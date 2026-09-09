@@ -248,27 +248,31 @@ def warn_unconnected_ports(all_ports: List[ECUPort], claimed_multidrop_ports: Co
     the absence once.
     """
 
+    unconnected_by_ecu_p2p: dict[str, list[str]] = {}
+    unconnected_by_ecu_multidrop: dict[str, list[str]] = {}
     for port in all_ports:
         if any(component.type == "ecu_port" for component in port.connected_components):
             continue
         assert port.ecu is not None
 
         if not _is_multidrop_port(port):
-            if has_ethernet_topology:
-                warn(
-                    f"ECU port '{port.name}' (ECU: '{port.ecu.name}') is not connected in the system topology.",
-                    category=Category.STRUCTURAL,
-                    error_number="214",
-                )
-            continue
+            unconnected_by_ecu_p2p.setdefault(port.ecu.name, []).append(port.name)
 
-        if id(port) in claimed_multidrop_ports:
-            continue
+        elif id(port) not in claimed_multidrop_ports:
+            unconnected_by_ecu_multidrop.setdefault(port.ecu.name, []).append(port.name)
 
+    if unconnected_by_ecu_p2p:
+        lines = [f"  {ecu}: {', '.join(f'{p!r}' for p in ports)}" for ecu, ports in unconnected_by_ecu_p2p.items()]
         warn(
-            f"ECU port '{port.name}' (ECU: '{port.ecu.name}') is a 10BASE-T1S multidrop port (Clause 147, shared medium), but no "
-            f"'ethernet_multidrop' connection node claims it. It sits on no segment and no PLCA rule checks it. Add it to a segment, or "
-            f"set the port's topology to 'p2p' and wire it in the system topology.",
+            "The following ECU ports are not connected in the system topology:\n" + "\n".join(lines),
+            category=Category.STRUCTURAL,
+            error_number="214",
+        )
+
+    if unconnected_by_ecu_multidrop:
+        lines = [f"  {ecu}: {', '.join(f'{p!r}' for p in ports)}" for ecu, ports in unconnected_by_ecu_multidrop.items()]
+        warn(
+            "The following ECU multidrop ports are not connected in the system topology:\n" + "\n".join(lines),
             category=Category.STRUCTURAL,
             error_number="262",
         )
