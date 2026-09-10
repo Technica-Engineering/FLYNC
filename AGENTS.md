@@ -161,7 +161,7 @@ Example: `FLYNC-ECU-MAJ-VAL-001`
 | **Module** | Auto-resolved from the `KEY` variable in each domain package's `__init__.py`. Declared today: `ECU`, `SIG`, `SOM`, `TOP`, `TSN`, `SEC`, `MET`, `BUS`. Packages without a `KEY` fall through to `CMN`; `flync.model.flync_model` and `version_migrators` resolve to `GEN` |
 | **Severity** | `WARN` (warning), `MIN` (minor), `MAJ` (major), `FAT` (fatal) |
 | **Category** | `VAL` (value range), `REQ` (required), `CONS` (consistency), `UNIQ` (uniqueness), `REF` (reference), `FMT` (format), `COMP` (compatibility), `STRUCT` (structural), `LIFE` (lifecycle) |
-| **Number** | Zero-padded 3-digit number, globally unique across the entire codebase (monotonically increasing, never reused) |
+| **Number** | Zero-padded 3-digit number, globally unique across the entire codebase (monotonically increasing, never reused).
 
 ### Raising Errors in Validators
 
@@ -197,24 +197,38 @@ warn(
 
 1. Get the next free number: `flync errors get-next-number`
 2. Use it in your factory call with the appropriate `category=Category.<NAME>` and `error_number="<NNN>"`
-3. Regenerate the catalog: `flync errors generate-catalog`
-4. Verify everything is in sync: `flync errors validate-catalog`
+3. Bring the tree back in step: `flync errors sync`
+
+`sync` is the one command that does everything: it renumbers any error number your branch has
+collided with (keeping the number for the call site that already exists on the base branch, and
+rewriting the `FLYNC-...` ids your tests pin), regenerates `error_catalog.rst` from the code, and
+so drops entries for errors that no longer exist. `generate-catalog`
+and `validate-catalog` remain for the narrower jobs of rendering only and checking only.
 
 ### CLI Commands
 
 ```bash
-flync errors get-next-number       # Print the next free globally-unique error number
+flync errors get-next-number     # Print the next free globally-unique error number
 flync errors validate-catalog    # Check code ↔ docs/source/error_catalog.rst drift (exits 1 on mismatch)
 flync errors generate-catalog    # (Re)generate error_catalog.rst from code
+flync errors fix-numbers         # Renumber duplicate error numbers introduced by this branch
+flync errors sync                # fix-numbers + generate-catalog in one step (the pipeline entry point)
+flync errors sync --check        # Same, but writes nothing and exits 1 if anything would change
 ```
+
+`fix-numbers` and `sync` accept `--base <ref>` to name the branch a duplicate is judged against;
+without it they use `CI_MERGE_REQUEST_TARGET_BRANCH_NAME` / `GITHUB_BASE_REF`, then `origin/main`.
+CI needs an unshallow checkout (`fetch-depth: 0`) for that lookup to work; with no base resolvable
+the keeper is picked by file order instead, which may renumber the older error.
 
 ### Key Files
 
 | File | Role |
 |---|---|
 | `src/flync/core/utils/exceptions.py` | `Severity`, `Category` enums, `err_minor`/`err_major`/`err_fatal`/`warn` factories, `compose_error_id` |
-| `src/flync_cli/commands/errors.py` | CLI commands (`get-next-number`, `validate-catalog`, `generate-catalog`) |
+| `src/flync_cli/commands/errors.py` | CLI commands (`get-next-number`, `validate-catalog`, `generate-catalog`, `fix-numbers`, `sync`) |
 | `src/flync_cli/utils/errors.py` | AST-based static scanner (`scan_error_calls`), catalog renderer, drift validator |
+| `src/flync_cli/utils/error_renumber.py` | Duplicate-number fixer: git base-branch lookup, renumber plan, id propagation, `sync_catalog` |
 | `docs/source/error_catalog.rst` | Generated Sphinx-Needs catalog (do not edit by hand) |
 
 ## Converter Overview
@@ -357,7 +371,7 @@ cd docs && make html    # Sphinx, generates mermaid diagrams + CLI docs
 
 - **GitHub Actions** (primary) — workflows in `.github/workflows/`:
   - `push_and_pr.yaml` — main test/lint pipeline on push and PR
-    - Static checks: `format-check` (Black), `isort`, `lint` (flake8), `type-check` (mypy), `error-catalog-check` (`flync errors validate-catalog`)
+    - Static checks: `format-check` (Black), `isort`, `lint` (flake8), `type-check` (mypy), `error-catalog-check` (`flync errors sync`)
     - Test splits (all gated on the static checks): `unit-tests`, `system-tests`, `cli-tests` (core env), `converter-tests` and `performance-tests` (Qt/PySide6 apt libs + `--group qt --extra gui --extra tui`); `performance-tests` is `continue-on-error`
     - `tests-summary` — runs with `if: always()`, combines the per-split `.coverage.*` / `report_*.xml` into `coverage.xml` + `report.xml` and posts the PR coverage comment; missing splits produce warnings, only a total absence of artifacts fails the job
     - Plus `example-validation` and `build-documentation`

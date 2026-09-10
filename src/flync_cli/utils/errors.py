@@ -8,6 +8,7 @@ documentation catalog.
 """
 
 import ast
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -38,6 +39,7 @@ class ErrorRecord(object):
     file: str  # source path relative to the repo
     lineno: int
     bad_category: str | None = None  # source text of an invalid category= value, if any
+    number_pos: tuple[int, int, int] | None = None  # (lineno, col, end_col) of the error_number literal
 
 
 class _CallCollector(ast.NodeVisitor):
@@ -84,6 +86,7 @@ class _CallCollector(ast.NodeVisitor):
     def _build_record(self, node: ast.Call, severity: Severity) -> ErrorRecord:
         category, bad_category = _keyword_category(node)
         number = _keyword_number(node)
+        number_pos = _keyword_number_pos(node)
         message = ast.unparse(node.args[0]) if node.args else ""
         module_code = module_code_for(self.dotted_module)
         return ErrorRecord(
@@ -97,6 +100,7 @@ class _CallCollector(ast.NodeVisitor):
             file=self.rel_path,
             lineno=node.lineno,
             bad_category=bad_category,
+            number_pos=number_pos,
         )
 
 
@@ -134,6 +138,45 @@ def _keyword_number(node: ast.Call) -> str | None:
     return None
 
 
+def _keyword_number_pos(node: ast.Call) -> tuple[int, int, int] | None:
+    """Source span ``(lineno, col_offset, end_col_offset)`` of the ``error_number`` literal.
+
+    Columns are UTF-8 byte offsets into the line, as produced by :mod:`ast`. ``None`` when the
+    call site has no literal number, or when the literal spans lines (implicit concatenation) —
+    the automatic renumbering refuses to touch those.
+    """
+
+    for kw in node.keywords:
+        if kw.arg == "error_number" and isinstance(kw.value, ast.Constant):
+            if kw.value.end_lineno != kw.value.lineno or kw.value.end_col_offset is None:
+                return None
+            return (kw.value.lineno, kw.value.col_offset, kw.value.end_col_offset)
+    return None
+
+
+def numbers_in_source(text: str) -> set[str]:
+    """Error numbers used by factory call sites in one module's source text.
+
+    Used to read a file as it looks on another git revision, where the module is not importable
+    and only the raw numbers matter.
+    """
+
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return set()
+    targets = _target_names(tree)
+    if not targets:
+        return set()
+    numbers = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in targets:
+            number = _keyword_number(node)
+            if number is not None:
+                numbers.add(number)
+    return numbers
+
+
 def _dotted_module(path: Path) -> str:
     """Resolve relative path to the module with dot as a separator."""
 
@@ -158,11 +201,29 @@ def scan_error_calls(src_root: Path = SRC_ROOT) -> list[ErrorRecord]:
     return records
 
 
-def next_error_number(records: list[ErrorRecord]) -> str:
-    """Return the next free number: highest ever assigned + 1, never reused."""
+def next_error_number(records: list[ErrorRecord], reserved: Iterable[str] = ()) -> str:
+    """Return the next free number: highest ever assigned + 1, never reused.
 
-    highest = max((int(r.number) for r in records if r.number is not None), default=0)
-    return f"{highest + 1:03d}"
+    A number freed by a deleted error stays a gap on purpose. Reusing it would make one id mean
+    two different errors depending on the FLYNC version, which breaks any tool that has to read
+    several versions side by side.
+
+    ``reserved`` adds numbers that are not (or no longer) in the scanned code but must still
+    count as spent — the ids already in the committed catalog and the numbers on the base
+    branch, so a number is never handed out twice across branches.
+    """
+
+    assigned = [int(r.number) for r in records if r.number is not None]
+    assigned += [int(n) for n in reserved if n.isdigit()]
+    return f"{max(assigned, default=0) + 1:03d}"
+
+
+def catalog_numbers(catalog_text: str | None) -> set[str]:
+    """Number segments of every id present in a catalog document."""
+
+    if not catalog_text:
+        return set()
+    return {error_id.rsplit("-", 1)[-1] for error_id in parse_catalog_ids(catalog_text)}
 
 
 CATALOG_PATH = Path(flync.__file__).parents[2] / "docs" / "source" / "error_catalog.rst"
