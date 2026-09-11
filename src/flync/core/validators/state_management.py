@@ -272,7 +272,7 @@ def _reachability_error(group_name, group, member, direction):
 
 def _bus_topology_index(model: "FLYNCModel"):
     """
-    One pass over every CAN / LIN interface.
+    One pass over every CAN and LIN interface.
 
     Returns ``(sent_frame_ids_by_bus, attached_buses_by_ecu)``: the frame ids any
     attached interface transmits per bus, and the set of buses each ECU attaches

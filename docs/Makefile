@@ -22,6 +22,7 @@ generations:
 # create mermaid schematics
 	uv run python3 ./source/_scripts/create_mermaid.py
 	uv run python3 ./source/_scripts/generate_ecu_diagram.py $(EXAMPLE_SOURCE)/ecu_variants -o $(EXAMPLE_DST)/images/ecu_variants
+	uv run python3 ./source/_scripts/generate_multidrop_segment_diagram.py $(EXAMPLE_SOURCE)/$(EXAMPLE_NAME)
 # create cli docu
 	uv run typer flync_cli.main utils docs --name flync --title Usage --output $(SOURCEDIR)/flync_cli/usage.md
 # generate error catalog

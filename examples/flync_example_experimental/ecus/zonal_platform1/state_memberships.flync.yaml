@@ -1,0 +1,4 @@
+state_memberships:
+- group: VEHICLE
+  role: participant
+  relevance_bits: [ExteriorLights]

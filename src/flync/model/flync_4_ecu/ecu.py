@@ -485,6 +485,14 @@ class ECU(FLYNCBaseModel):
         """Return a list of all controllers of the ECU."""
         return self.controllers
 
+    def iter_controllers_and_switch_hosts(self):
+        """Yield the ECU's own controllers, then the host controller inside each switch."""
+
+        yield from self.controllers
+        for switch in self.switches or []:
+            if switch.host_controller is not None:
+                yield switch.host_controller
+
     def get_all_ports(self):
         """Return a list of all ports of the ECU."""
         return self.ports or []
@@ -525,26 +533,14 @@ class ECU(FLYNCBaseModel):
         Get all IPs in a ECU
         """
 
-        ip_lists = []
-        for ctrl in self.controllers or []:
-            ip_lists.extend(ctrl.get_all_ips())
-        for switch in self.switches or []:
-            if switch.host_controller:
-                ip_lists.extend(switch.host_controller.get_all_ips())
-        return ip_lists
+        return [ip for ctrl in self.iter_controllers_and_switch_hosts() for ip in ctrl.get_all_ips()]
 
     def get_all_macs(self):
         """
         Get all MAC addresses in a ECU
         """
 
-        mac_lists = []
-        for ctrl in self.controllers:
-            mac_lists.extend(ctrl.get_all_macs())
-        for switch in self.switches or []:
-            if switch.host_controller is not None:
-                mac_lists.extend(switch.host_controller.get_all_macs())
-        return mac_lists
+        return [mac for ctrl in self.iter_controllers_and_switch_hosts() for mac in ctrl.get_all_macs()]
 
     def __iter_socket_containers(self) -> Iterator[SocketContainer]:
         """

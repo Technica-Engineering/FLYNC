@@ -52,6 +52,7 @@ targets = {
     "timesync.mmd": base_model.flync_4_tsn.timesync,
     "can.mmd": base_model.flync_4_bus.can_bus,
     "lin.mmd": base_model.flync_4_bus.lin_bus,
+    "ethernet_multidrop.mmd": base_model.flync_4_topology.ethernet_multidrop,
     "signal.mmd": base_model.flync_4_signal.signal,
     "pdu.mmd": base_model.flync_4_signal.pdu,
     "frame.mmd": base_model.flync_4_signal.frame,

@@ -271,7 +271,6 @@ Media-Dependent Interfaces
 .. autoclass:: flync.model.flync_4_ecu.phy.BASET1()
 .. autoclass:: flync.model.flync_4_ecu.phy.BASET1S()
 
-
 .. _mii_config:
 
 Media-Independent Interfaces

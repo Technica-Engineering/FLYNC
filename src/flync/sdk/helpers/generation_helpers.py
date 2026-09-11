@@ -24,7 +24,7 @@ from pydantic_extra_types.mac_address import MacAddress
 from flync.core.datatypes.ipaddress import IPv4AddressEntry
 from flync.model.flync_4_ecu.phy import BASET1
 from flync.model.flync_4_ecu.sockets import IPv4AddressEndpoint
-from flync.model.flync_4_topology.ethernet_topology import ExternalConnection
+from flync.model.flync_4_topology.ethernet_topology import EthernetPointToPointConnection
 from flync.model.flync_model import FLYNCBaseModel, FLYNCModel
 from flync.sdk.context.workspace_config import WorkspaceConfiguration
 from flync.sdk.utils.field_utils import get_field_name_from_alias
@@ -571,7 +571,7 @@ class ExternalConnectionFactory(FLYNCFactory):
     Factory for ExternalConnection model.
     """
 
-    __model__ = ExternalConnection
+    __model__ = EthernetPointToPointConnection
 
     @classmethod
     def build(cls, **kwargs):

@@ -146,3 +146,9 @@ dependency_graph_cache*
 tests/converter_tests/generated_test_output/
 /local_examples
 /docs/source/error_catalog.rst
+
+# AI
+/.opencode
+/opencode.json
+/.claude
+/.mcp.json

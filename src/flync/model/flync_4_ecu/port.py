@@ -36,7 +36,7 @@ class ECUPort(FLYNCBaseModel):
 
     mdi_config : :class:`~flync.model.flync_4_ecu.phy.BASET1` or :class:`~flync.model.flync_4_ecu.phy.BASET1S` or \
     :class:`~flync.model.flync_4_ecu.phy.BASET`
-        Media-dependent interface configuration, such as BASE-T1, BASE-T1S or BASE-T.
+        Media-dependent interface configuration, such as BASE-T1, BASE-T1S, or BASE-T.
 
     mii_config : :class:`~flync.model.flync_4_ecu.phy.MII` or :class:`~flync.model.flync_4_ecu.phy.RMII` or \
     :class:`~flync.model.flync_4_ecu.phy.SGMII` or :class:`~flync.model.flync_4_ecu.phy.RGMII`, optional

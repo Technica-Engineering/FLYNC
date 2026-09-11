@@ -675,11 +675,20 @@ class Controller(FLYNCBaseModel):
         reject_legacy_controller(data)
         return data
 
+    def _interfaces_by_kind(self):
+        return (
+            ("ethernet", self.ethernet_interfaces or []),
+            ("CAN", self.can_interfaces or []),
+            ("LIN", self.lin_interfaces or []),
+        )
+
     @model_validator(mode="after")
     def require_at_least_one_interface(self):
-        if not self.ethernet_interfaces and not self.can_interfaces and not self.lin_interfaces:
+        if not any(interfaces for _kind, interfaces in self._interfaces_by_kind()):
             raise err_major(
-                "Controller must declare at least one interface (ethernet, CAN, or LIN).", category=Category.REQUIRED, error_number="066"
+                "Controller must declare at least one interface (Ethernet, CAN, or LIN).",
+                category=Category.REQUIRED,
+                error_number="066",
             )
         return self
 
@@ -695,17 +704,13 @@ class Controller(FLYNCBaseModel):
     @model_validator(mode="after")
     def validate_unique_interface_names_across_types(self):
         """
-        Validate that interface names are unique across all interface types (ethernet, CAN, and LIN).
+        Validate that interface names are unique across all interface types.
 
         A name that is already unique within a single type is left to :meth:`validate_unique_interface_names`;
         this check only flags names reused by more than one interface type, which would create ambiguous references.
         """
         name_types: dict[str, set] = {}
-        for label, interfaces in (
-            ("ethernet", self.ethernet_interfaces or []),
-            ("CAN", self.can_interfaces or []),
-            ("LIN", self.lin_interfaces or []),
-        ):
+        for label, interfaces in self._interfaces_by_kind():
             for iface in interfaces:
                 name_types.setdefault(iface.name, set()).add(label)
 

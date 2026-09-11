@@ -6,3 +6,9 @@ ports:
       duplex: full
       role: slave
       autonegotiation: false
+  - name: z1_p2
+    mdi_config:
+      mode: base_t1s
+      speed: 10
+      duplex: half
+      topology: multidrop

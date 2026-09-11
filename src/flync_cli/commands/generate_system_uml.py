@@ -6,6 +6,7 @@ ports, including PTP, MACsec and QoS details) and the ``draw_*`` helpers emit th
 sections. Diagram content can be restricted to a single VLAN.
 """
 
+import re
 from pathlib import Path
 from typing import Optional, cast
 
@@ -433,6 +434,98 @@ def generate_intra_ecu_uml(topology_connections, uml_lines, all_nodes, vlan_id):
         add_internally_connected_ports(uml_lines, all_nodes, vlan_id, src, dst, conn_id)
 
 
+def declare_node_once(port_name, all_nodes, uml_lines):
+    """
+    Declare a component above the ECU packages, unless it is already declared.
+
+    A port referenced by a connection or a segment may sit in an ECU that never made it onto the diagram, and PlantUML needs the component
+    to exist before an edge names it. The declaration goes at the top so it is not nested inside whatever package was open.
+    """
+
+    if port_name in all_nodes["defined_nodes"]:
+        return
+
+    uml_lines.insert(all_nodes["declaration_index"], f"[{port_name}]")
+    all_nodes["defined_nodes"].add(port_name)
+
+
+def _ecu_layout_order(flync, ecu_names):
+    """
+    Order the ECU packages for layout.
+
+    Nodes on a Ethernet multidrop segment come first, in PLCA node id order, so the diagram lays the segment out the way a bus is normally
+    drawn: coordinator on the left, then each node in the order its transmit opportunity comes round. Everything else follows by name.
+
+    Sorting at all matters beyond the segment: the caller collects ECUs in a set, so without this the package order is hash order and the
+    same workspace can render differently from one run to the next.
+    """
+
+    opportunity_by_ecu = {}
+    for conn in flync.multidrop_connections:
+        for node in conn.nodes:
+            if node.ecu_name in ecu_names and node.node_id is not None:
+                opportunity_by_ecu.setdefault(node.ecu_name, node.node_id)
+
+    def layout_key(name):
+        """Segment nodes first in cycle order, the rest by name. One tuple shape, so no comparison mixes an id with a name."""
+
+        return (0, opportunity_by_ecu[name], "") if name in opportunity_by_ecu else (1, 0, name)
+
+    return sorted(ecu_names, key=layout_key)
+
+
+def _segment_node_label(node):
+    """What the edge from the segment to a node says: its place in the cycle, or that it has none."""
+
+    if not node.participates:
+        return "no transmit opportunity"
+    if node.is_coordinator:
+        return "slot 0 (coordinator)"
+    return f"slot {node.node_id}"
+
+
+def _draw_segment(conn, nodes, all_nodes, uml_lines):
+    """Draw one segment as a queue with its nodes hanging off it, in the order their transmit opportunities come round."""
+
+    segment_id = "seg_" + re.sub(r"\W", "_", conn.id)
+    # Declared ahead of the ECU packages and linked downwards, so the segment is drawn above the nodes hanging off it.
+    uml_lines.insert(all_nodes["declaration_index"], f'queue "{conn.id}\\nEthernet multidrop" as {segment_id} #Wheat')
+
+    kept = {id(n) for n in nodes}
+    ordered = [n for n in conn.participants if id(n) in kept] + [n for n in conn.nodes if id(n) in kept and not n.participates]
+
+    for node in ordered:
+        declare_node_once(node.ecu_port_name, all_nodes, uml_lines)
+        uml_lines.append(f"{segment_id} -down- [{node.ecu_port_name}] : {_segment_node_label(node)}")
+
+    # Hidden edges only place the nodes side by side. A visible chain would claim they link to each other; each taps the medium
+    # through its own stub.
+    for left, right in zip(ordered, ordered[1:]):
+        uml_lines.append(f"[{left.ecu_port_name}] -[hidden]right- [{right.ecu_port_name}]")
+
+
+def add_multidrop_uml(flync, all_nodes, uml_lines, vlan_id):
+    """
+    Draw each Ethernet multidrop segment as a shared medium with its nodes hanging off it.
+
+    Drawn as a queue rather than as links between the ports: the nodes share one medium, and a mesh of point-to-point lines would claim
+    otherwise.
+    """
+
+    connections = flync.multidrop_connections
+    if not connections:
+        return
+
+    uml_lines.append("' Ethernet Multidrop Segments")
+    for conn in connections:
+        # Only nodes whose ECU is on the diagram: under --target-ecu the rest of the segment would show up as bare components.
+        nodes = [n for n in conn.nodes if n.ecu_name in all_nodes["included_ecus"]]
+        if vlan_id is not None:
+            nodes = [n for n in nodes if n.ecu_port_name in all_nodes["internally_connected_ports"]]
+        if nodes:
+            _draw_segment(conn, nodes, all_nodes, uml_lines)
+
+
 def add_inter_ecu_uml(conn, all_nodes, uml_lines, vlan_id):
     """Draw inter-ECU port connection in UML, optionally filtered by VLAN ID."""
     if conn.type != "ecu_port_to_ecu_port":
@@ -450,9 +543,7 @@ def add_inter_ecu_uml(conn, all_nodes, uml_lines, vlan_id):
             include_conn = True
     if include_conn:
         for port in (ecu1_port, ecu2_port):
-            if port not in all_nodes["defined_nodes"]:
-                uml_lines.insert(1, f"[{port}]")
-                all_nodes["defined_nodes"].add(port)
+            declare_node_once(port, all_nodes, uml_lines)
         uml_lines.append(f"[{ecu1_port}] O--O [{ecu2_port}] : {conn_id}")
 
 
@@ -467,7 +558,10 @@ def parse_and_generate_uml(flync, vlan_id, options, ecus, connections):
         "skinparam PackageStyle rectangle",
         "",
     ]
+    # Late declarations go after the layout directives, not between @startuml and the first skinparam: `linetype ortho` is position sensitive.
+    declaration_index = len(uml_lines)
     all_nodes = {}
+    all_nodes["declaration_index"] = declaration_index
     all_nodes["defined_nodes"] = set()
     all_nodes["node_types"] = {}
     all_nodes["included_nodes"] = set()
@@ -495,13 +589,15 @@ def parse_and_generate_uml(flync, vlan_id, options, ecus, connections):
             all_nodes["included_ecus"].add(ecu_name)
             all_nodes["ecu_data"][ecu_name] = ecu_nodes
 
-    for ecu_name in all_nodes["included_ecus"]:
+    ordered_ecus = _ecu_layout_order(flync, all_nodes["included_ecus"])
+
+    for ecu_name in ordered_ecus:
         uml_lines.append(f'package "{ecu_name}" #WhiteSmoke {{')
         generate_ecu_uml(ecu_name, uml_lines, all_nodes)
         uml_lines.append("}")
         uml_lines.append("")
 
-    for ecu_name in all_nodes["included_ecus"]:
+    for ecu_name in ordered_ecus:
         ecu_actual = flync.get_ecu_by_name(ecu_name)
         # An ECU without an internal topology has nothing to wire up, which is the normal case for a single-controller CAN node.
         topology = ecu_actual.topology
@@ -512,6 +608,8 @@ def parse_and_generate_uml(flync, vlan_id, options, ecus, connections):
 
     for conn in connections:
         add_inter_ecu_uml(conn, all_nodes, uml_lines, vlan_id)
+
+    add_multidrop_uml(flync, all_nodes, uml_lines, vlan_id)
 
     uml_lines.append("@enduml")
     return uml_lines, all_nodes["included_ecus"]

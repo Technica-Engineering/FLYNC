@@ -8,3 +8,5 @@ sockets:
   deployments:
   - deployment_type: pdu_receiver
     pdu_ref: EthNmContainerA
+  - deployment_type: pdu_sender
+    pdu_ref: EthNmContainerA

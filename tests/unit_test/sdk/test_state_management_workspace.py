@@ -45,7 +45,11 @@ def test_state_management_example_loads(loaded_workspace_without_object_map):
         ("VEHICLE", "controller", "zonal_platform2/z2_controller2", "observer", None),
         ("VEHICLE", "ecu", "can_node_1", "participant", "Comfort"),
         ("VEHICLE", "ecu", "can_node_2", "participant", "Comfort"),
+        ("VEHICLE", "ecu", "rear_lamp_center", "participant", "ExteriorLights"),
+        ("VEHICLE", "ecu", "rear_lamp_left", "participant", "ExteriorLights"),
+        ("VEHICLE", "ecu", "rear_lamp_right", "participant", "ExteriorLights"),
         ("VEHICLE", "ecu", "zonal_gateway", "participant", "Comfort"),
+        ("VEHICLE", "ecu", "zonal_platform1", "participant", "ExteriorLights"),
     ]
 
     warnings = [

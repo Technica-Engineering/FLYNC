@@ -37,6 +37,7 @@ from flync_cli.commands.generate_system_uml import (
     generate_intra_ecu_uml,
     parse_and_generate_uml,
 )
+from tests.multidrop_workspace import build_multidrop_model
 
 from .cli_assertions import assert_cli_ok
 from .helpers import make_controller, make_ecu, make_interface, make_port
@@ -57,6 +58,8 @@ def _empty_all_nodes():
         "ecu_data": {},
         "included_ecus": set(),
         "internally_connected_ports": set(),
+        # Where late declarations go. parse_and_generate_uml sets this to the line after the skinparam block.
+        "declaration_index": 1,
     }
 
 
@@ -819,3 +822,89 @@ class TestWorkspaceWithoutEthernet:
         assert "no Ethernet interface or switch port carries VLAN 999" in plain(result.output)
         assert "CAN/LIN-only" not in plain(result.output)
         assert not output_file.exists()
+
+
+class TestEthernetMultidropRendering:
+    """
+    A segment has to appear on the diagram, and it has to appear as a shared medium.
+
+    Nothing else draws it as one: the inter-ECU pass renders point-to-point links, so a segment's nodes would sit on the diagram with
+    only their ECU-internal link and nothing joining them.  Built from Python so the class does not lean on ``flync_example``.
+    """
+
+    @staticmethod
+    def _generate(vlan_id=None):
+        from flync_cli.commands.generate_system_uml import parse_and_generate_uml
+
+        model = build_multidrop_model()
+        uml_lines, _included_ecus = parse_and_generate_uml(model, vlan_id, [], model.ecus, model.topology.ethernet_topology.connections)
+        return uml_lines
+
+    def test_segment_is_drawn_as_a_queue_with_every_node_attached(self):
+        lines = self._generate()
+
+        assert [line for line in lines if line.startswith("queue ") and "RearLampSegment" in line]
+        attached = [line for line in lines if line.startswith("seg_RearLampSegment -down- ")]
+        assert len(attached) == 4
+
+    def test_the_coordinator_is_labelled_as_such(self):
+        """Slot 0 is what makes a node the coordinator, and the diagram is where that is worth seeing."""
+
+        lines = self._generate()
+
+        assert any(line.endswith("[z1_p2] : slot 0 (coordinator)") for line in lines)
+        assert any(line.endswith("[rear_lamp_left_p1] : slot 1") for line in lines)
+
+    def test_nodes_are_ordered_by_node_id(self):
+        """The order on the diagram is the order of the PLCA cycle, which is the order the transmit opportunities come round."""
+
+        lines = [line for line in self._generate() if line.startswith("seg_RearLampSegment -down- ")]
+
+        assert [line.split(" : ")[1] for line in lines] == ["slot 0 (coordinator)", "slot 1", "slot 2", "slot 3"]
+
+    def test_ecu_packages_follow_the_plca_cycle(self):
+        """
+        The segment reads like a bus: coordinator first, then each node in the order its transmit opportunity comes round.
+
+        PlantUML lays siblings out in declaration order, so the package order is the only handle on this. The caller collects ECUs in a
+        set, which without sorting means hash order and a diagram that can differ between runs of the same workspace.
+        """
+
+        packages = [line for line in self._generate() if line.startswith('package "')]
+
+        names = [line.split('"')[1] for line in packages]
+
+        # The four segment nodes lead, in node id order; the rest of the workspace follows by name.
+        assert names[:4] == ["zonal_platform1", "rear_lamp_left", "rear_lamp_center", "rear_lamp_right"]
+        assert names[4:] == sorted(names[4:])
+
+    def test_target_ecu_draws_only_its_own_node(self):
+        """Under --target-ecu the rest of the segment must not appear as bare components hanging off the queue."""
+
+        from flync_cli.commands.generate_system_uml import parse_and_generate_uml
+
+        model = build_multidrop_model()
+        target = [ecu for ecu in model.ecus if ecu.name == "rear_lamp_left"]
+        lines, _ = parse_and_generate_uml(model, None, [], target, [])
+
+        edges = [line for line in lines if line.startswith("seg_RearLampSegment -down- ")]
+        assert edges == ["seg_RearLampSegment -down- [rear_lamp_left_p1] : slot 1"]
+        assert not any("z1_p2" in line or "rear_lamp_right_p1" in line or "rear_lamp_center_p1" in line for line in lines)
+
+    def test_nodes_are_laid_out_side_by_side_but_not_chained(self):
+        """
+        The nodes sit next to each other under the segment, and nothing visible connects them to one another.
+
+        A chain would say node 1 sits between 0 and 2 and passes data along. A mixing segment does not work that way: every node taps the
+        same medium through its own stub, which is exactly why arbitration needs PLCA. So the ordering is done with hidden edges.
+        """
+
+        lines = self._generate()
+
+        hidden = [line for line in lines if "-[hidden]right-" in line]
+        assert len(hidden) == 3
+
+        # Only an edge with a segment port at BOTH ends would be a chain. A port wired to its own switch port or interface is the
+        # ordinary ECU-internal link and belongs on the diagram.
+        node_to_node = [line for line in lines if line.count("[rear_lamp_") == 2 and "-[hidden]" not in line]
+        assert node_to_node == []

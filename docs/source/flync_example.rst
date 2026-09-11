@@ -27,6 +27,8 @@ The configuration includes the following key components:
 
 - **Signals, PDUs and CAN Communication** - Shows how bus-agnostic signals are grouped into PDUs and carried by CAN and CAN FD frames, and how the same PDUs are packed into Ethernet container PDUs.
 
+- **10BASE-T1S Multidrop** - Shows a shared single-pair segment carrying three rear lamp modules and the zone controller that coordinates them. It covers the PLCA parameters every node agrees on, the per-node node id on each port's PHY, and how the whole segment enrols in network management as a single participant.
+
 
 
 Example Configuration
@@ -44,7 +46,7 @@ The **Ethernet Network Topology** diagram provides a comprehensive visual repres
 The diagram identifies the VLANs, IP addresses, and multicast groups assigned to each controller and switch, giving a complete view of the logical network segmentation and addressing scheme.
 
 
-Each of the four ECUs is shown as an individual block. The diagram also illustrates the internal connectivity between components within each ECU, as well as the external connections between ECUs, making both intra-ECU and inter-ECU communication paths easy to understand.
+Each ECU is shown as an individual block. The diagram also illustrates the internal connectivity between components within each ECU, as well as the external connections between ECUs, making both intra-ECU and inter-ECU communication paths easy to understand.
 
 .. image:: _static/images/examples/ethernet_topology.svg
    :align: center
@@ -97,6 +99,39 @@ This helps clarify the security topology and illustrates how data integrity (and
 .. image:: _static/images/examples/macsec.svg
    :align: center
    :width: 1300px
+
+-------
+
+Ethernet Multidrop Segment
+""""""""""""""""""""""""""
+
+The rear lamps sit on a **shared single-pair segment** rather than on a link of their own. Three lamp modules and one
+port of ``zonal_platform1`` share one twisted pair, and PLCA (IEEE 802.3-2022 Clause 148) gives each of them a
+transmit opportunity in turn, so the medium carries no collisions.
+
+The segment as the model derives it — the medium, and every node ordered by the transmit opportunity it holds:
+
+.. mermaid:: _static/mermaid/multidrop_segment_rearlampsegment.mmd
+
+The segment is a connection in the system topology, holding the cycle all four nodes must agree on and one entry
+per node:
+
+.. literalinclude:: ../../examples/flync_example/topology/ethernet_topology.flync.yaml
+   :language: yaml
+
+``zonal_platform1`` holds transmit opportunity 0, which makes it the **coordinator** that emits the BEACON opening
+each cycle; the three lamps hold 1 to 3 as **followers**. What differs per node beyond that - the PHY, and the
+burst parameters - stays on the port.
+
+Three things are worth noticing when reading the example:
+
+- **The segment declares no frames.** Payload takes the ordinary Ethernet path — the lamp command and status PDUs
+  travel over UDP sockets on each node's ``ethernet_interfaces``, exactly as they would on a point-to-point link.
+- **The lamp command goes out as multicast.** Every node on a shared medium hears every frame anyway, so one
+  command addressed to the group lights the whole tail; sending it three times over would put three transmit
+  opportunities on the wire for the same payload.
+- **Network management is node-level here**, as on any other Ethernet. Each node is an IP host running its own NM
+  stack, so it holds its own membership; the segment itself holds none.
 
 -------
 

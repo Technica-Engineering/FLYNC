@@ -10,7 +10,7 @@ from pydantic_core import PydanticCustomError
 from flync.core.annotations import External, NamingStrategy, OutputStrategy
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.base_utils import check_obj_in_list
-from flync.core.utils.exceptions import Category, err_major, warn, warn_from_error
+from flync.core.utils.exceptions import Category, err_major, warn
 from flync.core.utils.multicast import (
     backtrack_to_source,
     collect_ipv6_solicited_node_rx,
@@ -51,6 +51,12 @@ from flync.model.flync_4_topology.bus_topology import (
     build_bus_topologies,
     validate_bus_topologies,
 )
+from flync.model.flync_4_topology.ethernet_multidrop import (
+    EthernetMultidropConnection,
+    validate_multidrop_connections,
+    wire_multidrop_connections,
+)
+from flync.model.flync_4_topology.ethernet_topology import validate_no_multidrop_in_point_to_point, warn_unconnected_ports
 
 
 class FLYNCModel(FLYNCBaseModel):
@@ -198,13 +204,34 @@ class FLYNCModel(FLYNCBaseModel):
             try:
                 conn.bind(ports_by_name)
             except PydanticCustomError as e:
-                warn_from_error(e)
+                # A multidrop connection reports a missing port as a hard error of its own, not as this warning.
+                if isinstance(conn, EthernetMultidropConnection):
+                    raise
+                warn(str(e), category=Category.REFERENCE, error_number="164")
+
+        # After binding, not inside it: the except above would turn this into warning 164 and lose the error's own id.
+        validate_no_multidrop_in_point_to_point(self.topology.ethernet_topology.connections)
+        return self
+
+    @model_validator(mode="after")
+    def wire_multidrop_ports(self):
+        """
+        Join the ports sharing a multidrop segment, so the passes below see a segment as the connection it is.
+
+        Sits here rather than with the rest of the topology derivation because everything that walks the graph runs before that:
+        unconnected-port reporting next, multicast path analysis further down.
+        """
+
+        wire_multidrop_connections(self.multidrop_connections)
         return self
 
     @model_validator(mode="after")
     def validate_no_unconnected_ecu_ports(self):
-        if self.topology.ethernet_topology is not None:
-            self.topology.ethernet_topology.validate_no_unconnected_ports(self.get_all_ecu_ports())
+        """Must not require an ethernet topology: a workspace that wires only CAN/LIN has no ``topology/`` file, but its ports
+        still deserve an unconnected report."""
+
+        claimed = {id(node.ecu_port) for conn in self.multidrop_connections for node in conn.nodes if node.ecu_port is not None}
+        warn_unconnected_ports(self.get_all_ecu_ports(), claimed, self.topology.ethernet_topology is not None)
         return self
 
     @model_validator(mode="after")
@@ -452,12 +479,14 @@ class FLYNCModel(FLYNCBaseModel):
 
     @model_validator(mode="after")
     def build_and_validate_bus_topologies(self):
-        """Derive the system-wide CAN/LIN bus topology from bus definitions and ECU interfaces, then validate it."""
+        """Derive the system-wide CAN, LIN and Ethernet multidrop topology from bus definitions and ECU interfaces, then validate it."""
 
         can_topos, lin_topos, can_defs, lin_defs = build_bus_topologies(self)
         self.topology.can_bus_topology = can_topos
         self.topology.lin_bus_topology = lin_topos
         validate_bus_topologies(can_topos, lin_topos, can_defs, lin_defs)
+
+        validate_multidrop_connections(self.multidrop_connections)
         return self
 
     def get_can_bus_topology(self, bus_name: str) -> Optional["CANBusTopology"]:
@@ -467,6 +496,18 @@ class FLYNCModel(FLYNCBaseModel):
     def get_lin_bus_topology(self, bus_name: str) -> Optional["LINBusTopology"]:
         """Return the derived LIN bus topology for ``bus_name``, or ``None`` if unknown."""
         return next((t for t in self.topology.lin_bus_topology if t.bus_name == bus_name), None)
+
+    @property
+    def multidrop_connections(self) -> List["EthernetMultidropConnection"]:
+        """Every multidrop connection in the system topology."""
+
+        topology = self.topology.ethernet_topology if self.topology else None
+        return [c for c in topology.connections if isinstance(c, EthernetMultidropConnection)] if topology else []
+
+    def get_multidrop_connection(self, connection_id: str) -> Optional["EthernetMultidropConnection"]:
+        """Return the multidrop connection with ``connection_id``, or ``None`` if unknown."""
+
+        return next((c for c in self.multidrop_connections if c.id == connection_id), None)
 
     def check_rx_are_reached(self, separ, paths, parents, vlans_dict):
         rx_targets = {}

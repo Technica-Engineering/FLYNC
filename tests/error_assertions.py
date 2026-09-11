@@ -18,12 +18,16 @@ def _describe(error: ErrorDetails) -> str:
     return f"{location}: {error['msg']}" if location else error["msg"]
 
 
+def _error_id(finding: ErrorDetails) -> Optional[str]:
+    return (finding.get("ctx") or {}).get("error_id")
+
+
 def _assert_single_finding(findings: List[ErrorDetails], expected_error_id: Optional[str], message_fragment: str, kind: str) -> None:
     """Assert *findings* holds exactly one entry, raised by the expected call site and naming the expected subject."""
 
     assert len(findings) == 1, f"expected exactly one {kind}, got: {[_describe(finding) for finding in findings]}"
 
-    reported_error_id = (findings[0].get("ctx") or {}).get("error_id")
+    reported_error_id = _error_id(findings[0])
     assert reported_error_id == expected_error_id, f"expected error id {expected_error_id}, got {reported_error_id}: {findings[0]['msg']}"
 
     reported = _describe(findings[0])
@@ -79,6 +83,31 @@ def assert_single_warning(validation_result: ValidationResult, expected_error_id
     assert model is not None, f"expected the model to still be built alongside the warning, got errors: {[_describe(f) for f in findings]}"
 
     _assert_single_finding(findings, expected_error_id, message_fragment, kind="warning")
+
+
+def assert_warnings(validation_result: ValidationResult, *expected_error_ids: str) -> None:
+    """Assert the validation produced exactly these warnings, nothing more and nothing fewer.
+
+    The setwise counterpart of :func:`assert_single_warning` for rules that legitimately co-fire on the same
+    fixture: it pins the exact list of warning ids (``FLYNC-<MODULE>-WARN-<CATEGORY>-<NUMBER>``) regardless of order,
+    so a rule that starts warning where it used to stay quiet — or goes quiet where it used to warn — fails the
+    test. Each id must appear exactly the number of times it is given.
+
+    Parameters
+    ----------
+    validation_result : tuple
+        The ``(model, findings)`` return value of ``validate_with_policy``.
+    *expected_error_ids : str
+        The exact set of warning ids the pass must produce.
+    """
+
+    model, findings = validation_result
+    assert model is not None, f"expected the model to still be built alongside the warnings, got errors: {[_describe(f) for f in findings]}"
+
+    actual = sorted(_error_id(finding) for finding in findings)
+    assert actual == sorted(
+        expected_error_ids
+    ), f"expected exactly the warning ids {sorted(expected_error_ids)}, got: {[_describe(finding) for finding in findings]}"
 
 
 def assert_no_findings(validation_result: ValidationResult) -> None:

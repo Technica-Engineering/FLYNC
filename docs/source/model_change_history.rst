@@ -1,8 +1,7 @@
 .. _model_change_history:
 
-========================
 Model Change History
-========================
+====================
 
 This guide documents how the FLYNC **configuration model** and its **public Python/CLI
 API** changed between consecutive releases, starting with  **0.9.x** (first public
@@ -378,6 +377,10 @@ Additive (0.14.x)
 * New ``flync_4_diagnostics`` domain package (module key ``DIA``), split by protocol layer.
 * New ``flync.core.datatypes.DurationMs``: a positive duration in whole milliseconds that also
   accepts ``"50ms"``/``"5s"`` in YAML, with ``parse_duration_ms``/``serialize_duration_ms``.
+* **Ethernet multidrop support.** ``topology/ethernet_topology.flync.yaml`` gained a second
+  connection type, ``ethernet_multidrop``.
+* ``ExternalConnection`` is now ``EthernetPointToPointConnection``; the old name stays as an alias.
+* ``BASET1S`` gained ``topology`` (``p2p`` | ``multidrop``) and lost ``role``.
 
 Internal only
 -------------
@@ -1019,7 +1022,6 @@ loader was rewritten (ruamel AST compose) but keeps the existing method signatur
 workspace loader now ignores unrelated/non-model YAML files instead of erroring.
 
 
-========================
 
 Appendix — Quick renames
 ========================

@@ -21,6 +21,11 @@ virtual_interfaces:
         ipv4netmask: 255.255.255.0
     multicast:
     - 224.0.0.1
+  - name: z1_c1_i1_viface4
+    vlanid: 60
+    addresses:
+      - address: 10.0.60.1
+        ipv4netmask: 255.255.255.0
 ptp_config:
   cmlds_linkport_enabled: false
   ptp_ports:

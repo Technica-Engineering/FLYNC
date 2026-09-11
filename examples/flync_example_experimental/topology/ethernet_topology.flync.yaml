@@ -15,3 +15,17 @@ connections:
     id: conn4
     ecu1_port: hpc1_p5
     ecu2_port: zgw_p1
+  - type: ethernet_multidrop
+    id: RearLampSegment
+    plca:
+      transmit_opportunity_count: 4
+      to_timer: 32
+    nodes:
+      - ecu_port: z1_p2
+        node_id: 0
+      - ecu_port: rear_lamp_left_p1
+        node_id: 1
+      - ecu_port: rear_lamp_center_p1
+        node_id: 2
+      - ecu_port: rear_lamp_right_p1
+        node_id: 3

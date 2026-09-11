@@ -36,7 +36,7 @@ class BusAttachmentPoint(FLYNCBaseModel):
     controller_name : str
         Name of the controller that owns the attached interface.
     interface_name : str
-        Name of the CAN or LIN interface attached to the bus.
+        Name of the CAN, LIN or Ethernet multidrop interface attached to the bus.
     role : Literal["can_node", "lin_master", "lin_slave"]
         Role the interface plays on the bus.
     """
@@ -56,7 +56,7 @@ class BusTopology(FLYNCBaseModel):
     Parameters
     ----------
     bus_name : str
-        Name of the CAN or LIN bus, matching ``bus_ref`` on the attached interfaces.
+        Name of the bus or segment, matching ``bus_ref`` on the attached interfaces.
     bus_type : Literal["can", "lin"]
         Kind of bus.
     attachments : list of :class:`BusAttachmentPoint`
@@ -156,7 +156,7 @@ def _link_bus_definitions(by_name: dict, defs: Optional[dict]) -> None:
 
 
 def _bus_registry(flync_model: "FLYNCModel", attr: str) -> Optional[dict]:
-    """Return ``{bus_name: bus}`` for ``attr`` (``"can_buses"``/``"lin_buses"``), or ``None`` if it cannot be determined."""
+    """Return ``{bus_name: bus}`` for ``attr`` (a bus list on ``communication.channels``), or ``None`` if it cannot be determined."""
 
     channels = flync_model.communication.channels if flync_model.communication else None
     buses = getattr(channels, attr, None) if channels else None
@@ -210,7 +210,7 @@ def validate_bus_topologies(
         _validate_attachment_count(lin_topo, "LIN", lin_defs)
 
 
-def _validate_bus_ref_known(topo: BusTopology, defs: Optional[dict]) -> None:
+def _validate_bus_ref_known(topo: BusTopology, defs: Optional[dict], kind: str = "CAN/LIN") -> None:
     """
     Validate that a bus topology's ``bus_ref`` corresponds to a known bus definition.
 
@@ -224,6 +224,8 @@ def _validate_bus_ref_known(topo: BusTopology, defs: Optional[dict]) -> None:
         The bus topology entry whose ``bus_name`` is checked.
     defs : dict or None
         ``{bus_name: bus}`` registry of declared buses, or ``None`` if unavailable.
+    kind : str
+        Human-readable label naming the kind of bus in the message, e.g. ``"CAN/LIN"`` or ``"10BASE-T1S"``.
 
     Raises
     ------
@@ -234,13 +236,13 @@ def _validate_bus_ref_known(topo: BusTopology, defs: Optional[dict]) -> None:
         return
     if defs is None:
         warn(
-            f"bus_ref '{topo.bus_name}' referenced by ECU interface(s) cannot be verified: no CAN/LIN bus definitions are loaded.",
+            f"bus_ref '{topo.bus_name}' referenced by ECU interface(s) cannot be verified: no {kind} bus definitions are loaded.",
             category=Category.REFERENCE,
             error_number="222",
         )
     elif topo.bus_name not in defs:
         raise err_major(
-            f"CAN/LIN interface(s) reference unknown bus '{topo.bus_name}'. Defined buses: {sorted(defs)}",
+            f"{kind} interface(s) reference unknown bus '{topo.bus_name}'. Defined buses: {sorted(defs)}",
             category=Category.REFERENCE,
             error_number="221",
         )

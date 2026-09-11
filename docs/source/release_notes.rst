@@ -21,6 +21,11 @@ Added a new :ref:`flync_4_diagnostics <diagnostics>` domain package under
 ``communication/diagnostics/``, with one sub-directory per diagnostic protocol - everything
 modelled today is UDS (ISO 14229) over DoIP (ISO 13400).
 
+10BASE-T1S multidrop segments
+''''''''''''''''''''''''''''''
+
+Adding multidrop segments and PLCA to Ethernet.
+
 CLI restructure
 ''''''''''''''''
 

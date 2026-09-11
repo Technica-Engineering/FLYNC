@@ -63,3 +63,47 @@ via :meth:`~flync.model.flync_model.FLYNCModel.get_can_bus_topology` and
 .. autoclass:: flync.model.flync_4_topology.CANBusTopology()
 .. autoclass:: flync.model.flync_4_topology.LINBusTopology()
 .. autoclass:: flync.model.flync_4_topology.BusAttachmentPoint()
+
+.. _ethernet_multidrop:
+
+Ethernet Multidrop
+==================
+
+A point-to-point connection wires two ports.  An ``ethernet_multidrop`` connection wires N onto one shared
+medium, so it also carries the PLCA cycle those ports have to agree on: ``plca.transmit_opportunity_count``
+(how many slots one cycle has), ``plca.to_timer`` (how long a slot whose owner has nothing to send stays open,
+in bit times of 100 ns, default 32), and each node's ``node_id`` (which slot that port owns).
+
+A node without a ``node_id`` takes no part in PLCA and competes for the medium instead.  Node id
+0 makes a node the **coordinator**, which opens each cycle; there is exactly one.  Leaving the ``plca`` block off
+altogether makes the segment a plain CSMA/CD medium.
+
+What stays on each port is what nodes may legitimately differ in: the PHY itself, and ``burst_count`` and
+``burst_timer`` per node.  The connection stores no PHY type, so a segment mixing PHY variants needs no model
+change.
+
+.. admonition:: Expand for Schematic
+   :collapsible: closed
+
+   .. mermaid:: ../../_static/mermaid/ethernet_multidrop.mmd
+
+.. admonition:: Expand for a YAML example - 📄 ``topology/ethernet_topology.flync.yaml``
+   :collapsible: closed
+
+   .. literalinclude:: ../../../../examples/flync_example/topology/ethernet_topology.flync.yaml
+      :language: yaml
+
+Each rule reports a ``FLYNC-TOP-...`` identifier that the
+:doc:`error catalog </error_catalog>` explains in full, with its severity and message.
+
+.. autoclass:: flync.model.flync_4_topology.EthernetMultidropConnection()
+.. autoclass:: flync.model.flync_4_topology.EthernetMultidropNode()
+.. autoclass:: flync.model.flync_4_topology.PLCACycle()
+
+
+TSN on a shared medium is narrowed. gPTP works under two constraints
+(rejects ``cmlds_linkport_enabled`` and ``two_step: false``; errors 263,
+264), several time transmitters must sit in different domains (warning
+265), and an egress shaper loses its latency bound to the cycle (warning
+259). Each rule's severity and message live in the
+:doc:`error catalog </error_catalog>`.

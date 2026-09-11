@@ -149,6 +149,10 @@ ports:
   silicon_port_no: 3
   default_vlan_id: 50
 
+- name: z1_s1_p4
+  silicon_port_no: 4
+  default_vlan_id: 60
+
 vlans:
 - name: VLAN10
   id: 10
@@ -177,6 +181,13 @@ vlans:
   ports:
     - z1_s1_p1
     - z1_s1_cpu_port
+
+- name: VLAN60
+  id: 60
+  default_priority: 0
+  ports:
+    - z1_s1_p1
+    - z1_s1_p4
 
 - name: VLAN40
   id: 40

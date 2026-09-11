@@ -61,6 +61,8 @@ signals:
             label: OnlineCommunication
           - mask: 0x4
             label: Comfort
+          - mask: 0x8
+            label: ExteriorLights
 
   - bit_position: 48
     endianness: LE

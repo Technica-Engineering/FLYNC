@@ -21,15 +21,19 @@ validation and never modelled: for a CAN bus the proxy is the entity that
 feeds the group's NM frame onto that bus; for a LIN bus - which carries no NM
 message - the proxy is a LIN master that drives the LIN sleep, either as the
 source of the group state (e.g. a central gateway) or after receiving it on
-another bus. A CAN bus supports either variant, chosen per bus - node-level
-(its ECUs / controllers, per function) or bus-level (the whole bus); a LIN bus
-is bus-level only; Ethernet is node-level. A CAN bus never mixes both variants
-(enforced in validation); a LIN master may additionally hold its own
-membership in the same group (e.g. a central gateway that also participates
-with its own functions). Richer state dimensions (e.g.
-eFuse states)
-are explicitly future scope. Ethernet-segment-level membership is explicitly
-out of scope for now - segments have no config identity yet.
+another bus.
+
+A CAN bus supports either variant, chosen per bus - node-level (its ECUs /
+controllers, per function) or bus-level (the whole bus); a LIN bus is
+bus-level only; point-to-point Ethernet is node-level. A CAN bus never mixes
+both variants (enforced in validation); LIN is exempt from that rule. A LIN
+master may additionally hold its own membership in the same group (e.g. a
+central gateway that also participates with its own functions). Richer state
+dimensions (e.g. eFuse states) are explicitly future scope.
+
+
+A multidrop segment is node-level like any other Ethernet: its nodes are IP
+hosts running their own NM, so they hold their own memberships.
 
 Memberships are transport-independent: NM semantics are never expressed via
 socket- or frame-level config. The group's NM PDU is bound to transports
@@ -425,5 +429,5 @@ def _iter_buses(model: "FLYNCModel"):
     channels = getattr(model.communication, "channels", None) if model.communication else None
     if channels is None:
         return
-    yield from channels.can_buses or []
-    yield from channels.lin_buses or []
+    for buses in (channels.can_buses, channels.lin_buses):
+        yield from buses or []
