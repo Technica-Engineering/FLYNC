@@ -14,6 +14,13 @@ Release Notes
 Release 0.14
 ------------
 
+DoIP/UDS diagnostics
+''''''''''''''''''''
+
+Added a new :ref:`flync_4_diagnostics <diagnostics>` domain package under
+``communication/diagnostics/``, with one sub-directory per diagnostic protocol - everything
+modelled today is UDS (ISO 14229) over DoIP (ISO 13400).
+
 CLI restructure
 ''''''''''''''''
 

@@ -8,6 +8,7 @@ from typing_extensions import Annotated
 
 from flync.model import FLYNCModel
 from flync.model.flync_4_communication import FLYNCChannelConfig, FLYNCCommunicationConfig
+from flync.model.flync_4_diagnostics import DiagnosticsConfig, DoIPConfig, UDSConfig
 from flync.model.flync_4_ecu import ECU, Controller, EthernetInterface
 from flync.model.flync_4_someip import SOMEIPConfig
 from flync.model.flync_4_topology import FLYNCTopology
@@ -45,6 +46,15 @@ _CLASS_MAP: dict[str, type[BaseModel] | tuple[type[BaseModel], str]] = {
     "sd_config": (SOMEIPConfig, "sd_config"),
     "services": (SOMEIPConfig, "services"),
     "someip_timings": (SOMEIPConfig, "someip_timings"),
+    "diagnostics": DiagnosticsConfig,
+    "doip": DoIPConfig,
+    "doip_timings": (DoIPConfig, "timings"),
+    "uds": UDSConfig,
+    "uds_timings": (UDSConfig, "timings"),
+    "uds_servers": (UDSConfig, "servers"),
+    "dids": (UDSConfig, "dids"),
+    "routines": (UDSConfig, "routines"),
+    "dtcs": (UDSConfig, "dtcs"),
     "channels": FLYNCChannelConfig,
     "pdus": (FLYNCChannelConfig, "pdus"),
     "can": (FLYNCChannelConfig, "can_buses"),

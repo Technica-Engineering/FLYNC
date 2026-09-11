@@ -33,13 +33,14 @@ By organizing system definitions in a central, version-controlled repository, FL
 
 ## Domain Coverage
 
-FLYNC models the full automotive E/E architecture across 12 domains:
+FLYNC models the full automotive E/E architecture across 13 domains:
 
 | Domain | Description |
 |---|---|
 | **Application** | Applications consuming/providing SOME/IP services |
 | **Bus** | CAN bus and LIN bus definitions |
-| **Communication** | System-wide TCP profiles, SOME/IP service-level settings |
+| **Communication** | System-wide TCP profiles |
+| **Diagnostics** | DoIP/UDS: DoIP timings, UDS configurations (sessions, security access, supported services), DID/routine/DTC catalog, TCP/UDP socket deployment |
 | **ECU** | Controllers, Ethernet/CAN/LIN interfaces, ports, PHY types (RGMII, SGMII, BASET…), switches, VLANs, multicast |
 | **Metadata** | System/ECU metadata, OEM, platform, versioning, HW/SW BOM |
 | **Network Management** | State management groups, timing profiles for wake-up/sleep coordination |

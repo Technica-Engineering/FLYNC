@@ -24,6 +24,7 @@ from flync.core.datatypes.ipaddress import (
     IPv6AddressEntry,
 )
 from flync.core.utils.exceptions import Category, err_major, err_minor, warn
+from flync.model.flync_4_diagnostics import DoIPDiscoveryDeployment, DoIPServerDeployment
 from flync.model.flync_4_signal.forwarder import PDUForwarder
 from flync.model.flync_4_signal.pdu_deployment import PDUReceiver, PDUSender
 from flync.model.flync_4_someip import (
@@ -51,12 +52,23 @@ class DeploymentUnion(RootModel):
     :class:`~flync.model.flync_4_signal.pdu_deployment.PDUReceiver`
     or
     :class:`~flync.model.flync_4_signal.frame.PDUForwarder`
+    or
+    :class:`~flync.model.flync_4_diagnostics.DoIPServerDeployment`
+    or
+    :class:`~flync.model.flync_4_diagnostics.DoIPDiscoveryDeployment`
 
     """
 
-    root: SOMEIPServiceConsumer | SOMEIPServiceProvider | SOMEIPSDDeployment | PDUSender | PDUReceiver | PDUForwarder = Field(
-        discriminator="deployment_type"
-    )
+    root: (
+        SOMEIPServiceConsumer
+        | SOMEIPServiceProvider
+        | SOMEIPSDDeployment
+        | PDUSender
+        | PDUReceiver
+        | PDUForwarder
+        | DoIPServerDeployment
+        | DoIPDiscoveryDeployment
+    ) = Field(discriminator="deployment_type")
 
 
 def get_endpoint_type_from_address(
@@ -180,6 +192,31 @@ class Socket(FLYNCBaseModel):
                         error_number="244",
                     )
                 seen.add(key)
+        return self
+
+    @model_validator(mode="after")
+    def validate_doip_deployment_protocol(self) -> "Socket":
+        """
+        Raise ``err_major`` if a ``doip_server`` deployment sits on a UDP socket, or a
+        ``doip_discovery`` deployment sits on a TCP socket - DoIP diagnostic messaging (ISO
+        13400) runs over TCP, DoIP discovery runs over UDP.
+        """
+
+        protocol = getattr(self, "protocol", None)
+        for dep_root in self.deployments or []:
+            dep = dep_root.root
+            if isinstance(dep, DoIPServerDeployment) and protocol != "tcp":
+                raise err_major(
+                    f"Socket '{self.name}': DoIPServerDeployment '{dep.name}' requires a TCP socket, found '{protocol}'",
+                    category=Category.COMPATIBILITY,
+                    error_number="274",
+                )
+            if isinstance(dep, DoIPDiscoveryDeployment) and protocol != "udp":
+                raise err_major(
+                    f"Socket '{self.name}': DoIPDiscoveryDeployment requires a UDP socket, found '{protocol}'",
+                    category=Category.COMPATIBILITY,
+                    error_number="275",
+                )
         return self
 
     @field_serializer("endpoint_address")

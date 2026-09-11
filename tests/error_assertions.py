@@ -4,7 +4,7 @@ from typing import Any, List, Optional, Tuple
 
 import pytest
 from pydantic import ValidationError
-from pydantic_core import ErrorDetails
+from pydantic_core import ErrorDetails, PydanticCustomError
 
 #: What :func:`flync.core.utils.exceptions_handling.validate_with_policy` returns: the model it managed to build
 #: (``None`` if it could not) plus every collected error and warning.
@@ -96,3 +96,30 @@ def assert_no_findings(validation_result: ValidationResult) -> None:
     model, findings = validation_result
     assert model is not None, f"expected the model to be built, got errors: {[_describe(finding) for finding in findings]}"
     assert not findings, f"expected no errors or warnings, got: {[_describe(finding) for finding in findings]}"
+
+
+def assert_bind_error(exc_info: "pytest.ExceptionInfo[PydanticCustomError]", expected_error_id: str, message_fragment: str) -> None:
+    """Assert a ``bind()`` called outside pydantic validation raised the expected single error.
+
+    Reference resolution runs from ``bind()`` methods, which the owning model calls from a validator. When a
+    test calls ``bind()`` directly there is no surrounding ``ValidationError`` to unpack, so the raised
+    :class:`~pydantic_core.PydanticCustomError` is checked directly - same id and message pinning as
+    :func:`assert_single_error`.
+
+    Parameters
+    ----------
+    exc_info : pytest.ExceptionInfo
+        The ``pytest.raises(PydanticCustomError)`` result of the ``bind()`` call under test.
+
+    expected_error_id : str
+        Expected ``FLYNC-<MODULE>-<SEVERITY>-<CATEGORY>-<NUMBER>`` id.
+
+    message_fragment : str
+        Substring the rendered message must contain.
+    """
+
+    reported_error_id = (exc_info.value.context or {}).get("error_id")
+    assert reported_error_id == expected_error_id, f"expected error id {expected_error_id}, got {reported_error_id}"
+
+    reported = exc_info.value.message()
+    assert message_fragment in reported, f"expected message fragment {message_fragment!r} in: {reported}"

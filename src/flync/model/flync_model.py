@@ -33,6 +33,7 @@ from flync.core.validators.state_management import (
 )
 from flync.model.flync_4_app import App
 from flync.model.flync_4_communication import FLYNCCommunicationConfig
+from flync.model.flync_4_diagnostics import DoIPDiscoveryDeployment, DoIPServerDeployment
 from flync.model.flync_4_ecu import (
     ECU,
     ECUPort,
@@ -641,6 +642,45 @@ class FLYNCModel(FLYNCBaseModel):
             services_by_key = {(s.id, s.major_version): s for s in someip.services}
             sd_timings_by_id = {t.profile_id: t for t in someip.sd_config.sd_timings} if someip.sd_config else {}
             self._bind_someip_sockets(services_by_key, sd_timings_by_id)
+        return self
+
+    def _bind_diagnostics_sockets(self, timings_by_id, servers_by_name):
+        for sock in self._iter_all_sockets():
+            for dep_union in sock.deployments or []:
+                dep = dep_union.root
+                if isinstance(dep, DoIPServerDeployment):
+                    dep.bind(servers_by_name, timings_by_id)
+                elif isinstance(dep, DoIPDiscoveryDeployment):
+                    dep.bind(timings_by_id)
+
+    @model_validator(mode="after")
+    def resolve_diagnostics_deployments(self):
+        if self.communication and self.communication.diagnostics_config:
+            diagnostics = self.communication.diagnostics_config
+            self._bind_diagnostics_sockets(diagnostics.doip_timings_by_id(), diagnostics.uds_servers_by_name())
+        return self
+
+    @model_validator(mode="after")
+    def validate_unique_doip_logical_addresses(self):
+        """
+        Raise ``err_major`` if two ``DoIPServerDeployment``\\ s anywhere in the system declare the same
+        ``logical_address`` - DoIP logical addresses must be unique across the vehicle, not just per socket.
+        """
+
+        seen: dict = {}
+        for socket in self._iter_all_sockets():
+            for dep_union in socket.deployments or []:
+                dep = dep_union.root
+                if not isinstance(dep, DoIPServerDeployment):
+                    continue
+                logical_address = dep.logical_address
+                if logical_address in seen and seen[logical_address] != dep.name:
+                    raise err_major(
+                        f"Duplicate DoIP logical_address {logical_address:#06x} used by '{seen[logical_address]}' and '{dep.name}'",
+                        category=Category.UNIQUENESS,
+                        error_number="276",
+                    )
+                seen[logical_address] = dep.name
         return self
 
     @model_validator(mode="after")

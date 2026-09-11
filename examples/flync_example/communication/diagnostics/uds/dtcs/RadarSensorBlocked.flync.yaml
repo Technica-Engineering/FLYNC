@@ -1,0 +1,5 @@
+dtc: 0x0A0101
+format: iso_14229_1
+severity: check_at_next_halt
+failure_type: "signal_obstructed"
+description: "The front radar sensor reports a persistently blocked aperture."

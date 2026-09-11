@@ -375,6 +375,9 @@ Additive (0.14.x)
   session (stored via ``platformdirs``); ``flync info ip``/``sockets``/``vlans`` reports now
   include VLAN and subnet information that the old ``list-ips``/``list-sockets``/
   ``display-vlan-info`` did not.
+* New ``flync_4_diagnostics`` domain package (module key ``DIA``), split by protocol layer.
+* New ``flync.core.datatypes.DurationMs``: a positive duration in whole milliseconds that also
+  accepts ``"50ms"``/``"5s"`` in YAML, with ``parse_duration_ms``/``serialize_duration_ms``.
 
 Internal only
 -------------

@@ -1,0 +1,125 @@
+uds_timings_profile: uds_default
+
+access_profiles:
+- name: standard_service
+  default: true
+  sessions:
+  - default
+  - extended
+  - programming
+- name: programming_level3
+  sessions:
+  - programming
+  security_level: 3
+- name: extended_only
+  sessions:
+  - extended
+
+services:
+- service: diagnostic_session_control
+  sid: 0x10
+  sessions:
+  - name: default
+    id: 0x01
+    p2: 50ms
+    p2_star: 5000ms
+  - name: extended
+    id: 0x03
+    p2: 50ms
+    p2_star: 5000ms
+  - name: programming
+    id: 0x02
+    p2: 50ms
+    p2_star: 10000ms
+
+- service: ecu_reset
+  sid: 0x11
+  reset_types:
+  - hard_reset
+  - key_off_on_reset
+  - soft_reset
+  - enable_rapid_power_shutdown
+  power_down_time: 5
+
+- service: clear_diagnostic_information
+  sid: 0x14
+  access_profile: extended_only
+  dtc_groups:
+  - name: all
+    id: 0xFFFFFF
+  - name: powertrain
+    id: 0x010000
+
+- service: read_dtc_information
+  sid: 0x19
+  report_types:
+  - report_dtc_by_status_mask
+  - report_supported_dtc
+  - report_dtc_snapshot_record_by_dtc_number
+  # test_failed | pending_dtc | confirmed_dtc | warning_indicator_requested
+  dtc_status_availability_mask: 0x8D
+  snapshot_record_numbers:
+  - 0x01
+
+- service: read_data_by_identifier
+  sid: 0x22
+  max_dids_per_request: 4
+
+- service: security_access
+  sid: 0x27
+  security_levels:
+  - security_level: Locked
+  - security_level: 3
+
+- service: write_data_by_identifier
+  sid: 0x2E
+
+- service: input_output_control_by_identifier
+  sid: 0x2F
+  access_profile: extended_only
+
+- service: routine_control
+  sid: 0x31
+  access_profile: extended_only
+  routines:
+  - EraseMemory
+
+- service: request_download
+  sid: 0x34
+  access_profile: programming_level3
+  max_block_length: 1026
+  memory_address_length: 4
+  memory_size_length: 4
+  memory_regions:
+  - name: application
+    address: 0x08040000
+    size: 0x000C0000
+    description: "Application flash bank."
+
+- service: transfer_data
+  sid: 0x36
+  access_profile: programming_level3
+
+- service: request_transfer_exit
+  sid: 0x37
+  access_profile: programming_level3
+
+- service: tester_present
+  sid: 0x3E
+
+- service: control_dtc_setting
+  sid: 0x85
+  subfunctions:
+  - id: 0x01
+    name: "on"
+  - id: 0x02
+    name: "off"
+
+dids:
+- VehicleIdentificationNumber
+- EngineOilTemperature
+- EngineTorqueLimit
+- CoolingFanControl
+
+dtcs:
+- EngineOverheat

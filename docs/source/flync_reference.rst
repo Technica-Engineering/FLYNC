@@ -238,13 +238,38 @@ Omit the corresponding sub-folder entirely when the system does not use that cha
    |  │   ├── 📄 example_pdu.flync.yaml
    |  │   └── 📄 ...
    │
-   └── 📂 someip
+   ├── 📂 someip
+   |  |
+   |  ├── 📂 services
+   |  │   ├── 📄 someip_service.flync.yaml
+   |  │   └── 📄 ...
+   |  |
+   |  └── 📄 sd_config.flync.yaml
+   │
+   └── 📂 diagnostics
       |
-      ├── 📂 services
-      │   ├── 📄 someip_service.flync.yaml
-      │   └── 📄 ...
+      ├── 📂 doip
+      │   └── 📄 timings.flync.yaml
       |
-      └── 📄 sd_config.flync.yaml
+      └── 📂 uds
+          |
+          ├── 📄 timings.flync.yaml
+          |
+          ├── 📂 servers
+          │   ├── 📄 example_server.flync.yaml
+          │   └── 📄 ...
+          |
+          ├── 📂 dids
+          │   ├── 📄 example_did.flync.yaml
+          │   └── 📄 ...
+          |
+          ├── 📂 routines
+          │   ├── 📄 example_routine.flync.yaml
+          │   └── 📄 ...
+          |
+          └── 📂 dtcs
+              ├── 📄 example_dtc.flync.yaml
+              └── 📄 ...
 
 .. important::
 
@@ -258,6 +283,16 @@ Omit the corresponding sub-folder entirely when the system does not use that cha
 
    ✔ Each PDU is defined in its own file inside ``channels/pdu``.
 
+   ✔ Each diagnostic protocol has its own sub-directory inside ``diagnostics`` (``doip``, ``uds``).
+
+   ✔ Each UDS server is defined in its own file inside ``diagnostics/uds/servers``.
+
+   ✔ Each DID is defined in its own file inside ``diagnostics/uds/dids``.
+
+   ✔ Each routine is defined in its own file inside ``diagnostics/uds/routines``.
+
+   ✔ Each DTC is defined in its own file inside ``diagnostics/uds/dtcs``.
+
 .. seealso::
 
    Explore the whole communication config further:
@@ -265,6 +300,7 @@ Omit the corresponding sub-folder entirely when the system does not use that cha
    - :ref:`Communication Config <communication>`
    - :ref:`TCPOptions <tcp_option>`
    - :ref:`SOME/IP Config <someip>`
+   - :ref:`Diagnostics Config <diagnostics>`
    - :ref:`Channel Config<channel_config>`
    - :ref:`CAN & LIN Bus<bus>`
    - :ref:`Signals & PDU<signal>`

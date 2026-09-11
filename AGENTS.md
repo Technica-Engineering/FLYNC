@@ -90,7 +90,8 @@ tests/
 |---|---|---|
 | `flync_4_app` | **Application** (experimental) | Applications consuming/providing SOME/IP services |
 | `flync_4_bus` | **Bus** | CANBus and LINBus models |
-| `flync_4_communication` | **Communication** | System-wide TCP profiles, SOME/IP service-level settings |
+| `flync_4_communication` | **Communication** | System-wide TCP profiles |
+| `flync_4_diagnostics` | **Diagnostics** | DoIP/UDS: DoIP timings, UDS configurations (sessions, security access, supported services), DID/routine/DTC catalog, TCP/UDP socket deployment |
 | `flync_4_ecu` | **ECU** | Full ECU detail: controllers, Ethernet/CAN/LIN interfaces, ports, sockets, PHY types (RGMII, SGMII, BASET...), switches, VLANs, multicast |
 | `flync_4_metadata` | **Metadata** | System/ECU metadata: OEM, platform, versioning, HW/SW BOM |
 | `flync_4_nm` | **Network Management** | State management groups, timing profiles for wake-up/sleep coordination |
@@ -158,7 +159,7 @@ Example: `FLYNC-ECU-MAJ-VAL-001`
 
 | Segment | Values |
 |---|---|
-| **Module** | Auto-resolved from the `KEY` variable in each domain package's `__init__.py`. Declared today: `ECU`, `SIG`, `SOM`, `TOP`, `TSN`, `SEC`, `MET`, `BUS`. Packages without a `KEY` fall through to `CMN`; `flync.model.flync_model` and `version_migrators` resolve to `GEN` |
+| **Module** | Auto-resolved from the `KEY` variable in each domain package's `__init__.py`. Declared today: `ECU`, `SIG`, `SOM`, `DIA`, `TOP`, `TSN`, `SEC`, `MET`, `BUS`. Packages without a `KEY` fall through to `CMN`; `flync.model.flync_model` and `version_migrators` resolve to `GEN` |
 | **Severity** | `WARN` (warning), `MIN` (minor), `MAJ` (major), `FAT` (fatal) |
 | **Category** | `VAL` (value range), `REQ` (required), `CONS` (consistency), `UNIQ` (uniqueness), `REF` (reference), `FMT` (format), `COMP` (compatibility), `STRUCT` (structural), `LIFE` (lifecycle) |
 | **Number** | Zero-padded 3-digit number, globally unique across the entire codebase (monotonically increasing, never reused).
@@ -272,7 +273,6 @@ uv run python scripts/ci/check_model_docstrings.py
 ```
 
 This scans every model in those packages and reports, per class, any field that's `[missing]` from the docstring or whose documented `[type]` doesn't match its annotation. Run it after adding or changing a model and fix every finding it reports before considering the change done — do not leave warnings for a future pass. It also runs in CI (`model-docstring-check` in `push_and_pr.yaml`), currently non-gating (reports warnings without failing the build), but treat it as gating in your own work regardless.
-
 
 ### Auto-format a single file
 
