@@ -12,6 +12,7 @@ from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.base_utils import check_obj_in_list
 from flync.core.utils.exceptions import Category, err_major, warn
 from flync.core.utils.multicast import (
+    backtrack_to_source,
     collect_ipv6_solicited_node_rx,
     collect_ipv6_solicited_node_tx,
     compute_path,
@@ -304,26 +305,34 @@ class FLYNCModel(FLYNCBaseModel):
     def validate_multicast_paths(self):
         try:
             paths = {}
+            parents = {}
             vlans_dict = {}
             separ = "/VLAN"
-            for ecu in self.ecus:
-                for mcast in ecu.multicast_groups:
-                    key = str(mcast.group) + separ + str(mcast.vlan)
-                    vlans_dict[key] = mcast.vlan
-                    if (mcast.mode == "tx") and key not in paths:
-
-                        paths[key] = compute_path(mcast.vlan, mcast._interface)
-                    if (mcast.mode == "tx") and key in paths and not check_obj_in_list(mcast._interface, paths[key]):
-                        warn(
-                            "Invalid Multicast Address Configuration. There are several RX that the TX Endpoint at "
-                            f"{mcast._interface.name} cannot reach. {serialize_components(paths[key])}",
-                            category=Category.CONSISTENCY,
-                            error_number="169",
-                        )
-            self.check_rx_are_reached(separ, paths, vlans_dict)
+            for key, mcast in self._iter_tx_multicasts(separ):
+                self._record_tx_multicast_path(key, mcast, paths, parents, vlans_dict)
+            self.check_rx_are_reached(separ, paths, parents, vlans_dict)
         except PydanticCustomError as e:
             warn(str(e), category=Category.CONSISTENCY, error_number="170")
         return self
+
+    def _iter_tx_multicasts(self, separ):
+        """Yield ``(key, mcast)`` for every ``tx`` multicast group membership across all ECUs."""
+        return ((str(mcast.group) + separ + str(mcast.vlan), mcast) for ecu in self.ecus for mcast in ecu.multicast_groups if mcast.mode == "tx")
+
+    def _record_tx_multicast_path(self, key, mcast, paths, parents, vlans_dict):
+        """Compute one TX multicast group's reachability path and record it, warning if the sender cannot
+        itself be reached back from within the components it floods."""
+        vlans_dict[key] = mcast.vlan
+        path, parent = compute_path(mcast.vlan, mcast._interface)
+        if not check_obj_in_list(mcast._interface, path):
+            warn(
+                "Invalid Multicast Address Configuration. There are several RX that the TX Endpoint at "
+                f"{mcast._interface.name} cannot reach. {serialize_components(path)}",
+                category=Category.CONSISTENCY,
+                error_number="169",
+            )
+        paths.setdefault(key, []).append(path)
+        parents.setdefault(key, []).append(parent)
 
     @model_validator(mode="after")
     def validate_no_someip_multicast_on_tcp(self):
@@ -458,26 +467,30 @@ class FLYNCModel(FLYNCBaseModel):
         """Return the derived LIN bus topology for ``bus_name``, or ``None`` if unknown."""
         return next((t for t in self.topology.lin_bus_topology if t.bus_name == bus_name), None)
 
-    def check_rx_are_reached(self, separ, paths, vlans_dict):
+    def check_rx_are_reached(self, separ, paths, parents, vlans_dict):
+        rx_targets = {}
         for ecu in self.ecus:
             for mcast in ecu.multicast_groups:
                 key = str(mcast.group) + separ + str(mcast.vlan)
-                if (mcast.mode == "rx") and key not in paths:
-
+                if mcast.mode != "rx":
+                    continue
+                if key not in paths:
                     warn(
                         f"Invalid Multicast Address Configuration. There are no TX endpoints for this address {key} ",
                         category=Category.CONSISTENCY,
                         error_number="173",
                     )
-                if (mcast.mode == "rx") and key in paths and not check_obj_in_list(mcast._interface, paths[key]):
+                elif not any(check_obj_in_list(mcast._interface, path) for path in paths[key]):
                     warn(
                         f"Invalid Multicast Address Configuration. The RX interface for address {key} "
                         f"- {mcast._interface.name} cannot be reached by the TX ports.",
                         category=Category.CONSISTENCY,
                         error_number="174",
                     )
+                else:
+                    rx_targets.setdefault(key, []).append(mcast._interface)
 
-        self.load_switch_multicast(vlans_dict, paths)
+        self.load_switch_multicast(vlans_dict, paths, parents, rx_targets)
 
         return self
 
@@ -509,21 +522,43 @@ class FLYNCModel(FLYNCBaseModel):
     def append_mcast(self, vlan, comp, mcast_addr):
         for v_entry in comp.get_switch().vlans:
             if v_entry.id == vlan:
-                found_mcast = False
-                for addr in v_entry.multicast:
-                    if str(addr.address) == mcast_addr:
-                        found_mcast = True
-                        addr.ports.append(comp.name)
-                if not found_mcast:
-                    new_mcast_group = MulticastGroup(address=mcast_addr, ports=[comp.name])
-                    v_entry.multicast.append(new_mcast_group)
+                self._append_mcast_to_vlan_entry(v_entry, comp, mcast_addr)
 
-    def load_switch_multicast(self, vlans_dict, paths):
-        for key, value in paths.items():
-            for comp in value:
-                if comp.type == "switch_port":
-                    ip = key.split("/")[0]
-                    self.append_mcast(vlans_dict[key], comp, ip)
+    def _append_mcast_to_vlan_entry(self, v_entry, comp, mcast_addr):
+        """Add ``comp`` to every existing multicast group of ``v_entry`` whose address matches
+        ``mcast_addr``, or create a new one if none matches."""
+        found_mcast = False
+        for addr in v_entry.multicast:
+            if str(addr.address) != mcast_addr:
+                continue
+            found_mcast = True
+            if comp.name not in addr.ports:
+                addr.ports.append(comp.name)
+        if not found_mcast:
+            v_entry.multicast.append(MulticastGroup(address=mcast_addr, ports=[comp.name]))
+
+    def load_switch_multicast(self, vlans_dict, paths, parents, rx_targets):
+        for key, targets in rx_targets.items():
+            used_ports = self._collect_used_switch_ports(targets, paths.get(key, []), parents.get(key, []))
+            if not used_ports:
+                continue
+            ip = key.split("/")[0]
+            for comp in used_ports.values():
+                self.append_mcast(vlans_dict[key], comp, ip)
+
+    def _collect_used_switch_ports(self, targets, paths, parents):
+        """Return, keyed by ``id()``, every switch port that sits on some sender's real path to one of
+        ``targets`` -- ``paths``/``parents`` are the per-sender results from :func:`compute_path` for one
+        multicast key."""
+        used_ports = {}
+        for path, parent in zip(paths, parents):
+            for target in targets:
+                if not check_obj_in_list(target, path):
+                    continue
+                for comp in backtrack_to_source(target, parent):
+                    if comp.type == "switch_port":
+                        used_ports[id(comp)] = comp
+        return used_ports
 
     def get_all_ecus(self):
         """Return a list of all ECU names."""
