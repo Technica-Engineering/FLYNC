@@ -1,0 +1,47 @@
+uds_timings_profile: uds_default
+
+access_profiles:
+- name: standard_service
+  default: true
+  sessions:
+  - default
+  - extended
+
+services:
+- service: diagnostic_session_control
+  sid: 0x10
+  sessions:
+  - name: default
+    id: 0x01
+    p2: 50ms
+    p2_star: 5000ms
+  - name: extended
+    id: 0x03
+    p2: 50ms
+    p2_star: 5000ms
+
+- service: read_data_by_identifier
+  sid: 0x22
+
+- service: read_dtc_information
+  sid: 0x19
+  report_types:
+  - report_dtc_by_status_mask
+  - report_supported_dtc
+  # test_failed | confirmed_dtc
+  dtc_status_availability_mask: 0x09
+
+- service: clear_diagnostic_information
+  sid: 0x14
+  dtc_groups:
+  - name: all
+    id: 0xFFFFFF
+
+- service: tester_present
+  sid: 0x3E
+
+dids:
+- VehicleIdentificationNumber
+
+dtcs:
+- RadarSensorBlocked

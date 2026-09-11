@@ -353,6 +353,17 @@ Tests must be **useful and concise** — rigorous about what they pin down, ligh
 uv run python scripts/ci/validate_examples.py   # validates bundled example workspaces (alongside scripts/ci/fetch_pr_data.py)
 ```
 
+**`flync_example_experimental` must always be a superset of `flync_example`.** The
+experimental example is a mutable sandbox copy of the canonical one plus its own
+experimental additions. Whenever you add, remove, or change a file in
+`examples/flync_example`, mirror the change into `examples/flync_example_experimental`
+unless the difference is a deliberate experimental restructure. A CI gate enforces
+this:
+
+```bash
+uv run python scripts/ci/check_example_superset.py   # exits 1 if any standard-example file is missing/wrong in experimental
+```
+
 ### Build docs
 
 ```bash

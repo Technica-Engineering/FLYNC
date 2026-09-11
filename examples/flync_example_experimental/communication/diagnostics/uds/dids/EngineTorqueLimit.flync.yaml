@@ -1,0 +1,26 @@
+did: 0x0102
+access: read_write
+read_data:
+  byte_length: 2
+  fields:
+  - name: torque_limit
+    type: uint16
+    bit_offset: 0
+    bit_length: 16
+    scaling:
+      factor: 0.5
+      offset: 0.0
+      unit: "Nm"
+write_data:
+  byte_length: 2
+  fields:
+  - name: torque_limit
+    type: uint16
+    bit_offset: 0
+    bit_length: 16
+    scaling:
+      factor: 0.5
+      offset: 0.0
+      unit: "Nm"
+access_profile: programming_level3
+description: "Configurable engine torque limit, written via WriteDataByIdentifier (0x2E)."

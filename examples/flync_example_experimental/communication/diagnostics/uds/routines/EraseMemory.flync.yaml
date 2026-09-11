@@ -1,0 +1,8 @@
+rid: 0xFF00
+supported_sub_functions:
+- start
+start_request:
+  byte_length: 0
+start_response:
+  byte_length: 0
+description: "Erases non-volatile memory prior to a software update."

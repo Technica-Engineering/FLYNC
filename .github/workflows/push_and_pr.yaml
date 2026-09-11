@@ -547,6 +547,10 @@ jobs:
         run: |
           uv run python scripts/ci/validate_examples.py
 
+      - name: Check flync_example_experimental is a superset of flync_example
+        run: |
+          uv run python scripts/ci/check_example_superset.py
+
   build-documentation:
     runs-on: ubuntu-latest
     steps:

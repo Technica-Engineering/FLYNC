@@ -1,0 +1,26 @@
+dtc: 0x010203
+format: iso_14229_1
+severity: check_immediately
+failure_type: "over_temperature"
+snapshot_records:
+- record_number: 0x01
+  data:
+    byte_length: 3
+    fields:
+    - name: coolant_temperature
+      type: uint8
+      bit_offset: 0
+      bit_length: 8
+      scaling:
+        factor: 1.0
+        offset: -40.0
+        unit: "degC"
+    - name: engine_speed
+      type: uint16
+      bit_offset: 8
+      bit_length: 16
+      scaling:
+        factor: 0.25
+        unit: "rpm"
+  description: "Coolant temperature and engine speed captured when the fault was stored."
+description: "Engine coolant temperature exceeded the critical threshold."

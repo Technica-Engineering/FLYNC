@@ -1,0 +1,7 @@
+bus_ref: PowertrainCAN
+sender_frames:
+  - bus_ref: PowertrainCAN
+    frame_ref: 257   # Frame_EngineStatus (0x101)
+  - bus_ref: PowertrainCAN
+    frame_ref: 513   # Frame_VehicleDynamics (0x201)
+receiver_frames: []

@@ -1,0 +1,10 @@
+did: 0xF190
+access: read
+read_data:
+  byte_length: 17
+  fields:
+  - name: vin
+    type: ascii
+    bit_offset: 0
+    bit_length: 136
+description: "The vehicle identification number (VIN)."

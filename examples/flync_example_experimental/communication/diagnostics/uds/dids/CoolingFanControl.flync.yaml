@@ -1,0 +1,27 @@
+did: 0x0103
+access: read
+read_data:
+  byte_length: 1
+  fields:
+  - name: fan_duty_cycle
+    type: uint8
+    bit_offset: 0
+    bit_length: 8
+    scaling:
+      factor: 0.5
+      offset: 0.0
+      unit: "%"
+io_control:
+  supported_parameters:
+  - return_control_to_ecu
+  - short_term_adjustment
+  control_state:
+    byte_length: 1
+    fields:
+    - name: fan_duty_cycle
+      type: uint8
+      bit_offset: 0
+      bit_length: 8
+  description: "Overrides the cooling fan duty cycle for as long as control is held."
+access_profile: extended_only
+description: "Cooling fan actuator, controllable via InputOutputControlByIdentifier (0x2F)."
