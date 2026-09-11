@@ -118,7 +118,8 @@ class TestNextErrorNumberReserved:
 class TestPlanRenumbering:
     def test_no_duplicates_yields_empty_plan(self):
         plan = plan_renumbering([rec("001"), rec("002")])
-        assert plan.empty and plan.unfixable == []
+        assert plan.empty
+        assert plan.unfixable == []
 
     def test_keeps_the_call_site_present_on_the_base_branch(self, monkeypatch):
         old = rec("071", file="src/flync/old.py", lineno=10)
@@ -222,6 +223,14 @@ class TestPropagateIds:
     def test_empty_plan_touches_nothing(self, tmp_path):
         assert propagate_ids(RenumberPlan([], [], None), repo_root=tmp_path) == []
 
+    def test_never_touches_files_outside_the_root(self, tmp_path):
+        outsider = tmp_path.parent / "outside.txt"
+        outsider.parent.mkdir(parents=True, exist_ok=True)
+        outsider.write_text("FLYNC-TSN-MIN-VAL-071\n", encoding="utf-8")
+        plan = RenumberPlan([Renumbering(rec("071", module="TSN"), "248")], [], None)
+        assert propagate_ids(plan, repo_root=tmp_path, roots=("..",)) == []
+        assert "FLYNC-TSN-MIN-VAL-071" in outsider.read_text()
+
 
 class TestResolveBaseRef:
     def test_explicit_ref_wins_when_it_resolves(self, monkeypatch):
@@ -244,9 +253,11 @@ class TestSyncCatalog:
         catalog = tmp_path / "cat.rst"
         catalog.write_text(render_catalog([rec("999")]), encoding="utf-8")
         result = sync_catalog(base_ref=None, catalog_path=catalog)
-        assert result.ok and result.catalog_changed
+        assert result.ok
+        assert result.catalog_changed
         text = catalog.read_text()
-        assert "-001" in text and "999" not in text
+        assert "-001" in text
+        assert "999" not in text
 
     def test_second_run_is_a_no_op(self, repo, tmp_path):
         write_module(repo, "flync/mod.py", [("live", "001")])
@@ -269,7 +280,8 @@ class TestSyncCatalog:
         catalog = tmp_path / "cat.rst"
         result = sync_catalog(base_ref=None, write=False, catalog_path=catalog)
         assert not catalog.exists()
-        assert result.plan.renumberings and not result.clean
+        assert result.plan.renumberings
+        assert not result.clean
         assert errors.numbers_in_source((repo / "flync/b.py").read_text()) == {"001"}
 
     def test_no_fix_duplicates_reports_them_as_blocking(self, repo, tmp_path):
