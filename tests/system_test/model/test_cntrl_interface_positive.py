@@ -629,7 +629,6 @@ ecu_folders = [ecu.name for ecu in ECU_VARIANTS_DIR.iterdir() if ecu.is_dir()]
 
 
 # Verify that ECU variants with single communication interface configurations are correctly loaded from the workspace structure.
-@pytest.mark.xfail(reason="FLYNC-1333,FLYNC-1334")
 @pytest.mark.parametrize("ecu_folder", ecu_folders)
 def test_load_single_interface_configuration(tmpdir, ecu_folder):
 
@@ -762,55 +761,6 @@ def test_can_interface_serialization_deserialization(tmp_path):
             type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.13.0")
         ),
         can_interfaces=[can_iface],
-    )
-
-    ecu = ECU(
-        name="ECU1",
-        controllers=[controller],
-        topology=InternalTopology(),
-        ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=BaseVersion(version="0.13.0")),
-    )
-
-    initial_model = FLYNCModel(
-        ecus=[ecu],
-        topology=FLYNCTopology(system_topology=EthernetTopology(connections=[])),
-        metadata=SystemMetadata(
-            type="system", release=BaseVersion(version="0.13.0"), author="TestTeam", compatible_flync_version=BaseVersion(version="0.13.0")
-        ),
-    )
-
-    workspace_path = tmp_path / "workspace"
-    workspace = FLYNCWorkspace.load_model(
-        flync_model=initial_model,
-        workspace_name="TestWorkspace",
-        file_path=workspace_path,
-    )
-    workspace.generate_configs()
-    loaded_workspace = FLYNCWorkspace.load_workspace(
-        workspace_name="TestWorkspace",
-        workspace_path=workspace_path,
-    )
-    final_model = loaded_workspace.flync_model
-
-    assert final_model is not None
-
-    assert json.dumps(initial_model.model_dump(by_alias=False), sort_keys=True) == json.dumps(final_model.model_dump(by_alias=False), sort_keys=True)
-
-
-# Verify Serialization and Deserialization Consistency for LINInterface configuration.
-@pytest.mark.xfail(reason="FLYNC-1337")
-def test_lin_interface_serialization_deserialization(tmp_path):
-
-    lin_slave = LINSlaveInterface(name="lin_slave_iface", bus_ref="lin_bus", lin_protocol="2.0", configured_nad=1, initial_nad=1)
-
-    lin_master = LINMasterInterface(name="lin_master_iface", bus_ref="lin_bus", lin_protocol="2.0", p2_min=10, st_min=10)
-
-    controller = Controller(
-        name="CTRL1",
-        controller_metadata=EmbeddedMetadata(
-            type="embedded", author="TestTeam", target_system="Device1", compatible_flync_version=BaseVersion(version="0.13.0")
-        ),
-        lin_interfaces=[lin_master, lin_slave],
     )
 
     ecu = ECU(

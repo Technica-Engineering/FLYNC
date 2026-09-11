@@ -135,7 +135,6 @@ def test_duplicate_ethernet_mac_address_is_invalid():
 
 
 # Verify that a LIN Master cannot use a LIN bus without a schedule table.
-@pytest.mark.xfail(reason="FLYNC-1342")
 def test_lin_master_without_schedule_table_is_invalid():
 
     lin_bus = LINBus(name="lin_bus_1", lin_protocol_version="2.0", lin_language_version="2.0", baud_rate=19200, schedule_tables=[])
@@ -154,16 +153,16 @@ def test_lin_master_without_schedule_table_is_invalid():
         topology=InternalTopology(),
         ecu_metadata=_make_ecu_metadata(),
     )
-    general = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(lin_buses=[lin_bus]))
+    communication = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(lin_buses=[lin_bus]))
     topology = _make_empty_topology()
     metadata = _make_system_metadata()
 
-    with pytest.raises(ValidationError):
-        FLYNCModel(ecus=[ecu], general=general, topology=topology, metadata=metadata)
+    with pytest.raises(ValidationError) as exc_info:
+        FLYNCModel(ecus=[ecu], communication=communication, topology=topology, metadata=metadata)
+    assert_single_error(exc_info, "FLYNC-TOP-MAJ-CONS-315", "declares no schedule table")
 
 
 # Verify that a LIN Slave cannot use a LIN bus with a schedule table. Scheduling is handled by the LIN Master only.
-@pytest.mark.xfail(reason="FLYNC-1343")
 def test_lin_slave_with_schedule_table_is_invalid():
 
     schedule_table = LINScheduleTable(name="schedule_table_1", entries=[])
@@ -184,12 +183,13 @@ def test_lin_slave_with_schedule_table_is_invalid():
         topology=InternalTopology(),
         ecu_metadata=_make_ecu_metadata(),
     )
-    general = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(lin_buses=[lin_bus]))
+    communication = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(lin_buses=[lin_bus]))
     topology = _make_empty_topology()
     metadata = _make_system_metadata()
 
-    with pytest.raises(ValidationError):
-        FLYNCModel(ecus=[ecu], general=general, topology=topology, metadata=metadata)
+    with pytest.raises(ValidationError) as exc_info:
+        FLYNCModel(ecus=[ecu], communication=communication, topology=topology, metadata=metadata)
+    assert_single_error(exc_info, "FLYNC-TOP-MAJ-CONS-316", "declares schedule table(s) but has no master interface")
 
 
 # Verify that an Ethernet switch cannot connect to a CAN interface. Ethernet switches support Ethernet interfaces only.

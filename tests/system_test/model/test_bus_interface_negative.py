@@ -11,7 +11,7 @@ import pytest
 from pydantic import ValidationError
 
 from flync.model.flync_4_bus.can_bus import CANBus
-from flync.model.flync_4_bus.lin_bus import LINBus
+from flync.model.flync_4_bus.lin_bus import LINBus, LINScheduleEntry, LINScheduleTable
 from flync.model.flync_4_communication.flync_channels import FLYNCChannelConfig
 from flync.model.flync_4_communication.flync_communication import FLYNCCommunicationConfig
 from flync.model.flync_4_ecu.can_interface import CANFrameRef, CANInterface
@@ -42,9 +42,12 @@ def _make_can_bus(name: str = "CAN0") -> CANBus:
 
 
 def _make_lin_bus(name: str = "LIN0") -> LINBus:
-    """Return a LIN bus declaring a single frame at :data:`LIN_ID`."""
+    """Return a LIN bus declaring a single frame at :data:`LIN_ID`, scheduled so a master interface on it is valid."""
     frame = LINFrame(name="LIN_BodyFrame", length=8, lin_id=LIN_ID)
-    return LINBus(name=name, lin_protocol_version="2.0", lin_language_version="2.0", baud_rate=19200, frames=[frame])
+    schedule_table = LINScheduleTable(name="Schedule", entries=[LINScheduleEntry(frame_name="LIN_BodyFrame", period=20.0)])
+    return LINBus(
+        name=name, lin_protocol_version="2.0", lin_language_version="2.0", baud_rate=19200, frames=[frame], schedule_tables=[schedule_table]
+    )
 
 
 def _make_model(channels: FLYNCChannelConfig, can_interfaces=None, lin_interfaces=None) -> FLYNCModel:

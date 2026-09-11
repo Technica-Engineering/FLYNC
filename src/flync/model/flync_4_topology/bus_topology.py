@@ -14,11 +14,11 @@ from pydantic import Field, PrivateAttr
 
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major, warn
+from flync.model.flync_4_bus.can_bus import CANBus
+from flync.model.flync_4_bus.lin_bus import LINBus
 from flync.model.flync_4_ecu.lin_interface import LINMasterInterface
 
 if TYPE_CHECKING:
-    from flync.model.flync_4_bus.can_bus import CANBus
-    from flync.model.flync_4_bus.lin_bus import LINBus
     from flync.model.flync_4_ecu.can_interface import CANInterface
     from flync.model.flync_4_ecu.ecu import ECU
     from flync.model.flync_4_ecu.lin_interface import LINSlaveInterface
@@ -66,19 +66,20 @@ class BusTopology(FLYNCBaseModel):
     bus_name: str = Field()
     bus_type: Literal["can", "lin"] = Field()
     attachments: List[BusAttachmentPoint] = Field(default_factory=list)
-    _bus: "Optional[CANBus | LINBus]" = PrivateAttr(default=None)
 
 
 class CANBusTopology(BusTopology):
     """Runtime-derived attachment topology of a single CAN bus."""
 
     bus_type: Literal["can"] = Field(default="can")
+    _bus: Optional[CANBus] = PrivateAttr(default=None)
 
 
 class LINBusTopology(BusTopology):
     """Runtime-derived attachment topology of a single LIN bus."""
 
     bus_type: Literal["lin"] = Field(default="lin")
+    _bus: Optional[LINBus] = PrivateAttr(default=None)
 
     @property
     def master(self) -> Optional[BusAttachmentPoint]:
@@ -196,7 +197,8 @@ def validate_bus_topologies(
     can_defs: Optional[dict],
     lin_defs: Optional[dict],
 ) -> None:
-    """Run the system-wide CAN/LIN bus consistency checks: unknown ``bus_ref``, LIN master cardinality, unused/singly-attached buses."""
+    """Run the system-wide CAN/LIN bus consistency checks: unknown ``bus_ref``, LIN master cardinality, LIN schedule table
+    presence, unused/singly-attached buses."""
 
     for can_topo in can_topos:
         _validate_bus_ref_known(can_topo, can_defs)
@@ -204,6 +206,7 @@ def validate_bus_topologies(
     for lin_topo in lin_topos:
         _validate_bus_ref_known(lin_topo, lin_defs)
         _validate_lin_masters(lin_topo)
+        _validate_lin_schedule_tables(lin_topo)
         _validate_attachment_count(lin_topo, "LIN", lin_defs)
 
 
@@ -273,6 +276,47 @@ def _validate_lin_masters(topo: LINBusTopology) -> None:
             f"LIN bus '{topo.bus_name}' has slave interface(s) but no master interface.",
             category=Category.CONSISTENCY,
             error_number="224",
+        )
+
+
+def _validate_lin_schedule_tables(topo: LINBusTopology) -> None:
+    """
+    Validate that a LIN bus declares a schedule table if and only if it has a master interface.
+
+    Scheduling is the master's responsibility: a master needs at least one schedule table to schedule frames on,
+    and a bus with slave(s) but no master has nothing to run a schedule table against. Skipped when the bus
+    definition could not be resolved (unknown/unverifiable ``bus_ref``, already reported by
+    :func:`_validate_bus_ref_known`), and when the bus has no attachments at all -- an authored-but-unattached bus
+    is merely unused (already reported by :func:`_validate_attachment_count`), not a master/slave violation.
+
+    Parameters
+    ----------
+    topo : LINBusTopology
+        The LIN bus topology entry to validate.
+
+    Raises
+    ------
+    err_major
+        If the bus has a master but no schedule table (error 315), or a schedule table but slave(s) and no master
+        (error 316).
+    """
+    if topo._bus is None or not topo.attachments:
+        return
+    has_master = topo.master is not None
+    has_schedule_tables = bool(topo._bus.schedule_tables)
+    if has_master and not has_schedule_tables:
+        raise err_major(
+            f"LIN bus '{topo.bus_name}' has a master interface but declares no schedule table; the master needs "
+            "at least one schedule table to schedule frames on.",
+            category=Category.CONSISTENCY,
+            error_number="315",
+        )
+    if has_schedule_tables and not has_master and topo.slaves:
+        raise err_major(
+            f"LIN bus '{topo.bus_name}' declares schedule table(s) but has no master interface attached; "
+            "scheduling is handled by the LIN Master only.",
+            category=Category.CONSISTENCY,
+            error_number="316",
         )
 
 
