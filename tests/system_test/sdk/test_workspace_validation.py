@@ -30,7 +30,6 @@ def test_validate_fully_valid_workspace(tmp_path):
         shutil.rmtree(destination_folder)
 
 
-@pytest.mark.xfail(reason="FLYNC-1293")
 def test_validate_empty_workspace(tmp_path):
     """
     Validates an empty workspace and check its state.
@@ -78,7 +77,6 @@ def test_validate_workspace_with_blank_files(tmp_path):
         shutil.rmtree(destination_folder)
 
 
-@pytest.mark.xfail(reason="FLYNC-1294")
 def test_validate_workspace_without_flync_files(tmp_path):
     """
     Validates that a workspace containing no .flync.yaml files is considered empty.
