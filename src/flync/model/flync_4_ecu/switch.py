@@ -692,6 +692,31 @@ class Switch(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
+    def validate_ports_in_vlan_entries_exist(self):
+        """
+        Validate that every port referenced in VLAN entries exists on the switch.
+
+        Raises:
+            err_minor: If a port listed in a VLAN entry (ports or multicast.ports) is not present in the switch's port list.
+        """
+
+        if not self.vlans:
+            return self
+        switch_port_names = [port.name for port in self.ports]
+        vlan_ports = []
+        for vlan_entry in self.vlans:
+            vlan_ports += vlan_entry.ports
+            for multicast_group in vlan_entry.multicast or []:
+                vlan_ports += multicast_group.ports
+
+        validate_elements_in(
+            vlan_ports,
+            switch_port_names,
+            "VLAN Ports must exist on the Switch.",
+        )
+        return self
+
+    @model_validator(mode="after")
     def validate_tcam_ids_unique(self):
         """
         Validate that each TCAM rule has a unique identifier.
