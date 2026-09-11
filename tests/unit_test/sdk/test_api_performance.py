@@ -43,6 +43,9 @@ def __benchmark_duration_ms(benchmark, func):
 def test_validate_workspace_benchmark(benchmark, get_relative_flync_example_path):
     """Benchmark validate_workspace API"""
 
+    # Warm up one-time imports/caches so the traced peak reflects steady-state memory.
+    validate_workspace(get_relative_flync_example_path)
+
     def run_validate():
         tracemalloc.start()
         result = validate_workspace(get_relative_flync_example_path)
