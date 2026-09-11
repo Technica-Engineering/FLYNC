@@ -179,7 +179,7 @@ def vlan_entry():
         name="vlan_test",
         id=10,
         default_priority=1,
-        ports=["port1"],
+        ports=["valid_switch_port"],
         multicast=None,
     )
     yield vlan_entry

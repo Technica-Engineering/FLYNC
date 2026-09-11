@@ -28,7 +28,7 @@ def test_positive_traffic_class_definition_cbs_shaper(
         "selection_mechanisms": CBSShaper_entry,
     }
     switch_port = SwitchPort(
-        name="Ingress_port_A",
+        name="valid_switch_port",
         silicon_port_no=1,
         default_vlan_id=35,
         traffic_classes=[traffic_class_example],
@@ -46,7 +46,7 @@ def test_positive_traffic_class_definition_ATSShaper(
         "selection_mechanisms": ATSShaper_entry,
     }
     switch_port = SwitchPort(
-        name="Ingress_port_A",
+        name="valid_switch_port",
         silicon_port_no=1,
         default_vlan_id=35,
         traffic_classes=[traffic_class_example],
@@ -94,7 +94,7 @@ def test_positive_SingleRateTwoColorMarker(
         "ats": ATSInstance_entry,
     }
     switch_port = SwitchPort(
-        name="Ingress_port_A",
+        name="valid_switch_port",
         silicon_port_no=1,
         default_vlan_id=35,
         ingress_streams=[stream_example],
@@ -116,7 +116,7 @@ def test_positive_SingleRateThreeColorMarker(
         "ats": ATSInstance_entry,
     }
     switch_port = SwitchPort(
-        name="Ingress_port_A",
+        name="valid_switch_port",
         silicon_port_no=1,
         default_vlan_id=35,
         ingress_streams=[stream_example],
@@ -138,7 +138,7 @@ def test_positive_DoubleRateThreeColorMarker(
         "ats": ATSInstance_entry,
     }
     switch_port = SwitchPort(
-        name="Ingress_port_A",
+        name="valid_switch_port",
         silicon_port_no=1,
         default_vlan_id=35,
         ingress_streams=[stream_example],
@@ -160,7 +160,7 @@ def test_negative_cbs_shaper_idleslope_greater_than_link_speed(metadata_entry, v
 
     with pytest.raises(ValidationError) as exc_info:
         SwitchPort(
-            name="Ingress_port_A",
+            name="valid_switch_port",
             silicon_port_no=1,
             default_vlan_id=35,
             mii_config=MII_entry,
@@ -181,7 +181,7 @@ def test_negative_traffic_class_containing_ipv_should_be_defined_on_atleast_one_
         "selection_mechanisms": cbs_shaper_example,
     }
     ports = SwitchPort(
-        name="Ingress_port_A",
+        name="valid_switch_port",
         silicon_port_no=1,
         default_vlan_id=35,
         mii_config=MII_entry,
@@ -210,7 +210,7 @@ def test_negative_ats_instance_for_traffic_class(embedded_metadata_entry, vlan_e
         "selection_mechanisms": ats_shaper_example,
     }
     ports = SwitchPort(
-        name="Ingress_port_A",
+        name="valid_switch_port",
         silicon_port_no=1,
         default_vlan_id=35,
         mii_config=MII_entry,
@@ -253,7 +253,7 @@ def test_positive_ats_instance_for_traffic_class(
         "policer": None,
     }
     ports = SwitchPort(
-        name="Ingress_port_A",
+        name="valid_switch_port",
         silicon_port_no=1,
         default_vlan_id=35,
         mii_config=MII_entry,

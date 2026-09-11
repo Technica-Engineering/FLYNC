@@ -42,7 +42,7 @@ def test_ecu_parsing_from_dicts(metadata_entry, embedded_metadata_entry, ecu_por
                         ),
                         dict(name="c", silicon_port_no=2, default_vlan_id=1),
                     ],
-                    vlans=[VLANEntry(name="vlan10", id=1, default_priority=1, ports=["a"])],
+                    vlans=[VLANEntry(name="vlan10", id=1, default_priority=1, ports=["b"])],
                 ),
             )
         ],
@@ -69,7 +69,7 @@ def test_ecu_parsing_from_dicts(metadata_entry, embedded_metadata_entry, ecu_por
                 ),
                 dict(name="f", silicon_port_no=2, default_vlan_id=1),
             ],
-            vlans=[VLANEntry(name="vlan10", id=1, default_priority=1, ports=["a"])],
+            vlans=[VLANEntry(name="vlan10", id=1, default_priority=1, ports=["f"])],
         ),
     )
     Switch.model_validate(switch)
