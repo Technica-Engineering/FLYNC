@@ -148,7 +148,7 @@ def _keeper(records: list[ErrorRecord], existed_on_base: dict[str, set[str]]) ->
     """
 
     on_base = [r for r in records if r.number in existed_on_base.get(r.file, set())]
-    return sorted(on_base or records, key=lambda r: (r.file, r.lineno))[0]
+    return min(on_base or records, key=lambda r: (r.file, r.lineno))
 
 
 def plan_renumbering(
@@ -226,15 +226,27 @@ _REFERENCE_SUFFIXES = frozenset({".py", ".rst", ".md", ".txt", ".yaml", ".yml", 
 _SKIPPED_DIRS = frozenset({"__pycache__", "build", ".venv", "node_modules", ".git"})
 
 
+def _child_of(root: Path, path: Path) -> bool:
+    """True when ``path`` resolves to a file or directory strictly inside ``root``."""
+
+    try:
+        path.resolve().relative_to(root.resolve())
+        return True
+    except ValueError:
+        return False
+
+
 def _reference_files(repo_root: Path, roots: tuple[str, ...]) -> list[Path]:
     """Text files that may quote an error id, under the given repo-relative roots."""
 
     found: list[Path] = []
     for root in roots:
         base = repo_root / root
-        if not base.is_dir():
+        if not _child_of(repo_root, base) or not base.is_dir():
             continue
         for path in sorted(base.rglob("*")):
+            if not _child_of(base, path):
+                continue
             if path.suffix in _REFERENCE_SUFFIXES and not _SKIPPED_DIRS.intersection(path.parts):
                 found.append(path)
     return found
