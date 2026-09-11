@@ -275,17 +275,21 @@ def propagate_ids(
     repo_root = repo_root or REPO_ROOT
 
     changed: list[Path] = []
-    for path in _reference_files(repo_root, roots):
+    for pp in _reference_files(repo_root, roots):
+        if not _child_of(repo_root, pp) or pp.is_dir():
+            continue
         try:
-            text = path.read_text(encoding="utf-8")
+            with pp.open(mode="r", encoding="utf-8") as f:
+                text = f.read()
         except (UnicodeDecodeError, OSError):
             continue
         updated = text
         for old_id, new_id in replacements.items():
             updated = updated.replace(old_id, new_id)
         if updated != text:
-            path.write_text(updated, encoding="utf-8")
-            changed.append(path)
+            with pp.open(mode="w", encoding="utf-8") as f:
+                f.write(updated)
+            changed.append(pp)
     return changed
 
 
