@@ -10,7 +10,7 @@ from pydantic_core import PydanticCustomError
 from flync.core.annotations import External, NamingStrategy, OutputStrategy
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.base_utils import check_obj_in_list
-from flync.core.utils.exceptions import Category, err_major, warn
+from flync.core.utils.exceptions import Category, err_major, warn, warn_from_error
 from flync.core.utils.multicast import (
     backtrack_to_source,
     collect_ipv6_solicited_node_rx,
@@ -197,7 +197,7 @@ class FLYNCModel(FLYNCBaseModel):
             try:
                 conn.bind(ports_by_name)
             except PydanticCustomError as e:
-                warn(str(e), category=Category.REFERENCE, error_number="164")
+                warn_from_error(e)
         return self
 
     @model_validator(mode="after")
