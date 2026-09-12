@@ -135,7 +135,7 @@
 | src/flync\_cli/main.py                                          |       48 |        0 |    100% |           |
 | src/flync\_cli/utils/console.py                                 |        4 |        0 |    100% |           |
 | src/flync\_cli/utils/deprecation.py                             |        3 |        0 |    100% |           |
-| src/flync\_cli/utils/error\_renumber.py                         |      176 |       10 |     94% |92-93, 112-113, 125-126, 197, 249, 281-282 |
+| src/flync\_cli/utils/error\_renumber.py                         |      180 |       11 |     94% |92-93, 112-113, 125-126, 197, 249, 280, 284-285 |
 | src/flync\_cli/utils/error\_table.py                            |       90 |        6 |     93% |   168-174 |
 | src/flync\_cli/utils/errors.py                                  |      152 |        3 |     98% |65, 152, 271 |
 | src/flync\_cli/utils/mapping.py                                 |        3 |        0 |    100% |           |
@@ -179,7 +179,7 @@
 | src/flync\_converter/hookspec.py                                |        4 |        0 |    100% |           |
 | src/flync\_converter/registry.py                                |       32 |       19 |     41% |23-30, 37-49, 56-59 |
 | src/flync\_converter/utils.py                                   |       75 |        4 |     95% |63-64, 93-94 |
-| **TOTAL**                                                       | **11233** |  **777** | **93%** |           |
+| **TOTAL**                                                       | **11237** |  **778** | **93%** |           |
 
 
 ## Setup coverage badge
