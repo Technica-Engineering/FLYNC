@@ -120,7 +120,8 @@ performance_tests:
     - uv sync --frozen --group test --group qt --extra gui --extra tui
     - uv pip install -e tests/converter_tests/test_plugin/ --no-deps
     # -n 0 overrides the `-n auto` in addopts: pytest-benchmark disables itself under xdist.
-    - COVERAGE_FILE=.coverage.performance uv run pytest -n 0 -m performance --cov=flync --cov=flync_cli --cov=flync_converter --cov-report= --junitxml=report_performance.xml --durations=0
+    # --no-cov disables the coverage hook from addopts so instrumentation does not skew timing.
+    - uv run pytest -n 0 -m performance --no-cov --junitxml=report_performance.xml --durations=0
   artifacts:
     when: always
     expire_in: "30 days"

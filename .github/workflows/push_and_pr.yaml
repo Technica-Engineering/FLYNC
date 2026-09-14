@@ -374,11 +374,12 @@ jobs:
           # -n 0 overrides the `-n auto` in addopts: pytest-benchmark disables itself
           # whenever xdist distributes, which makes benchmark.stats unavailable and
           # fails these tests. Benchmarks must run in a single, unparallelised process.
-          COVERAGE_FILE=.coverage.performance uv run pytest \
+          # --no-cov disables the coverage hook from addopts so instrumentation overhead
+          # does not skew the benchmark timing.
+          uv run pytest \
             -n 0 \
             -m performance \
-            --cov=flync --cov=flync_cli --cov=flync_converter \
-            --cov-report= \
+            --no-cov \
             --junitxml=report_performance.xml \
             --durations=0
 
