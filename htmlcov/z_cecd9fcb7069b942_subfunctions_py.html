@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_cecd9fcb7069b942_timings_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
-            created at 2026-09-14 17:12 +0000
+            created at 2026-09-14 17:21 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -94,7 +94,7 @@
     <p class="pln"><span class="n"><a id="t12" href="#t12">12</a></span><span class="t"><span class="str">so the two cannot drift.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t13" href="#t13">13</a></span><span class="t"><span class="str">&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t14" href="#t14">14</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t15" href="#t15">15</a></span><span class="t"><span class="key">from</span> <span class="nam">typing</span> <span class="key">import</span> <span class="nam">Any</span><span class="op">,</span> <span class="nam">Iterable</span><span class="op">,</span> <span class="nam">List</span><span class="op">,</span> <span class="nam">Literal</span><span class="op">,</span> <span class="nam">Union</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t15" href="#t15">15</a></span><span class="t"><span class="key">from</span> <span class="nam">typing</span> <span class="key">import</span> <span class="nam">Any</span><span class="op">,</span> <span class="nam">Iterable</span><span class="op">,</span> <span class="nam">List</span><span class="op">,</span> <span class="nam">Literal</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t16" href="#t16">16</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t17" href="#t17">17</a></span><span class="t"><span class="com">#: The EcuReset (0x11) ``resetType`` values standardised by ISO 14229-1. Values 0x40-0x5F are</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t18" href="#t18">18</a></span><span class="t"><span class="com">#: system-supplier specific and are written as plain integers instead.</span>&nbsp;</span><span class="r"></span></p>
@@ -344,7 +344,7 @@
     <p class="run"><span class="n"><a id="t262" href="#t262">262</a></span><span class="t">    <span class="key">return</span> <span class="op">[</span><span class="nam">name</span> <span class="key">for</span> <span class="nam">name</span><span class="op">,</span> <span class="nam">bit</span> <span class="key">in</span> <span class="nam">DTC_STATUS_BITS</span><span class="op">.</span><span class="nam">items</span><span class="op">(</span><span class="op">)</span> <span class="key">if</span> <span class="nam">mask</span> <span class="op">&amp;</span> <span class="op">(</span><span class="num">1</span> <span class="op">&lt;&lt;</span> <span class="nam">bit</span><span class="op">)</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t263" href="#t263">263</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t264" href="#t264">264</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t265" href="#t265">265</a></span><span class="t"><span class="key">def</span> <span class="nam">resolve_subfunction_ids</span><span class="op">(</span><span class="nam">values</span><span class="op">:</span> <span class="nam">Iterable</span><span class="op">[</span><span class="nam">Union</span><span class="op">[</span><span class="nam">str</span><span class="op">,</span> <span class="nam">int</span><span class="op">]</span><span class="op">]</span><span class="op">,</span> <span class="nam">ids</span><span class="op">:</span> <span class="nam">dict</span><span class="op">[</span><span class="nam">str</span><span class="op">,</span> <span class="nam">int</span><span class="op">]</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="nam">List</span><span class="op">[</span><span class="nam">int</span><span class="op">]</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t265" href="#t265">265</a></span><span class="t"><span class="key">def</span> <span class="nam">resolve_subfunction_ids</span><span class="op">(</span><span class="nam">values</span><span class="op">:</span> <span class="nam">Iterable</span><span class="op">[</span><span class="nam">str</span> <span class="op">|</span> <span class="nam">int</span><span class="op">]</span><span class="op">,</span> <span class="nam">ids</span><span class="op">:</span> <span class="nam">dict</span><span class="op">[</span><span class="nam">str</span><span class="op">,</span> <span class="nam">int</span><span class="op">]</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="nam">List</span><span class="op">[</span><span class="nam">int</span><span class="op">]</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t266" href="#t266">266</a></span><span class="t">    <span class="str">&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t267" href="#t267">267</a></span><span class="t"><span class="str">    Return the on-the-wire sub-function values of ``values``.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t268" href="#t268">268</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
@@ -362,7 +362,7 @@
             <a class="nav" href="z_cecd9fcb7069b942_timings_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
-            created at 2026-09-14 17:12 +0000
+            created at 2026-09-14 17:21 +0000
         </p>
     </div>
 </footer>
