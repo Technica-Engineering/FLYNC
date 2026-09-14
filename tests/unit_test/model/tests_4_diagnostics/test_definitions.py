@@ -79,18 +79,20 @@ def test_routine_start_rejected_without_start_request():
 
 
 def test_routine_stop_rejected_without_stop_request():
+    start_request = DiagDataRecord(byte_length=0)
     with pytest.raises(ValidationError) as exc_info:
-        Routine(name="r", rid=0xFF00, supported_sub_functions=["start", "stop"], start_request=DiagDataRecord(byte_length=0))
+        Routine(name="r", rid=0xFF00, supported_sub_functions=["start", "stop"], start_request=start_request)
     assert_single_error(exc_info, "FLYNC-DIA-MAJ-REQ-264", "no stop_request")
 
 
 def test_routine_request_results_rejected_without_response():
+    start_request = DiagDataRecord(byte_length=0)
     with pytest.raises(ValidationError) as exc_info:
         Routine(
             name="r",
             rid=0xFF00,
             supported_sub_functions=["start", "request_results"],
-            start_request=DiagDataRecord(byte_length=0),
+            start_request=start_request,
         )
     assert_single_error(exc_info, "FLYNC-DIA-MAJ-REQ-265", "no request_results_response")
 

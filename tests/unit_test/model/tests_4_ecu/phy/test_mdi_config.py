@@ -136,11 +136,12 @@ def test_negative_autonegotiation_on_a_multidrop_segment():
 def test_negative_10baset1s_full_duplex_on_multidrop():
     """Full duplex contradicts a shared medium, which is half duplex by construction."""
 
+    mii_config = MII(mode="phy", speed=10)
     with pytest.raises(ValidationError) as exc_info:
         ECUPort.model_validate(
             {
                 "name": "test_ecu_port",
-                "mii_config": MII(mode="phy", speed=10),
+                "mii_config": mii_config,
                 "mdi_config": {
                     "mode": "base_t1s",
                     "duplex": "full",
@@ -159,11 +160,12 @@ def test_negative_10baset1s_full_duplex_on_multidrop():
 def test_negative_10baset1s_rejects_speeds_other_than_10(speed):
     """10BASE-T1S is fixed at 10 Mbit/s, so pydantic's Literal rejects anything else before any FLYNC rule runs."""
 
+    mii_config = MII(mode="phy")
     with pytest.raises(ValidationError) as exc_info:
         ECUPort.model_validate(
             {
                 "name": "test_ecu_port",
-                "mii_config": MII(mode="phy"),
+                "mii_config": mii_config,
                 "mdi_config": {
                     "mode": "base_t1s",
                     "speed": speed,
@@ -177,11 +179,12 @@ def test_negative_10baset1s_rejects_speeds_other_than_10(speed):
 def test_negative_baset1_rejects_speed_10():
     """BASE-T1 runs at 100 or 1000 Mbit/s; 10 Mbit/s belongs to BASE-T1S."""
 
+    mii_config = MII(mode="phy")
     with pytest.raises(ValidationError) as exc_info:
         ECUPort.model_validate(
             {
                 "name": "test_ecu_port",
-                "mii_config": MII(mode="phy"),
+                "mii_config": mii_config,
                 "mdi_config": {
                     "mode": "base_t1",
                     "speed": 10,
@@ -202,11 +205,12 @@ def test_negative_baset1_rejects_speed_10():
 def test_negative_baset1_rejects_half_duplex(speed):
     """BASE-T1 is full duplex only."""
 
+    mii_config = MII(mode="phy")
     with pytest.raises(ValidationError) as exc_info:
         ECUPort.model_validate(
             {
                 "name": "test_ecu_port",
-                "mii_config": MII(mode="phy"),
+                "mii_config": mii_config,
                 "mdi_config": {
                     "mode": "base_t1",
                     "speed": speed,
@@ -222,11 +226,12 @@ def test_negative_baset1_rejects_half_duplex(speed):
 def test_negative_unknown_mdi_mode_is_rejected():
     """The ``mode`` discriminator accepts only the declared PHY variants; anything else is rejected before a field is looked at."""
 
+    mii_config = MII(mode="phy")
     with pytest.raises(ValidationError) as exc_info:
         ECUPort.model_validate(
             {
                 "name": "test_ecu_port",
-                "mii_config": MII(mode="phy"),
+                "mii_config": mii_config,
                 "mdi_config": {"mode": "base_t9000", "speed": 10},
             }
         )

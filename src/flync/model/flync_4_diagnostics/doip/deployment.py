@@ -9,7 +9,7 @@ timers. The UDS content they expose lives in a
 
 from typing import Annotated, Literal, Optional
 
-from pydantic import Field, PrivateAttr
+from pydantic import Field
 
 from flync.core.annotations.reference import Reference
 from flync.core.base_models import FLYNCBaseModel
@@ -51,8 +51,8 @@ class DoIPServerDeployment(FLYNCBaseModel):
     uds_server: Annotated[str, Reference(source="_uds_server_ref")] = Field(description="the UDS server exposed by this entity")
     doip_timings_profile: Annotated[Optional[str], Reference(source="_timings_ref")] = Field(default=None)
 
-    _uds_server_ref: Optional[UDSServer] = PrivateAttr(default=None)
-    _timings_ref: Optional[DoIPTimingProfile] = PrivateAttr(default=None)
+    _uds_server_ref: Optional[UDSServer] = None
+    _timings_ref: Optional[DoIPTimingProfile] = None
 
     def bind(self, servers_by_name: dict, timings_by_id: dict) -> None:
         """
@@ -115,7 +115,7 @@ class DoIPDiscoveryDeployment(FLYNCBaseModel):
     vehicle_announcement: bool = Field(default=True)
     doip_timings_profile: Annotated[Optional[str], Reference(source="_timings_ref")] = Field(default=None)
 
-    _timings_ref: Optional[DoIPTimingProfile] = PrivateAttr(default=None)
+    _timings_ref: Optional[DoIPTimingProfile] = None
 
     def bind(self, timings_by_id: dict) -> None:
         """

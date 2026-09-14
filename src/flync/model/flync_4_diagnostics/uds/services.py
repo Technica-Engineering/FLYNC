@@ -22,7 +22,7 @@ timing profile. They are still spell-checked, because :data:`CANONICAL_SERVICE_N
 
 from typing import Annotated, Any, List, Literal, Optional, Union
 
-from pydantic import BeforeValidator, Discriminator, Field, PrivateAttr, Tag, field_serializer, model_validator
+from pydantic import BeforeValidator, Discriminator, Field, Tag, field_serializer, model_validator
 
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.datatypes import DurationMs, serialize_duration_ms
@@ -275,7 +275,7 @@ class EcuResetService(GenericUDSService):
 
     service: Literal["ecu_reset"] = Field(default="ecu_reset")
     sid: Annotated[Literal[0x11], BeforeValidator(coerce_sid)] = Field(default=0x11)
-    reset_types: List[Union[ResetType, SubfunctionValue]] = Field(default_factory=list)
+    reset_types: List[ResetType | SubfunctionValue] = Field(default_factory=list)
     power_down_time: Optional[Annotated[int, BeforeValidator(coerce_int), Field(ge=0x00, le=0xFE)]] = Field(default=None)
 
     @model_validator(mode="after")
@@ -423,7 +423,7 @@ class ReadDTCInformationService(GenericUDSService):
 
     service: Literal["read_dtc_information"] = Field(default="read_dtc_information")
     sid: Annotated[Literal[0x19], BeforeValidator(coerce_sid)] = Field(default=0x19)
-    report_types: List[Union[DTCReportType, SubfunctionValue]] = Field(default_factory=list)
+    report_types: List[DTCReportType | SubfunctionValue] = Field(default_factory=list)
     dtc_status_availability_mask: Optional[Annotated[int, BeforeValidator(coerce_int), Field(ge=0x00, le=0xFF)]] = Field(default=None)
     memory_selections: List[SubfunctionValue] = Field(default_factory=list)
     snapshot_record_numbers: List[SubfunctionValue] = Field(default_factory=list)
@@ -528,7 +528,7 @@ class SecurityLevelDeclaration(FLYNCBaseModel):
         Identifier of the security level. ``"Locked"`` represents no security access granted.
     """
 
-    security_level: Union[int, Literal["Locked"]] = Field()
+    security_level: int | Literal["Locked"] = Field()
 
 
 class SecurityAccessService(GenericUDSService):
@@ -589,7 +589,7 @@ class RoutineControlService(GenericUDSService):
     sid: Annotated[Literal[0x31], BeforeValidator(coerce_sid)] = Field(default=0x31)
     routines: List[str] = Field(default_factory=list)
 
-    _routine_refs: List[Routine] = PrivateAttr(default_factory=list)
+    _routine_refs: List[Routine] = []
 
 
 class TransferMemoryRegion(FLYNCBaseModel):

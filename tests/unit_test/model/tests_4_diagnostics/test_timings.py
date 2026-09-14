@@ -39,8 +39,10 @@ def test_timings_container_accepts_unique_ids_across_profiles_and_defaults(conta
     ],
 )
 def test_timings_container_rejects_duplicate_ids_across_profiles_and_defaults(container, profile_cls):
+    profiles = [profile_cls(profile_id="shared")]
+    defaults = [profile_cls(profile_id="shared")]
     with pytest.raises(ValidationError) as exc_info:
-        container(profiles=[profile_cls(profile_id="shared")], defaults=[profile_cls(profile_id="shared")])
+        container(profiles=profiles, defaults=defaults)
     assert_single_error(exc_info, "FLYNC-CMN-MAJ-UNIQ-009", "Duplicates found")
 
 

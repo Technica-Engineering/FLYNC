@@ -72,14 +72,14 @@ class CANBusTopology(BusTopology):
     """Runtime-derived attachment topology of a single CAN bus."""
 
     bus_type: Literal["can"] = Field(default="can")
-    _bus: Optional[CANBus] = PrivateAttr(default=None)
+    _bus: Optional[CANBus] = None
 
 
 class LINBusTopology(BusTopology):
     """Runtime-derived attachment topology of a single LIN bus."""
 
     bus_type: Literal["lin"] = Field(default="lin")
-    _bus: Optional[LINBus] = PrivateAttr(default=None)
+    _bus: Optional[LINBus] = None
 
     @property
     def master(self) -> Optional[BusAttachmentPoint]:

@@ -54,8 +54,9 @@ def test_doip_server_deployment_bind_rejects_unknown_server():
 
 def test_doip_server_deployment_bind_rejects_unknown_timings_profile():
     dep = DoIPServerDeployment(name="EngineEcu", logical_address=0x0101, uds_server="EngineEcuDiagnostic", doip_timings_profile="missing")
+    server = make_server()
     with pytest.raises(PydanticCustomError) as exc_info:
-        dep.bind({"EngineEcuDiagnostic": make_server()}, {})
+        dep.bind({"EngineEcuDiagnostic": server}, {})
     assert_bind_error(exc_info, "FLYNC-DIA-MAJ-REF-280", "unknown DoIP timings profile 'missing'")
 
 

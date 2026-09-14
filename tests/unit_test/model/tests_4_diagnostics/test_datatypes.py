@@ -65,26 +65,23 @@ def test_record_accepts_multiple_non_overlapping_fields():
 
 
 def test_record_rejects_duplicate_field_names():
+    fields = [field(name="a", type="uint8", bit_offset=0), field(name="a", type="uint8", bit_offset=8)]
     with pytest.raises(ValidationError) as exc_info:
-        DiagDataRecord(
-            byte_length=2,
-            fields=[field(name="a", type="uint8", bit_offset=0), field(name="a", type="uint8", bit_offset=8)],
-        )
+        DiagDataRecord(byte_length=2, fields=fields)
     assert_single_error(exc_info, "FLYNC-DIA-MAJ-UNIQ-256", "Duplicate field name 'a'")
 
 
 def test_record_rejects_field_exceeding_length():
+    fields = [field(type="uint16", bit_offset=0)]
     with pytest.raises(ValidationError) as exc_info:
-        DiagDataRecord(byte_length=1, fields=[field(type="uint16", bit_offset=0)])
+        DiagDataRecord(byte_length=1, fields=fields)
     assert_single_error(exc_info, "FLYNC-DIA-MAJ-VAL-257", "exceeds the record length (8 bits)")
 
 
 def test_record_rejects_overlapping_fields():
+    fields = [field(name="a", type="uint16", bit_offset=0), field(name="b", type="uint8", bit_offset=4)]
     with pytest.raises(ValidationError) as exc_info:
-        DiagDataRecord(
-            byte_length=2,
-            fields=[field(name="a", type="uint16", bit_offset=0), field(name="b", type="uint8", bit_offset=4)],
-        )
+        DiagDataRecord(byte_length=2, fields=fields)
     assert_single_error(exc_info, "FLYNC-DIA-MAJ-CONS-258", "overlaps field 'a'")
 
 

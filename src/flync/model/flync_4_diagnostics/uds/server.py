@@ -17,9 +17,9 @@ ordinary model validators; the ones that need a resolved
 :meth:`UDSServer.bind`.
 """
 
-from typing import List, Literal, Optional, Union
+from typing import List, Literal, Optional
 
-from pydantic import Field, PrivateAttr, model_validator
+from pydantic import Field, model_validator
 from typing_extensions import Annotated
 
 from flync.core.annotations import Implied, ImpliedStrategy
@@ -81,7 +81,7 @@ class AccessProfile(FLYNCBaseModel):
     name: str = Field()
     default: bool = Field(default=False)
     sessions: List[str] = Field(default_factory=list)
-    security_level: Optional[Union[int, Literal["Locked"]]] = Field(default=None)
+    security_level: Optional[int | Literal["Locked"]] = Field(default=None)
 
 
 class UDSServer(FLYNCBaseModel):
@@ -136,9 +136,9 @@ class UDSServer(FLYNCBaseModel):
     dtcs: List[str] = Field(default_factory=list)
     description: Optional[str] = Field(default=None)
 
-    _timings_ref: Optional[UDSTimingProfile] = PrivateAttr(default=None)
-    _did_refs: List[DataIdentifier] = PrivateAttr(default_factory=list)
-    _dtc_refs: List[DiagnosticTroubleCode] = PrivateAttr(default_factory=list)
+    _timings_ref: Optional[UDSTimingProfile] = None
+    _did_refs: List[DataIdentifier] = []
+    _dtc_refs: List[DiagnosticTroubleCode] = []
 
     def _session_control(self) -> Optional[DiagnosticSessionControlService]:
         return next((s for s in self.services if isinstance(s, DiagnosticSessionControlService)), None)

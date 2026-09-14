@@ -382,8 +382,9 @@ def test_transfer_setup_requires_a_max_block_length():
 
 
 def test_server_rejects_dtcs_without_a_dtc_service():
+    server = server_data(dtcs=["overheat"])
     with pytest.raises(ValidationError) as exc_info:
-        UDSServer(**server_data(dtcs=["overheat"]))
+        UDSServer(**server)
     assert_single_error(exc_info, "FLYNC-DIA-MAJ-CONS-297", "offers neither ReadDTCInformation (0x19)")
 
 
@@ -420,8 +421,9 @@ def test_server_accepts_dtcs_with_either_dtc_service(dtc_service):
     ],
 )
 def test_server_rejects_an_incomplete_block_transfer_set(services, expected_id, fragment):
+    server = server_data(services=services)
     with pytest.raises(ValidationError) as exc_info:
-        UDSServer(**server_data(services=services))
+        UDSServer(**server)
     assert_single_error(exc_info, expected_id, fragment)
 
 
@@ -517,8 +519,10 @@ CONTROLLABLE_DID = DataIdentifier(name="fan", did=0x0103, access="read", read_da
     ],
 )
 def test_server_rejects_a_did_no_service_can_access(did, services, expected_id, service_label):
+    server = server_data(services=services, dids=[did.name])
+    config = config_data(server, dids=[did])
     with pytest.raises(ValidationError) as exc_info:
-        UDSConfig(**config_data(server_data(services=services, dids=[did.name]), dids=[did]))
+        UDSConfig(**config)
     assert_single_error(exc_info, expected_id, f"but not {service_label} to access it")
 
 

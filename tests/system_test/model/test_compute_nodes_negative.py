@@ -138,26 +138,26 @@ def _ecu_naming_a_virtual_switch_port():
 )
 def test_ecu_topology_cannot_reach_into_a_controller(ecu_kwargs, expected_error_id, message_fragment):
     """The ECU scope stops at the controller's physical interfaces - nothing inside a controller is visible to it."""
+    ecu_metadata = make_ecu_metadata()
     with pytest.raises(ValidationError) as exc_info:
-        ECU(name="ECU1", ecu_metadata=make_ecu_metadata(), **ecu_kwargs)
+        ECU(name="ECU1", ecu_metadata=ecu_metadata, **ecu_kwargs)
     assert_single_error(exc_info, expected_error_id, message_fragment)
 
 
 def test_controller_topology_cannot_reach_an_ecu_hardware_switch_port():
     """The boundary holds in the other direction too: a controller connection resolves only against its own virtual switches."""
+    virtual_switches = [make_virtual_switch(name="br0")]
+    controller_topology = ControllerTopology(
+        connections=[
+            {
+                "id": "bad",
+                "type": "switch_port_to_controller_interface",
+                "switch": "SW0",
+                "switch_port": "SP0",
+                "controller_interface": "ETH0",
+            }
+        ]
+    )
     with pytest.raises(ValidationError) as exc_info:
-        make_controller(
-            virtual_switches=[make_virtual_switch(name="br0")],
-            controller_topology=ControllerTopology(
-                connections=[
-                    {
-                        "id": "bad",
-                        "type": "switch_port_to_controller_interface",
-                        "switch": "SW0",
-                        "switch_port": "SP0",
-                        "controller_interface": "ETH0",
-                    }
-                ]
-            ),
-        )
+        make_controller(virtual_switches=virtual_switches, controller_topology=controller_topology)
     assert_single_error(exc_info, "FLYNC-ECU-MAJ-REF-073", "Switch 'SW0' referenced in connection 'bad' was not found")

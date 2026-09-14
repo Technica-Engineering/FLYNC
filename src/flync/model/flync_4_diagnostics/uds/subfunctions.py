@@ -12,7 +12,7 @@ exporters and for the docs, and are deliberately kept next to the ``Literal`` th
 so the two cannot drift.
 """
 
-from typing import Any, Iterable, List, Literal, Union
+from typing import Any, Iterable, List, Literal
 
 #: The EcuReset (0x11) ``resetType`` values standardised by ISO 14229-1. Values 0x40-0x5F are
 #: system-supplier specific and are written as plain integers instead.
@@ -262,7 +262,7 @@ def status_mask_bits(mask: int) -> List[str]:
     return [name for name, bit in DTC_STATUS_BITS.items() if mask & (1 << bit)]
 
 
-def resolve_subfunction_ids(values: Iterable[Union[str, int]], ids: dict[str, int]) -> List[int]:
+def resolve_subfunction_ids(values: Iterable[str | int], ids: dict[str, int]) -> List[int]:
     """
     Return the on-the-wire sub-function values of ``values``.
 

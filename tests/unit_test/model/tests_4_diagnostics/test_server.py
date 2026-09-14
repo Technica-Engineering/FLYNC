@@ -72,17 +72,16 @@ def test_server_requires_exactly_one_default_access_profile(access_profiles):
 
 
 def test_access_profile_rejects_unknown_session():
+    access_profiles = [AccessProfile(name="a", default=True, sessions=["nonexistent"])]
     with pytest.raises(ValidationError) as exc_info:
-        minimal_server(access_profiles=[AccessProfile(name="a", default=True, sessions=["nonexistent"])])
+        minimal_server(access_profiles=access_profiles)
     assert_single_error(exc_info, "FLYNC-DIA-MAJ-REF-268", "unknown session(s)")
 
 
 def test_access_profile_rejects_unknown_security_level():
+    access_profiles = [AccessProfile(name="a", default=True, sessions=["default"], security_level=99)]
     with pytest.raises(ValidationError) as exc_info:
-        minimal_server(
-            access_profiles=[AccessProfile(name="a", default=True, sessions=["default"], security_level=99)],
-            services=[SESSION_CONTROL, SECURITY_ACCESS],
-        )
+        minimal_server(access_profiles=access_profiles, services=[SESSION_CONTROL, SECURITY_ACCESS])
     assert_single_error(exc_info, "FLYNC-DIA-MAJ-REF-269", "unknown security level")
 
 
@@ -95,14 +94,16 @@ def test_access_profile_accepts_known_security_level():
 
 
 def test_session_control_requires_exactly_one_default_session():
+    sessions = [DiagnosticSessionDefinition(name="extended", id=0x03)]
     with pytest.raises(ValidationError) as exc_info:
-        minimal_server(services=[DiagnosticSessionControlService(sessions=[DiagnosticSessionDefinition(name="extended", id=0x03)])])
+        DiagnosticSessionControlService(sessions=sessions)
     assert_single_error(exc_info, "FLYNC-DIA-MAJ-CONS-266", "exactly one session named 'default'")
 
 
 def test_service_rejects_unknown_access_profile():
+    services = [SESSION_CONTROL, ClearDiagnosticInformationService(access_profile="not_defined")]
     with pytest.raises(ValidationError) as exc_info:
-        minimal_server(services=[SESSION_CONTROL, ClearDiagnosticInformationService(access_profile="not_defined")])
+        minimal_server(services=services)
     assert_single_error(exc_info, "FLYNC-DIA-MAJ-REF-270", "unknown access profile")
 
 
@@ -112,8 +113,9 @@ def test_service_accepts_known_access_profile():
 
 
 def test_server_rejects_duplicate_service_sids():
+    services = [SESSION_CONTROL, GenericUDSService(service="a", sid=0xBA), GenericUDSService(service="b", sid=0xBA)]
     with pytest.raises(ValidationError) as exc_info:
-        minimal_server(services=[SESSION_CONTROL, GenericUDSService(service="a", sid=0xBA), GenericUDSService(service="b", sid=0xBA)])
+        minimal_server(services=services)
     assert_single_error(exc_info, "FLYNC-CMN-MAJ-UNIQ-009", "Duplicates found")
 
 
@@ -246,8 +248,9 @@ def test_server_bind_resolves_did_dtc_and_routine_names():
 
 def test_server_bind_rejects_unknown_timings_profile():
     server = minimal_server(uds_timings_profile="missing")
+    timings = UDSTimingProfileSet(profiles=[UDSTimingProfile(profile_id="uds_default")])
     with pytest.raises(ValidationError) as exc_info:
-        UDSConfig(timings=UDSTimingProfileSet(profiles=[UDSTimingProfile(profile_id="uds_default")]), servers=[server])
+        UDSConfig(timings=timings, servers=[server])
     assert_single_error(exc_info, "FLYNC-DIA-MAJ-REF-277", "unknown UDS timings profile 'missing'")
 
 
@@ -265,33 +268,28 @@ def test_server_bind_rejects_unknown_timings_profile():
     ],
 )
 def test_server_bind_rejects_unknown_catalog_names(server_overrides, expected_error_id, expected_message):
+    server = minimal_server(**server_overrides)
+    timings = UDSTimingProfileSet(profiles=[UDSTimingProfile(profile_id="uds_default")])
     with pytest.raises(ValidationError) as exc_info:
-        UDSConfig(
-            timings=UDSTimingProfileSet(profiles=[UDSTimingProfile(profile_id="uds_default")]),
-            servers=[minimal_server(**server_overrides)],
-        )
+        UDSConfig(timings=timings, servers=[server])
     assert_single_error(exc_info, expected_error_id, expected_message)
 
 
 def test_server_bind_rejects_did_requiring_an_access_profile_it_does_not_declare():
     did = DataIdentifier(name="vin", did=0xF190, access="read", read_data=DiagDataRecord(byte_length=1), access_profile="programming")
+    server = minimal_server(dids=["vin"])
+    timings = UDSTimingProfileSet(profiles=[UDSTimingProfile(profile_id="uds_default")])
     with pytest.raises(ValidationError) as exc_info:
-        UDSConfig(
-            timings=UDSTimingProfileSet(profiles=[UDSTimingProfile(profile_id="uds_default")]),
-            servers=[minimal_server(dids=["vin"])],
-            dids=[did],
-        )
+        UDSConfig(timings=timings, servers=[server], dids=[did])
     assert_single_error(exc_info, "FLYNC-DIA-MAJ-REF-281", "requires unknown access profile 'programming'")
 
 
 def test_server_bind_rejects_routine_requiring_an_access_profile_it_does_not_declare():
     routine = Routine(name="erase", rid=0xFF00, start_request=DiagDataRecord(byte_length=0), access_profile="programming")
+    server = minimal_server(services=[SESSION_CONTROL, RoutineControlService(routines=["erase"])])
+    timings = UDSTimingProfileSet(profiles=[UDSTimingProfile(profile_id="uds_default")])
     with pytest.raises(ValidationError) as exc_info:
-        UDSConfig(
-            timings=UDSTimingProfileSet(profiles=[UDSTimingProfile(profile_id="uds_default")]),
-            servers=[minimal_server(services=[SESSION_CONTROL, RoutineControlService(routines=["erase"])])],
-            routines=[routine],
-        )
+        UDSConfig(timings=timings, servers=[server], routines=[routine])
     assert_single_error(exc_info, "FLYNC-DIA-MAJ-REF-282", "requires unknown access profile 'programming'")
 
 
