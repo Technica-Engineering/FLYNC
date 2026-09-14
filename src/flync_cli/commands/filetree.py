@@ -9,7 +9,7 @@ from typing_extensions import Annotated
 from flync.model import FLYNCModel
 from flync.model.flync_4_communication import FLYNCChannelConfig, FLYNCCommunicationConfig
 from flync.model.flync_4_diagnostics import DiagnosticsConfig, DoIPConfig, UDSConfig
-from flync.model.flync_4_ecu import ECU, Controller, EthernetInterface
+from flync.model.flync_4_ecu import ECU, ComputeNode, Controller, EthernetInterface
 from flync.model.flync_4_someip import SOMEIPConfig
 from flync.model.flync_4_topology import FLYNCTopology
 from flync.sdk.helpers.debug import print_field_subtree, print_flync_structure
@@ -38,7 +38,10 @@ _CLASS_MAP: dict[str, type[BaseModel] | tuple[type[BaseModel], str]] = {
     "sockets": (EthernetInterface, "sockets"),
     "can_interfaces": (Controller, "can_interfaces"),
     "lin_interfaces": (Controller, "lin_interfaces"),
-    "virtual_switch": (Controller, "virtual_switch"),
+    "compute_node": ComputeNode,
+    "compute_nodes": (Controller, "compute_nodes"),
+    "virtual_switches": (Controller, "switches"),
+    "controller_topology": (Controller, "controller_topology"),
     # ── communication tree ────────────────────────────────────────────
     "communication": FLYNCCommunicationConfig,
     "tcp_profiles": (FLYNCCommunicationConfig, "tcp_profiles"),

@@ -3,16 +3,16 @@ This package provides models for representing an ECU in the FLYNC architecture, 
 and internal topology definitions.
 """
 
+from . import controller as _controller_module
+from .compute_node import ComputeNode
 from .controller import (
-    ComputeNodes,
     Controller,
     EthernetInterface,
     EthernetInterfaceConfig,
     VirtualControllerInterface,
-    VirtualSwitch,
-    VirtualSwitchPort,
 )
 from .controller_interface import ControllerInterface
+from .controller_topology import ControllerConnectionUnion, ControllerTopology
 from .ecu import ECU
 from .internal_topology import InternalTopology
 from .mac_multicast_endpoint import (
@@ -44,46 +44,55 @@ from .switch import (
 )
 from .vlan_entry import MulticastGroup, VLANEntry
 
+# ``Controller`` declares ``compute_nodes``, ``switches`` and ``controller_topology`` as
+# forward references: it cannot import those modules itself, because switch.py imports Controller and
+# compute_node.py imports both. Every module is loaded by this point, so inject the concrete types
+# into controller.py's namespace and rebuild the model so pydantic can resolve them.
+setattr(_controller_module, "ComputeNode", ComputeNode)
+setattr(_controller_module, "Switch", Switch)
+setattr(_controller_module, "ControllerTopology", ControllerTopology)
+Controller.model_rebuild(force=True)
+
 KEY = "ECU"
 __all__ = [
-    "ComputeNodes",
-    "Controller",
-    "ControllerInterface",
-    "EthernetInterface",
-    "EthernetInterfaceConfig",
-    "FrameMask",
-    "VirtualSwitch",
-    "VirtualSwitchPort",
-    "VirtualControllerInterface",
-    "IPv4AddressEndpoint",
-    "IPv6AddressEndpoint",
-    "Socket",
-    "TCPOption",
-    "UDPOption",
-    "SocketTCP",
-    "SocketUDP",
-    "SocketContainer",
-    "ECU",
-    "InternalTopology",
-    "MII",
-    "RMII",
-    "RGMII",
-    "SGMII",
-    "XFI",
+    "AVTPMulticastEndpoint",
     "BASET",
     "BASET1",
     "BASET1S",
+    "ComputeNode",
+    "Controller",
+    "ControllerConnectionUnion",
+    "ControllerInterface",
+    "ControllerTopology",
+    "ECU",
     "ECUPort",
+    "EthernetInterface",
+    "EthernetInterfaceConfig",
+    "FrameMask",
+    "InternalTopology",
+    "IPv4AddressEndpoint",
+    "IPv6AddressEndpoint",
+    "MACMulticastEndpoint",
+    "MACMulticastEndpoints",
+    "MII",
+    "MulticastGroup",
+    "MulticastGroupMembership",
+    "RGMII",
+    "RMII",
     "RouteEntry",
+    "SGMII",
+    "Socket",
+    "SocketContainer",
+    "SocketTCP",
+    "SocketUDP",
     "Switch",
     "SwitchConfig",
     "SwitchPort",
-    "VLANEntry",
-    "MulticastGroup",
     "TCAMRule",
+    "TCPOption",
     "TrafficClass",
-    "MulticastGroupMembership",
-    "AVTPMulticastEndpoint",
-    "MACMulticastEndpoint",
-    "MACMulticastEndpoints",
+    "UDPOption",
+    "VirtualControllerInterface",
+    "VLANEntry",
+    "XFI",
 ]

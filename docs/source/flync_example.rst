@@ -271,6 +271,24 @@ Find this example on github: `ecu_variant_9 <https://github.com/Technica-Enginee
 --------------
 
 
+Variant 10: Single controller, switch inside controller, several nested compute nodes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Find this example on github: `ecu_variant_10 <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_10>`_.
+
+.. image:: ./_static/images/ecu_variants_static/ecu_variant_10.png
+   :align: center
+   :width: 1300px
+
+.. note:: A single controller (``adc``) hosts a hardware switch, giving the controller and its compute nodes a shared internal switching fabric alongside their Ethernet interfaces.
+
+.. note:: Compute nodes can nest arbitrarily: the ``linux_domain`` compute node itself hosts the ``adaptive`` and ``diagnostic`` compute nodes, each with its own Ethernet interfaces. Other compute nodes of the controller (``linux``, ``safety_mcu``, ``safety_rtos``) sit alongside it at the same level.
+
+.. note:: Compute nodes such as ``linux``, ``linux_domain`` and ``safety_rtos`` each define their own virtual switch, connecting their Ethernet interfaces independently from the controller's hardware switch.
+
+--------------
+
+
 Internal Topology (Configuration and Types)
 """"""""""""""""""""""""""""""""""""""""""""""
 

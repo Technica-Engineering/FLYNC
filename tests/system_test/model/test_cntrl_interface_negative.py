@@ -10,8 +10,6 @@ from flync.model.flync_4_ecu.controller import (
     EthernetInterface,
     EthernetInterfaceConfig,
     VirtualControllerInterface,
-    VirtualSwitch,
-    VirtualSwitchPort,
 )
 from flync.model.flync_4_ecu.ecu import ECU
 from flync.model.flync_4_ecu.internal_topology import InternalTopology, SwitchPortToControllerInterface
@@ -190,42 +188,6 @@ def test_lin_slave_with_schedule_table_is_invalid():
     with pytest.raises(ValidationError) as exc_info:
         FLYNCModel(ecus=[ecu], communication=communication, topology=topology, metadata=metadata)
     assert_single_error(exc_info, "FLYNC-TOP-MAJ-CONS-316", "declares schedule table(s) but has no master interface")
-
-
-# Verify that an Ethernet switch cannot connect to a CAN interface. Ethernet switches support Ethernet interfaces only.
-def test_ethernet_switch_connected_to_can_interface_is_invalid():
-
-    can_iface = CANInterface(name="can_iface", bus_ref="can_bus")
-
-    virtual_switch = VirtualSwitch(name="vswitch_1", vlans=[], ports=[VirtualSwitchPort(name="invalid_vswitch", node_connected="can_iface")])
-    controller_metadata = _make_embedded_metadata()
-
-    with pytest.raises(ValidationError) as exc_info:
-        Controller(
-            name="CTRL1",
-            controller_metadata=controller_metadata,
-            can_interfaces=[can_iface],
-            virtual_switch=virtual_switch,
-        )
-    assert_single_error(exc_info, "FLYNC-ECU-MIN-REF-067", "interface or compute node")
-
-
-# Verify that an Ethernet switch cannot connect to a LIN interface. Ethernet switches support Ethernet interfaces only and cannot connect to LIN interfaces.
-def test_ethernet_switch_connected_to_lin_interface_is_invalid():
-
-    lin_iface = LINMasterInterface(name="lin_master_iface", bus_ref="lin_bus", lin_protocol="2.0", p2_min=10, st_min=10)
-
-    virtual_switch = VirtualSwitch(name="vswitch_1", vlans=[], ports=[VirtualSwitchPort(name="invalid_vswitch", node_connected="lin_master_iface")])
-    controller_metadata = _make_embedded_metadata()
-
-    with pytest.raises(ValidationError) as exc_info:
-        Controller(
-            name="CTRL1",
-            controller_metadata=controller_metadata,
-            lin_interfaces=[lin_iface],
-            virtual_switch=virtual_switch,
-        )
-    assert_single_error(exc_info, "FLYNC-ECU-MIN-REF-067", "interface or compute node")
 
 
 # Verify that the same physical ControllerInterface cannot be connected to more than one switch port inside ECU topology.

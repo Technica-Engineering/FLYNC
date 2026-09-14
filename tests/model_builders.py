@@ -18,11 +18,13 @@ from typing import Optional
 from flync.model.flync_4_communication.flync_communication import FLYNCCommunicationConfig
 from flync.model.flync_4_ecu import (
     ECU,
+    ComputeNode,
     Controller,
     EthernetInterface,
     EthernetInterfaceConfig,
     VirtualControllerInterface,
 )
+from flync.model.flync_4_ecu.controller_topology import ControllerTopology
 from flync.model.flync_4_ecu.internal_topology import ECUPortToControllerInterface, ECUPortToSwitchPort, InternalTopology
 from flync.model.flync_4_ecu.phy import BASET1
 from flync.model.flync_4_ecu.port import ECUPort
@@ -99,7 +101,6 @@ def make_eth_interface(
     name: str = "ETH0",
     mac: str = "AA:BB:CC:DD:EE:FF",
     vcis: Optional[list] = None,
-    compute_nodes: Optional[list] = None,
     sockets: Optional[list] = None,
 ) -> EthernetInterface:
     """Return an Ethernet interface with one virtual interface and no sockets by default."""
@@ -108,9 +109,39 @@ def make_eth_interface(
         interface_config=EthernetInterfaceConfig(
             mac_address=mac,
             virtual_interfaces=vcis if vcis is not None else [make_vci()],
-            compute_nodes=compute_nodes or [],
         ),
         sockets=sockets or [],
+    )
+
+
+def make_virtual_switch(*, name: str = "br0", port_names: Optional[list] = None, vlan_id: int = 10) -> Switch:
+    """Return a virtual switch (a plain :class:`Switch`) with one port per name and a single VLAN spanning them all."""
+    port_names = port_names if port_names is not None else ["br0_p1", "br0_p2"]
+    return Switch(
+        name=name,
+        switch_config=SwitchConfig(
+            meta=make_controller_metadata(),
+            ports=[SwitchPort(name=port, silicon_port_no=index, default_vlan_id=vlan_id) for index, port in enumerate(port_names)],
+            vlans=[VLANEntry(name=f"VLAN{vlan_id}", id=vlan_id, default_priority=0, ports=list(port_names))],
+        ),
+    )
+
+
+def make_compute_node(
+    *,
+    name: str = "NODE0",
+    ethernet_interfaces: Optional[list] = None,
+    compute_nodes: Optional[list] = None,
+    virtual_switches: Optional[list] = None,
+) -> ComputeNode:
+    """Return a compute node with one PHY-less Ethernet interface by default."""
+    return ComputeNode(
+        name=name,
+        ethernet_interfaces=(
+            ethernet_interfaces if ethernet_interfaces is not None else [make_eth_interface(name=f"{name}_eth0", mac="AA:BB:CC:DD:EE:01")]
+        ),
+        compute_nodes=compute_nodes or [],
+        virtual_switches=virtual_switches or [],
     )
 
 
@@ -119,12 +150,22 @@ def make_socket_container(*, vlan_id: Optional[int] = 10, sockets: Optional[list
     return SocketContainer(name=f"container_vlan_{vlan_id}", vlan_id=vlan_id, sockets=sockets or [])
 
 
-def make_controller(*, name: str = "CTRL0", ethernet_interfaces: Optional[list] = None) -> Controller:
-    """Return a controller with one Ethernet interface by default."""
+def make_controller(
+    *,
+    name: str = "CTRL0",
+    ethernet_interfaces: Optional[list] = None,
+    compute_nodes: Optional[list] = None,
+    virtual_switches: Optional[list] = None,
+    controller_topology: Optional[ControllerTopology] = None,
+) -> Controller:
+    """Return a controller with one Ethernet interface and no virtualization by default."""
     return Controller(
         name=name,
         controller_metadata=make_controller_metadata(),
         ethernet_interfaces=ethernet_interfaces if ethernet_interfaces is not None else [make_eth_interface()],
+        compute_nodes=compute_nodes or [],
+        switches=virtual_switches or [],
+        controller_topology=controller_topology,
     )
 
 

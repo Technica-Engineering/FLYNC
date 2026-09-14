@@ -67,36 +67,3 @@ def test_negative_controller_interface_wrong_mac(
                 "ethernet_interfaces": [{"name": "interface_test", "interface_config": ctrl_interface}],
             }
         )
-
-
-def test_negative_controller_interface_missing_vifaces(
-    embedded_metadata_entry,
-):
-    ctrl_interface = {
-        "mac_address": "aa:bb:cc:dd:ee:ff",
-    }
-
-    with pytest.raises(ValidationError):
-        Controller.model_validate(
-            {
-                "controller_metadata": embedded_metadata_entry,
-                "name": "controller_test",
-                "ethernet_interfaces": [{"name": "interface_test", "interface_config": ctrl_interface}],
-            }
-        )
-
-
-def test_negative_controller_interface_empty_vifaces(embedded_metadata_entry):
-    ctrl_interface = {
-        "mac_address": "aa:bb:cc:dd:ee:ff",
-        "virtual_interfaces": [],
-    }
-
-    with pytest.raises(ValidationError):
-        Controller.model_validate(
-            {
-                "controller_metadata": embedded_metadata_entry,
-                "name": "controller_test",
-                "ethernet_interfaces": [{"name": "interface_test", "interface_config": ctrl_interface}],
-            }
-        )

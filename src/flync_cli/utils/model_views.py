@@ -35,33 +35,43 @@ def ecus_for(model, ecu_name: Optional[str]) -> list:
     return [require_ecu(model, ecu_name)] if ecu_name else list(model.ecus)
 
 
+def _with_subtree_compute_nodes(controller) -> Iterator:
+    """Yield *controller* itself, then every compute node nested beneath it."""
+    yield controller
+    yield from controller.iter_subtree_compute_nodes()
+
+
 def iter_ecu_controllers(ecu) -> Iterator:
-    """Yield every controller of *ecu*, including switch host controllers (a second source of interfaces)."""
+    """
+    Yield every interface owner of *ecu*.
+
+    That is every controller, every switch host controller (a second source of interfaces), and every
+    compute node nested beneath either — a compute node owns interfaces with their own addresses, so
+    the reports would silently omit them otherwise. Controllers and compute nodes both expose ``name``
+    and ``get_interfaces()``, which is all the callers need.
+    """
     seen = set()
     for ctrl in ecu.controllers:
         seen.add(id(ctrl))
-        yield ctrl
+        yield from _with_subtree_compute_nodes(ctrl)
     for switch in ecu.get_all_switches():
         host = switch.host_controller
         if host is not None and id(host) not in seen:
             seen.add(id(host))
-            yield host
+            yield from _with_subtree_compute_nodes(host)
 
 
 def iter_ecu_interfaces(ecu) -> Iterator[tuple]:
-    """Yield ``(controller, eth_iface)`` for every ethernet interface reachable from *ecu*."""
+    """Yield ``(owner, eth_iface)`` for every ethernet interface reachable from *ecu*, where the owner is a controller or a compute node."""
     for ctrl in iter_ecu_controllers(ecu):
         for eth_iface in ctrl.get_interfaces():
             yield ctrl, eth_iface
 
 
 def iter_virtual_interfaces(iface_config) -> Iterator[tuple]:
-    """Yield ``(virtual_interface, mac_address)`` for both direct VCIs and compute-node VCIs."""
+    """Yield ``(virtual_interface, mac_address)`` for every VCI stacked on this interface."""
     for vci in iface_config.virtual_interfaces or []:
         yield vci, iface_config.mac_address
-    for node in iface_config.compute_nodes or []:
-        for vci in node.virtual_interfaces or []:
-            yield vci, node.mac_address
 
 
 def _vci_and_mac_for_vlan(iface_config, vlan_id):

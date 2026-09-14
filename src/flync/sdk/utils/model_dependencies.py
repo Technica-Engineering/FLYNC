@@ -394,6 +394,15 @@ class ModelDependencyGraph:
             path (tuple): Path segments accumulated from the root to the current node.
             container_chain (tuple): Container kinds wrapping the current field.
         """
+        if child_model is self.root:
+            # A field pointing back to the root type is always the terminus of a cycle:
+            # self.tree is built with the root kept in `visited` for the whole walk (see
+            # _extract_model_dependencies), so any nested occurrence of the root class already
+            # comes wrapped in a "__cycle__" marker. Registering it here would corrupt the
+            # root's own NodeInfo (registered with an empty flync_paths in _field_info) with a
+            # bogus non-empty path, breaking identity lookups for the root elsewhere.
+            return
+
         new_path = path + ((child_model, field_name, container_chain),)
         model_key = child_model.__name__
 

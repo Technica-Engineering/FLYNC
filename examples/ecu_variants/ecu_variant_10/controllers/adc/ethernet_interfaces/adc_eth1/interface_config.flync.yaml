@@ -1,0 +1,11 @@
+mac_address: 02:00:00:C0:00:02
+mii_config:
+  type: rmii
+  speed: 100
+  mode: mac
+virtual_interfaces:
+  - name: vi10
+    vlanid: 10
+    addresses:
+      - address: 10.0.10.1
+        ipv4netmask: 255.255.255.0

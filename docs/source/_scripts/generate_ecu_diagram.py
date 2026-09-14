@@ -1,16 +1,20 @@
 """
 Generate an SVG diagram of an ECU variant from its FLYNC configuration.
 
-Supports the eight ECU variants under ``examples/ecu_variants/``:
+Supports the ECU variants under ``examples/ecu_variants/``:
 
     1. single_controller_single_iface_ext_PHY
     2. single_controller_single_iface_int_PHY
     3. single_controller_multiple_iface_ext_PHY
     4. single_controller_multiple_iface_int_PHY
-    5. single_controller_single_iface_multiple_vms
+    5. single_controller_single_iface_multiple_vms (compute nodes)
     6. single_controller_multiple_iface_physical_ext_phy
     7. switch_ecu_ext_PHY
     8. switch_ecu_with_host_ext_PHY
+    9. single_controller_eth_iface_can_iface (rendered like 1/2; the CAN interface is not drawn)
+
+Variant 10 (``ecu_variant_10``) has a hand-maintained static diagram instead — see
+``STATIC_DIAGRAM_ECUS`` below.
 
 Usage:
 
@@ -30,6 +34,12 @@ from xml.sax.saxutils import escape
 from flync.model.flync_4_ecu.ecu import ECU
 from flync.sdk.helpers.validation_helpers import validate_external_node
 
+# ECU variants with a hand-maintained static diagram instead of an auto-generated one.
+# Their layout doesn't fit the pattern-based renderers below; keep the picture in
+# docs/source/_static/images/ecu_variants_static/ so it isn't overwritten or removed by the
+# generation/clean steps in docs/Makefile and docs/make.bat.
+STATIC_DIAGRAM_ECUS = {"ecu_variant_10"}
+
 MII_OPTIONS = ["mii", "rmii", "sgmii", "rgmii"]
 SPEED_LABELS = [
     ("100baset1", "base_t1", 100),
@@ -46,6 +56,7 @@ SWITCH_FILL, SWITCH_STROKE = "#fff2cc", "#d6b656"
 SWITCH_PORT_FILL, SWITCH_PORT_STROKE = "#ffe6cc", "#d79b00"
 SILICON_FILL, SILICON_STROKE = "#f5f5f5", "#666666"
 BRIDGE_FILL, BRIDGE_STROKE = "#fff2cc", "#d6b656"
+COMPUTE_NODE_FILL, COMPUTE_NODE_STROKE = "#d5e8ff", "#4a78b0"
 
 VLAN_PALETTE = {
     10: ("#f8cecc", "#b85450"),
@@ -191,12 +202,12 @@ def detect_pattern(ecu: ECU) -> str:
     if n_ctrl != 1:
         raise ValueError("Only ECUs with exactly one controller are supported.")
     ctrl = ecu.controllers[0]
+    if ctrl.compute_nodes:
+        return "compute_nodes"
     n_iface = len(ctrl.ethernet_interfaces)
     if n_sw == 0:
         if n_iface == 1:
             iface = ctrl.ethernet_interfaces[0].interface_config
-            if iface.compute_nodes:
-                return "vms"
             return "single_viface" if len(iface.virtual_interfaces) == 1 else "multi_viface"
         return "multi_physical_iface"
     sw = ecu.switches[0]
@@ -372,91 +383,11 @@ def render_multi_viface(ecu: ECU) -> str:
     return svg.render()
 
 
-def render_vms(ecu: ECU) -> str:
-    """Variant 5: single iface plus compute nodes wired through a Virtual Switch."""
-
-    ext = has_ext_phy(ecu)
-    ctrl = ecu.controllers[0]
-    iface = ctrl.ethernet_interfaces[0].interface_config
-    vms = list(iface.compute_nodes)
-    port = ecu.ports[0]
-    bridge = ctrl.virtual_switch
-
-    width = 720
-    height = 720
-    ecu_x, ecu_y, ecu_w, ecu_h = 15, 30, width - 30, 470
-    ctrl_x, ctrl_y, ctrl_w, ctrl_h = ecu_x + 30, ecu_y + 35, ecu_w - 60, ecu_h - 55
-    line_x = ecu_x + ecu_w / 2
-
-    svg = SVG(width, height)
-    svg.rect(ecu_x, ecu_y, ecu_w, ecu_h, fill=ECU_FILL, stroke=ECU_STROKE, sw=1.5, rx=6)
-    svg.text(ecu_x + ecu_w / 2, ecu_y + 18, ecu.name, size=14, anchor="middle", bold=True)
-    svg.rect(ctrl_x, ctrl_y, ctrl_w, ctrl_h, fill=CTRL_FILL, stroke=CTRL_STROKE, sw=1.2, rx=5)
-    svg.text(ctrl_x + ctrl_w / 2, ctrl_y + 18, ctrl.name, size=13, anchor="middle", bold=True)
-
-    vm_w, vm_h = 230, 100
-    vm_y = ctrl_y + 50
-    vm_xs = [ctrl_x + 30 + i * (vm_w + 30) for i in range(len(vms))]
-    if len(vms) == 2:
-        vm_xs = [ctrl_x + 30, ctrl_x + ctrl_w - vm_w - 30]
-    for vm, vx in zip(vms, vm_xs):
-        svg.rect(vx, vm_y, vm_w, vm_h, fill=IFACE_FILL, stroke=IFACE_STROKE, sw=1, rx=3)
-        svg.text(vx + vm_w / 2, vm_y + 16, vm.name, size=11, anchor="middle", bold=True)
-        v0 = vm.virtual_interfaces[0]
-        svg.viface(vx + 10, vm_y + 30, vm_w - 20, v0.name, v0.addresses, v0.vlanid, with_oval=True)
-
-    bridge_w, bridge_h = 160, 50
-    bridge_x = ctrl_x + (ctrl_w - bridge_w) / 2
-    bridge_y = vm_y + vm_h + 30
-    svg.rect(bridge_x, bridge_y, bridge_w, bridge_h, fill=BRIDGE_FILL, stroke=BRIDGE_STROKE, sw=1, rx=8)
-    bridge_label = f"virtual_switch {bridge.name}" if bridge else "virtual_switch"
-    svg.text(bridge_x + bridge_w / 2, bridge_y + bridge_h / 2 + 4, bridge_label, size=12, anchor="middle")
-
-    if_w, if_h = 250, 90
-    if_x = ctrl_x + (ctrl_w - if_w) / 2
-    if_y = bridge_y + bridge_h + 30
-    svg.rect(if_x, if_y, if_w, if_h, fill=IFACE_FILL, stroke=IFACE_STROKE, sw=1, rx=4)
-    svg.text(if_x + if_w / 2, if_y + 14, iface.name, size=11, anchor="middle", bold=True)
-    v0 = iface.virtual_interfaces[0]
-    svg.viface(if_x + 10, if_y + 25, if_w - 20, v0.name, v0.addresses, v0.vlanid, with_oval=True)
-
-    for vx in vm_xs:
-        vm_cx = vx + vm_w / 2
-        svg.line(vm_cx, vm_y + vm_h, vm_cx, bridge_y)
-        target_x = bridge_x if vm_cx < bridge_x + bridge_w / 2 else bridge_x + bridge_w
-        svg.line(vm_cx, bridge_y, target_x, bridge_y)
-    svg.line(bridge_x + bridge_w / 2, bridge_y + bridge_h, if_x + if_w / 2, if_y)
-
-    port_y = height - 28 - 15
-    if ext:
-        _draw_ext_phy_chain(
-            svg,
-            line_x=line_x,
-            top_y=ecu_y + ecu_h,
-            port_y=port_y,
-            mii_type=iface.mii_config.type if iface.mii_config else None,
-            mdi_config=port.mdi_config,
-            port_name=port.name,
-        )
-    else:
-        _draw_int_phy_chain(
-            svg,
-            line_x=line_x,
-            top_y=if_y + if_h,
-            ecu_bottom=ecu_y + ecu_h,
-            port_y=port_y,
-            mdi_config=port.mdi_config,
-            port_name=port.name,
-        )
-
-    return svg.render()
-
-
 def render_multi_physical_iface(ecu: ECU) -> str:
     """Variant 6: multiple physical interfaces, each with its own external PHY/port, bridged."""
     ctrl = ecu.controllers[0]
     ifaces = sorted((ei.interface_config for ei in ctrl.ethernet_interfaces), key=lambda i: i.name)
-    bridge = ctrl.virtual_switch
+    bridge = ctrl.switches[0] if ctrl.switches else None
 
     n = len(ifaces)
     if_w = 260
@@ -685,6 +616,115 @@ def render_switch(ecu: ECU, *, with_host: bool = False) -> str:
     return svg.render()
 
 
+CN_BOX_PAD = 16
+CN_BOX_GAP = 16
+CN_BOX_HEADER_H = 22
+CN_MIN_CHILD_W, CN_MIN_CHILD_H = 120, 50
+CN_SWITCH_W, CN_SWITCH_H = 140, 50
+
+
+def _switch_box_size(switch) -> tuple[float, float]:
+    """Fixed footprint for a (hardware or virtual) switch box."""
+    return CN_SWITCH_W, CN_SWITCH_H
+
+
+def _compute_node_layout(node) -> tuple[float, float, list]:
+    """
+    Recursively measure ``node``'s box: bottom-up, its virtual switches and nested compute nodes
+    are laid out left-to-right inside it.
+
+    Returns ``(width, height, children)`` where ``children`` is a list of
+    ``(kind, obj, w, h, nested_children)`` tuples, already measured, ready to draw without
+    re-computing sizes.
+    """
+    children: list = []
+    for vswitch in node.virtual_switches or []:
+        w, h = _switch_box_size(vswitch)
+        children.append(("switch", vswitch, w, h, None))
+    for nested in node.compute_nodes or []:
+        w, h, nested_children = _compute_node_layout(nested)
+        children.append(("compute_node", nested, w, h, nested_children))
+
+    if children:
+        inner_w = sum(c[2] for c in children) + CN_BOX_GAP * (len(children) - 1)
+        inner_h = max(c[3] for c in children)
+    else:
+        inner_w, inner_h = CN_MIN_CHILD_W, CN_MIN_CHILD_H
+
+    width = inner_w + 2 * CN_BOX_PAD
+    height = CN_BOX_HEADER_H + inner_h + 2 * CN_BOX_PAD
+    return width, height, children
+
+
+def _draw_switch_box(svg, switch, x, y, w, h, *, label_prefix=""):
+    svg.rect(x, y, w, h, fill=SWITCH_FILL, stroke=SWITCH_STROKE, sw=1, rx=4)
+    svg.text(x + w / 2, y + h / 2 + 4, f"{label_prefix}{switch.name}", size=11, anchor="middle", bold=True)
+
+
+def _draw_compute_node_box(svg, node, x, y, w, h, children):
+    svg.rect(x, y, w, h, fill=COMPUTE_NODE_FILL, stroke=COMPUTE_NODE_STROKE, sw=1.2, rx=5)
+    svg.text(x + w / 2, y + 16, node.name, size=12, anchor="middle", bold=True)
+    cx = x + CN_BOX_PAD
+    cy = y + CN_BOX_HEADER_H + CN_BOX_PAD
+    for kind, obj, cw, ch, nested_children in children:
+        if kind == "switch":
+            _draw_switch_box(svg, obj, cx, cy, cw, ch, label_prefix="vswitch ")
+        else:
+            _draw_compute_node_box(svg, obj, cx, cy, cw, ch, nested_children)
+        cx += cw + CN_BOX_GAP
+
+
+def render_compute_nodes(ecu: ECU) -> str:
+    """
+    Controller hosting compute nodes: its hardware switches and its compute nodes are laid out
+    side by side inside the controller box; each compute node recursively contains its own virtual
+    switches and any nested compute nodes.
+    """
+    ctrl = ecu.controllers[0]
+
+    children: list = []
+    for switch in ctrl.switches or []:
+        w, h = _switch_box_size(switch)
+        children.append(("switch", switch, w, h, None))
+    for node in ctrl.compute_nodes or []:
+        w, h, nested_children = _compute_node_layout(node)
+        children.append(("compute_node", node, w, h, nested_children))
+
+    if children:
+        inner_w = sum(c[2] for c in children) + CN_BOX_GAP * (len(children) - 1)
+        inner_h = max(c[3] for c in children)
+    else:
+        inner_w, inner_h = CN_MIN_CHILD_W, CN_MIN_CHILD_H
+
+    ctrl_w = inner_w + 2 * CN_BOX_PAD
+    ctrl_h = CN_BOX_HEADER_H + inner_h + 2 * CN_BOX_PAD
+
+    ecu_x, ecu_y = 15, 30
+    ctrl_x, ctrl_y = ecu_x + 25, ecu_y + 35
+    ecu_w = ctrl_w + 50
+    ecu_h = ctrl_h + 55
+
+    width = ecu_w + 30
+    height = ecu_h + 65
+
+    svg = SVG(width, height)
+    svg.rect(ecu_x, ecu_y, ecu_w, ecu_h, fill=ECU_FILL, stroke=ECU_STROKE, sw=1.5, rx=6)
+    svg.text(ecu_x + ecu_w / 2, ecu_y + 18, ecu.name, size=14, anchor="middle", bold=True)
+    svg.rect(ctrl_x, ctrl_y, ctrl_w, ctrl_h, fill=CTRL_FILL, stroke=CTRL_STROKE, sw=1.2, rx=5)
+    svg.text(ctrl_x + ctrl_w / 2, ctrl_y + 18, ctrl.name, size=13, anchor="middle", bold=True)
+
+    cx = ctrl_x + CN_BOX_PAD
+    cy = ctrl_y + CN_BOX_HEADER_H + CN_BOX_PAD
+    for kind, obj, w, h, nested_children in children:
+        if kind == "switch":
+            _draw_switch_box(svg, obj, cx, cy, w, h)
+        else:
+            _draw_compute_node_box(svg, obj, cx, cy, w, h, nested_children)
+        cx += w + CN_BOX_GAP
+
+    return svg.render()
+
+
 # ============================================================================
 # Dispatch
 # ============================================================================
@@ -693,10 +733,10 @@ def render_switch(ecu: ECU, *, with_host: bool = False) -> str:
 _PATTERN_RENDERERS = {
     "single_viface": render_single_viface,
     "multi_viface": render_multi_viface,
-    "vms": render_vms,
     "multi_physical_iface": render_multi_physical_iface,
     "switch": lambda ecu: render_switch(ecu, with_host=False),
     "switch_with_host": lambda ecu: render_switch(ecu, with_host=True),
+    "compute_nodes": render_compute_nodes,
 }
 
 
@@ -750,7 +790,7 @@ def main() -> int:
         print(f"Wrote {out}")
         return 0
 
-    targets = sorted(p for p in path.iterdir() if _is_ecu_dir(p))
+    targets = sorted(p for p in path.iterdir() if _is_ecu_dir(p) and p.name not in STATIC_DIAGRAM_ECUS)
     if not targets:
         print(f"Error: {path} contains no ECU configurations.", file=sys.stderr)
         return 1

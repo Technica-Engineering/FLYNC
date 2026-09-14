@@ -12,7 +12,6 @@ rename in any of them fails these tests exactly as it would fail the real CLI.
 from unittest.mock import MagicMock
 
 from flync.core.datatypes.ipaddress import IPv4AddressEntry, IPv6AddressEntry
-from flync.model.flync_4_ecu.controller import ComputeNodes
 from flync.model.flync_4_ecu.ecu import ECU
 from flync.model.flync_4_ecu.sockets import SocketUDP
 from flync.model.flync_4_signal.pdu_deployment import PDUSender
@@ -31,6 +30,7 @@ from flync_cli.utils.model_views import (
 )
 from tests.cli_tests.cli_assertions import assert_exits
 from tests.model_builders import (
+    make_compute_node,
     make_controller,
     make_eth_interface,
     make_ipv4_address,
@@ -103,6 +103,17 @@ class TestIterEcuControllers:
         ecu = _ecu_double(controllers=[ctrl], switches=[switch])
         assert list(iter_ecu_controllers(ecu)) == [ctrl]
 
+    def test_includes_nested_compute_nodes(self):
+        inner = make_compute_node(name="NODE_INNER", ethernet_interfaces=[make_eth_interface(name="inner_eth0", mac="AA:BB:CC:DD:EE:03")])
+        outer = make_compute_node(
+            name="NODE_OUTER",
+            ethernet_interfaces=[make_eth_interface(name="outer_eth0", mac="AA:BB:CC:DD:EE:02")],
+            compute_nodes=[inner],
+        )
+        ctrl = make_controller(name="C1", compute_nodes=[outer])
+        ecu = _ecu_double(controllers=[ctrl])
+        assert list(iter_ecu_controllers(ecu)) == [ctrl, outer, inner]
+
 
 class TestIterEcuInterfaces:
     def test_yields_controller_and_interface_pairs(self):
@@ -111,18 +122,20 @@ class TestIterEcuInterfaces:
         ecu = _ecu_double(controllers=[ctrl])
         assert list(iter_ecu_interfaces(ecu)) == [(ctrl, iface)]
 
+    def test_yields_compute_node_interfaces_owned_by_the_compute_node(self):
+        ctrl_iface = make_eth_interface(name="ETH0")
+        node_iface = make_eth_interface(name="NODE0_eth0", mac="AA:BB:CC:DD:EE:02")
+        node = make_compute_node(name="NODE0", ethernet_interfaces=[node_iface])
+        ctrl = make_controller(name="C1", ethernet_interfaces=[ctrl_iface], compute_nodes=[node])
+        ecu = _ecu_double(controllers=[ctrl])
+        assert list(iter_ecu_interfaces(ecu)) == [(ctrl, ctrl_iface), (node, node_iface)]
+
 
 class TestIterVirtualInterfaces:
     def test_yields_direct_vcis_with_the_interface_mac(self):
         vci = make_vci()
         cfg = make_eth_interface(mac="aa:bb:cc:dd:ee:01", vcis=[vci]).interface_config
         assert list(iter_virtual_interfaces(cfg)) == [(vci, "aa:bb:cc:dd:ee:01")]
-
-    def test_yields_compute_node_vcis_with_the_node_mac(self):
-        node_vci = make_vci(name="node_vi")
-        node = ComputeNodes(name="node0", mac_address="11:22:33:44:55:66", virtual_interfaces=[node_vci])
-        cfg = make_eth_interface(mac="aa:bb:cc:dd:ee:01", vcis=[], compute_nodes=[node]).interface_config
-        assert list(iter_virtual_interfaces(cfg)) == [(node_vci, "11:22:33:44:55:66")]
 
 
 class TestSocketEndpointsForEcu:

@@ -319,7 +319,7 @@ class ECU(FLYNCBaseModel):
         ethernet interface."""
 
         for controller in self.controllers:
-            for eth_iface in controller.ethernet_interfaces or []:
+            for eth_iface in controller.iter_subtree_interfaces():
                 iface_config = eth_iface.interface_config
                 vlan_ids_in_sockets = {sc.vlan_id for sc in (eth_iface.sockets or [])}
                 if not vlan_ids_in_sockets:
@@ -353,8 +353,8 @@ class ECU(FLYNCBaseModel):
         return self
 
     def __get_all_ethernet_interfaces(self):
-        """Return all ethernet interfaces of all controllers of the ECU."""
-        return [eth_iface for controller in self.controllers for eth_iface in controller.ethernet_interfaces or []]
+        """Return all ethernet interfaces of all controllers of the ECU, including those of their compute nodes."""
+        return [eth_iface for controller in self.controllers for eth_iface in controller.iter_subtree_interfaces()]
 
     def __bind_iface_sockets_to_ip(self, eth_iface):
         """Bind every socket defined on ``eth_iface`` to its matching IP address on that same interface."""
@@ -506,9 +506,9 @@ class ECU(FLYNCBaseModel):
         return self.topology
 
     def get_all_interfaces(self):
-        """Return a list of all physical interfaces of the ECU."""
+        """Return a list of all Ethernet interfaces of the ECU's controllers, compute node interfaces included."""
 
-        return [i for c in self.controllers for i in c.get_interfaces()]
+        return [i for c in self.controllers for i in c.iter_subtree_interfaces()]
 
     def get_all_switch_ports(self) -> List["SwitchPort"]:
         """Return a list of all ports of the ECU switch."""
@@ -553,7 +553,7 @@ class ECU(FLYNCBaseModel):
         """
 
         for controller in self.controllers:
-            for eth_iface in controller.ethernet_interfaces or []:
+            for eth_iface in controller.iter_subtree_interfaces():
                 yield from eth_iface.sockets or []
 
     def __iter_sockets(self) -> Iterator[Socket]:

@@ -6,16 +6,15 @@ import pytest
 
 from flync.core.datatypes.ipaddress import IPv4AddressEntry
 from flync.model.flync_4_ecu.can_interface import CANInterface
+from flync.model.flync_4_ecu.compute_node import ComputeNode
 from flync.model.flync_4_ecu.controller import (
-    ComputeNodes,
     Controller,
     EthernetInterface,
     EthernetInterfaceConfig,
     VirtualControllerInterface,
-    VirtualSwitch,
-    VirtualSwitchPort,
 )
 from flync.model.flync_4_ecu.controller_interface import ControllerInterface
+from flync.model.flync_4_ecu.controller_topology import ControllerTopology, VirtualSwitchPortToInterface
 from flync.model.flync_4_ecu.ecu import ECU
 from flync.model.flync_4_ecu.internal_topology import ECUPortToControllerInterface, InternalTopology
 from flync.model.flync_4_ecu.lin_interface import LINMasterInterface, LINSlaveInterface
@@ -23,6 +22,7 @@ from flync.model.flync_4_ecu.phy import BASET1
 from flync.model.flync_4_ecu.port import ECUPort
 from flync.model.flync_4_ecu.router import RouteEntry
 from flync.model.flync_4_ecu.sockets import IPv4AddressEndpoint
+from flync.model.flync_4_ecu.switch import Switch, SwitchConfig, SwitchPort
 from flync.model.flync_4_ecu.vlan_entry import VLANEntry
 
 
@@ -515,25 +515,13 @@ def test_physical_and_virtual_ethernet_interface_support():
     assert vlan_ids == {10, 20}
 
 
-# Verify that an HPC controller supports Ethernet physical interfaces, virtual Ethernet interfaces, CAN/LIN interfaces, Virtual Switches, and multiple compute nodes/VMs.
+# Verify that an HPC controller supports Ethernet physical/virtual interfaces, CAN/LIN interfaces, a virtual switch, and multiple compute nodes.
 def test_hpc_network_architecture_support():
 
     eth_iface = EthernetInterface(
         name="eth_hpc0",
         interface_config=EthernetInterfaceConfig(
             mac_address="00:11:22:33:44:55",
-            compute_nodes=[
-                ComputeNodes(
-                    name="VM_CAMERA",
-                    mac_address="02:00:00:00:00:10",
-                    virtual_interfaces=[VirtualControllerInterface(name="camera_vif", vlanid=10, addresses=[])],
-                ),
-                ComputeNodes(
-                    name="VM_AI",
-                    mac_address="02:00:00:00:00:20",
-                    virtual_interfaces=[VirtualControllerInterface(name="ai_vif", vlanid=20, addresses=[])],
-                ),
-            ],
             virtual_interfaces=[
                 VirtualControllerInterface(name="safety_vlan", vlanid=30, addresses=[]),
                 VirtualControllerInterface(name="service_vlan", vlanid=40, addresses=[]),
@@ -541,21 +529,64 @@ def test_hpc_network_architecture_support():
         ),
     )
 
+    camera_node = ComputeNode(
+        name="CAMERA_NODE",
+        ethernet_interfaces=[
+            EthernetInterface(
+                name="camera_eth0",
+                interface_config=EthernetInterfaceConfig(
+                    mac_address="02:00:00:00:00:10",
+                    virtual_interfaces=[VirtualControllerInterface(name="camera_vif", vlanid=10, addresses=[])],
+                ),
+            )
+        ],
+    )
+
+    ai_node = ComputeNode(
+        name="AI_NODE",
+        ethernet_interfaces=[
+            EthernetInterface(
+                name="ai_eth0",
+                interface_config=EthernetInterfaceConfig(
+                    mac_address="02:00:00:00:00:20",
+                    virtual_interfaces=[VirtualControllerInterface(name="ai_vif", vlanid=20, addresses=[])],
+                ),
+            )
+        ],
+    )
+
     can_iface = CANInterface(name="can_hpc", bus_ref="powertrain_can_bus")
 
     lin_master = LINMasterInterface(name="lin_hpc_master", bus_ref="body_lin_bus", lin_protocol="2.0", p2_min=10, st_min=10)
 
-    virtual_switch = VirtualSwitch(
+    virtual_switch = Switch(
         name="hpc_virtual_switch",
-        ports=[
-            VirtualSwitchPort(name="eth_hpc0_port", node_connected="eth_hpc0"),
-            VirtualSwitchPort(name="VM_CAMERA_port", node_connected="VM_CAMERA"),
-            VirtualSwitchPort(name="VM_AI_port", node_connected="VM_AI"),
-        ],
-        vlans=[
-            VLANEntry(name="camera_vlan", id=10, default_priority=0, ports=["VM_CAMERA_port"]),
-            VLANEntry(name="ai_vlan", id=20, default_priority=0, ports=["VM_AI_port"]),
-        ],
+        switch_config=SwitchConfig(
+            meta=EmbeddedMetadata(
+                type="embedded", author="TestTeam", target_system="HPC_Domain_Controller", compatible_flync_version=BaseVersion(version="0.13.0")
+            ),
+            ports=[
+                SwitchPort(name="eth_hpc0_port", silicon_port_no=0, default_vlan_id=10),
+                SwitchPort(name="CAMERA_NODE_port", silicon_port_no=1, default_vlan_id=10),
+                SwitchPort(name="AI_NODE_port", silicon_port_no=2, default_vlan_id=20),
+            ],
+            vlans=[
+                VLANEntry(name="camera_vlan", id=10, default_priority=0, ports=["eth_hpc0_port", "CAMERA_NODE_port"]),
+                VLANEntry(name="ai_vlan", id=20, default_priority=0, ports=["AI_NODE_port"]),
+            ],
+        ),
+    )
+
+    controller_topology = ControllerTopology(
+        connections=[
+            VirtualSwitchPortToInterface(
+                id="uplink_eth_hpc0", switch="hpc_virtual_switch", switch_port="eth_hpc0_port", controller_interface="eth_hpc0"
+            ),
+            VirtualSwitchPortToInterface(
+                id="uplink_camera", switch="hpc_virtual_switch", switch_port="CAMERA_NODE_port", controller_interface="camera_eth0"
+            ),
+            VirtualSwitchPortToInterface(id="uplink_ai", switch="hpc_virtual_switch", switch_port="AI_NODE_port", controller_interface="ai_eth0"),
+        ]
     )
 
     controller = Controller(
@@ -566,7 +597,9 @@ def test_hpc_network_architecture_support():
         ethernet_interfaces=[eth_iface],
         can_interfaces=[can_iface],
         lin_interfaces=[lin_master],
-        virtual_switch=virtual_switch,
+        compute_nodes=[camera_node, ai_node],
+        switches=[virtual_switch],
+        controller_topology=controller_topology,
     )
 
     ports, topology = _make_ethernet_ecu_ports_and_topology("HPC_CONTROLLER", "eth_hpc0")
@@ -602,11 +635,11 @@ def test_hpc_network_architecture_support():
 
     assert {vif.name for vif in virtual_interfaces} == {"safety_vlan", "service_vlan"}
 
-    compute_nodes = eth_iface.interface_config.compute_nodes
+    compute_nodes = controller.compute_nodes
 
     assert len(compute_nodes) == 2
 
-    assert {node.name for node in compute_nodes} == {"VM_CAMERA", "VM_AI"}
+    assert {node.name for node in compute_nodes} == {"CAMERA_NODE", "AI_NODE"}
 
     assert len(controller.can_interfaces) == 1
 
@@ -620,7 +653,7 @@ def test_hpc_network_architecture_support():
 
     assert controller.lin_interfaces[0].bus_ref == "body_lin_bus"
 
-    assert controller.virtual_switch.name == "hpc_virtual_switch"
+    assert controller.switches[0].name == "hpc_virtual_switch"
 
 
 ECU_VARIANTS_DIR = Path("examples/ecu_variants")

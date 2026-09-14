@@ -5,7 +5,7 @@ from pydantic import ValidationError
 
 from flync.core.datatypes.macaddress import MACAddressEntry
 from flync.core.validators.address import before_validate_mac_address
-from flync.model.flync_4_ecu.controller import ComputeNodes
+from flync.model.flync_4_ecu.controller import EthernetInterfaceConfig
 from flync.model.flync_4_ecu.mac_multicast_endpoint import MACMulticastEndpoint
 
 # --- before_validate_mac_address unit tests ---
@@ -61,12 +61,12 @@ def test_mac_address_entry_accepts_valid_mac():
 
 def test_controller_interface_mac_rejects_integer():
     with pytest.raises(ValidationError, match="MAC address must be a string"):
-        ComputeNodes(name="test", mac_address=1122334455)
+        EthernetInterfaceConfig(mac_address=1122334455)
 
 
 def test_controller_interface_mac_rejects_no_separator():
     with pytest.raises(ValidationError, match="missing separators"):
-        ComputeNodes(name="test", mac_address="aabbccddeeff")
+        EthernetInterfaceConfig(mac_address="aabbccddeeff")
 
 
 def test_mac_multicast_endpoint_rejects_integer_mac():

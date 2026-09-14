@@ -1,0 +1,7 @@
+mac_address: 00:11:01:01:01:03
+virtual_interfaces:
+  - name: eth_ecu_node2_viface1
+    vlanid: 50
+    addresses:
+      - address: 10.0.50.7
+        ipv4netmask: 255.255.255.0

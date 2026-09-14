@@ -10,9 +10,10 @@ import pytest
 from flync.model.flync_4_bus.can_bus import CANBus
 from flync.model.flync_4_bus.lin_bus import LINBus
 from flync.model.flync_4_communication.flync_communication import TCPOption
-from flync.model.flync_4_ecu.controller import ControllerInterface, VirtualSwitch
+from flync.model.flync_4_ecu.controller import ControllerInterface
 from flync.model.flync_4_ecu.ecu import ECU, Socket, Switch
 from flync.model.flync_4_ecu.socket_container import SocketContainer
+from flync.model.flync_4_ecu.switch import SwitchConfig
 from flync.model.flync_4_metadata.metadata import EmbeddedMetadata, SystemMetadata
 from flync.model.flync_4_signal.pdu import PDU, ContainerPDU
 from flync.model.flync_4_someip import SDConfig
@@ -94,7 +95,7 @@ def test_validate_valid_external_tcp_profiles():
         (SystemMetadata, "system_metadata.flync.yaml", absolute_path),
         (EthernetTopology, "topology/ethernet_topology.flync.yaml", absolute_path),
         (ControllerInterface, "ecus/*/controllers/*/ethernet_interfaces/*/interface_config.flync.yaml", absolute_path),
-        (VirtualSwitch, "ecus/*/controllers/*/virtual_switch.flync.yaml", EXPERIMENTAL_EXAMPLE),
+        (SwitchConfig, "ecus/*/controllers/*/switches/*/switch.flync.yaml", EXPERIMENTAL_EXAMPLE),
         (CANBus, "communication/channels/can/*.flync.yaml", absolute_path),
         (LINBus, "communication/channels/lin/*.flync.yaml", absolute_path),
         (PDU, "communication/channels/pdus/*.flync.yaml", absolute_path),

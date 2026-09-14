@@ -1,0 +1,31 @@
+meta:
+  author: Dev
+  compatible_flync_version:
+    version_schema: semver
+    version: 0.11.0
+  target_system: flync_os
+ports:
+- name: uplink_rt
+  silicon_port_no: 0
+  default_vlan_id: 1
+- name: rt_p1
+  silicon_port_no: 1
+  default_vlan_id: 1
+- name: rt_p2
+  silicon_port_no: 2
+  default_vlan_id: 1
+
+vlans:
+- name: VLAN10
+  id: 10
+  default_priority: 0
+  ports:
+    - uplink_rt
+    - rt_p1
+
+- name: VLAN20
+  id: 20
+  default_priority: 0
+  ports:
+    - rt_p2
+    - uplink_rt

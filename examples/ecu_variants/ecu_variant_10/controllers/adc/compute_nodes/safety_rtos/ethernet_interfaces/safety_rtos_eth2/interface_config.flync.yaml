@@ -1,0 +1,3 @@
+# Boundary uplink to hardware client_p1; internally mapped to uplink_rt.
+mac_address: 02:00:00:C1:00:03
+virtual_interfaces: []

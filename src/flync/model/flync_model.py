@@ -446,11 +446,11 @@ class FLYNCModel(FLYNCBaseModel):
 
     @model_validator(mode="after")
     def validate_app_refs_in_controller_bindings(self):
-        """Validate that app_bindings of ecu controllers are referencing existing apps."""
+        """Validate that app_bindings of ecu controllers and their compute nodes are referencing existing apps."""
         apps_by_name = {app.name: app for app in self.apps or []}
-        for controller in self.get_all_controllers():
-            if controller.app_bindings:
-                controller.app_bindings.resolve_apps(apps_by_name, controller.name)
+        for owner in self.iter_app_binding_owners():
+            if owner.app_bindings:
+                owner.app_bindings.resolve_apps(apps_by_name, owner.name)
         return self
 
     @model_validator(mode="after")
@@ -637,7 +637,19 @@ class FLYNCModel(FLYNCBaseModel):
         )
 
     def get_all_interfaces(self):
-        return [eth_iface.interface_config for controller in self.get_all_controllers() for eth_iface in controller.ethernet_interfaces]
+        """Return the config of every Ethernet interface, compute node interfaces included."""
+        return [eth_iface.interface_config for controller in self.get_all_controllers() for eth_iface in controller.iter_subtree_interfaces()]
+
+    def iter_app_binding_owners(self):
+        """
+        Yield everything that can declare ``app_bindings`` — every controller and every compute node beneath it.
+
+        A compute node binds its own applications to its own sockets, so it is a binding owner in its
+        own right rather than being folded into its host controller.
+        """
+        for controller in self.get_all_controllers():
+            yield controller
+            yield from controller.iter_subtree_compute_nodes()
 
     def get_all_interfaces_names(self):
         """Return all the controller interface names"""
@@ -798,13 +810,13 @@ class FLYNCModel(FLYNCBaseModel):
         controller, where ``consumed_instances`` is that controller's set of SOME/IP consumer service triples.
         """
 
-        for controller in self.get_all_controllers():
-            if not controller.app_bindings:
+        for owner in self.iter_app_binding_owners():
+            if not owner.app_bindings:
                 continue
-            consumed_instances = controller.get_consumed_service_instances()
-            for app in controller.app_bindings.apps:
+            consumed_instances = owner.get_consumed_service_instances()
+            for app in owner.app_bindings.apps:
                 for ref in app.service_consumer_refs or []:
-                    yield controller, consumed_instances, app, ref
+                    yield owner, consumed_instances, app, ref
 
     def get_all_pdu_forwarders(self) -> List[PDUForwarder]:
         """Return every PDUForwarder declared on any socket across all ECUs."""

@@ -93,7 +93,6 @@ Ethernet Interfaces
 .. autoclass:: flync.model.flync_4_ecu.controller.EthernetInterface()
 .. autoclass:: flync.model.flync_4_ecu.controller.ControllerInterface()
 .. autoclass:: flync.model.flync_4_ecu.controller.VirtualControllerInterface()
-.. autoclass:: flync.model.flync_4_ecu.controller.ComputeNodes()
 
 CAN Interfaces
 ==============
@@ -118,20 +117,24 @@ LIN Interfaces
 .. autoclass:: flync.model.flync_4_ecu.lin_interface.LINSlaveInterface()
 .. autoclass:: flync.model.flync_4_ecu.lin_interface.LINFrameRef()
 
-Virtual Switch (experimental)
+Compute Nodes (experimental)
 =============================
 
-.. admonition:: Expand for a YAML example - 📄 ``virtual_switch.flync.yaml``
+.. admonition:: Expand for a YAML example - 📁 ``compute_nodes/``
    :collapsible: closed
 
    .. note::
-      A Virtual Switch is defined in a separate file per Controller.
+      A compute node is defined in one subfolder per node under 📁 ``compute_nodes/``. It may declare its
+      own virtual Ethernet interfaces, nest further compute nodes, and define virtual switches of its own.
 
-   .. literalinclude:: ../../_static/flync_example_experimental/ecus/eth_ecu/controllers/eth_ecu_controller1/virtual_switch.flync.yaml
+   .. literalinclude:: ../../_static/flync_example_experimental/ecus/eth_ecu/controllers/eth_ecu_controller1/compute_nodes/eth_ecu_node1/ethernet_interfaces/eth_ecu_node1_eth0/interface_config.flync.yaml
       :language: yaml
 
-.. autoclass:: flync.model.flync_4_ecu.VirtualSwitch()
-.. autoclass:: flync.model.flync_4_ecu.VirtualSwitchPort()
+.. autoclass:: flync.model.flync_4_ecu.compute_node.ComputeNode()
+
+.. note::
+   A compute node's ``virtual_switches`` reuse the same :class:`~flync.model.flync_4_ecu.switch.Switch` /
+   :class:`~flync.model.flync_4_ecu.switch.SwitchPort` model documented in :ref:`switch`.
 
 
 .. _socket:

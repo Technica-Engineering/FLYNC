@@ -39,6 +39,12 @@ from tests.example_paths import FLYNC_EXAMPLE_EXPERIMENTAL as EXAMPLES
 
 # Paths relative to the workspace root
 _IFACE_CFG = "ecus/eth_ecu/controllers/eth_ecu_controller1" "/ethernet_interfaces/eth_ecu_c1_iface1/interface_config.flync.yaml"
+_NODE1_IFACE_CFG = (
+    "ecus/eth_ecu/controllers/eth_ecu_controller1" "/compute_nodes/eth_ecu_node1/ethernet_interfaces/eth_ecu_node1_eth0/interface_config.flync.yaml"
+)
+_NODE2_IFACE_CFG = (
+    "ecus/eth_ecu/controllers/eth_ecu_controller1" "/compute_nodes/eth_ecu_node2/ethernet_interfaces/eth_ecu_node2_eth0/interface_config.flync.yaml"
+)
 _DIAG_CAN = "communication/channels/can/diag_can.flync.yaml"
 _SOCKET_PDU = "ecus/zonal_platform1/controllers/z1_controller2" "/ethernet_interfaces/z1_c2_iface1/sockets/socket_pdu.flync.yaml"
 _TOPOLOGY = "topology/ethernet_topology.flync.yaml"
@@ -77,17 +83,21 @@ def _new_workspace(dest: Path) -> Path:
     mutations reverted so every scenario starts from a known-clean baseline."""
     shutil.copytree(EXAMPLES, dest)
 
-    # Revert interface_config: fix filter at child_classes[1] (dict → list)
-    iface_path = dest / _IFACE_CFG
-    iface_data = _load(iface_path)
-    cc = iface_data["compute_nodes"][0]["htb"]["child_classes"]
+    # Revert NODE1 interface_config: fix filter at child_classes[1] (dict → list)
+    node1_path = dest / _NODE1_IFACE_CFG
+    node1_data = _load(node1_path)
+    cc = node1_data["htb"]["child_classes"]
     if isinstance(cc[1]["filter"], dict):
         cc[1]["filter"] = [cc[1]["filter"]]
-    # Revert interface_config: fix eth_ecu_vm2.virtual_interfaces (dict → list)
-    vi = iface_data["compute_nodes"][1]["virtual_interfaces"]
+    _dump(node1_path, node1_data)
+
+    # Revert NODE2 interface_config: fix virtual_interfaces (dict → list)
+    node2_path = dest / _NODE2_IFACE_CFG
+    node2_data = _load(node2_path)
+    vi = node2_data["virtual_interfaces"]
     if isinstance(vi, dict):
-        iface_data["compute_nodes"][1]["virtual_interfaces"] = [vi]
-    _dump(iface_path, iface_data)
+        node2_data["virtual_interfaces"] = [vi]
+    _dump(node2_path, node2_data)
 
     # Revert diag_can: fix frames[0].packed_pdus (dict → list)
     can_path = dest / _DIAG_CAN
@@ -129,7 +139,7 @@ def test_clean_workspace_has_no_list_type_errors(workspace):
 
 
 def _mutate_virtual_interfaces(data: dict) -> bool:
-    data["compute_nodes"][1]["virtual_interfaces"] = data["compute_nodes"][1]["virtual_interfaces"][0]
+    data["virtual_interfaces"] = data["virtual_interfaces"][0]
     return True
 
 
@@ -139,13 +149,13 @@ def _mutate_sockets(data: dict) -> bool:
 
 
 def _mutate_htb_filter(data: dict) -> bool:
-    cc = data["compute_nodes"][0]["htb"]["child_classes"]
+    cc = data["htb"]["child_classes"]
     cc[0]["filter"] = cc[0]["filter"][0]
     return True
 
 
 def _mutate_htb_child_classes(data: dict) -> bool:
-    htb = data["compute_nodes"][0]["htb"]
+    htb = data["htb"]
     htb["child_classes"] = htb["child_classes"][0]
     return True
 
@@ -221,10 +231,10 @@ def _mutate_ingress_streams(data: dict) -> bool:
 
 # (pathway, file, mutator, field-name substring expected in message)
 _LIST_TYPE_CASES = [
-    ("A", _IFACE_CFG, _mutate_virtual_interfaces, "virtual interface"),
+    ("A", _NODE2_IFACE_CFG, _mutate_virtual_interfaces, "virtual interface"),
     ("A", _SOCKET_PDU, _mutate_sockets, "socket"),
-    ("B", _IFACE_CFG, _mutate_htb_filter, "filter"),
-    ("B", _IFACE_CFG, _mutate_htb_child_classes, "child_classes"),
+    ("B", _NODE1_IFACE_CFG, _mutate_htb_filter, "filter"),
+    ("B", _NODE1_IFACE_CFG, _mutate_htb_child_classes, "child_classes"),
     ("C", _DIAG_CAN, _mutate_packed_pdus, "packed_pdus"),
     ("C", _DIAG_CAN, _mutate_can_frames, "frames"),
     ("C", _IFACE_CFG, _mutate_ptp_ports, "ptp_ports"),
@@ -290,10 +300,10 @@ def test_layer_isolation(tmp_path):
 
     # A nested list-type error's field path must drill down to the actual field.
     ws2 = _new_workspace(tmp_path / "ws2")
-    iface_data = _load(ws2 / _IFACE_CFG)
-    cc = iface_data["compute_nodes"][0]["htb"]["child_classes"]
+    iface_data = _load(ws2 / _NODE1_IFACE_CFG)
+    cc = iface_data["htb"]["child_classes"]
     cc[0]["filter"] = cc[0]["filter"][0]
-    _dump(ws2 / _IFACE_CFG, iface_data)
+    _dump(ws2 / _NODE1_IFACE_CFG, iface_data)
 
     errs = _list_type_errors(ws2)
     assert errs
@@ -301,8 +311,8 @@ def test_layer_isolation(tmp_path):
 
     # A separate, real missing-field error must still surface as Layer 3
     # alongside the list-type error above.
-    del iface_data["compute_nodes"][0]["htb"]["child_classes"][0]["classid"]
-    _dump(ws2 / _IFACE_CFG, iface_data)
+    del iface_data["htb"]["child_classes"][0]["classid"]
+    _dump(ws2 / _NODE1_IFACE_CFG, iface_data)
 
     issues2 = _run(ws2)
     l3 = [i for i in issues2 if i.layer == 3]
