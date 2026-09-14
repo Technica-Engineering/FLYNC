@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_018302a6afcd62c5_nodes_helpers_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
-            created at 2026-09-14 13:37 +0000
+            created at 2026-09-14 15:52 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -106,7 +106,7 @@
     <p class="run"><span class="n"><a id="t24" href="#t24">24</a></span><span class="t"><span class="key">from</span> <span class="nam">flync</span><span class="op">.</span><span class="nam">core</span><span class="op">.</span><span class="nam">datatypes</span><span class="op">.</span><span class="nam">ipaddress</span> <span class="key">import</span> <span class="nam">IPv4AddressEntry</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t25" href="#t25">25</a></span><span class="t"><span class="key">from</span> <span class="nam">flync</span><span class="op">.</span><span class="nam">model</span><span class="op">.</span><span class="nam">flync_4_ecu</span><span class="op">.</span><span class="nam">phy</span> <span class="key">import</span> <span class="nam">BASET1</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t26" href="#t26">26</a></span><span class="t"><span class="key">from</span> <span class="nam">flync</span><span class="op">.</span><span class="nam">model</span><span class="op">.</span><span class="nam">flync_4_ecu</span><span class="op">.</span><span class="nam">sockets</span> <span class="key">import</span> <span class="nam">IPv4AddressEndpoint</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t27" href="#t27">27</a></span><span class="t"><span class="key">from</span> <span class="nam">flync</span><span class="op">.</span><span class="nam">model</span><span class="op">.</span><span class="nam">flync_4_topology</span><span class="op">.</span><span class="nam">ethernet_topology</span> <span class="key">import</span> <span class="nam">ExternalConnection</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t27" href="#t27">27</a></span><span class="t"><span class="key">from</span> <span class="nam">flync</span><span class="op">.</span><span class="nam">model</span><span class="op">.</span><span class="nam">flync_4_topology</span><span class="op">.</span><span class="nam">ethernet_topology</span> <span class="key">import</span> <span class="nam">EthernetPointToPointConnection</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t28" href="#t28">28</a></span><span class="t"><span class="key">from</span> <span class="nam">flync</span><span class="op">.</span><span class="nam">model</span><span class="op">.</span><span class="nam">flync_model</span> <span class="key">import</span> <span class="nam">FLYNCBaseModel</span><span class="op">,</span> <span class="nam">FLYNCModel</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t29" href="#t29">29</a></span><span class="t"><span class="key">from</span> <span class="nam">flync</span><span class="op">.</span><span class="nam">sdk</span><span class="op">.</span><span class="nam">context</span><span class="op">.</span><span class="nam">workspace_config</span> <span class="key">import</span> <span class="nam">WorkspaceConfiguration</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t30" href="#t30">30</a></span><span class="t"><span class="key">from</span> <span class="nam">flync</span><span class="op">.</span><span class="nam">sdk</span><span class="op">.</span><span class="nam">utils</span><span class="op">.</span><span class="nam">field_utils</span> <span class="key">import</span> <span class="nam">get_field_name_from_alias</span>&nbsp;</span><span class="r"></span></p>
@@ -653,7 +653,7 @@
     <p class="pln"><span class="n"><a id="t571" href="#t571">571</a></span><span class="t"><span class="str">    Factory for ExternalConnection model.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t572" href="#t572">572</a></span><span class="t"><span class="str">    &quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t573" href="#t573">573</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t574" href="#t574">574</a></span><span class="t">    <span class="nam">__model__</span> <span class="op">=</span> <span class="nam">ExternalConnection</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t574" href="#t574">574</a></span><span class="t">    <span class="nam">__model__</span> <span class="op">=</span> <span class="nam">EthernetPointToPointConnection</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t575" href="#t575">575</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t576" href="#t576">576</a></span><span class="t">    <span class="op">@</span><span class="nam">classmethod</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t577" href="#t577">577</a></span><span class="t">    <span class="key">def</span> <span class="nam">build</span><span class="op">(</span><span class="nam">cls</span><span class="op">,</span> <span class="op">**</span><span class="nam">kwargs</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
@@ -1033,7 +1033,7 @@
             <a class="nav" href="z_018302a6afcd62c5_nodes_helpers_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
-            created at 2026-09-14 13:37 +0000
+            created at 2026-09-14 15:52 +0000
         </p>
     </div>
 </footer>
