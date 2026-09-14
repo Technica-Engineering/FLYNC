@@ -193,7 +193,7 @@ FLYNC ships with five CLI entry points:
 src/
 ├── flync/                  # Core library
 │   ├── core/               #   Base models (Pydantic v2), annotations, datatypes, validators
-│   ├── model/              #   12 domain models (ECU, SOME/IP, TSN, topology, …)
+│   ├── model/              #   13 domain models (ECU, SOME/IP, TSN, topology, …)
 │   └── sdk/                #   Workspace management, validation helpers, model serialization
 ├── flync_cli/              # Typer + Rich CLI application (validate, info, UML, …)
 └── flync_converter/        # Pluggy-based converter framework (CLI, TUI, GUI)
