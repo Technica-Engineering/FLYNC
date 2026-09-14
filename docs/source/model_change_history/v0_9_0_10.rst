@@ -1,0 +1,191 @@
+.. _chg__0_9__0_10:
+
+0.9.x → 0.10.x
+==============
+
+This release reworked the SOME/IP type system, socket multicast configuration, SD timing
+units, and TSN shaping. There are no error IDs in this range — failures surface as
+``PydanticCustomError`` typed ``minor``/``major``/``fatal``.
+
+Breaking — YAML schema
+----------------------
+
+SOME/IP parameter ``type`` → ``datatype`` (nested object)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The bare datatype literal ``type`` on a ``SOMEIPParameter`` became a nested ``datatype``
+object. This affects every parameter of events, fields, and method
+``input_parameters``/``output_parameters``.
+
+.. code-block:: yaml
+
+   # before (0.9.x)
+   parameters:
+     - name: InterfaceVersion_Param
+       type: uint8
+
+   # after (0.10.x)
+   parameters:
+     - name: InterfaceVersion_Param
+       datatype:
+         type: uint8
+
+Fails as: the old ``type:`` key is unexpected and rejected (``extra=forbid``).
+
+Signed-integer datatypes renamed ``sint*`` → ``int*``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``SInt8/16/32/64`` became ``Int8/16/32/64`` and the YAML ``type`` literal changed
+``sint8/16/32/64`` → ``int8/16/32/64``. Applies wherever a datatype literal is used
+(parameters, union members, enum ``base_type``, method args). Unsigned ``uint*``,
+``float32/64``, ``boolean`` are unchanged.
+
+Socket container ``vlan_name`` → ``vlan_id``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``SocketContainer`` field ``vlan_name: str`` was renamed and re-typed to ``vlan_id: int``.
+The value must now be the numeric VLAN ID matching a ``VirtualControllerInterface.vlanid``.
+
+.. code-block:: yaml
+
+   # before
+   vlan_name: hpc_c1_i1_viface1
+   sockets: [ ... ]
+
+   # after
+   vlan_id: 20
+   sockets: [ ... ]
+
+Socket multicast / endpoint configuration rework
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Sockets gained ``endpoint_type`` (``unicast`` | ``multicast``) and ``multicast_tx`` (list
+of multicast IP strings). Per-deployment multicast (driven by
+``SOMEIPServiceDeployment.find_service_multicast``) was removed; multicast TX is now
+declared on the socket itself.
+
+.. code-block:: yaml
+
+   # before
+   - name: sd_multicast_socket
+     endpoint_address: 10.0.10.5
+     port_no: 30490
+     protocol: udp
+     deployments:
+       - deployment_type: someip_sd
+         multicast:
+           ip_address: 224.244.224.245
+           port: 30490
+           ip_ttl: 1
+
+   # after
+   - name: sd_multicast_socket
+     endpoint_address: 10.0.20.5
+     endpoint_type: multicast
+     port_no: 30490
+     protocol: udp
+     multicast_tx: [224.244.224.245]
+     deployments:
+       - deployment_type: someip_sd
+         multicast:
+           ip_address: 224.244.224.245
+           port: 30490
+           ip_ttl: 1
+
+The old per-deployment ``find_service_multicast`` / derived multicast config is rejected.
+
+``FLYNCTopology.multicast_paths`` removed
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``multicast_paths`` field on the (then) ``SystemTopology`` was removed and
+``topology/multicast_paths.flync.yaml`` is now **ignored** as an unrelated file (the loader
+drops unrelated docs with a warning). Multicast routing is now computed automatically from
+socket ``multicast_tx`` lists plus the virtual-interface multicast addresses.
+
+:action: delete ``topology/multicast_paths.flync.yaml`` from your repositories.
+
+SD timings: float (seconds) → int (milliseconds), TTL defaults changed
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``SDTimings`` fields changed from ``float`` seconds to ``int`` **milliseconds** (e.g.
+``0.050`` → ``50``). Defaults shifted to ms: ``offer_ttl`` 3 → 3000, ``subscribe_ttl`` 3 →
+3000, ``offer_cyclic_delay`` 1 → 1000.
+
+.. code-block:: yaml
+
+   # before
+   initial_delay_min: 0.050
+   repetitions_base_delay: 0.300
+   offer_ttl: 3
+
+   # after
+   initial_delay_min: 50
+   repetitions_base_delay: 300
+   offer_ttl: 3000
+
+Service keying by ``(id, major_version)``; provider version fields required
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Services are now keyed by ``(id, major_version)`` instead of ``id`` alone; deployments are
+resolved by id *and* major version, so a version mismatch is no longer silently tolerated.
+A provider deployment now requires both ``major_version`` **and** ``minor_version``; a
+consumer deployment requires ``major_version > 0``. Omitted/zero versions fail validation.
+
+TSN: ``prio`` → ``filter_priority``; ``ChildClass.priority`` required
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``HTBFilter.prio`` was renamed ``filter_priority`` (old key rejected). ``ChildClass`` gained
+a required ``priority: int``, and ``child_classes`` must be a real list.
+
+.. code-block:: yaml
+
+   # before
+   filters:
+     - prio: 1
+
+   # after
+   filters:
+     - filter_priority: 1
+   child_classes: []
+
+Phy MII discriminator lowercased
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``MII.type`` changed from ``"MII"`` to ``"mii"``. Configs using ``type: MII`` (uppercase)
+no longer match the discriminated union.
+
+Breaking — Python API
+---------------------
+
+SOME/IP datatypes moved out of ``flync.core.datatypes``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The SOME/IP datatype modules (``array``, ``bitfield``, ``enum``, ``primitive``, ``string``,
+``struct``, ``typedef``, ``union``) were deleted from ``flync.core.datatypes`` and moved to
+``flync.model.flync_4_someip.someip_datatypes`` (the new home of ``AllTypes``).
+
+.. code-block:: python
+
+   # before
+   from flync.core.datatypes import SInt8, UInt8, Enum, Struct, ArrayType, AllTypes
+   # after
+   from flync.model.flync_4_someip.someip_datatypes import Int8, UInt8, Enum, Struct, ArrayType, AllTypes
+
+In ``flync.core.datatypes.macaddress``: ``UnicastMACAddressEntry`` → ``MACAddressUnicast``
+and ``MulticastMACAddressEntry`` → ``MACAddressMulticast`` (these are still re-exported from
+``core.datatypes``, but the class names changed).
+
+Additive (0.10.x)
+-----------------
+
+* ``Socket.endpoint_type`` and ``Socket.multicast_tx`` (see breaking §5 above).
+* ``SOMEIPServiceInterface.someip_timing`` profiles: ``someip_timing: <profile_id>`` on
+  events/fields (``event_default`` / ``field_default``) plus the ``SOMEIPFieldTimings`` class.
+* `e2e` on SOME/IP events is now concrete: ``e2e: {profile: AUTOSAR_Profile_4, data_id: ...}``.
+* Datatype growth: ``Struct``/``Array`` gain ``bit_alignment`` (8/16/32/64/128/256) and
+  ``length_of_length_field`` (0/8/16/32); ``Typedef`` added to ``AllTypes``; enum duplicate /
+  out-of-range validators.
+* New ``ImpliedStrategy.FILE_NAME`` and the new ``flync.core.annotations.reference.Reference``
+  annotation.
+* SDK: many new public helpers for LSP integration (``safe_load_workspace``, ``load_errors``,
+  ``load_model``, ``get_object``, ``list_objects``, …).

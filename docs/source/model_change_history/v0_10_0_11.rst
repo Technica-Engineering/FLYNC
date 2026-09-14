@@ -1,0 +1,120 @@
+.. _chg__0_10__0_11:
+
+0.10.x → 0.11.x
+===============
+
+This is the release with the largest structural change: **controllers became directories**.
+``src/flync_cli`` is unchanged in this range (the Typer CLI did not exist until 0.12).
+
+Breaking — YAML schema
+----------------------
+
+Controller layout: single file → directory, ``meta`` → ``controller_metadata``  ⚠️
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In 0.10 each controller was **one file** ``<ecu>/controllers/<name>.flync.yaml`` with a
+top-level ``meta`` block. In 0.11 each controller is a **directory**
+``<ecu>/controllers/<name>/`` containing ``controller_metadata.flync.yaml``.
+
+.. code-block:: yaml
+
+   # before (0.10.x) — controllers/eth_ecu_controller1.flync.yaml
+   meta:
+     author: Dev
+     compatible_flync_version:
+       version_schema: semver
+       version: 0.9.x
+     target_system: flync_os
+   name: eth_ecu_controller1
+   interfaces:
+     - name: eth_ecu_c1_iface1
+       mac_address: 00:11:22:33:44:55
+
+   # after (0.11.x) — controllers/eth_ecu_controller1/controller_metadata.flync.yaml
+   controller_metadata:
+     type: embedded
+     author: Dev
+     compatible_flync_version:
+       version_schema: semver
+       version: 0.11.x
+     target_system: flync_os
+
+The controller ``name`` is now implied from the folder name.
+
+**Auto error on unmigrated config:** the Controller model runs a ``mode="before"`` validator
+that detects the legacy top-level ``meta.compatible_flync_version`` shape and raises a fatal
+error:
+
+* **ID:** ``FLYNC-GEN-FAT-COMP-048``
+* **Message:** *"Incompatible Controller Config detected (compatible_flync_version=...).
+  FLYNC 0.11.x requires every controller to live in its own directory containing
+  'controller_metadata.flync.yaml'. Update the configuration to the new layout or downgrade
+  FLYNC to 0.10.x."*
+
+Controller field ``interfaces`` → ``ethernet_interfaces`` + on-disk layout
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``Controller.interfaces: List[ControllerInterface]`` became
+``ethernet_interfaces: List[EthernetInterface]`` where ``EthernetInterface =
+{interface_config: ControllerInterface, sockets: List[SocketContainer]}``. Each ethernet
+interface is now a directory ``controllers/<name>/ethernet_interfaces/<iface>/
+interface_config.flync.yaml`` (optionally with a ``sockets/`` sub-directory). ``Controller.can_interfaces``
+and ``Controller.lin_interfaces`` were also added.
+
+A 0.10 ``interfaces: [ ... ]`` key under a controller no longer resolves.
+
+ECU-level ``sockets`` removed → moved under the interface
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``ECU.sockets: List[SocketContainer]`` (stored in ``<ecu>/sockets/*.flync.yaml``) was
+**removed**. Sockets are now attached per ethernet interface and stored at
+``controllers/<name>/ethernet_interfaces/<iface>/sockets/socket_<x>.flync.yaml``.
+
+:action: move the contents of ``<ecu>/sockets/`` into the owning controller interface's ``sockets/`` directory. The file content (``vlan_id`` + ``sockets``) is unchanged.
+
+VLAN / multicast address validation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``vlan_entry.py`` (extracted from ``switch.py``): ``MulticastGroup.address`` is now required
+to be a **multicast** MAC/IP address, and ``VLANEntry`` default handling changed. Configs
+that used non-multicast addresses in switch VLAN multicast lists now fail.
+
+Top-level load behavior: failed ECUs/controllers are dropped
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``FLYNCModel`` now silently drops ECUs/controllers that fail to load (and raises a major
+error at the ECU level) instead of cascading model-wide errors. Callers reading
+``model.ecus`` should expect a malformed ECU to be absent rather than the whole load
+failing. Duplicate-IP detection now **warns** instead of raising.
+
+Breaking — Python API
+---------------------
+
+* ``Controller.interfaces`` → ``controller.ethernet_interfaces``.
+* ``ECU.sockets`` (field) no longer exists — use the owning interface's ``.sockets`` or
+  ``ecu.get_all_sockets()``.
+* ``ControllerInterface.mac_address`` is now ``Optional`` (default ``None``) — guard for
+  ``None`` in code that read it directly.
+* The registry / instance machinery was reworked in this range (``DictInstances`` /
+  ``ListInstances`` etc. now build on a new ``BaseRegistry``). Public model fields are
+  unchanged, but code touching class-level ``INSTANCES``/``NAMES`` dicts must adapt.
+
+Additive (0.11.x)
+-----------------
+
+* New domain packages: **``flync_4_signal``** (``Signal``/``SignalDataType``,
+  ``StandardPDU``/``MultiplexedPDU``/``ContainerPDU``, ``CANFrame``/``CANFDFrame``/``LINFrame``,
+  ``PDUSender``/``PDUReceiver``) and **``flync_4_bus``** (``CANBus``, ``LINBus`` +
+  ``LINScheduleTable``). Sockets can now carry ``deployment_type: pdu_sender`` /
+  ``pdu_receiver``.
+* ``FLYNCGeneralConfig.channels`` (new ``flync_channels.py``) loaded from
+  ``general/channels/`` (``pdus/``, ``can/``, ``lin/``, ``ethernet_pdu_containers/``).
+* New ECU classes: ``router.py`` (``RouteEntry`` / controller ``routing_table``),
+  ``mac_multicast_endpoint.py`` (``MACMulticastEndpoint`` + new ``ECU.mac_multicast_endpoints``),
+  CAN/LIN interfaces (``CANInterfaceConfig``, ``LINMasterInterfaceConfig`` /
+  ``LINSlaveInterfaceConfig`` discriminated on ``node_type``), and the experimental
+  ``VirtualControllerInterface`` / ``VirtualSwitch`` / ``ComputeNodes``.
+* SOME/IP: ``SOMEIPServiceProvider.provided_eventgroups``; timing-profile discriminated union
+  rework (backward compatible at the YAML level).
+* SDK: new ``has_object``/``get_definition``/``get_references_of``/``find_path_from_field``/
+  ``get_semantic_object_from_model``; ``load_flync_model`` became public.

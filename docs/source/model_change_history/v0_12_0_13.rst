@@ -1,0 +1,129 @@
+.. _chg__0_12__0_13:
+
+0.12.x → 0.13.x
+===============
+
+This release removed the auto-registration registry machinery (a Python-API break), renamed
+several interface/deployment classes, and introduced the experimental App model and the
+vendor-neutral NM layer. The structured ``FLYNC-...`` error-ID scheme began here.
+
+Breaking — Python API
+---------------------
+
+Registry / instances machinery removed
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The auto-registration base classes and global registry were deleted: ``UniqueName``,
+``DictInstances``, ``NamedDictInstances``, ``ListInstances``, ``NamedListInstances``,
+``Registry``, ``get_registry``. Any importer breaks:
+
+.. code-block:: python
+
+   from flync.core.base_models import Registry, get_registry   # ImportError in 0.13
+
+Uniqueness that was previously enforced via the registry is now enforced by explicit
+``validate_list_items_unique(...)`` validators (see under Breaking — YAML). No error ID — a
+plain ``ImportError``.
+
+``ControllerInterface`` split (breaking import)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The former Ethernet-config class ``ControllerInterface`` was renamed **``EthernetInterfaceConfig``**,
+and a new minimal base class **``ControllerInterface``** (single ``name`` field) was created
+in ``flync_4_ecu/controller_interface.py``.
+
+.. code-block:: python
+
+   # ImportError in 0.13:
+   from flync.model.flync_4_ecu.controller import ControllerInterface
+   # Correct:
+   from flync.model.flync_4_ecu import ControllerInterface          # now the MINIMAL base
+   from flync.model.flync_4_ecu.controller import EthernetInterfaceConfig  # the old config class
+
+YAML is unchanged: ``ethernet_interfaces[].interface_config{...}`` has the same shape.
+
+Public class renames (Python imports)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+
+   * - 0.12 name
+     - 0.13 name
+   * - ``CANInterfaceConfig``
+     - ``CANInterface``
+   * - ``LINMasterInterfaceConfig``
+     - ``LINMasterInterface``
+   * - ``LINSlaveInterfaceConfig``
+     - ``LINSlaveInterface``
+   * - ``AnyLINInterfaceConfig``
+     - ``AnyLINInterface``
+   * - ``ControllerInterface`` (config class)
+     - ``EthernetInterfaceConfig``
+
+YAML discriminators (``node_type: master/slave``, ``protocol``) are unchanged.
+
+``PDUSender`` / ``PDUReceiver`` relocated
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+These moved out of ``flync_4_signal/frame.py`` into the new ``flync_4_signal/pdu_deployment.py``
+(re-exported from the package ``__init__``):
+
+.. code-block:: python
+
+   from flync.model.flync_4_signal.frame import PDUSender        # ImportError in 0.13
+   from flync.model.flync_4_signal.pdu_deployment import PDUSender  # correct
+
+Semantic change: ``pdu_ref`` may now point to **any** PDU declared under
+``communication.channels`` (workspace-validated by ``validate_pdu_deployment_refs``) rather
+than only a ``ContainerPDU``. An unresolved ref raises ``FLYNC-SIG-MAJ-REF-...``.
+
+``SOMEIPServiceDeployment.service`` stays an int (breaking for code)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In 0.12 a ``field_validator`` replaced the integer ``service`` with the resolved
+``SOMEIPServiceInterface`` object; in 0.13 the field keeps the raw **int** service id and the
+resolved object is a ``PrivateAttr`` ``_service_ref`` bound later:
+
+.. code-block:: python
+
+   deployment.service          # int (id) in 0.13; calling .service.name raises AttributeError
+   resolve_reference(deployment, "service").name   # new public helper (flync.core.annotations.reference)
+
+YAML is unaffected; only Python consumers of the resolved attribute are affected. The CLI was
+updated accordingly.
+
+Breaking — YAML schema
+----------------------
+
+New stricter top-level uniqueness validators
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``FLYNCModel`` added ``validate_unique_ecu_names`` and ``validate_unique_port_names``: ECU
+names and **all ECU port names across the workspace** must now be globally unique. Reusing a
+port name across two ECUs now fails:
+
+* **ID:** ``FLYNC-<MODULE>-MAJ-UNIQ-009`` (from ``validate_list_items_unique``)
+
+Additive (0.13.x)
+-----------------
+
+* New root field **``FLYNCModel.apps``** — optional ``List[App]``, emitted as folder
+  ``apps/``. When set it warns **``FLYNC-GEN-WARN-LIFE-188``** ("Apps are currently
+  experimental!"). App refs validated against known SOME/IP services
+  (**``FLYNC-GEN-MAJ-REF-186``**) and controller ``app_bindings``
+  (**``FLYNC-CMN-MAJ-REF-187``**). Additive.
+* New **``flync_4_app``** package: ``App`` (name implied from file name, ``service_consumer_refs`` /
+  ``service_provider_refs``), ``ServiceConsumerReference`` / ``ServiceProviderReference``,
+  ``AppBindings``.
+* New **NM layer** ``flync_4_nm/state_management.py``: ``StateManagementGroup``,
+  ``StateMembershipRef``, timing classes. New optional ``state_memberships`` field on
+  ``Controller``/``ECU``/``CANBus``/``LINBus`` and new ``FLYNCCommunicationConfig.state_management``.
+* TCAM features (``switch.py``): ``FrameMask`` byte-pattern match, ``FrameFilter.ethertype``
+  (new ``Ethertype`` enum), TCAM rule ``vehicle_state``/``vehicle_state_mask``; port-scoped
+  terminal actions now default to **all** ports. Loosening (previously-invalid configs now
+  valid); ``match_filter`` and ``frame_mask`` became mutually exclusive (exactly one required).
+* ``FLYNCCommunicationConfig.tcp_profiles`` made optional (loosening).
+* New ``Ethertype`` datatype in ``core.datatypes``.
+* New CLI: ``flync errors`` group (``get-next-number``, ``validate-catalogue``,
+  ``generate-catalog``) and ``flync debug``; error tables now display the ``ID`` column.

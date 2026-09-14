@@ -14,152 +14,128 @@ Release Notes
 Release 0.14
 ------------
 
+Controller virtualization
+'''''''''''''''''''''''''
+
+A controller can now describe what runs *inside* it. Each controller may host
+:class:`~flync.model.flync_4_ecu.compute_node.ComputeNode` guests - nestable, so a hypervisor
+with its own guests is expressible - and virtual switches modelled with the same
+:class:`~flync.model.flync_4_ecu.switch.Switch` class as a hardware switch. The links between
+them are declared in a new ``controller_topology.flync.yaml`` per controller.
+
+This replaces the previous ``compute_nodes`` block inside an interface config and the single
+``virtual_switch.flync.yaml``; both are breaking changes. See ``ecu_variant_10`` in
+:ref:`flync_example` for the full layout, and :doc:`model_change_history` to migrate.
+
 DoIP/UDS diagnostics
 ''''''''''''''''''''
 
 Added a new :ref:`flync_4_diagnostics <diagnostics>` domain package under
 ``communication/diagnostics/``, with one sub-directory per diagnostic protocol - everything
-modelled today is UDS (ISO 14229) over DoIP (ISO 13400).
+modelled today is UDS (ISO 14229) over DoIP (ISO 13400). It covers DoIP and UDS timing
+profiles, UDS servers (sessions, security access, supported services) and the DID, routine
+and DTC catalogs.
+
+Sockets gained two matching deployment types: ``doip_server`` (TCP, carries the logical
+address and the UDS server reference) and ``doip_discovery`` (UDP, vehicle identification and
+announcement).
 
 10BASE-T1S multidrop segments
-''''''''''''''''''''''''''''''
+'''''''''''''''''''''''''''''
 
-Adding multidrop segments and PLCA to Ethernet.
+The Ethernet topology gained a second connection type, ``ethernet_multidrop``, describing a
+shared-medium segment: an optional PLCA cycle (``transmit_opportunity_count``, ``to_timer``)
+and one entry per participating ECU port with its ``node_id`` and burst configuration.
+``BASET1S`` gained ``topology: p2p | multidrop`` to select between the two.
 
 CLI restructure
-''''''''''''''''
+'''''''''''''''
 
-The ``flync`` CLI command tree was reorganized for consistency and to fix a handful of broken or
-dead commands:
+The ``flync`` CLI command tree was reorganized for consistency and to fix a handful of broken
+or dead commands:
 
-* ``flync info`` is now a real command group: ``ecus``, ``controllers``, ``switches``, ``ports``,
-  ``ip``, ``sockets``, ``services``, ``instances``, ``vlans``.
+.. list-table::
+   :header-rows: 1
 
-  * ``info sockets`` (previously ``info list-sockets``, which silently printed nothing) now shows
-    socket endpoints grouped by ECU and VLAN, with their interface, virtual interface, MAC, IP,
-    protocol and port.
-  * ``info instances`` (replaces the top-level ``display-service-info``) looks a service instance
-    up by its **service ID and major version** instead of its name, and reports a clear error - with
-    the list of available services - for an id/major that does not exist.
-  * ``info services`` (previously ``info list-services``) now lists each service's ID, major
-    version, and its providing/consuming ECUs, not just its name.
-  * ``info ports`` (previously ``info list-ports``) is grouped by ECU and drops the row numbering
-    that did not correspond to anything in the model.
-  * ``info ip`` (previously ``info list-ips``) now shows each address's VLAN and subnet.
-  * ``info vlans`` (replaces the top-level ``display-vlan-info``, which raised an ``AttributeError``)
-    is grouped by VLAN and fixes the traceback; the VLAN ID is now an optional ``--vlan-id`` filter.
+   * - Old
+     - New
+   * - ``info list-ecus`` / ``list-controllers`` / ``list-switches``
+     - ``info ecus`` / ``controllers`` / ``switches``
+   * - ``info list-ports`` / ``list-ips`` / ``list-sockets`` / ``list-services``
+     - ``info ports`` / ``ip`` / ``sockets`` / ``services``
+   * - ``display-vlan-info``
+     - ``info vlans``
+   * - ``display-service-info``
+     - ``info instances``
+   * - ``display-repo-structure``
+     - ``filetree``
+   * - ``debug``
+     - ``validate --verbose``
 
-* ``flync display-repo-structure`` is renamed to ``flync filetree``, with an updated description:
-  it exports the expected filetree of a FLYNC configuration to a txt file.
-* ``flync validate``:
+``flync info`` is now a real command group. Several of its reports were also fixed or
+extended: ``sockets`` previously printed nothing, ``vlans`` previously raised an
+``AttributeError``, ``ip`` and ``sockets`` now show VLAN and subnet, ``services`` now lists
+service ID, major version and providing/consuming ECUs, and ``instances`` looks a service
+instance up by its **service ID and major version** instead of its name.
 
-  * ``--quiet`` is removed.
-  * ``--verbose`` now runs the layered debug checks (folder structure, YAML syntax, schema, field
-    values, system-wide) that ``flync debug`` used to run.
-  * The standalone ``flync debug`` command is removed.
+Also new:
 
-* ``flync config set|show|clear`` stores a default workspace path for the session. Every command's
-  ``path`` argument is now optional and falls back to the stored path; an explicit argument always
-  wins.
-* The renamed/removed commands above are still reachable under their old names as hidden, deprecated
-  aliases that print a pointer to the new command.
+* ``flync config set|show|clear`` stores a default workspace path for the session. Every
+  command's ``path`` argument is now optional and falls back to it; an explicit argument wins.
+* ``flync errors fix-numbers`` and ``flync errors sync`` keep error numbers unique against the
+  base branch and regenerate the catalog in one step.
+* ``flync validate`` exits non-zero on validation errors. ``--quiet`` was removed.
+
+The renamed and removed commands above are still reachable under their old names as hidden,
+deprecated aliases that print a pointer to the new command.
 
 System UML on non-Ethernet workspaces
 '''''''''''''''''''''''''''''''''''''
 
-``flync generate-system-uml`` no longer crashes with an ``AttributeError`` on a workspace without
-Ethernet wiring. ``FLYNCTopology.ethernet_topology``, ``ECU.ports``, ``ECU.switches`` and
-``ECU.topology`` are all optional in the model and are now handled as such.
+``flync generate-system-uml`` no longer crashes with an ``AttributeError`` on a workspace
+without Ethernet wiring. Since an ECU reaches the diagram only through its Ethernet interfaces
+or switches, a CAN/LIN-only workspace has nothing to draw: rather than writing a file that
+renders to a blank image, the command now prints a warning naming the reason, writes no file,
+and still exits 0. The same warning covers a ``--vlan-id`` filter that matches nothing.
+Multidrop segments are drawn where present.
 
-An ECU still reaches the diagram only through its Ethernet interfaces or its switches, so a
-CAN/LIN-only workspace has nothing to draw. Rather than writing a file that renders to a blank
-image, the command now prints a warning naming the reason and writes no file. It still exits 0.
-The same warning covers a ``--vlan-id`` filter that matches nothing.
+MACsec cipher configuration
+'''''''''''''''''''''''''''
+
+The MACsec model (:ref:`flync_4_security <security>`) was extended with per-entry cipher
+suite selection (``GCM-AES-128`` / ``-256`` / ``-XPN-128`` / ``-XPN-256``), bypass lists for
+Ethertypes and source/destination MAC addresses, and a replay protection window.
+
+``MACsecConfig`` now **requires** a ``ckn`` (Connectivity Association Key Name), so every
+existing ``macsec_config`` must add one. ``offset_preference`` was renamed
+``confidentiality_offset``, and a non-zero offset is now rejected with an XPN cipher suite.
+Enabling MACsec without MKA is now only a warning rather than an error.
 
 DBC to FLYNC decoding
 '''''''''''''''''''''
 
 The DBC converter now supports decoding DBC files back into a full FLYNC model
-(:meth:`flync_converter.converters.dbc.DbcConverter.decode`), not just
-encoding FLYNC to DBC. Customizing the decoding is possible through the new
-:class:`flync_converter.converters.dbc.DbcConverterConfig`
-(``baud_rate_default``, ``fd_baud_rate_default``).
+(:meth:`flync_converter.converters.dbc.DbcConverter.decode`), not just encoding FLYNC to DBC.
+Nodes become ECUs with CAN controllers, bit rates are read from the cantools ``Baudrate``
+attributes, and multiplexed messages, value tables, factors, offsets, ranges and units are
+preserved. Customizing the decoding is possible through the new
+:class:`flync_converter.converters.dbc.DbcConverterConfig`.
 
-Key decoding behaviours:
+Examples and workspace configuration
+''''''''''''''''''''''''''''''''''''
 
-* Each DBC ``BU_:`` node is synthesized as one ECU with a CAN controller and one
-  interface per bus it participates on.
-* The bus bit rates are read from the cantools ``Baudrate`` / ``BaudrateCANFD``
-  attributes (with configurable fallbacks, default ``500000`` / ``2000000``).
-* Multiplexed messages are reconstructed as a
-  :class:`~flync.model.flync_4_signal.pdu.MultiplexedPDU` with the ``M`` selector
-  signal and per-id mux groups plus the static group.
-* Signal value tables (``VAL_``), factors, offsets, ranges and units are preserved.
-* Signals/PDUs are namespaced with the DBC bus (file stem) name, e.g.
-  ``BusA_SpeedMsg``.
+``examples/flync_example`` is now the stable reference configuration, with everything
+experimental (applications and app bindings, among others) moved into the new
+``examples/flync_example_experimental`` superset. A minimal ``examples/can_lin_example``
+demonstrates a workspace with no Ethernet at all - ``topology/`` and ECU ``ports`` are both
+optional now.
 
-Optional Extras
-'''''''''''''''
+Saving a workspace also writes a ``.flync/config.yaml`` holding its configuration, so tooling
+picks up the same settings on the next load.
 
-``textual`` and ``PySide6`` are **no longer installed by default**. The core ``flync``
-install is now Qt-free, cutting the installed footprint by roughly 85% for all users
-and for any package that depends on ``flync``.
-
-To restore the previous behaviour:
-
-.. code-block:: bash
-
-   pip install "flync[all]"
-
-Or install individually:
-
-.. code-block:: bash
-
-   pip install "flync[tui]"    # for flync-converter-interactive
-   pip install "flync[gui]"    # for flync-converter-gui
-
-Commands that require a missing extra now print an actionable error message with
-install instructions instead of a traceback.
-
-Build System Migration
+Installation and build
 ''''''''''''''''''''''
 
-The project now builds and locks with **uv** (replacing Poetry). Contributors
-should recreate their virtual environment:
-
-.. code-block:: bash
-
-   rm -rf .venv
-   uv sync
-
-The build backend is **hatchling** with ``uv-dynamic-versioning`` for version
-resolution from git tags. The ``uv.lock`` file replaces ``poetry.lock``.
-
-MACsec cipher configuration
-'''''''''''''''''''''''''''
-
-The MACsec model (`flync_4_security`) was extended:
-
-* New :class:`~flync.model.flync_4_security.CipherSuiteBaseModel` base class holding the
-  `cipher_suite` field, from which both :class:`IntegrityWithoutConfidentiality
-  <flync.model.flync_4_security.IntegrityWithoutConfidentiality>` and
-  :class:`IntegrityWithConfidentiality
-  <flync.model.flync_4_security.IntegrityWithConfidentiality>` inherit. Each cipher entry
-  now carries ``cipher_suite: GCM-AES-128 | GCM-AES-256 | GCM-AES-XPN-128 |
-  GCM-AES-XPN-256`` (default ``GCM-AES-XPN-256``).
-* New helper method
-  :meth:`CipherSuiteBaseModel.xpn <flync.model.flync_4_security.CipherSuiteBaseModel.xpn>`
-  returning ``True`` for the XPN cipher suites (``GCM-AES-XPN-128`` / ``GCM-AES-XPN-256``).
-* New optional ``MACsecConfig.ethertype_bypass`` field (list of
-  :class:`~flync.core.datatypes.Ethertype`, default ``[]``) naming the Ethertypes that
-  shall not be protected with MACsec.
-* New optional ``MACsecConfig.src_mac_address_bypass`` and
-  ``MACsecConfig.dest_mac_address_bypass`` fields (lists of
-  :class:`~flync.core.datatypes.FLYNCMacAddress`, default ``[]``) naming, respectively, the
-  source and destination MAC addresses that shall not be protected with MACsec.
-* New **required** ``MACsecConfig.ckn`` field (string, 1-32 octets, i.e. characters in
-  the range 0x00-0xFF) holding the Connectivity Association Key Name (CKN) used to identify
-  the CAK. Because it is required, every existing ``macsec_config`` must add a ``ckn`` entry.
-* New optional ``MACsecConfig.replay_protection_window`` field (int, default ``0``) giving
-  the size of the replay protection window. A non-zero value emits a warning
-  (``FLYNC-SEC-WARN-VAL-251``).
+The project also builds and locks with **uv** instead of Poetry, using **hatchling** with
+``uv-dynamic-versioning`` for version resolution from git tags. Contributors should recreate
+their virtual environment with ``uv sync``.

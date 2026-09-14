@@ -1,0 +1,301 @@
+.. _chg__0_13__0_14:
+
+0.13.x → 0.14.x
+===============
+
+Controller virtualization was reworked from the ground up, a new
+diagnostics domain (DoIP/UDS) was added, topology was split into Ethernet and bus parts with
+10BASE-T1S multidrop support, a switch's ``host_controller`` became a full ``Controller`` in its own
+folder, multiplexed PDUs were reworked, App service references were re-keyed, several convenience
+aliases from earlier releases were dropped, and the validator modules were reorganized.
+
+Breaking — YAML schema
+----------------------
+
+
+Controller virtualization: compute nodes and virtual switches
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The whole previous virtualization model was replaced:
+
+* ``EthernetInterfaceConfig.compute_nodes`` → ``Controller.compute_nodes``, each in its own
+  folder. :class:`~flync.model.flync_4_ecu.compute_node.ComputeNode` (was ``ComputeNodes``) is
+  recursive — it owns ``ethernet_interfaces``, ``virtual_switches``, ``app_bindings`` and further
+  ``compute_nodes`` — so a hypervisor hosting guests that host their own guests is expressible.
+* ``Controller.virtual_switch`` (one ``VirtualSwitch`` in ``virtual_switch.flync.yaml``) →
+  **``Controller.switches``**, a list typed with the same
+  :class:`~flync.model.flync_4_ecu.switch.Switch` class as a hardware switch. ``VirtualSwitch`` and
+  ``VirtualSwitchPort`` are gone.
+* New **``Controller.controller_topology``** (``controller_topology.flync.yaml``) links them.
+
+``controller_topology.flync.yaml`` reuses the ``type`` vocabulary of the ECU internal topology —
+``switch_port_to_controller_interface``, ``controller_interface_to_controller_interface``,
+``switch_to_switch_same_ecu`` — but runs no PHY, MII, MACsec or gPTP checks: every link inside a
+controller is a software link on the same SoC. The two scopes never overlap; the controller's own
+physical Ethernet interface is the only endpoint that crosses the boundary, so a
+software-to-hardware uplink is two hops in two files.
+
+
+Multiplexed PDU rework: inline ``StandardPDU`` → ``pdu_ref`` references
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In ``MultiplexedPDU``, ``mux_groups[].pdu`` changed from an inline ``StandardPDU`` to a
+``PDUInstance`` reference (``pdu_ref`` + optional ``bit_position``/``update_bit_position``);
+``static_group`` changed from an inline ``StandardPDU`` to ``List[PDUInstance]``. The referenced
+PDUs must be declared separately.
+
+.. code-block:: yaml
+
+   # before (0.13.x)                      # after (0.14.x)
+   mux_groups:                            mux_groups:
+     - selector_value: 0                    - selector_value: 0
+       pdu:                                   pdu:
+         name: PDU_Gear                          pdu_ref: PDU_Gear
+         type: standard
+         length: 8
+         signals: [ ... ]
+
+
+``Switch``: split into ``switch_config`` + a full ``Controller`` host
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Each switch folder is now split in two: ``switch.flync.yaml`` (the new ``SwitchConfig``, holding
+``meta``, ``ports``, ``vlans``, ``tcam_rules`` and the new optional ``dynamic_address_aging_time``)
+and, optionally, ``switch_host_controller/`` holding a regular
+:class:`~flync.model.flync_4_ecu.controller.Controller` for the CPU that manages the switch.
+``Switch.host_controller`` changed type from an inline ``EthernetInterfaceConfig`` (a single
+interface) to ``Optional[Controller]``. ``Switch`` itself now carries ``name``, ``switch_config``
+and ``host_controller``; ``meta``/``ports``/``vlans``/``tcam_rules`` remain readable as proxies.
+
+Because the host controller is now a real ``Controller``, the on-die link between the switch's CPU
+port and its interface must be modeled explicitly with a new internal-topology connection type:
+
+.. code-block:: yaml
+
+   connections:
+     - type: switch_port_to_host_controller_interface
+       id: conn4
+       switch_port: z1_s1_cpu_port
+       host_controller_interface: z1_switch1_host_iface1
+
+
+Ethernet multidrop with 10BASE-T1S
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``topology/ethernet_topology.flync.yaml`` gained a second connection type describing a shared
+medium rather than a cable between two ports:
+
+.. code-block:: yaml
+
+   connections:
+     - type: ethernet_multidrop
+       id: rear_lamp_segment
+       plca:
+         transmit_opportunity_count: 4   # 1..255
+         to_timer: 32                    # 1..255, default 32
+       nodes:
+         - ecu_port: body_ecu_t1s_port
+           node_id: 0                    # 0..254; 0 = coordinator; omit for CSMA/CD
+           burst_count: 0                # default 0
+           burst_timer: 128              # default 128
+
+``BASET1S`` gained ``topology: p2p | multidrop`` (default ``p2p``), widened ``duplex`` to
+``half | full``, and exposes ``node_id``/``burst_count``/``burst_timer``/``role`` read-only,
+reflected from the segment. Its ``role`` **input** key is no longer modelled: a file that still sets
+it loads with warning ``FLYNC-ECU-WARN-LIFE-338`` and the key is dropped.
+
+
+Topology: ``SystemTopology`` → ``EthernetTopology`` (+ split)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``system_topology.py`` was renamed ``ethernet_topology.py`` (new siblings ``bus_topology.py`` and
+``ethernet_multidrop.py``) and the class ``SystemTopology`` was **removed with no alias** in favour
+of ``EthernetTopology``. The ``FLYNCTopology`` attribute ``system_topology`` → ``ethernet_topology``
+keeps ``alias="system_topology"``, so the old **YAML key** still loads with a deprecation warning
+``FLYNC-TOP-WARN-LIFE-229`` — only the Python class name is gone outright. CAN/LIN bus topologies
+(``can_bus_topology`` / ``lin_bus_topology``) are **derived automatically** at validation.
+
+Other renamed, re-keyed and newly required fields
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``ContainedPDURef.pdu_id`` → ``header_id``
+  Renamed and constrained ``>0``. A mis-keyed ``pdu_id:`` is a plain extra/missing-field error.
+
+``MACsecConfig`` requires a ``ckn``
+  New **required** string (Connectivity Association Key Name, 1-32 octets, i.e. characters in the
+  range 0x00-0xFF, no default) — every existing ``macsec_config`` must add one. Characters outside
+  that range raise ``FLYNC-SEC-MIN-FMT-252``.
+
+``offset_preference`` → ``confidentiality_offset``
+  On both ``IntegrityWithoutConfidentiality`` and ``IntegrityWithConfidentiality``; same semantics
+  and defaults, now documented as bytes rather than nanoseconds. A non-zero offset (``30``/``50``)
+  is now **rejected** with an XPN ``cipher_suite`` (``FLYNC-SEC-MIN-CONS-253``).
+
+App service references keyed by name → service id (``FLYNC-1412``)
+  ``ServiceConsumerReference.service_name: str`` → ``service_id: int`` (required,
+  ``0 < id < 0xFFFF``); likewise ``ServiceProviderReference``, whose ``minor_version`` was
+  **removed**. Reference identity changed from ``(service_name, major_version)`` to
+  ``(service_id, major_version, instance_id)``. Service not found by id
+  ``FLYNC-GEN-MAJ-REF-186``; every app consumer ref must be matched by a ``someip_consumer``
+  deployment on the bound controller ``FLYNC-GEN-MAJ-CONS-245``; app consuming and providing the
+  same instance warns **242**.
+
+Top-level ``general:`` now rejected
+  The root ``communication`` field lost ``Field(alias="general")``; the deprecated ``general``
+  property and its 0.13 warnings (162/163) were removed. Because the base model uses
+  ``extra="forbid"``, a top-level ``general:`` key now fails with ``extra_forbidden`` (no FLYNC ID).
+  The folder remains ``communication/``.
+
+TCAM ``TCAMRule`` / ``FrameMask`` rework (``FLYNC-1402``)
+  ``frame_mask`` became a ``List[FrameMask]``; ``frame_window`` moved from ``FrameMask``
+  (default 96) to ``TCAMRule`` (optional, unbounded when omitted); ``vehicle_state`` (int) and
+  ``vehicle_state_mask`` merged into one ``vehicle_state: Bitmask`` — so ``vehicle_state: 5`` plus
+  ``vehicle_state_mask: 255`` becomes ``vehicle_state: {data: "0x05", mask: "0xff"}``, and a single
+  ``frame_mask:`` mapping becomes a one-element list. ``data``/``mask`` accept ``0x``/``0b``
+  literals or plain integers (an unprefixed ``"01010101"`` is rejected, **177**), and ``mask``
+  defaults to all bits of ``data``. A rule no longer needs exactly one of
+  ``match_filter``/``frame_mask``, and ``action`` is optional. Errors **176, 179–182** and **184**
+  were removed; **231–235** are new.
+
+Behaviour changes with no schema change
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* **MACsec without MKA is now only a warning.** Error **100** (``macsec_mode`` enabled while
+  ``mka_enabled`` is false) was downgraded and reworded, so a configuration that previously failed
+  validation now passes with a warning.
+* **Generated switch multicast tables are smaller.** They are built by backtracking from each RX
+  target to its sender instead of flooding every component on the path, so the emitted VLAN
+  multicast port lists contain only the ports actually used.
+
+New and strengthened validation rules
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Error numbers now run to **339**.
+See :doc:`/error_catalog` for the full, machine-generated list.
+
+
+.. _chg__0_13__0_14_validators:
+
+Validator import relocation (deleted modules)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The validator helper modules moved out of ``flync.core.utils`` into ``flync.core.validators``, with
+no aliases kept. Any integrator importing the old paths must update:
+
+* ``flync.core.utils.common_validators`` (deleted) →
+  ``flync.core.validators.{generic,address,bit_ranges,connection_compatibility,traffic_classes}``
+* ``flync.core.utils.forwarder_validators`` → ``flync.core.validators.forwarder``
+* ``flync.core.utils.state_management_validators`` → ``flync.core.validators.state_management``
+* ``flync.core.validators.address_validators`` (deleted) →
+  ``flync.core.validators.address.before_validate_mac_address``
+
+A new ``flync.core.validators.interface`` module holds the workspace-level CAN/LIN frame-reference
+passes.
+
+Breaking — CLI / converter
+--------------------------
+
+* ``flync info`` is now a real command group instead of one command with an enum argument:
+  ``list-ecus`` → ``ecus``, ``list-controllers`` → ``controllers``, ``list-switches`` →
+  ``switches``, ``list-ports`` → ``ports``, ``list-ips`` → ``ip``, ``list-sockets`` (previously
+  dead — silently printed nothing) → ``sockets``, ``list-services`` → ``services``. New:
+  ``info instances`` (looks a SOME/IP service instance up by ``service_id`` + ``major_version``, not
+  by name) and ``info vlans`` (grouped by VLAN, replacing the crashing ``display-vlan-info``).
+* ``display-service-info`` → ``info instances``; ``display-repo-structure`` → ``filetree``;
+  ``debug`` → ``validate --verbose``.
+* ``flync validate``: ``--quiet`` removed (no replacement); ``--config`` renamed ``--config-name``
+  with ``--config``/``-c`` kept as aliases; now exits **non-zero** on validation errors — CI-visible.
+* ``flync errors validate-catalogue`` → ``validate-catalog`` and ``generate-catalogue`` →
+  ``generate-catalog`` — these have **no** deprecated alias. Generated doc moved to
+  ``docs/source/error_catalog.rst``.
+* Every command's ``path`` argument is now optional, falling back to the workspace stored with the
+  new ``flync config set``.
+* All renamed/removed commands above remain callable as hidden, deprecated aliases that print a
+  pointer to the replacement — only ``--quiet`` and the ``catalogue`` spellings have none.
+* ``flync_converter.converters.dbc_converter`` became the package
+  ``flync_converter.converters.dbc``; the old module path no longer resolves, though
+  ``from flync_converter.converters import DbcConverter`` still works. ``cantools`` moved to ``>=43``.
+* ``textual`` and ``PySide6`` moved out of the core dependencies into the ``tui``/``gui``/``all``
+  extras. Commands needing a missing extra raise an actionable ``ClickException``.
+
+Breaking — Python API
+---------------------
+
+* ``from flync.model.flync_4_topology import SystemTopology`` / ``...system_topology`` no longer
+  resolves → import from ``...ethernet_topology`` / ``...bus_topology``.
+  ``FLYNCModel.get_system_topology_info()`` → ``get_ethernet_topology_info()``.
+  ``FLYNCModel.general`` was removed.
+* ``ComputeNodes`` → ``ComputeNode``; ``VirtualSwitch`` and ``VirtualSwitchPort`` removed (use
+  ``Switch``); ``ExternalConnection`` → ``EthernetPointToPointConnection``, with the old name kept as
+  an alias on the ``flync.model.flync_4_topology`` package (but **not** on the module, and the
+  ``system_topology`` module it used to live in is gone).
+* SOME/IP datatypes split: ``someip_datatypes.py`` → ``someip_simple_datatypes.py`` +
+  ``someip_complex_datatypes.py``; ``AllTypes`` is re-exported from the package ``__init__``, but the
+  direct module path ``flync_4_someip.someip_datatypes`` is gone.
+* ``FLYNCBaseModel`` lost its ``logger`` property and ``_logger`` private attribute, and now sets
+  ``validate_assignment=True`` — assignments to model fields are validated from now on.
+  ``DatatypeBase`` no longer sets ``extra="forbid"`` (only ``frozen=True``).
+* ``compute_path(vlan, interface)`` now returns ``(connected_components, parent)`` instead of just
+  the component list; new helpers ``backtrack_to_source`` / ``record_parent`` accompany it.
+* SDK: ``WorkspaceConfiguration`` became a frozen pydantic model instead of a frozen dataclass, so
+  ``dataclasses.asdict()`` no longer works on it. ``document.read_file()`` now returns ``str``,
+  ``parse_document(...)`` became ``parse_documents(paths, ...)``, ``generate_node(...)`` now returns
+  ``bool``, and ``dump_flync_workspace``/``generate_external_node`` gained a ``workspace_config``
+  parameter. ``ObjectMetadata.parent_id``/``child_ids`` now collapse ``SINGLE_FILE`` wrapper levels,
+  changing the object tree tooling sees.
+
+Additive (0.14.x)
+-----------------
+
+* **New ``flync_4_diagnostics`` domain package** (module key ``DIA``), reachable as
+  ``FLYNCCommunicationConfig.diagnostics_config`` and loaded from ``communication/diagnostics/``,
+  split ``doip/`` + ``uds/``. Adds socket ``deployment_type: doip_server`` (TCP: ``logical_address``,
+  ``uds_server``, optional ``doip_timings_profile``) and ``doip_discovery`` (UDP:
+  ``vehicle_identification``, ``vehicle_announcement``). Sub-configs carry ``version: "0.14"``; a
+  ``diagnostics/`` folder with neither protocol is treated as absent.
+* ECU ``ports``/``topology`` now optional and ``ports`` lost its ``min_length=1`` (a CAN/LIN-only
+  ECU may omit both); ``FLYNCTopology`` itself optional (a workspace without ``topology/`` loads as
+  an empty topology); a connection written with **no** ``type`` is auto-stamped as point-to-point.
+* New runtime-derived CAN/LIN bus topology in ``FLYNCTopology.can_bus_topology`` /
+  ``lin_bus_topology``, and new ``FLYNCModel.get_can_bus_topology()`` / ``get_lin_bus_topology()`` /
+  ``get_someip_services_by_identity()`` / ``get_multidrop_connection()`` / ``multidrop_connections``.
+* Controller-subtree traversal: ``Controller.iter_subtree_{compute_nodes,switches,interfaces}()``
+  and ``get_consumed_service_instances()``; ``ComputeNode.get_interfaces()`` /
+  ``get_all_deployments()`` / ``get_consumed_service_instances()``;
+  ``FLYNCModel.iter_app_binding_owners()``. Compute nodes may own ``app_bindings``, and
+  ``EthernetInterface.get_controller()`` may return a ``ComputeNode``.
+* New ``SwitchConfig.dynamic_address_aging_time`` (optional, ``>0``, seconds). New
+  ``Ethertype.EAPoL`` (``0x888E``, EAP over LAN including MKA).
+* New ``core.datatypes.Bitmask`` (used by TCAM matching) and ``core.datatypes.DurationMs``: a
+  positive duration in whole milliseconds that also accepts ``"50ms"``/``"5s"`` in YAML, with
+  ``parse_duration_ms``/``serialize_duration_ms``.
+* New MACsec cipher configuration: a ``CipherSuiteBaseModel`` base class contributing
+  ``cipher_suite`` (``GCM-AES-128``/``-256``/``-XPN-128``/``-XPN-256``, default
+  ``GCM-AES-XPN-256``) and an ``xpn()`` helper to both ``IntegrityWithoutConfidentiality`` and
+  ``IntegrityWithConfidentiality``. New optional ``MACsecConfig.ethertype_bypass``,
+  ``src_mac_address_bypass`` and ``dest_mac_address_bypass`` naming what shall not be protected,
+  plus ``replay_protection_window`` (default ``0``; non-zero warns ``FLYNC-SEC-WARN-VAL-251``) and
+  ``ckn_to_byte_array()``.
+* SOME/IP models relaxed ``extra="forbid"`` → unknown extra keys ignored
+  (``SOMEIPServiceInterface``, ``SOMEIPMethod``/``Field``/``Event``/``Eventgroup``), and an
+  eventgroup may now declare **no** events (the ``min_length=1`` constraint was dropped).
+  ``Bitfield.bitposition`` is constrained ``ge=0``.
+* **DBC decoding.** The ``dbc`` converter gained a ``decode()`` direction (DBC → FLYNC) plus
+  ``DbcConverterConfig`` (``baud_rate_default`` ``500000``, ``fd_baud_rate_default`` ``2000000``).
+  Each ``BU_:`` node becomes an ECU with a CAN controller, multiplexed messages are reconstructed as
+  a ``MultiplexedPDU``, value tables/factors/offsets/ranges/units are preserved, and signals and
+  PDUs are namespaced with the DBC bus (file stem) name, e.g. ``BusA_SpeedMsg``.
+* New ``flync config set|show|clear`` persists a default workspace path for the session, and
+  ``flync errors fix-numbers`` / ``sync`` keep error numbers unique against the base branch and
+  regenerate the catalog. ``flync info ip``/``sockets``/``vlans`` now report VLAN and subnet
+  information their predecessors did not.
+* SDK: new ``FLYNCWorkspace.update_document(uri)``, ``save_workspace_config()``,
+  ``revalidate_references_of(id)`` and ``generate_configs(..., persist_config=...)``; new
+  ``DiagnosticsResult.passed``. Saving a workspace now also writes ``.flync/config.yaml`` (opt out
+  with ``persist_config=False``). ``flync.core.utils.exceptions.warn_from_error(error)`` records a
+  caught ``PydanticCustomError`` as a warning while preserving its original id, and the
+  ``Reference`` annotation gained ``source_key`` (default ``"name"``).
+* Examples restructured: ``examples/flync_example`` is the stable reference and everything
+  experimental (applications and app bindings among them) moved to the new
+  ``examples/flync_example_experimental`` superset; new minimal ``examples/can_lin_example``; new
+  ``examples/ecu_variants/ecu_variant_10`` demonstrating nested compute nodes.
