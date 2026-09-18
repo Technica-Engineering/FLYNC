@@ -9,7 +9,7 @@ asks for, and both describe their payload with the same
 routine data.
 """
 
-from typing import Annotated, List, Literal, Optional
+from typing import Annotated, List, Literal, Optional, Self
 
 from pydantic import BeforeValidator, Field, model_validator
 
@@ -107,7 +107,7 @@ class DiagnosticTroubleCode(FLYNCBaseModel):
     description: Optional[str] = Field(default=None)
 
     @model_validator(mode="after")
-    def validate_record_numbers_unique(self) -> "DiagnosticTroubleCode":
+    def validate_record_numbers_unique(self) -> Self:
         """
         Raise when two snapshot or two extended data records of this DTC share a record number.
         """

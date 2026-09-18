@@ -1,6 +1,6 @@
 """Defines DoIP timing profiles, loaded from ``communication/diagnostics/doip/timings.flync.yaml``."""
 
-from typing import Annotated, List
+from typing import Annotated, List, Self
 
 from pydantic import Field, model_validator
 
@@ -102,7 +102,7 @@ class DoIPTimingProfileSet(FLYNCBaseModel):
     defaults: List[DoIPTimingProfile] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def validate_profile_ids_unique(self) -> "DoIPTimingProfileSet":
+    def validate_profile_ids_unique(self) -> Self:
         """
         Raise when two timing profiles across ``profiles`` and ``defaults`` share a ``profile_id``.
         """

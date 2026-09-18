@@ -6,7 +6,7 @@ MAC) along with the direction (tx/rx), VLAN and optional source IP.
 """
 
 from ipaddress import IPv4Address, IPv6Address
-from typing import Annotated, Literal, Optional
+from typing import Annotated, Literal, Optional, Self
 
 from pydantic import AfterValidator, Field, model_validator
 from pydantic.networks import IPvAnyAddress
@@ -51,7 +51,7 @@ class MulticastGroupMembership(FLYNCBaseModel):
     _interface: EthernetInterfaceConfig | None = None
 
     @model_validator(mode="after")
-    def validate_src_ip_set_on_tx_ip_groups(self):
+    def validate_src_ip_set_on_tx_ip_groups(self) -> Self:
         if (isinstance(self.group, (IPv4Address | IPv6Address))) and self.mode == "tx" and not self.src_ip:
             raise err_minor(
                 f"Multicast group membership for {self.group} ({self.mode} / VLAN {self.vlan} ) could not be defined."

@@ -9,7 +9,7 @@ field/record model instead of depending on :mod:`flync.model.flync_4_signal` or
 :class:`~flync.core.datatypes.ValueTable`) are reused.
 """
 
-from typing import Annotated, List, Literal, Optional
+from typing import Annotated, List, Literal, Optional, Self
 
 from pydantic import Field, model_validator
 
@@ -121,7 +121,7 @@ class DiagField(FLYNCBaseModel):
     description: Optional[str] = Field(default=None)
 
     @model_validator(mode="after")
-    def validate_bit_length_matches_type(self) -> "DiagField":
+    def validate_bit_length_matches_type(self) -> Self:
         """
         Default ``bit_length`` from the type's fixed width and reject a contradicting value.
         """
@@ -184,7 +184,7 @@ class DiagDataRecord(FLYNCBaseModel):
     description: Optional[str] = Field(default=None)
 
     @model_validator(mode="after")
-    def validate_field_names_unique(self) -> "DiagDataRecord":
+    def validate_field_names_unique(self) -> Self:
         """
         Raise when two fields of the record share a name.
         """
@@ -202,7 +202,7 @@ class DiagDataRecord(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_fields_fit_and_do_not_overlap(self) -> "DiagDataRecord":
+    def validate_fields_fit_and_do_not_overlap(self) -> Self:
         """
         Raise when a field reaches beyond ``byte_length`` or overlaps a previous field.
         """

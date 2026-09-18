@@ -2,7 +2,7 @@
 Top-level system model aggregating ECUs, topology, metadata, and communication configuration in FLYNC.
 """
 
-from typing import Annotated, Dict, List, Optional, Tuple
+from typing import Annotated, Any, Dict, List, Optional, Self, Tuple
 
 from pydantic import Field, model_validator
 from pydantic_core import PydanticCustomError
@@ -43,7 +43,7 @@ from flync.model.flync_4_ecu import (
 )
 from flync.model.flync_4_metadata import SystemMetadata
 from flync.model.flync_4_signal.forwarder import CANFrameForwarder, PDUForwarder
-from flync.model.flync_4_someip import SOMEIPServiceDeployment, SOMEIPServiceInterface
+from flync.model.flync_4_someip import SOMEIPServiceDeployment, SOMEIPServiceInterface, SOMEIPServiceProvider
 from flync.model.flync_4_topology import FLYNCTopology
 from flync.model.flync_4_topology.bus_topology import (
     CANBusTopology,
@@ -180,23 +180,23 @@ class FLYNCModel(FLYNCBaseModel):
         self.__populate_ipv6_solicited_node_multicasts_tx()
 
     @model_validator(mode="after")
-    def validate_unique_ecu_names(self):
+    def validate_unique_ecu_names(self) -> Self:
         validate_list_items_unique([ecu.name for ecu in self.ecus], "ECU names")
         return self
 
     @model_validator(mode="after")
-    def validate_unique_port_names(self):
+    def validate_unique_port_names(self) -> Self:
         all_ports = [port.name for ecu in self.ecus for port in ecu.get_all_ports()]
         validate_list_items_unique(all_ports, "ECU port names")
         return self
 
     @model_validator(mode="after")
-    def validate_unique_app_names(self):
+    def validate_unique_app_names(self) -> Self:
         validate_list_items_unique([app.name for app in self.apps or []], "App names")
         return self
 
     @model_validator(mode="after")
-    def resolve_external_connections(self):
+    def resolve_external_connections(self) -> Self:
         if self.topology.ethernet_topology is None:
             return self
         ports_by_name = self.get_all_ecu_ports_by_name()
@@ -214,7 +214,7 @@ class FLYNCModel(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def wire_multidrop_ports(self):
+    def wire_multidrop_ports(self) -> Self:
         """
         Join the ports sharing a multidrop segment, so the passes below see a segment as the connection it is.
 
@@ -226,7 +226,7 @@ class FLYNCModel(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_no_unconnected_ecu_ports(self):
+    def validate_no_unconnected_ecu_ports(self) -> Self:
         """Must not require an ethernet topology: a workspace that wires only CAN/LIN has no ``topology/`` file, but its ports
         still deserve an unconnected report."""
 
@@ -235,7 +235,7 @@ class FLYNCModel(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def require_ethernet_topology_when_used(self):
+    def require_ethernet_topology_when_used(self) -> Self:
         """
         The ethernet topology (``topology/ethernet_topology.flync.yaml``) is optional, but system-wide features that
         rely on inter-ECU Ethernet connectivity (cross-ECU multicast, SOME/IP multicast) cannot be validated without
@@ -286,7 +286,7 @@ class FLYNCModel(FLYNCBaseModel):
         return reasons
 
     @model_validator(mode="after")
-    def validate_unique_ips(self):
+    def validate_unique_ips(self) -> Self:
         """
         Validate all IPs are unique system wide
         """
@@ -305,13 +305,13 @@ class FLYNCModel(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def check_tx_rx_multicast_group(self):
+    def check_tx_rx_multicast_group(self) -> Self:
         try:
             tx_list = []
             rx_list = []
             separ = "/VLAN"
             for ecu in self.ecus:
-                for mcast in ecu.multicast_groups:
+                for mcast in ecu.multicast_groups or []:
                     key = str(mcast.group) + separ + str(mcast.vlan)
                     if mcast.mode == "tx":
                         tx_list.append(key)
@@ -330,11 +330,11 @@ class FLYNCModel(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_multicast_paths(self):
+    def validate_multicast_paths(self) -> Self:
         try:
-            paths = {}
-            parents = {}
-            vlans_dict = {}
+            paths: dict[str, list[Any]] = {}
+            parents: dict[str, list[Any]] = {}
+            vlans_dict: dict[str, int | None] = {}
             separ = "/VLAN"
             for key, mcast in self._iter_tx_multicasts(separ):
                 self._record_tx_multicast_path(key, mcast, paths, parents, vlans_dict)
@@ -363,7 +363,7 @@ class FLYNCModel(FLYNCBaseModel):
         parents.setdefault(key, []).append(parent)
 
     @model_validator(mode="after")
-    def validate_no_someip_multicast_on_tcp(self):
+    def validate_no_someip_multicast_on_tcp(self) -> Self:
         """
         Validate that no SOME/IP eventgroup multicast is configured on a TCP socket.
 
@@ -395,7 +395,7 @@ class FLYNCModel(FLYNCBaseModel):
         )
 
     @model_validator(mode="after")
-    def validate_unique_macs(self):
+    def validate_unique_macs(self) -> Self:
         """
         Validate all MACs are unique system wide
         """
@@ -411,14 +411,14 @@ class FLYNCModel(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_bus_interface_frame_refs(self):
+    def validate_bus_interface_frame_refs(self) -> Self:
         """Workspace-level bus interface pass: every CAN / LIN interface names a declared bus of its own kind and resolves its frame refs."""
 
         validate_interface_frame_refs(self)
         return self
 
     @model_validator(mode="after")
-    def validate_forwarders(self):
+    def validate_forwarders(self) -> Self:
         """Workspace-level forwarder/deployment pass: ref resolution, same-controller locality + direction safety, and cycle detection."""
 
         validate_pdu_deployment_refs(
@@ -430,7 +430,7 @@ class FLYNCModel(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_service_refs_in_apps(self):
+    def validate_service_refs_in_apps(self) -> Self:
         """Validate that applications are referencing existing services."""
         known_services = self.get_someip_services_by_identity()
         for app in self.apps or []:
@@ -445,7 +445,7 @@ class FLYNCModel(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_app_refs_in_controller_bindings(self):
+    def validate_app_refs_in_controller_bindings(self) -> Self:
         """Validate that app_bindings of ecu controllers and their compute nodes are referencing existing apps."""
         apps_by_name = {app.name: app for app in self.apps or []}
         for owner in self.iter_app_binding_owners():
@@ -454,7 +454,7 @@ class FLYNCModel(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_app_bindings_consume_deployed_services(self):
+    def validate_app_bindings_consume_deployed_services(self) -> Self:
         """Every app bound to a controller must have its service_consumer_refs matched by a someip_consumer
         deployment on that same controller."""
         services_by_identity = self.get_someip_services_by_identity()
@@ -472,13 +472,13 @@ class FLYNCModel(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_state_management_groups(self):
+    def validate_state_management_groups(self) -> Self:
         """Workspace-level state management pass: group refs, derived member sets, NM PDU binding, and reachability."""
         validate_state_management(self)
         return self
 
     @model_validator(mode="after")
-    def build_and_validate_bus_topologies(self):
+    def build_and_validate_bus_topologies(self) -> Self:
         """Derive the system-wide CAN, LIN and Ethernet multidrop topology from bus definitions and ECU interfaces, then validate it."""
 
         can_topos, lin_topos, can_defs, lin_defs = build_bus_topologies(self)
@@ -489,22 +489,22 @@ class FLYNCModel(FLYNCBaseModel):
         validate_multidrop_connections(self.multidrop_connections)
         return self
 
-    def get_can_bus_topology(self, bus_name: str) -> Optional["CANBusTopology"]:
+    def get_can_bus_topology(self, bus_name: str) -> Optional[CANBusTopology]:
         """Return the derived CAN bus topology for ``bus_name``, or ``None`` if unknown."""
         return next((t for t in self.topology.can_bus_topology if t.bus_name == bus_name), None)
 
-    def get_lin_bus_topology(self, bus_name: str) -> Optional["LINBusTopology"]:
+    def get_lin_bus_topology(self, bus_name: str) -> Optional[LINBusTopology]:
         """Return the derived LIN bus topology for ``bus_name``, or ``None`` if unknown."""
         return next((t for t in self.topology.lin_bus_topology if t.bus_name == bus_name), None)
 
     @property
-    def multidrop_connections(self) -> List["EthernetMultidropConnection"]:
+    def multidrop_connections(self) -> List[EthernetMultidropConnection]:
         """Every multidrop connection in the system topology."""
 
         topology = self.topology.ethernet_topology if self.topology else None
         return [c for c in topology.connections if isinstance(c, EthernetMultidropConnection)] if topology else []
 
-    def get_multidrop_connection(self, connection_id: str) -> Optional["EthernetMultidropConnection"]:
+    def get_multidrop_connection(self, connection_id: str) -> Optional[EthernetMultidropConnection]:
         """Return the multidrop connection with ``connection_id``, or ``None`` if unknown."""
 
         return next((c for c in self.multidrop_connections if c.id == connection_id), None)
@@ -620,14 +620,14 @@ class FLYNCModel(FLYNCBaseModel):
             controllers.extend(ecu.controllers)
         return controllers
 
-    def get_all_ecu_ports(self) -> List["ECUPort"]:
+    def get_all_ecu_ports(self) -> List[ECUPort]:
         """Return a list of all ECU ports"""
         ecu_ports = []
         for ecu in self.ecus:
             ecu_ports.extend(ecu.get_all_ports())
         return ecu_ports
 
-    def get_all_ecu_ports_by_name(self) -> Dict[str, "ECUPort"]:
+    def get_all_ecu_ports_by_name(self) -> Dict[str, ECUPort]:
         return {e.name: e for e in self.get_all_ecu_ports()}
 
     def get_interface_by_name(self, name):
@@ -675,7 +675,7 @@ class FLYNCModel(FLYNCBaseModel):
                 sock.bind(tcp_by_id)
 
     @model_validator(mode="after")
-    def resolve_tcp_profiles(self):
+    def resolve_tcp_profiles(self) -> Self:
         if self.communication:
             tcp_by_id = {t.tcp_profile_id: t for t in (self.communication.tcp_profiles or [])}
             self._bind_tcp_profiles(tcp_by_id)
@@ -689,7 +689,7 @@ class FLYNCModel(FLYNCBaseModel):
                     dep.bind(services_by_key, sd_timings_by_id)
 
     @model_validator(mode="after")
-    def resolve_someip_deployments(self):
+    def resolve_someip_deployments(self) -> Self:
         if self.communication and self.communication.someip_config:
             someip = self.communication.someip_config
             services_by_key = {(s.id, s.major_version): s for s in someip.services}
@@ -707,14 +707,14 @@ class FLYNCModel(FLYNCBaseModel):
                     dep.bind(timings_by_id)
 
     @model_validator(mode="after")
-    def resolve_diagnostics_deployments(self):
+    def resolve_diagnostics_deployments(self) -> Self:
         if self.communication and self.communication.diagnostics_config:
             diagnostics = self.communication.diagnostics_config
             self._bind_diagnostics_sockets(diagnostics.doip_timings_by_id(), diagnostics.uds_servers_by_name())
         return self
 
     @model_validator(mode="after")
-    def validate_unique_doip_logical_addresses(self):
+    def validate_unique_doip_logical_addresses(self) -> Self:
         """
         Raise ``err_major`` if two ``DoIPServerDeployment``\\ s anywhere in the system declare the same
         ``logical_address`` - DoIP logical addresses must be unique across the vehicle, not just per socket.
@@ -737,7 +737,7 @@ class FLYNCModel(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_multicast_someip(self):
+    def validate_multicast_someip(self) -> Self:
         """
         Validate multicast configuration for SOME/IP consumers and providers
 
@@ -751,14 +751,14 @@ class FLYNCModel(FLYNCBaseModel):
             (deployment.root, socket, ecu)
             for ecu in self.ecus
             for ctrl in ecu.controllers
-            for iface in ctrl.ethernet_interfaces
-            for sock_con in iface.sockets
-            for socket in sock_con.sockets
-            for deployment in socket.deployments
+            for iface in (ctrl.ethernet_interfaces or [])
+            for sock_con in (iface.sockets or [])
+            for socket in (sock_con.sockets or [])
+            for deployment in (socket.deployments or [])
             if deployment.root.deployment_type.startswith("someip_") and socket.endpoint_type == "multicast" and socket.protocol == "udp"
         ]
 
-        providers = [dpl for dpl in deployments if dpl[0].deployment_type == "someip_provider"]
+        providers = [(root, socket, ecu) for root, socket, ecu in deployments if isinstance(root, SOMEIPServiceProvider)]
 
         # Providers need to have multicast_tx in socket
         for provider, socket, _ecu in providers:
@@ -766,7 +766,7 @@ class FLYNCModel(FLYNCBaseModel):
             # An unbound deployment (no someip_config declared) still names its service by id / major_version.
             svc_label = f"{svc.name}, {svc.id:#06x}, {svc.major_version}" if svc else f"{provider.service:#06x}, {provider.major_version}"
             for mcast_config in provider.multicast_config or []:
-                if mcast_config.ip_address not in socket.multicast_tx:
+                if mcast_config.ip_address not in (socket.multicast_tx or []):
                     raise err_major(
                         f"Deployed provided service ({svc_label}) "
                         f"has multicast configuration for eventgroups ({mcast_config.eventgroups}/{mcast_config.ip_address}), "

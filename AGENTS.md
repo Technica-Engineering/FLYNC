@@ -288,6 +288,9 @@ Defined in `.pre-commit-config.yaml` with `default_install_hook_types: [pre-comm
 - `end-of-file-fixer`, `trailing-whitespace` (pre-commit-hooks v6.0.0)
 - `autoflake` — removes unused imports/variables, expands star imports
 - `black` (line-length=149)
+- `mypy` and `check-lazy-typing` (`local` hooks, run through `uv run`) — the mypy hook passes
+  `--extra gui --extra tui` so PySide6/textual resolve; see the extras caveat under
+  [Individual checks](#individual-checks). CI's `pre-commit` job syncs the same extras
 
 ```bash
 pre-commit install              # install hooks (both pre-commit and commit-msg)
@@ -377,6 +380,9 @@ cd docs && make html    # Sphinx, generates mermaid diagrams + CLI docs
 - **Discriminated unions** for polymorphic types (e.g., PHY types)
 - Field annotations use `Annotated[str, External(output_structure=OutputStrategy.SINGLE_FILE)]`
 - Validators use `@field_validator` / `@model_validator` / `BeforeValidator` / `AfterValidator` patterns
+- **Avoid `PrivateAttr(default=...)`** — it trips SonarQube's `S5890` (the `PrivateAttr` value never matches the `Optional[T]` annotation). Pydantic v2 already treats a leading-underscore, typed class attribute as a private attr, so write `_some_attr: Optional[T] = None` instead (kept out of fields/`model_dump`, copied by `model_copy`).
+- **Avoid `typing.Union` / `typing.Optional` in type hints** — use the `X | Y` and `X | None` union expressions (PEP 604), which SonarQube's `S6546` requires. `Optional`/`Union` are still fine for annotations that must stay strings, but prefer the `|` syntax wherever it parses.
+- **Avoid redundant quoting for lazy typing** — under `from __future__ import annotations` and for names imported under `TYPE_CHECKING`, do not wrap type hints in quotes; the guard `scripts/ci/check_lazy_typing.py` enforces this. `Self` (not a quoted self-return string) is required for `@model_validator(mode="after")` methods.
 
 ## CI
 

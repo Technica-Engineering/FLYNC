@@ -7,7 +7,7 @@ Provides the :class:`PDU` base class with its variants :class:`StandardPDU`, :cl
 signal instances of a PDU stay within its length and do not overlap.
 """
 
-from typing import Annotated, List, Literal, Optional
+from typing import Annotated, List, Literal, Optional, Self
 
 from pydantic import BeforeValidator, Field, field_validator, model_validator
 
@@ -106,7 +106,7 @@ class StandardPDU(PDU):
     signal_groups: List[SignalGroupInstance] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def validate_signals_fit_in_pdu(self) -> "StandardPDU":
+    def validate_signals_fit_in_pdu(self) -> Self:
         """Check all placed signals are within bounds and do not overlap."""
         ranges = _collect_placed_ranges(self.signals, self.signal_groups)
         context = f"PDU '{self.name}'"
@@ -152,7 +152,7 @@ class MultiplexedPDU(PDU):
     mux_groups: List[MuxGroup] = Field(default_factory=list, min_length=1)
 
     @model_validator(mode="after")
-    def validate_unique_selector_values(self) -> "MultiplexedPDU":
+    def validate_unique_selector_values(self) -> Self:
         """Ensure no two mux groups share the same selector value."""
         values = [g.selector_value for g in self.mux_groups]
         duplicates = [v for v in values if values.count(v) > 1]
@@ -167,7 +167,7 @@ class MultiplexedPDU(PDU):
         return self
 
     @model_validator(mode="after")
-    def validate_selector_value_ranges(self) -> "MultiplexedPDU":
+    def validate_selector_value_ranges(self) -> Self:
         """Ensure selector_values fit within the selector signal's width."""
         max_value = (1 << self.selector_signal.signal.bit_length) - 1
         out_of_range = sorted({g.selector_value for g in self.mux_groups if g.selector_value > max_value})
@@ -255,7 +255,7 @@ class ContainerPDU(PDU):
     contained_pdus: List[ContainedPDURef] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def validate_minimum_container_size(self) -> "ContainerPDU":
+    def validate_minimum_container_size(self) -> Self:
         """Ensure container length covers the per-slot header overhead."""
         overhead_bits = self.header.id_length_bits + self.header.length_field_bits
         overhead = overhead_bits // 8  # bits → bytes (always byte-aligned)
@@ -276,7 +276,7 @@ class ContainerPDU(PDU):
         return self
 
     @model_validator(mode="after")
-    def validate_one_pdu_if_header_length_is_one(self) -> "ContainerPDU":
+    def validate_one_pdu_if_header_length_is_one(self) -> Self:
         """Ensure container length covers the per-slot header overhead."""
 
         if self.header.id_length_bits == 0 and self.header.length_field_bits == 0 and len(self.contained_pdus) != 1:

@@ -5,7 +5,7 @@ import logging
 import os
 from pathlib import Path
 
-from flync.model import FLYNCModel  # type: ignore[import-untyped]
+from flync.model import FLYNCModel
 
 from ..base.base_converter import BaseConverter
 from ..registry import hookimpl

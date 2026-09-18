@@ -98,7 +98,7 @@ class UDPDeployment(BaseUDPDeployment):
         Multicast configuration for this endpoint.
     """
 
-    multicast: Optional["MulticastEndpoint"] = Field(description="multicast configuration for this endpoint", default=None)
+    multicast: Optional[MulticastEndpoint] = Field(description="multicast configuration for this endpoint", default=None)
 
 
 class TCPDeployment(Layer4Endpoint):
@@ -121,7 +121,7 @@ class SOMEIPSDDeployment(FLYNCBaseModel):
     """
 
     deployment_type: Literal["someip_sd"] = Field(default="someip_sd")
-    multicast: Optional["MulticastSDEndpoint"] = Field(description="multicast configuration for SD endpoint", default=None)
+    multicast: Optional[MulticastSDEndpoint] = Field(description="multicast configuration for SD endpoint", default=None)
 
 
 class SOMEIPServiceDeployment(abc.ABC, FLYNCBaseModel):

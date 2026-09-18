@@ -20,7 +20,7 @@ timing profile. They are still spell-checked, because :data:`CANONICAL_SERVICE_N
 ``service`` name of every service id ISO 14229-1 standardises.
 """
 
-from typing import Annotated, Any, List, Literal, Optional, Union
+from typing import Annotated, Any, List, Literal, Optional, Self, Union
 
 from pydantic import BeforeValidator, Discriminator, Field, Tag, field_serializer, model_validator
 
@@ -143,7 +143,7 @@ class GenericUDSService(FLYNCBaseModel):
     option_record: Optional[dict] = Field(default=None)
 
     @model_validator(mode="after")
-    def validate_service_name_is_canonical(self) -> "GenericUDSService":
+    def validate_service_name_is_canonical(self) -> Self:
         """
         Raise when a standardised service id carries a name other than its ISO 14229-1 one.
         """
@@ -224,7 +224,7 @@ class DiagnosticSessionControlService(GenericUDSService):
     sessions: List[DiagnosticSessionDefinition] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def validate_exactly_one_default_session(self) -> "DiagnosticSessionControlService":
+    def validate_exactly_one_default_session(self) -> Self:
         defaults = [session for session in self.sessions if session.name == "default"]
         if len(defaults) != 1:
             raise err_major(
@@ -236,7 +236,7 @@ class DiagnosticSessionControlService(GenericUDSService):
         return self
 
     @model_validator(mode="after")
-    def validate_session_names_and_ids_unique(self) -> "DiagnosticSessionControlService":
+    def validate_session_names_and_ids_unique(self) -> Self:
         validate_list_items_unique([session.name for session in self.sessions], "session names")
         validate_list_items_unique([session.id for session in self.sessions], "session ids")
         return self
@@ -279,7 +279,7 @@ class EcuResetService(GenericUDSService):
     power_down_time: Optional[Annotated[int, BeforeValidator(coerce_int), Field(ge=0x00, le=0xFE)]] = Field(default=None)
 
     @model_validator(mode="after")
-    def validate_reset_types(self) -> "EcuResetService":
+    def validate_reset_types(self) -> Self:
         """
         Raise on duplicate reset types, and on a ``power_down_time`` no reset type reports.
         """
@@ -351,7 +351,7 @@ class ClearDiagnosticInformationService(GenericUDSService):
     memory_selections: List[SubfunctionValue] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def validate_dtc_groups(self) -> "ClearDiagnosticInformationService":
+    def validate_dtc_groups(self) -> Self:
         """
         Raise on duplicate DTC groups, and warn when the declared groups look incomplete.
         """
@@ -430,7 +430,7 @@ class ReadDTCInformationService(GenericUDSService):
     ext_data_record_numbers: List[SubfunctionValue] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def validate_report_types_and_mask(self) -> "ReadDTCInformationService":
+    def validate_report_types_and_mask(self) -> Self:
         """
         Raise on duplicate report types and an all-zero availability mask; warn on a service
         that declares nothing, and on report types whose supporting configuration is absent.
@@ -670,7 +670,7 @@ class TransferSetupService(GenericUDSService):
     memory_regions: List[TransferMemoryRegion] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def validate_memory_regions_fit_the_format_identifier(self) -> "TransferSetupService":
+    def validate_memory_regions_fit_the_format_identifier(self) -> Self:
         """
         Raise when a declared region cannot be expressed with the declared address/size widths.
         """

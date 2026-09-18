@@ -12,7 +12,7 @@ from cantools.database.can.node import Node
 from cantools.database.can.signal import NamedSignalValue, Signal
 from cantools.database.conversion import LinearConversion
 
-from flync.model import FLYNCModel  # type: ignore[import-untyped]
+from flync.model import FLYNCModel
 from flync.model.flync_4_signal import ContainerPDU, MultiplexedPDU, SignalInstance, StandardPDU
 from flync.model.flync_4_signal.pdu import PDU
 from flync.model.flync_4_signal.value_encoding import TextTable
@@ -20,7 +20,7 @@ from flync.model.flync_4_signal.value_encoding import TextTable
 logger = logging.getLogger(__name__)
 
 
-def _value_encoding_choices(signal) -> Optional[OrderedDict[int, "str | NamedSignalValue"]]:
+def _value_encoding_choices(signal) -> Optional[OrderedDict[int, str | NamedSignalValue]]:
     """Convert a FLYNC signal ``value_encoding`` into a cantools ``VAL_`` choices dict.
 
     Returns ``None`` when the signal carries no value encoding.  Range entries
@@ -30,7 +30,7 @@ def _value_encoding_choices(signal) -> Optional[OrderedDict[int, "str | NamedSig
     encoding = getattr(signal, "value_encoding", None)
     if not isinstance(encoding, TextTable):
         return None
-    choices: "OrderedDict[int, str | NamedSignalValue]" = OrderedDict()
+    choices: OrderedDict[int, str | NamedSignalValue] = OrderedDict()
     for entry in encoding.entries:
         from_value = entry.from_value
         to_value = entry.to_value
@@ -111,8 +111,8 @@ def decode_signal(
         multiplexer_ids=multiplexer_ids,
         unit=signal.unit or "",
         comment={"EN": signal.description} if signal.description else None,
-        minimum=minimum,  # type: ignore[arg-type]
-        maximum=maximum,  # type: ignore[arg-type]
+        minimum=minimum,
+        maximum=maximum,
     )
     choices = _value_encoding_choices(signal)
     if choices:

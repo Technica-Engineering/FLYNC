@@ -2,7 +2,7 @@
 The Ethernet multidrop branch of the system topology.
 """
 
-from typing import Annotated, Dict, List, Literal, Optional, cast
+from typing import Annotated, Dict, List, Literal, Optional, Self, cast
 
 from pydantic import Field, model_serializer, model_validator
 
@@ -99,7 +99,7 @@ class EthernetMultidropNode(FLYNCBaseModel):
         return "coordinator" if self.is_coordinator else "follower"
 
     @model_validator(mode="after")
-    def check_burst_timer(self) -> "EthernetMultidropNode":
+    def check_burst_timer(self) -> Self:
         """A burst timer at or below the interframe gap ends the burst before the next frame starts."""
 
         if self.burst_count > 0 and self.burst_timer <= _INTERFRAME_GAP_BIT_TIMES:
@@ -116,7 +116,7 @@ class EthernetMultidropNode(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def check_burst_needs_a_slot(self) -> "EthernetMultidropNode":
+    def check_burst_needs_a_slot(self) -> Self:
         """Bursting is a PLCA feature; with no slot the node competes by CSMA/CD and has nothing to burst inside."""
 
         if self.node_id is None and (self.burst_count != 0 or self.burst_timer != 128):
@@ -188,7 +188,7 @@ class EthernetMultidropConnection(FLYNCBaseModel):
         return sorted((node for node in self.nodes if node.participates), key=_slot)
 
     @model_validator(mode="after")
-    def check_slots_need_a_cycle(self) -> "EthernetMultidropConnection":
+    def check_slots_need_a_cycle(self) -> Self:
         """A slot number without a cycle to sit in describes nothing."""
 
         if self.plca is None:

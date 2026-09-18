@@ -10,7 +10,7 @@ from flync.model.flync_4_ecu import (
 )
 
 
-def _mgm_data_key(g: "MulticastGroupMembership"):
+def _mgm_data_key(g: MulticastGroupMembership):
     """
     Return a tuple of data fields used for deduplication.
 

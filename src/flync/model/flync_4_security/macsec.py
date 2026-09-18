@@ -1,6 +1,6 @@
 """Defines MACsec configuration for FLYNC."""
 
-from typing import Annotated, List, Literal, Optional
+from typing import Annotated, List, Literal, Optional, Self
 
 from pydantic import AfterValidator, BeforeValidator, Field, PlainSerializer, field_validator, model_validator
 
@@ -67,7 +67,7 @@ class IntegrityWithConfidentiality(CipherSuiteBaseModel):
     confidentiality_offset: Optional[Literal[0, 30, 50]] = Field(default=0)
 
     @model_validator(mode="after")
-    def validate_xpn_confidentiality_offset(self):
+    def validate_xpn_confidentiality_offset(self) -> Self:
         """Ensure XPN ciphers do not use a non-zero confidentiality offset."""
         if self.xpn() and self.confidentiality_offset != 0:
             raise err_minor(
@@ -197,7 +197,7 @@ class MACsecConfig(FLYNCBaseModel):
         return bytearray(ord(char) for char in self.ckn)
 
     @model_validator(mode="after")
-    def warn_replay_protection_window_non_zero(self):
+    def warn_replay_protection_window_non_zero(self) -> Self:
         """Warn if the replay protection window is set to a non-zero value."""
         if self.replay_protection_window != 0:
             warn(
@@ -209,7 +209,7 @@ class MACsecConfig(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_mka_macsecmode_disabled(self):
+    def validate_mka_macsecmode_disabled(self) -> Self:
         """Warn if MACsec is enabled while MKA is disabled."""
         if not self.mka_enabled and self.macsec_mode != "disabled":
             warn(
@@ -220,7 +220,7 @@ class MACsecConfig(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_life_time_greater_than_hello_time(self):
+    def validate_life_time_greater_than_hello_time(self) -> Self:
         """Ensure life time is greater than hello time."""
         if self.life_time < self.hello_time:
             raise err_minor("Life time should be greater than hello time.", category=Category.CONSISTENCY, error_number="101")

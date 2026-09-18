@@ -1,6 +1,6 @@
 """Defines the Application model for FLYNC including its service provider and consumer references."""
 
-from typing import Annotated, List, Literal, Optional
+from typing import Annotated, List, Literal, Optional, Self
 
 from pydantic import Field, model_validator
 
@@ -87,7 +87,7 @@ class App(FLYNCBaseModel):
     )
 
     @model_validator(mode="after")
-    def warn_self_consumed_instances(self):
+    def warn_self_consumed_instances(self) -> Self:
         """Warn when a service instance is referenced in both service_consumer_refs and service_provider_refs."""
         provided = {(ref.service_id, ref.instance_id, ref.major_version) for ref in self.service_provider_refs or []}
         for ref in self.service_consumer_refs or []:

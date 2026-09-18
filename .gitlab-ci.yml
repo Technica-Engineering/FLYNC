@@ -49,12 +49,15 @@ quality:
           uv run isort --check --diff --color --line-length 149 tests > quality-reports/isort-tests.diff
           ;;
         pre_commit_check)
-          uv sync --frozen --no-install-project --only-group dev
+          # The mypy hook needs the gui/tui extras (see the type_check job below):
+          # without them PySide6/textual are unresolvable and their `# type: ignore`
+          # comments read as unused.
+          uv sync --frozen --extra gui --extra tui
           uv run pre-commit run --all-files
           ;;
         type_check)
           uv sync --frozen --group static-analysis --extra gui --extra tui
-          uv run mypy src --show-error-codes --pretty --install-types --non-interactive | tee quality-reports/mypy.txt
+          uv run mypy src scripts/ci/check_lazy_typing.py --show-error-codes --pretty --install-types --non-interactive | tee quality-reports/mypy.txt
           ;;
       esac
   artifacts:
@@ -70,7 +73,7 @@ integrity:
   stage: static-analysis
   parallel:
     matrix:
-      - CHECK: ["error-catalog", "model-docstrings"]
+      - CHECK: ["error-catalog", "model-docstrings", "lazy-typing"]
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
@@ -88,6 +91,9 @@ integrity:
         model-docstrings)
           uv sync --frozen
           uv run python scripts/ci/check_model_docstrings.py --strict
+          ;;
+        lazy-typing)
+          python3 scripts/ci/check_lazy_typing.py
           ;;
       esac
 

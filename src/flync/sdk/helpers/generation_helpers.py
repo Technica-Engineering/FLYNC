@@ -443,7 +443,7 @@ class FLYNCFactory(ModelFactory[FLYNCBaseModel]):
         if field_info.default is not PydanticUndefined:
             return field_info.default
         if field_info.default_factory is not None:
-            return field_info.default_factory()  # type: ignore[call-arg]
+            return field_info.default_factory()
         raise
 
     @staticmethod

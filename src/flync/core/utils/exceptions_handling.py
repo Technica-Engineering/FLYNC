@@ -418,7 +418,7 @@ def _wrap_native_error(err: ErrorDetails) -> ErrorDetails:
         "input": err.get("input"),
         "ctx": ctx,
         "url": "",
-    }  # type: ignore[return-value]
+    }
 
 
 def _tag_warnings_with_path(warnings: list, path) -> None:
@@ -454,7 +454,7 @@ def _enrich_validation_error(
         )
         raise ValidationError.from_exception_data(
             title=ve.title,
-            line_errors=enriched,  # type: ignore[arg-type]
+            line_errors=enriched,
         )
     except ValidationError as ve_enriched:
         return ve_enriched

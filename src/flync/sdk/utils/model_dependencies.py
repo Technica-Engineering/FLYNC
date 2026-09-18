@@ -589,7 +589,7 @@ _cache_name = ""
 # lock and re-unpickling the shelve on every call within a single process (the
 # graph is deterministic per root type, and this factory is called many times
 # per dump/load).
-_graph_cache: dict[str, "ModelDependencyGraph"] = {}
+_graph_cache: dict[str, ModelDependencyGraph] = {}
 
 # Dynamically-generated roots (type-replacement engine output) have a per-build
 # object identity even when two builds are structurally identical. Their graphs
@@ -597,7 +597,7 @@ _graph_cache: dict[str, "ModelDependencyGraph"] = {}
 # keys), so a structurally-keyed cache would hand back a graph whose nodes belong
 # to a *previous* build. Cache such graphs by root identity instead; a weak key
 # lets the graph be collected once its root is no longer referenced.
-_dynamic_graph_cache: "WeakKeyDictionary[type, ModelDependencyGraph]" = WeakKeyDictionary()
+_dynamic_graph_cache: WeakKeyDictionary[type, ModelDependencyGraph] = WeakKeyDictionary()
 
 
 def hash_directory_fast(directory: str, ext=".py") -> str:
@@ -724,9 +724,9 @@ def _is_pickleable_class(cls: type) -> bool:
         # TypeError/ValueError: a synthetic ``__module__`` that is not a valid module name
         # (relative or malformed) is rejected by import_module before any import happens.
         return False
-    obj = module
+    obj: object = module
     for part in qualname.split("."):
-        obj = getattr(obj, part, None)  # type: ignore[assignment]
+        obj = getattr(obj, part, None)
     return obj is cls
 
 

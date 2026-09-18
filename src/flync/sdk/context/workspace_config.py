@@ -9,7 +9,7 @@ import importlib.metadata
 import logging
 from enum import IntFlag
 from pathlib import Path
-from typing import Any, Type
+from typing import Any, Self, Type
 
 import yaml
 from packaging.version import Version
@@ -191,7 +191,7 @@ class WorkspaceConfiguration(BaseModel):
         return flags
 
     @classmethod
-    def from_yaml_file(cls, path: str | Path) -> "WorkspaceConfiguration":
+    def from_yaml_file(cls, path: str | Path) -> Self:
         """
         Load WorkspaceConfiguration from a YAML file.
 
@@ -231,7 +231,7 @@ class WorkspaceConfiguration(BaseModel):
         return cls(**data)
 
     @classmethod
-    def from_workspace(cls, workspace_path: str | Path) -> "WorkspaceConfiguration":
+    def from_workspace(cls, workspace_path: str | Path) -> Self:
         """
         Resolve the base configuration for a workspace directory.
 
@@ -321,7 +321,7 @@ class WorkspaceConfiguration(BaseModel):
             yaml.dump(data, f, default_flow_style=False, sort_keys=False)
 
     @classmethod
-    def create_from_config(cls, existing_config: "WorkspaceConfiguration", **configs) -> "WorkspaceConfiguration":
+    def create_from_config(cls, existing_config: Self, **configs) -> Self:
         """
         Create a new configuration by overriding fields on an existing one.
 
@@ -337,4 +337,4 @@ class WorkspaceConfiguration(BaseModel):
 
         existing_config_values = existing_config.model_dump()
         existing_config_values.update(**configs)
-        return WorkspaceConfiguration(**existing_config_values)
+        return cls(**existing_config_values)

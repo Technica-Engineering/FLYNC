@@ -136,7 +136,7 @@ class SwitchPort(FLYNCBaseModel):
     _mdi_config: BASET1 | BASET1S | BASET | None = None
     _connected_component: Optional[Any] = PrivateAttr(default=None)
     _type: Literal["switch_port"] = PrivateAttr(default="switch_port")
-    _switch: Optional["Switch"] = PrivateAttr(default=None)
+    _switch: Optional[Switch] = None
 
     @property
     def mdi_config(self):
@@ -151,12 +151,12 @@ class SwitchPort(FLYNCBaseModel):
         return self._connected_component
 
     @property
-    def switch(self) -> Optional["Switch"]:
+    def switch(self) -> Optional[Switch]:
         return self._switch
 
     @model_validator(mode="after")
-    def validate_traffic_classes(self):
-        if self.mii_config and self.traffic_classes:
+    def validate_traffic_classes(self) -> Self:
+        if self.mii_config and self.mii_config.speed is not None and self.traffic_classes:
             validate_cbs_idleslopes_fit_portspeed(
                 self.traffic_classes,
                 self.mii_config.speed,
@@ -451,13 +451,13 @@ class TCAMRule(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_exclusive_drop_force_mirror(self):
+    def validate_exclusive_drop_force_mirror(self) -> Self:
         """Validate that no port is targeted by more than one of the mutually-exclusive actions *drop*, *force_egress* or *mirror*."""
 
-        all_ports = []
-        for action in self.action:
+        all_ports: list[str] = []
+        for action in self.action or []:
             if action.type in ["drop", "force_egress", "mirror"]:
-                all_ports += action.ports
+                all_ports += action.ports or []
 
         if len(all_ports) != len(set(all_ports)):
             raise err_minor(
@@ -468,13 +468,13 @@ class TCAMRule(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_exclusive_vlan_action(self):
+    def validate_exclusive_vlan_action(self) -> Self:
         """Validate that no port is targeted by both VLAN actions *remove_vlan* and *vlan_overwrite*."""
 
-        all_ports = []
-        for action in self.action:
+        all_ports: list[str] = []
+        for action in self.action or []:
             if action.type in ["remove_vlan", "vlan_overwrite"]:
-                all_ports += action.ports
+                all_ports += action.ports or []
 
         if len(all_ports) != len(set(all_ports)):
             raise err_minor(
@@ -552,7 +552,7 @@ class Switch(FLYNCBaseModel):
         ),
     ] = Field()
     host_controller: Annotated[
-        Optional["Controller"],
+        Optional[Controller],
         External(
             output_structure=OutputStrategy.FOLDER,
             naming_strategy=NamingStrategy.FIXED_PATH,
@@ -581,7 +581,7 @@ class Switch(FLYNCBaseModel):
         return self.switch_config.vlans
 
     @model_validator(mode="after")
-    def validate_unique_port_number(self):
+    def validate_unique_port_number(self) -> Self:
         """
         Validate if the silicon port numbers for all the different switch ports are unique
 
@@ -599,7 +599,7 @@ class Switch(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_unique_port_names(self):
+    def validate_unique_port_names(self) -> Self:
         """Validate port names are unique across this switch's ports."""
         validate_list_items_unique(
             [p.name for p in self.ports],
@@ -667,7 +667,7 @@ class Switch(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_ports_in_tcam_exist(self):
+    def validate_ports_in_tcam_exist(self) -> Self:
         """
         Validate that every port referenced in TCAM rules exists on the switch.
 
@@ -678,11 +678,11 @@ class Switch(FLYNCBaseModel):
         if not self.tcam_rules:
             return self
         switch_port_names = [port.name for port in self.ports]
-        tcam_ports = []
+        tcam_ports: list[str] = []
         for tcam_rule in self.tcam_rules:
-            tcam_ports += tcam_rule.match_ports
-            for action in tcam_rule.action:
-                tcam_ports += action.ports
+            tcam_ports += tcam_rule.match_ports or []
+            for action in tcam_rule.action or []:
+                tcam_ports += action.ports or []
 
         validate_elements_in(
             tcam_ports,
@@ -692,7 +692,7 @@ class Switch(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_ports_in_vlan_entries_exist(self):
+    def validate_ports_in_vlan_entries_exist(self) -> Self:
         """
         Validate that every port referenced in VLAN entries exists on the switch.
 
@@ -717,7 +717,7 @@ class Switch(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_tcam_ids_unique(self):
+    def validate_tcam_ids_unique(self) -> Self:
         """
         Validate that each TCAM rule has a unique identifier.
 
@@ -725,12 +725,12 @@ class Switch(FLYNCBaseModel):
             err_minor: Duplicate ``id`` values found among the TCAM rules.
         """
 
-        ids = [tcam.id for tcam in self.tcam_rules]
+        ids = [tcam.id for tcam in (self.tcam_rules or [])]
         validate_list_items_unique(ids, "tcam_rules (id)")
         return self
 
     @model_validator(mode="after")
-    def validate_tcam_name_unique(self):
+    def validate_tcam_name_unique(self) -> Self:
         """
         Validate that each TCAM rule has a unique name.
 
@@ -738,7 +738,7 @@ class Switch(FLYNCBaseModel):
             err_minor: Duplicate ``name`` values found among the TCAM rules.
         """
 
-        names = [tcam.name for tcam in self.tcam_rules]
+        names = [tcam.name for tcam in (self.tcam_rules or [])]
         validate_list_items_unique(names, "tcam_rules (name)")
 
         return self

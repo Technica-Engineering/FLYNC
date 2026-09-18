@@ -1,6 +1,6 @@
 """CAN interface configuration for ECU controllers."""
 
-from typing import Annotated, List
+from typing import Annotated, List, Self
 
 from pydantic import Field, model_validator
 
@@ -56,7 +56,7 @@ class CANInterface(ControllerInterface):
     forwarder_frames: List[CANFrameForwarder] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def validate_forwarder_frame_uniqueness(self) -> "CANInterface":
+    def validate_forwarder_frame_uniqueness(self) -> Self:
         """Raise ``err_major`` if the same ``frame_ref`` appears twice in ``forwarder_frames``."""
 
         seen: set = set()

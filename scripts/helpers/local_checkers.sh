@@ -7,16 +7,19 @@ LINE_LENGTH=149
 
 
 echo "=== isort ==="
-uv run isort --check --diff --color --line-length $LINE_LENGTH src
+uv run isort --check --diff --color --line-length $LINE_LENGTH src scripts
 uv run isort --check --diff --color --line-length $LINE_LENGTH tests
 
 echo "=== flake8 ==="
-uv run flake8 --max-line-length $LINE_LENGTH src
+uv run flake8 --max-line-length $LINE_LENGTH src scripts
 #uv run flake8 --max-line-length $LINE_LENGTH tests
 
 echo "=== mypy ==="
-uv run mypy src --show-error-codes --pretty --install-types --non-interactive
+uv run mypy src scripts/ci/check_lazy_typing.py --show-error-codes --pretty --install-types --non-interactive
 
 echo "=== black ==="
-uv run black --target-version py312 --check --diff --color src
+uv run black --target-version py312 --check --diff --color src scripts
 uv run black --target-version py312 --check --diff --color tests
+
+echo "=== lazy typing ==="
+python3 scripts/ci/check_lazy_typing.py

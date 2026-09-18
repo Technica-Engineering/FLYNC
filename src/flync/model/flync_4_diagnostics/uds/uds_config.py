@@ -1,6 +1,6 @@
 """Defines the UDS configuration, loaded from ``communication/diagnostics/uds/``."""
 
-from typing import Annotated, List, Literal
+from typing import Annotated, List, Literal, Self
 
 from pydantic import Field, model_validator
 
@@ -55,30 +55,30 @@ class UDSConfig(FLYNCBaseModel):
     dtcs: Annotated[List[DiagnosticTroubleCode], External()] = Field(default_factory=list, description="list of DTCs")
 
     @model_validator(mode="after")
-    def validate_server_names_unique(self) -> "UDSConfig":
+    def validate_server_names_unique(self) -> Self:
         validate_list_items_unique([server.name for server in self.servers], "UDS server names")
         return self
 
     @model_validator(mode="after")
-    def validate_did_ids_unique(self) -> "UDSConfig":
+    def validate_did_ids_unique(self) -> Self:
         validate_list_items_unique([did.name for did in self.dids], "DID names")
         validate_list_items_unique([did.did for did in self.dids], "DID identifiers")
         return self
 
     @model_validator(mode="after")
-    def validate_routine_ids_unique(self) -> "UDSConfig":
+    def validate_routine_ids_unique(self) -> Self:
         validate_list_items_unique([routine.name for routine in self.routines], "routine names")
         validate_list_items_unique([routine.rid for routine in self.routines], "routine identifiers")
         return self
 
     @model_validator(mode="after")
-    def validate_dtc_ids_unique(self) -> "UDSConfig":
+    def validate_dtc_ids_unique(self) -> Self:
         validate_list_items_unique([dtc.name for dtc in self.dtcs], "DTC names")
         validate_list_items_unique([dtc.dtc for dtc in self.dtcs], "DTC identifiers")
         return self
 
     @model_validator(mode="after")
-    def bind_servers(self) -> "UDSConfig":
+    def bind_servers(self) -> Self:
         """
         Resolve every :class:`UDSServer`'s timings/DID/DTC/routine name references against
         this object's catalogs.

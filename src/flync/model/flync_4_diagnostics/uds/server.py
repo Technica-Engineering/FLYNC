@@ -17,7 +17,7 @@ ordinary model validators; the ones that need a resolved
 :meth:`UDSServer.bind`.
 """
 
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Self
 
 from pydantic import Field, model_validator
 from typing_extensions import Annotated
@@ -147,7 +147,7 @@ class UDSServer(FLYNCBaseModel):
         return next((s for s in self.services if isinstance(s, SecurityAccessService)), None)
 
     @model_validator(mode="after")
-    def validate_access_profile_names_unique_and_defaulted(self) -> "UDSServer":
+    def validate_access_profile_names_unique_and_defaulted(self) -> Self:
         validate_list_items_unique([profile.name for profile in self.access_profiles], f"access profile names of '{self.name}'")
         defaults = [profile for profile in self.access_profiles if profile.default]
         if self.access_profiles and len(defaults) != 1:
@@ -161,7 +161,7 @@ class UDSServer(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_access_profiles_reference_known_sessions_and_levels(self) -> "UDSServer":
+    def validate_access_profiles_reference_known_sessions_and_levels(self) -> Self:
         session_control = self._session_control()
         known_sessions = {session.name for session in session_control.sessions} if session_control else set()
         security_access = self._security_access()
@@ -190,7 +190,7 @@ class UDSServer(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_service_access_profiles_known(self) -> "UDSServer":
+    def validate_service_access_profiles_known(self) -> Self:
         for service in self.services:
             if service.access_profile is not None and service.access_profile not in self._known_access_profiles():
                 raise err_major(
@@ -204,7 +204,7 @@ class UDSServer(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_service_names_and_sids_unique(self) -> "UDSServer":
+    def validate_service_names_and_sids_unique(self) -> Self:
         validate_list_items_unique([service.service for service in self.services], f"service names of '{self.name}'")
         validate_list_items_unique([service.sid for service in self.services], f"service ids of '{self.name}'")
         return self
@@ -216,7 +216,7 @@ class UDSServer(FLYNCBaseModel):
         return next((s for s in self.services if isinstance(s, ReadDTCInformationService)), None)
 
     @model_validator(mode="after")
-    def validate_dtc_services_match_declared_dtcs(self) -> "UDSServer":
+    def validate_dtc_services_match_declared_dtcs(self) -> Self:
         """
         Raise when DTCs are declared with no service able to report or clear them, and warn
         on the reverse - a DTC service on a server that declares no DTC.
@@ -258,7 +258,7 @@ class UDSServer(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_session_keepalive_and_block_transfer(self) -> "UDSServer":
+    def validate_session_keepalive_and_block_transfer(self) -> Self:
         """
         Raise on a block transfer set that cannot work, and warn when a non-default session
         has no TesterPresent to keep ``S3_server`` from expiring.

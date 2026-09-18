@@ -1,6 +1,6 @@
 """Defines the top-level diagnostics configuration, loaded from ``communication/diagnostics/``."""
 
-from typing import Annotated, Literal, Optional
+from typing import Annotated, Literal, Optional, Self
 
 from pydantic import BeforeValidator, Field, model_validator
 
@@ -48,7 +48,7 @@ class DiagnosticsConfig(FLYNCBaseModel):
     ] = Field(default=None, description="contains the UDS config for the entire system.")
 
     @model_validator(mode="after")
-    def validate_at_least_one_protocol(self) -> "DiagnosticsConfig":
+    def validate_at_least_one_protocol(self) -> Self:
         """
         Reject a diagnostics config that carries neither protocol.
 

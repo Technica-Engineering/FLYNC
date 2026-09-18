@@ -1,6 +1,6 @@
 """Forwarder deployments and egress sinks for the PDU gateway feature."""
 
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Self
 
 from pydantic import Field, RootModel, model_validator
 
@@ -78,7 +78,7 @@ class PDUForwarder(FLYNCBaseModel):
     egresses: List[ForwarderEgress] = Field(min_length=1)
 
     @model_validator(mode="after")
-    def validate_pdu_forwarder_egress_uniqueness(self) -> "PDUForwarder":
+    def validate_pdu_forwarder_egress_uniqueness(self) -> Self:
         """Ensure every egress in ``egresses`` points at a distinct target carrier."""
 
         _check_egress_uniqueness(self.egresses, owner=f"PDUForwarder(pdu_ref={self.pdu_ref})")
@@ -101,7 +101,7 @@ class CANFrameForwarder(FLYNCBaseModel):
     egresses: List[ForwarderEgress] = Field(min_length=1)
 
     @model_validator(mode="after")
-    def validate_can_frame_forwarder_egress_uniqueness(self) -> "CANFrameForwarder":
+    def validate_can_frame_forwarder_egress_uniqueness(self) -> Self:
         """Ensure every egress in ``egresses`` points at a distinct target carrier."""
 
         _check_egress_uniqueness(self.egresses, owner=f"CANFrameForwarder(frame_ref={self.frame_ref})")

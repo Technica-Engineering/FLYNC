@@ -10,18 +10,17 @@ to which bus) and validates it. The result is never authored in YAML; it is (re)
 
 from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Tuple
 
-from pydantic import Field, PrivateAttr
+from pydantic import Field
 
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major, warn
 from flync.model.flync_4_bus.can_bus import CANBus
 from flync.model.flync_4_bus.lin_bus import LINBus
-from flync.model.flync_4_ecu.lin_interface import LINMasterInterface
+from flync.model.flync_4_ecu.can_interface import CANInterface
+from flync.model.flync_4_ecu.ecu import ECU
+from flync.model.flync_4_ecu.lin_interface import LINMasterInterface, LINSlaveInterface
 
 if TYPE_CHECKING:
-    from flync.model.flync_4_ecu.can_interface import CANInterface
-    from flync.model.flync_4_ecu.ecu import ECU
-    from flync.model.flync_4_ecu.lin_interface import LINSlaveInterface
     from flync.model.flync_model import FLYNCModel
 
 
@@ -45,8 +44,8 @@ class BusAttachmentPoint(FLYNCBaseModel):
     controller_name: str = Field()
     interface_name: str = Field()
     role: Literal["can_node", "lin_master", "lin_slave"] = Field()
-    _interface: "Optional[CANInterface | LINMasterInterface | LINSlaveInterface]" = PrivateAttr(default=None)
-    _ecu: "Optional[ECU]" = PrivateAttr(default=None)
+    _interface: Optional[CANInterface | LINMasterInterface | LINSlaveInterface] = None
+    _ecu: Optional[ECU] = None
 
 
 class BusTopology(FLYNCBaseModel):
@@ -127,7 +126,7 @@ def build_bus_topologies(
 
 
 def _collect_ecu_bus_attachments(
-    ecu: "ECU",
+    ecu: ECU,
     can_by_name: Dict[str, CANBusTopology],
     lin_by_name: Dict[str, LINBusTopology],
 ) -> None:
@@ -163,7 +162,13 @@ def _bus_registry(flync_model: "FLYNCModel", attr: str) -> Optional[dict]:
     return {b.name: b for b in buses} if buses is not None else None
 
 
-def _attach(topo: BusTopology, ecu: "ECU", controller_name: str, iface, role: "Literal['can_node', 'lin_master', 'lin_slave']") -> None:
+def _attach(
+    topo: BusTopology,
+    ecu: ECU,
+    controller_name: str,
+    iface: CANInterface | LINMasterInterface | LINSlaveInterface,
+    role: Literal["can_node", "lin_master", "lin_slave"],
+) -> None:
     """
     Create a :class:`BusAttachmentPoint` for a single ECU controller interface and append it to *topo*.
 

@@ -25,3 +25,27 @@ repos:
     hooks:
     -   id: black
         args: [--line-length=149]
+
+# Run mypy and the lazy-typing guard through the project's own uv environment: the
+# pydantic mypy plugin needs the real dependency set, which a pre-commit-managed venv
+# would have to resolve a second time.
+#
+# mypy names the gui/tui extras explicitly: the front-ends under
+# src/flync_converter/cli/{gui,tui} are type-checked, not skipped, so PySide6 and
+# textual must be importable. Without them the imports fail to resolve, every Qt/
+# textual symbol degrades to Any, and the load-bearing `# type: ignore` comments on
+# those call sites are reported as unused (warn_unused_ignores is on).
+-   repo: local
+    hooks:
+    -   id: mypy
+        name: mypy
+        entry: uv run --extra gui --extra tui mypy src scripts/ci/check_lazy_typing.py --show-error-codes
+        language: system
+        types: [python]
+        pass_filenames: false
+    -   id: check-lazy-typing
+        name: check unnecessary string-quoted annotations
+        entry: python3 scripts/ci/check_lazy_typing.py
+        language: system
+        types: [python]
+        pass_filenames: false

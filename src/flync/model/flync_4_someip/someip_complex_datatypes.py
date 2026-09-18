@@ -149,7 +149,7 @@ class Struct(ComplexDatatype):
     """
 
     type: Literal["struct"] = Field("struct")
-    members: List["AllTypes"] = Field(description="the members of the struct")  # type: ignore
+    members: List["AllTypes"] = Field(description="the members of the struct")
     bit_alignment: Literal[8, 16, 32, 64, 128, 256] = Field(
         default=8,
         description="defines the optional alignment padding that can be added after the variable length data element like struct to "
@@ -181,7 +181,7 @@ class Typedef(ComplexDatatype):
 
     type: Literal["typedef"] = Field("typedef")
     name: str = Field(description="Name of the typedef reference")
-    datatyperef: "AllTypes" = Field(description="Referenced datatype definition")  # type: ignore
+    datatyperef: "AllTypes" = Field(description="Referenced datatype definition")
 
 
 class UnionMember(Datatype):
