@@ -307,3 +307,76 @@ def test_validate_ats_instances_negative(embedded_metadata_entry, vlan_entry):
         )
 
     assert_single_error(exc_info, "FLYNC-ECU-MIN-REF-091", "No ATS Instance found for traffic class tc_ats")
+
+
+def test_switch_duplicate_port_name_invalid(
+    embedded_metadata_entry,
+    vlan_entry,
+):
+    """Duplicate switch port names are rejected."""
+    port1 = SwitchPort(
+        name="SP1",
+        silicon_port_no=0,
+        default_vlan_id=1,
+    )
+    port2 = SwitchPort(
+        name="SP1",
+        silicon_port_no=1,
+        default_vlan_id=2,
+    )
+
+    switch_config = _switch_config(
+        embedded_metadata_entry,
+        [port1, port2],
+        [vlan_entry],
+    )
+
+    with pytest.raises(ValidationError) as exc_info:
+        Switch.model_validate(
+            {
+                "name": "switch_example",
+                "switch_config": switch_config,
+            }
+        )
+
+    assert_single_error(
+        exc_info,
+        "FLYNC-CMN-MAJ-UNIQ-009",
+        "Duplicates found in Switch Ports (name)",
+    )
+
+
+@pytest.mark.xfail(reason="FLYNC-1422")
+def test_switch_vlan_references_nonexistent_port(
+    embedded_metadata_entry,
+):
+    with pytest.raises(ValidationError) as exc_info:
+        Switch.model_validate(
+            {
+                "name": "SW1",
+                "switch_config": {
+                    "meta": embedded_metadata_entry,
+                    "ports": [
+                        {
+                            "name": "SP1",
+                            "silicon_port_no": 0,
+                            "default_vlan_id": 1,
+                        }
+                    ],
+                    "vlans": [
+                        {
+                            "name": "v1",
+                            "id": 10,
+                            "default_priority": 0,
+                            "ports": ["SP1", "GHOST"],
+                        }
+                    ],
+                },
+            }
+        )
+
+    assert_single_error(
+        exc_info,
+        "not yet defined",
+        "VLAN references a switch port that does not exist on the switch",
+    )
