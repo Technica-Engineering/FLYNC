@@ -9,8 +9,9 @@ import cantools.database
 from cantools.database.can.database import Database
 from cantools.database.can.message import Message
 from cantools.database.can.node import Node
-from cantools.database.can.signal import NamedSignalValue, Signal
+from cantools.database.can.signal import Signal
 from cantools.database.conversion import LinearConversion
+from cantools.database.namedsignalvalue import NamedSignalValue
 
 from flync.model import FLYNCModel
 from flync.model.flync_4_signal import ContainerPDU, MultiplexedPDU, SignalInstance, StandardPDU
