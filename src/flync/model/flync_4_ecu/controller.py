@@ -6,7 +6,7 @@ Defines the Controller, EthernetInterfaceConfig, and EthernetInterface models fo
 here, resolved by the wiring at the bottom of :mod:`flync.model.flync_4_ecu`.
 """
 
-from typing import TYPE_CHECKING, Annotated, Any, List, Literal, Optional
+from typing import TYPE_CHECKING, Annotated, Any, List, Literal, Optional, Self
 
 from pydantic import (
     AfterValidator,
@@ -230,13 +230,13 @@ class EthernetInterfaceConfig(FLYNCBaseModel):
         return validate_ingress_streams_fields(value, "controller interface")
 
     @model_validator(mode="after")
-    def validate_vlans(self):
+    def validate_vlans(self) -> Self:
         """Raise if any VLAN ID is repeated across virtual interfaces."""
         validate_vlan_ids_unique(self.virtual_interfaces, self.name)
         return self
 
     @model_validator(mode="after")
-    def validate_routing_table_egress_interface(self):
+    def validate_routing_table_egress_interface(self) -> Self:
         """
         Validate that every ``egress_interface`` in the routing table exists as a VCI on this interface.
 
@@ -255,7 +255,7 @@ class EthernetInterfaceConfig(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_routing_table_default_gateway(self):
+    def validate_routing_table_default_gateway(self) -> Self:
         """
         Validate that ``default_gateway`` of each route falls within the subnet of its ``egress_interface`` VCI.
 
@@ -512,7 +512,7 @@ class Controller(FLYNCBaseModel):
         )
 
     @model_validator(mode="after")
-    def require_at_least_one_interface(self):
+    def require_at_least_one_interface(self) -> Self:
         if not any(interfaces for _kind, interfaces in self._interfaces_by_kind()):
             raise err_major(
                 "Controller must declare at least one interface (Ethernet, CAN, or LIN).",
@@ -522,7 +522,7 @@ class Controller(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_unique_interface_names(self):
+    def validate_unique_interface_names(self) -> Self:
         """Validate that this controller's own Ethernet interface names are unique."""
         validate_list_items_unique(
             [eth.name for eth in self.ethernet_interfaces or [] if eth.interface_config],
@@ -531,7 +531,7 @@ class Controller(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_unique_compute_node_names(self):
+    def validate_unique_compute_node_names(self) -> Self:
         """Validate that compute node names are unique across the whole controller subtree."""
         validate_list_items_unique(
             [node.name for node in self.iter_subtree_compute_nodes()],
@@ -540,7 +540,7 @@ class Controller(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_unique_virtual_switch_names(self):
+    def validate_unique_virtual_switch_names(self) -> Self:
         """
         Validate that virtual switch names are unique across the whole controller subtree.
 
@@ -554,7 +554,7 @@ class Controller(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_unique_interface_names_across_types(self):
+    def validate_unique_interface_names_across_types(self) -> Self:
         """
         Validate that interface names are unique across all interface types.
 
@@ -578,7 +578,7 @@ class Controller(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_unique_ethernet_mac_addresses(self):
+    def validate_unique_ethernet_mac_addresses(self) -> Self:
         """Validate that Ethernet interfaces across this controller's whole subtree use distinct MAC addresses."""
         seen: set = set()
         for eth in self.iter_subtree_interfaces():
@@ -597,7 +597,7 @@ class Controller(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def resolve_controller_topology_connections(self):
+    def resolve_controller_topology_connections(self) -> Self:
         """
         Bind and compatibility-check the controller's internal connections.
         """
@@ -678,7 +678,7 @@ class Controller(FLYNCBaseModel):
             if dep.root.deployment_type == "someip_consumer"
         }
 
-    def get_interfaces(self) -> list["EthernetInterface"]:
+    def get_interfaces(self) -> list[EthernetInterface]:
         """
         Return this controller's own physical Ethernet interfaces.
 

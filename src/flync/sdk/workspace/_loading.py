@@ -451,7 +451,7 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
     def __handle_generic_types(
         self,
         attribute_type: type,
-        base_type: type | None,
+        base_type: object,
         base_type_args: tuple,
         external: External,
         path: Path,
@@ -469,7 +469,8 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
 
         Args:
             attribute_type (type): The full (possibly generic) annotation type.
-            base_type (type | None): The ``get_origin`` of ``attribute_type``, or ``None`` for non-generic types.
+            base_type (object): The ``get_origin`` of ``attribute_type``, or ``None`` for non-generic types.
+                Not narrowed to ``type``: ``get_origin`` also yields typing special forms such as ``Union``.
             base_type_args (tuple): The ``get_args`` of ``attribute_type``.
             external (External): Annotation controlling load strategy.
             path (Path): Absolute path of the current directory.
@@ -658,7 +659,7 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
                 if OutputStrategy.OMMIT_ROOT not in external.output_structure:
                     # the output file is a dictionary
                     # we need to load it accordingly
-                    attribute_type = dict[str, attribute_type]  # type: ignore[valid-type]
+                    attribute_type = dict[str, attribute_type]
                     base_type = get_origin(attribute_type)
                     base_type_args = get_args(attribute_type)
             new_paths = self.update_objects_path(current_object_paths, field_name)

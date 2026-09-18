@@ -44,7 +44,7 @@ class ScalarFieldMetadata(FieldMetadata):
 class ListFieldMetadata(FieldMetadata):
     """List of field references (items can be scalar, list, or dict)."""
 
-    def __init__(self, items: list["FieldMetadata"]):
+    def __init__(self, items: list[FieldMetadata]):
         self.items = items
 
     def to_dict(self) -> dict:
@@ -54,7 +54,7 @@ class ListFieldMetadata(FieldMetadata):
 class DictFieldMetadata(FieldMetadata):
     """Dict of field references (values can be scalar, list, or dict)."""
 
-    def __init__(self, items: dict[str, "FieldMetadata"]):
+    def __init__(self, items: dict[str, FieldMetadata]):
         self.items = items
 
     def to_dict(self) -> dict:

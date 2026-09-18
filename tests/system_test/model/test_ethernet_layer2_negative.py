@@ -363,11 +363,9 @@ def test_duplicate_mac_across_ecus_invalid():
         ports=[ECUPort(name="ecu2_p1", mdi_config=BASET1(speed=1000, role="slave"))],
         controllers=[_controller_with_mac("CTRL1", dup_mac)],
     )
+    conn = EthernetPointToPointConnection(type="ecu_port_to_ecu_port", id="conn1", ecu1_port="ecu1_p1", ecu2_port_name="ecu2_p1")
     with pytest.raises(ValidationError) as exc_info:
-        _system_model(
-            [ecu1, ecu2],
-            [EthernetPointToPointConnection(type="ecu_port_to_ecu_port", id="conn1", ecu1_port="ecu1_p1", ecu2_port_name="ecu2_p1")],
-        )
+        _system_model([ecu1, ecu2], [conn])
     assert_single_error(exc_info, "FLYNC-GEN-MAJ-UNIQ-172", "is repeated in ECU")
 
 
@@ -410,24 +408,23 @@ def test_internal_topology_unknown_ecu_port_invalid():
         ),
     )
 
+    port = ECUPort(
+        name="p1",
+        mdi_config=BASET1(speed=1000, role="master"),
+    )
+    conn = ECUPortToSwitchPort(
+        type="ecu_port_to_switch_port",
+        id="conn1",
+        ecu_port_name="GHOST_PORT",
+        switch_port_name="sp1",
+    )
+
     with pytest.raises(ValidationError) as exc_info:
         _ecu_with_topology(
             "ECU1",
-            ports=[
-                ECUPort(
-                    name="p1",
-                    mdi_config=BASET1(speed=1000, role="master"),
-                )
-            ],
+            ports=[port],
             switches=[switch],
-            connections=[
-                ECUPortToSwitchPort(
-                    type="ecu_port_to_switch_port",
-                    id="conn1",
-                    ecu_port_name="GHOST_PORT",
-                    switch_port_name="sp1",
-                )
-            ],
+            connections=[conn],
         )
 
     assert_single_error(
@@ -480,25 +477,24 @@ def test_switch_port_to_controller_interface_mii_speed_mismatch_invalid():
         mii_config=RGMII(speed=100, mode="phy"),
     )
 
+    port = ECUPort(
+        name="p1",
+        mdi_config=BASET1(speed=1000, role="master"),
+    )
+    conn = SwitchPortToControllerInterface(
+        type="switch_port_to_controller_interface",
+        id="conn1",
+        switch_port_name="sp_ctrl",
+        iface_name="eth0",
+    )
+
     with pytest.raises(ValidationError) as exc_info:
         _ecu_with_topology(
             "ECU1",
-            ports=[
-                ECUPort(
-                    name="p1",
-                    mdi_config=BASET1(speed=1000, role="master"),
-                )
-            ],
+            ports=[port],
             switches=[switch],
             controllers=[controller],
-            connections=[
-                SwitchPortToControllerInterface(
-                    type="switch_port_to_controller_interface",
-                    id="conn1",
-                    switch_port_name="sp_ctrl",
-                    iface_name="eth0",
-                )
-            ],
+            connections=[conn],
         )
 
     assert_single_error(

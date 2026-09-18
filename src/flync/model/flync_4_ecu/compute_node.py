@@ -11,7 +11,7 @@ controller, at any nesting depth, is declared once in that controller's
 :class:`~flync.model.flync_4_ecu.controller_topology.ControllerTopology`.
 """
 
-from typing import Annotated, Iterator, List, Optional
+from typing import Annotated, Iterator, List, Optional, Self
 
 from pydantic import Field, model_validator
 
@@ -91,7 +91,7 @@ class ComputeNode(FLYNCBaseModel):
     ] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def reject_mii_config_on_virtual_interface(self):
+    def reject_mii_config_on_virtual_interface(self) -> Self:
         """
         Raise when an interface of this compute node declares a ``mii_config``.
 
@@ -112,7 +112,7 @@ class ComputeNode(FLYNCBaseModel):
                 )
         return self
 
-    def get_interfaces(self) -> List["EthernetInterface"]:
+    def get_interfaces(self) -> List[EthernetInterface]:
         """Return this compute node's own Ethernet interfaces, excluding those of nested compute nodes."""
         return list(self.ethernet_interfaces or [])
 
@@ -141,7 +141,7 @@ class ComputeNode(FLYNCBaseModel):
         return super().model_post_init(__context)
 
 
-def iter_subtree_compute_nodes(node) -> Iterator["ComputeNode"]:
+def iter_subtree_compute_nodes(node) -> Iterator[ComputeNode]:
     """
     Yield every :class:`ComputeNode` beneath ``node``, depth-first, at any nesting depth.
 
@@ -154,7 +154,7 @@ def iter_subtree_compute_nodes(node) -> Iterator["ComputeNode"]:
         yield from iter_subtree_compute_nodes(child)
 
 
-def iter_subtree_switches(node) -> Iterator["Switch"]:
+def iter_subtree_switches(node) -> Iterator[Switch]:
     """
     Yield every virtual switch beneath ``node``, including those inside nested compute nodes.
 
@@ -168,7 +168,7 @@ def iter_subtree_switches(node) -> Iterator["Switch"]:
         yield from child.virtual_switches or []
 
 
-def iter_subtree_interfaces(node) -> Iterator["EthernetInterface"]:
+def iter_subtree_interfaces(node) -> Iterator[EthernetInterface]:
     """
     Yield every Ethernet interface beneath ``node``, including those of nested compute nodes.
 

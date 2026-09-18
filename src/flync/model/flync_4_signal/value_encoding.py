@@ -2,7 +2,7 @@
 A Signal may carry an optional Value Encoding that converts raw integer values into text labels.
 """
 
-from typing import Annotated, List, Literal, Optional, Union
+from typing import Annotated, List, Literal, Optional, Self, Union
 
 from pydantic import Field, model_validator
 
@@ -45,7 +45,7 @@ class TextEntry(FLYNCBaseModel):
         return validate_value_input_format(data)
 
     @model_validator(mode="after")
-    def _validate_bounds(self) -> "TextEntry":
+    def _validate_bounds(self) -> Self:
         assert self.from_value is not None and self.to_value is not None
         if self.to_value < self.from_value:
             raise err_major(
@@ -76,7 +76,7 @@ class TextTable(FLYNCBaseModel):
     entries: List[TextEntry] = Field(min_length=1)
 
     @model_validator(mode="after")
-    def _validate_no_overlap(self) -> "TextTable":
+    def _validate_no_overlap(self) -> Self:
         ranges = collect_bit_ranges(
             self.entries,
             lambda e: (e.label, e.from_value, e.to_value + 1),
@@ -121,7 +121,7 @@ class BitfieldState(FLYNCBaseModel):
         return validate_value_input_format(data)
 
     @model_validator(mode="after")
-    def _validate_bounds(self) -> "BitfieldState":
+    def _validate_bounds(self) -> Self:
         assert self.from_value is not None and self.to_value is not None
         if self.to_value < self.from_value:
             raise err_major(
@@ -162,7 +162,7 @@ class BitfieldGroup(FLYNCBaseModel):
     states: List[BitfieldState] = Field(min_length=1)
 
     @model_validator(mode="after")
-    def _validate_states(self) -> "BitfieldGroup":
+    def _validate_states(self) -> Self:
         seen: set[str] = set()
         for s in self.states:
             if s.label in seen:
@@ -216,7 +216,7 @@ class BitfieldTextTable(FLYNCBaseModel):
     groups: List[BitfieldGroup] = Field(min_length=1)
 
     @model_validator(mode="after")
-    def _validate_groups(self) -> "BitfieldTextTable":
+    def _validate_groups(self) -> Self:
         seen: set[str] = set()
         accumulated_mask = 0
         for g in self.groups:
@@ -285,7 +285,7 @@ class BitmaskFlags(FLYNCBaseModel):
     flags: List[BitmaskFlag] = Field(min_length=1)
 
     @model_validator(mode="after")
-    def _validate_flags(self) -> "BitmaskFlags":
+    def _validate_flags(self) -> Self:
         seen: set[str] = set()
         accumulated_mask = 0
         for f in self.flags:

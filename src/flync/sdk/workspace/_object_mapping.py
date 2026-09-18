@@ -96,13 +96,13 @@ class _WorkspaceObjectMapping(_WorkspaceBase):
     def _update_sequence_node_objects(self, doc_id, model, current_object_paths, node, parent_name):
         for idx, item in enumerate(node.value):
             list_paths = self.add_list_item_object_path(
-                getattr(model[idx], "name", None),  # type: ignore
+                getattr(model[idx], "name", None),
                 current_object_paths,
                 idx,
             )
             self._update_objects(
                 doc_id,
-                model[idx],  # type: ignore[index]
+                model[idx],
                 list_paths,
                 item,
                 parent_name=parent_name,

@@ -1,7 +1,7 @@
 """Defines the CAN and CAN FD bus model for FLYNC."""
 
 from collections import Counter
-from typing import Annotated, List, Optional
+from typing import Annotated, List, Optional, Self
 
 from pydantic import BeforeValidator, Field, field_validator, model_validator
 
@@ -92,7 +92,7 @@ class CANBus(FLYNCBaseModel):
         return value
 
     @model_validator(mode="after")
-    def validate_fd_configuration(self) -> "CANBus":
+    def validate_fd_configuration(self) -> Self:
         if self.fd_enabled and self.fd_baud_rate is None:
             raise err_major(
                 "CANBus '{name}': fd_baud_rate must be set when fd_enabled is True",
@@ -119,7 +119,7 @@ class CANBus(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_can_fd_frames_require_fd_enabled(self) -> "CANBus":
+    def validate_can_fd_frames_require_fd_enabled(self) -> Self:
         if not self.fd_enabled:
             fd_frames = [f.name for f in self.frames if isinstance(f, CANFDFrame)]
             if fd_frames:
@@ -133,7 +133,7 @@ class CANBus(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_unique_can_ids(self) -> "CANBus":
+    def validate_unique_can_ids(self) -> Self:
         keys = [(f.can_id, f.id_format) for f in self.frames]
         duplicates = sorted(f"{cid:#x}/{fmt}" for (cid, fmt), c in Counter(keys).items() if c > 1)
         if duplicates:

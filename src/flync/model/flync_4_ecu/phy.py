@@ -3,7 +3,7 @@ Defines the supported physical layer (PHY) interface
 configurations used in the FLYNC model
 """
 
-from typing import TYPE_CHECKING, Any, Literal, Optional
+from typing import TYPE_CHECKING, Any, Literal, Optional, Self
 
 from pydantic import Field, model_validator
 
@@ -125,7 +125,7 @@ class BASET1S(FLYNCBaseModel):
         return {key: value for key, value in data.items() if key != "role"}
 
     @model_validator(mode="after")
-    def validate_topology_consistency(self) -> "BASET1S":
+    def validate_topology_consistency(self) -> Self:
         """Duplex and autonegotiation both need two peers on a link, which a shared medium does not have."""
 
         if self.topology == "multidrop":

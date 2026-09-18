@@ -1,6 +1,6 @@
 """Defines metadata models for FLYNC"""
 
-from typing import Dict, Literal, Optional
+from typing import Dict, Literal, Optional, Self
 
 from packaging.version import InvalidVersion
 from packaging.version import Version as Pep440Version
@@ -33,8 +33,9 @@ class BaseVersion(FLYNCBaseModel):
         return str(v)
 
     @model_validator(mode="after")
-    def validate_and_parse_version(self):
+    def validate_and_parse_version(self) -> Self:
         raw_version = self.version
+        parsed: Pep440Version | SemVersion
 
         if self.version_schema == "pep440":
             try:

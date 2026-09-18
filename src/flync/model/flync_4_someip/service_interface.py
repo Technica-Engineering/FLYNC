@@ -10,6 +10,7 @@ from typing import (
     List,
     Literal,
     Optional,
+    Self,
     Union,
 )
 
@@ -25,7 +26,7 @@ from pydantic import (
 
 from flync.core.annotations.external import External, OutputStrategy
 from flync.core.base_models import FLYNCBaseModel
-from flync.core.utils.exceptions import Category, err_minor
+from flync.core.utils.exceptions import Category, err_major, err_minor
 from flync.core.validators.address import validate_ip_multicast
 from flync.core.validators.generic import none_to_empty_list
 from flync.model.flync_4_metadata import SOMEIPServiceMetadata
@@ -283,7 +284,7 @@ class SOMEIPField(FLYNCBaseModel):
         return self.notifier_id
 
     @model_validator(mode="after")
-    def validate_at_least_one_identifier_to_be_defined(self):
+    def validate_at_least_one_identifier_to_be_defined(self) -> Self:
         """
         Validate that at least one identifier of the
         field is defined. [feat_req_someip_632]"""
@@ -317,7 +318,7 @@ class SOMEIPParameter(FLYNCBaseModel):
 
     name: str = Field(description="identifies the parameter")
     description: Optional[str] = Field("", description="Optional description")
-    datatype: "AllTypes"
+    datatype: AllTypes
 
 
 class SOMEIPEvent(FLYNCBaseModel):
@@ -363,7 +364,7 @@ class SOMEIPEvent(FLYNCBaseModel):
     reliable: bool = Field(default=False)
     e2e: Optional[E2EConfig] = Field(default=None)
     parameters: Annotated[
-        Optional[List["SOMEIPParameter"]],
+        Optional[List[SOMEIPParameter]],
         Field(description="name of the parameter"),
     ] = Field(default=[])
     someip_timing: Optional[str] = Field(default="event_default")
@@ -469,7 +470,7 @@ class SOMEIPMethod(FLYNCBaseModel):
         default=None,
     )
     input_parameters: Annotated[
-        Optional[List["SOMEIPParameter"]],
+        Optional[List[SOMEIPParameter]],
         BeforeValidator(none_to_empty_list),
     ] = Field(default=[])
 
@@ -494,7 +495,7 @@ class SOMEIPRequestResponseMethod(SOMEIPMethod):
 
     type: Literal["request_response"] = "request_response"
     output_parameters: Annotated[
-        Optional[List["SOMEIPParameter"]],
+        Optional[List[SOMEIPParameter]],
         BeforeValidator(none_to_empty_list),
     ] = Field(default=[])
 
@@ -600,13 +601,13 @@ class SOMEIPServiceInterface(FLYNCBaseModel):
         return data
 
     @model_validator(mode="after")
-    def validate_for_notifiers_without_eventgroup(self):
+    def validate_for_notifiers_without_eventgroup(self) -> Self:
         """Validate that all notifiers are in at least one eventgroup."""
-        all_notifiers_in_eg = []
-        for eg in self.eventgroups:
+        all_notifiers_in_eg: list[SOMEIPEvent | SOMEIPField] = []
+        for eg in self.eventgroups or []:
             all_notifiers_in_eg.extend(eg.events)
-        field_notifiers = [f for f in self.fields if f.notifier_id is not None]
-        for notifier in self.events + field_notifiers:
+        field_notifiers = [f for f in (self.fields or []) if f.notifier_id is not None]
+        for notifier in (self.events or []) + field_notifiers:
             if notifier not in all_notifiers_in_eg:
                 warnings.warn(
                     f"Notifier '{notifier.name}' is not assigned to an eventgroup",
@@ -615,13 +616,13 @@ class SOMEIPServiceInterface(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_service_owns_elements_of_eventgroups(self):
+    def validate_service_owns_elements_of_eventgroups(self) -> Self:
         """
         Validate that eventgroups' elements are in events/fields of service."""
 
-        for eg in self.eventgroups:
+        for eg in self.eventgroups or []:
             for event in eg.events:
-                if event in (self.events + self.fields):
+                if event in ((self.events or []) + (self.fields or [])):
                     err_minor(
                         f'Eventgroup references "{event.name}", ' "but it is not in events/fields of Service" f'"{self.name}"',
                         category=Category.REFERENCE,
@@ -630,19 +631,19 @@ class SOMEIPServiceInterface(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_all_identifiers_to_be_unique(self):
+    def validate_all_identifiers_to_be_unique(self) -> Self:
         """
         Validate that all identifiers in service
         are unique. [feat_req_someip_56]"""
 
-        ids = {}
-        for event in self.events:
+        ids: dict[int | None, list[tuple[str, SOMEIPEvent | SOMEIPField | SOMEIPMethod]]] = {}
+        for event in self.events or []:
             ids.setdefault(event.id, []).append(("id", event))
-        for field in self.fields:
+        for field in self.fields or []:
             ids.setdefault(field.notifier_id, []).append(("notifier_id", field))
             ids.setdefault(field.getter_id, []).append(("getter_id", field))
             ids.setdefault(field.setter_id, []).append(("setter_id", field))
-        for method in self.methods:
+        for method in self.methods or []:
             ids.setdefault(method.id, []).append(("id", method))
         for identifier in ids:
             if identifier is None:
@@ -816,6 +817,22 @@ class SDConfig(FLYNCBaseModel):
             return str(ip_address).upper()
 
 
+#: A service element that carries a ``someip_timing`` reference.
+TimedElement = SOMEIPEvent | SOMEIPField | SOMEIPMethod
+
+#: A timing profile that a ``someip_timing`` reference can resolve to.
+TimingProfile = SOMEIPEventTimings | SOMEIPFieldTimings | SOMEIPMethodTimings
+
+#: (service element class, matching timing class) pairs checked by
+#: SOMEIPConfig.validate_timing_exist. Order matters: SOMEIPMethod is the base of
+#: both method flavours, so it is matched last.
+_TIMING_KINDS: tuple[tuple[type[TimedElement], type[TimingProfile]], ...] = (
+    (SOMEIPField, SOMEIPFieldTimings),
+    (SOMEIPEvent, SOMEIPEventTimings),
+    (SOMEIPMethod, SOMEIPMethodTimings),
+)
+
+
 class SOMEIPConfig(FLYNCBaseModel):
     """
     Basic configuration of SOME/IP for a target system.
@@ -863,7 +880,7 @@ class SOMEIPConfig(FLYNCBaseModel):
                 yield event, event.e2e
 
     @model_validator(mode="after")
-    def validate_all_e2e_identifiers_to_be_unique(self):
+    def validate_all_e2e_identifiers_to_be_unique(self) -> Self:
         """
         Validates that for each E2E profile all e2e.data_id values are unique.
         """
@@ -888,34 +905,40 @@ class SOMEIPConfig(FLYNCBaseModel):
 
         return self
 
+    @staticmethod
+    def _check_element_timing(element: TimedElement, known_ids: dict[type[TimingProfile], set[str]]) -> None:
+        """
+        Raise if the element's someip_timing does not name an existing profile of its kind.
+        """
+
+        if element.someip_timing is None:
+            return
+        for element_cls, timing_cls in _TIMING_KINDS:
+            if not isinstance(element, element_cls):
+                continue
+            if element.someip_timing not in known_ids[timing_cls]:
+                raise err_major(
+                    '{element_id} - {element_name}.someip_timing "{timing}" does not exist in {timing_class}',
+                    category=Category.REFERENCE,
+                    error_number="340",
+                    element_id=element.id,
+                    element_name=element.name,
+                    timing=element.someip_timing,
+                    timing_class=timing_cls.__name__,
+                )
+            return
+
     @model_validator(mode="after")
-    def validate_timing_exist(self):
-        all_timings = self.someip_timings.profiles + self.someip_timings.defaults
-        field_ids = {t.profile_id for t in all_timings if isinstance(t, SOMEIPFieldTimings)}
-        event_ids = {t.profile_id for t in all_timings if isinstance(t, SOMEIPEventTimings)}
-        method_ids = {t.profile_id for t in all_timings if isinstance(t, SOMEIPMethodTimings)}
-        for service_inst in self.services:
-            for service_element in service_inst.events + service_inst.fields + service_inst.methods:
-                if service_element.someip_timing is not None:
-                    if isinstance(service_element, SOMEIPField) and service_element.someip_timing not in field_ids:
-                        raise ValueError(
-                            f"{service_element.id} - "
-                            f"{service_element.name}.someip_timing "
-                            f'"{service_element.someip_timing}" '
-                            "dont exist in SOMEIPFieldTimings"
-                        )
-                    elif isinstance(service_element, SOMEIPEvent) and service_element.someip_timing not in event_ids:
-                        raise ValueError(
-                            f"{service_element.id} - "
-                            f"{service_element.name}.someip_timing "
-                            f'"{service_element.someip_timing}" '
-                            "dont exist in SOMEIPEventTimings"
-                        )
-                    elif isinstance(service_element, SOMEIPMethod) and service_element.someip_timing not in method_ids:
-                        raise ValueError(
-                            f"{service_element.id} - "
-                            f"{service_element.name}.someip_timing "
-                            f'"{service_element.someip_timing}" '
-                            "dont exist in SOMEIPMethodTimings"
-                        )
+    def validate_timing_exist(self) -> Self:
+        """
+        Validates that every someip_timing reference names an existing timing profile.
+        """
+
+        all_timings = (self.someip_timings.profiles or []) + (self.someip_timings.defaults or [])
+        known_ids: dict[type[TimingProfile], set[str]] = {
+            timing_cls: {t.profile_id for t in all_timings if isinstance(t, timing_cls)} for _, timing_cls in _TIMING_KINDS
+        }
+        for service in self.services:
+            for element in (service.events or []) + (service.fields or []) + (service.methods or []):
+                self._check_element_timing(element, known_ids)
         return self

@@ -10,7 +10,7 @@ IDE help and generated docs show parameter and return contracts clearly.
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from flync.model import FLYNCModel  # type: ignore[import-untyped]
+from flync.model import FLYNCModel
 
 from .converter_config import ConverterConfig
 

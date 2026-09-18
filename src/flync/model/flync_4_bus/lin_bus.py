@@ -1,6 +1,6 @@
 """Defines the LIN bus model for FLYNC including its schedule tables."""
 
-from typing import Annotated, List, Literal, Optional
+from typing import Annotated, List, Literal, Optional, Self
 
 from pydantic import BeforeValidator, Field, field_validator, model_validator
 
@@ -148,7 +148,7 @@ class LINBus(FLYNCBaseModel):
         return value
 
     @model_validator(mode="after")
-    def validate_schedule_frame_references(self) -> "LINBus":
+    def validate_schedule_frame_references(self) -> Self:
         """Ensure every schedule entry references a defined frame."""
         frame_names = {f.name for f in self.frames}
         for table in self.schedule_tables:

@@ -74,10 +74,10 @@ class ECUPortToXConnection(InternalConnection):
     """
 
     ecu_port_name: Annotated[str, Reference(source="_ecu_port")] = Field(alias="ecu_port")
-    _ecu_port: Optional["ECUPort"] = PrivateAttr(default=None)
+    _ecu_port: Optional[ECUPort] = None
 
     @property
-    def ecu_port(self) -> "ECUPort":
+    def ecu_port(self) -> ECUPort:
         assert self._ecu_port is not None
         return self._ecu_port
 
@@ -119,21 +119,25 @@ class SwitchPortToXConnection(InternalConnection):
 
     switch_port_name: Annotated[str, Reference(source="_switch_port")] = Field(alias="switch_port")
     switch_name: Annotated[Optional[str], Reference(source="_switch")] = Field(default=None, alias="switch")
-    _switch_port: Optional["SwitchPort"] = PrivateAttr(default=None)
-    _switch: Optional["Switch"] = PrivateAttr(default=None)
+    _switch_port: Optional[SwitchPort] = None
+    _switch: Optional[Switch] = None
 
     @property
-    def switch_port(self) -> "SwitchPort":
+    def switch_port(self) -> SwitchPort:
         assert self._switch_port is not None
         return self._switch_port
 
     @property
-    def switch(self) -> "Switch":
+    def switch(self) -> Switch:
         assert self._switch is not None
         return self._switch
 
+    def get_switch_port_refs(self) -> List[SwitchPort]:
+        """All switch ports this connection occupies - one, unless the connection joins two switch ports."""
+        return [self.switch_port]
+
     @staticmethod
-    def _find_switch_port(port_name: str, switch_name: Optional[str], switches: list, connection_id: str) -> "SwitchPort":
+    def _find_switch_port(port_name: str, switch_name: Optional[str], switches: list, connection_id: str) -> SwitchPort:
         """Locate a switch port by name within the ECU's switches, with optional scoping to a named switch.
 
         Raises:
@@ -203,23 +207,23 @@ class ControllerInterfaceToXConnection(InternalConnection):
 
     iface_name: Annotated[str, Reference(source="_iface")] = Field(alias="controller_interface")
     controller_name: Annotated[Optional[str], Reference(source="_controller")] = Field(default=None, alias="controller")
-    _iface: Optional["EthernetInterface"] = PrivateAttr(default=None)
-    _controller: Optional["Controller"] = PrivateAttr(default=None)
+    _iface: Optional[EthernetInterface] = None
+    _controller: Optional[Controller] = None
 
     @property
-    def iface(self) -> "EthernetInterface":
+    def iface(self) -> EthernetInterface:
         assert self._iface is not None
         return self._iface
 
     @property
-    def controller(self) -> "Controller":
+    def controller(self) -> Controller:
         assert self._controller is not None
         return self._controller
 
     @staticmethod
     def _find_controller_interface(
         iface_name: str, controller_name: Optional[str], controllers: list[Controller], connection_id: str
-    ) -> "tuple[EthernetInterface, Controller]":
+    ) -> tuple[EthernetInterface, Controller]:
         """Locate a controller interface by name within the ECU's controllers, with optional scoping to a named controller.
 
         Raises:
@@ -288,9 +292,6 @@ class ECUPortToSwitchPort(ECUPortToXConnection, SwitchPortToXConnection):
                 self.switch_port.traffic_classes,
                 self.ecu_port.mdi_config.speed,
             )
-
-    def get_switch_port_refs(self) -> "List[SwitchPort]":
-        return [self.switch_port]
 
 
 class ECUPortToControllerInterface(ECUPortToXConnection, ControllerInterfaceToXConnection):
@@ -362,9 +363,6 @@ class SwitchPortToControllerInterface(SwitchPortToXConnection, ControllerInterfa
         validate_macsec(self.switch_port, self.iface.interface_config, self.id)
         validate_gptp(self.switch_port, self.iface.interface_config, self.id)
 
-    def get_switch_port_refs(self) -> "List[SwitchPort]":
-        return [self.switch_port]
-
 
 class SwitchPortToHostControllerInterface(SwitchPortToXConnection):
     """
@@ -395,10 +393,10 @@ class SwitchPortToHostControllerInterface(SwitchPortToXConnection):
     type: Literal["switch_port_to_host_controller_interface"] = Field("switch_port_to_host_controller_interface")
 
     host_controller_interface_name: Annotated[str, Reference(source="_iface")] = Field(alias="host_controller_interface")
-    _iface: Optional["EthernetInterface"] = PrivateAttr(default=None)
+    _iface: Optional[EthernetInterface] = None
 
     @property
-    def iface(self) -> "EthernetInterface":
+    def iface(self) -> EthernetInterface:
         assert self._iface is not None
         return self._iface
 
@@ -425,9 +423,6 @@ class SwitchPortToHostControllerInterface(SwitchPortToXConnection):
     def validate_compatibility(self) -> None:
         """No compatibility checks: the CPU port and its host controller interface are linked on-die, not through a PHY."""
         return None
-
-    def get_switch_port_refs(self) -> "List[SwitchPort]":
-        return [self.switch_port]
 
 
 class SwitchPortToSwitchPort(SwitchPortToXConnection):
@@ -460,18 +455,18 @@ class SwitchPortToSwitchPort(SwitchPortToXConnection):
 
     type: Literal["switch_to_switch_same_ecu"] = Field("switch_to_switch_same_ecu")
 
-    _switch2_port: Optional["SwitchPort"] = PrivateAttr(default=None)
-    _switch2: Optional["Switch"] = PrivateAttr(default=None)
+    _switch2_port: Optional[SwitchPort] = None
+    _switch2: Optional[Switch] = None
     switch2_port_name: Annotated[str, Reference(source="_switch2_port")] = Field(alias="switch2_port")
     switch2_name: Annotated[Optional[str], Reference(source="_switch2")] = Field(default=None, alias="switch2")
 
     @property
-    def switch2_port(self) -> "SwitchPort":
+    def switch2_port(self) -> SwitchPort:
         assert self._switch2_port is not None
         return self._switch2_port
 
     @property
-    def switch2(self) -> "Switch":
+    def switch2(self) -> Switch:
         assert self._switch2 is not None
         return self._switch2
 
@@ -487,7 +482,7 @@ class SwitchPortToSwitchPort(SwitchPortToXConnection):
         validate_macsec(self.switch_port, self.switch2_port, self.id)
         validate_gptp(self.switch_port, self.switch2_port, self.id)
 
-    def get_switch_port_refs(self) -> "List[SwitchPort]":
+    def get_switch_port_refs(self) -> List[SwitchPort]:
         return [self.switch_port, self.switch2_port]
 
 
@@ -533,16 +528,16 @@ class ControllerInterfaceToControllerInterface(ControllerInterfaceToXConnection)
 
     iface2_name: Annotated[str, Reference(source="_iface2")] = Field(alias="controller_interface2")
     controller2_name: Annotated[Optional[str], Reference(source="_controller2")] = Field(default=None, alias="controller2")
-    _iface2: Optional["EthernetInterface"] = PrivateAttr(default=None)
-    _controller2: Optional["Controller"] = PrivateAttr(default=None)
+    _iface2: Optional[EthernetInterface] = None
+    _controller2: Optional[Controller] = None
 
     @property
-    def iface2(self) -> "EthernetInterface":
+    def iface2(self) -> EthernetInterface:
         assert self._iface2 is not None
         return self._iface2
 
     @property
-    def controller2(self) -> "Controller":
+    def controller2(self) -> Controller:
         assert self._controller2 is not None
         return self._controller2
 

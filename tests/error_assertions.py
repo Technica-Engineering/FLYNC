@@ -34,7 +34,7 @@ def _assert_single_finding(findings: List[ErrorDetails], expected_error_id: Opti
     assert message_fragment in reported, f"expected message fragment {message_fragment!r} in: {reported}"
 
 
-def assert_single_error(exc_info: "pytest.ExceptionInfo[ValidationError]", expected_error_id: Optional[str], message_fragment: str) -> None:
+def assert_single_error(exc_info: pytest.ExceptionInfo[ValidationError], expected_error_id: Optional[str], message_fragment: str) -> None:
     """Assert the fixture failed with exactly one error, raised by the expected validator call site.
 
     Pinning the FLYNC error id keeps a negative test tied to the rule it is named for: a fixture that grows a
@@ -127,7 +127,7 @@ def assert_no_findings(validation_result: ValidationResult) -> None:
     assert not findings, f"expected no errors or warnings, got: {[_describe(finding) for finding in findings]}"
 
 
-def assert_bind_error(exc_info: "pytest.ExceptionInfo[PydanticCustomError]", expected_error_id: str, message_fragment: str) -> None:
+def assert_bind_error(exc_info: pytest.ExceptionInfo[PydanticCustomError], expected_error_id: str, message_fragment: str) -> None:
     """Assert a ``bind()`` called outside pydantic validation raised the expected single error.
 
     Reference resolution runs from ``bind()`` methods, which the owning model calls from a validator. When a

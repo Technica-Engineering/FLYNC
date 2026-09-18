@@ -78,7 +78,7 @@ def main() -> int:
     base_ref = found["base"]["ref"]
 
     if not number or not head_ref or not base_ref:
-        print(f"Could not parse the PR data")
+        print("Could not parse the PR data")
         return 1
 
     with open(out_path, "a", encoding="utf-8") as f:

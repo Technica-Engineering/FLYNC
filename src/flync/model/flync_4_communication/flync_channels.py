@@ -1,6 +1,6 @@
 """Channel-level configuration for CAN, LIN, Ethernet, and PDU definitions."""
 
-from typing import Annotated, Iterable, List, Mapping, Optional
+from typing import Annotated, Iterable, List, Mapping, Optional, Self
 
 from pydantic import Field, model_validator
 
@@ -98,17 +98,17 @@ class FLYNCChannelConfig(FLYNCBaseModel):
     )
 
     @model_validator(mode="after")
-    def validate_pdus_name_unique(self):
+    def validate_pdus_name_unique(self) -> Self:
         validate_list_items_unique([p.name for p in (self.pdus or [])], "PDUs")
         return self
 
     @model_validator(mode="after")
-    def validate_canbus_name_unique(self):
+    def validate_canbus_name_unique(self) -> Self:
         validate_list_items_unique([can.name for can in (self.can_buses or [])], "CANBus")
         return self
 
     @model_validator(mode="after")
-    def validate_linbus_name_unique(self):
+    def validate_linbus_name_unique(self) -> Self:
         validate_list_items_unique([lin.name for lin in (self.lin_buses or [])], "LINBus")
         return self
 
@@ -117,7 +117,7 @@ class FLYNCChannelConfig(FLYNCBaseModel):
         return {p.name: p for p in (self.pdus or [])}
 
     @model_validator(mode="after")
-    def validate_pdu_refs(self) -> "FLYNCChannelConfig":
+    def validate_pdu_refs(self) -> Self:
         """Verify packed PDUs in CAN/LIN frames reference known PDUs and fit without overlap."""
         pdu_registry = self._pdu_registry()
         _validate_multiplexed_pdu_placements(self.pdus or [], pdu_registry)
@@ -141,7 +141,7 @@ class FLYNCChannelConfig(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_ethernet_pdu_container_refs(self) -> "FLYNCChannelConfig":
+    def validate_ethernet_pdu_container_refs(self) -> Self:
         """Verify contained PDUs in ethernet_pdu_containers reference known PDUs."""
         pdu_registry = self._pdu_registry()
         for container in self.ethernet_pdu_containers or []:
@@ -157,7 +157,7 @@ class FLYNCChannelConfig(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_multiplexed_pdu_refs(self) -> "FLYNCChannelConfig":
+    def validate_multiplexed_pdu_refs(self) -> Self:
         """Verify MultiplexedPDU static/mux group PDU instances reference known PDUs."""
         pdu_registry = self._pdu_registry()
         for pdu in self.pdus or []:
@@ -175,7 +175,7 @@ class FLYNCChannelConfig(FLYNCBaseModel):
         return self
 
 
-def _collect_unknown_pdu_refs(frames: Iterable[Frame], pdu_registry: Mapping[str, PDU]) -> "set[str]":
+def _collect_unknown_pdu_refs(frames: Iterable[Frame], pdu_registry: Mapping[str, PDU]) -> set[str]:
     """Return pdu_ref names in ``frames`` not present in the PDU registry."""
     unknown: set[str] = set()
     for frame in frames:
@@ -185,12 +185,12 @@ def _collect_unknown_pdu_refs(frames: Iterable[Frame], pdu_registry: Mapping[str
     return unknown
 
 
-def _collect_unknown_contained_pdu_refs(container: ContainerPDU, pdu_registry: Mapping[str, PDU]) -> "set[str]":
+def _collect_unknown_contained_pdu_refs(container: ContainerPDU, pdu_registry: Mapping[str, PDU]) -> set[str]:
     """Return pdu_ref names in ``container.contained_pdus`` not present in the PDU registry."""
     return {contained.pdu_ref for contained in container.contained_pdus if contained.pdu_ref not in pdu_registry}
 
 
-def _collect_unknown_muxed_pdu_refs(pdu: MultiplexedPDU, pdu_registry: Mapping[str, PDU]) -> "set[str]":
+def _collect_unknown_muxed_pdu_refs(pdu: MultiplexedPDU, pdu_registry: Mapping[str, PDU]) -> set[str]:
     """Return pdu_ref names in ``pdu``'s static_group/mux_groups not present in the PDU registry."""
     unknown: set[str] = set()
     for static in pdu.static_group or []:

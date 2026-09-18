@@ -24,7 +24,7 @@ jobs:
         uses: psf/black@26.5.1
         with:
           options: "--check --verbose --line-length 149 --diff"
-          src: "./src"
+          src: "./src ./scripts"
 
   isort:
     runs-on: ubuntu-latest
@@ -43,7 +43,7 @@ jobs:
       - name: Run isort
         run: |
           mkdir format-reports
-          uv run isort --check --diff --color --line-length 149 src > format-reports/isort-report.diff
+          uv run isort --check --diff --color --line-length 149 src scripts > format-reports/isort-report.diff
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v7
@@ -68,8 +68,11 @@ jobs:
 
       - name: Run flake8
         run: |
-          uv run flake8 --max-line-length 149 src
-          uv run flake8 --max-line-length 149 src --format=html --htmldir=flake8-report
+          uv run flake8 --max-line-length 149 src scripts
+          uv run flake8 --max-line-length 149 src scripts --format=html --htmldir=flake8-report
+
+      - name: Check unnecessary string-quoted annotations
+        run: python3 scripts/ci/check_lazy_typing.py
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v7
@@ -89,8 +92,12 @@ jobs:
         with:
           enable-cache: true
 
+      # mypy runs as a pre-commit hook and needs the gui/tui extras: the PySide6 and
+      # textual imports in src/flync_converter/cli/{gui,tui} are unresolvable without
+      # them, and the `# type: ignore` comments on those call sites then read as unused.
+      # Keep this environment identical to the one in the type-check job.
       - name: Prepare
-        run: uv sync --frozen --no-install-project --only-group dev
+        run: uv sync --frozen --extra gui --extra tui
 
       - name: Run pre-commit
         run: |
@@ -123,7 +130,7 @@ jobs:
       - name: Run mypy
         run: |
           set -o pipefail
-          uv run mypy src --show-error-codes --pretty --install-types --non-interactive | tee type-check-reports/mypy-report.txt
+          uv run mypy src scripts/ci/check_lazy_typing.py --show-error-codes --pretty --install-types --non-interactive | tee type-check-reports/mypy-report.txt
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v7
@@ -192,7 +199,7 @@ jobs:
 
   unit-tests:
     runs-on: ubuntu-latest
-    needs: [format-check, lint, type-check, isort]
+    needs: [format-check, isort, lint, type-check]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -231,7 +238,7 @@ jobs:
 
   system-tests:
     runs-on: ubuntu-latest
-    needs: [format-check, lint, type-check, isort]
+    needs: [format-check, isort, lint, type-check]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -268,7 +275,7 @@ jobs:
 
   cli-tests:
     runs-on: ubuntu-latest
-    needs: [format-check, lint, type-check, isort]
+    needs: [format-check, isort, lint, type-check]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -305,7 +312,7 @@ jobs:
 
   converter-tests:
     runs-on: ubuntu-latest
-    needs: [format-check, lint, type-check, isort]
+    needs: [format-check, isort, lint, type-check]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -350,7 +357,7 @@ jobs:
     # Non-blocking: benchmark thresholds can be flaky on shared runners
     continue-on-error: true
     runs-on: ubuntu-latest
-    needs: [format-check, lint, type-check, isort]
+    needs: [format-check, isort, lint, type-check]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -531,7 +538,7 @@ jobs:
 
   example-validation:
     runs-on: ubuntu-latest
-    needs: [format-check, lint, type-check, isort]
+    needs: [format-check, isort, lint, type-check]
     steps:
       - name: Checkout
         uses: actions/checkout@v7

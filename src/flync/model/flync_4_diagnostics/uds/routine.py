@@ -1,6 +1,6 @@
 """Defines UDS Routines, controlled via RoutineControl (0x31)."""
 
-from typing import Annotated, List, Literal, Optional
+from typing import Annotated, List, Literal, Optional, Self
 
 from pydantic import Field, model_validator
 
@@ -74,7 +74,7 @@ class Routine(FLYNCBaseModel):
     description: Optional[str] = Field(default=None)
 
     @model_validator(mode="after")
-    def validate_data_present_for_supported_sub_functions(self) -> "Routine":
+    def validate_data_present_for_supported_sub_functions(self) -> Self:
         """
         Raise when a supported sub-function is missing its request data layout.
         """

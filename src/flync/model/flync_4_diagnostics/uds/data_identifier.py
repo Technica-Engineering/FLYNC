@@ -9,7 +9,7 @@ identifier, exactly like :attr:`DataIdentifier.read_data` and
 :attr:`DataIdentifier.write_data`.
 """
 
-from typing import Annotated, List, Literal, Optional, Union
+from typing import Annotated, List, Literal, Optional, Self, Union
 
 from pydantic import BeforeValidator, Field, model_validator
 
@@ -59,7 +59,7 @@ class DIDIOControl(FLYNCBaseModel):
     description: Optional[str] = Field(default=None)
 
     @model_validator(mode="after")
-    def validate_control_state_present_for_short_term_adjustment(self) -> "DIDIOControl":
+    def validate_control_state_present_for_short_term_adjustment(self) -> Self:
         """
         Raise when ``short_term_adjustment`` is offered without the record it carries.
         """
@@ -135,7 +135,7 @@ class DataIdentifier(FLYNCBaseModel):
     description: Optional[str] = Field(default=None)
 
     @model_validator(mode="after")
-    def validate_data_matches_access(self) -> "DataIdentifier":
+    def validate_data_matches_access(self) -> Self:
         """
         Raise when a DID declares a data layout its ``access`` does not use, or omits one it needs.
         """

@@ -579,7 +579,7 @@ class HTBInstance(FLYNCBaseModel):
     child_classes: list[ChildClass] = Field()
 
     @model_validator(mode="after")
-    def validate_htb_config(self):
+    def validate_htb_config(self) -> Self:
         """
         Validate the HTB (Hierarchical Token Bucket) configuration attached to the model instance.
 

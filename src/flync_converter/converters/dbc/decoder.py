@@ -8,7 +8,7 @@ from typing import Dict, List, Literal, Optional, Tuple
 from cantools.database.can.message import Message
 from cantools.database.can.signal import Signal
 
-from flync.model import FLYNCModel  # type: ignore[import-untyped]
+from flync.model import FLYNCModel
 from flync.model.flync_4_bus.can_bus import CANBus
 from flync.model.flync_4_communication.flync_channels import FLYNCChannelConfig
 from flync.model.flync_4_communication.flync_communication import FLYNCCommunicationConfig

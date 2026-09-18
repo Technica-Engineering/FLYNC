@@ -1,6 +1,7 @@
 """Defines the IP routing models and utilities for FLYNC controllers."""
 
 from ipaddress import IPv4Address, IPv4Network, IPv6Address, IPv6Network
+from typing import Self
 
 from pydantic import Field, model_validator
 from pydantic.networks import IPvAnyAddress
@@ -35,7 +36,7 @@ class RouteEntry(FLYNCBaseModel):
     egress_interface: str = Field()
 
     @model_validator(mode="after")
-    def validate_gateway_family_matches_destination(self) -> "RouteEntry":
+    def validate_gateway_family_matches_destination(self) -> Self:
         """
         Raise ``err_major`` if ``default_gateway`` does not share the address family of ``destination``.
 

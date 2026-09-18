@@ -123,7 +123,6 @@ per constraint type (e.g. ``ge`` accepts ``">= 0"``, ``"at least 0"``, ``"minimu
 """
 
 import argparse
-import ast
 import importlib
 import inspect
 import pkgutil
@@ -624,89 +623,6 @@ def describes_bound(combined_text: str, phrases: tuple[str, ...], value: str | i
         if phrase in combined_lower:
             return True
     return str(value) in combined_text
-
-
-# ---------------------------------------------------------------------------
-# Validator introspection
-# ---------------------------------------------------------------------------
-
-
-def _cls_source_text(cls: type) -> str:
-    """Return the source text of *cls*, or ``""`` on failure."""
-    try:
-        return inspect.getsource(cls)
-    except (OSError, TypeError):
-        return ""
-
-
-def _own_validator_methods(cls: type) -> list[ast.FunctionDef]:
-    """
-    Return AST nodes for validator methods declared directly on *cls*.
-
-    Parses only the source of the class body — inherited validators are not included.
-    Returns ``[]`` when the source cannot be parsed.
-    """
-    source = _cls_source_text(cls)
-    if not source:
-        return []
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-
-    # The parsed source starts at the class definition itself.
-    class_nodes = [n for n in ast.walk(tree) if isinstance(n, ast.ClassDef)]
-    if not class_nodes:
-        return []
-    # Take the first class node that matches the class name.
-    target = next((n for n in class_nodes if n.name == cls.__name__), class_nodes[0])
-
-    validators = []
-    for node in target.body:
-        if not isinstance(node, ast.FunctionDef):
-            continue
-        dec_names = {_decorator_name(d) for d in node.decorator_list}
-        if dec_names & VALIDATOR_DECORATOR_NAMES:
-            validators.append(node)
-    return validators
-
-
-def _decorator_name(node: ast.expr) -> str:
-    """Extract the bare name from a decorator node (handles ``@name`` and ``@name(…)``)."""
-    if isinstance(node, ast.Name):
-        return node.id
-    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
-        return node.func.id
-    if isinstance(node, ast.Attribute):
-        return node.attr
-    return ""
-
-
-def _validator_calls_error_factory(func_node: ast.FunctionDef) -> set[str]:
-    """Return the set of error-factory names called anywhere inside *func_node*."""
-    called: set[str] = set()
-    for node in ast.walk(func_node):
-        if isinstance(node, ast.Call):
-            name = ""
-            if isinstance(node.func, ast.Name):
-                name = node.func.id
-            elif isinstance(node.func, ast.Attribute):
-                name = node.func.attr
-            if name in ERROR_FACTORY_NAMES:
-                called.add(name)
-    return called
-
-
-def class_uses_error_factories(cls: type) -> set[str]:
-    """
-    Return the set of error-factory names (e.g. ``err_major``) called by any validator on *cls*.
-
-    Used by the ``raises`` check to detect when a class has validators that raise errors.
-    """
-    factories: set[str] = set()
-    for func_node in _own_validator_methods(cls):
-        factories.update(_validator_calls_error_factory(func_node))
-    return factories
 
 
 # ---------------------------------------------------------------------------

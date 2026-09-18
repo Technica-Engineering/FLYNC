@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Literal, Optional
+from typing import TYPE_CHECKING, List, Literal, Optional, Self
 
 from pydantic import Field, PrivateAttr, model_validator
 
@@ -60,12 +60,12 @@ class ECUPort(FLYNCBaseModel):
         description="how to use this",
     )
     mii_config: Optional[MII | RMII | SGMII | RGMII | XFI] = Field(default=None, discriminator="type")
-    _ecu: "ECU" | None = PrivateAttr(default=None)
+    _ecu: ECU | None = None
     _connected_components: List = []
     _type: Literal["ecu_port"] = PrivateAttr(default="ecu_port")
 
     @property
-    def ecu(self) -> "ECU" | None:
+    def ecu(self) -> ECU | None:
         return self._ecu
 
     @property
@@ -77,7 +77,7 @@ class ECUPort(FLYNCBaseModel):
         return self._connected_components
 
     @model_validator(mode="after")
-    def verify_mdi_and_mii_config_have_same_speed(self):
+    def verify_mdi_and_mii_config_have_same_speed(self) -> Self:
         """
         Ensure that, when both MII and MDI configurations are present, their ``speed`` fields match.
         """

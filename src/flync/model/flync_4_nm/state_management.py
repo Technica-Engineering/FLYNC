@@ -44,7 +44,7 @@ path). Until app-level membership lands with flync_4_app, controller-level
 membership is the documented recommendation for multi-controller ECUs.
 """
 
-from typing import TYPE_CHECKING, Annotated, Dict, List, Literal, NamedTuple, Optional
+from typing import TYPE_CHECKING, Annotated, Dict, List, Literal, NamedTuple, Optional, Self
 
 from pydantic import BeforeValidator, Field, model_validator
 
@@ -124,7 +124,7 @@ class AnnouncementPhaseTiming(FLYNCBaseModel):
     burst_cycle_time_ms: Optional[int] = Field(default=None, gt=0)
 
     @model_validator(mode="after")
-    def check_burst_pair(self):
+    def check_burst_pair(self) -> Self:
         """Raise a major error when only one of the two burst fields is set."""
         burst_set = (self.burst_count is not None, self.burst_cycle_time_ms is not None)
         if any(burst_set) and not all(burst_set):
@@ -208,7 +208,7 @@ class GroupTiming(FLYNCBaseModel):
     extensions: Optional[Dict[str, str]] = Field(default=None)
 
     @model_validator(mode="after")
-    def check_consistency(self):
+    def check_consistency(self) -> Self:
         """Validate the cross-phase timer relationships (sleep timeout, and the optional announcement burst)."""
         if self.sleep.timeout_ms <= self.cycle_time_ms:
             raise err_major(
@@ -230,7 +230,7 @@ class GroupTiming(FLYNCBaseModel):
                     category=Category.VALUE_RANGE,
                     error_number="205",
                 )
-            if announcement.burst_count * announcement.burst_cycle_time_ms > announcement.duration_ms:
+            if announcement.burst_count is not None and announcement.burst_count * announcement.burst_cycle_time_ms > announcement.duration_ms:
                 raise err_major(
                     "timing profile '{name}': the announcement burst ({count} x {burst} ms) does not fit within the "
                     "announcement duration_ms ({duration})",
@@ -328,7 +328,7 @@ class StateMembershipRef(FLYNCBaseModel):
     extensions: Optional[Dict[str, str]] = Field(default=None)
 
     @model_validator(mode="after")
-    def observer_owns_no_bit(self):
+    def observer_owns_no_bit(self) -> Self:
         """Raise a major error when an observer membership defines relevance bits."""
         if self.role == "observer" and self.relevance_bits:
             raise err_major(
@@ -339,7 +339,7 @@ class StateMembershipRef(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def no_duplicate_bits(self):
+    def no_duplicate_bits(self) -> Self:
         """Raise a major error when the same relevance bit is listed more than once."""
         if self.relevance_bits and len(self.relevance_bits) != len(set(self.relevance_bits)):
             raise err_major(
@@ -381,7 +381,7 @@ class StateManagementConfig(FLYNCBaseModel):
     ] = Field(default=[])
 
     @model_validator(mode="after")
-    def validate_unique_names(self):
+    def validate_unique_names(self) -> Self:
         """Raise a major error when two groups, or two timing profiles, share a name."""
         validate_list_items_unique([group.name for group in self.groups], "state management groups (name)")
         validate_list_items_unique([profile.name for profile in self.timing_profiles], "state management timing profiles (name)")

@@ -1,6 +1,6 @@
 """Defines the ECU model for FLYNC."""
 
-from typing import Annotated, Iterator, List, Optional, TypeVar
+from typing import Annotated, Iterator, List, Optional, Self, TypeVar
 
 from pydantic import BeforeValidator, Field, model_validator
 
@@ -20,6 +20,7 @@ from flync.model.flync_4_ecu.controller import (
     EthernetInterface,
 )
 from flync.model.flync_4_ecu.internal_topology import (
+    InternalConnection,
     InternalTopology,
     SwitchPortToControllerInterface,
     SwitchPortToXConnection,
@@ -35,7 +36,7 @@ from flync.model.flync_4_ecu.switch import Switch, SwitchPort
 from flync.model.flync_4_metadata import ECUMetadata
 from flync.model.flync_4_nm import StateMembershipRef
 from flync.model.flync_4_nm.state_management import EffectiveMember
-from flync.model.flync_4_someip import (  # type: ignore  # noqa: F401
+from flync.model.flync_4_someip import (  # noqa: F401
     SOMEIPServiceConsumer,
     SOMEIPServiceDeployment,
     SOMEIPServiceProvider,
@@ -89,28 +90,28 @@ class ECU(FLYNCBaseModel):
         ),
     ] = Field()
     ports: Annotated[
-        Optional[List["ECUPort"]],
+        Optional[List[ECUPort]],
         External(
             output_structure=OutputStrategy.SINGLE_FILE,
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
     ] = Field(default_factory=list)
     controllers: Annotated[
-        List["Controller"],
+        List[Controller],
         External(
             output_structure=OutputStrategy.FOLDER,
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
     ] = Field()
     switches: Annotated[
-        Optional[List["Switch"]],
+        Optional[List[Switch]],
         External(
             output_structure=OutputStrategy.FOLDER,
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
     ] = Field(default_factory=list)
     topology: Annotated[
-        Optional["InternalTopology"],
+        Optional[InternalTopology],
         External(
             output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT,
             naming_strategy=NamingStrategy.FIELD_NAME,
@@ -118,11 +119,11 @@ class ECU(FLYNCBaseModel):
         BeforeValidator(validate_or_remove("internal topology", InternalTopology, severity="major")),
     ] = Field(default=None)
     ecu_metadata: Annotated[
-        "ECUMetadata",
+        ECUMetadata,
         External(output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT),
     ] = Field()
     mac_multicast_endpoints: Annotated[
-        Optional["MACMulticastEndpoints"],
+        Optional[MACMulticastEndpoints],
         External(output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT),
     ] = Field(exclude=True, default=None)
     multicast_groups: Optional[List[MulticastGroupMembership]] = Field(default_factory=list, exclude=True)
@@ -182,7 +183,7 @@ class ECU(FLYNCBaseModel):
         return data
 
     @model_validator(mode="after")
-    def validate_ethernet_hw_requires_ports_and_topology(self):
+    def validate_ethernet_hw_requires_ports_and_topology(self) -> Self:
         """Ethernet interfaces and switches only make sense wired to physical ports through an internal topology."""
 
         has_ethernet_hw = bool(self.switches) or any(c.ethernet_interfaces for c in self.controllers)
@@ -201,8 +202,8 @@ class ECU(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def resolve_topology_connections(self):
-        connections = [conn_union.root for conn_union in self.topology.connections] if self.topology else []
+    def resolve_topology_connections(self) -> Self:
+        connections: List[InternalConnection] = [conn_union.root for conn_union in self.topology.connections] if self.topology else []
 
         for conn in connections:
             conn.bind(self.switches or [], self.controllers, self.ports or [])
@@ -214,7 +215,7 @@ class ECU(FLYNCBaseModel):
             conn.validate_compatibility()
         return self
 
-    def __validate_switch_port_connections(self, connections):
+    def __validate_switch_port_connections(self, connections: List[InternalConnection]) -> None:
         """Validate that switch ports are not self-connected and not connected to more than one component."""
         seen_switch_ports: set[int] = set()
         for conn in connections:
@@ -239,9 +240,9 @@ class ECU(FLYNCBaseModel):
                     )
                 seen_switch_ports.add(id(switch_port))
 
-    def __validate_single_physical_connection_per_interface(self, connections):
+    def __validate_single_physical_connection_per_interface(self, connections: List[InternalConnection]) -> None:
         """Raise if the same physical controller interface is connected to more than one switch port."""
-        seen: dict[tuple, str] = {}
+        seen: dict[tuple[Optional[str], str], str] = {}
         for conn in connections:
             if not isinstance(conn, SwitchPortToControllerInterface):
                 continue
@@ -256,7 +257,7 @@ class ECU(FLYNCBaseModel):
             seen[key] = conn.id
 
     @model_validator(mode="after")
-    def validate_no_unconnected_components(self):
+    def validate_no_unconnected_components(self) -> Self:
         if self._connectivity_check_done:
             return self
         self._connectivity_check_done = True
@@ -313,7 +314,7 @@ class ECU(FLYNCBaseModel):
                     )
 
     @model_validator(mode="after")
-    def validate_vlans_in_sockets(self):
+    def validate_vlans_in_sockets(self) -> Self:
         """
         Validate that the VLAN IDs specified in the socket containers of each ethernet interface are configured in a virtual interface of that same
         ethernet interface."""
@@ -510,7 +511,7 @@ class ECU(FLYNCBaseModel):
 
         return [i for c in self.controllers for i in c.iter_subtree_interfaces()]
 
-    def get_all_switch_ports(self) -> List["SwitchPort"]:
+    def get_all_switch_ports(self) -> List[SwitchPort]:
         """Return a list of all ports of the ECU switch."""
         ports = []
         if self.switches is not None:
@@ -646,7 +647,7 @@ class ECU(FLYNCBaseModel):
         return self.__get_services_of_type(SOMEIPServiceProvider)
 
     @model_validator(mode="after")
-    def validate_unique_someip_service_instances(self) -> "ECU":
+    def validate_unique_someip_service_instances(self) -> Self:
         """
         Flag repeated ``(protocol, endpoint_type, service, major_version, instance_id)`` deployments across the
         ECU's sockets.

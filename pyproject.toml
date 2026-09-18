@@ -152,6 +152,21 @@ max-line-length = 149
 profile = "black"
 line_length = 149
 
+[tool.mypy]
+python_version = "3.12"
+plugins = ["pydantic.mypy"]
+# Pydantic models carry the type information; make mypy act on it.
+no_implicit_optional = true
+strict_equality = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+[tool.pydantic-mypy]
+# Type-check model construction: `ECU(nmae=...)` and a mistyped `Field(default=...)` become errors.
+init_typed = true
+warn_required_dynamic_aliases = true
+warn_untyped_fields = true
+
 [build-system]
 requires = ["hatchling>=1.27", "uv-dynamic-versioning>=0.7"]
 build-backend = "hatchling.build"

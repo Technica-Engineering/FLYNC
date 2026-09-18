@@ -32,7 +32,7 @@ class AppBindings(FLYNCBaseModel):
     _apps: List[App] = []
 
     @property
-    def apps(self) -> List["App"]:
+    def apps(self) -> List[App]:
         return self._apps
 
     def resolve_apps(self, apps_by_name: Dict[str, App], controller_name: str) -> None:

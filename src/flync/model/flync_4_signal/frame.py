@@ -7,7 +7,7 @@ Provides the :class:`Frame` base class with the bus specific :class:`CANFrame`, 
 positions of the contained PDU instances.
 """
 
-from typing import Annotated, FrozenSet, List, Literal, Optional
+from typing import Annotated, FrozenSet, List, Literal, Optional, Self
 
 from pydantic import Field, model_validator
 
@@ -120,7 +120,7 @@ class Frame(FLYNCBaseModel):
     packed_pdus: List[PDUInstance] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def _validate_pdu_placements(self) -> "Frame":
+    def _validate_pdu_placements(self) -> Self:
         _check_pdu_bit_positions(self.name, self.packed_pdus)
         return self
 
@@ -165,7 +165,7 @@ class CANFrame(CANFrameBase):
     length: int = Field(ge=0, le=8)
 
     @model_validator(mode="after")
-    def validate_can_frame_constraints(self) -> "CANFrame":
+    def validate_can_frame_constraints(self) -> Self:
         _validate_can_id(self.can_id, self.id_format)
         if self.is_remote_frame and self.length != 0:
             raise err_minor(
@@ -203,7 +203,7 @@ class CANFDFrame(CANFrameBase):
     length: int = Field(ge=0, le=64)
 
     @model_validator(mode="after")
-    def validate_can_fd_frame_constraints(self) -> "CANFDFrame":
+    def validate_can_fd_frame_constraints(self) -> Self:
         _validate_can_id(self.can_id, self.id_format)
         if self.length not in _CAN_FD_VALID_LENGTHS:
             raise err_minor(

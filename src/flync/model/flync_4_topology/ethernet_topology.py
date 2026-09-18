@@ -214,7 +214,7 @@ def _is_multidrop_port(port: ECUPort) -> bool:
     return isinstance(port.mdi_config, BASET1S) and port.mdi_config.topology == "multidrop"
 
 
-def validate_no_multidrop_in_point_to_point(connections: List["EthernetPointToPointConnection"]) -> None:
+def validate_no_multidrop_in_point_to_point(connections: List[EthernetPointToPointConnection | EthernetMultidropConnection]) -> None:
     """
     Reject Ethernet multidrop ports used as one end of a point-to-point connection.
 

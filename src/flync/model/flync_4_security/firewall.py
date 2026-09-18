@@ -1,6 +1,6 @@
 """Defines firewall configuration models for FLYNC."""
 
-from typing import Annotated, List, Literal, Optional
+from typing import Annotated, List, Literal, Optional, Self
 
 from pydantic import BeforeValidator, Field, field_validator, model_validator
 
@@ -32,7 +32,7 @@ class FirewallRule(FLYNCBaseModel):
     pattern: FrameFilter = Field()
 
     @model_validator(mode="after")
-    def validate_pattern(self):
+    def validate_pattern(self) -> Self:
         pattern = self.pattern
         if all(field is None for field in vars(pattern).values()):
             raise err_minor(

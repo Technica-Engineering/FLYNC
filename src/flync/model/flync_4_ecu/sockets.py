@@ -5,6 +5,7 @@ from typing import (
     List,
     Literal,
     Optional,
+    Self,
 )
 
 from pydantic import (
@@ -147,7 +148,7 @@ class Socket(FLYNCBaseModel):
         return valid_deployment
 
     @model_validator(mode="after")
-    def validate_unique_forwarder_per_pdu(self) -> "Socket":
+    def validate_unique_forwarder_per_pdu(self) -> Self:
         """
         Raise ``err_major`` if two ``PDUForwarder`` deployments on this socket target the same ``pdu_ref``.
         """
@@ -171,7 +172,7 @@ class Socket(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_unique_someip_deployments(self) -> "Socket":
+    def validate_unique_someip_deployments(self) -> Self:
         """
         Raise ``err_major`` if two deployments of the same role (provider or consumer) on this socket target the
         same ``(service, major_version, instance_id)`` triple - indistinguishable on the wire.
@@ -195,7 +196,7 @@ class Socket(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_doip_deployment_protocol(self) -> "Socket":
+    def validate_doip_deployment_protocol(self) -> Self:
         """
         Raise ``err_major`` if a ``doip_server`` deployment sits on a UDP socket, or a
         ``doip_discovery`` deployment sits on a TCP socket - DoIP diagnostic messaging (ISO
@@ -354,7 +355,7 @@ class IPv4AddressEndpoint(IPv4AddressEntry):
     sockets: List[Annotated[SocketTCP | SocketUDP, Field(discriminator="protocol")]] | None = Field(default_factory=list, exclude=True)
 
     @model_validator(mode="after")
-    def check_if_sockets_have_the_same_ip(self):
+    def check_if_sockets_have_the_same_ip(self) -> Self:
         """
         Validate that every socket is bound to the same IPv4 address as the one defined in the class.
 
@@ -362,7 +363,7 @@ class IPv4AddressEndpoint(IPv4AddressEntry):
             err_minor: If any socket's ``endpoint_address`` differs from ``self.address``.
         """
 
-        for socket in self.sockets:
+        for socket in self.sockets or []:
             if str(socket.endpoint_address) != str(self.address):
                 raise err_minor("Sockets must be tied to the same address as the IPv4 endpoint.", category=Category.CONSISTENCY, error_number="085")
 
@@ -383,7 +384,7 @@ class IPv6AddressEndpoint(IPv6AddressEntry):
     sockets: List[Annotated[SocketTCP | SocketUDP, Field(discriminator="protocol")]] | None = Field(default_factory=list, exclude=True)
 
     @model_validator(mode="after")
-    def check_if_sockets_have_the_same_ip(self):
+    def check_if_sockets_have_the_same_ip(self) -> Self:
         """
         Validate that every socket is bound to the same IPv6 address as the one defined in the class.
 
@@ -392,7 +393,7 @@ class IPv6AddressEndpoint(IPv6AddressEntry):
             differs from ``self.address``.
         """
 
-        for socket in self.sockets:
+        for socket in self.sockets or []:
             if str(socket.endpoint_address) != str(self.address):
                 raise err_minor("Sockets must be tied to the same address as the IPv6 endpoint.", category=Category.CONSISTENCY, error_number="086")
         return self

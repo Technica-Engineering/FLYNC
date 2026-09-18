@@ -133,6 +133,13 @@ optional now.
 Saving a workspace also writes a ``.flync/config.yaml`` holding its configuration, so tooling
 picks up the same settings on the next load.
 
+SOME/IP timing profile references
+'''''''''''''''''''''''''''''''''
+
+A ``someip_timing`` that names no existing profile is now reported as a catalog error,
+``FLYNC-SOM-MAJ-REF-340``, instead of a bare ``ValueError``. The message is unchanged in
+substance - it still names the element and the timing class the profile was looked for in.
+
 Installation and build
 ''''''''''''''''''''''
 

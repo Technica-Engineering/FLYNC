@@ -43,7 +43,7 @@ class _ValidationContext(NamedTuple):
     ecus_by_name: dict
     sent_frame_ids_by_bus: Dict[str, Set[int]]
     attached_buses_by_ecu: Dict[str, Set[str]]
-    paths_cache: Dict[str, "tuple[Set[str], Set[str]]"]
+    paths_cache: Dict[str, tuple[Set[str], Set[str]]]
 
 
 def _build_context(model: "FLYNCModel", cfg) -> _ValidationContext:
@@ -65,7 +65,7 @@ def _build_context(model: "FLYNCModel", cfg) -> _ValidationContext:
     )
 
 
-def _paths(ctx: _ValidationContext, ecu_name: str) -> "tuple[Set[str], Set[str]]":
+def _paths(ctx: _ValidationContext, ecu_name: str) -> tuple[Set[str], Set[str]]:
     """Return an ECU's ``(tx, rx)`` PDU-name sets, cached (paths are group-independent)."""
 
     cached = ctx.paths_cache.get(ecu_name)
@@ -316,7 +316,7 @@ def _build_frame_catalog_by_bus_id(model: "FLYNCModel"):
     return catalog
 
 
-def _pdu_paths_by_ecu(ecu, pdu_catalog, frame_by_bus_id) -> "tuple[Set[str], Set[str]]":
+def _pdu_paths_by_ecu(ecu, pdu_catalog, frame_by_bus_id) -> tuple[Set[str], Set[str]]:
     """
     Return ``(tx, rx)`` — the names of every PDU the ECU sends respectively
     receives on any path.

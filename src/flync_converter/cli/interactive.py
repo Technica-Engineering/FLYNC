@@ -1,7 +1,6 @@
 """Rich-based interactive prompt helpers for converter selection and config."""
 
 import logging
-from typing import Type, cast
 
 from pydantic import BaseModel
 from rich.console import Console
@@ -71,7 +70,7 @@ def interactive_configure_converter(converter_type: str, step: str) -> Converter
     table.add_column("Value", style="green")
 
     if is_pydantic:
-        pydantic_cls = cast(Type[ConverterConfig], config_model)
+        pydantic_cls = config_model
         fields = pydantic_cls.model_fields
         for name, fld in fields.items():
             required = fld.is_required()
@@ -101,6 +100,6 @@ def interactive_configure_converter(converter_type: str, step: str) -> Converter
     console.print(Panel(table, expand=False))
 
     if is_pydantic:
-        return cast(Type[ConverterConfig], config_model)(**config_dict)
+        return config_model(**config_dict)
     else:
         return ConverterConfig(**config_dict)
