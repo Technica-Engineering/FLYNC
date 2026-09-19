@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_652abc995f250aee_model_dumper_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
-            created at 2026-09-14 19:13 +0000
+            created at 2026-09-19 09:11 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -671,7 +671,7 @@
     <p class="pln"><span class="n"><a id="t589" href="#t589">589</a></span><span class="t"><span class="com"># lock and re-unpickling the shelve on every call within a single process (the</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t590" href="#t590">590</a></span><span class="t"><span class="com"># graph is deterministic per root type, and this factory is called many times</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t591" href="#t591">591</a></span><span class="t"><span class="com"># per dump/load).</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t592" href="#t592">592</a></span><span class="t"><span class="nam">_graph_cache</span><span class="op">:</span> <span class="nam">dict</span><span class="op">[</span><span class="nam">str</span><span class="op">,</span> <span class="str">&quot;ModelDependencyGraph&quot;</span><span class="op">]</span> <span class="op">=</span> <span class="op">{</span><span class="op">}</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t592" href="#t592">592</a></span><span class="t"><span class="nam">_graph_cache</span><span class="op">:</span> <span class="nam">dict</span><span class="op">[</span><span class="nam">str</span><span class="op">,</span> <span class="nam">ModelDependencyGraph</span><span class="op">]</span> <span class="op">=</span> <span class="op">{</span><span class="op">}</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t593" href="#t593">593</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t594" href="#t594">594</a></span><span class="t"><span class="com"># Dynamically-generated roots (type-replacement engine output) have a per-build</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t595" href="#t595">595</a></span><span class="t"><span class="com"># object identity even when two builds are structurally identical. Their graphs</span>&nbsp;</span><span class="r"></span></p>
@@ -679,7 +679,7 @@
     <p class="pln"><span class="n"><a id="t597" href="#t597">597</a></span><span class="t"><span class="com"># keys), so a structurally-keyed cache would hand back a graph whose nodes belong</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t598" href="#t598">598</a></span><span class="t"><span class="com"># to a *previous* build. Cache such graphs by root identity instead; a weak key</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t599" href="#t599">599</a></span><span class="t"><span class="com"># lets the graph be collected once its root is no longer referenced.</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t600" href="#t600">600</a></span><span class="t"><span class="nam">_dynamic_graph_cache</span><span class="op">:</span> <span class="str">&quot;WeakKeyDictionary[type, ModelDependencyGraph]&quot;</span> <span class="op">=</span> <span class="nam">WeakKeyDictionary</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t600" href="#t600">600</a></span><span class="t"><span class="nam">_dynamic_graph_cache</span><span class="op">:</span> <span class="nam">WeakKeyDictionary</span><span class="op">[</span><span class="nam">type</span><span class="op">,</span> <span class="nam">ModelDependencyGraph</span><span class="op">]</span> <span class="op">=</span> <span class="nam">WeakKeyDictionary</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t601" href="#t601">601</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t602" href="#t602">602</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t603" href="#t603">603</a></span><span class="t"><span class="key">def</span> <span class="nam">hash_directory_fast</span><span class="op">(</span><span class="nam">directory</span><span class="op">:</span> <span class="nam">str</span><span class="op">,</span> <span class="nam">ext</span><span class="op">=</span><span class="str">&quot;.py&quot;</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="nam">str</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
@@ -806,9 +806,9 @@
     <p class="pln"><span class="n"><a id="t724" href="#t724">724</a></span><span class="t">        <span class="com"># TypeError/ValueError: a synthetic ``__module__`` that is not a valid module name</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t725" href="#t725">725</a></span><span class="t">        <span class="com"># (relative or malformed) is rejected by import_module before any import happens.</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t726" href="#t726">726</a></span><span class="t">        <span class="key">return</span> <span class="key">False</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t727" href="#t727">727</a></span><span class="t">    <span class="nam">obj</span> <span class="op">=</span> <span class="nam">module</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t727" href="#t727">727</a></span><span class="t">    <span class="nam">obj</span><span class="op">:</span> <span class="nam">object</span> <span class="op">=</span> <span class="nam">module</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t728" href="#t728">728</a></span><span class="t">    <span class="key">for</span> <span class="nam">part</span> <span class="key">in</span> <span class="nam">qualname</span><span class="op">.</span><span class="nam">split</span><span class="op">(</span><span class="str">&quot;.&quot;</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t729" href="#t729">729</a></span><span class="t">        <span class="nam">obj</span> <span class="op">=</span> <span class="nam">getattr</span><span class="op">(</span><span class="nam">obj</span><span class="op">,</span> <span class="nam">part</span><span class="op">,</span> <span class="key">None</span><span class="op">)</span>  <span class="com"># type: ignore[assignment]</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t729" href="#t729">729</a></span><span class="t">        <span class="nam">obj</span> <span class="op">=</span> <span class="nam">getattr</span><span class="op">(</span><span class="nam">obj</span><span class="op">,</span> <span class="nam">part</span><span class="op">,</span> <span class="key">None</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t730" href="#t730">730</a></span><span class="t">    <span class="key">return</span> <span class="nam">obj</span> <span class="key">is</span> <span class="nam">cls</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t731" href="#t731">731</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t732" href="#t732">732</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
@@ -867,7 +867,7 @@
             <a class="nav" href="z_652abc995f250aee_model_dumper_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
-            created at 2026-09-14 19:13 +0000
+            created at 2026-09-19 09:11 +0000
         </p>
     </div>
 </footer>

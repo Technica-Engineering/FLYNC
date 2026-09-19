@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_493a9e6852f5b4be_phy_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
-            created at 2026-09-14 19:13 +0000
+            created at 2026-09-19 09:11 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -88,7 +88,7 @@
     <p class="pln"><span class="n"><a id="t6" href="#t6">6</a></span><span class="t"><span class="str">&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t7" href="#t7">7</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t8" href="#t8">8</a></span><span class="t"><span class="key">from</span> <span class="nam">ipaddress</span> <span class="key">import</span> <span class="nam">IPv4Address</span><span class="op">,</span> <span class="nam">IPv6Address</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t9" href="#t9">9</a></span><span class="t"><span class="key">from</span> <span class="nam">typing</span> <span class="key">import</span> <span class="nam">Annotated</span><span class="op">,</span> <span class="nam">Literal</span><span class="op">,</span> <span class="nam">Optional</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t9" href="#t9">9</a></span><span class="t"><span class="key">from</span> <span class="nam">typing</span> <span class="key">import</span> <span class="nam">Annotated</span><span class="op">,</span> <span class="nam">Literal</span><span class="op">,</span> <span class="nam">Optional</span><span class="op">,</span> <span class="nam">Self</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t10" href="#t10">10</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t11" href="#t11">11</a></span><span class="t"><span class="key">from</span> <span class="nam">pydantic</span> <span class="key">import</span> <span class="nam">AfterValidator</span><span class="op">,</span> <span class="nam">Field</span><span class="op">,</span> <span class="nam">model_validator</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t12" href="#t12">12</a></span><span class="t"><span class="key">from</span> <span class="nam">pydantic</span><span class="op">.</span><span class="nam">networks</span> <span class="key">import</span> <span class="nam">IPvAnyAddress</span>&nbsp;</span><span class="r"></span></p>
@@ -133,7 +133,7 @@
     <p class="run"><span class="n"><a id="t51" href="#t51">51</a></span><span class="t">    <span class="nam">_interface</span><span class="op">:</span> <span class="nam">EthernetInterfaceConfig</span> <span class="op">|</span> <span class="key">None</span> <span class="op">=</span> <span class="key">None</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t52" href="#t52">52</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t53" href="#t53">53</a></span><span class="t">    <span class="op">@</span><span class="nam">model_validator</span><span class="op">(</span><span class="nam">mode</span><span class="op">=</span><span class="str">&quot;after&quot;</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t54" href="#t54">54</a></span><span class="t">    <span class="key">def</span> <span class="nam">validate_src_ip_set_on_tx_ip_groups</span><span class="op">(</span><span class="nam">self</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t54" href="#t54">54</a></span><span class="t">    <span class="key">def</span> <span class="nam">validate_src_ip_set_on_tx_ip_groups</span><span class="op">(</span><span class="nam">self</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="nam">Self</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t55" href="#t55">55</a></span><span class="t">        <span class="key">if</span> <span class="op">(</span><span class="nam">isinstance</span><span class="op">(</span><span class="nam">self</span><span class="op">.</span><span class="nam">group</span><span class="op">,</span> <span class="op">(</span><span class="nam">IPv4Address</span> <span class="op">|</span> <span class="nam">IPv6Address</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="key">and</span> <span class="nam">self</span><span class="op">.</span><span class="nam">mode</span> <span class="op">==</span> <span class="str">&quot;tx&quot;</span> <span class="key">and</span> <span class="key">not</span> <span class="nam">self</span><span class="op">.</span><span class="nam">src_ip</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t56" href="#t56">56</a></span><span class="t">            <span class="key">raise</span> <span class="nam">err_minor</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t57" href="#t57">57</a></span><span class="t">                <span class="fst">f&quot;</span><span class="fst">Multicast group membership for </span><span class="op">{</span><span class="nam">self</span><span class="op">.</span><span class="nam">group</span><span class="op">}</span><span class="fst"> (</span><span class="op">{</span><span class="nam">self</span><span class="op">.</span><span class="nam">mode</span><span class="op">}</span><span class="fst"> / VLAN </span><span class="op">{</span><span class="nam">self</span><span class="op">.</span><span class="nam">vlan</span><span class="op">}</span><span class="fst"> ) could not be defined.</span><span class="fst">&quot;</span>&nbsp;</span><span class="r"></span></p>
@@ -161,7 +161,7 @@
             <a class="nav" href="z_493a9e6852f5b4be_phy_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
-            created at 2026-09-14 19:13 +0000
+            created at 2026-09-19 09:11 +0000
         </p>
     </div>
 </footer>

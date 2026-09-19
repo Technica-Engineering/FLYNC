@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_693fbd76c26f1e8d_service_interface_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
-            created at 2026-09-14 19:13 +0000
+            created at 2026-09-19 09:11 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -180,7 +180,7 @@
     <p class="pln"><span class="n"><a id="t98" href="#t98">98</a></span><span class="t"><span class="str">        Multicast configuration for this endpoint.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t99" href="#t99">99</a></span><span class="t"><span class="str">    &quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t100" href="#t100">100</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t101" href="#t101">101</a></span><span class="t">    <span class="nam">multicast</span><span class="op">:</span> <span class="nam">Optional</span><span class="op">[</span><span class="str">&quot;MulticastEndpoint&quot;</span><span class="op">]</span> <span class="op">=</span> <span class="nam">Field</span><span class="op">(</span><span class="nam">description</span><span class="op">=</span><span class="str">&quot;multicast configuration for this endpoint&quot;</span><span class="op">,</span> <span class="nam">default</span><span class="op">=</span><span class="key">None</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t101" href="#t101">101</a></span><span class="t">    <span class="nam">multicast</span><span class="op">:</span> <span class="nam">Optional</span><span class="op">[</span><span class="nam">MulticastEndpoint</span><span class="op">]</span> <span class="op">=</span> <span class="nam">Field</span><span class="op">(</span><span class="nam">description</span><span class="op">=</span><span class="str">&quot;multicast configuration for this endpoint&quot;</span><span class="op">,</span> <span class="nam">default</span><span class="op">=</span><span class="key">None</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t102" href="#t102">102</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t103" href="#t103">103</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t104" href="#t104">104</a></span><span class="t"><span class="key">class</span> <span class="nam">TCPDeployment</span><span class="op">(</span><span class="nam">Layer4Endpoint</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
@@ -203,7 +203,7 @@
     <p class="pln"><span class="n"><a id="t121" href="#t121">121</a></span><span class="t"><span class="str">    &quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t122" href="#t122">122</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t123" href="#t123">123</a></span><span class="t">    <span class="nam">deployment_type</span><span class="op">:</span> <span class="nam">Literal</span><span class="op">[</span><span class="str">&quot;someip_sd&quot;</span><span class="op">]</span> <span class="op">=</span> <span class="nam">Field</span><span class="op">(</span><span class="nam">default</span><span class="op">=</span><span class="str">&quot;someip_sd&quot;</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t124" href="#t124">124</a></span><span class="t">    <span class="nam">multicast</span><span class="op">:</span> <span class="nam">Optional</span><span class="op">[</span><span class="str">&quot;MulticastSDEndpoint&quot;</span><span class="op">]</span> <span class="op">=</span> <span class="nam">Field</span><span class="op">(</span><span class="nam">description</span><span class="op">=</span><span class="str">&quot;multicast configuration for SD endpoint&quot;</span><span class="op">,</span> <span class="nam">default</span><span class="op">=</span><span class="key">None</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t124" href="#t124">124</a></span><span class="t">    <span class="nam">multicast</span><span class="op">:</span> <span class="nam">Optional</span><span class="op">[</span><span class="nam">MulticastSDEndpoint</span><span class="op">]</span> <span class="op">=</span> <span class="nam">Field</span><span class="op">(</span><span class="nam">description</span><span class="op">=</span><span class="str">&quot;multicast configuration for SD endpoint&quot;</span><span class="op">,</span> <span class="nam">default</span><span class="op">=</span><span class="key">None</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t125" href="#t125">125</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t126" href="#t126">126</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t127" href="#t127">127</a></span><span class="t"><span class="key">class</span> <span class="nam">SOMEIPServiceDeployment</span><span class="op">(</span><span class="nam">abc</span><span class="op">.</span><span class="nam">ABC</span><span class="op">,</span> <span class="nam">FLYNCBaseModel</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
@@ -369,7 +369,7 @@
             <a class="nav" href="z_693fbd76c26f1e8d_service_interface_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
-            created at 2026-09-14 19:13 +0000
+            created at 2026-09-19 09:11 +0000
         </p>
     </div>
 </footer>

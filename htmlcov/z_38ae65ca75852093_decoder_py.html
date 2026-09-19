@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Coverage for src/flync_converter/converters/dbc/decoder.py: 93%</title>
+    <title>Coverage for src/flync_converter/converters/dbc/decoder.py: 92%</title>
     <link rel="icon" sizes="32x32" href="favicon_32_cb_c827f16f.png">
     <link rel="stylesheet" href="style_cb_4667309f.css" type="text/css">
     <script src="coverage_html_cb_dd2e7eb5.js" defer></script>
@@ -12,7 +12,7 @@
     <div class="content">
         <h1>
             <span class="text">Coverage for </span><b>src<span class="sep">/</span>flync_converter<span class="sep">/</span>converters<span class="sep">/</span>dbc<span class="sep">/</span>decoder.py</b>:
-            <span class="pc_cov">93%</span>
+            <span class="pc_cov">92%</span>
         </h1>
         <aside id="help_panel_wrapper">
             <input id="help_panel_state" type="checkbox">
@@ -55,8 +55,8 @@
         </aside>
         <h2>
             <span class="text">199 statements &nbsp;</span>
-            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">185<span class="text"> run</span></button>
-            <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">14<span class="text"> missing</span></button>
+            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">184<span class="text"> run</span></button>
+            <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">15<span class="text"> missing</span></button>
             <button type="button" class="exc show_exc button_toggle_exc" value="exc" data-shortcut="x" title="Toggle lines excluded">0<span class="text"> excluded</span></button>
         </h2>
         <p class="text">
@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_38ae65ca75852093_encoder_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
-            created at 2026-09-14 19:13 +0000
+            created at 2026-09-19 09:11 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -90,7 +90,7 @@
     <p class="run"><span class="n"><a id="t8" href="#t8">8</a></span><span class="t"><span class="key">from</span> <span class="nam">cantools</span><span class="op">.</span><span class="nam">database</span><span class="op">.</span><span class="nam">can</span><span class="op">.</span><span class="nam">message</span> <span class="key">import</span> <span class="nam">Message</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t9" href="#t9">9</a></span><span class="t"><span class="key">from</span> <span class="nam">cantools</span><span class="op">.</span><span class="nam">database</span><span class="op">.</span><span class="nam">can</span><span class="op">.</span><span class="nam">signal</span> <span class="key">import</span> <span class="nam">Signal</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t10" href="#t10">10</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t11" href="#t11">11</a></span><span class="t"><span class="key">from</span> <span class="nam">flync</span><span class="op">.</span><span class="nam">model</span> <span class="key">import</span> <span class="nam">FLYNCModel</span>  <span class="com"># type: ignore[import-untyped]</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t11" href="#t11">11</a></span><span class="t"><span class="key">from</span> <span class="nam">flync</span><span class="op">.</span><span class="nam">model</span> <span class="key">import</span> <span class="nam">FLYNCModel</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t12" href="#t12">12</a></span><span class="t"><span class="key">from</span> <span class="nam">flync</span><span class="op">.</span><span class="nam">model</span><span class="op">.</span><span class="nam">flync_4_bus</span><span class="op">.</span><span class="nam">can_bus</span> <span class="key">import</span> <span class="nam">CANBus</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t13" href="#t13">13</a></span><span class="t"><span class="key">from</span> <span class="nam">flync</span><span class="op">.</span><span class="nam">model</span><span class="op">.</span><span class="nam">flync_4_communication</span><span class="op">.</span><span class="nam">flync_channels</span> <span class="key">import</span> <span class="nam">FLYNCChannelConfig</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t14" href="#t14">14</a></span><span class="t"><span class="key">from</span> <span class="nam">flync</span><span class="op">.</span><span class="nam">model</span><span class="op">.</span><span class="nam">flync_4_communication</span><span class="op">.</span><span class="nam">flync_communication</span> <span class="key">import</span> <span class="nam">FLYNCCommunicationConfig</span>&nbsp;</span><span class="r"></span></p>
@@ -366,9 +366,9 @@
     <p class="run"><span class="n"><a id="t284" href="#t284">284</a></span><span class="t">        <span class="nam">version</span> <span class="op">=</span> <span class="nam">importlib</span><span class="op">.</span><span class="nam">metadata</span><span class="op">.</span><span class="nam">version</span><span class="op">(</span><span class="str">&quot;flync&quot;</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t285" href="#t285">285</a></span><span class="t">        <span class="com"># ensure it parses as semver; fall back otherwise</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t286" href="#t286">286</a></span><span class="t">        <span class="nam">BaseVersion</span><span class="op">(</span><span class="nam">version</span><span class="op">=</span><span class="nam">version</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t287" href="#t287">287</a></span><span class="t">        <span class="key">return</span> <span class="nam">version</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t288" href="#t288">288</a></span><span class="t">    <span class="key">except</span> <span class="nam">Exception</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t289" href="#t289">289</a></span><span class="t">        <span class="key">return</span> <span class="str">&quot;0.0.0&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t287" href="#t287">287</a></span><span class="t">        <span class="key">return</span> <span class="nam">version</span>&nbsp;</span><span class="r"></span></p>
+    <p class="mis show_mis"><span class="n"><a id="t288" href="#t288">288</a></span><span class="t">    <span class="key">except</span> <span class="nam">Exception</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="mis show_mis"><span class="n"><a id="t289" href="#t289">289</a></span><span class="t">        <span class="key">return</span> <span class="str">&quot;0.0.0&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t290" href="#t290">290</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t291" href="#t291">291</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t292" href="#t292">292</a></span><span class="t"><span class="key">def</span> <span class="nam">_register_frame_participants</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
@@ -524,7 +524,7 @@
             <a class="nav" href="z_38ae65ca75852093_encoder_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
-            created at 2026-09-14 19:13 +0000
+            created at 2026-09-19 09:11 +0000
         </p>
     </div>
 </footer>
