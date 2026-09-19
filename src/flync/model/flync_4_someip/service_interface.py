@@ -289,7 +289,7 @@ class SOMEIPField(FLYNCBaseModel):
         Validate that at least one identifier of the
         field is defined. [feat_req_someip_632]"""
 
-        if self.notifier_id is not None or self.setter_id is not None or self.getter_id is not None:
+        if self.notifier_id is None and self.setter_id is None and self.getter_id is None:
             err_minor(
                 f'Field "{self.name}": [feat_req_someip_632] - '
                 "A field without a setter and without a getter and without a notifier shall not exist.",
