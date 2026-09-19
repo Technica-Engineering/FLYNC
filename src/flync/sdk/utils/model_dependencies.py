@@ -300,7 +300,7 @@ class ModelDependencyGraph:
         self.reverse_tree: dict[type[BaseModel], set[type[BaseModel]]] = self._invert()
         self.fields_info: dict[str, NodeInfo] = self._field_info()
 
-    def _invert(self):
+    def _invert(self) -> dict[type[BaseModel], set[type[BaseModel]]]:
         """
         Invert the edge set to produce a child-to-parents mapping.
 
@@ -315,7 +315,7 @@ class ModelDependencyGraph:
             reverse[c].add(p)
         return dict(reverse)
 
-    def _field_info(self):
+    def _field_info(self) -> dict[str, NodeInfo]:
         """
         Build per-node metadata including all paths from the root model.
 

@@ -15,6 +15,7 @@ from pathlib import Path
 from types import UnionType
 from typing import Annotated, Optional, Union, get_args, get_origin
 
+from pydantic.fields import FieldInfo
 from pydantic_core import ValidationError
 
 from flync.core.annotations import (
@@ -636,30 +637,30 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
 
     def __handle_external_field_load(
         self,
-        path,
-        current_object_paths,
-        module_load_info,
-        field_name,
-        field_info,
-        external,
-    ):
+        path: Path,
+        current_object_paths: list[str],
+        module_load_info: dict,
+        field_name: str,
+        field_info_obj: FieldInfo,
+        external: External | None,
+    ) -> None:
         if external is not None:
             # field will need to be added to to a new separate document
-            attribute_type = field_info.annotation
+            attribute_type = field_info_obj.annotation
             if attribute_type is None:
                 raise ValueError("Attribute {} has an invalid type.", field_name)
             base_type: type | None = get_origin(attribute_type)
             base_type_args = get_args(attribute_type)
             storage_key = field_name
             external_path = self.__get_external_path(path, external, field_name)
-            if not external_path.exists() and field_info.alias is not None:
-                external_path = self.__get_external_path(path, external, field_info.alias)
-                storage_key = field_info.alias
+            if not external_path.exists() and field_info_obj.alias is not None:
+                external_path = self.__get_external_path(path, external, field_info_obj.alias)
+                storage_key = field_info_obj.alias
             if OutputStrategy.SINGLE_FILE in external.output_structure:
                 if OutputStrategy.OMMIT_ROOT not in external.output_structure:
                     # the output file is a dictionary
                     # we need to load it accordingly
-                    attribute_type = dict[str, attribute_type]
+                    attribute_type = dict[str, attribute_type]  # type: ignore[valid-type]
                     base_type = get_origin(attribute_type)
                     base_type_args = get_args(attribute_type)
             new_paths = self.update_objects_path(current_object_paths, field_name)
@@ -669,7 +670,7 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
                 base_type_args,
                 external,
                 path,
-                external_path,
+                str(external_path),
                 module_load_info,
                 field_name,
                 storage_key,

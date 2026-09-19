@@ -33,7 +33,7 @@ def set_path(
 
 
 @app.command(name="show", help="Print the stored workspace path.")
-def show_path():
+def show_path() -> None:
     """Print the stored workspace path and where it lives, flagging a path that no longer exists."""
     stored: Optional[str] = get_stored_workspace_path()
     if stored is None:
