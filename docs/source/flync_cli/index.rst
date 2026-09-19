@@ -16,6 +16,7 @@ Commands
 - **info** - Command group displaying workspace inventory: ``ecus``, ``controllers``, ``switches``, ``ports``,
   ``ip``, ``sockets``, ``services``, ``instances``, ``vlans``.
 - **filetree** - Export the expected filetree of a FLYNC configuration to a txt file.
+- **schema** - Export the FLYNC model as JSON Schema files, one per Pydantic model class, linked with ``$ref``.
 - **generate-system-uml** - Generate PlantUML topology diagrams.
 - **config** - Store, show, or clear the workspace path used when a command omits its path argument in a CLI session.
 - **errors** - Inspect and maintain the :doc:`../error_catalog`.

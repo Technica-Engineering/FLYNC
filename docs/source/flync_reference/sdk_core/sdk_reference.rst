@@ -65,5 +65,8 @@ Utils & Helpers
 .. automodule:: flync.sdk.utils.field_utils
    :members:
 
+.. automodule:: flync.sdk.utils.model_schema
+   :members:
+
 .. automodule:: flync.sdk.helpers.generation_helpers
    :members:

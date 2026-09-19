@@ -124,7 +124,7 @@ tests/
 | `workspace/` | `FlyncWorkspace`, `document`, `ids`, `objects`, `source` | Workspace management: load/save FLYNC configurations, document tracking, source resolution |
 | `helpers/` | `debug`, `generation_helpers`, `nodes_helpers`, `validation_helpers`, `debug_layers/` (`layer1_structure`, `layer2_yaml`, `layer3_4_5_workspace`, `runner`) | Utility functions for workspace validation, config generation, node traversal, and multi-layer debugging |
 | `context/` | `diagnostics_result`, `node_info`, `workspace_config` | Configuration and diagnostic types for SDK and language server integration |
-| `utils/` | `sdk_types`, `field_utils`, `model_dependencies`, `model_dumper` | Shared type definitions, field introspection, dependency graph, model serialization |
+| `utils/` | `sdk_types`, `field_utils`, `model_dependencies`, `model_dumper`, `model_schema` | Shared type definitions, field introspection, dependency graph, model serialization, per-model JSON Schema export |
 
 ## CLI Overview
 
@@ -132,11 +132,12 @@ tests/
 
 | Module | Description |
 |---|---|
-| `main.py` | Root Typer app that wires up commands from `commands/` via `add_typer`. `info`, `config`, and `errors` are registered as named subcommand groups; `validate`, `filetree`, and `generate-system-uml` attach at the top level. Also hosts the hidden, deprecated top-level aliases (`display-vlan-info`, `display-service-info`, `display-repo-structure`, `debug`) |
+| `main.py` | Root Typer app that wires up commands from `commands/` via `add_typer`. `info`, `config`, and `errors` are registered as named subcommand groups; `validate`, `filetree`, `schema`, and `generate-system-uml` attach at the top level. Also hosts the hidden, deprecated top-level aliases (`display-vlan-info`, `display-service-info`, `display-repo-structure`, `debug`) |
 | `commands/validate.py` | Workspace validation (semantic checks, reference resolution); `--verbose` runs the layered debug checks from `flync.sdk.helpers.debug_layers` |
 | `commands/info.py` | The `info` command group: `ecus`, `controllers`, `switches`, `ports`, `ip`, `sockets`, `services`, `instances`, `vlans` — plus their hidden `list-*` aliases |
 | `commands/config.py` | The `config` command group: `set`/`show`/`clear` the session-persisted workspace path |
 | `commands/filetree.py` | Exports the expected filetree of a FLYNC configuration (or a model sub-tree) to a txt file |
+| `commands/schema.py` | Exports the FLYNC model as JSON Schema files, one per Pydantic model class, linked with `$ref` |
 | `commands/generate_system_uml.py` | PlantUML system diagram generation from workspace |
 | `commands/errors.py` | FLYNC error catalog inspection and maintenance |
 | `utils/workspace.py` | Session-persisted workspace path (backing `config`) and `load_workspace()`, the shared "resolve path, validate, hand back the workspace" used by every command |

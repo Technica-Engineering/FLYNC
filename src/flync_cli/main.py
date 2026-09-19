@@ -14,6 +14,7 @@ from flync_cli.commands.filetree import app as filetree_app
 from flync_cli.commands.generate_system_uml import app as generate_uml
 from flync_cli.commands.info import EcuNameOpt, _resolve_service_by_name, _show_instances, _show_vlans
 from flync_cli.commands.info import app as info_app
+from flync_cli.commands.schema import app as schema_app
 from flync_cli.commands.validate import _run_validate
 from flync_cli.commands.validate import app as validate_app
 from flync_cli.utils.deprecation import warn_deprecated
@@ -28,6 +29,7 @@ app = typer.Typer(
 app.add_typer(validate_app)
 app.add_typer(info_app, name="info")
 app.add_typer(filetree_app)
+app.add_typer(schema_app)
 app.add_typer(generate_uml)
 app.add_typer(config_app, name="config")
 app.add_typer(errors_app, name="errors")

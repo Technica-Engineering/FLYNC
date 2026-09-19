@@ -135,6 +135,20 @@ Export the expected filetree of a FLYNC configuration (or one of its model sub-t
    flync filetree
    flync filetree --class ecu
 
+Exporting the JSON Schema
+-------------------------
+
+Export the FLYNC model as JSON Schema (draft 2020-12), with one file per Pydantic model class
+(``ECU``, ``Controller``, ``EthernetInterface``, ...) plus one per enum. ``FLYNCModel.schema.json``
+describes a whole workspace and is the entry point; every other file is named after its class and
+referenced with ``"$ref": "<ClassName>.schema.json"``:
+
+.. code-block:: bash
+
+   flync schema schemas
+   flync schema schemas --mode serialization
+   flync schema schemas --base-uri https://example.com/flync/schemas
+
 Registering a new error
 ------------------------
 
