@@ -1,15 +1,14 @@
 """Tests for SOME/IP service-instance uniqueness *across the sockets of one ECU*."""
 
 import pytest
-from pydantic import ValidationError
 
 from flync.core.utils.exceptions_handling import validate_with_policy
 from flync.model.flync_4_ecu.ecu import ECU
-from tests.error_assertions import assert_no_findings, assert_single_error, assert_single_warning
+from tests.error_assertions import assert_no_findings, assert_single_warning
 from tests.unit_test.model.tests_4_ecu.conftest import INSTANCE_ID, MAJOR_VERSION, SERVICE_ID
 
 DUPLICATE_CONSUMER_WARNING_ID = "FLYNC-ECU-WARN-UNIQ-241"
-DUPLICATE_PROVIDER_ERROR_ID = "FLYNC-ECU-MAJ-UNIQ-243"
+DUPLICATE_PROVIDER_WARNING_ID = "FLYNC-ECU-WARN-UNIQ-243"
 
 #: The reported message must identify the repeated instance; that is all these tests pin of the wording.
 INSTANCE_MESSAGE_FRAGMENT = f"instance_id={INSTANCE_ID}"
@@ -40,22 +39,24 @@ def two_socket_ecu_kwargs(someip_deployment, udp_socket_data, minimal_ecu_kwargs
     return _build
 
 
-def test_ecu_consuming_same_instance_twice_emits_warning(two_socket_ecu_kwargs):
-    """Consuming one service instance on two sockets of one ECU loads, but is warned about."""
+@pytest.mark.parametrize(
+    ("role", "expected_warning_id"),
+    [
+        pytest.param("consumer", DUPLICATE_CONSUMER_WARNING_ID, id="consumer"),
+        pytest.param("provider", DUPLICATE_PROVIDER_WARNING_ID, id="provider"),
+    ],
+)
+def test_ecu_deploying_same_instance_twice_emits_warning(role, expected_warning_id, two_socket_ecu_kwargs):
+    """Deploying one service instance on two sockets of one ECU loads, but is warned about - for either role.
 
-    result = validate_with_policy(ECU, two_socket_ecu_kwargs("consumer"), path=None)
+    The provider case is deliberately only a warning until FLYNC models variants (see
+    ``ECU.validate_unique_someip_service_instances``). It has to be checked through ``validate_with_policy``:
+    ``warn`` is a no-op outside that context, so a bare ``ECU.model_validate`` reports nothing at all.
+    """
 
-    assert_single_warning(result, DUPLICATE_CONSUMER_WARNING_ID, INSTANCE_MESSAGE_FRAGMENT)
+    result = validate_with_policy(ECU, two_socket_ecu_kwargs(role), path=None)
 
-
-def test_ecu_providing_same_instance_twice_rejected(two_socket_ecu_kwargs):
-    """Providing one service instance on two sockets of one ECU is a hard conflict."""
-
-    ecu_kwargs = two_socket_ecu_kwargs("provider")
-    with pytest.raises(ValidationError) as exc_info:
-        ECU.model_validate(ecu_kwargs)
-
-    assert_single_error(exc_info, DUPLICATE_PROVIDER_ERROR_ID, INSTANCE_MESSAGE_FRAGMENT)
+    assert_single_warning(result, expected_warning_id, INSTANCE_MESSAGE_FRAGMENT)
 
 
 @pytest.mark.parametrize("difference", DISTINCT_INSTANCES)

@@ -27,6 +27,7 @@ returns the same documents as dictionaries. Pass ``base_uri`` to give every file
 
 Field descriptions come from ``Field(description=...)`` when set and otherwise from the ``Parameters``
 section of the class docstring, so the schemas document the same fields as the API reference.
+
 Release 0.14
 ------------
 
