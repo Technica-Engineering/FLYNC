@@ -654,9 +654,9 @@ class ECU(FLYNCBaseModel):
         Protocol and endpoint type are part of the identity: offering the same instance over both UDP and TCP is
         a normal dual-transport setup, and a UDP consumer commonly splits across a unicast socket (regular
         eventgroups) and a separate multicast socket (multicast-only eventgroups) - neither is a conflict.
-        Consuming one instance twice on the very same transport/endpoint combination is only warned about - some
-        deployments deliberately subscribe to the same instance from more than one such socket. Providing one
-        instance twice on the same transport/endpoint combination is a hard conflict and raises an err_major.
+
+        Repeating the same instance on the very same transport/endpoint combination is warned about for both
+        roles: server and client. Providing the same Service Instance twice may become an error in the future.
         """
 
         seen_consumers: set = set()
@@ -664,7 +664,9 @@ class ECU(FLYNCBaseModel):
         for deployment, key in self.iter_someip_deployment_identities():
             if isinstance(deployment, SOMEIPServiceProvider):
                 if key in seen_providers:
-                    raise err_major(
+                    # Only a warning while FLYNC has no variant handling. This becomes an
+                    # error once variants can express that two of those never coexist.
+                    warn(
                         self.__duplicate_deployment_message("provider", deployment),
                         category=Category.UNIQUENESS,
                         error_number="243",
