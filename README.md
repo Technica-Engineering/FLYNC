@@ -102,7 +102,7 @@
 | src/flync/model/flync\_4\_signal/value\_encoding.py             |       94 |        1 |     99% |       127 |
 | src/flync/model/flync\_4\_someip/\_\_init\_\_.py                |        8 |        0 |    100% |           |
 | src/flync/model/flync\_4\_someip/deployment.py                  |       79 |        1 |     99% |       176 |
-| src/flync/model/flync\_4\_someip/service\_interface.py          |      223 |        4 |     98% |401, 596, 877, 915 |
+| src/flync/model/flync\_4\_someip/service\_interface.py          |      223 |        5 |     98% |293, 401, 596, 877, 915 |
 | src/flync/model/flync\_4\_someip/someip\_complex\_datatypes.py  |       50 |        0 |    100% |           |
 | src/flync/model/flync\_4\_someip/someip\_simple\_datatypes.py   |      150 |        0 |    100% |           |
 | src/flync/model/flync\_4\_topology/\_\_init\_\_.py              |        6 |        0 |    100% |           |
@@ -132,11 +132,12 @@
 | src/flync/sdk/utils/field\_utils.py                             |       15 |        0 |    100% |           |
 | src/flync/sdk/utils/model\_dependencies.py                      |      294 |       22 |     93% |73, 97-99, 157, 232, 381, 439, 463, 553-557, 579, 638, 655, 673, 722-726, 762-763 |
 | src/flync/sdk/utils/model\_dumper.py                            |       31 |        2 |     94% |     50-51 |
+| src/flync/sdk/utils/model\_schema.py                            |      116 |        2 |     98% |   64, 266 |
 | src/flync/sdk/utils/sdk\_types.py                               |        3 |        0 |    100% |           |
 | src/flync/sdk/workspace/\_\_init\_\_.py                         |        0 |        0 |    100% |           |
 | src/flync/sdk/workspace/\_base.py                               |      106 |       23 |     78% |166, 181, 220-233, 248-251, 266-269 |
 | src/flync/sdk/workspace/\_incremental.py                        |      220 |       23 |     90% |63, 65-67, 105, 108, 131, 150-152, 180, 288, 292, 304, 307-309, 380, 426-430 |
-| src/flync/sdk/workspace/\_loading.py                            |      253 |       20 |     92% |54, 262, 295-311, 329, 375, 544, 583, 622, 650, 711-712, 722, 724 |
+| src/flync/sdk/workspace/\_loading.py                            |      254 |       20 |     92% |55, 263, 296-312, 330, 376, 545, 584, 623, 651, 712-713, 723, 725 |
 | src/flync/sdk/workspace/\_object\_mapping.py                    |      242 |       21 |     91% |122-123, 421, 514-523, 560, 567, 587-589, 624, 627, 636, 652, 680 |
 | src/flync/sdk/workspace/\_saving.py                             |      103 |       12 |     88% |69, 90, 164, 169, 177, 224-229, 273, 280 |
 | src/flync/sdk/workspace/document.py                             |       58 |        2 |     97% |   160-161 |
@@ -150,9 +151,10 @@
 | src/flync\_cli/commands/filetree.py                             |       30 |        0 |    100% |           |
 | src/flync\_cli/commands/generate\_system\_uml.py                |      409 |        8 |     98% |188, 212-213, 385, 388, 406, 481, 524 |
 | src/flync\_cli/commands/info.py                                 |      264 |        2 |     99% |  142, 348 |
+| src/flync\_cli/commands/schema.py                               |       16 |        0 |    100% |           |
 | src/flync\_cli/commands/validate.py                             |       39 |        0 |    100% |           |
 | src/flync\_cli/convert\_puml.py                                 |       69 |        0 |    100% |           |
-| src/flync\_cli/main.py                                          |       48 |        0 |    100% |           |
+| src/flync\_cli/main.py                                          |       50 |        0 |    100% |           |
 | src/flync\_cli/utils/console.py                                 |        4 |        0 |    100% |           |
 | src/flync\_cli/utils/deprecation.py                             |        3 |        0 |    100% |           |
 | src/flync\_cli/utils/error\_renumber.py                         |      180 |       11 |     94% |92-93, 112-113, 125-126, 197, 249, 280, 284-285 |
@@ -199,7 +201,7 @@
 | src/flync\_converter/hookspec.py                                |        4 |        0 |    100% |           |
 | src/flync\_converter/registry.py                                |       32 |       19 |     41% |23-30, 37-49, 56-59 |
 | src/flync\_converter/utils.py                                   |       75 |        4 |     95% |63-64, 93-94 |
-| **TOTAL**                                                       | **12396** |  **794** | **94%** |           |
+| **TOTAL**                                                       | **12531** |  **797** | **94%** |           |
 
 
 ## Setup coverage badge
