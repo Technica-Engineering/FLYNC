@@ -32,3 +32,21 @@ def ci(vci):
     )
     ci = EthernetInterface(name="ei", interface_config=ei)
     return ci
+
+
+@pytest.fixture(scope="session")
+def flync_model(example_workspace_path):
+    """An already-loaded, already-validated FLYNCModel from the reference topology.
+
+    The measurement overlay's ``observes`` entries name real buses and Ethernet interfaces, so
+    resolving them needs the finished object graph rather than a hand-built stub. Scoped to this
+    directory because only the measurement bind tests need it; ``example_workspace_path`` comes
+    from the root conftest.
+    """
+    from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
+
+    workspace = FLYNCWorkspace.load_workspace(
+        workspace_name="flync_example",
+        workspace_path=str(example_workspace_path),
+    )
+    return workspace.flync_model
