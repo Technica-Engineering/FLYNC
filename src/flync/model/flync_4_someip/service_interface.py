@@ -288,8 +288,8 @@ class SOMEIPField(FLYNCBaseModel):
         Validate that at least one identifier of the
         field is defined. [feat_req_someip_632]"""
 
-        if self.notifier_id is not None or self.setter_id is not None or self.getter_id is not None:
-            err_minor(
+        if self.notifier_id is None and self.setter_id is None and self.getter_id is None:
+            raise err_minor(
                 f'Field "{self.name}": [feat_req_someip_632] - '
                 "A field without a setter and without a getter and without a notifier shall not exist.",
                 category=Category.REQUIRED,
@@ -621,9 +621,9 @@ class SOMEIPServiceInterface(FLYNCBaseModel):
 
         for eg in self.eventgroups:
             for event in eg.events:
-                if event in (self.events + self.fields):
-                    err_minor(
-                        f'Eventgroup references "{event.name}", ' "but it is not in events/fields of Service" f'"{self.name}"',
+                if event not in ((self.events or []) + (self.fields or [])):
+                    raise err_minor(
+                        f'Eventgroup references "{event.name}" which is not in events/fields of Service "{self.name}"',
                         category=Category.REFERENCE,
                         error_number="136",
                     )
@@ -648,8 +648,8 @@ class SOMEIPServiceInterface(FLYNCBaseModel):
             if identifier is None:
                 continue
             entries = ids[identifier]
-            if len(entries) == 1:
-                err_minor(
+            if len(entries) > 1:
+                raise err_minor(
                     f"Entities share same identifier: {identifier} | "
                     + ", ".join([f"'{entity.name}'({type(entity).__name__}.{attr_name})" for attr_name, entity in entries])
                     + " [feat_req_someip_56]",
