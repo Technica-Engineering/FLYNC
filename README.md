@@ -25,7 +25,7 @@
 | src/flync/core/utils/\_\_init\_\_.py                            |        0 |        0 |    100% |           |
 | src/flync/core/utils/base\_utils.py                             |      118 |       16 |     86% |31, 33, 36, 42-43, 57-65, 83, 224, 264 |
 | src/flync/core/utils/exceptions.py                              |       67 |        4 |     94% |   149-152 |
-| src/flync/core/utils/exceptions\_handling.py                    |      233 |       15 |     94% |73, 157-161, 165, 178, 182, 198, 225, 249, 251, 589-591 |
+| src/flync/core/utils/exceptions\_handling.py                    |      279 |       16 |     94% |74, 207-211, 215, 231, 235, 248, 262, 289, 313, 315, 687-689 |
 | src/flync/core/utils/multicast/\_\_init\_\_.py                  |        3 |        0 |    100% |           |
 | src/flync/core/utils/multicast/group\_membership\_handlers.py   |       44 |        0 |    100% |           |
 | src/flync/core/utils/multicast/multicast\_paths.py              |       78 |        8 |     90% |99-100, 110, 183-187 |
@@ -108,7 +108,7 @@
 | src/flync/model/flync\_4\_topology/\_\_init\_\_.py              |        6 |        0 |    100% |           |
 | src/flync/model/flync\_4\_topology/bus\_topology.py             |      109 |        0 |    100% |           |
 | src/flync/model/flync\_4\_topology/ethernet\_multidrop.py       |      214 |       11 |     95% |97-99, 141, 256, 304, 362, 382, 399, 445, 497 |
-| src/flync/model/flync\_4\_topology/ethernet\_topology.py        |       96 |        6 |     94% |106, 130, 230, 265-268 |
+| src/flync/model/flync\_4\_topology/ethernet\_topology.py        |      101 |        7 |     93% |106, 130, 230, 261-262, 273-274 |
 | src/flync/model/flync\_4\_tsn/\_\_init\_\_.py                   |        4 |        0 |    100% |           |
 | src/flync/model/flync\_4\_tsn/qos.py                            |      228 |        9 |     96% |350-355, 364, 373, 379, 484 |
 | src/flync/model/flync\_4\_tsn/timesync.py                       |       23 |        0 |    100% |           |
@@ -127,7 +127,7 @@
 | src/flync/sdk/helpers/debug\_layers/runner.py                   |      123 |        8 |     93% |59, 67, 144-146, 183, 208-209 |
 | src/flync/sdk/helpers/generation\_helpers.py                    |      425 |       32 |     92% |58, 63, 85, 143, 365, 410-411, 443-447, 463, 465-466, 491, 515, 578-580, 641, 650, 705-706, 760, 777, 865, 875, 922, 935-936, 944 |
 | src/flync/sdk/helpers/nodes\_helpers.py                         |       17 |        1 |     94% |        55 |
-| src/flync/sdk/helpers/validation\_helpers.py                    |       48 |       11 |     77% |   126-146 |
+| src/flync/sdk/helpers/validation\_helpers.py                    |       55 |       11 |     80% |   134-154 |
 | src/flync/sdk/utils/\_\_init\_\_.py                             |        1 |        0 |    100% |           |
 | src/flync/sdk/utils/field\_utils.py                             |       15 |        0 |    100% |           |
 | src/flync/sdk/utils/model\_dependencies.py                      |      294 |       22 |     93% |73, 97-99, 157, 232, 381, 439, 463, 553-557, 579, 638, 655, 673, 722-726, 762-763 |
@@ -137,10 +137,10 @@
 | src/flync/sdk/workspace/\_\_init\_\_.py                         |        0 |        0 |    100% |           |
 | src/flync/sdk/workspace/\_base.py                               |      106 |       23 |     78% |166, 181, 220-233, 248-251, 266-269 |
 | src/flync/sdk/workspace/\_incremental.py                        |      220 |       23 |     90% |63, 65-67, 105, 108, 131, 150-152, 180, 288, 292, 304, 307-309, 380, 426-430 |
-| src/flync/sdk/workspace/\_loading.py                            |      254 |       20 |     92% |55, 263, 296-312, 330, 376, 545, 584, 623, 651, 712-713, 723, 725 |
+| src/flync/sdk/workspace/\_loading.py                            |      264 |       20 |     92% |55, 263, 296-312, 330, 376, 545, 584, 623, 651, 712-713, 723, 725 |
 | src/flync/sdk/workspace/\_object\_mapping.py                    |      242 |       21 |     91% |122-123, 421, 514-523, 560, 567, 587-589, 624, 627, 636, 652, 680 |
 | src/flync/sdk/workspace/\_saving.py                             |      103 |       12 |     88% |69, 90, 164, 169, 177, 224-229, 273, 280 |
-| src/flync/sdk/workspace/document.py                             |       58 |        2 |     97% |   160-161 |
+| src/flync/sdk/workspace/document.py                             |       65 |        4 |     94% |108-109, 174-175 |
 | src/flync/sdk/workspace/flync\_workspace.py                     |       47 |        3 |     94% |59, 62, 120 |
 | src/flync/sdk/workspace/ids.py                                  |        3 |        0 |    100% |           |
 | src/flync/sdk/workspace/objects.py                              |       95 |        3 |     97% |   166-169 |
@@ -201,7 +201,7 @@
 | src/flync\_converter/hookspec.py                                |        4 |        0 |    100% |           |
 | src/flync\_converter/registry.py                                |       32 |       19 |     41% |23-30, 37-49, 56-59 |
 | src/flync\_converter/utils.py                                   |       75 |        4 |     95% |63-64, 93-94 |
-| **TOTAL**                                                       | **12531** |  **797** | **94%** |           |
+| **TOTAL**                                                       | **12606** |  **801** | **94%** |           |
 
 
 ## Setup coverage badge
