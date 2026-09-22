@@ -26,7 +26,7 @@ from flync.core.annotations import (
     OutputStrategy,
 )
 from flync.core.base_models.base_model import FLYNCBaseModel
-from flync.core.utils.exceptions_handling import is_semantic_validation_error, validate_with_policy
+from flync.core.utils.exceptions_handling import is_semantic_validation_error, locate_errors, validate_with_policy
 from flync.sdk.utils.field_utils import get_metadata
 from flync.sdk.utils.model_dependencies import model_force_rebuild
 from flync.sdk.utils.sdk_types import PathType
@@ -775,6 +775,7 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
                 current_type = self.model_graph.rebuild_type_from_parent(current_type, node.current_type_name)
             relative_path = node.path.relative_to(self.workspace_root.absolute())  # type: ignore[union-attr]
             model, errors = validate_with_policy(current_type, module_load_info, relative_path.as_posix())
+            self._locate_node_errors(node, current_type, errors)
             self.documents_diags[node.doc_id].extend(errors)
             if map_paths is not None and self.configuration.map_objects:
                 self._update_objects(node.doc_id, model, map_paths, parent_name=node.current_type_name)
@@ -783,6 +784,23 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
             node.model = model
             return model
         except ValidationError as e:
-            self.documents_diags[node.doc_id].extend(e.errors())
+            errors = e.errors()
+            self._locate_node_errors(node, current_type, errors)
+            self.documents_diags[node.doc_id].extend(errors)
             node.model = None
             return None
+
+    def _locate_node_errors(self, node: LoadNode, model_type, errors: list) -> None:
+        """
+        Resolve the YAML line/column of ``errors`` against the source of ``node``'s document.
+
+        Validation runs on safe-loaded data without source marks, so positions are looked up in the document's composed node tree. The tree is only
+        composed here, for documents that have errors.
+        """
+
+        if not errors:
+            return
+        document = self.documents.get(node.doc_id)
+        if document is None:
+            return
+        locate_errors(errors, model_type, document.source_nodes())

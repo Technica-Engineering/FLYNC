@@ -4,6 +4,7 @@ from typing import Any, List, Optional, Set, Tuple, Type, get_args, get_origin
 
 from pydantic import BaseModel, TypeAdapter, ValidationError
 from pydantic_core import ErrorDetails, InitErrorDetails, PydanticCustomError
+from ruamel.yaml.nodes import MappingNode, Node, SequenceNode
 
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.exceptions import _validation_warnings
@@ -78,10 +79,26 @@ def _child_at(container: Any, key: Any) -> Tuple[bool, Any]:
     Return ``(True, child)`` for ``container[key]``, or ``(False, None)`` when the key/index is missing or the container is not subscriptable.
     """
 
+    if isinstance(container, Node):
+        return _node_child_at(container, key)
     try:
         return True, container[key]
     except (KeyError, IndexError, TypeError):
         return False, None
+
+
+def _node_child_at(node: Node, key: Any) -> Tuple[bool, Any]:
+    """
+    Return ``(True, child)`` for ``key`` inside a composed ruamel.yaml ``node``, or ``(False, None)`` when it is absent.
+    """
+
+    if isinstance(node, MappingNode) and not isinstance(key, int):
+        for key_node, value_node in node.value:
+            if key_node.value == key:
+                return True, value_node
+    elif isinstance(node, SequenceNode) and isinstance(key, int) and 0 <= key < len(node.value):
+        return True, node.value[key]
+    return False, None
 
 
 def _descend_model(current_model: Any, part: str) -> Any:
@@ -114,6 +131,37 @@ def _descend_model(current_model: Any, part: str) -> Any:
     return nested if hasattr(nested, "model_fields") else None
 
 
+def _descend_union_segment(
+    current: Any,
+    parent: Any,
+    current_model: Any,
+    part: str,
+    is_last: bool,
+) -> Tuple[Any, Any, Any, bool]:
+    """
+    Descend into a map field, staying on the same node when ``part`` names a tagged-union member.
+
+    A tagged-union segment (e.g. ``time_transmitter`` in ``sync_config.time_transmitter.two_step``) names the
+    union member, not a YAML key, so the node is kept and descending continues.
+
+    Returns
+    -------
+    tuple
+        ``(found, current, current_model, skip)`` where ``skip`` signals that no further work is needed for
+        this part (the caller should ``continue`` its iteration).
+    """
+
+    yaml_key = resolve_alias(current_model, part) if current_model else part
+    found, current = _child_at(current, yaml_key)
+    if not found and not is_last:
+        current = parent
+        current_model = None
+        return found, current, current_model, True
+    if current_model:
+        current_model = _descend_model(current_model, part)
+    return found, current, current_model, False
+
+
 def safe_yaml_position(node: Any, loc: tuple, model: type[BaseModel] | None = None) -> Tuple[int | None, int | None]:
     """
     Given a ruamel.yaml node and a Pydantic `loc` tuple, return (line, column).
@@ -125,7 +173,7 @@ def safe_yaml_position(node: Any, loc: tuple, model: type[BaseModel] | None = No
     parent = None
     last_key = None
 
-    for part in loc:
+    for idx, part in enumerate(loc):
         parent = current
         last_key = part
 
@@ -134,11 +182,9 @@ def safe_yaml_position(node: Any, loc: tuple, model: type[BaseModel] | None = No
             found, current = _child_at(current, part)
             current_model = None
         else:
-            # Map field name to YAML key if alias exists
-            yaml_key = resolve_alias(current_model, part) if current_model else part
-            found, current = _child_at(current, yaml_key)
-            if current_model:
-                current_model = _descend_model(current_model, part)
+            found, current, current_model, skip = _descend_union_segment(current, parent, current_model, part, idx == len(loc) - 1)
+            if skip:
+                continue
 
         if not found:
             return _fallback_position(parent)
@@ -151,6 +197,10 @@ def _extract_position(parent: Any, key: Any) -> Tuple[int | None, int | None]:
     """
     Safely extract line/col from ruamel.yaml node.  Returns (line, column) or (None, None)
     """
+
+    if isinstance(parent, Node):
+        found, child = _node_child_at(parent, key)
+        return _mark_position(child if found else parent)
 
     try:
         line = parent.lc.line
@@ -173,6 +223,9 @@ def _fallback_position(node: Any) -> Tuple[int | None, int | None]:
     Return the best-effort parent position if key/item is missing.
     """
 
+    if isinstance(node, Node):
+        return _mark_position(node)
+
     try:
         line = getattr(node.lc, "line", None)
         col = getattr(node.lc, "col", None)
@@ -183,6 +236,17 @@ def _fallback_position(node: Any) -> Tuple[int | None, int | None]:
         line + 1 if line is not None else None,
         col + 1 if col is not None else None,
     )
+
+
+def _mark_position(node: Node) -> Tuple[int | None, int | None]:
+    """
+    Return the 1-based ``(line, column)`` where a composed ruamel.yaml ``node`` starts.
+    """
+
+    mark = getattr(node, "start_mark", None)
+    if mark is None:
+        return None, None
+    return mark.line + 1, mark.column + 1
 
 
 def _parse_first_sub_error_loc(sub_errors: str) -> tuple:
@@ -251,6 +315,40 @@ def _enrich_error_ctx(
             ctx["col"] = col
 
     return ctx
+
+
+def locate_errors(errors: List[ErrorDetails], model: Optional[type[BaseModel]], yaml_node: Optional[Node]) -> None:
+    """
+    Stamp the YAML ``line``/``col`` onto errors that do not carry a position yet, in place.
+
+    Workspace documents are validated from plain (safe-loaded) data that has no source marks, so positions are resolved afterwards against the
+    document's composed ruamel.yaml node tree. Errors whose location cannot be found in ``yaml_node`` are left unchanged.
+
+    Parameters
+    ----------
+    errors : List[ErrorDetails]
+        Errors recorded for the document.
+    model : type[BaseModel], optional
+        The model the document was validated against, used to resolve field aliases.
+    yaml_node : ruamel.yaml.nodes.Node, optional
+        The composed YAML tree of the document.
+    """
+
+    if yaml_node is None:
+        return
+    for err in errors:
+        ctx = err.get("ctx")
+        if ctx is None:
+            ctx = {}
+        if "line" in ctx or "yaml_location" in ctx:
+            continue
+        line, col = _error_yaml_position(err, model, yaml_node, ctx)  # type: ignore[arg-type]
+        if line is None:
+            continue
+        ctx["line"] = line
+        if col is not None:
+            ctx["col"] = col
+        err["ctx"] = ctx
 
 
 def errors_to_init_errors(
