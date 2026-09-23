@@ -99,8 +99,8 @@ class Frame(FLYNCBaseModel):
         PDU instances placed at fixed bit offsets within this frame.
     """
 
-    name: str = Field()
-    length: int = Field()
+    name: str = Field(min_length=1)
+    length: int = Field(ge=0)
     frame_usage: Optional[
         Literal[
             "application",

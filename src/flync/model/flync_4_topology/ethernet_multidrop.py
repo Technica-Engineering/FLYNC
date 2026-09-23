@@ -165,7 +165,7 @@ class EthernetMultidropConnection(FLYNCBaseModel):
     """
 
     type: Literal["ethernet_multidrop"] = Field(default="ethernet_multidrop")
-    id: str = Field()
+    id: str = Field(min_length=1)
     plca: Optional[PLCACycle] = Field(default=None)
     nodes: List[EthernetMultidropNode] = Field()
 

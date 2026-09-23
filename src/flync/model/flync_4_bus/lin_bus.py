@@ -55,7 +55,7 @@ class LINScheduleTable(FLYNCBaseModel):
         Ordered list of frame-slot entries.
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     description: Optional[str] = Field(default=None)
     entries: List[LINScheduleEntry] = Field(default_factory=list)
 
@@ -115,7 +115,7 @@ class LINBus(FLYNCBaseModel):
         participates as a whole.
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     description: Optional[str] = Field(default=None)
     lin_protocol_version: _LINProtocol = Field()
     lin_language_version: _LINProtocol = Field()

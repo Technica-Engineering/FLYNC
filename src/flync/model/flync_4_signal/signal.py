@@ -177,7 +177,7 @@ class Signal(FLYNCBaseModel):
         linear-and-text-table conversion.
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     description: Optional[str] = Field(default=None)
     bit_length: int = Field(gt=0)
     data_type: SignalDataType = Field()
@@ -366,7 +366,7 @@ class SignalGroup(FLYNCBaseModel):
         Non-empty list of placed signal instances contained in this group.
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     description: Optional[str] = Field(default=None)
     signals: List[SignalInstance] = Field(min_length=1)
 

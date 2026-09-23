@@ -110,7 +110,7 @@ class DiagField(FLYNCBaseModel):
         Human-readable description of the field.
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     type: DiagPrimitiveType = Field()
     bit_offset: Annotated[int, Field(ge=0)] = Field()
     bit_length: Optional[Annotated[int, Field(gt=0)]] = Field(default=None)

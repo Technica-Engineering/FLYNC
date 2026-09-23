@@ -78,7 +78,7 @@ class AccessProfile(FLYNCBaseModel):
         ``None`` means no security access is required.
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     default: bool = Field(default=False)
     sessions: List[str] = Field(default_factory=list)
     security_level: Optional[int | Literal["Locked"]] = Field(default=None)

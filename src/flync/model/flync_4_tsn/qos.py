@@ -426,7 +426,7 @@ class Stream(FLYNCBaseModel):
         Optional Asynchronous Traffic Shaping configuration for ingress streams.
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     stream_identification: List[FrameFilter] = Field([])
     drop_at_ingress: Optional[bool] = Field(default=False)
     max_sdu_size: Optional[int] = Field(default=1522, ge=0)
@@ -464,7 +464,7 @@ class TrafficClass(FLYNCBaseModel):
         The correct subclass is selected using the `type` discriminator.
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     priority: int = Field(..., ge=0, le=7)
     frame_priority_values: Annotated[
         Optional[List[int]],
@@ -514,7 +514,7 @@ class HTBFilter(FrameFilter):
         Priority of the filter.
     """
 
-    filter_priority: int = Field()
+    filter_priority: int = Field(ge=0)
 
 
 class ChildClass(FLYNCBaseModel):
@@ -542,10 +542,10 @@ class ChildClass(FLYNCBaseModel):
         Nested child classes under this HTB class.
     """
 
-    classid: int = Field()
-    rate: int = Field()
-    ceil: int = Field()
-    priority: int = Field()
+    classid: int = Field(ge=0)
+    rate: int = Field(ge=0)
+    ceil: int = Field(ge=0)
+    priority: int = Field(ge=0)
     filter: Annotated[
         Optional[List[HTBFilter]],
         BeforeValidator(none_to_empty_list),

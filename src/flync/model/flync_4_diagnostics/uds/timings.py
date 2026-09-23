@@ -52,7 +52,7 @@ class UDSTimingProfile(UDSTimings):
         presence (``S3_server``). Defaults to ``5000``.
     """
 
-    profile_id: str = Field()
+    profile_id: str = Field(min_length=1)
 
 
 class UDSTimingProfileSet(FLYNCBaseModel):

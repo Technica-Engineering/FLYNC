@@ -51,7 +51,7 @@ class EthernetPointToPointConnection(FLYNCBaseModel):
     """
 
     type: Literal["ecu_port_to_ecu_port"] = Field(default="ecu_port_to_ecu_port")
-    id: str = Field()
+    id: str = Field(min_length=1)
     ecu1_port_name: Annotated[str, Reference(source="_ecu1_port")] = Field(alias="ecu1_port")
     ecu2_port_name: Annotated[str, Reference(source="_ecu2_port")] = Field(alias="ecu2_port")
 

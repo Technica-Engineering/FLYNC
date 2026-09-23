@@ -110,7 +110,7 @@ class SwitchPort(FLYNCBaseModel):
 
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     silicon_port_no: int = Field(ge=0)
     default_vlan_id: int = Field(..., ge=0, le=4095)
     mii_config: Optional[MII | RMII | SGMII | RGMII | XFI] = Field(default=None, discriminator="type")

@@ -126,7 +126,7 @@ class DataIdentifier(FLYNCBaseModel):
     """
 
     name: Annotated[str, Implied(strategy=ImpliedStrategy.FILE_NAME)] = Field()
-    did: Annotated[int, BeforeValidator(coerce_int), Field(ge=0x0000, le=0xFFFF)] = Field()
+    did: Annotated[int, Field(ge=0x0000, le=0xFFFF), BeforeValidator(coerce_int)] = Field()
     access: DIDAccess = Field(default="read")
     read_data: Optional[DiagDataRecord] = Field(default=None)
     write_data: Optional[DiagDataRecord] = Field(default=None)

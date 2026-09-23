@@ -34,4 +34,4 @@ def serialize_duration_ms(value: Optional[int]) -> Optional[str]:
 
 
 #: A positive duration in whole milliseconds, also accepting ``"50ms"`` / ``"5s"`` in YAML.
-DurationMs = Annotated[int, BeforeValidator(parse_duration_ms), Field(gt=0)]
+DurationMs = Annotated[int, Field(gt=0), BeforeValidator(parse_duration_ms)]

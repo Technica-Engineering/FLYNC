@@ -24,7 +24,7 @@ class CANFrameRef(FLYNCBaseModel):
         :class:`~flync.model.flync_4_signal.frame.CANFDFrame` on the referenced bus.
     """
 
-    bus_ref: str = Field()
+    bus_ref: str = Field(min_length=1)
     frame_ref: int = Field()
 
 
@@ -50,7 +50,7 @@ class CANInterface(ControllerInterface):
     """
 
     name: Annotated[str, Implied(strategy=ImpliedStrategy.FILE_NAME)] = Field()
-    bus_ref: str = Field()
+    bus_ref: str = Field(min_length=1)
     sender_frames: List[CANFrameRef] = Field(default_factory=list)
     receiver_frames: List[CANFrameRef] = Field(default_factory=list)
     forwarder_frames: List[CANFrameForwarder] = Field(default_factory=list)

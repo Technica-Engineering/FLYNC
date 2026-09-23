@@ -50,7 +50,7 @@ class PDU(FLYNCBaseModel):
         Optional human-readable description.
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     length: int = Field(gt=0)
     pdu_usage: Optional[
         Literal[
@@ -84,7 +84,7 @@ class PDUInstance(FLYNCBaseModel):
         Bit position of the update indication bit, when applicable. Must be greater than or equal to 0.
     """
 
-    pdu_ref: str = Field()
+    pdu_ref: str = Field(min_length=1)
     bit_position: Optional[int] = Field(default=None, ge=0)
     update_bit_position: Optional[int] = Field(default=None, ge=0)
 
@@ -205,7 +205,7 @@ class ContainedPDURef(FLYNCBaseModel):
     """
 
     header_id: Annotated[int, Field(gt=0, strict=True)] = Field()
-    pdu_ref: str = Field()
+    pdu_ref: str = Field(min_length=1)
     offset: Optional[int] = Field(default=0, ge=0)
 
 

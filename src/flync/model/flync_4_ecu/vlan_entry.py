@@ -79,7 +79,7 @@ class VLANEntry(FLYNCBaseModel):
         List of multicast group configurations associated with this VLAN.
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     id: Annotated[int, AfterValidator(validate_vlan_id)] = Field(...)
     default_priority: int = Field(..., ge=0, le=7)
     ports: List[str] = Field()

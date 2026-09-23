@@ -18,4 +18,4 @@ class ControllerInterface(FLYNCBaseModel):
         Name of the interface, implied from its file or folder name on disk.
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)

@@ -52,10 +52,10 @@ def coerce_sid(value: Any) -> Any:
 
 
 #: A UDS service identifier, also accepting a hex or decimal string in YAML.
-ServiceId = Annotated[int, BeforeValidator(coerce_sid), Field(ge=0x00, le=0xFF)]
+ServiceId = Annotated[int, Field(ge=0x00, le=0xFF), BeforeValidator(coerce_sid)]
 
 #: A sub-function or record number, also accepting a hex or decimal string in YAML.
-SubfunctionValue = Annotated[int, BeforeValidator(coerce_int), Field(ge=0x00, le=0xFF)]
+SubfunctionValue = Annotated[int, Field(ge=0x00, le=0xFF), BeforeValidator(coerce_int)]
 
 #: The canonical ISO 14229-1 name of every standardised service id.
 #:
@@ -107,7 +107,7 @@ class UDSSubfunction(FLYNCBaseModel):
     """
 
     id: Annotated[int, Field(ge=0x00, le=0xFF)] = Field()
-    name: str = Field()
+    name: str = Field(min_length=1)
 
 
 class GenericUDSService(FLYNCBaseModel):
@@ -136,7 +136,7 @@ class GenericUDSService(FLYNCBaseModel):
         Free-form option record for services that carry one (e.g. ControlDTCSetting).
     """
 
-    service: str = Field()
+    service: str = Field(min_length=1)
     sid: ServiceId = Field()
     access_profile: Optional[str] = Field(default=None)
     subfunctions: Optional[List[UDSSubfunction]] = Field(default=None)
@@ -185,7 +185,7 @@ class DiagnosticSessionDefinition(FLYNCBaseModel):
         falls back to the owning server's UDS timing profile.
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     id: Annotated[int, Field(ge=0x00, le=0xFF)] = Field()
     p2: Optional[DurationMs] = Field(default=None)
     p2_star: Optional[DurationMs] = Field(default=None)
@@ -276,7 +276,7 @@ class EcuResetService(GenericUDSService):
     service: Literal["ecu_reset"] = Field(default="ecu_reset")
     sid: Annotated[Literal[0x11], BeforeValidator(coerce_sid)] = Field(default=0x11)
     reset_types: List[ResetType | SubfunctionValue] = Field(default_factory=list)
-    power_down_time: Optional[Annotated[int, BeforeValidator(coerce_int), Field(ge=0x00, le=0xFE)]] = Field(default=None)
+    power_down_time: Optional[Annotated[int, Field(ge=0x00, le=0xFE), BeforeValidator(coerce_int)]] = Field(default=None)
 
     @model_validator(mode="after")
     def validate_reset_types(self) -> Self:
@@ -313,7 +313,7 @@ class DTCGroup(FLYNCBaseModel):
         The 3-byte DTC group mask, e.g. ``0xFFFFFF`` for "all groups".
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     id: Annotated[int, Field(ge=0x000000, le=0xFFFFFF)] = Field()
 
 
@@ -424,7 +424,7 @@ class ReadDTCInformationService(GenericUDSService):
     service: Literal["read_dtc_information"] = Field(default="read_dtc_information")
     sid: Annotated[Literal[0x19], BeforeValidator(coerce_sid)] = Field(default=0x19)
     report_types: List[DTCReportType | SubfunctionValue] = Field(default_factory=list)
-    dtc_status_availability_mask: Optional[Annotated[int, BeforeValidator(coerce_int), Field(ge=0x00, le=0xFF)]] = Field(default=None)
+    dtc_status_availability_mask: Optional[Annotated[int, Field(ge=0x00, le=0xFF), BeforeValidator(coerce_int)]] = Field(default=None)
     memory_selections: List[SubfunctionValue] = Field(default_factory=list)
     snapshot_record_numbers: List[SubfunctionValue] = Field(default_factory=list)
     ext_data_record_numbers: List[SubfunctionValue] = Field(default_factory=list)
@@ -611,9 +611,9 @@ class TransferMemoryRegion(FLYNCBaseModel):
         Human-readable description of the region.
     """
 
-    name: str = Field()
-    address: Annotated[int, BeforeValidator(coerce_int), Field(ge=0)] = Field()
-    size: Annotated[int, BeforeValidator(coerce_int), Field(ge=1)] = Field()
+    name: str = Field(min_length=1)
+    address: Annotated[int, Field(ge=0), BeforeValidator(coerce_int)] = Field()
+    size: Annotated[int, Field(ge=1), BeforeValidator(coerce_int)] = Field()
     description: Optional[str] = Field(default=None)
 
 
@@ -663,7 +663,7 @@ class TransferSetupService(GenericUDSService):
         Memory regions this service may address.
     """
 
-    max_block_length: Annotated[int, BeforeValidator(coerce_int), Field(ge=2)] = Field()
+    max_block_length: Annotated[int, Field(ge=2), BeforeValidator(coerce_int)] = Field()
     memory_address_length: Annotated[int, Field(ge=1, le=15)] = Field(default=4)
     memory_size_length: Annotated[int, Field(ge=1, le=15)] = Field(default=4)
     data_format_identifiers: List[SubfunctionValue] = Field(default_factory=lambda: [0x00])

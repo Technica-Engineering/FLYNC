@@ -124,7 +124,7 @@ class VirtualControllerInterface(FLYNCBaseModel):
         Allowed multicast addresses.
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     vlanid: Annotated[
         Optional[int],
         AfterValidator(validate_vlan_id),

@@ -43,7 +43,7 @@ class InternalConnection(FLYNCBaseModel):
     """
 
     type: str = Field()
-    id: str = Field()
+    id: str = Field(min_length=1)
     _ecu: Optional["ECU"] = PrivateAttr(default=None)
 
     @property

@@ -112,7 +112,7 @@ class Socket(FLYNCBaseModel):
         Multicast addresses that the socket is allowed to transmit to (only applicable for sockets with a multicast endpoint_type).
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     endpoint_address: IPvAnyAddress = Field()
     port_no: int = Field()
     deployments: Optional[List[DeploymentUnion]] = Field(default_factory=list)

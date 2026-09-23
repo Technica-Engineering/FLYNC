@@ -24,7 +24,7 @@ DTCFormat = Literal["iso_14229_1", "saej1939_73", "iso_11992_4"]
 DTCSeverity = Literal["no_severity", "maintenance_only", "check_at_next_halt", "check_immediately"]
 
 #: A DTC snapshot or extended data record number, also accepting a hex string in YAML.
-RecordNumber = Annotated[int, BeforeValidator(coerce_int), Field(ge=0x00, le=0xFF)]
+RecordNumber = Annotated[int, Field(ge=0x00, le=0xFF), BeforeValidator(coerce_int)]
 
 
 class DTCRecord(FLYNCBaseModel):
@@ -97,7 +97,7 @@ class DiagnosticTroubleCode(FLYNCBaseModel):
     """
 
     name: Annotated[str, Implied(strategy=ImpliedStrategy.FILE_NAME)] = Field()
-    dtc: Annotated[int, BeforeValidator(coerce_int), Field(ge=0x000000, le=0xFFFFFF)] = Field()
+    dtc: Annotated[int, Field(ge=0x000000, le=0xFFFFFF), BeforeValidator(coerce_int)] = Field()
     format: DTCFormat = Field(default="iso_14229_1")
     severity: DTCSeverity = Field(default="no_severity")
     functional_unit: Optional[RecordNumber] = Field(default=None)

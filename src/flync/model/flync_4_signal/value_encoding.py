@@ -37,7 +37,7 @@ class TextEntry(FLYNCBaseModel):
     value: Optional[int] = Field(default=None)
     from_value: Optional[int] = Field(default_factory=lambda data: data.get("value", 0))
     to_value: Optional[int] = Field(default_factory=lambda data: data.get("value", 0))
-    label: str = Field()
+    label: str = Field(min_length=1)
 
     @model_validator(mode="before")
     @classmethod
@@ -110,7 +110,7 @@ class BitfieldState(FLYNCBaseModel):
         Must be greater or equal to 0.
     """
 
-    label: str = Field()
+    label: str = Field(min_length=1)
     value: Optional[int] = Field(default=None)
     from_value: Optional[int] = Field(ge=0, default_factory=lambda data: data.get("value", 0))
     to_value: Optional[int] = Field(ge=0, default_factory=lambda data: data.get("value", 0))
@@ -157,7 +157,7 @@ class BitfieldGroup(FLYNCBaseModel):
         unique within the group.
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     mask: int = Field(gt=0)
     states: List[BitfieldState] = Field(min_length=1)
 
@@ -255,7 +255,7 @@ class BitmaskFlag(FLYNCBaseModel):
     """
 
     mask: int = Field(gt=0)
-    label: str = Field()
+    label: str = Field(min_length=1)
 
 
 class BitmaskFlags(FLYNCBaseModel):

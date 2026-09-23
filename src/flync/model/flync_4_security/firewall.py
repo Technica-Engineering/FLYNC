@@ -27,7 +27,7 @@ class FirewallRule(FLYNCBaseModel):
         The filter pattern used to match frames for this rule.
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     action: Literal["reject", "accept", "drop"] = Field()
     pattern: FrameFilter = Field()
 

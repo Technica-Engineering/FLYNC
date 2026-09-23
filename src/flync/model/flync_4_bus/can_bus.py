@@ -63,7 +63,7 @@ class CANBus(FLYNCBaseModel):
         their own memberships for selective, per-function participation.
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     description: Optional[str] = Field(default=None)
     version: str = Field(default="", max_length=128, pattern=r'^[^"\r\n]*$')
     baud_rate: int = Field()

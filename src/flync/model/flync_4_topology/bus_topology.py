@@ -40,9 +40,9 @@ class BusAttachmentPoint(FLYNCBaseModel):
         Role the interface plays on the bus.
     """
 
-    ecu_name: str = Field()
-    controller_name: str = Field()
-    interface_name: str = Field()
+    ecu_name: str = Field(min_length=1)
+    controller_name: str = Field(min_length=1)
+    interface_name: str = Field(min_length=1)
     role: Literal["can_node", "lin_master", "lin_slave"] = Field()
     _interface: Optional[CANInterface | LINMasterInterface | LINSlaveInterface] = None
     _ecu: Optional[ECU] = None
@@ -62,7 +62,7 @@ class BusTopology(FLYNCBaseModel):
         ECU interfaces attached to this bus.
     """
 
-    bus_name: str = Field()
+    bus_name: str = Field(min_length=1)
     bus_type: Literal["can", "lin"] = Field()
     attachments: List[BusAttachmentPoint] = Field(default_factory=list)
 

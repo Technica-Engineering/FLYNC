@@ -82,7 +82,7 @@ class DoIPTimingProfile(DoIPTimings):
         Defaults to ``500``.
     """
 
-    profile_id: str = Field()
+    profile_id: str = Field(min_length=1)
 
 
 class DoIPTimingProfileSet(FLYNCBaseModel):

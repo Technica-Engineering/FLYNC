@@ -27,7 +27,7 @@ class CANFrameEgress(FLYNCBaseModel):
     """
 
     egress_type: Literal["can_frame"] = Field(default="can_frame")
-    bus_ref: str = Field()
+    bus_ref: str = Field(min_length=1)
     frame_ref: int = Field()
     extract_pdu_ref: Optional[str] = Field(default=None)
 
@@ -48,7 +48,7 @@ class EthSocketEgress(FLYNCBaseModel):
     """
 
     egress_type: Literal["eth_socket"] = Field(default="eth_socket")
-    socket_ref: str = Field()
+    socket_ref: str = Field(min_length=1)
     extract_pdu_ref: Optional[str] = Field(default=None)
 
 
@@ -74,7 +74,7 @@ class PDUForwarder(FLYNCBaseModel):
     """
 
     deployment_type: Literal["pdu_forwarder"] = Field(default="pdu_forwarder")
-    pdu_ref: str = Field()
+    pdu_ref: str = Field(min_length=1)
     egresses: List[ForwarderEgress] = Field(min_length=1)
 
     @model_validator(mode="after")
@@ -97,7 +97,7 @@ class CANFrameForwarder(FLYNCBaseModel):
         List of egress targets where the forwarded frame is re-emitted. Must contain at least one egress.
     """
 
-    frame_ref: str = Field()
+    frame_ref: str = Field(min_length=1)
     egresses: List[ForwarderEgress] = Field(min_length=1)
 
     @model_validator(mode="after")

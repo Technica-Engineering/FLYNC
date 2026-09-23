@@ -200,7 +200,7 @@ class GroupTiming(FLYNCBaseModel):
         timing parameters, carried through untouched (never interpreted).
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     description: Optional[str] = Field(default=None)
     cycle_time_ms: int = Field(gt=0)
     announcement: Optional[AnnouncementPhaseTiming] = Field(default=None)
@@ -277,7 +277,7 @@ class StateManagementGroup(FLYNCBaseModel):
         per-group settings without a schema change.
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     nm_pdu: str = Field()
     timing_profile: str = Field()
     description: Optional[str] = Field(default=None)
@@ -322,7 +322,7 @@ class StateMembershipRef(FLYNCBaseModel):
         interpreted).
     """
 
-    group: str = Field()
+    group: str = Field(min_length=1)
     role: Literal["participant", "observer"] = Field(default="participant")
     relevance_bits: Optional[List[str]] = Field(default=None)
     extensions: Optional[Dict[str, str]] = Field(default=None)

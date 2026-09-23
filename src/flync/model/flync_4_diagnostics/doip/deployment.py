@@ -46,7 +46,7 @@ class DoIPServerDeployment(FLYNCBaseModel):
     """
 
     deployment_type: Literal["doip_server"] = Field(default="doip_server")
-    name: str = Field()
+    name: str = Field(min_length=1)
     logical_address: Annotated[int, Field(ge=0x0000, le=0xFFFF)] = Field(description="the DoIP logical address of this diagnostic entity")
     uds_server: Annotated[str, Reference(source="_uds_server_ref")] = Field(description="the UDS server exposed by this entity")
     doip_timings_profile: Annotated[Optional[str], Reference(source="_timings_ref")] = Field(default=None)

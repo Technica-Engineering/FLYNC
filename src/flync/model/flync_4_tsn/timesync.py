@@ -55,8 +55,8 @@ class PTPTimeReceiverConfig(FLYNCBaseModel):
     """
 
     type: Literal["time_receiver"] = Field(default="time_receiver")
-    sync_timeout: int = Field()
-    sync_followup_timeout: int = Field()
+    sync_timeout: int = Field(ge=0)
+    sync_followup_timeout: int = Field(ge=0)
 
 
 class PTPPdelayConfig(FLYNCBaseModel):

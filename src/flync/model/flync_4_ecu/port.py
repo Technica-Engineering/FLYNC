@@ -53,7 +53,7 @@ class ECUPort(FLYNCBaseModel):
         The type of the object generated. Set to ecu_port.
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     mdi_config: BASET1 | BASET1S | BASET = Field(
         default_factory=BASET1,
         discriminator="mode",

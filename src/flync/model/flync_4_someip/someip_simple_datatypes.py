@@ -405,7 +405,7 @@ class BitfieldEntryValue(FLYNCBaseModel):
     """
 
     value: int = Field()
-    name: str = Field()
+    name: str = Field(min_length=1)
     description: Optional[str] = Field("", description="Optional description")
 
 
@@ -533,7 +533,7 @@ class EnumEntry(FLYNCBaseModel):
     """
 
     value: int = Field()
-    name: str = Field()
+    name: str = Field(min_length=1)
     description: str = Field("")
 
 

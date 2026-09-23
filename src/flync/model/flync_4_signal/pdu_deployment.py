@@ -27,7 +27,7 @@ class PDUSender(FLYNCBaseModel):
     """
 
     deployment_type: Literal["pdu_sender"] = Field(default="pdu_sender")
-    pdu_ref: str = Field()
+    pdu_ref: str = Field(min_length=1)
 
 
 class PDUReceiver(FLYNCBaseModel):
@@ -50,4 +50,4 @@ class PDUReceiver(FLYNCBaseModel):
     """
 
     deployment_type: Literal["pdu_receiver"] = Field(default="pdu_receiver")
-    pdu_ref: str = Field()
+    pdu_ref: str = Field(min_length=1)
