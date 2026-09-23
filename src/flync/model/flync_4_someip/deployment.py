@@ -15,6 +15,7 @@ from pydantic import (
 from flync.core.annotations.reference import Reference
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.base_utils import is_ip_multicast
+from flync.core.utils.exceptions import Category, err_major
 from flync.core.validators.address import validate_ip_multicast
 from flync.model.flync_4_someip.service_interface import (
     SDTimings,
@@ -164,10 +165,23 @@ class SOMEIPServiceDeployment(abc.ABC, FLYNCBaseModel):
 
     def bind(self, services_by_key: dict, sd_timings_by_id: dict) -> None:
         svc = services_by_key.get((self.service, self.major_version))
-        assert svc, f"No service found for id={self.service:#06x}, major_version={self.major_version}"
+        if svc is None:
+            raise err_major(
+                "No service found for id={service:#06x}, major_version={major_version}",
+                service=self.service,
+                major_version=self.major_version,
+                category=Category.REFERENCE,
+                error_number="341",
+            )
         self._service_ref = svc
         sd = sd_timings_by_id.get(self.someip_sd_timings_profile)
-        assert sd, f"No SD timings profile '{self.someip_sd_timings_profile}'"
+        if sd is None:
+            raise err_major(
+                "No SD timings profile '{profile}'",
+                profile=self.someip_sd_timings_profile,
+                category=Category.REFERENCE,
+                error_number="342",
+            )
         self._sd_timing_ref = sd
 
     @field_serializer("service")
@@ -207,8 +221,14 @@ class SOMEIPServiceConsumer(SOMEIPServiceDeployment):
         if self.consumed_eventgroups is not None and self._service_ref is not None:
             consumed = set(self.consumed_eventgroups)
             provided = {eg.name for eg in (self._service_ref.eventgroups or [])}
-            found = consumed.intersection(provided)
-            assert found == consumed, f"Did not find eventgroups with names {consumed - found}"
+            missing = consumed - provided
+            if missing:
+                raise err_major(
+                    "Did not find eventgroups with names {missing}",
+                    missing=sorted(missing),
+                    category=Category.REFERENCE,
+                    error_number="343",
+                )
 
 
 class SOMEIPEventgroupMulticastConfig(FLYNCBaseModel):

@@ -6,6 +6,7 @@ from pydantic import Field, field_validator
 
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.datatypes import Datatype
+from flync.core.utils.exceptions import Category, err_major
 from flync.model.flync_4_someip.someip_simple_datatypes import (
     Bitfield,
     Boolean,
@@ -120,8 +121,12 @@ class ArrayDimension(FLYNCBaseModel):
     @classmethod
     def validate(cls, value, info):
         kind = info.data["kind"]
-        if kind == "dynamic":
-            assert value > 0, "Length of length-field must be > 0 for dynamic arrays"
+        if kind == "dynamic" and value <= 0:
+            raise err_major(
+                "Length of length-field must be > 0 for dynamic arrays",
+                category=Category.VALUE_RANGE,
+                error_number="344",
+            )
 
         return value
 

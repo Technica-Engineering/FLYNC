@@ -1,4 +1,5 @@
 import pytest
+from pydantic_core import PydanticCustomError
 
 from flync.model.flync_4_someip import (
     SOMEIPEvent,
@@ -9,6 +10,7 @@ from flync.model.flync_4_someip import (
     SOMEIPServiceProvider,
     UInt8,
 )
+from tests.error_assertions import assert_bind_error
 
 
 def test_someip_service_deployment(metadata_entry, someip_sd_server_timings_profile_entry):
@@ -92,8 +94,9 @@ def test_someip_service_consumer_deployment_with_eventgroups(metadata_entry, som
         consumed_eventgroups=["eg_e3", "eg_e1"],
         someip_sd_timings_profile="server_default",
     )
-    with pytest.raises(AssertionError, match="Did not find eventgroups with names"):
+    with pytest.raises(PydanticCustomError) as exc_info:
         sd.bind(
             services_by_key={(s.id, s.major_version): s},
             sd_timings_by_id={"server_default": someip_sd_server_timings_profile_entry},
         )
+    assert_bind_error(exc_info, "FLYNC-SOM-MAJ-REF-343", "Did not find eventgroups with names")
