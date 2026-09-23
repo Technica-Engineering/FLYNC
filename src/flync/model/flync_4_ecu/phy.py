@@ -186,7 +186,8 @@ class MII(FLYNCBaseModel):
         Interface type. Defaults to ``"mii"``.
 
     speed : int, optional
-        Supported link speed in megabits per second. Valid values are 10 or 100. Defaults to ``100``.
+        Highest link speed this interface carries, in megabits per second. Valid values are 10 or 100.
+        Defaults to 100 Mbps. The clock scales with the link rate (25/2.5 MHz), so a port may pair this with a slower MDI.
 
     mode : Literal["mac", "phy"]
         Operating mode, either MAC or PHY.
@@ -208,7 +209,9 @@ class RMII(FLYNCBaseModel):
         Interface type. Defaults to ``"rmii"``.
 
     speed : int, optional
-        Supported link speed in megabits per second. Valid values are 10 or 100. Defaults to ``100``.
+        Highest link speed this interface carries, in megabits per second. Valid values are 10 or 100.
+        Defaults to 100 Mbps. The 50 MHz reference clock never slows down; a 10 Mbps link is carried by holding each
+        dibit for 10 clock cycles, so a port may pair this with a slower MDI.
 
     mode : Literal["mac", "phy"]
         Operating mode, either MAC or PHY.
@@ -229,8 +232,10 @@ class SGMII(FLYNCBaseModel):
     type : Literal["sgmii"]
         Interface type. Defaults to ``"sgmii"``.
 
-    speed : int
-        Supported link speed in megabits per second. Valid values are 10, 100, 1000, or 2500. Defaults to 1000 Mbps.
+    speed : int, optional
+        Highest link speed this interface carries, in megabits per second. Valid values are 10, 100, 1000, or 2500.
+        Defaults to 1000 Mbps. The serdes never slows down; a slower link is carried by repeating each code group
+        (10x at 100 Mbps, 100x at 10 Mbps), so a port may pair this with a slower MDI.
 
     mode : Literal["mac", "phy"]
         Operating mode, either MAC or PHY.
@@ -250,8 +255,9 @@ class RGMII(FLYNCBaseModel):
     type : Literal["rgmii"]
         Interface type. Defaults to ``"rgmii"``.
 
-    speed : int
-        Supported link speed in megabits per second. Valid values are 10, 100, or 1000. Defaults to 1000 Mbps.
+    speed : int, optional
+        Highest link speed this interface carries, in megabits per second. Valid values are 10, 100, or 1000.
+        Defaults to 1000 Mbps. The clock scales with the link rate (125/25/2.5 MHz), so a port may pair this with a slower MDI.
 
     mode : Literal["mac", "phy"]
         Operating mode, either MAC or PHY.

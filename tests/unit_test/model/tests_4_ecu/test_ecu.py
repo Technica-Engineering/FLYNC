@@ -252,5 +252,5 @@ def test_ecu_port_mdi_mii_speed_mismatch_invalid():
     assert_single_error(
         exc_info,
         "FLYNC-ECU-MAJ-CONS-081",
-        "MII and MDI config should have the same speed in ECU Ports. Port p0",
+        "MII and MDI config should have a compatible speed in ECU Ports. Port p0",
     )

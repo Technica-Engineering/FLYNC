@@ -22,6 +22,8 @@ from flync.model.flync_4_ecu.phy import (
     XFI,
 )
 
+MULTI_SPEED_MIIS = (MII, RMII, SGMII, RGMII)
+
 
 class ECUPort(FLYNCBaseModel):
     """
@@ -77,14 +79,29 @@ class ECUPort(FLYNCBaseModel):
         return self._connected_components
 
     @model_validator(mode="after")
-    def verify_mdi_and_mii_config_have_same_speed(self) -> Self:
+    def verify_mdi_and_mii_config_speeds_are_compatible(self) -> Self:
         """
-        Ensure that, when both MII and MDI configurations are present, their ``speed`` fields match.
+        Ensure the MDI speed is one the MII configuration can carry.
+
+        MII, RMII, SGMII and RGMII each cover a range of link speeds, by scaling their clock (MII, RGMII) or by
+        replicating symbols at a fixed rate (RMII, SGMII), so their ``speed`` is a ceiling the MDI may sit below.
+        XFI runs at 10G only, so there the two speeds have to be equal.
         """
 
-        if self.mii_config is not None and self.mii_config.speed != self.mdi_config.speed:
+        if self.mii_config is None:
+            return self
+
+        mii_speed = self.mii_config.speed
+        if mii_speed is None or not isinstance(self.mii_config, MULTI_SPEED_MIIS):
+            speed_is_compatible = self.mdi_config.speed == mii_speed
+        else:
+            speed_is_compatible = self.mdi_config.speed <= mii_speed
+
+        if not speed_is_compatible:
             raise err_major(
-                f"MII and MDI config should have the same speed in ECU Ports. Port {self.name}", category=Category.CONSISTENCY, error_number="081"
+                f"MII and MDI config should have a compatible speed in ECU Ports. Port {self.name}",
+                category=Category.CONSISTENCY,
+                error_number="081",
             )
         return self
 

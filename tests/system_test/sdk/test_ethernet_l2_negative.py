@@ -64,7 +64,7 @@ def test_ecu_port_mdi_mii_speed_mismatch(tmp_path):
             "      mode: base_t1\n      speed: 1000",
         )
         result = validate_workspace(destination_folder)
-        _assert_workspace_error(result, "FLYNC-ECU-MAJ-CONS-081", "MII and MDI config should have the same speed in ECU Ports. Port p0")
+        _assert_workspace_error(result, "FLYNC-ECU-MAJ-CONS-081", "MII and MDI config should have a compatible speed in ECU Ports. Port p0")
     finally:
         _cleanup(destination_folder)
 
