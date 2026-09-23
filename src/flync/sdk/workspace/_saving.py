@@ -206,7 +206,11 @@ class _WorkspaceSaving(_WorkspaceIncremental):
                     next_path / get_name(attr, self.__get_field_filename(attr)),
                 )
         if len(list_content) != 0:
-            self.__save_content_to_file(next_path, {field_name: list_content})
+            if OutputStrategy.SINGLE_FILE in external.output_structure and OutputStrategy.OMMIT_ROOT in external.output_structure:
+                # The single file holds the bare list (the root key is omitted) - write it as-is.
+                self.__save_content_to_file(next_path, list_content)
+            else:
+                self.__save_content_to_file(next_path, {field_name: list_content})
 
     def __handle_load_external_types_dict(self, flync_attribute: dict, external: External, next_path: Path):
         """

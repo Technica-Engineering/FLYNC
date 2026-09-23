@@ -15,6 +15,8 @@ from __future__ import annotations
 
 from typing import Optional
 
+from flync.model.flync_4_bus import CANBus, LINBus
+from flync.model.flync_4_communication.flync_channels import FLYNCChannelConfig
 from flync.model.flync_4_communication.flync_communication import FLYNCCommunicationConfig
 from flync.model.flync_4_ecu import (
     ECU,
@@ -26,14 +28,15 @@ from flync.model.flync_4_ecu import (
 )
 from flync.model.flync_4_ecu.controller_topology import ControllerTopology
 from flync.model.flync_4_ecu.internal_topology import ECUPortToControllerInterface, ECUPortToSwitchPort, InternalTopology
-from flync.model.flync_4_ecu.phy import BASET1
+from flync.model.flync_4_ecu.phy import BASET1, BASET1S
 from flync.model.flync_4_ecu.port import ECUPort
 from flync.model.flync_4_ecu.socket_container import SocketContainer
 from flync.model.flync_4_ecu.sockets import IPv4AddressEndpoint
 from flync.model.flync_4_ecu.switch import Switch, SwitchConfig, SwitchPort, VLANEntry
 from flync.model.flync_4_metadata.metadata import BaseVersion, ECUMetadata, EmbeddedMetadata, SOMEIPServiceMetadata, SystemMetadata
 from flync.model.flync_4_someip import SOMEIPServiceInterface
-from flync.model.flync_4_topology.ethernet_topology import EthernetTopology, FLYNCTopology
+from flync.model.flync_4_topology.ethernet_multidrop import EthernetMultidropConnection
+from flync.model.flync_4_topology.ethernet_topology import EthernetPointToPointConnection, EthernetTopology, FLYNCTopology
 from flync.model.flync_model import FLYNCModel
 
 FLYNC_VERSION = "0.13.0"
@@ -261,3 +264,76 @@ def make_someip_service(*, name: str = "MyService", service_id: int = 0x0101, ma
     a deployed instance. See ``make_someip_deployed_ecu`` for a deployed provider.
     """
     return SOMEIPServiceInterface(name=name, id=service_id, major_version=major_version, meta=make_someip_service_metadata())
+
+
+def _make_instrumentation_ecu(name: str, port_name: str, mac: str, *, multidrop: bool = False) -> ECU:
+    """One ECU exposing a single Ethernet port, wired to one controller interface.
+
+    ``BASET1S`` (multidrop) PHYs mark the segment nodes; ``BASET1`` (point-to-point) marks the
+    link endpoints. The port name is global - it is what ``FLYNCIndex`` keys ports and links by.
+    """
+    interface = EthernetInterface(
+        name="eth_iface1",
+        interface_config=EthernetInterfaceConfig(mac_address=mac, virtual_interfaces=[]),
+    )
+    controller = Controller(name="ctrl1", controller_metadata=make_controller_metadata(), ethernet_interfaces=[interface])
+    mdi = BASET1S(speed=10, duplex="half", topology="multidrop") if multidrop else BASET1()
+    port = ECUPort(name=port_name, mdi_config=mdi)
+    connection = ECUPortToControllerInterface(
+        id=f"conn_{port_name}",
+        ecu_port=port_name,
+        controller_interface="eth_iface1",
+    )
+    return ECU(
+        name=name,
+        ports=[port],
+        controllers=[controller],
+        topology=InternalTopology(connections=[connection]),
+        ecu_metadata=make_ecu_metadata(),
+    )
+
+
+def make_instrumentation_model() -> FLYNCModel:
+    """A minimal model with every medium a measurement point can tap.
+
+    Self-contained - no example workspace - so instrumentation binding can be exercised directly.
+    The topology carries one point-to-point link (``zgw_p1`` <-> ``hpc1_p5``) and one multidrop
+    segment (``RearLampSegment``); the channels declare CAN buses ``BodyCAN`` and ``DiagCAN`` (FD)
+    and a LIN bus ``BodyLIN``.
+    """
+    link_ecus = [
+        _make_instrumentation_ecu("zonal_gateway", "zgw_p1", "00:00:5e:00:53:0a"),
+        _make_instrumentation_ecu("hpc", "hpc1_p5", "00:00:5e:00:53:0b"),
+    ]
+    segment_ecus = [
+        _make_instrumentation_ecu("rear_lamp_left", "rear_lamp_left_p1", "00:00:5e:00:53:0c", multidrop=True),
+        _make_instrumentation_ecu("rear_lamp_center", "rear_lamp_center_p1", "00:00:5e:00:53:0d", multidrop=True),
+    ]
+    ecus = link_ecus + segment_ecus
+
+    link = EthernetPointToPointConnection(id="zc_link", ecu1_port="zgw_p1", ecu2_port="hpc1_p5")
+    segment = EthernetMultidropConnection(
+        id="RearLampSegment",
+        plca={"transmit_opportunity_count": 2, "to_timer": 32},
+        nodes=[
+            {"ecu_port": "rear_lamp_left_p1", "node_id": 0},
+            {"ecu_port": "rear_lamp_center_p1", "node_id": 1},
+        ],
+    )
+    topology = FLYNCTopology(ethernet_topology=EthernetTopology(connections=[link, segment]))
+
+    channels = FLYNCChannelConfig(
+        can_buses=[
+            CANBus(name="BodyCAN", baud_rate=500000),
+            CANBus(name="DiagCAN", baud_rate=500000, fd_enabled=True, fd_baud_rate=2000000),
+        ],
+        lin_buses=[LINBus(name="BodyLIN", baud_rate=19200, lin_protocol_version="2.1", lin_language_version="2.1")],
+    )
+    communication = FLYNCCommunicationConfig(channels=channels)
+
+    return FLYNCModel(
+        ecus=ecus,
+        topology=topology,
+        metadata=make_system_metadata(),
+        communication=communication,
+    )

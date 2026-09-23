@@ -9,6 +9,7 @@
 | `flync_4_communication` | **Communication** | System-wide TCP profiles |
 | `flync_4_diagnostics` | **Diagnostics** | DoIP/UDS: DoIP timings, UDS configurations (sessions, security access, supported services), DID/routine/DTC catalog, TCP/UDP socket deployment |
 | `flync_4_ecu` | **ECU** | Full ECU detail: controllers, Ethernet/CAN/LIN interfaces, ports, sockets, PHY types (BASET...), MII, switches, VLANs, multicast |
+| `flync_4_instrumentation` | **Instrumentation** (optional overlay) | Measurement points tapping buses/links for ASAM CMP / TECMP: Ethernet ports (p2p, id per direction), Ethernet shared-medium segments, CAN buses, LIN buses |
 | `flync_4_metadata` | **Metadata** | System/ECU metadata: OEM, platform, versioning, HW/SW BOM |
 | `flync_4_nm` | **Network Management** | State management groups, timing profiles for wake-up/sleep coordination |
 | `flync_4_safety` | **Safety** | E2E communication protection |

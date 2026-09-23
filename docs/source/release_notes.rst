@@ -29,6 +29,22 @@ Field descriptions come from ``Field(description=...)`` when set and otherwise f
 section of the class docstring, so the schemas document the same fields as the API reference.
 
 
+Measurement Points (Instrumentation)
+''''''''''''''''''''''''''''''''''''''
+
+A new optional model domain, :ref:`flync_4_instrumentation <instrumentation>`, declares the
+measurement points of a network. Each measurement point taps exactly one medium - a
+point-to-point Ethernet link (one or two ECU ports, one CMP interface id per direction), an
+Ethernet shared-medium segment, a CAN bus, or a LIN bus - and carries the ASAM CMP / TECMP
+interface ids that capture it.
+
+The points are grouped under an :class:`~flync.model.flync_4_instrumentation.Instrumentation`
+wrapper on the root model (``flync_model.instrumentation``) that maps to the ``instrumentation/``
+folder; ``measurement_points`` loads from ``instrumentation/measurement_points.flync.yaml``. The
+overlay stays optional - a workspace with no ``instrumentation/`` folder has
+``flync_model.instrumentation`` as ``None``.
+
+
 Model Development Guide
 '''''''''''''''''''''''
 

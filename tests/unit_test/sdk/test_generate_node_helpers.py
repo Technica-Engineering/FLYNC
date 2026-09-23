@@ -175,6 +175,9 @@ def test_generate_node_override_values(
     """Override values passed to generate_node should propagate to the generated model."""
     workspace_path = tmp_path / "test_override"
     shutil.copytree(get_flync_example_path, workspace_path)
+    # The copied example's instrumentation overlay references ports on the HPC ECU that this
+    # test's generate_node override intentionally rebuilds; drop it so the reload binds cleanly.
+    shutil.rmtree(workspace_path / "instrumentation", ignore_errors=True)
     config = WorkspaceConfiguration(map_objects=True, list_objects_mode=ListObjectsMode.NAME)
     ws: FLYNCWorkspace = FLYNCWorkspace.load_workspace("test_override", workspace_path, config)
     parent_id = node_paths[0].rsplit(".", 1)[0]

@@ -1,0 +1,37 @@
+- name: gateway_to_hpc_link
+  type: ethernet_ports
+  description: Inline tap of both ends of the link to the HPC, one interface id per direction.
+  ports:
+    - ecu_port: zgw_p1
+      interface_id: 0x00010001
+    - ecu_port: hpc1_p5
+      interface_id: 0x00010002
+
+- name: rear_lamp_segment_bus
+  type: ethernet_bus
+  description: Tap of the rear-lamp 10BASE-T1S multidrop segment.
+  bus: RearLampSegment
+  interface_id: 0x00010003
+
+- name: body_can
+  type: can_bus
+  description: Tap of the body CAN bus.
+  bus: BodyCAN
+  payload_types:
+    - can
+  interface_id: 0x00020001
+
+- name: diagnostics_can_fd
+  type: can_bus
+  description: Tap of the diagnostics CAN FD bus.
+  bus: DiagCAN
+  payload_types:
+    - can
+    - can_fd
+  interface_id: 0x00020002
+
+- name: body_lin
+  type: lin_bus
+  description: Tap of the body LIN bus.
+  bus: BodyLIN
+  interface_id: 0x00020003

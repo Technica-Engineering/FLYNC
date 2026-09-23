@@ -41,7 +41,8 @@ from flync.model.flync_4_ecu import (
     VirtualControllerInterface,
     VLANEntry,
 )
-from flync.model.flync_4_measurements import MeasurementSystem
+from flync.model.flync_4_instrumentation import Instrumentation
+from flync.model.flync_4_instrumentation.measurement_point import bind_measurement_points
 from flync.model.flync_4_metadata import SystemMetadata
 from flync.model.flync_4_signal.forwarder import CANFrameForwarder, PDUForwarder
 from flync.model.flync_4_someip import SOMEIPServiceDeployment, SOMEIPServiceInterface, SOMEIPServiceProvider
@@ -83,7 +84,7 @@ class FLYNCModel(FLYNCBaseModel):
     communication : :class:`~flync.model.flync_4_communication.FLYNCCommunicationConfig`, optional
         Optional communication configuration settings applicable system-wide.
 
-    measurements : :class:`~flync.model.flync_4_measurements.MeasurementSystem`, optional
+    instrumentation : :class:`~flync.model.flync_4_instrumentation.Instrumentation`, optional
         Optional measurement and logging overlay - the measurement points recording this system.
         Absent for a system that is not being measured, which is the ordinary case for a
         production configuration.
@@ -126,8 +127,8 @@ class FLYNCModel(FLYNCBaseModel):
             path="system_metadata",
         ),
     ]
-    measurements: Annotated[
-        Optional[MeasurementSystem],
+    instrumentation: Annotated[
+        Optional[Instrumentation],
         External(
             output_structure=OutputStrategy.FOLDER,
             naming_strategy=NamingStrategy.FIELD_NAME,
@@ -503,10 +504,12 @@ class FLYNCModel(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def bind_measurements(self) -> Self:
-        """Workspace-level measurement pass: resolve connections and bind them."""
-        if self.measurements is not None:
-            self.measurements.bind(self)
+    def bind_instrumentation(self) -> Self:
+        """Workspace-level measurement pass: resolve measurement points against the loaded model."""
+        bind_measurement_points(
+            self.instrumentation.measurement_points if self.instrumentation else None,
+            self,
+        )
         return self
 
     def get_can_bus_topology(self, bus_name: str) -> Optional[CANBusTopology]:

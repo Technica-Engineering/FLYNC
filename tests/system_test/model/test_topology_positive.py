@@ -98,7 +98,7 @@ def valid_simple_ecu():
         topology=empty_topology,
         metadata=system_metadata,
         communication={"tcp_profiles": []},
-        measurements={"measurement_points": None},
+        instrumentation=None,
     )
 
     return flync_model
@@ -215,7 +215,7 @@ def valid_ecu_with_switch():
         topology=empty_topology,
         metadata=system_metadata,
         communication={"tcp_profiles": []},
-        measurements={"measurement_points": None},
+        instrumentation=None,
     )
 
     return flync_model
@@ -353,7 +353,7 @@ def valid_inter_ecu_connection():
         topology=ecus_topology,
         metadata=system_metadata,
         communication={"tcp_profiles": []},
-        measurements={"measurement_points": None},
+        instrumentation=None,
     )
 
     return flync_model
@@ -480,7 +480,7 @@ def valid_iface_to_iface():
         topology=empty_topology,
         metadata=system_metadata,
         communication={"tcp_profiles": []},
-        measurements={"measurement_points": None},
+        instrumentation=None,
     )
 
     return flync_model

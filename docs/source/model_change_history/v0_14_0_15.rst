@@ -41,3 +41,27 @@ Negative values are rejected on quantities that cannot be negative
   ``sak_retire_time`` (matching ``sak_rekey_time``, which already declared it),
 * PTP time-receiver timeouts — ``sync_timeout``, ``sync_followup_timeout``,
 * HTB shaping — ``classid``, ``rate``, ``ceil``, ``priority``, and ``HTBFilter.filter_priority``,
+
+Additive — YAML schema
+----------------------
+
+New optional instrumentation overlay
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The optional ``instrumentation/`` folder (:ref:`flync_4_instrumentation <instrumentation>`) wraps the
+measurement points under an ``Instrumentation`` container on the root model:
+``flync_model.instrumentation`` is ``None`` without the folder, otherwise an
+``Instrumentation`` whose ``measurement_points`` load from
+``instrumentation/measurement_points.flync.yaml``. Each measurement point is identified by
+its ASAM CMP / TECMP interface ids and taps exactly one medium:
+
+* ``type: ethernet_ports`` — one or two ECU ports of a point-to-point Ethernet link, one
+  ``interface_id`` per port (two ports must be the two ends of the same connection),
+* ``type: ethernet_bus`` — one interface id for an ``ethernet_multidrop`` segment, by connection id,
+* ``type: can_bus`` — one interface id plus the ``payload_types`` captured on the bus
+  (``can_fd`` is required exactly on ``fd_enabled`` buses),
+* ``type: lin_bus`` — one interface id for a LIN bus.
+
+``name`` and every interface id are unique across the overlay, and ``flync_model.instrumentation``
+is an ``Instrumentation`` instance carrying ``.measurement_points``. No 0.14 workspace has the
+folder, so workspaces keep their layout; adding the overlay is purely optional.

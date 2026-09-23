@@ -244,12 +244,63 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
             module_load_info[field_name] = list_item_value
             return True
         if OutputStrategy.SINGLE_FILE in external.output_structure:
-            new_base_type = base_type_args[0]
+            self.__handle_generic_types_list_single_file(
+                base_type_args,
+                external,
+                external_path,
+                field_name,
+                module_load_info,
+                path,
+                current_object_paths,
+            )
+            return True
+        return False
+
+    def __handle_generic_types_list_single_file(
+        self,
+        base_type_args: tuple,
+        external: External,
+        external_path: str,
+        field_name: str,
+        module_load_info: dict,
+        path: Path,
+        current_object_paths: list[str],
+    ) -> None:
+        """
+        Load an external ``list`` field stored as a single file into ``module_load_info``.
+
+        Args:
+            base_type_args (tuple): Generic args of the list annotation.
+            external (External): Annotation controlling the load strategy.
+            external_path (str): Relative path segment for this field.
+            field_name (str): Field name on the parent model.
+            module_load_info (dict): Accumulator for loaded field values; updated in place.
+            path (Path): Absolute path of the current directory.
+            current_object_paths (str): Dot-path context for object tracking.
+        """
+
+        effective_element_type = base_type_args[0]
+        if get_origin(effective_element_type) is Annotated:
+            effective_element_type = get_args(effective_element_type)[0]
+        element_origin = get_origin(effective_element_type)
+        if element_origin is Union or element_origin is UnionType:
+            # A single-file list whose element is a union of models (a discriminated union) is
+            # stored in the file itself as a bare list. Load the whole file content into the
+            # field and let the parent's rebuild/validation turn it into the full list. Without
+            # this branch the loader would try to match the file against each union member as a
+            # single model, fail, and silently drop the field.
+            self._append_to_info_dict(
+                path / external_path,
+                module_load_info,
+                output_strategy=external.output_structure,
+                field_name=field_name,
+            )
+        else:
             single_info: dict = {}
             self.__handle_generic_types(
-                attribute_type=new_base_type,
-                base_type=get_origin(new_base_type),
-                base_type_args=get_args(new_base_type),
+                attribute_type=effective_element_type,
+                base_type=get_origin(effective_element_type),
+                base_type_args=get_args(effective_element_type),
                 external=external,
                 path=path,
                 external_path=external_path,
@@ -259,8 +310,6 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
                 current_object_paths=current_object_paths,
             )
             module_load_info.update(single_info)
-            return True
-        return False
 
     def __handle_generic_types_dict(
         self,
