@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING, Annotated, List, Literal, Optional
 
-from pydantic import Field, PrivateAttr, RootModel
+from pydantic import Field, RootModel
 
 from flync.core.annotations.reference import Reference
 from flync.core.base_models.base_model import FLYNCBaseModel
@@ -44,7 +44,7 @@ class InternalConnection(FLYNCBaseModel):
 
     type: str = Field()
     id: str = Field(min_length=1)
-    _ecu: Optional["ECU"] = PrivateAttr(default=None)
+    _ecu: Optional["ECU"] = None
 
     @property
     def ecu(self) -> Optional["ECU"]:

@@ -6,15 +6,14 @@ Defines the Controller, EthernetInterfaceConfig, and EthernetInterface models fo
 here, resolved by the wiring at the bottom of :mod:`flync.model.flync_4_ecu`.
 """
 
+from functools import partial
 from typing import TYPE_CHECKING, Annotated, Any, List, Literal, Optional, Self
 
 from pydantic import (
     AfterValidator,
     BeforeValidator,
     Field,
-    PrivateAttr,
     field_serializer,
-    field_validator,
     model_validator,
 )
 from pydantic.networks import IPvAnyAddress
@@ -88,6 +87,7 @@ _HTBField = Annotated[
 ]
 _IngressStreamsField = Annotated[
     Optional[List[Stream]],
+    AfterValidator(partial(validate_ingress_streams_fields, location="controller interface")),
     BeforeValidator(validate_or_remove("ingress streams", List[Stream])),
     BeforeValidator(none_to_empty_list),
 ]
@@ -224,11 +224,6 @@ class EthernetInterfaceConfig(FLYNCBaseModel):
         """Interface name, propagated from the parent :class:`EthernetInterface` (implied from the folder name)."""
         return self._name
 
-    @field_validator("ingress_streams", mode="after")
-    def validate_ingress_streams(cls, value):
-        """Ensure no ingress stream carries an ipv or ats value."""
-        return validate_ingress_streams_fields(value, "controller interface")
-
     @model_validator(mode="after")
     def validate_vlans(self) -> Self:
         """Raise if any VLAN ID is repeated across virtual interfaces."""
@@ -342,10 +337,10 @@ class EthernetInterface(ControllerInterface):
         ),
     ] = Field(default_factory=list)
     _connected_component: List = []
-    _type: Literal["controller_interface"] = PrivateAttr(default="controller_interface")
+    _type: Literal["controller_interface"] = "controller_interface"
     # A Controller for a physical interface, a ComputeNode for a virtual one. Both expose
     # ``name`` and ``ethernet_interfaces``, which is all the accessors below need.
-    _controller: Optional[Any] = PrivateAttr(default=None)
+    _controller: Optional[Any] = None
 
     @property
     def type(self):
@@ -496,7 +491,7 @@ class Controller(FLYNCBaseModel):
         default=[],
         description="Assignments of this controller to state management groups.",
     )
-    _type: Literal["controller"] = PrivateAttr(default="controller")
+    _type: Literal["controller"] = "controller"
 
     @model_validator(mode="before")
     @classmethod

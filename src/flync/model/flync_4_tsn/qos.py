@@ -303,10 +303,23 @@ class FrameFilter(FLYNCBaseModel):
     src_port: Optional[int | ValueRange | List[int | ValueRange]] = Field(default=None)
     dst_port: Optional[int | ValueRange | List[int | ValueRange]] = Field(default=None)
 
-    @staticmethod
-    def vlan_validator(value):
-        """Validate one VLAN ID via :func:`validate_vlan_id`."""
-        validate_vlan_id(value)
+    @field_validator("vlanid", mode="after")
+    @classmethod
+    def validate_vlanids(cls, value):
+        """Ensure every VLAN id (a scalar, a bound, or a list element) is valid."""
+        if isinstance(value, int):
+            validate_vlan_id(value)
+        elif isinstance(value, ValueRange):
+            validate_vlan_id(value.from_value)
+            validate_vlan_id(value.to_value)
+        elif isinstance(value, list):
+            for v in value:
+                if isinstance(v, int):
+                    validate_vlan_id(v)
+                elif isinstance(v, ValueRange):
+                    validate_vlan_id(v.from_value)
+                    validate_vlan_id(v.to_value)
+        return value
 
     @staticmethod
     def pcp_validator(value):
@@ -314,24 +327,6 @@ class FrameFilter(FLYNCBaseModel):
             raise err_minor(
                 "pcp value must be greater than or equal to 0 and less than or equal to 7", category=Category.VALUE_RANGE, error_number="150"
             )
-
-    @field_validator("vlanid", mode="after")
-    @classmethod
-    def validate_vlanids(cls, value):
-        if isinstance(value, int):
-            cls.vlan_validator(value)
-        elif isinstance(value, ValueRange):
-            cls.vlan_validator(value.from_value)
-            cls.vlan_validator(value.to_value)
-        elif isinstance(value, list):
-            for v in value:
-                if isinstance(v, int):
-                    cls.vlan_validator(v)
-                if isinstance(v, ValueRange):
-                    cls.vlan_validator(v.from_value)
-                    cls.vlan_validator(v.to_value)
-
-        return value
 
     @field_validator("pcp", mode="after")
     @classmethod

@@ -3,7 +3,10 @@
 
 # You can set these variables from the command line, and also
 # from the environment for the first two.
-SPHINXOPTS    ?=
+# -W turns Sphinx warnings into build errors so a broken :ref:/:class: cannot reach the
+# published docs unnoticed; --keep-going still reports every warning in one run.
+# Override with `SPHINXOPTS= make html` to build a work-in-progress tree anyway.
+SPHINXOPTS    ?= -W --keep-going
 SPHINXBUILD   ?= uv run python -m sphinx.cmd.build
 SOURCEDIR     = source
 BUILDDIR      = build

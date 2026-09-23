@@ -9,9 +9,9 @@ from typing import Annotated, List
 
 from pydantic import (
     AfterValidator,
+    BeforeValidator,
     Field,
     field_serializer,
-    field_validator,
 )
 from pydantic.networks import IPvAnyAddress
 
@@ -36,17 +36,11 @@ class MulticastGroup(FLYNCBaseModel):
         A list of switch port names that are part of the multicast group.
     """
 
-    address: IPvAnyAddress | FLYNCMacAddress = Field()
+    address: Annotated[
+        IPvAnyAddress | FLYNCMacAddress,
+        AfterValidator(validate_any_multicast_address),
+    ] = Field()
     ports: List[str] = Field()
-
-    @field_validator("address", mode="after")
-    @classmethod
-    def validate_multicast_address(cls, v):
-        """
-        Validate that ``address`` is an IP or MAC multicast address.
-        """
-
-        return validate_any_multicast_address(v)
 
     @field_serializer("address")
     def serialize_address(self, address):
@@ -83,13 +77,7 @@ class VLANEntry(FLYNCBaseModel):
     id: Annotated[int, AfterValidator(validate_vlan_id)] = Field(...)
     default_priority: int = Field(..., ge=0, le=7)
     ports: List[str] = Field()
-    multicast: List[MulticastGroup] | None = Field(default=[])
-
-    @field_validator("multicast", mode="before")
-    @classmethod
-    def normalize_multicast(cls, v):
-        """
-        Coerce a ``None`` multicast list to an empty list.
-        """
-
-        return none_to_empty_list(v)
+    multicast: Annotated[
+        List[MulticastGroup] | None,
+        BeforeValidator(none_to_empty_list),
+    ] = Field(default=[])

@@ -115,6 +115,7 @@ Resources
    quickstart
    installation
    flync_reference
+   development/index
    flync_example
    flync_cli/index
    flync_converter/index

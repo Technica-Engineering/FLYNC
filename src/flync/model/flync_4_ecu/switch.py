@@ -15,7 +15,6 @@ from pydantic import (
     AfterValidator,
     BeforeValidator,
     Field,
-    PrivateAttr,
     StrictInt,
     field_serializer,
     field_validator,
@@ -134,8 +133,8 @@ class SwitchPort(FLYNCBaseModel):
         BeforeValidator(validate_or_remove("MACsec config", MACsecConfig)),
     ] = Field(default=None)
     _mdi_config: BASET1 | BASET1S | BASET | None = None
-    _connected_component: Optional[Any] = PrivateAttr(default=None)
-    _type: Literal["switch_port"] = PrivateAttr(default="switch_port")
+    _connected_component: Optional[Any] = None
+    _type: Literal["switch_port"] = "switch_port"
     _switch: Optional[Switch] = None
 
     @property

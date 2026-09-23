@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, List, Literal, Optional, Self
 
-from pydantic import Field, PrivateAttr, model_validator
+from pydantic import Field, model_validator
 
 if TYPE_CHECKING:
     from flync.model.flync_4_ecu.ecu import ECU
@@ -62,7 +62,7 @@ class ECUPort(FLYNCBaseModel):
     mii_config: Optional[MII | RMII | SGMII | RGMII | XFI] = Field(default=None, discriminator="type")
     _ecu: ECU | None = None
     _connected_components: List = []
-    _type: Literal["ecu_port"] = PrivateAttr(default="ecu_port")
+    _type: Literal["ecu_port"] = "ecu_port"
 
     @property
     def ecu(self) -> ECU | None:

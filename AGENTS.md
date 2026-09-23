@@ -37,6 +37,7 @@ Documentation can be found in `docs` and should be updated by every significant 
 
 * Update Release Notes in `docs/source/release_notes.rst` for significant changes
 * Update the Model Change History in `docs/source/model_change_history.rst` for model changes
+* Model development conventions live in `docs/source/development/` (Model Development Guide) — when a significant change adds or alters a modelling pattern, update the guide and its examples
 
 ### Entry Points
 
@@ -79,6 +80,9 @@ tests/
 ├── system_test/   # System/integration tests (model + sdk)
 ├── cli_tests/     # CLI tests
 ├── converter_tests/ # Converter tests (includes test_plugin/ for plugin integration)
+├── error_assertions.py  # assert_single_error — mandatory for negative tests (see Writing tests)
+├── model_builders.py    # Shared model fixtures/builders
+├── example_paths.py     # Paths to the bundled example workspaces
 └── conftest.py    # Root conftest — pre-loads flync_example workspace for xdist workers
 ```
 
@@ -111,8 +115,8 @@ tests/
 | `base_models/` | `FLYNCBaseModel`, `DictInstances`/`ListInstances`/`BaseRegistry` | Pydantic v2 base model and collection management classes |
 | `annotations/` | `External`, `Implied`, `Reference` | Field annotations controlling YAML load/resolve behavior |
 | `datatypes/` | `BitRange`, `Ethertype`, `ValueRange`, `ValueTable`, IP/MAC address types | Low-level data types used across the library |
-| `utils/` | `common_validators`, `exceptions`, `exceptions_handling`, `base_utils`, `forwarder_validators`, `state_management_validators`, `multicast/` (`multicast_paths`, `group_membership_handlers`) | Shared validation logic, exception classes, multicast path computation and group membership |
-| `validators/` | `address_validators` | Pre-validators (e.g. MAC address normalization before model construction) |
+| `utils/` | `exceptions`, `exceptions_handling`, `base_utils`, `multicast/` (`multicast_paths`, `group_membership_handlers`) | Error factories and the validation policy, shared helpers, multicast path computation and group membership |
+| `validators/` | `generic` (`validate_list_items_unique`, `none_to_empty_list`, `validate_or_remove`), `address`, `bit_ranges`, `connection_compatibility`, `forwarder`, `interface`, `state_management`, `traffic_classes` | Reusable validators referenced from `Annotated[...]` and `@model_validator` bodies |
 | `version_migrators/` | `legacy_controller_check` | Helpers for FLYNC schema migrations across versions |
 
 ## SDK Overview
@@ -150,6 +154,8 @@ tests/
 
 FLYNC uses a structured, globally-unique error ID system for all validation errors and warnings. The code is the source of truth — the documentation catalog is generated from it.
 
+This section is the operational quick reference. The reasoning — which validator to put a rule in, which severity to choose and what each one does to the load — is in `docs/source/development/validators_and_errors.rst`.
+
 ### Error ID Format
 
 ```
@@ -162,38 +168,18 @@ Example: `FLYNC-ECU-MAJ-VAL-001`
 |---|---|
 | **Module** | Auto-resolved from the `KEY` variable in each domain package's `__init__.py`. Declared today: `ECU`, `SIG`, `SOM`, `DIA`, `TOP`, `TSN`, `SEC`, `MET`, `BUS`. Packages without a `KEY` fall through to `CMN`; `flync.model.flync_model` and `version_migrators` resolve to `GEN` |
 | **Severity** | `WARN` (warning), `MIN` (minor), `MAJ` (major), `FAT` (fatal) |
-| **Category** | `VAL` (value range), `REQ` (required), `CONS` (consistency), `UNIQ` (uniqueness), `REF` (reference), `FMT` (format), `COMP` (compatibility), `STRUCT` (structural), `LIFE` (lifecycle) |
+| **Category** | The id carries a code; you pass the enum member: `VAL` ← `Category.VALUE_RANGE`, `REQ` ← `REQUIRED`, `CONS` ← `CONSISTENCY`, `UNIQ` ← `UNIQUENESS`, `REF` ← `REFERENCE`, `FMT` ← `FORMAT`, `COMP` ← `COMPATIBILITY`, `STRUCT` ← `STRUCTURAL`, `LIFE` ← `LIFECYCLE` |
 | **Number** | Zero-padded 3-digit number, globally unique across the entire codebase (monotonically increasing, never reused).
 
 ### Raising Errors in Validators
 
-Errors are raised using factory functions from `flync.core.utils.exceptions`:
-
-```python
-from flync.core.utils.exceptions import err_minor, err_major, err_fatal, warn, Category
-
-# In a Pydantic validator — raise the returned PydanticCustomError:
-raise err_major(
-    "Port name '{port_name}' is not unique within ECU '{ecu_name}'",
-    category=Category.UNIQUENESS,
-    error_number="042",
-    port_name=port_name,
-    ecu_name=ecu_name,
-)
-
-# For non-fatal warnings (field value is kept, warning surfaces in output):
-warn(
-    "Deprecated field '{field}' used",
-    category=Category.LIFECYCLE,
-    error_number="099",
-    field=field,
-)
-```
+Findings come from the factories in `flync.core.utils.exceptions` — never a bare `ValueError` or `assert`.
 
 - `err_minor` / `err_major` / `err_fatal` return a `PydanticCustomError` — **raise** the result
 - `warn` appends to the active warning list — **do not raise** (call it like a side-effect)
+- `category` and `error_number` are keyword-only and mandatory; pass the message's values as ctx keyword arguments rather than building an f-string, so they reach the catalog entry
 - The module code is auto-resolved from the calling module's package `KEY` — never specify it manually
-- `category` and `error_number` are keyword-only arguments
+- Severity selects loader behaviour, not tone: minor drops the component and continues, major additionally suppresses the returned model, fatal aborts the load. Default to major over fatal. Worked examples of all four factories are in `docs/source/development/validators_and_errors.rst`.
 
 ### Adding a New Error
 
