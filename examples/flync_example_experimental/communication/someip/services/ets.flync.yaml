@@ -368,7 +368,7 @@ methods:
         type: uint8
     description: array
   output_parameters:
-  - name: uint8array_in
+  - name: uint8array_out
     datatype:
       type: array
       dimensions:
