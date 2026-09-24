@@ -1,9 +1,9 @@
 """Defines the CAN and CAN FD bus model for FLYNC."""
 
 from collections import Counter
-from typing import Annotated, List, Optional, Self
+from typing import Annotated, List, Literal, Optional, Self, get_args
 
-from pydantic import BeforeValidator, Field, field_validator, model_validator
+from pydantic import BeforeValidator, Field, model_validator
 
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major, err_minor
@@ -11,18 +11,8 @@ from flync.core.validators.generic import none_to_empty_list
 from flync.model.flync_4_nm import StateMembershipRef
 from flync.model.flync_4_signal.frame import CANFDFrame, CANFrame
 
-_ALLOWED_CAN_BAUD_RATES = frozenset(
-    {
-        10_000,
-        20_000,
-        50_000,
-        100_000,
-        125_000,
-        250_000,
-        500_000,
-        1_000_000,
-    }
-)
+type CANBaudRate = Literal[10_000, 20_000, 50_000, 100_000, 125_000, 250_000, 500_000, 1_000_000]
+_ALLOWED_CAN_BAUD_RATES = frozenset(get_args(CANBaudRate.__value__))
 
 _ALLOWED_CAN_FD_DATA_RATES = frozenset(
     {
@@ -66,7 +56,7 @@ class CANBus(FLYNCBaseModel):
     name: str = Field(min_length=1)
     description: Optional[str] = Field(default=None)
     version: str = Field(default="", max_length=128, pattern=r'^[^"\r\n]*$')
-    baud_rate: int = Field()
+    baud_rate: CANBaudRate = Field()
     fd_enabled: bool = Field(default=False)
     fd_baud_rate: Optional[int] = Field(default=None)
     frames: List[Annotated[CANFrame | CANFDFrame, Field(discriminator="type")]] = Field(default_factory=list)
@@ -77,19 +67,6 @@ class CANBus(FLYNCBaseModel):
         default_factory=list,
         description="Assignments of this bus to a state management group; the whole bus participates as one unit.",
     )
-
-    @field_validator("baud_rate")
-    @classmethod
-    def validate_baud_rate(cls, value: int) -> int:
-        if value not in _ALLOWED_CAN_BAUD_RATES:
-            raise err_minor(
-                "baud_rate {value} is not a valid CAN baud rate. Allowed values: {allowed}",
-                value=value,
-                allowed=sorted(_ALLOWED_CAN_BAUD_RATES),
-                category=Category.VALUE_RANGE,
-                error_number="049",
-            )
-        return value
 
     @model_validator(mode="after")
     def validate_fd_configuration(self) -> Self:

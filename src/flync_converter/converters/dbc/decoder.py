@@ -3,13 +3,13 @@
 import importlib.metadata
 import logging
 from collections import defaultdict
-from typing import Dict, List, Literal, Optional, Tuple
+from typing import Dict, List, Literal, Optional, Tuple, cast
 
 from cantools.database.can.message import Message
 from cantools.database.can.signal import Signal
 
 from flync.model import FLYNCModel
-from flync.model.flync_4_bus.can_bus import CANBus
+from flync.model.flync_4_bus.can_bus import CANBaudRate, CANBus
 from flync.model.flync_4_communication.flync_channels import FLYNCChannelConfig
 from flync.model.flync_4_communication.flync_communication import FLYNCCommunicationConfig
 from flync.model.flync_4_ecu.can_interface import CANFrameRef, CANInterface
@@ -340,7 +340,7 @@ def decode_dbc_files(dbc_files, config: Optional[DbcConverterConfig] = None) -> 
         buses.append(
             CANBus(
                 name=bus_name,
-                baud_rate=baud_rate,
+                baud_rate=cast(CANBaudRate, baud_rate),
                 fd_enabled=fd_enabled,
                 fd_baud_rate=_fd_baud_rate(db, config) if fd_enabled else None,
                 frames=frames,

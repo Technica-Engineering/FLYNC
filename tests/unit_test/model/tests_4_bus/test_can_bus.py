@@ -120,7 +120,7 @@ def test_positive_can_bus_model_validate():
 def test_negative_can_bus_invalid_baud_rate(bad_baud):
     with pytest.raises(ValidationError) as exc_info:
         CANBus(name=f"bad_br_{bad_baud}", baud_rate=bad_baud)
-    assert_single_error(exc_info, "FLYNC-BUS-MIN-VAL-049", "not a valid CAN baud rate")
+    assert_single_error(exc_info, None, "Input should be 10000, 20000, 50000, 100000, 125000, 250000, 500000 or 1000000")
 
 
 def test_negative_can_bus_fd_enabled_missing_fd_baud_rate():

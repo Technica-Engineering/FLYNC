@@ -2,16 +2,13 @@
 
 from typing import Annotated, List, Literal, Optional, Self
 
-from pydantic import BeforeValidator, Field, field_validator, model_validator
+from pydantic import BeforeValidator, Field, model_validator
 
 from flync.core.base_models import FLYNCBaseModel
-from flync.core.utils.exceptions import Category, err_major, err_minor
+from flync.core.utils.exceptions import Category, err_major
 from flync.core.validators.generic import none_to_empty_list
 from flync.model.flync_4_nm import StateMembershipRef
 from flync.model.flync_4_signal.frame import LINFrame
-
-_ALLOWED_LIN_BAUD_RATES = {1_200, 2_400, 4_800, 9_600, 10_400, 19_200}
-
 
 _LINProtocol = Literal["1.3", "2.0", "2.1", "2.2A"]
 
@@ -119,7 +116,7 @@ class LINBus(FLYNCBaseModel):
     description: Optional[str] = Field(default=None)
     lin_protocol_version: _LINProtocol = Field()
     lin_language_version: _LINProtocol = Field()
-    baud_rate: int = Field()
+    baud_rate: Literal[1_200, 2_400, 4_800, 9_600, 10_400, 19_200] = Field()
     channel_name: Optional[str] = Field(default=None)
     time_base: float = Field(default=5.0)
     jitter: float = Field(default=0.0)
@@ -132,20 +129,6 @@ class LINBus(FLYNCBaseModel):
         default_factory=list,
         description="Assignments of this bus to a state management group; the whole bus participates as one unit.",
     )
-
-    @field_validator("baud_rate")
-    @classmethod
-    def validate_baud_rate(cls, value: int) -> int:
-        """Ensure the baud rate is a standard LIN rate."""
-        if value not in _ALLOWED_LIN_BAUD_RATES:
-            raise err_minor(
-                "baud_rate {value} is not a valid LIN baud rate. Allowed values: {allowed}",
-                value=value,
-                allowed=sorted(_ALLOWED_LIN_BAUD_RATES),
-                category=Category.VALUE_RANGE,
-                error_number="055",
-            )
-        return value
 
     @model_validator(mode="after")
     def validate_schedule_frame_references(self) -> Self:

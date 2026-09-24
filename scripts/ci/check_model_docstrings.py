@@ -472,9 +472,15 @@ def annotation_tokens(annotation: object) -> set[str]:
     never fire.  The same applies to ``Literal[…]``.  We therefore keep the
     original form and only call ``get_origin`` to *decide* which branch to take.
     """
-    # Unwrap all layers of Annotated[T, ...] first, keeping the inner type intact.
-    while typing.get_origin(annotation) is typing.Annotated:
-        annotation = typing.get_args(annotation)[0]
+    # Unwrap all layers of Annotated[T, ...] and PEP 695 `type X = ...` aliases first,
+    # keeping the inner type intact.
+    while True:
+        if typing.get_origin(annotation) is typing.Annotated:
+            annotation = typing.get_args(annotation)[0]
+        elif isinstance(annotation, typing.TypeAliasType):
+            annotation = annotation.__value__
+        else:
+            break
 
     origin = typing.get_origin(annotation)
 
