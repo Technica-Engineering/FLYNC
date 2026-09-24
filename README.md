@@ -111,7 +111,7 @@
 | src/flync/model/flync\_4\_topology/\_\_init\_\_.py              |        6 |        0 |    100% |           |
 | src/flync/model/flync\_4\_topology/bus\_topology.py             |      109 |        0 |    100% |           |
 | src/flync/model/flync\_4\_topology/ethernet\_multidrop.py       |      214 |       11 |     95% |97-99, 141, 256, 304, 362, 382, 399, 445, 497 |
-| src/flync/model/flync\_4\_topology/ethernet\_topology.py        |      101 |        7 |     93% |106, 130, 230, 261-262, 273-274 |
+| src/flync/model/flync\_4\_topology/ethernet\_topology.py        |      101 |        7 |     93% |106, 130, 230, 259-260, 271-272 |
 | src/flync/model/flync\_4\_tsn/\_\_init\_\_.py                   |        4 |        0 |    100% |           |
 | src/flync/model/flync\_4\_tsn/qos.py                            |      225 |        9 |     96% |345-350, 359, 368, 374, 479 |
 | src/flync/model/flync\_4\_tsn/timesync.py                       |       23 |        0 |    100% |           |
