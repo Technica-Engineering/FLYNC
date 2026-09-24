@@ -67,3 +67,53 @@ def test_ecu_deploying_distinct_instances_is_unaffected(role, difference, two_so
     result = validate_with_policy(ECU, two_socket_ecu_kwargs(role, **difference), path=None)
 
     assert_no_findings(result)
+
+
+@pytest.fixture
+def two_interface_ecu_kwargs(someip_deployment, udp_socket_data, minimal_ecu_kwargs):
+    """Return a factory for an ECU whose two sockets sit on *different* Ethernet interfaces (IP stacks).
+
+    ``role`` and ``difference`` apply to the deployment placed on the second interface, mirroring
+    ``two_socket_ecu_kwargs`` but splitting it across two IP stacks instead of two sockets on one.
+    """
+
+    def _build(role: str, **difference) -> dict:
+        iface_1 = [udp_socket_data(name="socket_a", port_no=30500, deployments=[someip_deployment(role)])]
+        iface_2 = [udp_socket_data(name="socket_b", port_no=30501, deployments=[someip_deployment(role, **difference)])]
+        return minimal_ecu_kwargs(sockets=None, interfaces=[iface_1, iface_2])
+
+    return _build
+
+
+def test_consumer_same_instance_on_different_ip_stacks_is_unaffected(two_interface_ecu_kwargs):
+    """Two IP stacks of one ECU consuming the same service instance independently is not a conflict.
+
+    The consumer (241) rule is scoped per Ethernet interface, so the same instance consumed once on each of two
+    interfaces must load cleanly.
+    """
+
+    result = validate_with_policy(ECU, two_interface_ecu_kwargs("consumer"), path=None)
+
+    assert_no_findings(result)
+
+
+@pytest.mark.parametrize(
+    ("role", "expected_warning_id"),
+    [
+        pytest.param("consumer", DUPLICATE_CONSUMER_WARNING_ID, id="consumer"),
+        pytest.param("provider", DUPLICATE_PROVIDER_WARNING_ID, id="provider"),
+    ],
+)
+def test_duplicate_instance_across_different_ip_stacks_warns(role, expected_warning_id, two_interface_ecu_kwargs):
+    """The *provider* (243) rule stays ECU-wide: repeating an instance across two IP stacks is still warned.
+
+    The consumer (241) rule, by contrast, is scoped per IP stack and will not fire here - it is covered by the
+    distinct-interface test above.
+    """
+
+    result = validate_with_policy(ECU, two_interface_ecu_kwargs(role), path=None)
+
+    if role == "provider":
+        assert_single_warning(result, expected_warning_id, INSTANCE_MESSAGE_FRAGMENT)
+    else:
+        assert_no_findings(result)

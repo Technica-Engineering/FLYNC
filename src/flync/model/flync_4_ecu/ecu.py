@@ -31,7 +31,7 @@ from flync.model.flync_4_ecu.mac_multicast_endpoint import (
 from flync.model.flync_4_ecu.multicast_groups import MulticastGroupMembership
 from flync.model.flync_4_ecu.port import ECUPort
 from flync.model.flync_4_ecu.socket_container import SocketContainer
-from flync.model.flync_4_ecu.sockets import Socket
+from flync.model.flync_4_ecu.sockets import Socket, SocketTCP, SocketUDP
 from flync.model.flync_4_ecu.switch import Switch, SwitchPort
 from flync.model.flync_4_metadata import ECUMetadata
 from flync.model.flync_4_nm import StateMembershipRef
@@ -570,6 +570,21 @@ class ECU(FLYNCBaseModel):
         for socket_container in self.__iter_socket_containers():
             yield from socket_container.sockets or []
 
+    def __iter_sockets_with_interface(self) -> Iterator[tuple[SocketTCP | SocketUDP, EthernetInterface]]:
+        """
+        Yield ``(socket, ethernet_interface)`` for every socket and its owning ethernet interface.
+
+        Yields
+        ------
+        tuple[SocketTCP | SocketUDP, EthernetInterface]
+            Each socket paired with the ethernet interface (IP stack) that owns it.
+        """
+
+        for eth_iface in self.__get_all_ethernet_interfaces():
+            for socket_container in eth_iface.sockets or []:
+                for socket in socket_container.sockets or []:
+                    yield socket, eth_iface
+
     def get_all_sockets(self) -> dict[int | None, List[Socket]]:
         """
         Get all sockets across all ethernet interfaces of the ECU, grouped by VLAN ID.
@@ -649,20 +664,22 @@ class ECU(FLYNCBaseModel):
     @model_validator(mode="after")
     def validate_unique_someip_service_instances(self) -> Self:
         """
-        Flag repeated ``(protocol, endpoint_type, service, major_version, instance_id)`` deployments across the
-        ECU's sockets.
+        Flag repeated ``(protocol, endpoint_type, service, major_version, instance_id)`` deployments.
 
         Protocol and endpoint type are part of the identity: offering the same instance over both UDP and TCP is
         a normal dual-transport setup, and a UDP consumer commonly splits across a unicast socket (regular
         eventgroups) and a separate multicast socket (multicast-only eventgroups) - neither is a conflict.
 
-        Repeating the same instance on the very same transport/endpoint combination is warned about for both
-        roles: server and client. Providing the same Service Instance twice may become an error in the future.
+        A provider instance repeated anywhere on the ECU is warned about (server role), while a consumer
+        instance is only flagged when it is repeated on the *same Ethernet interface* (IP stack): two different
+        controllers or IP stacks of one ECU each consuming the same service instance independently is legitimate,
+        not a conflict. Providing the same Service Instance twice may become an error in the future.
         """
 
-        seen_consumers: set = set()
         seen_providers: set = set()
-        for deployment, key in self.iter_someip_deployment_identities():
+        # Scope consumers per Ethernet interface (IP stack), keyed by the interface's identity.
+        seen_consumers: dict[int, set] = {}
+        for deployment, key, eth_iface in self.iter_someip_deployment_identities():
             if isinstance(deployment, SOMEIPServiceProvider):
                 if key in seen_providers:
                     # Only a warning while FLYNC has no variant handling. This becomes an
@@ -673,36 +690,41 @@ class ECU(FLYNCBaseModel):
                         error_number="243",
                     )
                 seen_providers.add(key)
-            elif key in seen_consumers:
-                warn(
-                    self.__duplicate_deployment_message("consumer", deployment),
-                    category=Category.UNIQUENESS,
-                    error_number="241",
-                )
             else:
-                seen_consumers.add(key)
+                seen_on_iface = seen_consumers.setdefault(id(eth_iface), set())
+                if key in seen_on_iface:
+                    warn(
+                        self.__duplicate_deployment_message("consumer", deployment),
+                        category=Category.UNIQUENESS,
+                        error_number="241",
+                    )
+                else:
+                    seen_on_iface.add(key)
         return self
 
     def iter_someip_deployment_identities(self) -> Iterator[tuple]:
         """
-        Yield ``(deployment, identity)`` for every SOME/IP provider or consumer deployment across the ECU's sockets.
+        Yield ``(deployment, identity, ethernet_interface)`` for every SOME/IP provider or consumer deployment
+        across the ECU's sockets.
 
         The identity is the ``(protocol, endpoint_type, service, major_version, instance_id)`` tuple that decides
-        whether two deployments describe the very same service instance on the very same transport.
+        whether two deployments describe the very same service instance on the very same transport. The
+        ``ethernet_interface`` is the :class:`~flync.model.flync_4_ecu.controller.EthernetInterface` (IP stack)
+        that owns the socket, used to scope the consumer-uniqueness rule.
         """
 
-        for socket in self.__iter_sockets():
+        for socket, eth_iface in self.__iter_sockets_with_interface():
             for dep_root in socket.deployments or []:
                 deployment = dep_root.root
                 if isinstance(deployment, (SOMEIPServiceConsumer, SOMEIPServiceProvider)):
                     identity = (
-                        socket.protocol,  # type: ignore[attr-defined]
+                        socket.protocol,
                         socket.endpoint_type,
                         deployment.service,
                         deployment.major_version,
                         deployment.instance_id,
                     )
-                    yield deployment, identity
+                    yield deployment, identity, eth_iface
 
     def __duplicate_deployment_message(self, role: str, deployment: SOMEIPServiceDeployment) -> str:
         """Return the message naming the service instance *deployment* repeats in the given *role*."""
