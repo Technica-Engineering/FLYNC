@@ -58,8 +58,9 @@ def test_unknown_measurement_point_type_is_rejected():
 
 
 def test_rejects_duplicate_payload_types():
+    data = _points()[0] | {"payload_types": ["can", "can"]}
     with pytest.raises(ValidationError) as exc_info:
-        _ADAPTER.validate_python([_points()[0] | {"payload_types": ["can", "can"]}])
+        _ADAPTER.validate_python([data])
     assert_single_error(exc_info, "FLYNC-INS-MAJ-UNIQ-352", "declares payload_type 'can' more than once")
 
 
@@ -81,6 +82,7 @@ def test_rejects_same_port_twice_in_one_point():
 
 
 def test_interface_id_above_32_bit_is_rejected():
+    data = _points()[0] | {"interface_id": 2**32}
     with pytest.raises(ValidationError) as exc_info:
-        _ADAPTER.validate_python([_points()[0] | {"interface_id": 2**32}])
+        _ADAPTER.validate_python([data])
     assert_single_error(exc_info, None, "interface_id")
