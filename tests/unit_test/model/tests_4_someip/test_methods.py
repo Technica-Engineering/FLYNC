@@ -88,7 +88,6 @@ class TestFireForgetMethod:
             input_parameters=input_params,
         )
         yaml_representation = pydantic_yaml.to_yaml_str(f)
-        print(yaml_representation)
         from_yaml = pydantic_yaml.parse_yaml_raw_as(SOMEIPFireAndForgetMethod, yaml_representation)
         assert from_yaml.model_dump() == f.model_dump()
 
