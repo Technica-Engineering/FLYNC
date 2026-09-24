@@ -245,7 +245,7 @@ class FLYNCModel(FLYNCBaseModel):
         still deserve an unconnected report."""
 
         claimed = {id(node.ecu_port) for conn in self.multidrop_connections for node in conn.nodes if node.ecu_port is not None}
-        warn_unconnected_ports(self.get_all_ecu_ports(), claimed, self.topology.ethernet_topology is not None)
+        warn_unconnected_ports(self.get_all_ecu_ports(), claimed)
         return self
 
     @model_validator(mode="after")

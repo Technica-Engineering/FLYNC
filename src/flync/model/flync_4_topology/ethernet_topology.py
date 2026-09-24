@@ -238,14 +238,12 @@ def validate_no_multidrop_in_point_to_point(connections: List[EthernetPointToPoi
                 )
 
 
-def warn_unconnected_ports(all_ports: List[ECUPort], claimed_multidrop_ports: Collection[int] = (), has_ethernet_topology: bool = True) -> None:
+def warn_unconnected_ports(all_ports: List[ECUPort], claimed_multidrop_ports: Collection[int] = ()) -> None:
     """
     Warn for every ECU port with no counterpart in the system topology.
 
     A point-to-point port must name its peer; an unconnected one is an oversight.  A multidrop port counts as wired
-    once an ``ethernet_multidrop`` node claims it, so only unclaimed ones report.  ``has_ethernet_topology`` gates
-    only the point-to-point warning - a CAN/LIN-only workspace has no claim to make per port and already reports
-    the absence once.
+    once an ``ethernet_multidrop`` node claims it, so only unclaimed ones report.
     """
 
     unconnected_by_ecu_p2p: dict[str, list[str]] = {}
