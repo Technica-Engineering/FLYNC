@@ -33,7 +33,7 @@ By organizing system definitions in a central, version-controlled repository, FL
 
 ## Domain Coverage
 
-FLYNC models the full automotive E/E architecture across 13 domains:
+FLYNC models the full automotive E/E architecture across 14 domains:
 
 | Domain | Description |
 |---|---|
@@ -42,6 +42,7 @@ FLYNC models the full automotive E/E architecture across 13 domains:
 | **Communication** | System-wide TCP profiles |
 | **Diagnostics** | DoIP/UDS: DoIP timings, UDS configurations (sessions, security access, supported services), DID/routine/DTC catalog, TCP/UDP socket deployment |
 | **ECU** | Controllers, Ethernet/CAN/LIN interfaces, ports, PHY types (RGMII, SGMII, BASET…), switches, VLANs, multicast |
+| **Instrumentation** | Measurement points tapping buses/links for ASAM CMP / TECMP — Ethernet ports (p2p), Ethernet shared-medium segments, CAN buses, LIN buses |
 | **Metadata** | System/ECU metadata, OEM, platform, versioning, HW/SW BOM |
 | **Network Management** | State management groups, timing profiles for wake-up/sleep coordination |
 | **Safety** | E2E communication protection |
@@ -193,7 +194,7 @@ FLYNC ships with five CLI entry points:
 src/
 ├── flync/                  # Core library
 │   ├── core/               #   Base models (Pydantic v2), annotations, datatypes, validators
-│   ├── model/              #   13 domain models (ECU, SOME/IP, TSN, topology, …)
+│   ├── model/              #   14 domain models (ECU, SOME/IP, TSN, topology, …)
 │   └── sdk/                #   Workspace management, validation helpers, model serialization
 ├── flync_cli/              # Typer + Rich CLI application (validate, info, UML, …)
 └── flync_converter/        # Pluggy-based converter framework (CLI, TUI, GUI)

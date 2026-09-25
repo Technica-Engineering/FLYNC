@@ -945,3 +945,24 @@ On ``BodyCAN``, the ``VEHICLE`` group follows the classic CAN pattern: ``zonal_g
 **LIN NM**
 
 ``BodyLIN`` (the body bus - exterior mirrors and cabin ambient lighting) takes part through a **bus-level membership**: the whole bus joins the ``VEHICLE`` group as one participant on the ``Comfort`` function, without a LIN frame of its own. Its master (``zonal_platform1``) receives the group state on Ethernet (``pdu_receiver``) and drives the LIN bus to sleep with it; validation resolves the master as the bus's representative automatically.
+
+-------
+
+.. _flync_example_instrumentation:
+
+Instrumentation (Measurement Points)
+""""""""""""""""""""""""""""""""""""""
+
+The instrumentation overlay taps buses and links with **measurement points** for network analysers such as ASAM CMP or TECMP (see :ref:`flync_4_instrumentation <instrumentation>` for the model). It is **optional** - a workspace that is not being instrumented simply has no ``instrumentation/`` folder, in which case ``flync_model.instrumentation`` stays ``None``.
+
+When present, the points are declared in ``instrumentation/measurement_points.flync.yaml``. Each point is identified by a unique ``name`` and carries an ``interface_id`` (per direction for Ethernet port taps); every interface id is unique across the overlay. The example exercises all four point types:
+
+- **Ethernet port tap (``ethernet_ports``)** - ``gateway_to_hpc_link`` taps both ends of the point-to-point link to the HPC in-line, with one interface id per direction.
+- **Ethernet shared-medium segment (``ethernet_bus``)** - ``rear_lamp_segment_bus`` taps the rear-lamp 10BASE-T1S multidrop segment.
+- **CAN bus (``can_bus``)** - ``body_can`` taps ``BodyCAN`` (classical ``can`` payloads) and ``diagnostics_can_fd`` taps ``DiagCAN`` (``can`` and ``can_fd`` payloads).
+- **LIN bus (``lin_bus``)** - ``body_lin`` taps the ``BodyLIN`` bus.
+
+.. dropdown:: 📄 ``instrumentation/measurement_points.flync.yaml``
+
+   .. literalinclude:: ../../examples/flync_example/instrumentation/measurement_points.flync.yaml
+      :language: yaml

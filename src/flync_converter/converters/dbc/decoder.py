@@ -7,6 +7,7 @@ from typing import Dict, List, Literal, Optional, Tuple, cast
 
 from cantools.database.can.message import Message
 from cantools.database.can.signal import Signal
+from cantools.database.utils import start_bit
 
 from flync.model import FLYNCModel
 from flync.model.flync_4_bus.can_bus import CANBaudRate, CANBus
@@ -139,10 +140,16 @@ def _in_range_choices(s: Signal, data_type: SignalDataType) -> Optional[Dict[int
 
 
 def _to_flync_signal_instance(s: Signal) -> SignalInstance:
-    """Convert a cantools Signal into a FLYNC SignalInstance, keeping its absolute bit start."""
+    """Convert a cantools Signal into a FLYNC SignalInstance, keeping its absolute bit start.
+    
+    ``s.start`` is Motorola-numbered (MSB-in-byte position) for big-endian
+      signals, not a linear bit offset, so it is normalized via cantools'
+      ``start_bit`` helper before being stored as the FLYNC ``bit_position``.
+    
+    """
     return SignalInstance(
         signal=_to_flync_signal(s),
-        bit_position=s.start,
+        bit_position=start_bit(s),
         endianness="BE" if s.byte_order == "big_endian" else "LE",
     )
 
