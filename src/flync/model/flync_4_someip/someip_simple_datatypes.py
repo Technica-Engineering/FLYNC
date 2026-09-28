@@ -2,12 +2,7 @@
 
 from typing import Annotated, ClassVar, List, Literal, Optional, Self
 
-from pydantic import (
-    Field,
-    ValidationInfo,
-    field_validator,
-    model_validator,
-)
+from pydantic import Field, model_validator
 
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.datatypes import Datatype
@@ -579,31 +574,24 @@ class Enum(Datatype):
         "Int64": (-(2**63), 2**63 - 1),
     }
 
-    @field_validator("entries")
-    @classmethod
-    def validate_entries(cls, entries: list[EnumEntry], info: ValidationInfo) -> list[EnumEntry]:
-        """
-        Check that enum entries have unique values that fit into the range of the base type.
+    @model_validator(mode="after")
+    def validate_entries(self) -> Self:
+        """Check that enum entries have unique values that fit into the range of the base type."""
 
-        Validation is skipped when ``base_type`` is unavailable, i.e. when it failed validation itself.
-        """
-
-        base_type = info.data.get("base_type")
-        if base_type is not None:
-            base_type_name = base_type.__class__.__name__
-            min_value, max_value = cls.BASE_TYPE_RANGES[base_type_name]
-            seen = set()
-            for entry in entries:
-                if entry.value in seen:
-                    raise err_minor(f"Duplicate enum value: {entry.value}", category=Category.UNIQUENESS, error_number="140")
-                seen.add(entry.value)
-                if not (min_value <= entry.value <= max_value):
-                    raise err_minor(
-                        f"Enum value {entry.value} exceeds valid range for {base_type_name} ({min_value} to {max_value})",
-                        category=Category.VALUE_RANGE,
-                        error_number="141",
-                    )
-        return entries
+        base_type_name = self.base_type.__class__.__name__
+        min_value, max_value = self.BASE_TYPE_RANGES[base_type_name]
+        seen = set()
+        for entry in self.entries:
+            if entry.value in seen:
+                raise err_minor(f"Duplicate enum value: {entry.value}", category=Category.UNIQUENESS, error_number="140")
+            seen.add(entry.value)
+            if not (min_value <= entry.value <= max_value):
+                raise err_minor(
+                    f"Enum value {entry.value} exceeds valid range for {base_type_name} ({min_value} to {max_value})",
+                    category=Category.VALUE_RANGE,
+                    error_number="141",
+                )
+        return self
 
     @staticmethod
     def default_base_type() -> UInt8:

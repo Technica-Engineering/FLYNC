@@ -1,8 +1,8 @@
 """defines the complex SOME/IP datatypes (struct, array, union, typedef)"""
 
-from typing import Annotated, List, Literal, Optional
+from typing import Annotated, List, Literal, Optional, Self
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.datatypes import Datatype
@@ -117,18 +117,16 @@ class ArrayDimension(FLYNCBaseModel):
         description="Optional padding alignment after this dimension",
     )
 
-    @field_validator("length_of_length_field", mode="after")
-    @classmethod
-    def validate(cls, value, info):
-        kind = info.data["kind"]
-        if kind == "dynamic" and value <= 0:
+    @model_validator(mode="after")
+    def validate_length_of_length_field(self) -> Self:
+        if self.kind == "dynamic" and (self.length_of_length_field is None or self.length_of_length_field <= 0):
             raise err_major(
                 "Length of length-field must be > 0 for dynamic arrays",
                 category=Category.VALUE_RANGE,
                 error_number="344",
             )
 
-        return value
+        return self
 
 
 class Struct(ComplexDatatype):
