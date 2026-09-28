@@ -7,6 +7,7 @@ from typing import Dict, List, Literal, Optional, Tuple, cast
 
 from cantools.database.can.message import Message
 from cantools.database.can.signal import Signal
+from cantools.database.utils import start_bit
 
 from flync.model import FLYNCModel
 from flync.model.flync_4_bus.can_bus import CANBaudRate, CANBus
@@ -68,12 +69,13 @@ def map_data_type(bit_length: int, is_signed: bool, is_float: bool) -> SignalDat
     return types[_bit_width_index(bit_length)]
 
 
-def _coerce_initial_value(raw_initial, data_type: SignalDataType):
+def _coerce_initial_value(raw_initial, data_type: SignalDataType) -> bytes | int | float | None:
     """Return a FLYNC-compatible ``initial_value`` or ``None`` when it cannot be represented."""
-    result = None
-    if data_type.is_float() and raw_initial is not None:
-        result = raw_initial
-    elif data_type == SignalDataType.BYTEARRAY and isinstance(raw_initial, bytes):
+    result: bytes | int | float | None = None
+    if data_type == SignalDataType.BYTEARRAY:
+        if isinstance(raw_initial, bytes):
+            result = raw_initial
+    elif data_type.is_float() and raw_initial is not None:
         result = raw_initial
     elif isinstance(raw_initial, int) and not isinstance(raw_initial, bool):
         result = raw_initial
@@ -139,10 +141,16 @@ def _in_range_choices(s: Signal, data_type: SignalDataType) -> Optional[Dict[int
 
 
 def _to_flync_signal_instance(s: Signal) -> SignalInstance:
-    """Convert a cantools Signal into a FLYNC SignalInstance, keeping its absolute bit start."""
+    """Convert a cantools Signal into a FLYNC SignalInstance, keeping its absolute bit start.
+
+    ``s.start`` is Motorola-numbered (MSB-in-byte position) for big-endian
+      signals, not a linear bit offset, so it is normalized via cantools'
+      ``start_bit`` helper before being stored as the FLYNC ``bit_position``.
+
+    """
     return SignalInstance(
         signal=_to_flync_signal(s),
-        bit_position=s.start,
+        bit_position=start_bit(s),
         endianness="BE" if s.byte_order == "big_endian" else "LE",
     )
 
