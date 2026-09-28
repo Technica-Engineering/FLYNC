@@ -502,7 +502,7 @@ jobs:
 
       - name: Coverage comment
         id: coverage_comment
-        uses: py-cov-action/python-coverage-comment-action@v4.3
+        uses: py-cov-action/python-coverage-comment-action@v4.5
         with:
           GITHUB_TOKEN: ${{ github.token }}
 
