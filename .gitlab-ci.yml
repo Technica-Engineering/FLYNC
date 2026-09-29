@@ -73,6 +73,32 @@ integrity:
       echo "===== LAZY TYPING ====="
       python3 scripts/ci/check_lazy_typing.py
 
+review:
+  extends: .base
+  stage: static-analysis
+  allow_failure: true
+  interruptible: true
+  parallel:
+    matrix:
+      - CHECK: ["error-numbers"]
+  variables:
+    GITLAB_TOKEN: "$MERGE_REQUEST_BOT_TOKEN"
+    GIT_DEPTH: "0"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+  script:
+    - |
+      set -eo pipefail
+      case "$CHECK" in
+        # Collisions only become visible once the branch sits on top of its target, so the
+        # target has to be fetched -- GIT_DEPTH 0 above is what makes it readable at all.
+        error-numbers)
+          git fetch --quiet origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
+          uv sync --frozen
+          uv run python scripts/ci/post_error_catalog_mr.py
+          ;;
+      esac
+
 examples_validation:
   extends: .base
   stage: tests
