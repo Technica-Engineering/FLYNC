@@ -371,13 +371,14 @@ class _WorkspaceObjectMapping(_WorkspaceBase):
         refs: list[ObjectId] = []
         current_obj = self.get_object(object_id)
 
-        for semantic_obj in self.objects.values():
+        for oid in self.list_objects():
+            semantic_obj = self.get_object(oid)
             fields: dict | None = getattr(type(semantic_obj.model), "model_fields", None)
             if fields is None:
                 continue
 
             for field, info in fields.items():
-                if obj_id_def := self.get_definition(semantic_obj.id, field):
+                if obj_id_def := self.get_definition(oid, field):
                     model_def = self.get_object(obj_id_def)
                     if model_def.model is current_obj.model:
                         self.find_path_from_field(object_id, refs, semantic_obj, field, info)

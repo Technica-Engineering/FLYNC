@@ -255,6 +255,28 @@ pre-commit run --all-files
 uv run python scripts/ci/validate_examples.py
 ```
 
+### Hot-Path Profiler Report
+
+```bash
+uv run python scripts/ci/profile_sdk_apis.py
+```
+
+FLYNC ships a hot-path profiler (`scripts/ci/profile_sdk_apis.py`) that times each SDK
+public API entry point under `cProfile` and renders an interactive HTML report. It runs
+against a **private temp copy** of the bundled example (`examples/flync_example`) so the
+repo tree is never modified.
+
+The report is written to `profiler_reports/` and contains:
+
+- `index.html` — interactive SVG flame graphs per API: bar zooming, an *All frames* /
+  *FLYNC only* toggle, and hover inspection
+- `<api>.prof` — raw `cProfile` statistics
+- `<api>.txt` — numeric hot-path tables (top functions by cumulative and own time)
+
+The report is **advisory** — it never fails the build. Override the output dir with
+`FLYNC_PROFILER_OUT` or profile a subset with `FLYNC_PROFILER_APIS="api1,api2"`. In GitLab
+CI it runs manually as the `profiler_report` job, which publishes the artifacts.
+
 ### Build Documentation
 
 ```bash

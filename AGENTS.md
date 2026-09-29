@@ -239,3 +239,15 @@ High-level and cross-cutting rules live here. Per-package and per-directory cont
 - All CI targets **Python 3.12**, uses **uv** with **hatchling** + `uv-dynamic-versioning` (semver, `release-*` tag pattern)
 - Renovate for dependency updates (`renovate.json`)
 - SonarQube (`sonar-project.properties`)
+
+### API hot-path profiler report
+
+`scripts/ci/profile_sdk_apis.py` profiles every SDK public API entry point under
+`cProfile` and writes an interactive report to `profiler_reports/` (published as a
+GitLab CI artifact): `index.html` (SVG flame graphs with zoom + an *All frames / FLYNC
+only* toggle), `*.prof` (raw cProfile stats) and `*.txt` (hot-path tables). It runs
+against a private temp snapshot of `examples/flync_example` so the repo tree is never
+dirtied. Run it with `uv run python scripts/ci/profile_sdk_apis.py`; set
+`FLYNC_PROFILER_OUT` to change the output dir and `FLYNC_PROFILER_APIS="a,b"` to profile
+a subset. It is advisory (never fails the build) and is exposed in GitLab CI as the
+manual `profiler_report` job.
