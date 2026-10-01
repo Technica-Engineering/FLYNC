@@ -24,14 +24,14 @@ class MACMulticastEndpoint(FLYNCBaseModel):
         MAC address of the controller that this endpoint is bound to.
     protocol : str
         Protocol that is expected on this endpoint.
-    ethertype : Optional[int]
-        EtherType that is expected on this endpoint. Must be between \
+    ethertype : int, optional
+        EtherType that is expected on this endpoint (defaults to ``None``). Must be between \
             0x0000 and 0xFFFF if provided.
-    vlan_id : Optional[int]
-        VLAN ID that is expected on this endpoint. Must be between \
+    vlan_id : int, optional
+        VLAN ID that is expected on this endpoint (defaults to ``None``). Must be between \
             0 and 4095 if provided.
-    multicast_tx : Optional[List[MacAddress]]
-        List of multicast addresses that this endpoint should transmit to.\
+    multicast_tx : list of MacAddress, optional
+        List of multicast addresses that this endpoint should transmit to (defaults to ``[]``).\
             Each address must be a valid multicast MAC address.
     """
 

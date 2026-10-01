@@ -55,8 +55,8 @@ class PTPTimeReceiverConfig(FLYNCBaseModel):
     """
 
     type: Literal["time_receiver"] = Field(default="time_receiver")
-    sync_timeout: int = Field()
-    sync_followup_timeout: int = Field()
+    sync_timeout: int = Field(ge=0)
+    sync_followup_timeout: int = Field(ge=0)
 
 
 class PTPPdelayConfig(FLYNCBaseModel):
@@ -109,13 +109,13 @@ class PTPConfig(FLYNCBaseModel):
 
     Parameters
     ----------
-    cmlds_linkport_enabled : bool
-        Enable the Common Mean Link Delay Service (CMLDS) on the physical Link Port that these PTP ports share.
+    cmlds_linkport_enabled : bool, optional
+        Enable the Common Mean Link Delay Service (CMLDS) on the physical Link Port that these PTP ports share (defaults to ``False``).
         True → share meanLinkDelay/neighborRateRatio across all domains using delayMechanism=COMMON_P2P.
         False → instance-specific peer delay.
 
-    ptp_ports : list of :class:`PTPPort`
-        List of PTP port configurations contained in this ECU.
+    ptp_ports : list of :class:`PTPPort`, optional
+        List of PTP port configurations contained in this ECU (defaults to ``[]``).
     """
 
     cmlds_linkport_enabled: bool = Field(default=False)

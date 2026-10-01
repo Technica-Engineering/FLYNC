@@ -5,45 +5,47 @@
 Release Notes
 =============
 
-Release 0.14
+.. seealso::
+
+   For a detailed, step-by-step description of how the FLYNC configuration model and public
+   API changed between releases (and what you must update to migrate a project), see the
+   :doc:`model_change_history`.
+
+Release 0.15
 ------------
 
-Optional Extras
-'''''''''''''''
+JSON Schema export
+''''''''''''''''''
 
-``textual`` and ``PySide6`` are **no longer installed by default**. The core ``flync``
-install is now Qt-free, cutting the installed footprint by roughly 85% for all users
-and for any package that depends on ``flync``.
+``flync.sdk.utils.model_schema`` exports the FLYNC model as a set of JSON Schema (draft 2020-12)
+files, one per Pydantic model class. ``dump_model_schemas(FLYNCModel, "schemas")`` writes
+``FLYNCModel.schema.json`` plus one file for every nested class and enum, with ``$ref`` entries pointing at the sibling files
+(``"$ref": "ECU.schema.json"``) instead of a bundled ``$defs`` section. ``build_model_schemas``
+returns the same documents as dictionaries. Pass ``base_uri`` to give every file an absolute
+``$id`` when the schemas are published. The same export is available on the command line as
+``flync schema <output_dir>``.
 
-To restore the previous behaviour:
+Field descriptions come from ``Field(description=...)`` when set and otherwise from the ``Parameters``
+section of the class docstring, so the schemas document the same fields as the API reference.
 
-.. code-block:: bash
 
-   pip install "flync[all]"
+Measurement Points (Instrumentation)
+''''''''''''''''''''''''''''''''''''''
 
-Or install individually:
+A new optional model domain, :ref:`flync_4_instrumentation <instrumentation>`, declares the
+measurement points of a network. Each measurement point taps exactly one medium - a
+point-to-point Ethernet link (one or two ECU ports, one CMP interface id per direction), an
+Ethernet shared-medium segment, a CAN bus, or a LIN bus - and carries the ASAM CMP / TECMP
+interface ids that capture it.
 
-.. code-block:: bash
+The points are grouped under an :class:`~flync.model.flync_4_instrumentation.Instrumentation`
+wrapper on the root model (``flync_model.instrumentation``) that maps to the ``instrumentation/``
+folder; ``measurement_points`` loads from ``instrumentation/measurement_points.flync.yaml``. The
+overlay stays optional - a workspace with no ``instrumentation/`` folder has
+``flync_model.instrumentation`` as ``None``.
 
-   pip install "flync[tui]"    # for flync-converter-interactive
-   pip install "flync[gui]"    # for flync-converter-gui
 
-Commands that require a missing extra now print an actionable error message with
-install instructions instead of a traceback.
+Model Development Guide
+'''''''''''''''''''''''
 
-Build System Migration
-''''''''''''''''''''''
-
-The project now builds and locks with **uv** (replacing Poetry). Contributors
-should recreate their virtual environment:
-
-.. code-block:: bash
-
-   rm -rf .venv
-   uv sync
-
-The build backend is **hatchling** with ``uv-dynamic-versioning`` for version
-resolution from git tags. The ``uv.lock`` file replaces ``poetry.lock``.
-
-Release 0.11
-------------
+A new documentation section, :doc:`development/index` was added.

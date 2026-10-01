@@ -131,6 +131,36 @@ def warn(msg: str, *, category: Category | None = None, error_number: str | None
     )
 
 
+def warn_from_error(error: PydanticCustomError) -> None:
+    """
+    Record a validation warning from an already-raised ``PydanticCustomError``, preserving its original
+    error id and message instead of composing a new one at the catch site.
+
+    Use this when downgrading a caught error to a warning (e.g. a best-effort ``bind()`` call whose
+    failures should not be fatal) so the warning still reports the id of the validator that actually
+    raised it, rather than the id of the catch site.
+
+    Parameters
+    ----------
+    error : PydanticCustomError
+        The error caught from a factory call (``err_minor``/``err_major``/``err_fatal``).
+    """
+
+    warnings_list = _validation_warnings.get()
+    if warnings_list is None:
+        return
+    warnings_list.append(
+        {
+            "type": "warning",
+            "msg": error.message(),
+            "loc": (),
+            "ctx": dict(error.context or {}),
+            "input": None,
+            "url": "",
+        }
+    )
+
+
 def err_minor(msg: str, *, category: Category | None = None, error_number: str | None = None, **ctx) -> PydanticCustomError:
     """
     Factory that returns PydanticCustomError with type **minor**.

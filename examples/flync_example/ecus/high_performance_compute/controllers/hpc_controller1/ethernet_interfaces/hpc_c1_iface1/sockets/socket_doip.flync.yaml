@@ -1,0 +1,30 @@
+vlan_id: 20
+sockets:
+- name: doip_udp_socket
+  endpoint_address: 10.0.20.5
+  endpoint_type: unicast
+  port_no: 13400
+  protocol: udp
+  deployments:
+  - deployment_type: doip_discovery
+    vehicle_identification: true
+    vehicle_announcement: true
+    doip_timings_profile: doip_default
+
+- name: doip_tcp_socket
+  endpoint_address: 10.0.20.5
+  endpoint_type: unicast
+  port_no: 13400
+  protocol: tcp
+  tcp_profile: 1
+  deployments:
+  - name: EngineEcu
+    deployment_type: doip_server
+    logical_address: 0x0101
+    uds_server: EngineEcuDiagnostic
+    doip_timings_profile: doip_default
+  - name: ADAS
+    deployment_type: doip_server
+    logical_address: 0x0102
+    uds_server: AdasEcuDiagnostic
+    doip_timings_profile: doip_default

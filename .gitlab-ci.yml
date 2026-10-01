@@ -14,7 +14,10 @@ stages:
   - docs
   - deploy
 
-lint:
+# lint, format, isort, pre-commit and type_check are one concern, so they run
+# as a single job, sequentially, and collapse into one node in the pipeline
+# graph.
+quality:
   extends: .base
   stage: static-analysis
   allow_failure: false
@@ -23,54 +26,34 @@ lint:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
     - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
   script:
-    - uv sync --frozen --no-install-project --only-group static-analysis
-    - uv run flake8 --max-line-length 149 src
-    - uv run flake8 --max-line-length 149 src --format=html --htmldir=flake8-report
+    - |
+      set -eo pipefail
+      mkdir -p quality-reports
+      # The mypy and pre-commit hooks need the gui/tui extras: without them
+      # PySide6/textual are unresolvable and their `# type: ignore` comments read as unused.
+      uv sync --frozen --group static-analysis --extra gui --extra tui
+      echo "===== PRE-COMMIT (autoflake, black, mypy, check-lazy-typing) ====="
+      uv run pre-commit run --all-files
+      echo "===== FLAKE8 ====="
+      uv run flake8 --max-line-length 149 src
+      uv run flake8 --max-line-length 149 src --format=html --htmldir=quality-reports/flake8
+      echo "===== BLACK ====="
+      uv run black --target-version py312 --check --diff --color src > quality-reports/black-src.diff
+      uv run black --target-version py312 --check --diff --color tests > quality-reports/black-tests.diff
+      echo "===== ISORT ====="
+      uv run isort --check --diff --color --line-length 149 src > quality-reports/isort-src.diff
+      uv run isort --check --diff --color --line-length 149 tests > quality-reports/isort-tests.diff
+      echo "===== MYPY ====="
+      uv run mypy src scripts/ci/check_lazy_typing.py --show-error-codes --pretty --install-types --non-interactive | tee quality-reports/mypy.txt
   artifacts:
     expire_in: 2 days
-    paths:
-      - flake8-report
     when: on_failure
-
-format:
-  extends: .base
-  stage: static-analysis
-  allow_failure: false
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
-    - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
-  script:
-    - uv sync --frozen --no-install-project --only-group static-analysis
-    - mkdir format-reports
-    - uv run black --target-version py312 --check --diff --color src > format-reports/black-report-src.diff
-    - uv run black --target-version py312 --check --diff --color tests > format-reports/black-report-tests.diff
-  artifacts:
-    expire_in: 2 days
     paths:
-      - format-reports
-    when: on_failure
+      - quality-reports
 
-isort:
-  extends: .base
-  stage: static-analysis
-  allow_failure: false
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
-    - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
-  script:
-    - uv sync --frozen --no-install-project --only-group static-analysis
-    - mkdir format-reports
-    - uv run isort --check --diff --color --line-length 149 src > format-reports/isort-report-src.diff
-    - uv run isort --check --diff --color --line-length 149 tests > format-reports/isort-report-tests.diff
-  artifacts:
-    expire_in: 2 days
-    paths:
-      - format-reports
-    when: on_failure
-
-type_check:
+# All integrity checks (error catalog, model docstrings, lazy typing) run as a
+# single job, sequentially, and collapse into one node in the pipeline graph.
+integrity:
   extends: .base
   stage: static-analysis
   rules:
@@ -78,30 +61,22 @@ type_check:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
     - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
   script:
-    - uv sync --frozen --group static-analysis --extra gui --extra tui
-    - mkdir type-check-reports
-    - uv run mypy src --show-error-codes --pretty --install-types --non-interactive | tee type-check-reports/mypy-report.txt
-  artifacts:
-    expire_in: 2 days
-    paths:
-      - type-check-reports/
-    when: on_failure
-
-error-catalog-integrity:
-  extends: .base
-  stage: static-analysis
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
-    - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
-  script:
-    - uv sync --frozen
-    - uv run python src/flync_cli/main.py errors validate-catalog
+    - |
+      set -eo pipefail
+      uv sync --frozen
+      echo "===== ERROR CATALOG ====="
+      uv run python src/flync_cli/main.py errors generate-catalog
+      uv run python src/flync_cli/main.py errors validate-catalog
+      echo "===== MODEL DOCSTRINGS ====="
+      # Reports warnings and succeeds: the existing docstrings are not clean yet. --strict stays as an explicit gate.
+      uv run python scripts/ci/check_model_docstrings.py --strict
+      echo "===== LAZY TYPING ====="
+      python3 scripts/ci/check_lazy_typing.py
 
 examples_validation:
   extends: .base
   stage: tests
-  allow_failure: true
+  allow_failure: false
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
@@ -109,6 +84,7 @@ examples_validation:
   script:
     - uv sync --frozen
     - uv run python scripts/ci/validate_examples.py
+    - uv run python scripts/ci/check_example_superset.py
 
 performance_tests:
   extends: .base
@@ -126,7 +102,8 @@ performance_tests:
     - uv sync --frozen --group test --group qt --extra gui --extra tui
     - uv pip install -e tests/converter_tests/test_plugin/ --no-deps
     # -n 0 overrides the `-n auto` in addopts: pytest-benchmark disables itself under xdist.
-    - COVERAGE_FILE=.coverage.performance uv run pytest -n 0 -m performance --cov=flync --cov=flync_cli --cov=flync_converter --cov-report= --junitxml=report_performance.xml --durations=0
+    # --no-cov disables the coverage hook from addopts so instrumentation does not skew timing.
+    - uv run pytest -n 0 -m performance --no-cov --junitxml=report_performance.xml --durations=0
   artifacts:
     when: always
     expire_in: "30 days"
@@ -231,7 +208,7 @@ docs-build:
   allow_failure: true
   needs:
     - job: test-summary
-    - job: error-catalog-integrity
+    - job: integrity
   stage: docs
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'

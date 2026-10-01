@@ -203,33 +203,6 @@ def test_references_object(
     verify(json.dumps(received, indent=4, sort_keys=True))
 
 
-def test_load_workspace_with_old_field_name(get_relative_flync_example_path, tmp_path):
-    ws_name_obj = Path(get_relative_flync_example_path).name + "_with_old_fied_name"
-    output_path = tmp_path / ws_name_obj
-    shutil.copytree(get_relative_flync_example_path, output_path, dirs_exist_ok=True)
-
-    communication_path = output_path / "communication"
-    general_path = output_path / "general"
-    # rename fails on macOS and should not be used!
-    # communication_path.rename(general_dir)
-
-    # make sure that general_path does not exist
-    if general_path.exists():
-        shutil.rmtree(general_path)
-    shutil.move(communication_path, general_path)
-
-    loaded_ws = FLYNCWorkspace.load_workspace(
-        workspace_name=ws_name_obj,
-        workspace_path=output_path,
-    )
-    expected_warning = "The 'general' attribute is deprecated. Please use 'communication' instead."
-    assert loaded_ws.flync_model
-    assert loaded_ws.flync_model.communication is not None
-    assert loaded_ws.flync_model.communication is loaded_ws.flync_model.general
-    assert any(loaded_ws.flync_model.communication.tcp_profiles)
-    assert [e for e in loaded_ws.load_errors if e.get("type") == "warning" and e.get("msg", "") == expected_warning]
-
-
 def test_revalidate_changed_model(get_relative_flync_example_path, tmp_path):
     output_path = tmp_path / "generated" / "revalidate_changed_model"
     shutil.copytree(get_relative_flync_example_path, output_path, dirs_exist_ok=True)

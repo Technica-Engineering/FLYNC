@@ -1,0 +1,24 @@
+# Central registry of state management groups.
+#
+# A group owns ONLY identity, the NM PDU it uses, and a reference to a
+# shared timing profile (see timing_profiles.flync.yaml — reusable across
+# groups). It has NO member list: memberships are declared entity-side (ECU
+# / controller / bus) via state_memberships, and the effective member set
+# per group is DERIVED during validation. Semantics v1: one relevance bit
+# per participant, states requested/released; an entity registered in
+# several groups sleeps only when ALL of them are released.
+groups:
+- name: VEHICLE
+  description: >-
+    Vehicle-wide group using PDU_NmMessage across three transport types
+    (Ethernet, CAN, LIN) spanning four buses: the Ethernet backbone (carried
+    in EthNmContainerA, fed by the HPC), BodyCAN (fed by the zonal gateway),
+    DiagCAN (fed by the HPC), and BodyLIN (a downstream LIN bus its master
+    keeps awake). Relevance bits are vehicle functions, not nodes.
+  nm_pdu: PDU_NmMessage
+  timing_profile: standard
+  # OEM hook: free-form key/value parameters carried through untouched
+  # (never interpreted by FLYNC), for OEM- or tool-specific settings.
+  extensions:
+    parameter_a: value_a
+    parameter_b: value_b

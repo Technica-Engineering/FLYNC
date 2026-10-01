@@ -1,6 +1,6 @@
 """Forwarder deployments and egress sinks for the PDU gateway feature."""
 
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Self
 
 from pydantic import Field, RootModel, model_validator
 
@@ -9,19 +9,46 @@ from flync.core.utils.exceptions import Category, err_major
 
 
 class CANFrameEgress(FLYNCBaseModel):
-    """Forwarder egress that re-emits the forwarded PDU on a CAN frame."""
+    """Forwarder egress that re-emits the forwarded PDU on a CAN frame.
+
+    Parameters
+    ----------
+    egress_type : Literal["can_frame"]
+        Type discriminator for this egress.
+
+    bus_ref : str
+        Reference to the target CAN bus.
+
+    frame_ref : int
+        Reference to the target CAN frame.
+
+    extract_pdu_ref : str, optional
+        Optional reference to a PDU to extract from the forwarded data.
+    """
 
     egress_type: Literal["can_frame"] = Field(default="can_frame")
-    bus_ref: str = Field()
+    bus_ref: str = Field(min_length=1)
     frame_ref: int = Field()
     extract_pdu_ref: Optional[str] = Field(default=None)
 
 
 class EthSocketEgress(FLYNCBaseModel):
-    """Forwarder egress that re-emits the forwarded PDU on an Ethernet socket (unicast/multicast follows the target's endpoint_address)."""
+    """Forwarder egress that re-emits the forwarded PDU on an Ethernet socket (unicast/multicast follows the target's endpoint_address).
+
+    Parameters
+    ----------
+    egress_type : Literal["eth_socket"]
+        Type discriminator for this egress.
+
+    socket_ref : str
+        Reference to the target Ethernet socket.
+
+    extract_pdu_ref : str, optional
+        Optional reference to a PDU to extract from the forwarded data.
+    """
 
     egress_type: Literal["eth_socket"] = Field(default="eth_socket")
-    socket_ref: str = Field()
+    socket_ref: str = Field(min_length=1)
     extract_pdu_ref: Optional[str] = Field(default=None)
 
 
@@ -32,14 +59,26 @@ class ForwarderEgress(RootModel):
 
 
 class PDUForwarder(FLYNCBaseModel):
-    """Socket deployment that consumes a PDU on its parent socket and re-emits it on one or more egresses."""
+    """Socket deployment that consumes a PDU on its parent socket and re-emits it on one or more egresses.
+
+    Parameters
+    ----------
+    deployment_type : Literal["pdu_forwarder"]
+        Type discriminator for this forwarder.
+
+    pdu_ref : str
+        Reference to the PDU being forwarded.
+
+    egresses : List[:class:`ForwarderEgress`]
+        List of egress targets where the forwarded PDU is re-emitted. Must contain at least one egress.
+    """
 
     deployment_type: Literal["pdu_forwarder"] = Field(default="pdu_forwarder")
-    pdu_ref: str = Field()
+    pdu_ref: str = Field(min_length=1)
     egresses: List[ForwarderEgress] = Field(min_length=1)
 
     @model_validator(mode="after")
-    def validate_pdu_forwarder_egress_uniqueness(self) -> "PDUForwarder":
+    def validate_pdu_forwarder_egress_uniqueness(self) -> Self:
         """Ensure every egress in ``egresses`` points at a distinct target carrier."""
 
         _check_egress_uniqueness(self.egresses, owner=f"PDUForwarder(pdu_ref={self.pdu_ref})")
@@ -47,13 +86,22 @@ class PDUForwarder(FLYNCBaseModel):
 
 
 class CANFrameForwarder(FLYNCBaseModel):
-    """CAN-interface forwarder that consumes an ingress frame and re-emits it on one or more egresses."""
+    """CAN-interface forwarder that consumes an ingress frame and re-emits it on one or more egresses.
 
-    frame_ref: str = Field()
+    Parameters
+    ----------
+    frame_ref : str
+        Reference to the CAN frame being forwarded.
+
+    egresses : List[:class:`ForwarderEgress`]
+        List of egress targets where the forwarded frame is re-emitted. Must contain at least one egress.
+    """
+
+    frame_ref: str = Field(min_length=1)
     egresses: List[ForwarderEgress] = Field(min_length=1)
 
     @model_validator(mode="after")
-    def validate_can_frame_forwarder_egress_uniqueness(self) -> "CANFrameForwarder":
+    def validate_can_frame_forwarder_egress_uniqueness(self) -> Self:
         """Ensure every egress in ``egresses`` points at a distinct target carrier."""
 
         _check_egress_uniqueness(self.egresses, owner=f"CANFrameForwarder(frame_ref={self.frame_ref})")

@@ -6,6 +6,7 @@ Provides classes and functions to manage workspace operations.
 
 import logging
 from pathlib import Path
+from typing import Self
 
 from pydantic_core import ValidationError
 
@@ -96,7 +97,7 @@ class FLYNCWorkspace(_WorkspaceSaving):
         workspace_name: str | None = "generated_workspace",
         file_path: PathType = "",
         workspace_config: PathType | WorkspaceConfiguration | None = None,
-    ) -> "FLYNCWorkspace":
+    ) -> Self:
         """
         loads a workspace object from a FLYNC Object.
 
@@ -118,7 +119,7 @@ class FLYNCWorkspace(_WorkspaceSaving):
         if not workspace_name:
             workspace_name = "generated_workspace"
         resolved_config = _resolve_workspace_config(file_path, workspace_config)
-        output = FLYNCWorkspace(
+        output = cls(
             name=workspace_name,
             workspace_path=file_path,
             configuration=resolved_config,
@@ -134,7 +135,7 @@ class FLYNCWorkspace(_WorkspaceSaving):
         workspace_name: str,
         workspace_path: PathType,
         workspace_config: PathType | WorkspaceConfiguration | None = None,
-    ) -> "FLYNCWorkspace":
+    ) -> Self:
         """
         loads a workspace object from a location of the Yaml Configuration.
 
@@ -154,7 +155,7 @@ class FLYNCWorkspace(_WorkspaceSaving):
         """
 
         resolved_config = _resolve_workspace_config(workspace_path, workspace_config)
-        output = FLYNCWorkspace(
+        output = cls(
             name=workspace_name,
             workspace_path=workspace_path,
             configuration=resolved_config,
@@ -173,7 +174,7 @@ class FLYNCWorkspace(_WorkspaceSaving):
         workspace_name: str,
         workspace_path: PathType,
         workspace_config: PathType | WorkspaceConfiguration | None = None,
-    ) -> "FLYNCWorkspace":
+    ) -> Self:
         """
         loads a workspace object from a location of the Yaml Configuration.
 
@@ -190,7 +191,7 @@ class FLYNCWorkspace(_WorkspaceSaving):
         Returns: FLYNCWorkspace
         """
 
-        output = FLYNCWorkspace.safe_load_workspace(workspace_name, workspace_path, workspace_config=workspace_config)
+        output = cls.safe_load_workspace(workspace_name, workspace_path, workspace_config=workspace_config)
         if not isinstance(output.flync_model, FLYNCBaseModel):
             raise ValidationError.from_exception_data(
                 title=f"Model ({workspace_name}) Creation Error",

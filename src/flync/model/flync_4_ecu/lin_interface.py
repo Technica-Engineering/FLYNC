@@ -23,7 +23,7 @@ class LINFrameRef(FLYNCBaseModel):
         LIN ID of the :class:`~flync.model.flync_4_signal.frame.LINFrame` on the referenced bus.
     """
 
-    bus_ref: str = Field()
+    bus_ref: str = Field(min_length=1)
     frame_ref: int = Field()
 
 
@@ -56,7 +56,7 @@ class LINMasterInterface(ControllerInterface):
 
     name: Annotated[str, Implied(strategy=ImpliedStrategy.FILE_NAME)] = Field()
     node_type: Literal["master"] = Field(default="master")
-    bus_ref: str = Field()
+    bus_ref: str = Field(min_length=1)
     lin_protocol: _LINProtocol = Field()
     p2_min: float = Field()
     st_min: float = Field()
@@ -98,7 +98,7 @@ class LINSlaveInterface(ControllerInterface):
 
     name: Annotated[str, Implied(strategy=ImpliedStrategy.FILE_NAME)] = Field()
     node_type: Literal["slave"] = Field(default="slave")
-    bus_ref: str = Field()
+    bus_ref: str = Field(min_length=1)
     lin_protocol: _LINProtocol = Field()
     configured_nad: Annotated[int, Field(ge=0, le=0xFF)] = Field()
     initial_nad: Annotated[int, Field(ge=0, le=0xFF)] = Field()

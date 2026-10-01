@@ -72,13 +72,13 @@ class ConverterPanel(Vertical):
     class Changed(Message):
         """Posted when the selected converter type changes."""
 
-        def __init__(self, panel: "ConverterPanel", converter_type: Optional[str]) -> None:
+        def __init__(self, panel: ConverterPanel, converter_type: Optional[str]) -> None:
             super().__init__()
             self.panel = panel
             self.converter_type = converter_type
 
         @property
-        def control(self) -> "ConverterPanel":
+        def control(self) -> ConverterPanel:
             """Return the ConverterPanel that posted this message."""
             return self.panel
 
@@ -188,7 +188,7 @@ class ConverterPanel(Vertical):
                         fld.annotation.__origin__ if fld.annotation is not None and hasattr(fld.annotation, "__origin__") else fld.annotation
                     )
                     config_dict[name] = cast_value(raw, target_type)
-        return model(**config_dict)  # type: ignore[return-value]
+        return model(**config_dict)
 
     def show_error(self, msg: str) -> None:
         """Display an error message in the panel's error Static widget."""

@@ -33,22 +33,24 @@ By organizing system definitions in a central, version-controlled repository, FL
 
 ## Domain Coverage
 
-FLYNC models the full automotive E/E architecture across 12 domains:
+FLYNC models the full automotive E/E architecture across 14 domains:
 
 | Domain | Description |
 |---|---|
+| **Application** | Applications consuming/providing SOME/IP services |
+| **Bus** | CAN bus and LIN bus definitions |
+| **Communication** | System-wide TCP profiles |
+| **Diagnostics** | DoIP/UDS: DoIP timings, UDS configurations (sessions, security access, supported services), DID/routine/DTC catalog, TCP/UDP socket deployment |
 | **ECU** | Controllers, Ethernet/CAN/LIN interfaces, ports, PHY types (RGMII, SGMII, BASET…), switches, VLANs, multicast |
+| **Instrumentation** | Measurement points tapping buses/links for ASAM CMP / TECMP — Ethernet ports (p2p), Ethernet shared-medium segments, CAN buses, LIN buses |
+| **Metadata** | System/ECU metadata, OEM, platform, versioning, HW/SW BOM |
+| **Network Management** | State management groups, timing profiles for wake-up/sleep coordination |
+| **Safety** | E2E communication protection |
+| **Security** | Firewall rules, MACsec encryption (integrity + confidentiality) |
 | **Signal / PDU / Frame** | Full signal-to-frame stack, data types, PDUs (standard/multiplexed/container), CAN/LIN/CAN-FD frames, forwarding |
-| **SOME/IP** | AUTOSAR SOME/IP service interfaces, events, methods, fields, eventgroups, UDP/TCP deployment |
+| **SOME/IP** | Open SOME/IP service interfaces, events, methods, fields, eventgroups, UDP/TCP deployment |
 | **Topology** | Physical and logical network topology, switch/port interconnections, ECU connections |
 | **TSN** | QoS shaping (CBS, ATS, HTB), traffic classes, PTP time synchronization |
-| **Security** | Firewall rules, MACsec encryption (integrity + confidentiality) |
-| **Network Management** | State management groups, timing profiles for wake-up/sleep coordination |
-| **Metadata** | System/ECU metadata, OEM, platform, versioning, HW/SW BOM |
-| **Communication** | System-wide TCP profiles, SOME/IP service-level settings |
-| **Bus** | CAN bus and LIN bus definitions |
-| **Application** | Applications consuming/providing SOME/IP services |
-| **Safety** | E2E communication protection |
 
 ## Quick Start
 
@@ -74,7 +76,7 @@ FLYNC workspaces organize vehicle configurations in modular `.flync.yaml` files:
 my_project/
 ├── system_metadata.flync.yaml
 ├── topology/
-│   └── system_topology.flync.yaml
+│   └── ethernet_topology.flync.yaml
 └── ecus/
     ├── hpc/
     │   ├── ecu_metadata.flync.yaml
@@ -117,7 +119,7 @@ ports:
       mode: phy
 ```
 
-**System topology** (`topology/system_topology.flync.yaml`):
+**System topology** (`topology/ethernet_topology.flync.yaml`):
 
 ```yaml
 connections:
@@ -152,20 +154,26 @@ for ecu in model.ecus:
 ### Example: CLI
 
 ```bash
-# Validate a workspace
-flync validate path/to/my_project
+# Store a workspace path once, so the commands below can omit it
+flync config set path/to/my_project
 
-# Show ECU / controller / interface information
-flync info path/to/my_project
+# Validate a workspace
+flync validate
+
+# Show ECU / controller / interface / socket / IP information
+flync info ecus
+flync info sockets
+flync info ip
 
 # Generate a PlantUML system diagram
-flync generate-system-uml path/to/my_project
+flync generate-system-uml
 
-# Show SOME/IP service deployments
-flync service-info path/to/my_project
+# Show SOME/IP services and one service instance's deployments
+flync info services
+flync info instances 0x0101 1
 
-# Show VLAN and multicast group information
-flync vlan-info path/to/my_project
+# Show VLAN membership
+flync info vlans
 ```
 
 ## CLI Tools
@@ -186,7 +194,7 @@ FLYNC ships with five CLI entry points:
 src/
 ├── flync/                  # Core library
 │   ├── core/               #   Base models (Pydantic v2), annotations, datatypes, validators
-│   ├── model/              #   12 domain models (ECU, SOME/IP, TSN, topology, …)
+│   ├── model/              #   14 domain models (ECU, SOME/IP, TSN, topology, …)
 │   └── sdk/                #   Workspace management, validation helpers, model serialization
 ├── flync_cli/              # Typer + Rich CLI application (validate, info, UML, …)
 └── flync_converter/        # Pluggy-based converter framework (CLI, TUI, GUI)

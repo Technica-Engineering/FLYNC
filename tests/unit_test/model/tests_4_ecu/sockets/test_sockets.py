@@ -107,7 +107,6 @@ def test_positive_udp_socket():
 )
 def test_negative_udp_socket_parameters(udp_socket):
 
-    print(udp_socket)
     with pytest.raises(ValidationError) as e:
         SocketUDP.model_validate(udp_socket)
 

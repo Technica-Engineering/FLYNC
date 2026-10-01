@@ -1,0 +1,23 @@
+# ECU physical port bindings and links to switches/hardware.
+# ECU connection IDs are unique, including the former duplicate conn4.
+connections:
+- type: ecu_port_to_controller_interface
+  id: ecu_conn1
+  ecu_port: ecu1_port1
+  controller_interface: adc_eth0
+- type: ecu_port_to_controller_interface
+  id: ecu_conn2
+  ecu_port: ecu1_port2
+  controller_interface: adc_eth1
+- type: ecu_port_to_controller_interface
+  id: ecu_conn3
+  ecu_port: ecu1_port3
+  controller_interface: adc_eth2
+- type: ecu_port_to_controller_interface
+  id: ecu_conn4
+  ecu_port: ecu1_port4
+  controller_interface: adc_eth3
+- type: ecu_port_to_controller_interface
+  id: ecu_conn5
+  ecu_port: ecu1_port5
+  controller_interface: adc_eth4

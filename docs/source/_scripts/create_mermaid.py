@@ -2,12 +2,6 @@ from pathlib import Path
 from pydantic_mermaid import MermaidGenerator
 import flync.model as base_model
 from pydantic_mermaid.models import Relations
-from flync.model.flync_4_ecu import *
-from flync.model.flync_4_someip import *
-from flync.model.flync_4_security import *
-from flync.model.flync_4_topology import *
-from flync.model.flync_4_tsn import *
-
 
 EXPORT_DIR = Path(__file__).resolve().parent / ".." / "_static" / "mermaid"
 EXPORT_DIR.mkdir(parents=True, exist_ok=True)
@@ -58,6 +52,7 @@ targets = {
     "timesync.mmd": base_model.flync_4_tsn.timesync,
     "can.mmd": base_model.flync_4_bus.can_bus,
     "lin.mmd": base_model.flync_4_bus.lin_bus,
+    "ethernet_multidrop.mmd": base_model.flync_4_topology.ethernet_multidrop,
     "signal.mmd": base_model.flync_4_signal.signal,
     "pdu.mmd": base_model.flync_4_signal.pdu,
     "frame.mmd": base_model.flync_4_signal.frame,

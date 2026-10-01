@@ -10,18 +10,17 @@ to which bus) and validates it. The result is never authored in YAML; it is (re)
 
 from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Tuple
 
-from pydantic import Field, PrivateAttr
+from pydantic import Field
 
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major, warn
-from flync.model.flync_4_ecu.lin_interface import LINMasterInterface
+from flync.model.flync_4_bus.can_bus import CANBus
+from flync.model.flync_4_bus.lin_bus import LINBus
+from flync.model.flync_4_ecu.can_interface import CANInterface
+from flync.model.flync_4_ecu.ecu import ECU
+from flync.model.flync_4_ecu.lin_interface import LINMasterInterface, LINSlaveInterface
 
 if TYPE_CHECKING:
-    from flync.model.flync_4_bus.can_bus import CANBus
-    from flync.model.flync_4_bus.lin_bus import LINBus
-    from flync.model.flync_4_ecu.can_interface import CANInterface
-    from flync.model.flync_4_ecu.ecu import ECU
-    from flync.model.flync_4_ecu.lin_interface import LINSlaveInterface
     from flync.model.flync_model import FLYNCModel
 
 
@@ -36,17 +35,17 @@ class BusAttachmentPoint(FLYNCBaseModel):
     controller_name : str
         Name of the controller that owns the attached interface.
     interface_name : str
-        Name of the CAN or LIN interface attached to the bus.
+        Name of the CAN, LIN or Ethernet multidrop interface attached to the bus.
     role : Literal["can_node", "lin_master", "lin_slave"]
         Role the interface plays on the bus.
     """
 
-    ecu_name: str = Field()
-    controller_name: str = Field()
-    interface_name: str = Field()
+    ecu_name: str = Field(min_length=1)
+    controller_name: str = Field(min_length=1)
+    interface_name: str = Field(min_length=1)
     role: Literal["can_node", "lin_master", "lin_slave"] = Field()
-    _interface: "Optional[CANInterface | LINMasterInterface | LINSlaveInterface]" = PrivateAttr(default=None)
-    _ecu: "Optional[ECU]" = PrivateAttr(default=None)
+    _interface: Optional[CANInterface | LINMasterInterface | LINSlaveInterface] = None
+    _ecu: Optional[ECU] = None
 
 
 class BusTopology(FLYNCBaseModel):
@@ -56,29 +55,30 @@ class BusTopology(FLYNCBaseModel):
     Parameters
     ----------
     bus_name : str
-        Name of the CAN or LIN bus, matching ``bus_ref`` on the attached interfaces.
+        Name of the bus or segment, matching ``bus_ref`` on the attached interfaces.
     bus_type : Literal["can", "lin"]
         Kind of bus.
     attachments : list of :class:`BusAttachmentPoint`
         ECU interfaces attached to this bus.
     """
 
-    bus_name: str = Field()
+    bus_name: str = Field(min_length=1)
     bus_type: Literal["can", "lin"] = Field()
     attachments: List[BusAttachmentPoint] = Field(default_factory=list)
-    _bus: "Optional[CANBus | LINBus]" = PrivateAttr(default=None)
 
 
 class CANBusTopology(BusTopology):
     """Runtime-derived attachment topology of a single CAN bus."""
 
     bus_type: Literal["can"] = Field(default="can")
+    _bus: Optional[CANBus] = None
 
 
 class LINBusTopology(BusTopology):
     """Runtime-derived attachment topology of a single LIN bus."""
 
     bus_type: Literal["lin"] = Field(default="lin")
+    _bus: Optional[LINBus] = None
 
     @property
     def master(self) -> Optional[BusAttachmentPoint]:
@@ -126,7 +126,7 @@ def build_bus_topologies(
 
 
 def _collect_ecu_bus_attachments(
-    ecu: "ECU",
+    ecu: ECU,
     can_by_name: Dict[str, CANBusTopology],
     lin_by_name: Dict[str, LINBusTopology],
 ) -> None:
@@ -155,14 +155,20 @@ def _link_bus_definitions(by_name: dict, defs: Optional[dict]) -> None:
 
 
 def _bus_registry(flync_model: "FLYNCModel", attr: str) -> Optional[dict]:
-    """Return ``{bus_name: bus}`` for ``attr`` (``"can_buses"``/``"lin_buses"``), or ``None`` if it cannot be determined."""
+    """Return ``{bus_name: bus}`` for ``attr`` (a bus list on ``communication.channels``), or ``None`` if it cannot be determined."""
 
     channels = flync_model.communication.channels if flync_model.communication else None
     buses = getattr(channels, attr, None) if channels else None
     return {b.name: b for b in buses} if buses is not None else None
 
 
-def _attach(topo: BusTopology, ecu: "ECU", controller_name: str, iface, role: "Literal['can_node', 'lin_master', 'lin_slave']") -> None:
+def _attach(
+    topo: BusTopology,
+    ecu: ECU,
+    controller_name: str,
+    iface: CANInterface | LINMasterInterface | LINSlaveInterface,
+    role: Literal["can_node", "lin_master", "lin_slave"],
+) -> None:
     """
     Create a :class:`BusAttachmentPoint` for a single ECU controller interface and append it to *topo*.
 
@@ -196,7 +202,8 @@ def validate_bus_topologies(
     can_defs: Optional[dict],
     lin_defs: Optional[dict],
 ) -> None:
-    """Run the system-wide CAN/LIN bus consistency checks: unknown ``bus_ref``, LIN master cardinality, unused/singly-attached buses."""
+    """Run the system-wide CAN/LIN bus consistency checks: unknown ``bus_ref``, LIN master cardinality, LIN schedule table
+    presence, unused/singly-attached buses."""
 
     for can_topo in can_topos:
         _validate_bus_ref_known(can_topo, can_defs)
@@ -204,10 +211,11 @@ def validate_bus_topologies(
     for lin_topo in lin_topos:
         _validate_bus_ref_known(lin_topo, lin_defs)
         _validate_lin_masters(lin_topo)
+        _validate_lin_schedule_tables(lin_topo)
         _validate_attachment_count(lin_topo, "LIN", lin_defs)
 
 
-def _validate_bus_ref_known(topo: BusTopology, defs: Optional[dict]) -> None:
+def _validate_bus_ref_known(topo: BusTopology, defs: Optional[dict], kind: str = "CAN/LIN") -> None:
     """
     Validate that a bus topology's ``bus_ref`` corresponds to a known bus definition.
 
@@ -221,6 +229,8 @@ def _validate_bus_ref_known(topo: BusTopology, defs: Optional[dict]) -> None:
         The bus topology entry whose ``bus_name`` is checked.
     defs : dict or None
         ``{bus_name: bus}`` registry of declared buses, or ``None`` if unavailable.
+    kind : str
+        Human-readable label naming the kind of bus in the message, e.g. ``"CAN/LIN"`` or ``"10BASE-T1S"``.
 
     Raises
     ------
@@ -231,13 +241,13 @@ def _validate_bus_ref_known(topo: BusTopology, defs: Optional[dict]) -> None:
         return
     if defs is None:
         warn(
-            f"bus_ref '{topo.bus_name}' referenced by ECU interface(s) cannot be verified: no CAN/LIN bus definitions are loaded.",
+            f"bus_ref '{topo.bus_name}' referenced by ECU interface(s) cannot be verified: no {kind} bus definitions are loaded.",
             category=Category.REFERENCE,
             error_number="222",
         )
     elif topo.bus_name not in defs:
         raise err_major(
-            f"CAN/LIN interface(s) reference unknown bus '{topo.bus_name}'. Defined buses: {sorted(defs)}",
+            f"{kind} interface(s) reference unknown bus '{topo.bus_name}'. Defined buses: {sorted(defs)}",
             category=Category.REFERENCE,
             error_number="221",
         )
@@ -273,6 +283,47 @@ def _validate_lin_masters(topo: LINBusTopology) -> None:
             f"LIN bus '{topo.bus_name}' has slave interface(s) but no master interface.",
             category=Category.CONSISTENCY,
             error_number="224",
+        )
+
+
+def _validate_lin_schedule_tables(topo: LINBusTopology) -> None:
+    """
+    Validate that a LIN bus declares a schedule table if and only if it has a master interface.
+
+    Scheduling is the master's responsibility: a master needs at least one schedule table to schedule frames on,
+    and a bus with slave(s) but no master has nothing to run a schedule table against. Skipped when the bus
+    definition could not be resolved (unknown/unverifiable ``bus_ref``, already reported by
+    :func:`_validate_bus_ref_known`), and when the bus has no attachments at all -- an authored-but-unattached bus
+    is merely unused (already reported by :func:`_validate_attachment_count`), not a master/slave violation.
+
+    Parameters
+    ----------
+    topo : LINBusTopology
+        The LIN bus topology entry to validate.
+
+    Raises
+    ------
+    err_major
+        If the bus has a master but no schedule table (error 315), or a schedule table but slave(s) and no master
+        (error 316).
+    """
+    if topo._bus is None or not topo.attachments:
+        return
+    has_master = topo.master is not None
+    has_schedule_tables = bool(topo._bus.schedule_tables)
+    if has_master and not has_schedule_tables:
+        raise err_major(
+            f"LIN bus '{topo.bus_name}' has a master interface but declares no schedule table; the master needs "
+            "at least one schedule table to schedule frames on.",
+            category=Category.CONSISTENCY,
+            error_number="315",
+        )
+    if has_schedule_tables and not has_master and topo.slaves:
+        raise err_major(
+            f"LIN bus '{topo.bus_name}' declares schedule table(s) but has no master interface attached; "
+            "scheduling is handled by the LIN Master only.",
+            category=Category.CONSISTENCY,
+            error_number="316",
         )
 
 

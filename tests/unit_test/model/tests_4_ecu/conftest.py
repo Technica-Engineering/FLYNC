@@ -80,27 +80,37 @@ def udp_socket_data():
 
 @pytest.fixture
 def minimal_ecu_kwargs(flync_version):
-    """Return a factory for the kwargs of a minimal ECU: one controller / interface / VLAN hosting *sockets*.
+    """Return a factory for the kwargs of a minimal ECU: one controller hosting *interfaces* of sockets.
 
     ``sockets`` takes whatever :class:`~flync.model.flync_4_ecu.socket_container.SocketContainer` accepts, so
-    the socket data built by ``udp_socket_data`` can be handed over as-is.
+    the socket data built by ``udp_socket_data`` can be handed over as-is. To spread sockets across several
+    Ethernet interfaces (IP stacks), pass ``interfaces`` as a list of socket-data lists instead; each entry
+    becomes its own ``ETH_IF_<n>`` interface on the same controller.
     """
 
-    def _build(sockets, name: str = "ECU1") -> dict:
-        eth_iface = EthernetInterface(
-            name="ETH_IF_1",
-            interface_config=EthernetInterfaceConfig(
-                virtual_interfaces=[
-                    VirtualControllerInterface(
-                        name="VLAN_1",
-                        vlanid=0,
-                        addresses=[IPv4AddressEndpoint(address=ENDPOINT_ADDRESS, ipv4netmask=NETMASK, sockets=[])],
-                        multicast=[],
-                    )
-                ],
-            ),
-            sockets=[SocketContainer(name="ETH_CONTAINER_1", vlan_id=0, sockets=list(sockets))],
-        )
+    def _build(sockets, name: str = "ECU1", interfaces: list | None = None) -> dict:
+        if interfaces:
+            ifaces_sockets = interfaces
+        else:
+            ifaces_sockets = [list(sockets)]
+
+        eth_interfaces = [
+            EthernetInterface(
+                name=f"ETH_IF_{index + 1}",
+                interface_config=EthernetInterfaceConfig(
+                    virtual_interfaces=[
+                        VirtualControllerInterface(
+                            name=f"VLAN_{index + 1}",
+                            vlanid=0,
+                            addresses=[IPv4AddressEndpoint(address=ENDPOINT_ADDRESS, ipv4netmask=NETMASK, sockets=[])],
+                            multicast=[],
+                        )
+                    ],
+                ),
+                sockets=[SocketContainer(name=f"ETH_CONTAINER_{index + 1}", vlan_id=0, sockets=list(iface_sockets))],
+            )
+            for index, iface_sockets in enumerate(ifaces_sockets)
+        ]
         controller = Controller(
             name="CTRL1",
             controller_metadata=EmbeddedMetadata(
@@ -109,23 +119,24 @@ def minimal_ecu_kwargs(flync_version):
                 target_system="Device1",
                 compatible_flync_version=flync_version,
             ),
-            ethernet_interfaces=[eth_iface],
+            ethernet_interfaces=eth_interfaces,
         )
-        port = ECUPort(name=f"{name}_ETH_IF_1_port", mdi_config=BASET1())
+        ports = [ECUPort(name=f"{name}_ETH_IF_{index + 1}_port", mdi_config=BASET1()) for index in range(len(eth_interfaces))]
         topology = InternalTopology(
             connections=[
                 ECUPortToControllerInterface(
-                    id=f"conn_{name}_ETH_IF_1",
+                    id=f"conn_{name}_ETH_IF_{index + 1}",
                     ecu_port=port.name,
-                    controller_interface="ETH_IF_1",
+                    controller_interface=f"ETH_IF_{index + 1}",
                     controller="CTRL1",
                 )
+                for index, port in enumerate(ports)
             ]
         )
         return dict(
             name=name,
             controllers=[controller],
-            ports=[port],
+            ports=ports,
             topology=topology,
             ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=flync_version),
         )

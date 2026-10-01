@@ -6,6 +6,7 @@ from pydantic import Field, field_validator
 
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.datatypes import Datatype
+from flync.core.utils.exceptions import Category, err_major
 from flync.model.flync_4_someip.someip_simple_datatypes import (
     Bitfield,
     Boolean,
@@ -44,8 +45,8 @@ class ArrayType(ComplexDatatype):
 
     Parameters
     ----------
-    name : str
-        Name of Array.
+    name : str, optional
+        Name of Array (defaults to ``"Array"``).
 
     type : Literal["array"]
         Discriminator identifying this datatype as an array.
@@ -120,8 +121,12 @@ class ArrayDimension(FLYNCBaseModel):
     @classmethod
     def validate(cls, value, info):
         kind = info.data["kind"]
-        if kind == "dynamic":
-            assert value > 0, "Length of length-field must be > 0 for dynamic arrays"
+        if kind == "dynamic" and value <= 0:
+            raise err_major(
+                "Length of length-field must be > 0 for dynamic arrays",
+                category=Category.VALUE_RANGE,
+                error_number="344",
+            )
 
         return value
 
@@ -149,7 +154,7 @@ class Struct(ComplexDatatype):
     """
 
     type: Literal["struct"] = Field("struct")
-    members: List["AllTypes"] = Field(description="the members of the struct")  # type: ignore
+    members: List["AllTypes"] = Field(description="the members of the struct")
     bit_alignment: Literal[8, 16, 32, 64, 128, 256] = Field(
         default=8,
         description="defines the optional alignment padding that can be added after the variable length data element like struct to "
@@ -181,7 +186,7 @@ class Typedef(ComplexDatatype):
 
     type: Literal["typedef"] = Field("typedef")
     name: str = Field(description="Name of the typedef reference")
-    datatyperef: "AllTypes" = Field(description="Referenced datatype definition")  # type: ignore
+    datatyperef: "AllTypes" = Field(description="Referenced datatype definition")
 
 
 class UnionMember(Datatype):
@@ -203,8 +208,8 @@ class UnionMember(Datatype):
     name : str
         Name of the union member.
 
-    mandatory : bool
-        Whether the union member is mandatory.
+    mandatory : bool, optional
+        Whether the union member is mandatory (defaults to ``None``).
     """
 
     type: Annotated[
@@ -236,8 +241,8 @@ class Union(Datatype):
 
     Parameters
     ----------
-    name : str
-        Name of the Union.
+    name : str, optional
+        Name of the Union (defaults to ``"Union"``).
 
     type : Literal["union"]
         Discriminator used to identify this datatype.

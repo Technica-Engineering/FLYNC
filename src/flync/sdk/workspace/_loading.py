@@ -15,6 +15,7 @@ from pathlib import Path
 from types import UnionType
 from typing import Annotated, Optional, Union, get_args, get_origin
 
+from pydantic.fields import FieldInfo
 from pydantic_core import ValidationError
 
 from flync.core.annotations import (
@@ -25,7 +26,7 @@ from flync.core.annotations import (
     OutputStrategy,
 )
 from flync.core.base_models.base_model import FLYNCBaseModel
-from flync.core.utils.exceptions_handling import is_semantic_validation_error, validate_with_policy
+from flync.core.utils.exceptions_handling import is_semantic_validation_error, locate_errors, validate_with_policy
 from flync.sdk.utils.field_utils import get_metadata
 from flync.sdk.utils.model_dependencies import model_force_rebuild
 from flync.sdk.utils.sdk_types import PathType
@@ -243,12 +244,63 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
             module_load_info[field_name] = list_item_value
             return True
         if OutputStrategy.SINGLE_FILE in external.output_structure:
-            new_base_type = base_type_args[0]
+            self.__handle_generic_types_list_single_file(
+                base_type_args,
+                external,
+                external_path,
+                field_name,
+                module_load_info,
+                path,
+                current_object_paths,
+            )
+            return True
+        return False
+
+    def __handle_generic_types_list_single_file(
+        self,
+        base_type_args: tuple,
+        external: External,
+        external_path: str,
+        field_name: str,
+        module_load_info: dict,
+        path: Path,
+        current_object_paths: list[str],
+    ) -> None:
+        """
+        Load an external ``list`` field stored as a single file into ``module_load_info``.
+
+        Args:
+            base_type_args (tuple): Generic args of the list annotation.
+            external (External): Annotation controlling the load strategy.
+            external_path (str): Relative path segment for this field.
+            field_name (str): Field name on the parent model.
+            module_load_info (dict): Accumulator for loaded field values; updated in place.
+            path (Path): Absolute path of the current directory.
+            current_object_paths (str): Dot-path context for object tracking.
+        """
+
+        effective_element_type = base_type_args[0]
+        if get_origin(effective_element_type) is Annotated:
+            effective_element_type = get_args(effective_element_type)[0]
+        element_origin = get_origin(effective_element_type)
+        if element_origin is Union or element_origin is UnionType:
+            # A single-file list whose element is a union of models (a discriminated union) is
+            # stored in the file itself as a bare list. Load the whole file content into the
+            # field and let the parent's rebuild/validation turn it into the full list. Without
+            # this branch the loader would try to match the file against each union member as a
+            # single model, fail, and silently drop the field.
+            self._append_to_info_dict(
+                path / external_path,
+                module_load_info,
+                output_strategy=external.output_structure,
+                field_name=field_name,
+            )
+        else:
             single_info: dict = {}
             self.__handle_generic_types(
-                attribute_type=new_base_type,
-                base_type=get_origin(new_base_type),
-                base_type_args=get_args(new_base_type),
+                attribute_type=effective_element_type,
+                base_type=get_origin(effective_element_type),
+                base_type_args=get_args(effective_element_type),
                 external=external,
                 path=path,
                 external_path=external_path,
@@ -258,8 +310,6 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
                 current_object_paths=current_object_paths,
             )
             module_load_info.update(single_info)
-            return True
-        return False
 
     def __handle_generic_types_dict(
         self,
@@ -451,7 +501,7 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
     def __handle_generic_types(
         self,
         attribute_type: type,
-        base_type: type | None,
+        base_type: object,
         base_type_args: tuple,
         external: External,
         path: Path,
@@ -469,7 +519,8 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
 
         Args:
             attribute_type (type): The full (possibly generic) annotation type.
-            base_type (type | None): The ``get_origin`` of ``attribute_type``, or ``None`` for non-generic types.
+            base_type (object): The ``get_origin`` of ``attribute_type``, or ``None`` for non-generic types.
+                Not narrowed to ``type``: ``get_origin`` also yields typing special forms such as ``Union``.
             base_type_args (tuple): The ``get_args`` of ``attribute_type``.
             external (External): Annotation controlling load strategy.
             path (Path): Absolute path of the current directory.
@@ -635,25 +686,25 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
 
     def __handle_external_field_load(
         self,
-        path,
-        current_object_paths,
-        module_load_info,
-        field_name,
-        field_info,
-        external,
-    ):
+        path: Path,
+        current_object_paths: list[str],
+        module_load_info: dict,
+        field_name: str,
+        field_info_obj: FieldInfo,
+        external: External | None,
+    ) -> None:
         if external is not None:
             # field will need to be added to to a new separate document
-            attribute_type = field_info.annotation
+            attribute_type = field_info_obj.annotation
             if attribute_type is None:
                 raise ValueError("Attribute {} has an invalid type.", field_name)
             base_type: type | None = get_origin(attribute_type)
             base_type_args = get_args(attribute_type)
             storage_key = field_name
             external_path = self.__get_external_path(path, external, field_name)
-            if not external_path.exists() and field_info.alias is not None:
-                external_path = self.__get_external_path(path, external, field_info.alias)
-                storage_key = field_info.alias
+            if not external_path.exists() and field_info_obj.alias is not None:
+                external_path = self.__get_external_path(path, external, field_info_obj.alias)
+                storage_key = field_info_obj.alias
             if OutputStrategy.SINGLE_FILE in external.output_structure:
                 if OutputStrategy.OMMIT_ROOT not in external.output_structure:
                     # the output file is a dictionary
@@ -668,7 +719,7 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
                 base_type_args,
                 external,
                 path,
-                external_path,
+                str(external_path),
                 module_load_info,
                 field_name,
                 storage_key,
@@ -773,6 +824,7 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
                 current_type = self.model_graph.rebuild_type_from_parent(current_type, node.current_type_name)
             relative_path = node.path.relative_to(self.workspace_root.absolute())  # type: ignore[union-attr]
             model, errors = validate_with_policy(current_type, module_load_info, relative_path.as_posix())
+            self._locate_node_errors(node, current_type, errors)
             self.documents_diags[node.doc_id].extend(errors)
             if map_paths is not None and self.configuration.map_objects:
                 self._update_objects(node.doc_id, model, map_paths, parent_name=node.current_type_name)
@@ -781,6 +833,23 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
             node.model = model
             return model
         except ValidationError as e:
-            self.documents_diags[node.doc_id].extend(e.errors())
+            errors = e.errors()
+            self._locate_node_errors(node, current_type, errors)
+            self.documents_diags[node.doc_id].extend(errors)
             node.model = None
             return None
+
+    def _locate_node_errors(self, node: LoadNode, model_type, errors: list) -> None:
+        """
+        Resolve the YAML line/column of ``errors`` against the source of ``node``'s document.
+
+        Validation runs on safe-loaded data without source marks, so positions are looked up in the document's composed node tree. The tree is only
+        composed here, for documents that have errors.
+        """
+
+        if not errors:
+            return
+        document = self.documents.get(node.doc_id)
+        if document is None:
+            return
+        locate_errors(errors, model_type, document.source_nodes())

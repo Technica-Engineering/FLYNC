@@ -24,7 +24,7 @@ jobs:
         uses: psf/black@26.5.1
         with:
           options: "--check --verbose --line-length 149 --diff"
-          src: "./src"
+          src: "./src ./scripts"
 
   isort:
     runs-on: ubuntu-latest
@@ -33,7 +33,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.0.1
+        uses: astral-sh/setup-uv@v10.2.0
         with:
           enable-cache: true
 
@@ -43,7 +43,7 @@ jobs:
       - name: Run isort
         run: |
           mkdir format-reports
-          uv run isort --check --diff --color --line-length 149 src > format-reports/isort-report.diff
+          uv run isort --check --diff --color --line-length 149 src scripts > format-reports/isort-report.diff
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v7
@@ -59,7 +59,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.0.1
+        uses: astral-sh/setup-uv@v10.2.0
         with:
           enable-cache: true
 
@@ -68,8 +68,41 @@ jobs:
 
       - name: Run flake8
         run: |
-          uv run flake8 --max-line-length 149 src
-          uv run flake8 --max-line-length 149 src --format=html --htmldir=flake8-report
+          uv run flake8 --max-line-length 149 src scripts
+          uv run flake8 --max-line-length 149 src scripts --format=html --htmldir=flake8-report
+
+      - name: Check unnecessary string-quoted annotations
+        run: python3 scripts/ci/check_lazy_typing.py
+
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: lint-artifacts
+          path: flake8-report
+          retention-days: 28
+
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+
+      # mypy runs as a pre-commit hook and needs the gui/tui extras: the PySide6 and
+      # textual imports in src/flync_converter/cli/{gui,tui} are unresolvable without
+      # them, and the `# type: ignore` comments on those call sites then read as unused.
+      # Keep this environment identical to the one in the type-check job.
+      - name: Prepare
+        run: uv sync --frozen --extra gui --extra tui
+
+      - name: Run pre-commit
+        run: |
+          set -o pipefail
+          uv run pre-commit run --all-files
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v7
@@ -85,7 +118,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.0.1
+        uses: astral-sh/setup-uv@v10.2.0
         with:
           enable-cache: true
 
@@ -97,7 +130,7 @@ jobs:
       - name: Run mypy
         run: |
           set -o pipefail
-          uv run mypy src --show-error-codes --pretty --install-types --non-interactive | tee type-check-reports/mypy-report.txt
+          uv run mypy src scripts/ci/check_lazy_typing.py --show-error-codes --pretty --install-types --non-interactive | tee type-check-reports/mypy-report.txt
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v7
@@ -113,7 +146,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.0.1
+        uses: astral-sh/setup-uv@v10.2.0
         with:
           enable-cache: true
 
@@ -122,9 +155,10 @@ jobs:
           uv sync --frozen
           mkdir error-catalog-check
 
-      - name: Run validate-catalog
+      - name: Run generate & validate-catalog
         run: |
           set -o pipefail
+          uv run python src/flync_cli/main.py errors generate-catalog
           uv run python src/flync_cli/main.py errors validate-catalog | tee error-catalog-check/error-catalog-check.txt
 
       - name: Archive artifacts
@@ -134,15 +168,44 @@ jobs:
           path: error-catalog-check
           retention-days: 28
 
-  unit-tests:
+  model-docstring-check:
     runs-on: ubuntu-latest
-    needs: [format-check, lint, type-check, isort]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.0.1
+        uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+
+      - name: Prepare
+        run: |
+          uv sync --frozen
+          mkdir model-docstring-check
+
+      # Reports warnings and succeeds: the existing docstrings are not clean yet. Add --strict to turn it into a gate.
+      - name: Check model docstrings against their fields
+        run: |
+          set -o pipefail
+          uv run python scripts/ci/check_model_docstrings.py | tee model-docstring-check/model-docstring-check.txt
+
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: model-docstring-artifacts
+          path: model-docstring-check
+          retention-days: 28
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    needs: [format-check, isort, lint, type-check]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.2.0
         with:
           enable-cache: true
 
@@ -175,13 +238,13 @@ jobs:
 
   system-tests:
     runs-on: ubuntu-latest
-    needs: [format-check, lint, type-check, isort]
+    needs: [format-check, isort, lint, type-check]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.0.1
+        uses: astral-sh/setup-uv@v10.2.0
         with:
           enable-cache: true
 
@@ -212,13 +275,13 @@ jobs:
 
   cli-tests:
     runs-on: ubuntu-latest
-    needs: [format-check, lint, type-check, isort]
+    needs: [format-check, isort, lint, type-check]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.0.1
+        uses: astral-sh/setup-uv@v10.2.0
         with:
           enable-cache: true
 
@@ -249,7 +312,7 @@ jobs:
 
   converter-tests:
     runs-on: ubuntu-latest
-    needs: [format-check, lint, type-check, isort]
+    needs: [format-check, isort, lint, type-check]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -262,7 +325,7 @@ jobs:
             libfontconfig1 libxcb1 libxkbcommon0
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.0.1
+        uses: astral-sh/setup-uv@v10.2.0
         with:
           enable-cache: true
 
@@ -294,7 +357,7 @@ jobs:
     # Non-blocking: benchmark thresholds can be flaky on shared runners
     continue-on-error: true
     runs-on: ubuntu-latest
-    needs: [format-check, lint, type-check, isort]
+    needs: [format-check, isort, lint, type-check]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -306,7 +369,7 @@ jobs:
             libfontconfig1 libxcb1 libxkbcommon0
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.0.1
+        uses: astral-sh/setup-uv@v10.2.0
         with:
           enable-cache: true
 
@@ -318,11 +381,12 @@ jobs:
           # -n 0 overrides the `-n auto` in addopts: pytest-benchmark disables itself
           # whenever xdist distributes, which makes benchmark.stats unavailable and
           # fails these tests. Benchmarks must run in a single, unparallelised process.
-          COVERAGE_FILE=.coverage.performance uv run pytest \
+          # --no-cov disables the coverage hook from addopts so instrumentation overhead
+          # does not skew the benchmark timing.
+          uv run pytest \
             -n 0 \
             -m performance \
-            --cov=flync --cov=flync_cli --cov=flync_converter \
-            --cov-report= \
+            --no-cov \
             --junitxml=report_performance.xml \
             --durations=0
 
@@ -390,7 +454,7 @@ jobs:
           path: .
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.0.1
+        uses: astral-sh/setup-uv@v10.2.0
         with:
           enable-cache: true
 
@@ -474,13 +538,13 @@ jobs:
 
   example-validation:
     runs-on: ubuntu-latest
-    needs: [format-check, lint, type-check, isort]
+    needs: [format-check, isort, lint, type-check]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.0.1
+        uses: astral-sh/setup-uv@v10.2.0
         with:
           enable-cache: true
 
@@ -491,6 +555,10 @@ jobs:
         run: |
           uv run python scripts/ci/validate_examples.py
 
+      - name: Check flync_example_experimental is a superset of flync_example
+        run: |
+          uv run python scripts/ci/check_example_superset.py
+
   build-documentation:
     runs-on: ubuntu-latest
     steps:
@@ -498,7 +566,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.0.1
+        uses: astral-sh/setup-uv@v10.2.0
         with:
           enable-cache: true
 

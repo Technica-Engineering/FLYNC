@@ -20,9 +20,9 @@ class ConverterFactoryRegistry(dict[str, BaseConverter]):
 
     def load_builtin(self):
         """Register the built-in json, yaml, flync, and dbc converters via pluggy."""
-        from .converters import dbc_converter, flync_converter, json_converter, yaml_converter
+        from .converters import dbc, flync_converter, json_converter, yaml_converter
 
-        for mod in (json_converter, yaml_converter, flync_converter, dbc_converter):
+        for mod in (json_converter, yaml_converter, flync_converter, dbc):
             if not pm.is_registered(mod):
                 logger.debug("Registering built-in plugin: %s", mod.__name__)
                 pm.register(mod)

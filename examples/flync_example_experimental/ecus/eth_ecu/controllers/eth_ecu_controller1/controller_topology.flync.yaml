@@ -1,0 +1,19 @@
+connections:
+  - type: switch_port_to_controller_interface
+    id: vconn1
+    switch: br0
+    switch_port: br0_p1
+    controller_interface: eth_ecu_node1_eth0
+  - type: switch_port_to_controller_interface
+    id: vconn2
+    switch: br0
+    switch_port: br0_p2
+    controller_interface: eth_ecu_node2_eth0
+  # br0's uplink onto the physical interface. That interface's own link out to ECU port eth_ecu_p1
+  # lives in the ECU's topology.flync.yaml — the physical interface is the only hop that leaves the
+  # controller.
+  - type: switch_port_to_controller_interface
+    id: vconn3
+    switch: br0
+    switch_port: br0_p3
+    controller_interface: eth_ecu_c1_iface1

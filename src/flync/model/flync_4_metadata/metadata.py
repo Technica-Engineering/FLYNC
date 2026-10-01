@@ -1,6 +1,6 @@
 """Defines metadata models for FLYNC"""
 
-from typing import Dict, Literal, Optional
+from typing import Dict, Literal, Optional, Self
 
 from packaging.version import InvalidVersion
 from packaging.version import Version as Pep440Version
@@ -17,8 +17,8 @@ class BaseVersion(FLYNCBaseModel):
 
     Parameters
     ----------
-    version_schema : Literal["semver", "pep440"]
-        Versioning scheme that defines how the version string is interpreted.
+    version_schema : Literal["semver", "pep440"], optional
+        Versioning scheme that defines how the version string is interpreted (defaults to ``"semver"``).
 
     version : str
         Version value expressed according to the selected ``version_schema``. Must be provided as a raw string.
@@ -33,8 +33,9 @@ class BaseVersion(FLYNCBaseModel):
         return str(v)
 
     @model_validator(mode="after")
-    def validate_and_parse_version(self):
+    def validate_and_parse_version(self) -> Self:
         raw_version = self.version
+        parsed: Pep440Version | SemVersion
 
         if self.version_schema == "pep440":
             try:
@@ -153,13 +154,13 @@ class ECUMetadata(BaseMetadata):
 
     hardware : \
         :class:`~flync.model.flync_4_metadata.metadata.HardwareBaseMetadata`\
-        | None
-        Optional hardware metadata associated with the ECU.
+        | None, optional
+        Hardware metadata associated with the ECU.
 
     software : \
         :class:`~flync.model.flync_4_metadata.metadata.SoftwareBaseMetadata`\
-        | None
-        Optional software metadata associated with the ECU.
+        | None , optional
+        Software metadata associated with the ECU.
     """
 
     type: Literal["ecu"] = Field("ecu")
@@ -176,14 +177,14 @@ class EmbeddedMetadata(BaseMetadata):
     type : Literal["embedded"]
         Literal identifier specifying an embedded device.
 
-    hardware : :class:`~flync.model.flync_4_metadata.metadata.HardwareBaseMetadata` | None
-        Optional hardware metadata associated with the embedded device.
+    hardware : :class:`~flync.model.flync_4_metadata.metadata.HardwareBaseMetadata` | None , optional
+        Hardware metadata associated with the embedded device.
 
-    app : :class:`~flync.model.flync_4_metadata.metadata.SoftwareBaseMetadata` | None
-        Optional software metadata for the application.
+    app : :class:`~flync.model.flync_4_metadata.metadata.SoftwareBaseMetadata` | None , optional
+        Software metadata for the application.
 
-    bootloader : :class:`~flync.model.flync_4_metadata.metadata.SoftwareBaseMetadata` | None
-        Optional software metadata for the bootloader.
+    bootloader : :class:`~flync.model.flync_4_metadata.metadata.SoftwareBaseMetadata` | None , optional
+        Software metadata for the bootloader.
 
     target_system : str
         Name of the Embedded target device.

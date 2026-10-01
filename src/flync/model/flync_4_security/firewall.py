@@ -1,6 +1,6 @@
 """Defines firewall configuration models for FLYNC."""
 
-from typing import Annotated, List, Literal, Optional
+from typing import Annotated, List, Literal, Optional, Self
 
 from pydantic import BeforeValidator, Field, field_validator, model_validator
 
@@ -27,12 +27,12 @@ class FirewallRule(FLYNCBaseModel):
         The filter pattern used to match frames for this rule.
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     action: Literal["reject", "accept", "drop"] = Field()
     pattern: FrameFilter = Field()
 
     @model_validator(mode="after")
-    def validate_pattern(self):
+    def validate_pattern(self) -> Self:
         pattern = self.pattern
         if all(field is None for field in vars(pattern).values()):
             raise err_minor(
@@ -55,12 +55,18 @@ class Firewall(FLYNCBaseModel):
 
     Parameters
     ----------
-    default_action : Literal['reject', 'accept', 'drop']
-        The action to apply to packets that do not match any rule.
+    default_action : Literal['reject', 'accept', 'drop'], optional
+        The action to apply to packets that do not match any rule (defaults to ``'reject'``).
         Can be one of ``'reject'``, ``'accept'``, or ``'drop'``.
 
-    rules : list of :class:`FirewallRule`
-        A list of ``FirewallRule`` objects that define matching conditions and actions.
+    input_rules : list of :class:`FirewallRule`, optional
+        A list of ``FirewallRule`` objects that define input traffic matching conditions and actions.
+
+    output_rules : list of :class:`FirewallRule`, optional
+        A list of ``FirewallRule`` objects that define output traffic matching conditions and actions.
+
+    forward_rules : list of :class:`FirewallRule`, optional
+        A list of ``FirewallRule`` objects that define forwarded traffic matching conditions and actions.
     """
 
     default_action: Optional[Literal["reject", "accept", "drop"]] = Field(default="reject")

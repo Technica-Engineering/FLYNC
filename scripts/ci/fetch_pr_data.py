@@ -37,9 +37,7 @@ def main() -> int:
             }.items()
             if not v
         ]
-        print(
-            f"Missing required env vars: {', '.join(missing)}", file=sys.stderr
-        )
+        print(f"Missing required env vars: {', '.join(missing)}", file=sys.stderr)
         return 2
 
     page = 1
@@ -52,9 +50,7 @@ def main() -> int:
 
         prs = gh_get_json(url, token)
         if not isinstance(prs, list):
-            print(
-                f"Unexpected response (not a list) from {url}", file=sys.stderr
-            )
+            print(f"Unexpected response (not a list) from {url}", file=sys.stderr)
             return 3
 
         if not prs:
@@ -82,7 +78,7 @@ def main() -> int:
     base_ref = found["base"]["ref"]
 
     if not number or not head_ref or not base_ref:
-        print(f"Could not parse the PR data")
+        print("Could not parse the PR data")
         return 1
 
     with open(out_path, "a", encoding="utf-8") as f:

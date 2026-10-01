@@ -2,6 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from flync.model.flync_4_someip import Bitfield, Enum, Int8, UInt8
+from flync.model.flync_4_someip.someip_complex_datatypes import ArrayDimension
 from flync.model.flync_4_someip.someip_simple_datatypes import BitfieldEntry, EnumEntry
 from tests.error_assertions import assert_single_error
 
@@ -111,6 +112,25 @@ class TestEnumEntries:
         with pytest.raises(ValidationError) as exc_info:
             Enum(name="MyEnum", entries=entries)
         assert "exceeds valid range for UInt8" in str(exc_info.value)
+
+
+class TestArrayDimension:
+    """Tests for the ``length_of_length_field`` validation of :class:`ArrayDimension`."""
+
+    @pytest.mark.parametrize(
+        "length_of_length_field",
+        [8, 16, 32],
+    )
+    def test_positive_dynamic_length_field(self, length_of_length_field):
+        """A dynamic dimension with a positive length-field size is accepted."""
+        dimension = ArrayDimension(kind="dynamic", length_of_length_field=length_of_length_field)
+        assert dimension.length_of_length_field == length_of_length_field
+
+    def test_negative_dynamic_length_field_zero_raises(self):
+        """A dynamic dimension whose length-field size is 0 is rejected."""
+        with pytest.raises(ValidationError) as exc_info:
+            ArrayDimension(kind="dynamic", length_of_length_field=0)
+        assert_single_error(exc_info, "FLYNC-SOM-MAJ-VAL-344", "Length of length-field must be > 0 for dynamic arrays")
 
     def test_negative_value_in_int8_range_ok(self):
         """Negative values are accepted for a signed base type."""

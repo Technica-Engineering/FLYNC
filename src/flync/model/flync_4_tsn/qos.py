@@ -39,14 +39,15 @@ class ATSInstance(FLYNCBaseModel):
     ----------
     committed_information_rate : int
         Guaranteed data rate in kilobits per second (kbps).
+        Must be greater or equal to 0.
 
     committed_burst_size : int
-        Maximum burst size allowed within the committed rate
-        in kilobytes (kB).
+        Maximum burst size allowed within the committed rate in kilobytes (kB).
+        Must be greater or equal to 0.
 
     max_residence_time : int
-        Maximum time a frame can reside within the switch
-        in microseconds (µs).
+        Maximum time a frame can reside within the switch in microseconds (µs).
+        Must be greater or equal to 0.
     """
 
     committed_information_rate: int = Field(..., ge=0)
@@ -208,8 +209,8 @@ class DoubleRateThreeColorMarker(FLYNCBaseModel):
         Excess Burst Size in kilobytes (kB).
         Must be greater than 0.
 
-    coupling : bool
-        Coupling flag.
+    coupling : bool, optional
+        Coupling flag (defaults to ``True``).
         Determines whether the excess bucket draws from the committed
         bucket.
     """
@@ -302,10 +303,23 @@ class FrameFilter(FLYNCBaseModel):
     src_port: Optional[int | ValueRange | List[int | ValueRange]] = Field(default=None)
     dst_port: Optional[int | ValueRange | List[int | ValueRange]] = Field(default=None)
 
-    @staticmethod
-    def vlan_validator(value):
-        """Validate one VLAN ID via :func:`validate_vlan_id`."""
-        validate_vlan_id(value)
+    @field_validator("vlanid", mode="after")
+    @classmethod
+    def validate_vlanids(cls, value):
+        """Ensure every VLAN id (a scalar, a bound, or a list element) is valid."""
+        if isinstance(value, int):
+            validate_vlan_id(value)
+        elif isinstance(value, ValueRange):
+            validate_vlan_id(value.from_value)
+            validate_vlan_id(value.to_value)
+        elif isinstance(value, list):
+            for v in value:
+                if isinstance(v, int):
+                    validate_vlan_id(v)
+                elif isinstance(v, ValueRange):
+                    validate_vlan_id(v.from_value)
+                    validate_vlan_id(v.to_value)
+        return value
 
     @staticmethod
     def pcp_validator(value):
@@ -313,24 +327,6 @@ class FrameFilter(FLYNCBaseModel):
             raise err_minor(
                 "pcp value must be greater than or equal to 0 and less than or equal to 7", category=Category.VALUE_RANGE, error_number="150"
             )
-
-    @field_validator("vlanid", mode="after")
-    @classmethod
-    def validate_vlanids(cls, value):
-        if isinstance(value, int):
-            cls.vlan_validator(value)
-        elif isinstance(value, ValueRange):
-            cls.vlan_validator(value.from_value)
-            cls.vlan_validator(value.to_value)
-        elif isinstance(value, list):
-            for v in value:
-                if isinstance(v, int):
-                    cls.vlan_validator(v)
-                if isinstance(v, ValueRange):
-                    cls.vlan_validator(v.from_value)
-                    cls.vlan_validator(v.to_value)
-
-        return value
 
     @field_validator("pcp", mode="after")
     @classmethod
@@ -400,8 +396,8 @@ class Stream(FLYNCBaseModel):
     name : str
         Unique name of the stream.
 
-    stream_identification : list of :class:`FrameFilter`
-        List of filters used to identify stream traffic.
+    stream_identification : list of :class:`FrameFilter`, optional
+        List of filters used to identify stream traffic (defaults to ``[]``).
 
     drop_at_ingress : bool, optional
         Whether to drop traffic at ingress. Default is False.
@@ -409,6 +405,7 @@ class Stream(FLYNCBaseModel):
     max_sdu_size : int, optional
         Maximum size of the Service Data Unit in bytes.
         Default is 1522 bytes.
+        Must be greater or equal to 0.
 
     policer : :class:`SingleRateTwoColorMarker`, \
     :class:`SingleRateThreeColorMarker`, \
@@ -424,7 +421,7 @@ class Stream(FLYNCBaseModel):
         Optional Asynchronous Traffic Shaping configuration for ingress streams.
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     stream_identification: List[FrameFilter] = Field([])
     drop_at_ingress: Optional[bool] = Field(default=False)
     max_sdu_size: Optional[int] = Field(default=1522, ge=0)
@@ -462,7 +459,7 @@ class TrafficClass(FLYNCBaseModel):
         The correct subclass is selected using the `type` discriminator.
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     priority: int = Field(..., ge=0, le=7)
     frame_priority_values: Annotated[
         Optional[List[int]],
@@ -512,7 +509,7 @@ class HTBFilter(FrameFilter):
         Priority of the filter.
     """
 
-    filter_priority: int = Field()
+    filter_priority: int = Field(ge=0)
 
 
 class ChildClass(FLYNCBaseModel):
@@ -540,10 +537,10 @@ class ChildClass(FLYNCBaseModel):
         Nested child classes under this HTB class.
     """
 
-    classid: int = Field()
-    rate: int = Field()
-    ceil: int = Field()
-    priority: int = Field()
+    classid: int = Field(ge=0)
+    rate: int = Field(ge=0)
+    ceil: int = Field(ge=0)
+    priority: int = Field(ge=0)
     filter: Annotated[
         Optional[List[HTBFilter]],
         BeforeValidator(none_to_empty_list),
@@ -577,7 +574,7 @@ class HTBInstance(FLYNCBaseModel):
     child_classes: list[ChildClass] = Field()
 
     @model_validator(mode="after")
-    def validate_htb_config(self):
+    def validate_htb_config(self) -> Self:
         """
         Validate the HTB (Hierarchical Token Bucket) configuration attached to the model instance.
 

@@ -111,13 +111,18 @@ def _collect_ext_fields(model_cls: type[BaseModel]) -> list[tuple[str, FieldInfo
     return ext_fields
 
 
-def _build_lines(model_cls: type[BaseModel], prefix: str) -> list[str]:
+def _build_lines(model_cls: type[BaseModel], prefix: str, seen: frozenset[type[BaseModel]] = frozenset()) -> list[str]:
     """
     Recursively build tree lines for all External-annotated fields of model_cls.
 
     prefix is the indentation string accumulated from parent calls — it grows by
     _PIPE or _SPACE each level depending on whether the parent was the last sibling.
+
+    seen tracks the model classes already visited on the current path, so a
+    self- or mutually-referencing model (e.g. a model that can nest itself)
+    terminates with a "(recursive)" marker instead of recursing forever.
     """
+    seen = seen | {model_cls}
     lines: list[str] = []
     ext_fields = _collect_ext_fields(model_cls)
 
@@ -144,22 +149,22 @@ def _build_lines(model_cls: type[BaseModel], prefix: str) -> list[str]:
         lines.append(f"{prefix}{connector}{req_mark}{display}")
 
         if not is_file:
-            lines.extend(_build_folder_children_lines(field_name, ann, child_prefix))
+            lines.extend(_build_folder_children_lines(field_name, ann, child_prefix, seen))
 
     return lines
 
 
-def _build_folder_children_lines(field_name: str, ann: Any, child_prefix: str) -> list[str]:
+def _build_folder_children_lines(field_name: str, ann: Any, child_prefix: str, seen: frozenset[type[BaseModel]]) -> list[str]:
     """Build the child lines for a folder-node field: list-item placeholder or nested model."""
     is_list, inner = _unwrap_type(ann)
     if not _is_pydantic_model(inner):
         return []
     if is_list:
-        return _build_list_item_lines(field_name, inner, child_prefix)
-    return _build_lines(inner, child_prefix)
+        return _build_list_item_lines(field_name, inner, child_prefix, seen)
+    return [f"{child_prefix}{_LAST}(recursive)"] if inner in seen else _build_lines(inner, child_prefix, seen)
 
 
-def _build_list_item_lines(field_name: str, inner: type[BaseModel], child_prefix: str) -> list[str]:
+def _build_list_item_lines(field_name: str, inner: type[BaseModel], child_prefix: str, seen: frozenset[type[BaseModel]]) -> list[str]:
     """
     Build placeholder lines for a List[Model] field.
 
@@ -168,13 +173,20 @@ def _build_list_item_lines(field_name: str, inner: type[BaseModel], child_prefix
     N items exist at runtime. If the item type has no External fields every
     item serialises to a single file (not a sub-directory), so a trailing "/"
     is omitted in that case.
+
+    If inner was already visited on this path (a model that can nest itself,
+    directly or through another model), the nested breakdown is replaced with
+    a "(recursive)" marker instead of recursing forever.
     """
     item_has_substructure = _has_external_fields(inner)
     item_placeholder = f"<{field_name}_item>" + ("/" if item_has_substructure else FLYNC_EXT)
 
     lines = [f"{child_prefix}│", f"{child_prefix}{_BRANCH}{item_placeholder}"]
     if item_has_substructure:
-        lines.extend(_build_lines(inner, child_prefix + _PIPE))
+        if inner in seen:
+            lines.append(f"{child_prefix}{_PIPE}{_LAST}(recursive)")
+        else:
+            lines.extend(_build_lines(inner, child_prefix + _PIPE, seen))
     lines.append(f"{child_prefix}│")
     lines.append(f"{child_prefix}{_LAST}...")
     return lines
@@ -204,7 +216,7 @@ def print_field_subtree(parent_cls: type[BaseModel], field_name: str) -> Path:
 
     if _is_pydantic_model(inner):
         if is_list:
-            lines.extend(_build_list_item_lines(field_name, inner, ""))
+            lines.extend(_build_list_item_lines(field_name, inner, "", frozenset()))
         else:
             # Single non-list folder — recurse directly
             lines.extend(_build_lines(inner, ""))

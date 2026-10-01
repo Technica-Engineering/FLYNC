@@ -1,0 +1,7 @@
+ports:
+  - name: rear_lamp_left_p1
+    mdi_config:
+      mode: base_t1s
+      speed: 10
+      topology: multidrop
+      duplex: half

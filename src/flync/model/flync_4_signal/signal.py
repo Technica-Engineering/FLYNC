@@ -8,7 +8,7 @@ data type and that placed bit ranges stay consistent.
 """
 
 from enum import Enum
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Self
 
 from pydantic import Field, field_serializer, field_validator, model_validator
 
@@ -147,6 +147,7 @@ class Signal(FLYNCBaseModel):
         Optional textual description of the signal.
     bit_length : int
         Length of the signal in bits.
+        Must be greater than 0.
     data_type : :class:`SignalDataType`
         Base data type of the signal.
     factor : float
@@ -176,7 +177,7 @@ class Signal(FLYNCBaseModel):
         linear-and-text-table conversion.
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     description: Optional[str] = Field(default=None)
     bit_length: int = Field(gt=0)
     data_type: SignalDataType = Field()
@@ -205,7 +206,7 @@ class Signal(FLYNCBaseModel):
         return v
 
     @model_validator(mode="after")
-    def _validate_bit_length_for_data_type(self) -> "Signal":
+    def _validate_bit_length_for_data_type(self) -> Self:
         natural = self.data_type.natural_bit_width()
         if self.data_type.is_complex_datattype():
             if natural is not None and (self.bit_length < natural or self.bit_length % natural != 0):
@@ -240,7 +241,7 @@ class Signal(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def _validate_limits(self) -> "Signal":
+    def _validate_limits(self) -> Self:
         if self.lower_limit is not None and self.upper_limit is not None:
             if self.lower_limit > self.upper_limit:
                 raise err_major(
@@ -253,13 +254,13 @@ class Signal(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def _validate_initial_value(self) -> "Signal":
+    def _validate_initial_value(self) -> Self:
         if self.initial_value is not None:
             _check_initial_value(self.initial_value, self.data_type, self.bit_length)
         return self
 
     @model_validator(mode="after")
-    def _validate_value_encoding(self) -> "Signal":
+    def _validate_value_encoding(self) -> Self:
         if self.value_encoding is None:
             return self
         dt = self.data_type
@@ -365,12 +366,12 @@ class SignalGroup(FLYNCBaseModel):
         Non-empty list of placed signal instances contained in this group.
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     description: Optional[str] = Field(default=None)
     signals: List[SignalInstance] = Field(min_length=1)
 
     @model_validator(mode="after")
-    def _validate_signals_no_overlap(self) -> "SignalGroup":
+    def _validate_signals_no_overlap(self) -> Self:
         """Reject signal instances whose ranges overlap within the group."""
         ranges = collect_bit_ranges(self.signals, _signal_instance_range)
         check_bit_ranges_no_overlap(f"SignalGroup '{self.name}'", ranges)
@@ -407,7 +408,7 @@ def _signal_instance_range(si: SignalInstance) -> Optional[BitRange]:
     )
 
 
-def _signal_group_footprint(sg: "SignalGroup") -> int:
+def _signal_group_footprint(sg: SignalGroup) -> int:
     """Bit footprint required by a :class:`SignalGroup`'s placed instances.
 
     Equals ``max(bit_position + bit_length)`` over all signal instances that

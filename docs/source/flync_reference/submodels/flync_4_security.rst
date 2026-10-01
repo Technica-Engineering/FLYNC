@@ -18,6 +18,7 @@ MACsec Configuration
    Find a YAML example for MACsec inside the :ref:`Controller example <controller>` (key macsec_config).
 
 .. autoclass:: flync.model.flync_4_security.MACsecConfig()
+.. autoclass:: flync.model.flync_4_security.CipherSuiteBaseModel()
 .. autoclass:: flync.model.flync_4_security.IntegrityWithoutConfidentiality()
 .. autoclass:: flync.model.flync_4_security.IntegrityWithConfidentiality()
 
@@ -33,4 +34,3 @@ Firewall Configuration
 
 .. autoclass:: flync.model.flync_4_security.Firewall()
 .. autoclass:: flync.model.flync_4_security.FirewallRule()
-

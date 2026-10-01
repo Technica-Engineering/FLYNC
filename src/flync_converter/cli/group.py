@@ -43,4 +43,3 @@ def _open_gui(ctx, _param, value):
 )
 def cli():
     """flync_converter CLI tool."""
-    pass

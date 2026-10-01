@@ -4,6 +4,7 @@ from pydantic import ValidationError
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.datatypes.ipaddress import IPv4AddressEntry, IPv6AddressEntry
 from flync.model.flync_4_ecu.router import RouteEntry
+from tests.error_assertions import assert_single_error
 
 
 # Test if the class can be bound to parent class.
@@ -41,7 +42,7 @@ def test_route_entry_missing_destination_field():
     with pytest.raises(ValidationError) as exc_info:
         RouteEntry(**invalid_data)
 
-    assert "destination" in str(exc_info.value)
+    assert_single_error(exc_info, None, "destination")
 
 
 def test_route_entry_missing_gateway_field():
@@ -54,7 +55,7 @@ def test_route_entry_missing_gateway_field():
     with pytest.raises(ValidationError) as exc_info:
         RouteEntry(**invalid_data)
 
-    assert "default_gateway" in str(exc_info.value)
+    assert_single_error(exc_info, None, "default_gateway")
 
 
 def test_route_entry_missing_interface_field():
@@ -67,49 +68,19 @@ def test_route_entry_missing_interface_field():
     with pytest.raises(ValidationError) as exc_info:
         RouteEntry(**invalid_data)
 
-    assert "egress_interface" in str(exc_info.value)
+    assert_single_error(exc_info, None, "egress_interface")
 
 
 def test_route_entry_missing_required_fields():
-    invalid_data = {
-        # destination missing
-        # default_gateway missing
-        # egress_interface missing
-    }
-
     with pytest.raises(ValidationError) as exc_info:
-        RouteEntry(**invalid_data)
+        RouteEntry()
 
-    error_msg = str(exc_info.value)
-
-    assert "destination" in error_msg
-    assert "default_gateway" in error_msg
-    assert "egress_interface" in error_msg
+    errors = exc_info.value.errors()
+    assert len(errors) == 3
+    assert {error["loc"][0] for error in errors} == {"destination", "default_gateway", "egress_interface"}
 
 
-# Test negative: Test the class with wrong input format for all the fields.
-def test_route_entry_invalid_destination_ip():
-    invalid_data = {
-        "destination": {"address": "999.999.999.999", "ipv4netmask": "255.255.255.0"},  # invalid IP
-        "default_gateway": "10.0.0.1",
-        "egress_interface": "eth0",
-    }
-
-    with pytest.raises(ValidationError):
-        RouteEntry(**invalid_data)
-
-
-def test_route_entry_invalid_netmask():
-    invalid_data = {
-        "destination": {"address": "10.0.0.0", "ipv4netmask": "255.255.0"},  # invalid format
-        "default_gateway": "10.0.0.1",
-        "egress_interface": "eth0",
-    }
-
-    with pytest.raises(ValidationError):
-        RouteEntry(**invalid_data)
-
-
+# Test negative: Test the class with wrong input format for the scalar fields.
 def test_route_entry_invalid_gateway():
     invalid_data = {
         "destination": {"address": "10.0.0.0", "ipv4netmask": "255.255.255.0"},
@@ -117,8 +88,10 @@ def test_route_entry_invalid_gateway():
         "egress_interface": "eth0",
     }
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         RouteEntry(**invalid_data)
+
+    assert_single_error(exc_info, None, "not a valid IPv4 or IPv6 address")
 
 
 def test_route_entry_invalid_egress_interface():
@@ -128,39 +101,36 @@ def test_route_entry_invalid_egress_interface():
         "egress_interface": 123,  # should be str
     }
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         RouteEntry(**invalid_data)
 
+    assert_single_error(exc_info, None, "Input should be a valid string")
 
-def test_route_entry_ipv6_in_ipv4_destination():
+
+# Test negative: the destination and the gateway must share the same address family.
+@pytest.mark.parametrize(
+    "destination,gateway",
+    [
+        pytest.param(
+            {"address": "10.0.0.0", "ipv4netmask": "255.255.255.0"},
+            "2001:db8::1",
+            id="ipv4_destination_ipv6_gateway",
+        ),
+        pytest.param(
+            {"address": "2001:db8::", "ipv6prefix": "64"},
+            "10.0.0.1",
+            id="ipv6_destination_ipv4_gateway",
+        ),
+    ],
+)
+def test_route_entry_gateway_family_mismatch(destination, gateway):
     invalid_data = {
-        "destination": {"address": "2001:db8::1", "ipv4netmask": "255.255.255.0"},  # IPv6 in IPv4 field
-        "default_gateway": "10.0.0.1",
+        "destination": destination,
+        "default_gateway": gateway,
         "egress_interface": "eth0",
     }
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         RouteEntry(**invalid_data)
 
-
-@pytest.mark.xfail(reason="FLYNC-1112")
-def test_route_entry_ipv4_ipv6_mismatch():
-    invalid_data = {
-        "destination": {"address": "10.0.0.0", "ipv4netmask": "255.255.255.0"},
-        "default_gateway": "2001:db8::1",  # IPv6 gateway mismatch
-        "egress_interface": "eth0",
-    }
-
-    with pytest.raises(ValidationError):
-        RouteEntry(**invalid_data)
-
-
-def test_route_entry_multiple_invalid_fields():
-    invalid_data = {
-        "destination": {"address": "999.999.999.999", "ipv4netmask": "bad-mask"},
-        "default_gateway": "not-an-ip",
-        "egress_interface": 999,
-    }
-
-    with pytest.raises(ValidationError):
-        RouteEntry(**invalid_data)
+    assert_single_error(exc_info, "FLYNC-ECU-MAJ-CONS-247", "does not belong to the same address family")

@@ -10,14 +10,25 @@ already carry markup.
 import re
 from pathlib import Path
 
-from rich.console import Console
 from rich.table import Table
 
 from flync.core.utils.exceptions_handling import is_semantic_validation_error
 from flync.sdk.context.diagnostics_result import DiagnosticsResult, WorkspaceState
+from flync_cli.utils.console import console
+from flync_cli.utils.styles import (
+    STYLE_DETAILS,
+    STYLE_ERROR_ID,
+    STYLE_ERROR_MSG,
+    STYLE_ERROR_TYPE,
+    STYLE_LOCATION,
+    STYLE_SOURCE,
+    STYLE_WARNING_ID,
+    STYLE_WARNING_MSG,
+    STYLE_WARNING_TYPE,
+    make_table,
+)
 
 ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;]*m")
-console = Console(force_terminal=True)
 VALIDATION_ERRORS: dict = {}
 ERRORS_HEADER = "\n[bold red]Errors:[/bold red]"
 
@@ -33,7 +44,7 @@ def _make_details_cell(sub_errors: str) -> Table | str:
         return ""
     lines = [ln for ln in sub_errors.split("\n") if ln]
     nested = Table(show_header=False, show_edge=False, show_lines=True, padding=(0, 1))
-    nested.add_column("detail", style="magenta", overflow="fold")
+    nested.add_column("detail", style=STYLE_DETAILS, overflow="fold")
     for i, line in enumerate(lines):
         nested.add_row(f"Error {i + 1}: {line}")
     return nested
@@ -85,14 +96,14 @@ def _classify_errors(errors_by_doc: dict) -> tuple[list, list]:
 
 def _make_error_table() -> Table:
     """Create a Rich Table for displaying validation errors with formatted columns."""
-    table = Table(show_lines=True)
+    table = make_table()
     table.add_column("#", justify="right")
-    table.add_column("ID", style="red", overflow="fold")
-    table.add_column("Error Type", style="red", overflow="fold")
-    table.add_column("Message", style="yellow", overflow="fold")
-    table.add_column("Location", style="cyan", overflow="fold")
-    table.add_column("Source", style="green", overflow="fold")
-    table.add_column("Details", style="magenta", overflow="fold")
+    table.add_column("ID", style=STYLE_ERROR_ID, overflow="fold")
+    table.add_column("Error Type", style=STYLE_ERROR_TYPE, overflow="fold")
+    table.add_column("Message", style=STYLE_ERROR_MSG, overflow="fold")
+    table.add_column("Location", style=STYLE_LOCATION, overflow="fold")
+    table.add_column("Source", style=STYLE_SOURCE, overflow="fold")
+    table.add_column("Details", style=STYLE_DETAILS, overflow="fold")
     return table
 
 
@@ -117,12 +128,12 @@ def render_warnings(result: DiagnosticsResult) -> None:
     if not rows:
         return
     console.print("\n[bold yellow]Warnings:[/bold yellow]")
-    table = Table(show_lines=True)
+    table = make_table()
     table.add_column("#", justify="right")
-    table.add_column("ID", style="yellow", overflow="fold")
-    table.add_column("Warning Type", style="yellow", overflow="fold")
-    table.add_column("Message", style="white", overflow="fold")
-    table.add_column("Source", style="green", overflow="fold")
+    table.add_column("ID", style=STYLE_WARNING_ID, overflow="fold")
+    table.add_column("Warning Type", style=STYLE_WARNING_TYPE, overflow="fold")
+    table.add_column("Message", style=STYLE_WARNING_MSG, overflow="fold")
+    table.add_column("Source", style=STYLE_SOURCE, overflow="fold")
     for idx, (doc_uri, err) in enumerate(rows, 1):
         raw_ctx = err.get("ctx", {})
         table.add_row(

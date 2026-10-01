@@ -5,6 +5,7 @@ from typing import (
     List,
     Literal,
     Optional,
+    Self,
 )
 
 from pydantic import (
@@ -24,6 +25,7 @@ from flync.core.datatypes.ipaddress import (
     IPv6AddressEntry,
 )
 from flync.core.utils.exceptions import Category, err_major, err_minor, warn
+from flync.model.flync_4_diagnostics import DoIPDiscoveryDeployment, DoIPServerDeployment
 from flync.model.flync_4_signal.forwarder import PDUForwarder
 from flync.model.flync_4_signal.pdu_deployment import PDUReceiver, PDUSender
 from flync.model.flync_4_someip import (
@@ -51,12 +53,23 @@ class DeploymentUnion(RootModel):
     :class:`~flync.model.flync_4_signal.pdu_deployment.PDUReceiver`
     or
     :class:`~flync.model.flync_4_signal.frame.PDUForwarder`
+    or
+    :class:`~flync.model.flync_4_diagnostics.DoIPServerDeployment`
+    or
+    :class:`~flync.model.flync_4_diagnostics.DoIPDiscoveryDeployment`
 
     """
 
-    root: SOMEIPServiceConsumer | SOMEIPServiceProvider | SOMEIPSDDeployment | PDUSender | PDUReceiver | PDUForwarder = Field(
-        discriminator="deployment_type"
-    )
+    root: (
+        SOMEIPServiceConsumer
+        | SOMEIPServiceProvider
+        | SOMEIPSDDeployment
+        | PDUSender
+        | PDUReceiver
+        | PDUForwarder
+        | DoIPServerDeployment
+        | DoIPDiscoveryDeployment
+    ) = Field(discriminator="deployment_type")
 
 
 def get_endpoint_type_from_address(
@@ -95,11 +108,11 @@ class Socket(FLYNCBaseModel):
         The type of the socket endpoint, which can be either "multicast" or "unicast".  This field is per default automatically determined
         based on the value of ``endpoint_address``, but can be overridden by explicitly providing a value.
 
-    multicast_tx : list of :class:`IPv4Multicast` or :class:`IPv6Multicast`, optional
+    multicast_tx : list of :class:`~pydantic.networks.IPvAnyAddress`, optional
         Multicast addresses that the socket is allowed to transmit to (only applicable for sockets with a multicast endpoint_type).
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     endpoint_address: IPvAnyAddress = Field()
     port_no: int = Field()
     deployments: Optional[List[DeploymentUnion]] = Field(default_factory=list)
@@ -135,7 +148,7 @@ class Socket(FLYNCBaseModel):
         return valid_deployment
 
     @model_validator(mode="after")
-    def validate_unique_forwarder_per_pdu(self) -> "Socket":
+    def validate_unique_forwarder_per_pdu(self) -> Self:
         """
         Raise ``err_major`` if two ``PDUForwarder`` deployments on this socket target the same ``pdu_ref``.
         """
@@ -159,7 +172,7 @@ class Socket(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_unique_someip_deployments(self) -> "Socket":
+    def validate_unique_someip_deployments(self) -> Self:
         """
         Raise ``err_major`` if two deployments of the same role (provider or consumer) on this socket target the
         same ``(service, major_version, instance_id)`` triple - indistinguishable on the wire.
@@ -182,6 +195,31 @@ class Socket(FLYNCBaseModel):
                 seen.add(key)
         return self
 
+    @model_validator(mode="after")
+    def validate_doip_deployment_protocol(self) -> Self:
+        """
+        Raise ``err_major`` if a ``doip_server`` deployment sits on a UDP socket, or a
+        ``doip_discovery`` deployment sits on a TCP socket - DoIP diagnostic messaging (ISO
+        13400) runs over TCP, DoIP discovery runs over UDP.
+        """
+
+        protocol = getattr(self, "protocol", None)
+        for dep_root in self.deployments or []:
+            dep = dep_root.root
+            if isinstance(dep, DoIPServerDeployment) and protocol != "tcp":
+                raise err_major(
+                    f"Socket '{self.name}': DoIPServerDeployment '{dep.name}' requires a TCP socket, found '{protocol}'",
+                    category=Category.COMPATIBILITY,
+                    error_number="274",
+                )
+            if isinstance(dep, DoIPDiscoveryDeployment) and protocol != "udp":
+                raise err_major(
+                    f"Socket '{self.name}': DoIPDiscoveryDeployment requires a UDP socket, found '{protocol}'",
+                    category=Category.COMPATIBILITY,
+                    error_number="275",
+                )
+        return self
+
     @field_serializer("endpoint_address")
     def serialize_endpoint_address(self, endpoint):
         if endpoint is not None:
@@ -202,37 +240,39 @@ class TCPOption(FLYNCBaseModel):
     tcp_profile_id : int
         Unique identifier of the TCP profile.
 
-    nagle : strict_bool
-        Enable or disable Nagle algorithm.
+    nagle : bool, optional
+        Enable or disable Nagle algorithm. Defaults to ``False``.
 
-    keepalive_enabled : bool
-        Enable or disable the TCP keep-alive option.
+    keepalive_enabled : bool, optional
+        Enable or disable the TCP keep-alive option. Defaults to ``True``.
 
-    keepidle : int
-        Seconds the connection must stay idle before the first
-        keep-alive probe is sent.
+    keepidle : int, optional
+        Seconds the connection must stay idle before the first keep-alive probe is sent.
+        Defaults to ``10``.
 
-    keepcount : int
-        Maximum number of keep-alive probes that may be sent before the
-        connection is dropped.
+    keepcount : int, optional
+        Maximum number of keep-alive probes that may be sent before the connection is dropped.
+        Defaults to ``10``.
 
-    keepintvl : int
-        Seconds between successive keep-alive probes.
+    keepintvl : int, optional
+        Seconds between successive keep-alive probes. Defaults to ``2``.
 
-    user_timeout : int
+    user_timeout : int, optional
         Maximum time in seconds that unacknowledged data may remain before the connection is closed.
+        Defaults to ``28``.
 
-    congestion_avoidance : str
-        Congestion-avoidance algorithm to use (e.g., ``Reno``, ``cubic``, or ``bbr``).
+    congestion_avoidance : Literal["reno", "cubic", "bbr"], optional
+        Congestion-avoidance algorithm to use. Defaults to ``"reno"``.
 
-    tcp_maxseg : int
-        Maximum segment size for outgoing TCP packets.
+    tcp_maxseg : int, optional
+        Maximum segment size for outgoing TCP packets. Defaults to ``1460``.
 
-    tcp_quickack : bool
-        Enable or disable the "quick-ack" feature.
+    tcp_quickack : bool, optional
+        Enable or disable the "quick-ack" feature. Defaults to ``False``.
 
-    tcp_syncnt : int
+    tcp_syncnt : int, optional
         Number of SYN retransmissions TCP may perform before aborting the connection attempt.
+        Defaults to ``6``.
     """
 
     tcp_profile_id: int = Field()
@@ -254,8 +294,8 @@ class UDPOption(FLYNCBaseModel):
 
     Parameters
     ----------
-    udp_cork : bool
-        Enables buffering of UDP messages before they are sent.
+    udp_cork : bool, optional
+        Enables buffering of UDP messages before they are sent. Defaults to ``False``.
     """
 
     udp_cork: Optional[StrictBool] = Field(default=False)
@@ -315,7 +355,7 @@ class IPv4AddressEndpoint(IPv4AddressEntry):
     sockets: List[Annotated[SocketTCP | SocketUDP, Field(discriminator="protocol")]] | None = Field(default_factory=list, exclude=True)
 
     @model_validator(mode="after")
-    def check_if_sockets_have_the_same_ip(self):
+    def check_if_sockets_have_the_same_ip(self) -> Self:
         """
         Validate that every socket is bound to the same IPv4 address as the one defined in the class.
 
@@ -323,7 +363,7 @@ class IPv4AddressEndpoint(IPv4AddressEntry):
             err_minor: If any socket's ``endpoint_address`` differs from ``self.address``.
         """
 
-        for socket in self.sockets:
+        for socket in self.sockets or []:
             if str(socket.endpoint_address) != str(self.address):
                 raise err_minor("Sockets must be tied to the same address as the IPv4 endpoint.", category=Category.CONSISTENCY, error_number="085")
 
@@ -344,7 +384,7 @@ class IPv6AddressEndpoint(IPv6AddressEntry):
     sockets: List[Annotated[SocketTCP | SocketUDP, Field(discriminator="protocol")]] | None = Field(default_factory=list, exclude=True)
 
     @model_validator(mode="after")
-    def check_if_sockets_have_the_same_ip(self):
+    def check_if_sockets_have_the_same_ip(self) -> Self:
         """
         Validate that every socket is bound to the same IPv6 address as the one defined in the class.
 
@@ -353,7 +393,7 @@ class IPv6AddressEndpoint(IPv6AddressEntry):
             differs from ``self.address``.
         """
 
-        for socket in self.sockets:
+        for socket in self.sockets or []:
             if str(socket.endpoint_address) != str(self.address):
                 raise err_minor("Sockets must be tied to the same address as the IPv6 endpoint.", category=Category.CONSISTENCY, error_number="086")
         return self

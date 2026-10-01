@@ -1,0 +1,13 @@
+connections:
+  # br0 bridges the controller's two physical interfaces at Layer 2. Each interface's link out to an
+  # ECU port is declared separately, in the ECU's topology.flync.yaml.
+  - type: switch_port_to_controller_interface
+    id: vconn1
+    switch: br0
+    switch_port: br0_p1
+    controller_interface: ecu1_controller1_iface1
+  - type: switch_port_to_controller_interface
+    id: vconn2
+    switch: br0
+    switch_port: br0_p2
+    controller_interface: ecu1_controller1_iface2

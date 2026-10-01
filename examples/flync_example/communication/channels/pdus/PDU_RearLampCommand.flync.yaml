@@ -1,0 +1,39 @@
+name: PDU_RearLampCommand
+type: standard
+length: 4
+pdu_usage: application
+description: >-
+  Rear Lamp control example.
+
+signals:
+  - bit_position: 0
+    endianness: LE
+    signal:
+      name: lamp_function
+      description: Which lamp function this command addresses.
+      bit_length: 8
+      data_type: uint8
+      value_encoding:
+        type: text_table
+        entries:
+          - value: 0
+            label: Off
+          - value: 1
+            label: TailLight
+          - value: 2
+            label: BrakeLight
+          - value: 3
+            label: RearFog
+          - value: 4
+            label: ReversingLight
+
+  - bit_position: 8
+    endianness: LE
+    signal:
+      name: brightness
+      description: Target brightness in percent.
+      bit_length: 8
+      data_type: uint8
+      lower_limit: 0
+      upper_limit: 100
+      unit: "%"

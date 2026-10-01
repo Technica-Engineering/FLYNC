@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Literal, Optional
+from typing import TYPE_CHECKING, List, Literal, Optional, Self
 
-from pydantic import Field, PrivateAttr, model_validator
+from pydantic import Field, model_validator
 
 if TYPE_CHECKING:
     from flync.model.flync_4_ecu.ecu import ECU
@@ -22,6 +22,8 @@ from flync.model.flync_4_ecu.phy import (
     XFI,
 )
 
+MULTI_SPEED_MIIS = (MII, RMII, SGMII, RGMII)
+
 
 class ECUPort(FLYNCBaseModel):
     """
@@ -36,7 +38,7 @@ class ECUPort(FLYNCBaseModel):
 
     mdi_config : :class:`~flync.model.flync_4_ecu.phy.BASET1` or :class:`~flync.model.flync_4_ecu.phy.BASET1S` or \
     :class:`~flync.model.flync_4_ecu.phy.BASET`
-        Media-dependent interface configuration, such as BASE-T1, BASE-T1S or BASE-T.
+        Media-dependent interface configuration, such as BASE-T1, BASE-T1S, or BASE-T.
 
     mii_config : :class:`~flync.model.flync_4_ecu.phy.MII` or :class:`~flync.model.flync_4_ecu.phy.RMII` or \
     :class:`~flync.model.flync_4_ecu.phy.SGMII` or :class:`~flync.model.flync_4_ecu.phy.RGMII`, optional
@@ -53,19 +55,19 @@ class ECUPort(FLYNCBaseModel):
         The type of the object generated. Set to ecu_port.
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     mdi_config: BASET1 | BASET1S | BASET = Field(
         default_factory=BASET1,
         discriminator="mode",
         description="how to use this",
     )
     mii_config: Optional[MII | RMII | SGMII | RGMII | XFI] = Field(default=None, discriminator="type")
-    _ecu: "ECU" | None = PrivateAttr(default=None)
+    _ecu: ECU | None = None
     _connected_components: List = []
-    _type: Literal["ecu_port"] = PrivateAttr(default="ecu_port")
+    _type: Literal["ecu_port"] = "ecu_port"
 
     @property
-    def ecu(self) -> "ECU" | None:
+    def ecu(self) -> ECU | None:
         return self._ecu
 
     @property
@@ -77,14 +79,29 @@ class ECUPort(FLYNCBaseModel):
         return self._connected_components
 
     @model_validator(mode="after")
-    def verify_mdi_and_mii_config_have_same_speed(self):
+    def verify_mdi_and_mii_config_speeds_are_compatible(self) -> Self:
         """
-        Ensure that, when both MII and MDI configurations are present, their ``speed`` fields match.
+        Ensure the MDI speed is one the MII configuration can carry.
+
+        MII, RMII, SGMII and RGMII each cover a range of link speeds, by scaling their clock (MII, RGMII) or by
+        replicating symbols at a fixed rate (RMII, SGMII), so their ``speed`` is a ceiling the MDI may sit below.
+        XFI runs at 10G only, so there the two speeds have to be equal.
         """
 
-        if self.mii_config is not None and self.mii_config.speed != self.mdi_config.speed:
+        if self.mii_config is None:
+            return self
+
+        mii_speed = self.mii_config.speed
+        if mii_speed is None or not isinstance(self.mii_config, MULTI_SPEED_MIIS):
+            speed_is_compatible = self.mdi_config.speed == mii_speed
+        else:
+            speed_is_compatible = self.mdi_config.speed <= mii_speed
+
+        if not speed_is_compatible:
             raise err_major(
-                f"MII and MDI config should have the same speed in ECU Ports. Port {self.name}", category=Category.CONSISTENCY, error_number="081"
+                f"MII and MDI config should have a compatible speed in ECU Ports. Port {self.name}",
+                category=Category.CONSISTENCY,
+                error_number="081",
             )
         return self
 

@@ -17,6 +17,7 @@ The source is structured in 3 main parts:
 - :doc:`flync_reference/core`  -   Additional functionalities for the model, such as utils, field annotations and validators.
 - :doc:`flync_reference/model`  -   The heart of FLYNC is a pydantic model. Find a comprehensive reference of the model in this section.
 - :doc:`flync_reference/sdk`  -  Pythonic API for developers to interact with the project modules and integrating FLYNC capabilities into applications.
+- :doc:`model_change_history`  -  How the model and public API changed between releases, and what to update when updating a project.
 
 
 .. _writing_flync_config:
@@ -162,7 +163,6 @@ One interface directory consists of:
        │   ├── 📂❗ ecu_1_controller_1
        |   │   |
        │   │   ├── 📄❗ controller_metadata.flync.yaml
-       │   │   ├── 📄   virtual_switch.flync.yaml
        |   │   |
        │   │   └── 📂❗ ethernet_interfaces
        |   │       |
@@ -237,13 +237,38 @@ Omit the corresponding sub-folder entirely when the system does not use that cha
    |  │   ├── 📄 example_pdu.flync.yaml
    |  │   └── 📄 ...
    │
-   └── 📂 someip
+   ├── 📂 someip
+   |  |
+   |  ├── 📂 services
+   |  │   ├── 📄 someip_service.flync.yaml
+   |  │   └── 📄 ...
+   |  |
+   |  └── 📄 sd_config.flync.yaml
+   │
+   └── 📂 diagnostics
       |
-      ├── 📂 services
-      │   ├── 📄 someip_service.flync.yaml
-      │   └── 📄 ...
+      ├── 📂 doip
+      │   └── 📄 timings.flync.yaml
       |
-      └── 📄 sd_config.flync.yaml
+      └── 📂 uds
+          |
+          ├── 📄 timings.flync.yaml
+          |
+          ├── 📂 servers
+          │   ├── 📄 example_server.flync.yaml
+          │   └── 📄 ...
+          |
+          ├── 📂 dids
+          │   ├── 📄 example_did.flync.yaml
+          │   └── 📄 ...
+          |
+          ├── 📂 routines
+          │   ├── 📄 example_routine.flync.yaml
+          │   └── 📄 ...
+          |
+          └── 📂 dtcs
+              ├── 📄 example_dtc.flync.yaml
+              └── 📄 ...
 
 .. important::
 
@@ -257,6 +282,16 @@ Omit the corresponding sub-folder entirely when the system does not use that cha
 
    ✔ Each PDU is defined in its own file inside ``channels/pdu``.
 
+   ✔ Each diagnostic protocol has its own sub-directory inside ``diagnostics`` (``doip``, ``uds``).
+
+   ✔ Each UDS server is defined in its own file inside ``diagnostics/uds/servers``.
+
+   ✔ Each DID is defined in its own file inside ``diagnostics/uds/dids``.
+
+   ✔ Each routine is defined in its own file inside ``diagnostics/uds/routines``.
+
+   ✔ Each DTC is defined in its own file inside ``diagnostics/uds/dtcs``.
+
 .. seealso::
 
    Explore the whole communication config further:
@@ -264,6 +299,7 @@ Omit the corresponding sub-folder entirely when the system does not use that cha
    - :ref:`Communication Config <communication>`
    - :ref:`TCPOptions <tcp_option>`
    - :ref:`SOME/IP Config <someip>`
+   - :ref:`Diagnostics Config <diagnostics>`
    - :ref:`Channel Config<channel_config>`
    - :ref:`CAN & LIN Bus<bus>`
    - :ref:`Signals & PDU<signal>`

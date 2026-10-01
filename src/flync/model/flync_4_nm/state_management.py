@@ -21,15 +21,19 @@ validation and never modelled: for a CAN bus the proxy is the entity that
 feeds the group's NM frame onto that bus; for a LIN bus - which carries no NM
 message - the proxy is a LIN master that drives the LIN sleep, either as the
 source of the group state (e.g. a central gateway) or after receiving it on
-another bus. A CAN bus supports either variant, chosen per bus - node-level
-(its ECUs / controllers, per function) or bus-level (the whole bus); a LIN bus
-is bus-level only; Ethernet is node-level. A CAN bus never mixes both variants
-(enforced in validation); a LIN master may additionally hold its own
-membership in the same group (e.g. a central gateway that also participates
-with its own functions). Richer state dimensions (e.g.
-eFuse states)
-are explicitly future scope. Ethernet-segment-level membership is explicitly
-out of scope for now - segments have no config identity yet.
+another bus.
+
+A CAN bus supports either variant, chosen per bus - node-level (its ECUs /
+controllers, per function) or bus-level (the whole bus); a LIN bus is
+bus-level only; point-to-point Ethernet is node-level. A CAN bus never mixes
+both variants (enforced in validation); LIN is exempt from that rule. A LIN
+master may additionally hold its own membership in the same group (e.g. a
+central gateway that also participates with its own functions). Richer state
+dimensions (e.g. eFuse states) are explicitly future scope.
+
+
+A multidrop segment is node-level like any other Ethernet: its nodes are IP
+hosts running their own NM, so they hold their own memberships.
 
 Memberships are transport-independent: NM semantics are never expressed via
 socket- or frame-level config. The group's NM PDU is bound to transports
@@ -40,7 +44,7 @@ path). Until app-level membership lands with flync_4_app, controller-level
 membership is the documented recommendation for multi-controller ECUs.
 """
 
-from typing import TYPE_CHECKING, Annotated, Dict, List, Literal, NamedTuple, Optional
+from typing import TYPE_CHECKING, Annotated, Dict, List, Literal, NamedTuple, Optional, Self
 
 from pydantic import BeforeValidator, Field, model_validator
 
@@ -100,19 +104,19 @@ class AnnouncementPhaseTiming(FLYNCBaseModel):
     ----------
     duration_ms : int
         Total duration of the announcement phase in milliseconds, during which
-        every member transmits so the member set can resynchronize.
+        every member transmits so the member set can resynchronize. Must be greater than 0.
 
     burst_count : int, optional
         Number of NM PDUs sent back-to-back at the start of the phase (the
         initial burst) at ``burst_cycle_time_ms`` before the normal cadence
         resumes. Must be set together with ``burst_cycle_time_ms``; the burst
-        must fit within ``duration_ms``.
+        must fit within ``duration_ms``. Must be greater than 0.
 
     burst_cycle_time_ms : int, optional
         Faster transmission period used for those initial burst PDUs to
         propagate the state change quickly, before falling back to the group's
         ``cycle_time_ms``. Must be set together with ``burst_count`` and be
-        shorter than ``cycle_time_ms``.
+        shorter than ``cycle_time_ms``. Must be greater than 0.
     """
 
     duration_ms: int = Field(gt=0)
@@ -120,7 +124,7 @@ class AnnouncementPhaseTiming(FLYNCBaseModel):
     burst_cycle_time_ms: Optional[int] = Field(default=None, gt=0)
 
     @model_validator(mode="after")
-    def check_burst_pair(self):
+    def check_burst_pair(self) -> Self:
         """Raise a major error when only one of the two burst fields is set."""
         burst_set = (self.burst_count is not None, self.burst_cycle_time_ms is not None)
         if any(burst_set) and not all(burst_set):
@@ -145,12 +149,12 @@ class SleepTiming(FLYNCBaseModel):
         bit is still requested the network stays awake regardless of it. The
         timer restarts on every NM PDU sent or received, so ongoing NM traffic
         keeps the group awake; actual sleep follows only once every registered
-        bit is released and ``wait_before_sleep_ms`` has elapsed.
+        bit is released and ``wait_before_sleep_ms`` has elapsed. Must be greater than 0.
 
     wait_before_sleep_ms : int
         Time in milliseconds a node waits, after the network has gone quiet
         and all its registered bits are released, before it finally enters
-        sleep - the last delay of the sleep progression.
+        sleep - the last delay of the sleep progression. Must be greater than 0.
     """
 
     timeout_ms: int = Field(gt=0)
@@ -180,7 +184,7 @@ class GroupTiming(FLYNCBaseModel):
 
     cycle_time_ms : int
         Cyclic transmission period of the NM PDU in milliseconds during normal
-        operation.
+        operation. Must be greater than 0.
 
     announcement : AnnouncementPhaseTiming, optional
         Timing of the announcement phase that runs on state changes (e.g.
@@ -196,7 +200,7 @@ class GroupTiming(FLYNCBaseModel):
         timing parameters, carried through untouched (never interpreted).
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     description: Optional[str] = Field(default=None)
     cycle_time_ms: int = Field(gt=0)
     announcement: Optional[AnnouncementPhaseTiming] = Field(default=None)
@@ -204,7 +208,7 @@ class GroupTiming(FLYNCBaseModel):
     extensions: Optional[Dict[str, str]] = Field(default=None)
 
     @model_validator(mode="after")
-    def check_consistency(self):
+    def check_consistency(self) -> Self:
         """Validate the cross-phase timer relationships (sleep timeout, and the optional announcement burst)."""
         if self.sleep.timeout_ms <= self.cycle_time_ms:
             raise err_major(
@@ -226,7 +230,7 @@ class GroupTiming(FLYNCBaseModel):
                     category=Category.VALUE_RANGE,
                     error_number="205",
                 )
-            if announcement.burst_count * announcement.burst_cycle_time_ms > announcement.duration_ms:
+            if announcement.burst_count is not None and announcement.burst_count * announcement.burst_cycle_time_ms > announcement.duration_ms:
                 raise err_major(
                     "timing profile '{name}': the announcement burst ({count} x {burst} ms) does not fit within the "
                     "announcement duration_ms ({duration})",
@@ -273,7 +277,7 @@ class StateManagementGroup(FLYNCBaseModel):
         per-group settings without a schema change.
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     nm_pdu: str = Field()
     timing_profile: str = Field()
     description: Optional[str] = Field(default=None)
@@ -318,13 +322,13 @@ class StateMembershipRef(FLYNCBaseModel):
         interpreted).
     """
 
-    group: str = Field()
+    group: str = Field(min_length=1)
     role: Literal["participant", "observer"] = Field(default="participant")
     relevance_bits: Optional[List[str]] = Field(default=None)
     extensions: Optional[Dict[str, str]] = Field(default=None)
 
     @model_validator(mode="after")
-    def observer_owns_no_bit(self):
+    def observer_owns_no_bit(self) -> Self:
         """Raise a major error when an observer membership defines relevance bits."""
         if self.role == "observer" and self.relevance_bits:
             raise err_major(
@@ -335,7 +339,7 @@ class StateMembershipRef(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def no_duplicate_bits(self):
+    def no_duplicate_bits(self) -> Self:
         """Raise a major error when the same relevance bit is listed more than once."""
         if self.relevance_bits and len(self.relevance_bits) != len(set(self.relevance_bits)):
             raise err_major(
@@ -358,11 +362,11 @@ class StateManagementConfig(FLYNCBaseModel):
 
     Parameters
     ----------
-    groups : list of :class:`StateManagementGroup`
-        The central registry of state management groups.
+    groups : list of :class:`StateManagementGroup`, optional
+        The central registry of state management groups. Defaults to an empty list.
 
-    timing_profiles : list of :class:`GroupTiming`
-        The reusable NM timing profiles referenced by the groups.
+    timing_profiles : list of :class:`GroupTiming`, optional
+        The reusable NM timing profiles referenced by the groups. Defaults to an empty list.
     """
 
     groups: Annotated[
@@ -377,7 +381,7 @@ class StateManagementConfig(FLYNCBaseModel):
     ] = Field(default=[])
 
     @model_validator(mode="after")
-    def validate_unique_names(self):
+    def validate_unique_names(self) -> Self:
         """Raise a major error when two groups, or two timing profiles, share a name."""
         validate_list_items_unique([group.name for group in self.groups], "state management groups (name)")
         validate_list_items_unique([profile.name for profile in self.timing_profiles], "state management timing profiles (name)")
@@ -425,5 +429,5 @@ def _iter_buses(model: "FLYNCModel"):
     channels = getattr(model.communication, "channels", None) if model.communication else None
     if channels is None:
         return
-    yield from channels.can_buses or []
-    yield from channels.lin_buses or []
+    for buses in (channels.can_buses, channels.lin_buses):
+        yield from buses or []

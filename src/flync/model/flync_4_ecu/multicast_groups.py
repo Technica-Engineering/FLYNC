@@ -6,7 +6,7 @@ MAC) along with the direction (tx/rx), VLAN and optional source IP.
 """
 
 from ipaddress import IPv4Address, IPv6Address
-from typing import Annotated, Literal, Optional
+from typing import Annotated, Literal, Optional, Self
 
 from pydantic import AfterValidator, Field, model_validator
 from pydantic.networks import IPvAnyAddress
@@ -24,17 +24,19 @@ class MulticastGroupMembership(FLYNCBaseModel):
 
     Parameters
     ----------
-    group : IPv4Multicast or IPv6Multicast or MACAddressMulticast
+    group : :class:`~pydantic.networks.IPvAnyAddress` or :class:`~MacAddress`
         Multicast group address.
     description : str, optional
         Description of the multicast group membership.
-    mode : "tx" or "rx", optional
+    mode : Literal["tx"] or Literal["rx"], optional
         Mode of multicast group membership.
     vlan : int, optional
         VLAN ID associated with the multicast group membership.
         Use ``None`` for untagged.
-    src_ip : str, optional
+    src_ip : :class:`~pydantic.networks.IPvAnyAddress`, optional
         Source IP address. Only applicable for "tx" mode.
+    solicited_node_multicast : bool, optional
+        Whether this is a solicited node multicast address (defaults to ``False``).
     """
 
     group: Annotated[
@@ -49,7 +51,7 @@ class MulticastGroupMembership(FLYNCBaseModel):
     _interface: EthernetInterfaceConfig | None = None
 
     @model_validator(mode="after")
-    def validate_src_ip_set_on_tx_ip_groups(self):
+    def validate_src_ip_set_on_tx_ip_groups(self) -> Self:
         if (isinstance(self.group, (IPv4Address | IPv6Address))) and self.mode == "tx" and not self.src_ip:
             raise err_minor(
                 f"Multicast group membership for {self.group} ({self.mode} / VLAN {self.vlan} ) could not be defined."

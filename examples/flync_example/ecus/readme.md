@@ -1,1 +1,0 @@
-This is a dummy file to ensure the loader isn't having problems loading a workspace with extra files.

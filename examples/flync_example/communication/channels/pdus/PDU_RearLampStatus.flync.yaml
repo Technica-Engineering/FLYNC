@@ -1,0 +1,49 @@
+name: PDU_RearLampStatus
+type: standard
+length: 4
+pdu_usage: application
+description: >-
+  What a rear lamp reports back.
+
+signals:
+  - bit_position: 0
+    endianness: LE
+    signal:
+      name: actual_brightness
+      description: Measured brightness in percent.
+      bit_length: 8
+      data_type: uint8
+      lower_limit: 0
+      upper_limit: 100
+      unit: "%"
+
+  - bit_position: 8
+    endianness: LE
+    signal:
+      name: led_string_fault
+      description: Bitmask of failed LED strings, one bit per string.
+      bit_length: 8
+      data_type: uint8
+      value_encoding:
+        type: bitmask_flags
+        flags:
+          - mask: 0x01
+            label: TailString
+          - mask: 0x02
+            label: BrakeString
+          - mask: 0x04
+            label: IndicatorString
+          - mask: 0x08
+            label: FogString
+
+  - bit_position: 16
+    endianness: LE
+    signal:
+      name: board_temperature
+      description: Lamp board temperature.
+      bit_length: 8
+      data_type: uint8
+      lower_limit: 0
+      upper_limit: 200
+      offset: -40
+      unit: degC

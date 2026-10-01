@@ -1,5 +1,6 @@
 """Tests for the generate_system_uml CLI command and node-builder helpers."""
 
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -36,8 +37,11 @@ from flync_cli.commands.generate_system_uml import (
     generate_intra_ecu_uml,
     parse_and_generate_uml,
 )
+from tests.multidrop_workspace import build_multidrop_model
 
-from .helpers import make_ecu, make_interface, make_port
+from .cli_assertions import assert_cli_ok
+from .helpers import make_controller, make_ecu, make_interface, make_port
+from .rich_output import plain
 
 runner = CliRunner()
 
@@ -54,12 +58,18 @@ def _empty_all_nodes():
         "ecu_data": {},
         "included_ecus": set(),
         "internally_connected_ports": set(),
+        # Where late declarations go. parse_and_generate_uml sets this to the line after the skinparam block.
+        "declaration_index": 1,
     }
 
 
 def _make_ws():
+    """A workspace whose single ECU carries one Ethernet controller, so it lands on the diagram."""
     ws = MagicMock()
     ecu = make_ecu()
+    ecu.ports = []
+    ecu.controllers = [make_controller()]
+    ecu.switches = []
     ws.flync_model.get_all_ecus.return_value = [ecu.name]
     ws.flync_model.get_ecu_by_name.return_value = ecu
     ws.flync_model.ecus = [ecu]
@@ -80,6 +90,13 @@ class TestAddEcuPortNodes:
         ecu_nodes = {"ports": set()}
         node_types = {}
         add_ecu_port_nodes([], ecu_nodes, node_types)
+        assert len(ecu_nodes["ports"]) == 0
+
+    def test_none_ports(self):
+        """CAN/LIN-only ECUs declare no ports, so ``ecu.ports`` is ``None``."""
+        ecu_nodes = {"ports": set()}
+        node_types = {}
+        add_ecu_port_nodes(None, ecu_nodes, node_types)
         assert len(ecu_nodes["ports"]) == 0
 
 
@@ -664,9 +681,10 @@ class TestAddInterEcuUml:
 class TestParseAndGenerateUml:
     def test_basic_output_starts_and_ends(self):
         model = MagicMock()
-        lines = parse_and_generate_uml(model, None, [], [], [])
+        lines, included_ecus = parse_and_generate_uml(model, None, [], [], [])
         assert lines[0] == "@startuml"
         assert lines[-1] == "@enduml"
+        assert included_ecus == set()
 
     @pytest.mark.skip(reason="Review again. Mock broken.")
     def test_ecu_with_controller_appears_in_uml(self):
@@ -682,7 +700,7 @@ class TestParseAndGenerateUml:
         ecu.topology.connections = []
         model = MagicMock()
         model.get_ecu_by_name.return_value = ecu
-        lines = parse_and_generate_uml(model, None, [], [ecu], [])
+        lines, _ = parse_and_generate_uml(model, None, [], [ecu], [])
         assert any("ECU_A" in line for line in lines)
         assert any("CTRL0" in line for line in lines)
 
@@ -693,7 +711,7 @@ class TestParseAndGenerateUml:
         conn.ecu1_port.name = "PA"
         conn.ecu2_port.name = "PB"
         conn.id = "link1"
-        lines = parse_and_generate_uml(model, None, [], [], [conn])
+        lines, _ = parse_and_generate_uml(model, None, [], [], [conn])
         assert any("O--O" in line for line in lines)
 
 
@@ -701,16 +719,11 @@ class TestGenerateSystemUmlCommand:
 
     def test_exits_zero_with_valid_workspace(self, tmp_path):
         ws, ecu = _make_ws()
-        ecu.ports = []
-        ecu.controllers = []
-        ecu.switches = []
         output_file = str(tmp_path / "out.puml")
-        mock_result = MagicMock()
-        mock_result.workspace = ws
-        mock_result.errors = {}
-        with patch("flync_cli.commands.generate_system_uml", return_value=mock_result):
+        with patch("flync_cli.commands.generate_system_uml.load_workspace", return_value=ws):
             result = runner.invoke(app, [str(tmp_path), "--output", output_file])
         assert result.exit_code == 0
+        assert f'package "{ecu.name}"' in Path(output_file).read_text()
 
     @pytest.mark.skip(reason="Review again.")
     def test_validate_failure_exits(self, tmp_path):
@@ -720,14 +733,8 @@ class TestGenerateSystemUmlCommand:
 
     def test_all_info_flags(self, tmp_path):
         ws, ecu = _make_ws()
-        ecu.ports = []
-        ecu.controllers = []
-        ecu.switches = []
         output_file = str(tmp_path / "out.puml")
-        mock_result = MagicMock()
-        mock_result.workspace = ws
-        mock_result.errors = {}
-        with patch("flync_cli.commands.generate_system_uml", return_value=mock_result):
+        with patch("flync_cli.commands.generate_system_uml.load_workspace", return_value=ws):
             result = runner.invoke(
                 app,
                 [
@@ -744,15 +751,8 @@ class TestGenerateSystemUmlCommand:
 
     def test_target_ecu_flag(self, tmp_path):
         ws, ecu = _make_ws()
-        ecu.ports = []
-        ecu.controllers = []
-        ecu.switches = []
-        ws.flync_model.get_ecu_by_name.return_value = ecu
         output_file = str(tmp_path / "out.puml")
-        mock_result = MagicMock()
-        mock_result.workspace = ws
-        mock_result.errors = {}
-        with patch("flync_cli.commands.generate_system_uml", return_value=mock_result):
+        with patch("flync_cli.commands.generate_system_uml.load_workspace", return_value=ws):
             result = runner.invoke(
                 app,
                 [str(tmp_path), "--output", output_file, "--target-ecu", "ECU1"],
@@ -761,12 +761,9 @@ class TestGenerateSystemUmlCommand:
 
     def test_write_error_exits_nonzero(self, tmp_path):
         ws, ecu = _make_ws()
-        ecu.ports = []
-        ecu.controllers = []
-        ecu.switches = []
         output_file = str(tmp_path / "out.puml")
         with (
-            patch("flync_cli.commands.generate_system_uml.run_validation", return_value=ws),
+            patch("flync_cli.commands.generate_system_uml.load_workspace", return_value=ws),
             patch("flync_cli.commands.generate_system_uml.Path") as mock_path_cls,
         ):
             mock_p = MagicMock()
@@ -776,3 +773,138 @@ class TestGenerateSystemUmlCommand:
             result = runner.invoke(app, [str(tmp_path), "--output", output_file])
         assert result.exit_code != 0
         assert "disk full" in result.output
+
+
+class TestWorkspaceWithoutEthernet:
+    """
+    A CAN/LIN-only workspace has no ethernet_topology, and its ECUs have no ports and no switches.
+
+    All three are Optional in the model and were dereferenced unguarded, so pointing the generator at examples/can_lin_example raised
+    AttributeError. Nothing crashes now, but nothing is drawable either: the command says so instead of writing a bare
+    @startuml/@enduml pair.
+    """
+
+    CAN_LIN = Path(__file__).parents[2] / "examples" / "can_lin_example"
+
+    def test_can_lin_workspace_warns_and_writes_nothing(self, tmp_path):
+        output_file = tmp_path / "out.puml"
+        result = runner.invoke(app, [str(self.CAN_LIN), "--output", str(output_file)])
+
+        assert_cli_ok(result)
+        assert "no Ethernet interfaces and no switches" in plain(result.output)
+        assert "CAN/LIN-only systems are not supported yet by this System UML generator" in plain(result.output)
+        assert not output_file.exists()
+
+    def test_ecu_without_ports_or_switches_is_skipped_not_fatal(self, tmp_path):
+        """``ports`` and ``switches`` arrive as None, not as an empty list."""
+
+        ws, ecu = _make_ws()
+        ecu.ports = None
+        ecu.switches = None
+        ecu.controllers = []
+        output_file = tmp_path / "out.puml"
+        with patch("flync_cli.commands.generate_system_uml.load_workspace", return_value=ws):
+            result = runner.invoke(app, [str(tmp_path), "--output", str(output_file)])
+
+        assert_cli_ok(result)
+        assert "not supported yet by this System UML generator" in plain(result.output)
+        assert not output_file.exists()
+
+    def test_vlan_filter_that_matches_nothing_names_the_vlan(self, tmp_path):
+        """An empty diagram from a VLAN filter is a different problem, and says so."""
+
+        ws, _ = _make_ws()
+        output_file = tmp_path / "out.puml"
+        with patch("flync_cli.commands.generate_system_uml.load_workspace", return_value=ws):
+            result = runner.invoke(app, [str(tmp_path), "--output", str(output_file), "--vlan-id", "999"])
+
+        assert_cli_ok(result)
+        assert "no Ethernet interface or switch port carries VLAN 999" in plain(result.output)
+        assert "CAN/LIN-only" not in plain(result.output)
+        assert not output_file.exists()
+
+
+class TestEthernetMultidropRendering:
+    """
+    A segment has to appear on the diagram, and it has to appear as a shared medium.
+
+    Nothing else draws it as one: the inter-ECU pass renders point-to-point links, so a segment's nodes would sit on the diagram with
+    only their ECU-internal link and nothing joining them.  Built from Python so the class does not lean on ``flync_example``.
+    """
+
+    @staticmethod
+    def _generate(vlan_id=None):
+        from flync_cli.commands.generate_system_uml import parse_and_generate_uml
+
+        model = build_multidrop_model()
+        uml_lines, _included_ecus = parse_and_generate_uml(model, vlan_id, [], model.ecus, model.topology.ethernet_topology.connections)
+        return uml_lines
+
+    def test_segment_is_drawn_as_a_queue_with_every_node_attached(self):
+        lines = self._generate()
+
+        assert [line for line in lines if line.startswith("queue ") and "RearLampSegment" in line]
+        attached = [line for line in lines if line.startswith("seg_RearLampSegment -down- ")]
+        assert len(attached) == 4
+
+    def test_the_coordinator_is_labelled_as_such(self):
+        """Slot 0 is what makes a node the coordinator, and the diagram is where that is worth seeing."""
+
+        lines = self._generate()
+
+        assert any(line.endswith("[z1_p2] : slot 0 (coordinator)") for line in lines)
+        assert any(line.endswith("[rear_lamp_left_p1] : slot 1") for line in lines)
+
+    def test_nodes_are_ordered_by_node_id(self):
+        """The order on the diagram is the order of the PLCA cycle, which is the order the transmit opportunities come round."""
+
+        lines = [line for line in self._generate() if line.startswith("seg_RearLampSegment -down- ")]
+
+        assert [line.split(" : ")[1] for line in lines] == ["slot 0 (coordinator)", "slot 1", "slot 2", "slot 3"]
+
+    def test_ecu_packages_follow_the_plca_cycle(self):
+        """
+        The segment reads like a bus: coordinator first, then each node in the order its transmit opportunity comes round.
+
+        PlantUML lays siblings out in declaration order, so the package order is the only handle on this. The caller collects ECUs in a
+        set, which without sorting means hash order and a diagram that can differ between runs of the same workspace.
+        """
+
+        packages = [line for line in self._generate() if line.startswith('package "')]
+
+        names = [line.split('"')[1] for line in packages]
+
+        # The four segment nodes lead, in node id order; the rest of the workspace follows by name.
+        assert names[:4] == ["zonal_platform1", "rear_lamp_left", "rear_lamp_center", "rear_lamp_right"]
+        assert names[4:] == sorted(names[4:])
+
+    def test_target_ecu_draws_only_its_own_node(self):
+        """Under --target-ecu the rest of the segment must not appear as bare components hanging off the queue."""
+
+        from flync_cli.commands.generate_system_uml import parse_and_generate_uml
+
+        model = build_multidrop_model()
+        target = [ecu for ecu in model.ecus if ecu.name == "rear_lamp_left"]
+        lines, _ = parse_and_generate_uml(model, None, [], target, [])
+
+        edges = [line for line in lines if line.startswith("seg_RearLampSegment -down- ")]
+        assert edges == ["seg_RearLampSegment -down- [rear_lamp_left_p1] : slot 1"]
+        assert not any("z1_p2" in line or "rear_lamp_right_p1" in line or "rear_lamp_center_p1" in line for line in lines)
+
+    def test_nodes_are_laid_out_side_by_side_but_not_chained(self):
+        """
+        The nodes sit next to each other under the segment, and nothing visible connects them to one another.
+
+        A chain would say node 1 sits between 0 and 2 and passes data along. A mixing segment does not work that way: every node taps the
+        same medium through its own stub, which is exactly why arbitration needs PLCA. So the ordering is done with hidden edges.
+        """
+
+        lines = self._generate()
+
+        hidden = [line for line in lines if "-[hidden]right-" in line]
+        assert len(hidden) == 3
+
+        # Only an edge with a segment port at BOTH ends would be a chain. A port wired to its own switch port or interface is the
+        # ordinary ECU-internal link and belongs on the diagram.
+        node_to_node = [line for line in lines if line.count("[rear_lamp_") == 2 and "-[hidden]" not in line]
+        assert node_to_node == []

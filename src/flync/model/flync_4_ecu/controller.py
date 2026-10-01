@@ -1,14 +1,19 @@
-"""Defines the Controller, EthernetInterfaceConfig, and EthernetInterface models for FLYNC."""
+"""
+Defines the Controller, EthernetInterfaceConfig, and EthernetInterface models for FLYNC.
 
-from typing import Annotated, List, Literal, Optional
+``Controller`` declares three fields whose types live in modules that import this one —
+``ComputeNode``, ``Switch``, and ``ControllerTopology``. They are therefore forward references
+here, resolved by the wiring at the bottom of :mod:`flync.model.flync_4_ecu`.
+"""
+
+from functools import partial
+from typing import TYPE_CHECKING, Annotated, Any, List, Literal, Optional, Self
 
 from pydantic import (
     AfterValidator,
     BeforeValidator,
     Field,
-    PrivateAttr,
     field_serializer,
-    field_validator,
     model_validator,
 )
 from pydantic.networks import IPvAnyAddress
@@ -22,7 +27,7 @@ from flync.core.annotations import (
 )
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.datatypes.macaddress import FLYNCMacAddress
-from flync.core.utils.exceptions import Category, err_fatal, err_major, err_minor, warn
+from flync.core.utils.exceptions import Category, err_fatal, err_major, err_minor
 from flync.core.validators.address import validate_multicast_list, validate_vlan_id
 from flync.core.validators.connection_compatibility import (
     validate_ingress_streams_fields,
@@ -49,7 +54,6 @@ from flync.model.flync_4_ecu.sockets import (
     IPv4AddressEndpoint,
     IPv6AddressEndpoint,
 )
-from flync.model.flync_4_ecu.vlan_entry import VLANEntry
 from flync.model.flync_4_metadata.metadata import EmbeddedMetadata
 from flync.model.flync_4_nm import StateMembershipRef
 from flync.model.flync_4_security import Firewall, MACsecConfig
@@ -59,6 +63,11 @@ from flync.model.flync_4_tsn import (
     Stream,
     TrafficClass,
 )
+
+if TYPE_CHECKING:
+    from flync.model.flync_4_ecu.compute_node import ComputeNode
+    from flync.model.flync_4_ecu.controller_topology import ControllerTopology
+    from flync.model.flync_4_ecu.switch import Switch
 
 _PTPConfigField = Annotated[
     Optional[PTPConfig],
@@ -78,6 +87,7 @@ _HTBField = Annotated[
 ]
 _IngressStreamsField = Annotated[
     Optional[List[Stream]],
+    AfterValidator(partial(validate_ingress_streams_fields, location="controller interface")),
     BeforeValidator(validate_or_remove("ingress streams", List[Stream])),
     BeforeValidator(none_to_empty_list),
 ]
@@ -110,11 +120,11 @@ class VirtualControllerInterface(FLYNCBaseModel):
     :class:`~flync.model.flync_4_ecu.sockets.IPv6AddressEndpoint`
         Assigned IPv4 and IPv6 address endpoints.
 
-    multicast : list of :class:`IPv4Address` or :class:`IPv6Address` or str, optional
+    multicast : list of :class:`~pydantic.networks.IPvAnyAddress` or :class:`~MacAddress`, optional
         Allowed multicast addresses.
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     vlanid: Annotated[
         Optional[int],
         AfterValidator(validate_vlan_id),
@@ -132,172 +142,33 @@ class VirtualControllerInterface(FLYNCBaseModel):
             return [(v.model_dump() if isinstance(v, FLYNCBaseModel) else str(v).upper()) for v in value]
 
 
-class ComputeNodes(FLYNCBaseModel):
-    """
-    **WARNING: ComputeNode is currently experimental! Subject to change, please use with care.**
-
-    A virtual machine (VM) attached to a controller interface.
-
-    Compute nodes are VMs that run on the same SoC as the controller.
-    Each compute node has its own MAC address and one or more virtual interfaces (VLANs).
-    Traffic between a compute node and the physical network is forwarded through the :class:`VirtualSwitch` defined on the parent
-    :class:`Controller` — the Virtual Switch acts as a software MAC bridge that connects compute nodes to the controller interface and to each other.
-
-    Network features such as PTP, MACsec, ingress stream policing, and traffic shaping can be configured either on the
-    parent :class:`EthernetInterfaceConfig` or offloaded to individual compute nodes, but not on both simultaneously.
-
-    Parameters
-    ----------
-    name : str
-        Name of the compute node / VM.
-
-    mac_address : :class:`MacAddress`, optional
-        MAC address of the compute node in standard notation.
-
-    virtual_interfaces : list of :class:`VirtualControllerInterface`
-        One or more VLAN-tagged virtual interfaces exposed by this compute node.
-
-    ptp_config : :class:`~flync.model.flync_4_tsn.PTPConfig`, optional
-        Precision Time Protocol configuration (offloaded from the interface).
-
-    macsec_config : \
-    :class:`~flync.model.flync_4_security.MACsecConfig`, optional
-        MACsec configuration (offloaded from the interface).
-
-    firewall : :class:`~flync.model.flync_4_security.Firewall`, optional
-        Firewall configuration for this compute node.
-
-    htb : :class:`~flync.model.flync_4_tsn.HTBInstance`, optional
-        Hierarchical Token Bucket (HTB) egress shaping configuration.
-
-    ingress_streams : list of :class:`~flync.model.flync_4_tsn.Stream`, optional
-        IEEE 802.1Qci ingress stream policing configuration.
-
-    traffic_classes : list of :class:`~flync.model.flync_4_tsn.TrafficClass`, optional
-        Traffic class definitions and egress queue shaping configuration.
-    """
-
-    name: str = Field()
-    mac_address: Optional[FLYNCMacAddress] = Field(default=None)
-    virtual_interfaces: Annotated[
-        List[VirtualControllerInterface],
-        BeforeValidator(
-            validate_list_items_and_remove(
-                "virtual interface",
-                VirtualControllerInterface,
-                severity="minor",
-            )
-        ),
-    ] = Field(...)
-    ptp_config: _PTPConfigField = Field(default=None)
-    macsec_config: _MACsecConfigField = Field(default=None)
-    firewall: _FirewallField = Field(default=None)
-    htb: _HTBField = Field(default=None)
-    ingress_streams: _IngressStreamsField = Field(default=[])
-    traffic_classes: _TrafficClassesField = Field(default_factory=list)
-
-    @field_validator("ingress_streams", mode="after")
-    def validate_ingress_streams(cls, value):
-        """Ensure no ingress stream carries an ipv or ats value."""
-        return validate_ingress_streams_fields(value, "compute node")
-
-    @model_validator(mode="before")
-    def experimental_warning(self):
-        """Experimental Class in v0.11.0"""
-        warn("Compute Nodes are currently experimental! Subject to change, please use with care.", category=Category.LIFECYCLE, error_number="059")
-        return self
-
-    @model_validator(mode="after")
-    def validate_vlans(self):
-        """Raise if any VLAN ID is repeated across virtual interfaces."""
-        validate_vlan_ids_unique(self.virtual_interfaces, self.name)
-        return self
-
-
-class VirtualSwitchPort(FLYNCBaseModel):
-    """
-    A port on the :class:`VirtualSwitch`, referencing a connected node by name.
-
-    Each port is bound to either an :class:`EthernetInterface` or a :class:`ComputeNodes` instance. The ``node_connected`` name must match
-    the ``name`` field of one of those objects within the same controller.
-
-    Parameters
-    ----------
-    name : str
-        Name of the port.
-
-    node_connected : str
-        Name of the connected :class:`EthernetInterface` or :class:`ComputeNodes`.
-    """
-
-    name: str = Field()
-    node_connected: str = Field()
-
-
-class VirtualSwitch(FLYNCBaseModel):
-    """
-    **WARNING: VirtualSwitch is currently experimental! Subject to change, please use with care.**
-
-    A software MAC bridge inside a controller.
-
-    The Virtual Switch is the connectivity fabric that ties together the controller's physical interfaces and their compute nodes.
-    It must be defined on the :class:`Controller` whenever compute nodes are present or when multiple interfaces need to exchange traffic at Layer 2.
-
-    Each :class:`VirtualSwitchPort` references either an :class:`EthernetInterface` or a :class:`ComputeNodes` by name.
-    VLANs defined on the bridge control which ports share broadcast domains, mirroring the role of VLANs on a hardware switch.
-
-    Parameters
-    ----------
-    name : str
-        Name of the Virtual Switch instance.
-
-    ports : list of :class:`VirtualSwitchPort`
-        Ports of the virtual switch, each referencing a controller interface or compute node.
-
-    vlans : list of :class:`~flync.model.flync_4_ecu.vlan_entry.VLANEntry`
-        VLAN membership table: defines which ports belong to each VLAN and therefore which nodes can communicate at Layer 2.
-    """
-
-    name: str = Field()
-    ports: List[VirtualSwitchPort] = Field()
-    vlans: List[VLANEntry] = Field()
-
-    @model_validator(mode="before")
-    def experimental_warning(self):
-        """Experimental Class in v0.11.0"""
-        warn("VirtualSwitch is currently experimental! Subject to change, please use with care.", category=Category.LIFECYCLE, error_number="060")
-        return self
-
-
 class EthernetInterfaceConfig(FLYNCBaseModel):
     """
-    Configuration for a physical Ethernet interface on a controller.
+    Configuration for an Ethernet interface.
 
-    A controller interface is the hardware-level network endpoint of the controller. It can be used in two ways:
+    The same model backs two kinds of endpoint:
 
-    * **Direct mode** — virtual interfaces (VLANs) are stacked directly on the physical interface. No compute nodes or Virtual Switch are needed.
+    * a **physical** interface on a :class:`Controller`, which carries a ``mii_config`` describing the
+      media-independent interface behind it, and
 
-    * **Bridge mode** — one or more :class:`ComputeNodes` (VMs) are attached to the interface. In this case the :class:`VirtualSwitch` defined on the
-      parent :class:`Controller` acts as a software MAC bridge: it connects the physical interface and each compute node together, and can also
-      bridge multiple physical interfaces at Layer 2.
+    * a **virtual** interface on a :class:`~flync.model.flync_4_ecu.compute_node.ComputeNode`,
+      which has no PHY and therefore must not declare a ``mii_config``.
 
-    Network features (PTP, MACsec, ingress stream policing, traffic shaping) can be configured at the interface level or offloaded to individual
-    compute nodes, but not on both simultaneously.
+    In both cases, virtual interfaces (VLANs) are stacked on the interface and carry its IP addresses.
+    Bridging between interfaces — physical to virtual, or virtual to virtual — is expressed in the
+    owning controller's ``controller_topology.flync.yaml``, not on the interface itself.
 
     Parameters
     ----------
     mac_address : :class:`MacAddress`, optional
-        MAC address of the physical interface in standard notation.
+        MAC address of the interface in standard notation.
 
     mii_config : :class:`~flync.model.flync_4_ecu.phy.MII` or :class:`~flync.model.flync_4_ecu.phy.RMII` or \
     :class:`~flync.model.flync_4_ecu.phy.SGMII` or :class:`~flync.model.flync_4_ecu.phy.RGMII`, optional
-        Media-independent interface configuration.
-
-    compute_nodes : list of :class:`ComputeNodes`, optional
-        VMs attached to this interface. When present, an :class:`VirtualSwitch` must be defined on the parent :class:`Controller` to connect them.
+        Media-independent interface configuration. Physical interfaces only.
 
     virtual_interfaces : list of :class:`VirtualControllerInterface`, optional
-        VLAN-tagged virtual interfaces stacked directly on this physical interface (used in direct mode, without compute nodes).
+        VLAN-tagged virtual interfaces stacked on this interface.
 
     ptp_config : :class:`~flync.model.flync_4_tsn.PTPConfig`, optional
         Precision Time Protocol configuration.
@@ -326,7 +197,6 @@ class EthernetInterfaceConfig(FLYNCBaseModel):
 
     mac_address: Optional[FLYNCMacAddress] = Field(default=None)
     mii_config: Optional[MII | RMII | SGMII | RGMII | XFI] = Field(default=None, discriminator="type")
-    compute_nodes: Optional[List[ComputeNodes]] = Field(default_factory=list)
     virtual_interfaces: Annotated[
         Optional[List[VirtualControllerInterface]],
         BeforeValidator(
@@ -354,68 +224,14 @@ class EthernetInterfaceConfig(FLYNCBaseModel):
         """Interface name, propagated from the parent :class:`EthernetInterface` (implied from the folder name)."""
         return self._name
 
-    @field_validator("ingress_streams", mode="after")
-    def validate_ingress_streams(cls, value):
-        """Ensure no ingress stream carries an ipv or ats value."""
-        return validate_ingress_streams_fields(value, "controller interface")
-
     @model_validator(mode="after")
-    def require_valid_virtual_interface(self):
-        """Raise a major error if all virtual interfaces were removed."""
-        has_direct = bool(self.virtual_interfaces)
-        has_via_nodes = any(bool(node.virtual_interfaces) for node in (self.compute_nodes or []))
-        if not has_direct and not has_via_nodes:
-            raise err_major("Interface should have at least 1 valid virtual interface.", category=Category.REQUIRED, error_number="061")
-        return self
-
-    @model_validator(mode="after")
-    def validate_vlans(self):
+    def validate_vlans(self) -> Self:
         """Raise if any VLAN ID is repeated across virtual interfaces."""
         validate_vlan_ids_unique(self.virtual_interfaces, self.name)
         return self
 
     @model_validator(mode="after")
-    def validate_offloaded_configs_not_duplicated(self):
-        """
-        Validate that offloadable configs are not set on both the controller interface and any of its compute nodes.
-
-        MACsec, PTP, ingress streams, and traffic classes can be offloaded to compute nodes. Configuring a feature at both
-        levels simultaneously is not allowed.
-
-        Raises:
-            Validation error if ptp_config, macsec_config, ingress_streams, or traffic_classes is set on both the
-            controller interface and a compute node.
-        """
-
-        if not self.compute_nodes:
-            return self
-
-        offloadable = {
-            "ptp_config": self.ptp_config is not None,
-            "macsec_config": self.macsec_config is not None,
-            "ingress_streams": bool(self.ingress_streams),
-            "traffic_classes": bool(self.traffic_classes),
-        }
-
-        for node in self.compute_nodes:
-            node_has = {
-                "ptp_config": node.ptp_config is not None,
-                "macsec_config": node.macsec_config is not None,
-                "ingress_streams": bool(node.ingress_streams),
-                "traffic_classes": bool(node.traffic_classes),
-            }
-            for feature, iface_set in offloadable.items():
-                if iface_set and node_has[feature]:
-                    raise err_minor(
-                        f"{feature} is configured on both controller interface {self.name} and compute node "
-                        f"{node.name}. It must be defined on either the interface or its compute nodes, not both.",
-                        category=Category.CONSISTENCY,
-                        error_number="062",
-                    )
-        return self
-
-    @model_validator(mode="after")
-    def validate_routing_table_egress_interface(self):
+    def validate_routing_table_egress_interface(self) -> Self:
         """
         Validate that every ``egress_interface`` in the routing table exists as a VCI on this interface.
 
@@ -423,10 +239,7 @@ class EthernetInterfaceConfig(FLYNCBaseModel):
             err_minor: An ``egress_interface`` is not a VCI of this interface.
         """
         if self.routing_table:
-            all_vcis = list(self.virtual_interfaces or [])
-            for node in self.compute_nodes or []:
-                all_vcis.extend(node.virtual_interfaces or [])
-            vci_names = [vci.name for vci in all_vcis]
+            vci_names = [vci.name for vci in self.virtual_interfaces or []]
             for route in self.routing_table:
                 if route.egress_interface not in vci_names:
                     raise err_minor(
@@ -437,7 +250,7 @@ class EthernetInterfaceConfig(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_routing_table_default_gateway(self):
+    def validate_routing_table_default_gateway(self) -> Self:
         """
         Validate that ``default_gateway`` of each route falls within the subnet of its ``egress_interface`` VCI.
 
@@ -445,10 +258,7 @@ class EthernetInterfaceConfig(FLYNCBaseModel):
             err_minor: ``default_gateway`` is not within the subnet of the ``egress_interface`` VCI.
         """
         if self.routing_table:
-            all_vcis = list(self.virtual_interfaces or [])
-            for node in self.compute_nodes or []:
-                all_vcis.extend(node.virtual_interfaces or [])
-            vci_map = {vci.name: vci for vci in all_vcis}
+            vci_map = {vci.name: vci for vci in self.virtual_interfaces or []}
             for route in self.routing_table:
                 vci = vci_map.get(route.egress_interface)
                 if vci is None:
@@ -462,10 +272,6 @@ class EthernetInterfaceConfig(FLYNCBaseModel):
         return self
 
     def is_part_of_vlan(self, vlan):
-        for node in self.compute_nodes:
-            for vint in node.virtual_interfaces:
-                if vint.vlanid == vlan:
-                    return True
         for vint in self.virtual_interfaces:
             if vint.vlanid == vlan:
                 return True
@@ -474,10 +280,6 @@ class EthernetInterfaceConfig(FLYNCBaseModel):
 
     def get_all_ips(self):
         ips = []
-        for node in self.compute_nodes or []:
-            for viface in node.virtual_interfaces or []:
-                for address in viface.addresses:
-                    ips.append(str(address.address))
         for viface in self.virtual_interfaces or []:
             for address in viface.addresses:
                 ips.append(str(address.address))
@@ -488,9 +290,6 @@ class EthernetInterfaceConfig(FLYNCBaseModel):
         macs = []
         if self.mac_address is not None:
             macs.append(self.mac_address)
-        for node in self.compute_nodes:
-            if node is not None:
-                macs.append(node.mac_address)
 
         return macs
 
@@ -500,16 +299,17 @@ class EthernetInterface(ControllerInterface):
     An Ethernet Interface of a Controller.
 
     Parameters
-    ==========
+    ----------
 
     name : str
         Name of the ethernet interface, implied from the folder name on disk.
 
-    interface_config: :class:`~EthernetInterfaceConfig`
+    interface_config : :class:`~EthernetInterfaceConfig`
         Configuration of the Ethernet interface.
 
-    sockets: optional list of \
-        :class:`~flync.model.flync_4_ecu.socket_container.SocketContainer`
+    sockets : list of \
+        :class:`~flync.model.flync_4_ecu.socket_container.SocketContainer`, optional
+        Socket containers for this Ethernet interface.
 
     Private Attributes
     ------------------
@@ -537,8 +337,10 @@ class EthernetInterface(ControllerInterface):
         ),
     ] = Field(default_factory=list)
     _connected_component: List = []
-    _type: Literal["controller_interface"] = PrivateAttr(default="controller_interface")
-    _controller: Optional["Controller"] = PrivateAttr(default=None)
+    _type: Literal["controller_interface"] = "controller_interface"
+    # A Controller for a physical interface, a ComputeNode for a virtual one. Both expose
+    # ``name`` and ``ethernet_interfaces``, which is all the accessors below need.
+    _controller: Optional[Any] = None
 
     @property
     def type(self):
@@ -557,7 +359,7 @@ class EthernetInterface(ControllerInterface):
         return self.interface_config.ptp_config
 
     def get_controller(self):
-        """Returns the controller that owns this interface."""
+        """Return the owner of this interface — a :class:`Controller`, or a ``ComputeNode`` for a virtual interface."""
         if not self._controller:
             raise err_fatal("Fatal Error: The interface is not a part of any controller", category=Category.STRUCTURAL, error_number="065")
         return self._controller
@@ -570,7 +372,7 @@ class EthernetInterface(ControllerInterface):
         return self.interface_config.is_part_of_vlan(vlan)
 
     def get_other_interfaces(self):
-        """Return all EthernetInterfaces of the same controller."""
+        """Return all EthernetInterfaces of the same owner — the controller, or the compute node, that declares this one."""
         return list(self.get_controller().ethernet_interfaces or [])
 
 
@@ -583,29 +385,41 @@ class Controller(FLYNCBaseModel):
     name : str
         Name of the controller.
 
-    controller_metadata : \
-        :class:`~flync.model.flync_4_metadata.metadata.EmbeddedMetadata`
+    controller_metadata : :class:`~flync.model.flync_4_metadata.metadata.EmbeddedMetadata`
         Metadata describing the embedded controller.
 
-    ethernet_interfaces : list of :class:`~EthernetInterface`
+    ethernet_interfaces : list of :class:`~EthernetInterface`, optional
         Ethernet interfaces of the controller.
 
-    virtual_switch: :class:`VirtualSwitch`
-        Represents a software switch inside a controller in case there are \
-            more than one interface or virtual machines/ compute nodes.
+    can_interfaces : list of :class:`~flync.model.flync_4_ecu.can_interface.CANInterface`, optional
+        CAN bus interfaces of the controller.
 
-    app_bindings: :class:`~flync.model.flync_4_app.AppBindings`, optional
+    lin_interfaces : list of :class:`~flync.model.flync_4_ecu.lin_interface.AnyLINInterface`, optional
+        LIN bus interfaces of the controller.
+
+    compute_nodes : list of :class:`~flync.model.flync_4_ecu.compute_node.ComputeNode`, optional
+        Compute nodes hosted by this controller. Compute nodes nest arbitrarily deep; names must be
+        unique across the whole subtree. Stored in the ``compute_nodes/`` folder.
+
+    switches : list of :class:`~flync.model.flync_4_ecu.switch.Switch`, optional
+        Virtual switches hosted by this controller, modelled with the same class as a hardware
+        switch. Stored in the ``switches/`` folder.
+
+    controller_topology : :class:`~flync.model.flync_4_ecu.controller_topology.ControllerTopology`, optional
+        Connectivity between the controller's virtual switches and the Ethernet interfaces of the
+        controller and of its compute nodes. Stored in ``controller_topology.flync.yaml``.
+
+    app_bindings : :class:`~flync.model.flync_4_app.AppBindings`, optional
         Applications a controller should bind to.
 
-    state_memberships : list of \
-    :class:`~flync.model.flync_4_nm.StateMembershipRef`, optional
+    state_memberships : list of :class:`~flync.model.flync_4_nm.StateMembershipRef`, optional
         Assignments of this controller to state management groups.
         Stored in ``state_memberships.flync.yaml`` inside the controller folder.
 
     Private Attributes
     ------------------
-    _type:
-        The type of the object generated. Defaults to "Controller".
+    _type : Literal["controller"]
+        The type of the object generated. Defaults to ``"controller"``.
     """
 
     name: Annotated[
@@ -643,8 +457,22 @@ class Controller(FLYNCBaseModel):
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
     ] = Field(default_factory=list)
-    virtual_switch: Annotated[
-        Optional[VirtualSwitch],
+    compute_nodes: Annotated[
+        Optional[List["ComputeNode"]],
+        External(
+            output_structure=OutputStrategy.FOLDER,
+            naming_strategy=NamingStrategy.FIELD_NAME,
+        ),
+    ] = Field(default_factory=list)
+    switches: Annotated[
+        Optional[List["Switch"]],
+        External(
+            output_structure=OutputStrategy.FOLDER,
+            naming_strategy=NamingStrategy.FIELD_NAME,
+        ),
+    ] = Field(default_factory=list)
+    controller_topology: Annotated[
+        Optional["ControllerTopology"],
         External(
             output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT,
             naming_strategy=NamingStrategy.FIELD_NAME,
@@ -663,7 +491,7 @@ class Controller(FLYNCBaseModel):
         default=[],
         description="Assignments of this controller to state management groups.",
     )
-    _type: Literal["controller"] = PrivateAttr(default="controller")
+    _type: Literal["controller"] = "controller"
 
     @model_validator(mode="before")
     @classmethod
@@ -671,61 +499,159 @@ class Controller(FLYNCBaseModel):
         reject_legacy_controller(data)
         return data
 
+    def _interfaces_by_kind(self):
+        return (
+            ("ethernet", self.ethernet_interfaces or []),
+            ("CAN", self.can_interfaces or []),
+            ("LIN", self.lin_interfaces or []),
+        )
+
     @model_validator(mode="after")
-    def require_at_least_one_interface(self):
-        if not self.ethernet_interfaces and not self.can_interfaces and not self.lin_interfaces:
+    def require_at_least_one_interface(self) -> Self:
+        if not any(interfaces for _kind, interfaces in self._interfaces_by_kind()):
             raise err_major(
-                "Controller must declare at least one interface (ethernet, CAN, or LIN).", category=Category.REQUIRED, error_number="066"
+                "Controller must declare at least one interface (Ethernet, CAN, or LIN).",
+                category=Category.REQUIRED,
+                error_number="066",
             )
         return self
 
     @model_validator(mode="after")
-    def validate_unique_interface_names(self):
-        """Validate that controller interface names are unique within this controller."""
+    def validate_unique_interface_names(self) -> Self:
+        """Validate that this controller's own Ethernet interface names are unique."""
         validate_list_items_unique(
-            [eth.name for eth in (self.ethernet_interfaces or []) if eth.interface_config],
+            [eth.name for eth in self.ethernet_interfaces or [] if eth.interface_config],
             "Controller Interfaces (name)",
         )
         return self
 
     @model_validator(mode="after")
-    def check_ports_virtual_switch_are_interfaces_or_compute_nodes(self):
-        interface_names = []
-        compute_node_names = []
-        for eth_iface in self.ethernet_interfaces or []:
-            iface = eth_iface.interface_config
-            interface_names.append(eth_iface.name)
-            if iface.compute_nodes:
-                for compute_node in iface.compute_nodes:
-                    compute_node_names.append(compute_node.name)
-
-        if self.virtual_switch is not None:
-            for port in self.virtual_switch.ports:
-                if port.node_connected not in interface_names and port.node_connected not in compute_node_names:
-                    raise err_minor(
-                        f"{port.node_connected} is not a validcontroller interface or compute node", category=Category.REFERENCE, error_number="067"
-                    )
+    def validate_unique_compute_node_names(self) -> Self:
+        """Validate that compute node names are unique across the whole controller subtree."""
+        validate_list_items_unique(
+            [node.name for node in self.iter_subtree_compute_nodes()],
+            "Compute Nodes (name)",
+        )
         return self
+
+    @model_validator(mode="after")
+    def validate_unique_virtual_switch_names(self) -> Self:
+        """
+        Validate that virtual switch names are unique across the whole controller subtree.
+
+        Virtual switch names need not differ from the ECU's hardware switch names — the two
+        namespaces never meet, since no controller topology connection can reach a hardware switch.
+        """
+        validate_list_items_unique(
+            [switch.name for switch in self.iter_subtree_switches()],
+            "Virtual Switches (name)",
+        )
+        return self
+
+    @model_validator(mode="after")
+    def validate_unique_interface_names_across_types(self) -> Self:
+        """
+        Validate that interface names are unique across all interface types.
+
+        A name that is already unique within a single type is left to :meth:`validate_unique_interface_names`;
+        this check only flags names reused by more than one interface type, which would create ambiguous references.
+        """
+        name_types: dict[str, set] = {}
+        for label, interfaces in self._interfaces_by_kind():
+            for iface in interfaces:
+                name_types.setdefault(iface.name, set()).add(label)
+
+        for name, types in name_types.items():
+            if len(types) > 1:
+                raise err_major(
+                    "Interface name '{name}' is used by more than one interface type: {types}",
+                    category=Category.UNIQUENESS,
+                    error_number="248",
+                    name=name,
+                    types=", ".join(sorted(types)),
+                )
+        return self
+
+    @model_validator(mode="after")
+    def validate_unique_ethernet_mac_addresses(self) -> Self:
+        """Validate that Ethernet interfaces across this controller's whole subtree use distinct MAC addresses."""
+        seen: set = set()
+        for eth in self.iter_subtree_interfaces():
+            mac = eth.interface_config.mac_address if eth.interface_config is not None else None
+            if mac is None:
+                continue
+            if mac in seen:
+                raise err_major(
+                    "MAC address '{mac}' is used by more than one Ethernet interface on controller '{controller}'",
+                    category=Category.UNIQUENESS,
+                    error_number="249",
+                    mac=mac,
+                    controller=self.name,
+                )
+            seen.add(mac)
+        return self
+
+    @model_validator(mode="after")
+    def resolve_controller_topology_connections(self) -> Self:
+        """
+        Bind and compatibility-check the controller's internal connections.
+        """
+
+        if self.controller_topology is None:
+            return self
+
+        connections = [conn_union.root for conn_union in self.controller_topology.connections]
+        switches = list(self.iter_subtree_switches())
+        owners: list = [self, *self.iter_subtree_compute_nodes()]
+
+        for conn in connections:
+            conn.bind(switches, owners, [])
+        for conn in connections:
+            conn.validate_compatibility()
+        return self
+
+    def iter_subtree_compute_nodes(self):
+        """Yield every compute node beneath this controller, at any nesting depth."""
+        from flync.model.flync_4_ecu.compute_node import iter_subtree_compute_nodes
+
+        return iter_subtree_compute_nodes(self)
+
+    def iter_subtree_switches(self):
+        """Yield every virtual switch beneath this controller, including those inside nested compute nodes."""
+        from flync.model.flync_4_ecu.compute_node import iter_subtree_switches
+
+        return iter_subtree_switches(self)
+
+    def iter_subtree_interfaces(self):
+        """
+        Yield every Ethernet interface beneath this controller, physical and virtual alike.
+
+        Use :meth:`get_interfaces` instead wherever only the physical, ECU-visible interfaces are
+        meant — the ECU's internal topology must never reach a compute node's interface.
+        """
+        from flync.model.flync_4_ecu.compute_node import iter_subtree_interfaces
+
+        return iter_subtree_interfaces(self)
 
     def get_all_ips(self):
         """
         Helper function.
-        Return all the IPs in the Controller
+        Return all the IPs in the Controller, including those of its compute nodes.
         """
 
         all_ips = []
-        for eth_iface in self.ethernet_interfaces or []:
+        for eth_iface in self.iter_subtree_interfaces():
             all_ips.extend(eth_iface.interface_config.get_all_ips())
         return all_ips
 
     def get_all_macs(self):
         """
         Helper function.
-        Return all the MAC addresses in the Controller
+        Return all the MAC addresses in the Controller, including those of its compute nodes.
         """
 
         all_macs = []
-        for eth_iface in self.ethernet_interfaces or []:
+        for eth_iface in self.iter_subtree_interfaces():
             all_macs.extend(eth_iface.interface_config.get_all_macs())
         return all_macs
 
@@ -733,18 +659,28 @@ class Controller(FLYNCBaseModel):
         """
         Helper function.
         Return the ``(service, major_version, instance_id)`` triples this Controller deploys as a SOME/IP consumer.
+
+        Covers the whole subtree: a service consumed by a compute node is consumed by the
+        controller hosting it.
         """
 
         return {
             (dep.root.service, dep.root.major_version, dep.root.instance_id)
-            for eth_iface in self.ethernet_interfaces or []
+            for eth_iface in self.iter_subtree_interfaces()
             for sock_con in eth_iface.sockets or []
             for socket in sock_con.sockets or []
             for dep in socket.deployments or []
             if dep.root.deployment_type == "someip_consumer"
         }
 
-    def get_interfaces(self) -> list["EthernetInterface"]:
+    def get_interfaces(self) -> list[EthernetInterface]:
+        """
+        Return this controller's own physical Ethernet interfaces.
+
+        Deliberately excludes compute node interfaces: this is what the ECU's internal topology
+        resolves against, and only a physical interface may cross the controller boundary. Use
+        :meth:`iter_subtree_interfaces` for the recursive view.
+        """
         return list(self.ethernet_interfaces or [])
 
     def find_controller_interface(self, interface_name: str) -> EthernetInterfaceConfig:

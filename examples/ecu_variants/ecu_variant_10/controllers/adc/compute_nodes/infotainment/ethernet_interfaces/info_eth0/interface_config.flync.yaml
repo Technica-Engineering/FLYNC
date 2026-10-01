@@ -1,0 +1,27 @@
+mac_address: 02:00:00:D0:00:01
+virtual_interfaces:
+  - name: vi0
+    vlanid: 0
+    addresses:
+      - address: 10.0.0.2
+        ipv4netmask: 255.255.255.0
+  - name: vi10
+    vlanid: 10
+    addresses:
+      - address: 10.0.10.2
+        ipv4netmask: 255.255.255.0
+  - name: vi20
+    vlanid: 20
+    addresses:
+      - address: 10.0.20.2
+        ipv4netmask: 255.255.255.0
+  - name: vi30
+    vlanid: 30
+    addresses:
+      - address: 10.0.30.2
+        ipv4netmask: 255.255.255.0
+  - name: vi40
+    vlanid: 40
+    addresses:
+      - address: 10.0.40.2
+        ipv4netmask: 255.255.255.0

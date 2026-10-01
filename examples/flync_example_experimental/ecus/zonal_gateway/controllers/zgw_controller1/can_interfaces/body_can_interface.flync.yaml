@@ -1,0 +1,9 @@
+bus_ref: BodyCAN
+sender_frames:
+  - bus_ref: BodyCAN
+    frame_ref: 1296  # Frame_Nm_Gateway (0x510)
+receiver_frames:
+  - bus_ref: BodyCAN
+    frame_ref: 1297  # Frame_Nm_Node1 (0x511)
+  - bus_ref: BodyCAN
+    frame_ref: 1298  # Frame_Nm_Node2 (0x512)

@@ -2,7 +2,7 @@
 
 import logging
 
-from flync.model import FLYNCModel  # type: ignore[import-untyped]
+from flync.model import FLYNCModel
 from flync.sdk.helpers.generation_helpers import (  # noqa # type: ignore[import-untyped]
     dump_flync_workspace,
 )

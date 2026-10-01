@@ -1,0 +1,7 @@
+profiles:
+  - profile_id: "uds_default"
+    p2_server: 50
+    p2_star_server: 5000
+    s3_server: 5000
+
+defaults: []

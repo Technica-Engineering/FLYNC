@@ -2,7 +2,7 @@
 Model
 #######
 
-The heart of FLYNC is a pydantic model. 
+The heart of FLYNC is a pydantic model.
 Find a comprehensive reference of the FLYNC model in this section.
 
 *****************************

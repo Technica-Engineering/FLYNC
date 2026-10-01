@@ -36,14 +36,12 @@ extensions = [
     "myst_parser",
     "sphinx_design",
     "sphinxcontrib.mermaid",
-    "sphinx_needs"
+    "sphinx_needs",
 ]
 
 templates_path = ["_templates"]
 exclude_patterns = []
-python_use_unqualified_type_names = (
-    True  # Helps Sphinx resolve local types without full paths
-)
+python_use_unqualified_type_names = True  # Helps Sphinx resolve local types without full paths
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -100,9 +98,7 @@ needs_fields = {
 
 autosummary_generate = True
 autodoc_typehints = "signature"  # Forces types to appear in signatures (may help with resolving)
-autodoc_typehints_format = (
-    "short"  # Shortens paths (e.g., `phy.BASET1` instead of full module path)
-)
+autodoc_typehints_format = "short"  # Shortens paths (e.g., `phy.BASET1` instead of full module path)
 autodoc_default_options = {
     "show-inheritance": True,
     "member-order": "bysource",

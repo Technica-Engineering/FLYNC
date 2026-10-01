@@ -3,7 +3,6 @@ from pathlib import Path
 
 import pytest
 
-from flync.core.datatypes.macaddress import MacAddress
 from flync.model.flync_4_ecu import *
 from flync.model.flync_4_ecu.controller import *
 from flync.model.flync_4_ecu.internal_topology import *
@@ -49,7 +48,7 @@ def valid_simple_ecu():
     )
     virtual_iface_ecu1 = VirtualControllerInterface(name="virtual", vlanid=55, addresses=[ipv4_ecu1])
     ctrl_iface_ecu1 = EthernetInterfaceConfig(
-        mac_address=MacAddress("00:00:5e:00:53:01"),
+        mac_address="00:00:5e:00:53:01",
         virtual_interfaces=[virtual_iface_ecu1],
     )
     ethernet_iface_ecu1 = EthernetInterface(
@@ -99,6 +98,7 @@ def valid_simple_ecu():
         topology=empty_topology,
         metadata=system_metadata,
         communication={"tcp_profiles": []},
+        instrumentation=None,
     )
 
     return flync_model
@@ -139,7 +139,7 @@ def valid_ecu_with_switch():
     )
     virtual_iface_ecu1 = VirtualControllerInterface(name="virtual", vlanid=55, addresses=[ipv4_ecu1])
     ctrl_iface_ecu1 = EthernetInterfaceConfig(
-        mac_address=MacAddress("00:00:5e:00:53:01"),
+        mac_address="00:00:5e:00:53:01",
         virtual_interfaces=[virtual_iface_ecu1],
         mii_config=MII(type="mii", speed=100, mode="phy"),
     )
@@ -215,6 +215,7 @@ def valid_ecu_with_switch():
         topology=empty_topology,
         metadata=system_metadata,
         communication={"tcp_profiles": []},
+        instrumentation=None,
     )
 
     return flync_model
@@ -255,7 +256,7 @@ def valid_inter_ecu_connection():
     )
     virtual_iface_ecu1 = VirtualControllerInterface(name="virtual1", vlanid=55, addresses=[ipv4_ecu1])
     ctrl_iface_ecu1 = EthernetInterfaceConfig(
-        mac_address=MacAddress("00:00:5e:00:53:01"),
+        mac_address="00:00:5e:00:53:01",
         virtual_interfaces=[virtual_iface_ecu1],
     )
 
@@ -265,7 +266,7 @@ def valid_inter_ecu_connection():
     )
     virtual_iface_ecu2 = VirtualControllerInterface(name="virtual2", vlanid=55, addresses=[ipv4_ecu2])
     ctrl_iface_ecu2 = EthernetInterfaceConfig(
-        mac_address=MacAddress("00:00:5e:00:53:02"),
+        mac_address="00:00:5e:00:53:02",
         virtual_interfaces=[virtual_iface_ecu2],
     )
 
@@ -352,6 +353,7 @@ def valid_inter_ecu_connection():
         topology=ecus_topology,
         metadata=system_metadata,
         communication={"tcp_profiles": []},
+        instrumentation=None,
     )
 
     return flync_model
@@ -392,7 +394,7 @@ def valid_iface_to_iface():
     )
     virtual_iface_ecu1 = VirtualControllerInterface(name="virtual", vlanid=55, addresses=[ipv4_ecu1])
     ctrl_iface_ecu1 = EthernetInterfaceConfig(
-        mac_address=MacAddress("00:00:5e:00:53:01"),
+        mac_address="00:00:5e:00:53:01",
         virtual_interfaces=[virtual_iface_ecu1],
         mii_config=MII(type="mii", speed=100, mode="phy"),
     )
@@ -403,7 +405,7 @@ def valid_iface_to_iface():
     )
     virtual_iface_ecu2 = VirtualControllerInterface(name="virtual2", vlanid=55, addresses=[ipv4_ecu2])
     ctrl_iface_ecu2 = EthernetInterfaceConfig(
-        mac_address=MacAddress("00:00:5e:00:53:02"),
+        mac_address="00:00:5e:00:53:02",
         virtual_interfaces=[virtual_iface_ecu2],
         mii_config=MII(type="mii", speed=100, mode="mac"),
     )
@@ -478,6 +480,7 @@ def valid_iface_to_iface():
         topology=empty_topology,
         metadata=system_metadata,
         communication={"tcp_profiles": []},
+        instrumentation=None,
     )
 
     return flync_model

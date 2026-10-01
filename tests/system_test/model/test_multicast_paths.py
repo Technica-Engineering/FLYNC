@@ -4,16 +4,12 @@ from pathlib import Path
 from flync.core.utils.base_utils import read_yaml
 from flync.model.flync_4_ecu import SocketContainer, Switch
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
-from tests.system_test.sdk.helper import update_yaml_content
-
-absolute_path = Path(__file__).parents[3] / "examples" / "flync_example"
-
-absolute_path = Path(__file__).parents[3] / "examples" / "flync_example"
+from tests.system_test.sdk.helper import entry_named, patch_yaml
 
 
-def test_multicast_paths_no_tx(tmpdir):
+def test_multicast_paths_no_tx(tmpdir, example_workspace_path):
     destination_folder = Path(tmpdir) / "copy"
-    shutil.copytree(absolute_path, destination_folder)
+    shutil.copytree(example_workspace_path, destination_folder)
     file_to_update = (
         destination_folder
         / "ecus"
@@ -25,8 +21,8 @@ def test_multicast_paths_no_tx(tmpdir):
         / "sockets"
         / "socket_nm.flync.yaml"
     )
-    update_yaml_content(file_to_update, "multicast_tx:", "")
-    update_yaml_content(file_to_update, "- 224.0.0.1", "")
+    with patch_yaml(file_to_update) as socket_container:
+        del entry_named(socket_container["sockets"], "network_management_socket")["multicast_tx"]
 
     # The zonal gateway bridges the NM PDU onto the backbone and therefore
     # also transmits to 224.0.0.1 — strip its multicast_tx as well so the
@@ -42,8 +38,8 @@ def test_multicast_paths_no_tx(tmpdir):
         / "sockets"
         / "socket_nm.flync.yaml"
     )
-    update_yaml_content(gateway_file, "multicast_tx:", "")
-    update_yaml_content(gateway_file, "- 224.0.0.1", "")
+    with patch_yaml(gateway_file) as gateway_container:
+        del entry_named(gateway_container["sockets"], "nm_rx_socket")["multicast_tx"]
 
     data = read_yaml(file_to_update)
     data["name"] = "socket_nm"
@@ -57,11 +53,12 @@ def test_multicast_paths_no_tx(tmpdir):
         shutil.rmtree(destination_folder)
 
 
-def test_multicast_paths_no_path_from_rx_to_tx(tmpdir):
+def test_multicast_paths_no_path_from_rx_to_tx(tmpdir, example_workspace_path):
     destination_folder = Path(tmpdir) / "copie2"
-    shutil.copytree(absolute_path, destination_folder)
+    shutil.copytree(example_workspace_path, destination_folder)
     file_to_update = destination_folder / "ecus" / "high_performance_compute" / "switches" / "hpc_switch1" / "switch.flync.yaml"
-    update_yaml_content(file_to_update, "    - hpc_s1_p3", "")
+    with patch_yaml(file_to_update) as switch_config:
+        entry_named(switch_config["vlans"], "VLAN40")["ports"].remove("hpc_s1_p3")
 
     data = read_yaml(file_to_update)
     Switch.model_validate({"name": "hpc_switch1", "switch_config": data})
@@ -73,9 +70,9 @@ def test_multicast_paths_no_path_from_rx_to_tx(tmpdir):
         shutil.rmtree(destination_folder)
 
 
-def test_switch_flooded(tmpdir):
+def test_switch_flooded(tmpdir, example_workspace_path):
     destination_folder = Path(tmpdir) / "copie2"
-    shutil.copytree(absolute_path, destination_folder)
+    shutil.copytree(example_workspace_path, destination_folder)
     loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
     ecus = loaded_ws.flync_model.ecus
     switch = None

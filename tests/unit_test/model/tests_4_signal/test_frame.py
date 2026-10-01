@@ -10,6 +10,7 @@ from flync.model.flync_4_signal.frame import (
     LINFrame,
 )
 from flync.model.flync_4_signal.pdu import PDUInstance
+from tests.error_assertions import assert_single_error
 
 _CAN_FD_VALID_LENGTHS = (0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 16, 20, 24, 32, 48, 64)
 
@@ -27,13 +28,15 @@ def test_positive_frame_event_timing_custom():
 
 
 def test_negative_frame_event_timing_negative_repetitions():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         FrameEventTiming(final_repetitions=-1)
+    assert_single_error(exc_info, None, "greater than or equal to 0")
 
 
 def test_negative_frame_event_timing_negative_repeating_time():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         FrameEventTiming(repeating_time_range=-0.01)
+    assert_single_error(exc_info, None, "greater than or equal to 0")
 
 
 def test_positive_frame_cyclic_timing():
@@ -47,13 +50,15 @@ def test_positive_frame_cyclic_timing_large_cycle():
 
 
 def test_negative_frame_cyclic_timing_zero_cycle():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         FrameCyclicTiming(cycle=0)
+    assert_single_error(exc_info, None, "greater than 0")
 
 
 def test_negative_frame_cyclic_timing_negative_cycle():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         FrameCyclicTiming(cycle=-0.01)
+    assert_single_error(exc_info, None, "greater than 0")
 
 
 def test_positive_frame_transmission_timing_empty():
@@ -153,27 +158,51 @@ def test_positive_can_frame_model_validate():
 
 
 def test_negative_can_frame_standard_id_too_large():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         CANFrame(
             name="can_bad_std",
             can_id=0x800,
             id_format="standard_11bit",
             length=8,
         )
+    assert_single_error(exc_info, "FLYNC-SIG-MIN-VAL-106", "out of range")
+
+
+def test_negative_can_frame_negative_id():
+    with pytest.raises(ValidationError) as exc_info:
+        CANFrame(
+            name="can_neg_id",
+            can_id=-1,
+            id_format="standard_11bit",
+            length=8,
+        )
+    assert_single_error(exc_info, "FLYNC-SIG-MIN-VAL-106", "out of range")
+
+
+def test_negative_can_frame_invalid_id_format():
+    with pytest.raises(ValidationError) as exc_info:
+        CANFrame(
+            name="can_bad_format",
+            can_id=0x100,
+            id_format="standard_29bit",
+            length=8,
+        )
+    assert_single_error(exc_info, None, "standard_11bit")
 
 
 def test_negative_can_frame_extended_id_too_large():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         CANFrame(
             name="can_bad_ext",
             can_id=0x20000000,
             id_format="extended_29bit",
             length=8,
         )
+    assert_single_error(exc_info, "FLYNC-SIG-MIN-VAL-106", "out of range")
 
 
 def test_negative_can_frame_rtr_with_data():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         CANFrame(
             name="can_bad_rtr",
             can_id=0x100,
@@ -181,33 +210,37 @@ def test_negative_can_frame_rtr_with_data():
             length=4,
             is_remote_frame=True,
         )
+    assert_single_error(exc_info, "FLYNC-SIG-MIN-CONS-103", "is_remote_frame=True requires length=0")
 
 
 def test_negative_can_frame_length_too_large():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         CANFrame(name="can_len9", can_id=0x100, id_format="standard_11bit", length=9)
+    assert_single_error(exc_info, None, "less than or equal to 8")
 
 
 def test_negative_can_frame_negative_length():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         CANFrame(
             name="can_neg_len",
             can_id=0x100,
             id_format="standard_11bit",
             length=-1,
         )
+    assert_single_error(exc_info, None, "greater than or equal to 0")
 
 
 def test_negative_can_frame_duplicate_pdu_bit_positions():
     packed_pdus = [PDUInstance(pdu_ref="p1", bit_position=0), PDUInstance(pdu_ref="p2", bit_position=0)]
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         CANFrame(name="can_dup_pdu", can_id=0x100, id_format="standard_11bit", length=8, packed_pdus=packed_pdus)
+    assert_single_error(exc_info, "FLYNC-SIG-MIN-UNIQ-105", "share bit_position")
 
 
 @pytest.mark.parametrize(
     "length",
-    [pytest.param(l, id=f"fd_len_{l}") for l in _CAN_FD_VALID_LENGTHS],
+    [pytest.param(length, id=f"fd_len_{length}") for length in _CAN_FD_VALID_LENGTHS],
 )
 def test_positive_can_fd_frame_valid_lengths(length):
     frm = CANFDFrame(
@@ -286,40 +319,55 @@ def test_positive_can_fd_frame_model_validate():
     ],
 )
 def test_negative_can_fd_frame_invalid_length(bad_length):
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         CANFDFrame(
             name=f"canfd_bad_{bad_length}",
             can_id=0x100,
             id_format="standard_11bit",
             length=bad_length,
         )
+    assert_single_error(exc_info, "FLYNC-SIG-MIN-VAL-104", "not a valid CAN FD payload size")
 
 
 def test_negative_can_fd_frame_length_exceeds_max():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         CANFDFrame(
             name="canfd_65",
             can_id=0x100,
             id_format="standard_11bit",
             length=65,
         )
+    assert_single_error(exc_info, None, "less than or equal to 64")
 
 
 def test_negative_can_fd_frame_standard_id_too_large():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         CANFDFrame(
             name="canfd_bad_id",
             can_id=0x800,
             id_format="standard_11bit",
             length=8,
         )
+    assert_single_error(exc_info, "FLYNC-SIG-MIN-VAL-106", "out of range")
+
+
+def test_negative_can_fd_frame_negative_id():
+    with pytest.raises(ValidationError) as exc_info:
+        CANFDFrame(
+            name="canfd_neg_id",
+            can_id=-1,
+            id_format="standard_11bit",
+            length=8,
+        )
+    assert_single_error(exc_info, "FLYNC-SIG-MIN-VAL-106", "out of range")
 
 
 def test_negative_can_fd_frame_duplicate_pdu_bit_positions():
     packed_pdus = [PDUInstance(pdu_ref="fd_p1", bit_position=0), PDUInstance(pdu_ref="fd_p2", bit_position=0)]
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         CANFDFrame(name="canfd_dup_pdu", can_id=0x100, id_format="standard_11bit", length=8, packed_pdus=packed_pdus)
+    assert_single_error(exc_info, "FLYNC-SIG-MIN-UNIQ-105", "share bit_position")
 
 
 def test_positive_lin_frame_minimal():
@@ -375,27 +423,32 @@ def test_positive_lin_frame_model_validate():
 
 
 def test_negative_lin_frame_id_too_large():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         LINFrame(name="lin_bad_id", lin_id=0x40, length=4)
+    assert_single_error(exc_info, None, "less than or equal to 63")
 
 
 def test_negative_lin_frame_id_negative():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         LINFrame(name="lin_neg_id", lin_id=-1, length=4)
+    assert_single_error(exc_info, None, "greater than or equal to 0")
 
 
 def test_negative_lin_frame_length_zero():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         LINFrame(name="lin_len0", lin_id=0x01, length=0)
+    assert_single_error(exc_info, None, "greater than or equal to 1")
 
 
 def test_negative_lin_frame_length_too_large():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         LINFrame(name="lin_len9", lin_id=0x01, length=9)
+    assert_single_error(exc_info, None, "less than or equal to 8")
 
 
 def test_negative_lin_frame_duplicate_pdu_bit_positions():
     packed_pdus = [PDUInstance(pdu_ref="lp1", bit_position=0), PDUInstance(pdu_ref="lp2", bit_position=0)]
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         LINFrame(name="lin_dup_pdu", lin_id=0x01, length=8, packed_pdus=packed_pdus)
+    assert_single_error(exc_info, "FLYNC-SIG-MIN-UNIQ-105", "share bit_position")

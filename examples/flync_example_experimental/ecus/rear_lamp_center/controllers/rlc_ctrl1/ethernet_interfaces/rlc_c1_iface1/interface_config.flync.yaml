@@ -1,0 +1,14 @@
+mac_address: 00:11:60:01:00:13
+virtual_interfaces:
+  - name: rlc_c1_i1_viface1
+    vlanid: 60
+    addresses:
+      - address: 10.0.60.13
+        ipv4netmask: 255.255.255.0
+    multicast:
+      - 239.60.0.1
+  - name: rlc_c1_i1_viface2
+    vlanid: 40
+    addresses:
+      - address: 10.0.40.13
+        ipv4netmask: 255.255.255.0

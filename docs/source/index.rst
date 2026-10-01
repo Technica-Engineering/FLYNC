@@ -115,9 +115,11 @@ Resources
    quickstart
    installation
    flync_reference
+   development/index
    flync_example
    flync_cli/index
    flync_converter/index
    error_catalog
+   model_change_history
    license
    contact

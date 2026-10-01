@@ -95,6 +95,20 @@ class Document(object):
         self.ast = ast
         self.compose_ast = compose_ast
 
+    def source_nodes(self):
+        """
+        Return the composed YAML node tree of the document, composing it from :attr:`text` when it was not produced at parse time.
+
+        Returns:
+            The composed ruamel.yaml node, or None when the text cannot be composed.
+        """
+        if self.compose_ast is None and self.text:
+            try:
+                self.compose_ast = _get_yaml("rt").compose(self.text)
+            except Exception:
+                return None
+        return self.compose_ast
+
     @classmethod
     def _get_safe_yaml(cls):
         """

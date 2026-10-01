@@ -1,0 +1,11 @@
+profiles:
+  - profile_id: "doip_default"
+    a_doip_ctrl: 2000
+    t_tcp_general_inactivity: 300000
+    t_tcp_initial_inactivity: 2000
+    t_tcp_alive_check: 500
+    a_doip_announce_num: 3
+    a_doip_announce_interval: 500
+    a_doip_announce_wait: 500
+
+defaults: []

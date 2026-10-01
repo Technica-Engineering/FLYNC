@@ -21,13 +21,19 @@ class WorkspaceState(str, Enum):
     Enumeration of possible workspace validation states.
 
     Attributes:
-        UNKNOWN: State has not been determined.
-        EMPTY: No model was loaded; the workspace is empty.
-        LOADING: The workspace is currently being loaded.
-        VALID: All documents validated successfully with no errors.
-        WARNING: Validation completed but some documents have non-fatal errors.
-        INVALID: The model could not be constructed due to validation errors.
-        BROKEN: An unexpected exception occurred during loading.
+        **UNKNOWN**: State has not been determined.
+
+        **EMPTY**: No model was loaded; the workspace is empty.
+
+        **LOADING**: The workspace is currently being loaded.
+
+        **VALID**: All documents validated successfully with no errors.
+
+        **WARNING**: Validation completed but some documents have non-fatal errors.
+
+        **INVALID**: The model could not be constructed due to validation errors.
+
+        **BROKEN**: An unexpected exception occurred during loading.
     """
 
     UNKNOWN = "unknown"
@@ -55,6 +61,20 @@ class DiagnosticsResult:
     errors: dict[str, list[ErrorDetails]]
     model: Optional[FLYNCBaseModel] = None
     workspace: Optional[FLYNCWorkspace] = None
+
+    @property
+    def passed(self) -> bool:
+        """
+        Whether validation got through with nothing worse than warnings.
+
+        Checks the state as well as the diagnostics, because a workspace that never loaded reports ``BROKEN`` with an empty ``errors``
+        dict. Judging by diagnostics alone would call that a pass.
+        """
+
+        if self.state not in (WorkspaceState.VALID, WorkspaceState.WARNING):
+            return False
+
+        return all(entry.get("type") == "warning" for entries in self.errors.values() for entry in entries)
 
     @field_serializer("workspace")
     def serialize_workspace(self, value: FLYNCWorkspace) -> str:

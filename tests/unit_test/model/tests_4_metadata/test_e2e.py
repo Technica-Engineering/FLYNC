@@ -40,7 +40,7 @@ def test_e2e_duplicate_data_id_in_profiles(
     )
     e2 = SOMEIPEvent(
         name="t",
-        id=2,
+        id=3,
         parameters=[],
         e2e={"profile": "AUTOSAR_Profile_2", "data_id": 0x12345678},
     )

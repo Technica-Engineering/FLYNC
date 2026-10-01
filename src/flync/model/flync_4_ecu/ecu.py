@@ -1,6 +1,6 @@
 """Defines the ECU model for FLYNC."""
 
-from typing import Annotated, Iterator, List, Optional, TypeVar
+from typing import Annotated, Iterator, List, Optional, Self, TypeVar
 
 from pydantic import BeforeValidator, Field, model_validator
 
@@ -20,7 +20,9 @@ from flync.model.flync_4_ecu.controller import (
     EthernetInterface,
 )
 from flync.model.flync_4_ecu.internal_topology import (
+    InternalConnection,
     InternalTopology,
+    SwitchPortToControllerInterface,
     SwitchPortToXConnection,
 )
 from flync.model.flync_4_ecu.mac_multicast_endpoint import (
@@ -29,12 +31,12 @@ from flync.model.flync_4_ecu.mac_multicast_endpoint import (
 from flync.model.flync_4_ecu.multicast_groups import MulticastGroupMembership
 from flync.model.flync_4_ecu.port import ECUPort
 from flync.model.flync_4_ecu.socket_container import SocketContainer
-from flync.model.flync_4_ecu.sockets import Socket
+from flync.model.flync_4_ecu.sockets import Socket, SocketTCP, SocketUDP
 from flync.model.flync_4_ecu.switch import Switch, SwitchPort
 from flync.model.flync_4_metadata import ECUMetadata
 from flync.model.flync_4_nm import StateMembershipRef
 from flync.model.flync_4_nm.state_management import EffectiveMember
-from flync.model.flync_4_someip import (  # type: ignore  # noqa: F401
+from flync.model.flync_4_someip import (  # noqa: F401
     SOMEIPServiceConsumer,
     SOMEIPServiceDeployment,
     SOMEIPServiceProvider,
@@ -66,8 +68,11 @@ class ECU(FLYNCBaseModel):
         Internal topology defining the connectivity between ECU components. May be omitted for a CAN/LIN-only ECU,
         but is required as soon as the ECU declares any Ethernet interface or switch.
 
-    multicast_groups : list of :class:`~flync.model.flync_4_ecu.multicast_groups. MulticastGroupMembership`, optional
+    multicast_groups : list of :class:`~flync.model.flync_4_ecu.multicast_groups.MulticastGroupMembership`, optional
         Multicast group memberships of the ECU. This field is populated automatically internally.
+
+    mac_multicast_endpoints : :class:`~flync.model.flync_4_ecu.mac_multicast_endpoint.MACMulticastEndpoints`, optional
+        MAC multicast endpoints configuration for the ECU.
 
     ecu_metadata : :class:`~flync.model.flync_4_metadata.metadata.ECUMetadata`
         Metadata information describing the ECU.
@@ -85,28 +90,28 @@ class ECU(FLYNCBaseModel):
         ),
     ] = Field()
     ports: Annotated[
-        Optional[List["ECUPort"]],
+        Optional[List[ECUPort]],
         External(
             output_structure=OutputStrategy.SINGLE_FILE,
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
     ] = Field(default_factory=list)
     controllers: Annotated[
-        List["Controller"],
+        List[Controller],
         External(
             output_structure=OutputStrategy.FOLDER,
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
     ] = Field()
     switches: Annotated[
-        Optional[List["Switch"]],
+        Optional[List[Switch]],
         External(
             output_structure=OutputStrategy.FOLDER,
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
     ] = Field(default_factory=list)
     topology: Annotated[
-        Optional["InternalTopology"],
+        Optional[InternalTopology],
         External(
             output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT,
             naming_strategy=NamingStrategy.FIELD_NAME,
@@ -114,11 +119,11 @@ class ECU(FLYNCBaseModel):
         BeforeValidator(validate_or_remove("internal topology", InternalTopology, severity="major")),
     ] = Field(default=None)
     ecu_metadata: Annotated[
-        "ECUMetadata",
+        ECUMetadata,
         External(output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT),
     ] = Field()
     mac_multicast_endpoints: Annotated[
-        Optional["MACMulticastEndpoints"],
+        Optional[MACMulticastEndpoints],
         External(output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT),
     ] = Field(exclude=True, default=None)
     multicast_groups: Optional[List[MulticastGroupMembership]] = Field(default_factory=list, exclude=True)
@@ -178,7 +183,7 @@ class ECU(FLYNCBaseModel):
         return data
 
     @model_validator(mode="after")
-    def validate_ethernet_hw_requires_ports_and_topology(self):
+    def validate_ethernet_hw_requires_ports_and_topology(self) -> Self:
         """Ethernet interfaces and switches only make sense wired to physical ports through an internal topology."""
 
         has_ethernet_hw = bool(self.switches) or any(c.ethernet_interfaces for c in self.controllers)
@@ -197,19 +202,20 @@ class ECU(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def resolve_topology_connections(self):
-        connections = [conn_union.root for conn_union in self.topology.connections] if self.topology else []
+    def resolve_topology_connections(self) -> Self:
+        connections: List[InternalConnection] = [conn_union.root for conn_union in self.topology.connections] if self.topology else []
 
         for conn in connections:
             conn.bind(self.switches or [], self.controllers, self.ports or [])
 
         self.__validate_switch_port_connections(connections)
+        self.__validate_single_physical_connection_per_interface(connections)
 
         for conn in connections:
             conn.validate_compatibility()
         return self
 
-    def __validate_switch_port_connections(self, connections):
+    def __validate_switch_port_connections(self, connections: List[InternalConnection]) -> None:
         """Validate that switch ports are not self-connected and not connected to more than one component."""
         seen_switch_ports: set[int] = set()
         for conn in connections:
@@ -234,8 +240,24 @@ class ECU(FLYNCBaseModel):
                     )
                 seen_switch_ports.add(id(switch_port))
 
+    def __validate_single_physical_connection_per_interface(self, connections: List[InternalConnection]) -> None:
+        """Raise if the same physical controller interface is connected to more than one switch port."""
+        seen: dict[tuple[Optional[str], str], str] = {}
+        for conn in connections:
+            if not isinstance(conn, SwitchPortToControllerInterface):
+                continue
+            key = (conn.controller_name, conn.iface_name)
+            if key in seen:
+                raise err_major(
+                    "Physical controller interface '{iface}' is connected more than once in the internal topology",
+                    category=Category.UNIQUENESS,
+                    error_number="250",
+                    iface=conn.iface_name,
+                )
+            seen[key] = conn.id
+
     @model_validator(mode="after")
-    def validate_no_unconnected_components(self):
+    def validate_no_unconnected_components(self) -> Self:
         if self._connectivity_check_done:
             return self
         self._connectivity_check_done = True
@@ -292,13 +314,13 @@ class ECU(FLYNCBaseModel):
                     )
 
     @model_validator(mode="after")
-    def validate_vlans_in_sockets(self):
+    def validate_vlans_in_sockets(self) -> Self:
         """
         Validate that the VLAN IDs specified in the socket containers of each ethernet interface are configured in a virtual interface of that same
         ethernet interface."""
 
         for controller in self.controllers:
-            for eth_iface in controller.ethernet_interfaces or []:
+            for eth_iface in controller.iter_subtree_interfaces():
                 iface_config = eth_iface.interface_config
                 vlan_ids_in_sockets = {sc.vlan_id for sc in (eth_iface.sockets or [])}
                 if not vlan_ids_in_sockets:
@@ -332,8 +354,8 @@ class ECU(FLYNCBaseModel):
         return self
 
     def __get_all_ethernet_interfaces(self):
-        """Return all ethernet interfaces of all controllers of the ECU."""
-        return [eth_iface for controller in self.controllers for eth_iface in controller.ethernet_interfaces or []]
+        """Return all ethernet interfaces of all controllers of the ECU, including those of their compute nodes."""
+        return [eth_iface for controller in self.controllers for eth_iface in controller.iter_subtree_interfaces()]
 
     def __bind_iface_sockets_to_ip(self, eth_iface):
         """Bind every socket defined on ``eth_iface`` to its matching IP address on that same interface."""
@@ -464,6 +486,14 @@ class ECU(FLYNCBaseModel):
         """Return a list of all controllers of the ECU."""
         return self.controllers
 
+    def iter_controllers_and_switch_hosts(self):
+        """Yield the ECU's own controllers, then the host controller inside each switch."""
+
+        yield from self.controllers
+        for switch in self.switches or []:
+            if switch.host_controller is not None:
+                yield switch.host_controller
+
     def get_all_ports(self):
         """Return a list of all ports of the ECU."""
         return self.ports or []
@@ -477,11 +507,11 @@ class ECU(FLYNCBaseModel):
         return self.topology
 
     def get_all_interfaces(self):
-        """Return a list of all physical interfaces of the ECU."""
+        """Return a list of all Ethernet interfaces of the ECU's controllers, compute node interfaces included."""
 
-        return [i for c in self.controllers for i in c.get_interfaces()]
+        return [i for c in self.controllers for i in c.iter_subtree_interfaces()]
 
-    def get_all_switch_ports(self) -> List["SwitchPort"]:
+    def get_all_switch_ports(self) -> List[SwitchPort]:
         """Return a list of all ports of the ECU switch."""
         ports = []
         if self.switches is not None:
@@ -504,26 +534,14 @@ class ECU(FLYNCBaseModel):
         Get all IPs in a ECU
         """
 
-        ip_lists = []
-        for ctrl in self.controllers or []:
-            ip_lists.extend(ctrl.get_all_ips())
-        for switch in self.switches or []:
-            if switch.host_controller:
-                ip_lists.extend(switch.host_controller.get_all_ips())
-        return ip_lists
+        return [ip for ctrl in self.iter_controllers_and_switch_hosts() for ip in ctrl.get_all_ips()]
 
     def get_all_macs(self):
         """
         Get all MAC addresses in a ECU
         """
 
-        mac_lists = []
-        for ctrl in self.controllers:
-            mac_lists.extend(ctrl.get_all_macs())
-        for switch in self.switches or []:
-            if switch.host_controller is not None:
-                mac_lists.extend(switch.host_controller.get_all_macs())
-        return mac_lists
+        return [mac for ctrl in self.iter_controllers_and_switch_hosts() for mac in ctrl.get_all_macs()]
 
     def __iter_socket_containers(self) -> Iterator[SocketContainer]:
         """
@@ -536,7 +554,7 @@ class ECU(FLYNCBaseModel):
         """
 
         for controller in self.controllers:
-            for eth_iface in controller.ethernet_interfaces or []:
+            for eth_iface in controller.iter_subtree_interfaces():
                 yield from eth_iface.sockets or []
 
     def __iter_sockets(self) -> Iterator[Socket]:
@@ -551,6 +569,21 @@ class ECU(FLYNCBaseModel):
 
         for socket_container in self.__iter_socket_containers():
             yield from socket_container.sockets or []
+
+    def __iter_sockets_with_interface(self) -> Iterator[tuple[SocketTCP | SocketUDP, EthernetInterface]]:
+        """
+        Yield ``(socket, ethernet_interface)`` for every socket and its owning ethernet interface.
+
+        Yields
+        ------
+        tuple[SocketTCP | SocketUDP, EthernetInterface]
+            Each socket paired with the ethernet interface (IP stack) that owns it.
+        """
+
+        for eth_iface in self.__get_all_ethernet_interfaces():
+            for socket_container in eth_iface.sockets or []:
+                for socket in socket_container.sockets or []:
+                    yield socket, eth_iface
 
     def get_all_sockets(self) -> dict[int | None, List[Socket]]:
         """
@@ -629,60 +662,69 @@ class ECU(FLYNCBaseModel):
         return self.__get_services_of_type(SOMEIPServiceProvider)
 
     @model_validator(mode="after")
-    def validate_unique_someip_service_instances(self) -> "ECU":
+    def validate_unique_someip_service_instances(self) -> Self:
         """
-        Flag repeated ``(protocol, endpoint_type, service, major_version, instance_id)`` deployments across the
-        ECU's sockets.
+        Flag repeated ``(protocol, endpoint_type, service, major_version, instance_id)`` deployments.
 
         Protocol and endpoint type are part of the identity: offering the same instance over both UDP and TCP is
         a normal dual-transport setup, and a UDP consumer commonly splits across a unicast socket (regular
         eventgroups) and a separate multicast socket (multicast-only eventgroups) - neither is a conflict.
-        Consuming one instance twice on the very same transport/endpoint combination is only warned about - some
-        deployments deliberately subscribe to the same instance from more than one such socket. Providing one
-        instance twice on the same transport/endpoint combination is a hard conflict and raises an err_major.
+
+        A provider instance repeated anywhere on the ECU is warned about (server role), while a consumer
+        instance is only flagged when it is repeated on the *same Ethernet interface* (IP stack): two different
+        controllers or IP stacks of one ECU each consuming the same service instance independently is legitimate,
+        not a conflict. Providing the same Service Instance twice may become an error in the future.
         """
 
-        seen_consumers: set = set()
         seen_providers: set = set()
-        for deployment, key in self.iter_someip_deployment_identities():
+        # Scope consumers per Ethernet interface (IP stack), keyed by the interface's identity.
+        seen_consumers: dict[int, set] = {}
+        for deployment, key, eth_iface in self.iter_someip_deployment_identities():
             if isinstance(deployment, SOMEIPServiceProvider):
                 if key in seen_providers:
-                    raise err_major(
+                    # Only a warning while FLYNC has no variant handling. This becomes an
+                    # error once variants can express that two of those never coexist.
+                    warn(
                         self.__duplicate_deployment_message("provider", deployment),
                         category=Category.UNIQUENESS,
                         error_number="243",
                     )
                 seen_providers.add(key)
-            elif key in seen_consumers:
-                warn(
-                    self.__duplicate_deployment_message("consumer", deployment),
-                    category=Category.UNIQUENESS,
-                    error_number="241",
-                )
             else:
-                seen_consumers.add(key)
+                seen_on_iface = seen_consumers.setdefault(id(eth_iface), set())
+                if key in seen_on_iface:
+                    warn(
+                        self.__duplicate_deployment_message("consumer", deployment),
+                        category=Category.UNIQUENESS,
+                        error_number="241",
+                    )
+                else:
+                    seen_on_iface.add(key)
         return self
 
     def iter_someip_deployment_identities(self) -> Iterator[tuple]:
         """
-        Yield ``(deployment, identity)`` for every SOME/IP provider or consumer deployment across the ECU's sockets.
+        Yield ``(deployment, identity, ethernet_interface)`` for every SOME/IP provider or consumer deployment
+        across the ECU's sockets.
 
         The identity is the ``(protocol, endpoint_type, service, major_version, instance_id)`` tuple that decides
-        whether two deployments describe the very same service instance on the very same transport.
+        whether two deployments describe the very same service instance on the very same transport. The
+        ``ethernet_interface`` is the :class:`~flync.model.flync_4_ecu.controller.EthernetInterface` (IP stack)
+        that owns the socket, used to scope the consumer-uniqueness rule.
         """
 
-        for socket in self.__iter_sockets():
+        for socket, eth_iface in self.__iter_sockets_with_interface():
             for dep_root in socket.deployments or []:
                 deployment = dep_root.root
                 if isinstance(deployment, (SOMEIPServiceConsumer, SOMEIPServiceProvider)):
                     identity = (
-                        socket.protocol,  # type: ignore[attr-defined]
+                        socket.protocol,
                         socket.endpoint_type,
                         deployment.service,
                         deployment.major_version,
                         deployment.instance_id,
                     )
-                    yield deployment, identity
+                    yield deployment, identity, eth_iface
 
     def __duplicate_deployment_message(self, role: str, deployment: SOMEIPServiceDeployment) -> str:
         """Return the message naming the service instance *deployment* repeats in the given *role*."""

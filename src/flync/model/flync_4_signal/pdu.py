@@ -7,7 +7,7 @@ Provides the :class:`PDU` base class with its variants :class:`StandardPDU`, :cl
 signal instances of a PDU stay within its length and do not overlap.
 """
 
-from typing import Annotated, List, Literal, Optional
+from typing import Annotated, List, Literal, Optional, Self
 
 from pydantic import BeforeValidator, Field, field_validator, model_validator
 
@@ -38,7 +38,7 @@ class PDU(FLYNCBaseModel):
         Unique name of the PDU.
 
     length : int
-        Length of the PDU payload in bytes.
+        Length of the PDU payload in bytes. Must be greater than 0.
 
     pdu_usage : Literal[str], optional
         Tag identifying special usage of the PDU. One of: "application",
@@ -50,7 +50,7 @@ class PDU(FLYNCBaseModel):
         Optional human-readable description.
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     length: int = Field(gt=0)
     pdu_usage: Optional[
         Literal[
@@ -79,12 +79,12 @@ class PDUInstance(FLYNCBaseModel):
     pdu_ref : str
         Name of the referenced PDU.
     bit_position : int, optional
-        Non-negative bit offset where this PDU begins within the frame.
+        Bit offset where this PDU begins within the frame. Must be greater than or equal to 0.
     update_bit_position : int, optional
-        Bit position of the update indication bit, when applicable.
+        Bit position of the update indication bit, when applicable. Must be greater than or equal to 0.
     """
 
-    pdu_ref: str = Field()
+    pdu_ref: str = Field(min_length=1)
     bit_position: Optional[int] = Field(default=None, ge=0)
     update_bit_position: Optional[int] = Field(default=None, ge=0)
 
@@ -106,7 +106,7 @@ class StandardPDU(PDU):
     signal_groups: List[SignalGroupInstance] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def validate_signals_fit_in_pdu(self) -> "StandardPDU":
+    def validate_signals_fit_in_pdu(self) -> Self:
         """Check all placed signals are within bounds and do not overlap."""
         ranges = _collect_placed_ranges(self.signals, self.signal_groups)
         context = f"PDU '{self.name}'"
@@ -122,7 +122,7 @@ class MuxGroup(FLYNCBaseModel):
     Parameters
     ----------
     selector_value : int
-        The value of the selector signal that activates this group.
+        The value of the selector signal that activates this group. Must be greater than or equal to 0.
     pdu : :class:`PDUInstance`
         The PDU Instance that is active for this selector_value.
     """
@@ -143,7 +143,7 @@ class MultiplexedPDU(PDU):
         Optional PDU Instances with signals that are always present regardless of the active mux group.
         A single PDU Instance (unwrapped mapping) is accepted as well and coerced into a one-element list.
     mux_groups : list of :class:`MuxGroup`
-        One entry per distinct selector value.
+        One entry per distinct selector value. Must contain at least one mux group.
     """
 
     type: Literal["multiplexed"] = Field(default="multiplexed")
@@ -152,7 +152,7 @@ class MultiplexedPDU(PDU):
     mux_groups: List[MuxGroup] = Field(default_factory=list, min_length=1)
 
     @model_validator(mode="after")
-    def validate_unique_selector_values(self) -> "MultiplexedPDU":
+    def validate_unique_selector_values(self) -> Self:
         """Ensure no two mux groups share the same selector value."""
         values = [g.selector_value for g in self.mux_groups]
         duplicates = [v for v in values if values.count(v) > 1]
@@ -167,7 +167,7 @@ class MultiplexedPDU(PDU):
         return self
 
     @model_validator(mode="after")
-    def validate_selector_value_ranges(self) -> "MultiplexedPDU":
+    def validate_selector_value_ranges(self) -> Self:
         """Ensure selector_values fit within the selector signal's width."""
         max_value = (1 << self.selector_signal.signal.bit_length) - 1
         out_of_range = sorted({g.selector_value for g in self.mux_groups if g.selector_value > max_value})
@@ -194,17 +194,18 @@ class ContainedPDURef(FLYNCBaseModel):
     Parameters
     ----------
     header_id : int
-        Numeric identifier greater zero placed in the slot header for this contained PDU.
+        Numeric identifier greater than 0 placed in the slot header for this contained PDU.
     pdu_ref : str
         Name of the referenced PDU.
     offset : int, optional
         Bit offset of this slot (header + payload) within the container payload.
         When multiple PDUs are packed sequentially this encodes the start position
         of each slot so receivers can locate it without parsing preceding slots.
+        Must be greater than or equal to 0.
     """
 
     header_id: Annotated[int, Field(gt=0, strict=True)] = Field()
-    pdu_ref: str = Field()
+    pdu_ref: str = Field(min_length=1)
     offset: Optional[int] = Field(default=0, ge=0)
 
 
@@ -241,7 +242,7 @@ class ContainerPDU(PDU):
     Parameters
     ----------
     pdu_id : int
-        Numeric identifier for this container PDU on the network.
+        Numeric identifier for this container PDU on the network. Must be greater than or equal to 0.
     header : :class:`ContainerPDUHeader`
         Per-slot header format specifying the bit widths of the ID and length fields.
     contained_pdus : list of :class:`ContainedPDURef`
@@ -254,7 +255,7 @@ class ContainerPDU(PDU):
     contained_pdus: List[ContainedPDURef] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def validate_minimum_container_size(self) -> "ContainerPDU":
+    def validate_minimum_container_size(self) -> Self:
         """Ensure container length covers the per-slot header overhead."""
         overhead_bits = self.header.id_length_bits + self.header.length_field_bits
         overhead = overhead_bits // 8  # bits → bytes (always byte-aligned)
@@ -275,7 +276,7 @@ class ContainerPDU(PDU):
         return self
 
     @model_validator(mode="after")
-    def validate_one_pdu_if_header_length_is_one(self) -> "ContainerPDU":
+    def validate_one_pdu_if_header_length_is_one(self) -> Self:
         """Ensure container length covers the per-slot header overhead."""
 
         if self.header.id_length_bits == 0 and self.header.length_field_bits == 0 and len(self.contained_pdus) != 1:

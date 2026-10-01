@@ -46,10 +46,10 @@ def _with_source(err: PydanticCustomError, locator: str) -> PydanticCustomError:
     ctx["yaml_path"] = locator
     # err.type / err.message_template are typed as ``str`` but were originally constructed
     # from ``LiteralString``, so re-forwarding them through PydanticCustomError is safe.
-    return PydanticCustomError(err.type, err.message_template, ctx)  # type: ignore[arg-type]
+    return PydanticCustomError(err.type, err.message_template, ctx)
 
 
-def _interface_locator(controller: "Controller", iface: AnyBusInterface, kind: str) -> str:
+def _interface_locator(controller: Controller, iface: AnyBusInterface, kind: str) -> str:
     """Path-style Source locator for a bus interface (bracket-free: the CLI renders this through Rich)."""
 
     return f"controllers/{controller.name}/{kind}_interfaces/{iface.name}"
@@ -60,13 +60,13 @@ def _interface_locator(controller: "Controller", iface: AnyBusInterface, kind: s
 # ---------------------------------------------------------------------------
 
 
-def _channels(model: "FLYNCModel"):
+def _channels(model: FLYNCModel):
     """Return ``communication.channels`` or ``None`` when the model declares no communication."""
 
     return getattr(model.communication, "channels", None) if model.communication else None
 
 
-def _build_can_frames_by_bus(model: "FLYNCModel") -> Dict[str, Dict[int, CANAnyFrame]]:
+def _build_can_frames_by_bus(model: FLYNCModel) -> Dict[str, Dict[int, CANAnyFrame]]:
     """Return ``{bus_name: {can_id: frame}}`` for every CAN / CAN FD bus under ``communication.channels``."""
 
     out: Dict[str, Dict[int, CANAnyFrame]] = {}
@@ -78,7 +78,7 @@ def _build_can_frames_by_bus(model: "FLYNCModel") -> Dict[str, Dict[int, CANAnyF
     return out
 
 
-def _build_lin_frames_by_bus(model: "FLYNCModel") -> Dict[str, Dict[int, LINFrame]]:
+def _build_lin_frames_by_bus(model: FLYNCModel) -> Dict[str, Dict[int, LINFrame]]:
     """Return ``{bus_name: {lin_id: frame}}`` for every LIN bus under ``communication.channels``."""
 
     out: Dict[str, Dict[int, LINFrame]] = {}
@@ -95,7 +95,7 @@ def _build_lin_frames_by_bus(model: "FLYNCModel") -> Dict[str, Dict[int, LINFram
 # ---------------------------------------------------------------------------
 
 
-def _iter_bus_interfaces(model: "FLYNCModel") -> Iterator[Tuple["Controller", AnyBusInterface, str]]:
+def _iter_bus_interfaces(model: FLYNCModel) -> Iterator[Tuple[Controller, AnyBusInterface, str]]:
     """Yield ``(controller, interface, kind)`` for every CAN and LIN interface in the model."""
 
     for ecu in model.ecus or []:
@@ -172,7 +172,7 @@ def _validate_interface(iface: AnyBusInterface, kind: str, frames_by_bus: Dict[s
             )
 
 
-def validate_interface_frame_refs(model: "FLYNCModel") -> None:
+def validate_interface_frame_refs(model: FLYNCModel) -> None:
     """Workspace pass: every CAN / LIN interface must name a declared bus of its own kind and resolve its frame refs.
 
     The check is a plain lookup - is this frame id declared on this bus - performed against the catalog of the

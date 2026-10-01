@@ -4,6 +4,7 @@ This package provides security models for FLYNC.
 
 from .firewall import Firewall, FirewallRule
 from .macsec import (
+    CipherSuiteBaseModel,
     IntegrityWithConfidentiality,
     IntegrityWithoutConfidentiality,
     MACsecConfig,
@@ -11,6 +12,7 @@ from .macsec import (
 
 KEY = "SEC"
 __all__ = [
+    "CipherSuiteBaseModel",
     "Firewall",
     "FirewallRule",
     "IntegrityWithConfidentiality",

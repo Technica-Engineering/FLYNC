@@ -11,7 +11,7 @@ import pytest
 from flync.sdk.context.diagnostics_result import WorkspaceState
 from flync.sdk.helpers.validation_helpers import validate_workspace
 
-from .helper import absolute_path, update_yaml_content
+from .helper import absolute_path, assert_valid_result, update_yaml_content
 
 
 def test_validate_fully_valid_workspace(tmp_path):
@@ -24,16 +24,12 @@ def test_validate_fully_valid_workspace(tmp_path):
     destination_folder = Path(tmp_path) / "copy"
     shutil.copytree(absolute_path, destination_folder)
     result = validate_workspace(absolute_path)
-    assert result.model is not None
-    assert result.workspace is not None
-    assert result.state == WorkspaceState.WARNING
-    assert result.errors != {}
+    assert_valid_result(result)
 
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
 
 
-@pytest.mark.xfail(reason="FLYNC-1293")
 def test_validate_empty_workspace(tmp_path):
     """
     Validates an empty workspace and check its state.
@@ -81,7 +77,6 @@ def test_validate_workspace_with_blank_files(tmp_path):
         shutil.rmtree(destination_folder)
 
 
-@pytest.mark.xfail(reason="FLYNC-1294")
 def test_validate_workspace_without_flync_files(tmp_path):
     """
     Validates that a workspace containing no .flync.yaml files is considered empty.

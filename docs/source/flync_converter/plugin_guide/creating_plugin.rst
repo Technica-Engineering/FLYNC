@@ -170,9 +170,9 @@ The steps above describe **external** plugins distributed as separate packages. 
 
    # src/flync_converter/registry.py
    def load_builtin(self):
-       from .converters import dbc_converter, flync_converter, json_converter, my_converter, yaml_converter
+       from .converters import dbc, flync_converter, json_converter, my_converter, yaml_converter
 
-       for mod in (json_converter, yaml_converter, flync_converter, dbc_converter, my_converter):
+       for mod in (json_converter, yaml_converter, flync_converter, dbc, my_converter):
            ...
 
 Without this, the converter class and its ``register_converters`` hook exist but are never loaded, so it will not appear in the registry or the interactive TUI.

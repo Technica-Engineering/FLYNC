@@ -1,0 +1,3 @@
+# Boundary peer of linux_domain_eth2; internally mapped to ctrl_p3.
+mac_address: 02:00:00:A0:00:05
+virtual_interfaces: []

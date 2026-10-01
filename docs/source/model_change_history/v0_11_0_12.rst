@@ -1,0 +1,157 @@
+.. _chg__0_11__0_12:
+
+0.11.x → 0.12.x
+===============
+
+This release renamed the general configuration domain to communication, reworked CAN/LIN
+frame references and signal encodings, and introduced the CLI and converter framework.
+
+Breaking — YAML schema
+----------------------
+
+Root field ``general:`` → ``communication:`` (kept alias, warning only)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The root-model field ``general`` became ``communication``, the package
+``flync_4_general_configuration`` became ``flync_4_communication``, and the folder
+``general/channels/`` became ``communication/channels/``.
+
+.. code-block:: yaml
+
+   # before
+   general:
+     tcp_profiles: ...
+     channels:
+       can/...
+
+   # after
+   communication:
+     tcp_profiles: ...
+     channels:
+       can/...
+
+Because the field keeps ``Field(alias="general")`` plus a deprecation warning
+(``"The 'general' attribute is deprecated. Please use 'communication' instead."``), the old
+``general:`` key **still loads** but warns. Output is always written under
+``communication/``, never ``general/``. The old key is not an error in 0.12 — 0.14 removes
+the alias (see :ref:`chg__0_13__0_14`).
+
+CAN / LIN frame references: ``frame_ref`` name → ``bus_ref`` + integer ``frame_ref``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+On CAN and LIN interfaces, a frame was referenced by name; it is now referenced by **bus +
+frame ID**.
+
+.. code-block:: yaml
+
+   # before
+   sender_frames:
+     - frame_ref: MyFrameName
+
+   # after
+   sender_frames:
+     - bus_ref: ChassisCAN
+       frame_ref: 0x123
+
+``CANInterfaceConfig`` / ``LINMasterInterfaceConfig`` / ``LINSlaveInterfaceConfig`` gained a
+``name`` field — implied from the folder/file name, so not required in YAML. If
+``frame_ref`` stays a string, Pydantic raises an int-coercion error; unknown bus/ID refs
+surface as major reference-resolution errors.
+
+``Signal.value_descriptions`` → ``Signal.value_encoding``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``ValueDescription`` class and ``value_descriptions`` list were replaced by a
+``value_encoding`` discriminated union (``TextTable`` / ``BitfieldTextTable`` /
+``BitmaskFlags``, discriminator ``type``).
+
+.. code-block:: yaml
+
+   # before
+   value_descriptions:
+     - value: 0
+       description: Off
+
+   # after
+   value_encoding:
+     type: text_table
+     entries:
+       - value: 0
+         label: Off
+
+``value_encoding`` is prohibited on float/char/bytearray signals.
+
+``SignalGroup.signals``: ``List[Signal]`` → ``List[SignalInstance]``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Group members are now placed ``SignalInstance``\ s (referencing a signal by name + relative
+``bit_position``) instead of bare inline ``Signal`` definitions. Overlap / footprint are
+validated. This is breaking for any existing ``SignalGroup`` config.
+
+SOME/IP: ``SOMEIPEventgroup.multicast_threshold`` removed (moved to provider)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The eventgroup-level ``multicast_threshold`` was deleted and replaced by provider-level
+``SOMEIPServiceProvider.multicast_config`` (new class ``SOMEIPEventgroupMulticastConfig``).
+
+.. code-block:: yaml
+
+   # before (on the eventgroup)
+   eventgroup:
+     name: EG1
+     id: 1
+     multicast_threshold: 5
+
+   # after (on the someip_provider deployment)
+   deployment_type: someip_provider
+   multicast_config:
+     - ip_address: 239.0.0.1
+       port: 40000
+       threshold: 5
+       eventgroups: [EG1]
+
+Using the old ``multicast_threshold`` hits ``extra=forbid`` (``extra_forbidden`` error).
+
+Default change: ``MulticastGroupMembership.mode`` ``"tx"`` → ``"rx"``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Omitting ``mode`` previously meant **tx**; now it means **rx**. A config with explicit
+``mode: tx`` is unaffected, but silent behavior changes if you relied on the default.
+IP (IPv4/IPv6) multicast groups in ``tx`` mode without ``src_ip`` now raise a minor error.
+
+Controller interface naming
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Do not declare ``name`` inside ``interface_config:`` (the ``ControllerInterface`` block)
+anymore — the interface name is implied from the ethernet **folder** name
+(``ImpliedStrategy.FOLDER_NAME``). Any YAML declaring ``name`` directly on the
+``interface_config`` block breaks (``extra=forbid``).
+
+Breaking — Python API
+---------------------
+
+* ``FLYNCGeneralConfig`` → **``FLYNCCommunicationConfig``**;
+  ``flync.model.flync_4_general_configuration`` → ``flync.model.flync_4_communication``.
+  ``ValueDescription``/``ValueDescriptions`` moved to the new ``ValueEncoding`` family:
+  ``TextEntry``, ``TextTable``, ``ValueEncoding``, ``BitfieldState``, ``BitfieldGroup``,
+  ``BitfieldTextTable``, ``BitmaskFlag``, ``BitmaskFlags``.
+* The whole **CLI** (``flync``, Typer + Rich: ``validate``, ``info``, ``vlan-info``,
+  ``generate-system-uml``, ``service-info``, ``--version``, shell completion) and the whole
+  **converter framework** (``flync_converter``, pluggy; ``flync``/``json``/``yaml``/``dbc``
+  converters; ``flync-converter`` / ``-interactive`` / ``-gui`` entry points) are **new in
+  0.12** — all additive.
+
+Additive (0.12.x)
+-----------------
+
+* **Forwarders/gateways**: ``flync_4_signal/forwarder.py`` — ``PDUForwarder``
+  (``deployment_type="pdu_forwarder"``), ``CANFrameForwarder``, ``ForwarderEgress``;
+  ``CANInterfaceConfig.forwarder_frames``; root-model forwarder validation with
+  locality/cycle checks.
+* New core validator ``before_validate_mac_address`` + the ``FLYNCMacAddress`` annotated
+  type with improved error messages (no YAML change).
+* ``pdu_usage``/``frame_usage`` became typed enumerated literals (application, bap,
+  diag_request, diag_response, diag_state, network_management, other, service, tpl,
+  xcp_pre_configured, xcp_runtime_configured). A non-listed custom tag now raises.
+* ``Frame.packed_pdus`` relocated from the CAN/LIN frame bases (no YAML change).
+* SOME/IP provider ``multicast_config`` + eventgroup multicast validation.

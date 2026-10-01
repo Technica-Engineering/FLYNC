@@ -1,0 +1,9 @@
+release:
+  version_schema: semver
+  version: 1.2.1
+author: System_Architect
+compatible_flync_version:
+  version_schema: semver
+  version: 0.11.0
+oem: OEM_example
+platform: Arch1

@@ -1,0 +1,15 @@
+did: 0x0101
+access: read
+read_data:
+  byte_length: 1
+  fields:
+  - name: oil_temperature
+    type: uint8
+    bit_offset: 0
+    bit_length: 8
+    scaling:
+      factor: 1.0
+      offset: -40.0
+      unit: "degC"
+access_profile: standard_service
+description: "Current engine oil temperature."

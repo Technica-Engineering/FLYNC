@@ -18,7 +18,7 @@ Before contributing, familiarize yourself with the project:
 
 To contribute, you will need:
 
-- **Python 3.12 to 3.15**
+- **Python 3.12 to 3.14** (`requires-python = ">=3.12,<3.15"`)
 - Git for version control
 - A code editor (e.g., VS Code, PyCharm)
 - Familiarity with the project dependencies (e.g., ``pydantic``, ``pyyaml``, ``pytest``)
@@ -48,10 +48,16 @@ Follow these steps to contribute to the FLYNC project:
     - `feature/` (or `feat/`): For new features (e.g., `feature/add-login-page`, `feat/add-login-page`)
     - `bugfix/` (or `fix/`): For bug fixes (e.g., `bugfix/fix-header-bug`, `fix/header-bug`)
     - `hotfix/`: For urgent fixes (e.g., `hotfix/security-patch`)
-    - `release/`: For branches preparing a release (e.g., `release/v1.2.0`)
     - `chore/`: For non-code tasks like dependency, docs updates (e.g., `chore/update-dependencies`)
 
     *See the full [guideline for conventional branch naming](https://conventional-branch.github.io/).*
+
+    **Release branches** are the exception to the `<type>/<description>` scheme: each minor line has a
+    flat `release-<major>.<minor>` branch (e.g., `release-0.14`), cut from `main` and used to prepare the
+    release (version bump, release notes). The release itself is a **tag** named
+    `release-<major>.<minor>.<patch>` (e.g., `release-0.14.0`, release candidates `release-0.14.0-rc1`) —
+    the tag `uv-dynamic-versioning` derives the package version from. After the release the branch stays
+    open for bugfixes; CI pipelines run on `main` and on all `release-*` branches.
 
     To create a branch use this command:
      ```bash
@@ -66,17 +72,18 @@ Follow these steps to contribute to the FLYNC project:
 
 4. **Commit Changes**:
 
-   - Write clear, concise commit messages following the format:
+   - Write clear, concise commit messages using the same conventional types as the branch names
+     above (`feat`, `fix`, `chore`, ...):
      ```
-     scope: short description
+     <type>: short description
 
-     Detailed Description
+     Detailed description
      Reference to issue
      ```
 
      Example:
      ```
-     Validator: add support for new command
+     feat: add support for new validate command
 
      Added a new command to validate SOME/IP configurations with enhanced error reporting.
 
@@ -92,7 +99,8 @@ Follow these steps to contribute to the FLYNC project:
 
 6. **Submit a Pull Request**:
 
-   - Open a pull request (PR) against the main repository's ``main`` branch.
+   - Open a pull request (PR) against the main repository's ``main`` branch — or, for fixes that must reach an
+     already released line, against the corresponding ``release-<major>.<minor>`` branch (see *Release branches* above).
    - Provide a clear description of your changes, referencing any related issues (e.g., ``Closes: #123``).
    - Ensure your PR passes all automated checks (e.g., linting, tests).
 
@@ -131,138 +139,38 @@ Key guidelines include:
 - **Line Length**: Limit lines to 149 characters for readability.
 - **Imports**:
     - Group imports in the following order: standard library, third-party, local project modules.
-    - Use explicit imports (e.g., ``from typing import List`` instead of ``import typing``).
+    - Use explicit imports (e.g., ``from pydantic import Field`` instead of ``import pydantic``).
+    - Prefer built-in generics and PEP 604 unions (``list[X]``, ``X | None``) over ``typing.List`` / ``typing.Optional`` in new code.
 - **Naming Conventions**:
     - **Classes**: Use **PascalCase** (e.g., ``SwitchPort``, ``MulticastGroup``).
     - **Methods and Functions**: Use **snake_case** (e.g., ``validate_config``, ``get_config``).
     - **Variables**: Use **snake_case** for variables and attributes (e.g., ``silicon_port_no``, ``default_vlan_id``).
     - **Constants**: Use **UPPER_SNAKE_CASE** for constants (e.g., ``INSTANCES``).
-    - **Private Attributes**: Prefix with a single underscore for protected attributes (e.g., ``_mdi_config``) and use ``PrivateAttr`` for Pydantic private attributes.
+    - **Private Attributes**: Prefix with a single underscore (e.g., ``_mdi_config``); see the [model patterns](docs/source/development/model_patterns.rst) for the required form in Pydantic v2 models.
 - **Docstrings**: Follow [PEP 257](https://www.python.org/dev/peps/pep-0257/) for docstrings. Use triple double-quotes (``"""``) and include:
     - A brief description of the class, method, or function.
     - Parameters, return values, and exceptions (if applicable) in a structured format.
-    - Example for a class:
-
-      ``` python
-        class VirtualControllerInterface(FLYNCBaseModel):
-        """
-        Represents a virtual interface on a controller.
-
-        Parameters
-        ----------
-        name : str
-            Name of the virtual interface.
-
-        vlanid : int
-            VLAN identifier in the range 0-4095.
-
-        addresses : list of \
-        :class:`~flync.model.flync_4_ecu.sockets.IPv4AddressEndpoint` or \
-        :class:`~flync.model.flync_4_ecu.sockets.IPv6AddressEndpoint`
-            Assigned IPv4 and IPv6 address endpoints.
-
-        multicast : list of :class:`IPv4Address` or :class:`IPv6Address` \
-        or str, optional
-            Allowed multicast addresses.
-        """
+    - Model classes use the NumPy-style ``Parameters`` section documented in the [model patterns](docs/source/development/model_patterns.rst) — it feeds the API reference and is checked by ``scripts/ci/check_model_docstrings.py``.
 
 ### Pydantic Model Development
 
 FLYNC relies heavily on [Pydantic](https://docs.pydantic.dev/latest/) for data validation and model definition.
 
-When introducing new parts to the model (e.g., new classes or fields), adhere to the following standards:
+The modelling conventions for new classes, fields, and validators are documented in the
+**[Model Development Guide](docs/source/development/index.rst)** — each rule there shown as a
+short example, with the CI gate that enforces it:
 
-- **Class Definition**:
-    - Inherit from ``FLYNCBaseModel`` (a project-specific base class) to ensure consistent validation and configuration.
-    - Use **PascalCase** for class names (e.g., ``SwitchPort``, ``VLANEntry``).
-    - Declare a ``name`` field directly when the model needs a name; uniqueness, if required, is enforced at the owning parent model:
+| Topic | Guide page |
+|---|---|
+| ``FLYNCBaseModel``, field and constraint conventions, NumPy docstrings, private attributes, typing rules (PEP 604, no redundant quotes, ``Self``) | [model_patterns](docs/source/development/model_patterns.rst) |
+| ``External``/``Implied``/``Reference`` annotations and discriminated unions | [structure_and_polymorphism](docs/source/development/structure_and_polymorphism.rst) — annotation details also in the [field annotations](docs/source/flync_reference/sdk_core/field_annotations.rst) reference |
+| Validator choice (``BeforeValidator``/``AfterValidator``, ``model_validator`` modes), the error catalog, testing findings | [validators_and_errors](docs/source/development/validators_and_errors.rst) |
 
-    ```python
-    class SwitchPort(FLYNCBaseModel):
-        name: str
-        # ... other fields
-    ```
+The shortest version:
 
-    The owning parent model enforces uniqueness via a ``@model_validator``:
-
-    ```python
-    from pydantic import model_validator
-
-    class Switch(FLYNCBaseModel):
-        ports: List[SwitchPort]
-        # ... other fields
-
-        @model_validator(mode="after")
-        def validate_unique_port_names(self):
-            common_validators.validate_list_items_unique(
-                [p.name for p in self.ports],
-                "Switch Ports (name)",
-            )
-            return self
-    ```
-
-- **Model Configuration**:
-    - Set ``model_config`` as desired. Some defaults are already set in ``FLYNCBaseModel``:
-
-    ```python
-    FLYNCBaseModel.model_config: ClassVar[ConfigDict] = {'extra': 'forbid'}
-    ```
-    Configuration for the model, should be a dictionary conforming to [ConfigDict][pydantic.config.ConfigDict].
-
-- **Fields**:
-    - Use type hints for all fields, leveraging ``typing`` module types (e.g., ``List``, ``Optional``).
-    - For constrained fields, use Pydantic's ``Field`` with appropriate constraints (e.g., ``ge``, ``le``):
-
-    ```python
-
-        default_vlan_id: int = Field(..., ge=0, le=4095)
-    ```
-
-    - For union types with discriminators (e.g., different PHY types), use pythons pipe operator:
-
-    ```python
-        mii_config: Optional[MII | RMII | SGMII | RGMII | XFI] = pydantic.Field(default=None, discriminator="type")
-    ```
-
-    - For private attributes, use Pydantic's ``PrivateAttr``:
-
-    ```python
-        _mdi_config: BASET1 | BASET1S | BASET = PrivateAttr()
-    ```
-
-    - The field defines how the workspace will look like for this model (read/write). So make sure you're using the correct types and annotations.
-      Check out `field_annotations <guidelines/field_annotations.rst>` for more details on the annotations.
-
-    ```python
-        info: Annotated["MetadataECU", External(output_structure=OutputStrategy.SINGLE_FILE)] = pydantic.Field()
-    ```
-
-- **Validators**:
-    - Preferable validators for the fields are validator classes like `BeforeValidator`, `AfterValidator`, `PlainValidator` etc. See [annotated validators](https://docs.pydantic.dev/latest/concepts/validators/#using-the-annotated-pattern).
-    - Use Pydantic's ``@field_validator`` and ``@model_validator`` for field-specific and model-wide validations, respectively.
-    - Place validators in the appropriate mode (``before``, ``after``) based on the validation needs.
-    - Raise descriptive ``ValueError`` exceptions with context:
-
-    ```python
-        @field_validator('multicast', mode='after')
-        @classmethod
-        def validate_multicast_ip(cls, val_list):
-            """
-            Validates that all provided IP addresses are multicast.
-
-            Raises:
-                ValueError: If any address is not a multicast address.
-            """
-            for val in val_list:
-                if val and not val.is_multicast:
-                    raise ValueError("Address must be a Multicast Address. Unicast provided")
-            return val_list
-    ```
-    - Ensure validators are specific to the model and avoid generic logic that could belong in a parent class.
-
-- **Documentation**:
-    - Provide detailed docstrings for all models, including parameters, constraints, and usage notes.
-    - Reference related classes using RST-style links (e.g., ``mii_config (:class:`~flync.model.flync_4_ecu.phy.MII`)``).
+- Inherit from ``FLYNCBaseModel`` and inherit its config (``extra="forbid"`` etc.) — do not re-declare it; document every field in the class docstring's NumPy ``Parameters`` section.
+- Children declare their own ``name``; uniqueness is enforced **on the owning parent** via ``validate_list_items_unique``.
+- Never raise a bare ``ValueError`` from a model — use the catalogued ``err_*``/``warn`` factories (see *Error Handling and Logging* below).
 
 
 ### Error Handling and Logging
@@ -275,14 +183,15 @@ When introducing new parts to the model (e.g., new classes or fields), adhere to
         logger.info(f"Parsed Service Interface: {service_interface}")
     ```
 - **Error propagation**
-    - Use the `err_minor(msg, **ctx)`, `err_major(msg, **ctx)`, `err_fatal(msg, **ctx)` to raise PydanticCustomError with respective severity.
+    - Raise findings through the error catalog — ``err_minor`` / ``err_major`` / ``err_fatal`` (raise the returned error) and ``warn`` (record, do not raise) from ``flync.core.utils.exceptions``, never a bare ``ValueError``.
+    - The id format, the mandatory ``category=`` / ``error_number=`` arguments, the ``flync errors`` workflow, and pinning errors in tests are documented in the [Model Development Guide](docs/source/development/validators_and_errors.rst).
 
 ## File and Directory Structure
 
 When introducing new model components, ensure they align with the project's directory structure:
 
 - Place new model classes in the appropriate module (e.g., ``src/flync/model/flync_4_ecu/`` for ECU-related models, ``src/flync/model/flync_4_tsn/`` for TSN-related models).
-- Use descriptive file names in **snake_case** (e.g., ``feature1_part1.py``).
+- Use descriptive file names in **snake_case** (e.g., ``phy.py``, ``internal_topology.py``).
 - Maintain a consistent module hierarchy, mirroring the configuration structure (e.g., ``controllers/``, ``ports/``).
 
 > **HINT**: When adding a new model, check for compatibility with existing YAML schemas to avoid breaking existing configurations.
@@ -292,14 +201,15 @@ When introducing new model components, ensure they align with the project's dire
 All new model components must include tests to validate their behavior:
 
 - **Test Framework**: Use ``pytest`` for unit and integration tests.
-- **Test Location**: Place tests in a ``tests/`` directory, mirroring the main codebase structure (e.g., ``tests/flync_4_ecu/test_switch_port.py``).
+- **Test Location**: Place tests in ``tests/``, mirroring the source structure (e.g. ``tests/unit_test/model/tests_4_ecu/`` for ``src/flync/model/flync_4_ecu/``).
 - **Test Coverage**:
     - Test all fields and validators, including edge cases.
     - Test error conditions (e.g., invalid VLAN IDs, missing required fields).
-- Run tests using the following command from the main directory:
+- **Pin the exact error**: negative tests must use ``assert_single_error`` from ``tests/error_assertions.py``, which asserts a single error and pins its ``FLYNC-...`` id — a bare substring ``assert`` passes on any unrelated error.
+- Run tests from the repository root:
 
-```python
-    pytest tests/
+```bash
+uv run pytest
 ```
 
 > **WARNING**: Ensure all tests pass before submitting a pull request. Untested code will not be accepted.

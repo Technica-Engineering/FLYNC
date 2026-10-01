@@ -1,9 +1,9 @@
 """Defines the CAN and CAN FD bus model for FLYNC."""
 
 from collections import Counter
-from typing import Annotated, List, Optional
+from typing import Annotated, List, Literal, Optional, Self, get_args
 
-from pydantic import BeforeValidator, Field, field_validator, model_validator
+from pydantic import BeforeValidator, Field, model_validator
 
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major, err_minor
@@ -11,18 +11,8 @@ from flync.core.validators.generic import none_to_empty_list
 from flync.model.flync_4_nm import StateMembershipRef
 from flync.model.flync_4_signal.frame import CANFDFrame, CANFrame
 
-_ALLOWED_CAN_BAUD_RATES = frozenset(
-    {
-        10_000,
-        20_000,
-        50_000,
-        100_000,
-        125_000,
-        250_000,
-        500_000,
-        1_000_000,
-    }
-)
+type CANBaudRate = Literal[10_000, 20_000, 50_000, 100_000, 125_000, 250_000, 500_000, 1_000_000]
+_ALLOWED_CAN_BAUD_RATES = frozenset(get_args(CANBaudRate.__value__))
 
 _ALLOWED_CAN_FD_DATA_RATES = frozenset(
     {
@@ -45,7 +35,7 @@ class CANBus(FLYNCBaseModel):
     description : str, optional
         Optional human-readable description.
     version : str
-        Version string.  Defaults to ``""``.
+        Version string (maximum length 128).  Defaults to ``""``.
     baud_rate : int
         Nominal bit rate in bits/s.  Must be one of: 10 000, 20 000, 50 000, 100 000, 125 000, 250 000, 500 000, or 1 000 000.
     fd_enabled : bool
@@ -63,10 +53,10 @@ class CANBus(FLYNCBaseModel):
         their own memberships for selective, per-function participation.
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     description: Optional[str] = Field(default=None)
     version: str = Field(default="", max_length=128, pattern=r'^[^"\r\n]*$')
-    baud_rate: int = Field()
+    baud_rate: CANBaudRate = Field()
     fd_enabled: bool = Field(default=False)
     fd_baud_rate: Optional[int] = Field(default=None)
     frames: List[Annotated[CANFrame | CANFDFrame, Field(discriminator="type")]] = Field(default_factory=list)
@@ -78,21 +68,8 @@ class CANBus(FLYNCBaseModel):
         description="Assignments of this bus to a state management group; the whole bus participates as one unit.",
     )
 
-    @field_validator("baud_rate")
-    @classmethod
-    def validate_baud_rate(cls, value: int) -> int:
-        if value not in _ALLOWED_CAN_BAUD_RATES:
-            raise err_minor(
-                "baud_rate {value} is not a valid CAN baud rate. Allowed values: {allowed}",
-                value=value,
-                allowed=sorted(_ALLOWED_CAN_BAUD_RATES),
-                category=Category.VALUE_RANGE,
-                error_number="049",
-            )
-        return value
-
     @model_validator(mode="after")
-    def validate_fd_configuration(self) -> "CANBus":
+    def validate_fd_configuration(self) -> Self:
         if self.fd_enabled and self.fd_baud_rate is None:
             raise err_major(
                 "CANBus '{name}': fd_baud_rate must be set when fd_enabled is True",
@@ -119,7 +96,7 @@ class CANBus(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_can_fd_frames_require_fd_enabled(self) -> "CANBus":
+    def validate_can_fd_frames_require_fd_enabled(self) -> Self:
         if not self.fd_enabled:
             fd_frames = [f.name for f in self.frames if isinstance(f, CANFDFrame)]
             if fd_frames:
@@ -133,7 +110,7 @@ class CANBus(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_unique_can_ids(self) -> "CANBus":
+    def validate_unique_can_ids(self) -> Self:
         keys = [(f.can_id, f.id_format) for f in self.frames]
         duplicates = sorted(f"{cid:#x}/{fmt}" for (cid, fmt), c in Counter(keys).items() if c > 1)
         if duplicates:

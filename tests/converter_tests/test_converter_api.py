@@ -2,8 +2,6 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from flync_converter import Converter, convert
 from flync_converter.base import ConverterConfig
 

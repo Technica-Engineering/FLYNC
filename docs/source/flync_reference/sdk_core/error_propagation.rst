@@ -6,6 +6,12 @@ Error Propagation
 Custom validators in FLYNC are raising PydanticCustomErrors, to make sure the workspace is loaded as expected.
 The different Custom Errors are handled in an error propagation flow that we'll explore on this page.
 
+.. seealso::
+
+   :ref:`validators_and_errors` in the Model Development Guide covers the authoring side -
+   which severity to pick, how to claim an error number, and how to pin an error in a test.
+   This page documents what the loader then does with the finding.
+
 Overview
 --------
 
@@ -15,8 +21,11 @@ There are 3 types of errors defined:
 * Major
 * Fatal
 
-All of them can be retrieved from the factory functions from :mod:`flync.core.utils.exceptions`
-and raised directly.
+All of them are produced by the factory functions in :mod:`flync.core.utils.exceptions` and
+raised directly. Each factory requires a ``category`` and an ``error_number``: together with the
+calling package's ``KEY`` they compose the globally unique
+``FLYNC-<MODULE>-<SEVERITY>-<CATEGORY>-<NUMBER>`` id that identifies the finding in
+:doc:`../../error_catalog`.
 
 Example:
 
@@ -24,28 +33,46 @@ Example:
 
     raise err_minor(
         "{field_type} is wrong type for the field {field_name}",
+        category=Category.VALUE_RANGE,
+        error_number="001",
         field_type=field_type,
-        field_name=field_name
+        field_name=field_name,
     )
 
 .. code-block:: python
 
     raise err_major(
         "{field_type} is wrong type for the field {field_name}",
+        category=Category.VALUE_RANGE,
+        error_number="002",
         field_type=field_type,
-        field_name=field_name
+        field_name=field_name,
     )
 
 .. code-block:: python
 
     raise err_fatal(
         "{field_type} is wrong type for the field {field_name}",
+        category=Category.STRUCTURAL,
+        error_number="003",
         field_type=field_type,
-        field_name=field_name
+        field_name=field_name,
     )
 
+A fourth factory, ``warn(...)``, records a non-fatal finding as a side effect and keeps the
+value. It takes the same arguments but must **not** be raised.
 
-.. tip:: It is not mandatory to use ctx keyword arguments, you can simply use an f-string for error message.
+.. important::
+
+   Pass the interpolated values as ctx keyword arguments rather than building the message with
+   an f-string. The arguments are what put the offending value into the rendered catalog entry
+   and into the reported error, so an f-string message loses them.
+
+.. note::
+
+   The numbers above are placeholders for illustration. Claim a real one with
+   ``flync errors get-next-number`` and run ``flync errors sync`` afterwards - error numbers are
+   unique across the whole codebase and are never reused.
 
 
 Validation policy

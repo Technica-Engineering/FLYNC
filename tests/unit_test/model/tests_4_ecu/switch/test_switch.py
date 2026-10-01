@@ -13,7 +13,7 @@ def _switch_config(meta, ports, vlans, **kwargs):
 
 
 def test_unique_silicon_port_number(embedded_metadata_entry, vlan_entry, switch_host_controller_example):
-    switch_port1 = SwitchPort(name="port1", default_vlan_id=1, silicon_port_no=1)
+    switch_port1 = SwitchPort(name="valid_switch_port", default_vlan_id=1, silicon_port_no=1)
     switch_port2 = SwitchPort(name="port2", default_vlan_id=2, silicon_port_no=1)
     switch_config = _switch_config(embedded_metadata_entry, [switch_port1, switch_port2], [vlan_entry])
 
@@ -119,7 +119,7 @@ def test_validate_ipv_mapping_positive(embedded_metadata_entry, vlan_entry):
     stream ipv on some port of the same switch."""
     port = SwitchPort.model_validate(
         {
-            "name": "port1",
+            "name": "valid_switch_port",
             "default_vlan_id": 1,
             "silicon_port_no": 1,
             "ingress_streams": [
@@ -157,7 +157,7 @@ def test_validate_ipv_mapping_negative(embedded_metadata_entry, vlan_entry):
     must raise."""
     port = SwitchPort.model_validate(
         {
-            "name": "port1",
+            "name": "valid_switch_port",
             "default_vlan_id": 1,
             "silicon_port_no": 1,
             "traffic_classes": [
@@ -192,7 +192,7 @@ def test_validate_ats_instances_positive(embedded_metadata_entry, vlan_entry):
     }
     port = SwitchPort.model_validate(
         {
-            "name": "port1",
+            "name": "valid_switch_port",
             "default_vlan_id": 1,
             "silicon_port_no": 1,
             "ingress_streams": [
@@ -276,7 +276,7 @@ def test_validate_ats_instances_negative(embedded_metadata_entry, vlan_entry):
     must raise even though the ipv mapping is satisfied."""
     port = SwitchPort.model_validate(
         {
-            "name": "port1",
+            "name": "valid_switch_port",
             "default_vlan_id": 1,
             "silicon_port_no": 1,
             "ingress_streams": [
@@ -307,3 +307,76 @@ def test_validate_ats_instances_negative(embedded_metadata_entry, vlan_entry):
         )
 
     assert_single_error(exc_info, "FLYNC-ECU-MIN-REF-091", "No ATS Instance found for traffic class tc_ats")
+
+
+def test_switch_duplicate_port_name_invalid(
+    embedded_metadata_entry,
+    vlan_entry,
+):
+    """Duplicate switch port names are rejected."""
+    port1 = SwitchPort(
+        name="SP1",
+        silicon_port_no=0,
+        default_vlan_id=1,
+    )
+    port2 = SwitchPort(
+        name="SP1",
+        silicon_port_no=1,
+        default_vlan_id=2,
+    )
+
+    switch_config = _switch_config(
+        embedded_metadata_entry,
+        [port1, port2],
+        [vlan_entry],
+    )
+
+    with pytest.raises(ValidationError) as exc_info:
+        Switch.model_validate(
+            {
+                "name": "switch_example",
+                "switch_config": switch_config,
+            }
+        )
+
+    assert_single_error(
+        exc_info,
+        "FLYNC-CMN-MAJ-UNIQ-009",
+        "Duplicates found in Switch Ports (name)",
+    )
+
+
+@pytest.mark.xfail(reason="FLYNC-1422")
+def test_switch_vlan_references_nonexistent_port(
+    embedded_metadata_entry,
+):
+    with pytest.raises(ValidationError) as exc_info:
+        Switch.model_validate(
+            {
+                "name": "SW1",
+                "switch_config": {
+                    "meta": embedded_metadata_entry,
+                    "ports": [
+                        {
+                            "name": "SP1",
+                            "silicon_port_no": 0,
+                            "default_vlan_id": 1,
+                        }
+                    ],
+                    "vlans": [
+                        {
+                            "name": "v1",
+                            "id": 10,
+                            "default_priority": 0,
+                            "ports": ["SP1", "GHOST"],
+                        }
+                    ],
+                },
+            }
+        )
+
+    assert_single_error(
+        exc_info,
+        "not yet defined",
+        "VLAN references a switch port that does not exist on the switch",
+    )

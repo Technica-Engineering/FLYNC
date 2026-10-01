@@ -69,7 +69,7 @@ def get_config_model(converter_type: str) -> Type[ConverterConfig]:  # NOSONAR
                     klass.__name__,
                     hint.__name__,
                 )
-                return hint  # type: ignore[return-value]
+                return hint
 
         # 2. Inspect __init__ type annotation for 'config' parameter.
         try:
@@ -82,14 +82,14 @@ def get_config_model(converter_type: str) -> Type[ConverterConfig]:  # NOSONAR
                         "Found config model via __init__ annotation: %s",
                         hint.__name__,
                     )
-                    return hint  # type: ignore[return-value]
+                    return hint
                 # Accept base ConverterConfig only as a last resort later.
                 if isinstance(hint, type) and issubclass(hint, ConverterConfig):
                     logger.debug(
                         "Found config model via __init__ annotation: %s",
                         hint.__name__,
                     )
-                    return hint  # type: ignore[return-value]
+                    return hint
         except Exception:
             pass
 
@@ -102,7 +102,7 @@ def get_config_model(converter_type: str) -> Type[ConverterConfig]:  # NOSONAR
                     attr,
                     m.__name__,
                 )
-                return m  # type: ignore[return-value]
+                return m
 
     except Exception:
         pass

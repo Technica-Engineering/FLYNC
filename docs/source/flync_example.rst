@@ -27,6 +27,8 @@ The configuration includes the following key components:
 
 - **Signals, PDUs and CAN Communication** - Shows how bus-agnostic signals are grouped into PDUs and carried by CAN and CAN FD frames, and how the same PDUs are packed into Ethernet container PDUs.
 
+- **10BASE-T1S Multidrop** - Shows a shared single-pair segment carrying three rear lamp modules and the zone controller that coordinates them. It covers the PLCA parameters every node agrees on, the per-node node id on each port's PHY, and how the whole segment enrols in network management as a single participant.
+
 
 
 Example Configuration
@@ -44,7 +46,7 @@ The **Ethernet Network Topology** diagram provides a comprehensive visual repres
 The diagram identifies the VLANs, IP addresses, and multicast groups assigned to each controller and switch, giving a complete view of the logical network segmentation and addressing scheme.
 
 
-Each of the four ECUs is shown as an individual block. The diagram also illustrates the internal connectivity between components within each ECU, as well as the external connections between ECUs, making both intra-ECU and inter-ECU communication paths easy to understand.
+Each ECU is shown as an individual block. The diagram also illustrates the internal connectivity between components within each ECU, as well as the external connections between ECUs, making both intra-ECU and inter-ECU communication paths easy to understand.
 
 .. image:: _static/images/examples/ethernet_topology.svg
    :align: center
@@ -97,6 +99,39 @@ This helps clarify the security topology and illustrates how data integrity (and
 .. image:: _static/images/examples/macsec.svg
    :align: center
    :width: 1300px
+
+-------
+
+Ethernet Multidrop Segment
+""""""""""""""""""""""""""
+
+The rear lamps sit on a **shared single-pair segment** rather than on a link of their own. Three lamp modules and one
+port of ``zonal_platform1`` share one twisted pair, and PLCA (IEEE 802.3-2022 Clause 148) gives each of them a
+transmit opportunity in turn, so the medium carries no collisions.
+
+The segment as the model derives it — the medium, and every node ordered by the transmit opportunity it holds:
+
+.. mermaid:: _static/mermaid/multidrop_segment_rearlampsegment.mmd
+
+The segment is a connection in the system topology, holding the cycle all four nodes must agree on and one entry
+per node:
+
+.. literalinclude:: ../../examples/flync_example/topology/ethernet_topology.flync.yaml
+   :language: yaml
+
+``zonal_platform1`` holds transmit opportunity 0, which makes it the **coordinator** that emits the BEACON opening
+each cycle; the three lamps hold 1 to 3 as **followers**. What differs per node beyond that - the PHY, and the
+burst parameters - stays on the port.
+
+Three things are worth noticing when reading the example:
+
+- **The segment declares no frames.** Payload takes the ordinary Ethernet path — the lamp command and status PDUs
+  travel over UDP sockets on each node's ``ethernet_interfaces``, exactly as they would on a point-to-point link.
+- **The lamp command goes out as multicast.** Every node on a shared medium hears every frame anyway, so one
+  command addressed to the group lights the whole tail; sending it three times over would put three transmit
+  opportunities on the wire for the same payload.
+- **Network management is node-level here**, as on any other Ethernet. Each node is an IP host running its own NM
+  stack, so it holds its own membership; the segment itself holds none.
 
 -------
 
@@ -232,6 +267,24 @@ Find this example on github: `ecu_variant_9 <https://github.com/Technica-Enginee
 .. note:: A single controller can host a CAN interface alongside its Ethernet interface. The Ethernet interface has its own ECU port and external PHY; the CAN interface instead joins a bus via ``bus_ref`` and lists the frames it exchanges through ``sender_frames`` / ``receiver_frames``.
 
 .. note:: Several CAN frames share the single ``BodyCAN`` bus. The frames are defined once on the bus under ``communication/channels/can/``, and the CAN interface references them by their ``frame_ref`` (the CAN identifier).
+
+--------------
+
+
+Variant 10: Single controller, switch inside controller, several nested compute nodes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Find this example on github: `ecu_variant_10 <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_10>`_.
+
+.. image:: ./_static/images/ecu_variants_static/ecu_variant_10.png
+   :align: center
+   :width: 1300px
+
+.. note:: A single controller (``adc``) hosts a hardware switch, giving the controller and its compute nodes a shared internal switching fabric alongside their Ethernet interfaces.
+
+.. note:: Compute nodes can nest arbitrarily: the ``linux_domain`` compute node itself hosts the ``adaptive`` and ``diagnostic`` compute nodes, each with its own Ethernet interfaces. Other compute nodes of the controller (``linux``, ``safety_mcu``, ``safety_rtos``) sit alongside it at the same level.
+
+.. note:: Compute nodes such as ``linux``, ``linux_domain`` and ``safety_rtos`` each define their own virtual switch, connecting their Ethernet interfaces independently from the controller's hardware switch.
 
 --------------
 
@@ -511,7 +564,7 @@ A **Signal** is the smallest data element in the ``FLYNC`` model: a single value
               entries:
                 - value: 65535
                   label: Signal_Not_Available
-                  
+
         - bit_position: 16
           endianness: LE
 
@@ -892,3 +945,24 @@ On ``BodyCAN``, the ``VEHICLE`` group follows the classic CAN pattern: ``zonal_g
 **LIN NM**
 
 ``BodyLIN`` (the body bus - exterior mirrors and cabin ambient lighting) takes part through a **bus-level membership**: the whole bus joins the ``VEHICLE`` group as one participant on the ``Comfort`` function, without a LIN frame of its own. Its master (``zonal_platform1``) receives the group state on Ethernet (``pdu_receiver``) and drives the LIN bus to sleep with it; validation resolves the master as the bus's representative automatically.
+
+-------
+
+.. _flync_example_instrumentation:
+
+Instrumentation (Measurement Points)
+""""""""""""""""""""""""""""""""""""""
+
+The instrumentation overlay taps buses and links with **measurement points** for network analysers such as ASAM CMP or TECMP (see :ref:`flync_4_instrumentation <instrumentation>` for the model). It is **optional** - a workspace that is not being instrumented simply has no ``instrumentation/`` folder, in which case ``flync_model.instrumentation`` stays ``None``.
+
+When present, the points are declared in ``instrumentation/measurement_points.flync.yaml``. Each point is identified by a unique ``name`` and carries an ``interface_id`` (per direction for Ethernet port taps); every interface id is unique across the overlay. The example exercises all four point types:
+
+- **Ethernet port tap (``ethernet_ports``)** - ``gateway_to_hpc_link`` taps both ends of the point-to-point link to the HPC in-line, with one interface id per direction.
+- **Ethernet shared-medium segment (``ethernet_bus``)** - ``rear_lamp_segment_bus`` taps the rear-lamp 10BASE-T1S multidrop segment.
+- **CAN bus (``can_bus``)** - ``body_can`` taps ``BodyCAN`` (classical ``can`` payloads) and ``diagnostics_can_fd`` taps ``DiagCAN`` (``can`` and ``can_fd`` payloads).
+- **LIN bus (``lin_bus``)** - ``body_lin`` taps the ``BodyLIN`` bus.
+
+.. dropdown:: 📄 ``instrumentation/measurement_points.flync.yaml``
+
+   .. literalinclude:: ../../examples/flync_example/instrumentation/measurement_points.flync.yaml
+      :language: yaml

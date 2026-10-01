@@ -11,6 +11,7 @@ from flync.core.annotations.external import (
 )
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.validators.generic import none_to_empty_list, validate_or_remove
+from flync.model.flync_4_diagnostics import DiagnosticsConfig
 from flync.model.flync_4_ecu import TCPOption
 from flync.model.flync_4_nm import StateManagementConfig
 from flync.model.flync_4_someip import SOMEIPConfig
@@ -26,12 +27,17 @@ class FLYNCCommunicationConfig(FLYNCBaseModel):
     Parameters
     ----------
     tcp_profiles : list of \
-    :class:`~flync.model.flync_4_ecu.sockets.TCPOption`
+    :class:`~flync.model.flync_4_ecu.sockets.TCPOption`, optional
         List of TCP profiles that define the selectable TCP socket options.
 
-    someip_config : :class:`~flync.model.flync_4_someip.SOMEIPConfig`
+    someip_config : :class:`~flync.model.flync_4_someip.SOMEIPConfig`, optional
         Configuration block that holds the global SOME/IP service interface definition, SOME/IP timings, and SD timings profiles
         used by every ECU in the system.
+
+    diagnostics_config : :class:`~flync.model.flync_4_diagnostics.DiagnosticsConfig`, optional
+        Configuration block that holds the diagnostics configuration of the whole system, one folder per protocol:
+        ``diagnostics/doip/`` for the DoIP transport timings and ``diagnostics/uds/`` for the UDS servers and the
+        DID/routine/DTC catalogs. Loaded from ``communication/diagnostics/``.
 
     channels : :class:`~flync.model.flync_4_communication\
 .flync_channels.FLYNCChannelConfig`, optional
@@ -63,6 +69,18 @@ class FLYNCCommunicationConfig(FLYNCBaseModel):
     ] = Field(
         default=None,
         description="contains the SOME/IP config for the entire system.",
+    )
+    diagnostics_config: Annotated[
+        Optional[DiagnosticsConfig],
+        External(
+            output_structure=OutputStrategy.FOLDER,
+            naming_strategy=NamingStrategy.FIXED_PATH,
+            path="diagnostics",
+        ),
+        BeforeValidator(validate_or_remove("Diagnostics config", DiagnosticsConfig)),
+    ] = Field(
+        default=None,
+        description="contains the DoIP and UDS diagnostics config for the entire system.",
     )
     channels: Annotated[
         Optional[FLYNCChannelConfig],

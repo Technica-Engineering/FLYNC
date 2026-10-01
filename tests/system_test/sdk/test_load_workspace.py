@@ -9,7 +9,9 @@ from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 
 from .helper import (
     append_yaml_content,
+    entry_named,
     model_has_socket,
+    patch_yaml,
     update_yaml_content,
 )
 
@@ -95,18 +97,32 @@ def test_load_workspace_exsistence_attribute(attribute):
 
 # Verify handling invalid workspace directory path
 def test_load_workspace_invalid_yaml_path():
-    with pytest.raises(FileNotFoundError):
-        FLYNCWorkspace.load_workspace("flync_example", "/path/to/nonexistent/directory")
+    with pytest.raises(FileNotFoundError) as exc_info:
+        FLYNCWorkspace.load_workspace(
+            "flync_example",
+            "/path/to/nonexistent/directory",
+        )
+
+    # The loader lets the OS FileNotFoundError propagate; it references the
+    # unresolved (nonexistent) workspace path.
+    assert "nonexistent" in str(exc_info.value).lower()
 
 
 def test_load_workspace_empty_name():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError) as exc_info:
         FLYNCWorkspace.load_workspace("", absolute_path)
+
+    assert "workspace name" in str(exc_info.value)
+    assert "invalid value" in str(exc_info.value)
 
 
 def test_load_workspace_empty_path():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError) as exc_info:
         FLYNCWorkspace.load_workspace("flync_example", "")
+
+    error_message = str(exc_info.value).lower()
+    assert "workspace root" in error_message
+    assert "invalid value" in error_message
 
 
 # Verify handling missing mandatory directory
@@ -121,8 +137,10 @@ def test_load_workspace_missing_mandatory_folder(tmpdir, subfolder):
     destination_folder = Path(tmpdir) / "copy"
     shutil.copytree(absolute_path, destination_folder)
     shutil.rmtree(destination_folder / subfolder.relative_to(absolute_path))
-    with pytest.raises(FileNotFoundError):
+    with pytest.raises(FileNotFoundError) as exc_info:
         FLYNCWorkspace.load_workspace("flync_example", destination_folder)
+    # The OS FileNotFoundError propagates and references the removed mandatory folder.
+    assert subfolder.name in str(exc_info.value)
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
 
@@ -146,7 +164,10 @@ def test_load_workspace_missing_mandatory_file(tmpdir, file):
     path_to_remove.unlink()
     try:
         loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
-        assert loaded_ws.load_errors != []
+        assert loaded_ws.load_errors != [], (
+            f"Removed mandatory file '{path_to_remove.relative_to(destination_folder)}' but the "
+            f"workspace still loaded with no errors. The file is not actually required for this ECU."
+        )
     except ValidationError:
         pass
     if destination_folder.exists():
@@ -255,8 +276,8 @@ def test_load_workspace_key_value_misplaced(tmpdir):
         shutil.rmtree(destination_folder)
 
 
-# Verify handling missing dashe in list items
-def test_load_workspace_missing_dashe(tmpdir):
+# Verify handling missing dash in list items
+def test_load_workspace_missing_dash(tmpdir):
     destination_folder = Path(tmpdir) / "copy"
     shutil.copytree(absolute_path, destination_folder)
     file_to_update = (
@@ -271,8 +292,8 @@ def test_load_workspace_missing_dashe(tmpdir):
     )
     update_yaml_content(
         file_to_update,
-        "multicast:\n            - 224.0.0.1",
-        "multicast:\n            224.0.0.1",
+        "    multicast:\n      - 224.0.0.1",
+        "    multicast:\n      224.0.0.1",
     )
     try:
         loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
@@ -297,12 +318,12 @@ def test_load_workspace_missing_key_value(tmpdir):
         / "eth_ecu_c1_iface1"
         / "interface_config.flync.yaml"
     )
-    update_yaml_content(file_to_update, "name: eth_ecu_c1_iface1", "")
+    update_yaml_content(file_to_update, "name: eth_ecu_c1_iface1_viface1", "name:")
     try:
         loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
         assert loaded_ws.load_errors != []
     except ValidationError as exc_info:
-        assert "name\n  Field required" in str(exc_info)
+        assert "name\n  Input should be a valid string" in str(exc_info)
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
 
@@ -364,10 +385,9 @@ def test_validate_workspace_surfaces_unknown_pdu_ref(tmpdir):
 
     destination_folder = Path(tmpdir) / "copy"
     shutil.copytree(absolute_path, destination_folder)
-    # Target the Frame_EngineDiagResponse line; its PDU ref name only appears
-    # once in this file and is independent of the LightDiagRequest content.
     diag_can = destination_folder / "communication" / "channels" / "can" / "diag_can.flync.yaml"
-    update_yaml_content(diag_can, "pdu_ref: PDU_EngineStatus", "pdu_ref: nonexistent_pdu")
+    with patch_yaml(diag_can) as channel:
+        entry_named(channel["frames"], "Frame_EngineDiagResponse")["packed_pdus"][0]["pdu_ref"] = "nonexistent_pdu"
 
     result = validate_workspace(destination_folder)
 

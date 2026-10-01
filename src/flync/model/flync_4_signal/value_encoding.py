@@ -2,7 +2,7 @@
 A Signal may carry an optional Value Encoding that converts raw integer values into text labels.
 """
 
-from typing import Annotated, List, Literal, Optional, Union
+from typing import Annotated, List, Literal, Optional, Self, Union
 
 from pydantic import Field, model_validator
 
@@ -37,7 +37,7 @@ class TextEntry(FLYNCBaseModel):
     value: Optional[int] = Field(default=None)
     from_value: Optional[int] = Field(default_factory=lambda data: data.get("value", 0))
     to_value: Optional[int] = Field(default_factory=lambda data: data.get("value", 0))
-    label: str = Field()
+    label: str = Field(min_length=1)
 
     @model_validator(mode="before")
     @classmethod
@@ -45,7 +45,7 @@ class TextEntry(FLYNCBaseModel):
         return validate_value_input_format(data)
 
     @model_validator(mode="after")
-    def _validate_bounds(self) -> "TextEntry":
+    def _validate_bounds(self) -> Self:
         assert self.from_value is not None and self.to_value is not None
         if self.to_value < self.from_value:
             raise err_major(
@@ -76,7 +76,7 @@ class TextTable(FLYNCBaseModel):
     entries: List[TextEntry] = Field(min_length=1)
 
     @model_validator(mode="after")
-    def _validate_no_overlap(self) -> "TextTable":
+    def _validate_no_overlap(self) -> Self:
         ranges = collect_bit_ranges(
             self.entries,
             lambda e: (e.label, e.from_value, e.to_value + 1),
@@ -100,15 +100,17 @@ class BitfieldState(FLYNCBaseModel):
     ----------
     label : str
         Symbolic name of this state (e.g. ``"ProblemFailure"``).
-    value : int
-        Single bit. Optional; defaults to None for range entries.
-    from_value : int
-        Inclusive lower bound for ``(raw & group.mask)``. Optional; defaults to `value` for single-bit entries.
-    to_value : int
-        Inclusive upper bound for ``(raw & group.mask)``. Optional; defaults to `value` for single-bit entries.
+    value : int, optional
+        Single bit. Defaults to None for range entries.
+    from_value : int, optional
+        Inclusive lower bound for ``(raw & group.mask)``. Defaults to `value` for single-bit entries.
+        Must be greater or equal to 0.
+    to_value : int, optional
+        Inclusive upper bound for ``(raw & group.mask)``. Defaults to `value` for single-bit entries.
+        Must be greater or equal to 0.
     """
 
-    label: str = Field()
+    label: str = Field(min_length=1)
     value: Optional[int] = Field(default=None)
     from_value: Optional[int] = Field(ge=0, default_factory=lambda data: data.get("value", 0))
     to_value: Optional[int] = Field(ge=0, default_factory=lambda data: data.get("value", 0))
@@ -119,7 +121,7 @@ class BitfieldState(FLYNCBaseModel):
         return validate_value_input_format(data)
 
     @model_validator(mode="after")
-    def _validate_bounds(self) -> "BitfieldState":
+    def _validate_bounds(self) -> Self:
         assert self.from_value is not None and self.to_value is not None
         if self.to_value < self.from_value:
             raise err_major(
@@ -155,12 +157,12 @@ class BitfieldGroup(FLYNCBaseModel):
         unique within the group.
     """
 
-    name: str = Field()
+    name: str = Field(min_length=1)
     mask: int = Field(gt=0)
     states: List[BitfieldState] = Field(min_length=1)
 
     @model_validator(mode="after")
-    def _validate_states(self) -> "BitfieldGroup":
+    def _validate_states(self) -> Self:
         seen: set[str] = set()
         for s in self.states:
             if s.label in seen:
@@ -214,7 +216,7 @@ class BitfieldTextTable(FLYNCBaseModel):
     groups: List[BitfieldGroup] = Field(min_length=1)
 
     @model_validator(mode="after")
-    def _validate_groups(self) -> "BitfieldTextTable":
+    def _validate_groups(self) -> Self:
         seen: set[str] = set()
         accumulated_mask = 0
         for g in self.groups:
@@ -253,7 +255,7 @@ class BitmaskFlag(FLYNCBaseModel):
     """
 
     mask: int = Field(gt=0)
-    label: str = Field()
+    label: str = Field(min_length=1)
 
 
 class BitmaskFlags(FLYNCBaseModel):
@@ -283,7 +285,7 @@ class BitmaskFlags(FLYNCBaseModel):
     flags: List[BitmaskFlag] = Field(min_length=1)
 
     @model_validator(mode="after")
-    def _validate_flags(self) -> "BitmaskFlags":
+    def _validate_flags(self) -> Self:
         seen: set[str] = set()
         accumulated_mask = 0
         for f in self.flags:

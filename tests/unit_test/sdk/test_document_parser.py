@@ -3,7 +3,7 @@ from typing import Any
 
 import pytest
 
-from flync.sdk.workspace.document import Document, parse_documents, read_file
+from flync.sdk.workspace.document import Document, parse_documents
 
 # --- Fixtures / Helpers ---
 

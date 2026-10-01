@@ -1,0 +1,40 @@
+ports:
+  - name: hpc1_p1
+    mdi_config:
+      mode: base_t1
+      speed: 100
+      duplex: full
+      role: master
+      autonegotiation: false
+    mii_config:
+      type: rmii
+      speed: 100
+      mode: phy
+
+  - name: hpc1_p2
+    mdi_config:
+      mode: base_t1
+      speed: 1000
+      duplex: full
+      role: master
+      autonegotiation: false
+
+  - name: hpc1_p3
+    mdi_config:
+      mode: base_t1
+      speed: 1000
+      duplex: full
+      role: master
+      autonegotiation: false
+
+  - name: hpc1_p5
+    mdi_config:
+      mode: base_t1
+      speed: 1000
+      duplex: full
+      role: master
+      autonegotiation: false
+    mii_config:
+      type: sgmii
+      speed: 1000
+      mode: phy

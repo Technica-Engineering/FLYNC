@@ -124,10 +124,14 @@ def _ecu(name, memberships=(), controllers=()):
     effective = _resolve_state_effective(state_memberships, "ecu", name, name)
     for ctrl in controllers:
         effective += _resolve_state_effective(list(ctrl.state_memberships or []), "controller", f"{name}/{ctrl.name}", name)
+    controllers = list(controllers)
     return SimpleNamespace(
         name=name,
         state_memberships=state_memberships,
-        controllers=list(controllers),
+        controllers=controllers,
+        switches=[],
+        # Mirrors ECU.iter_controllers_and_switch_hosts, which the bus index walks. No switches here, so it is the controllers.
+        iter_controllers_and_switch_hosts=lambda: iter(controllers),
         _state_effective_members=effective,
     )
 

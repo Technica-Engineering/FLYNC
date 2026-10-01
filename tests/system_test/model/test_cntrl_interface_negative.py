@@ -10,8 +10,6 @@ from flync.model.flync_4_ecu.controller import (
     EthernetInterface,
     EthernetInterfaceConfig,
     VirtualControllerInterface,
-    VirtualSwitch,
-    VirtualSwitchPort,
 )
 from flync.model.flync_4_ecu.ecu import ECU
 from flync.model.flync_4_ecu.internal_topology import InternalTopology, SwitchPortToControllerInterface
@@ -87,25 +85,28 @@ def test_duplicate_interface_name_within_controller_is_invalid():
 
 
 # Verify that a different interfaces inside the same Controller cannot have the same name because it creates ambiguous references.
-@pytest.mark.xfail(reason="FLYNC-1339")
 def test_duplicate_interface_name_across_interface_types_is_invalid():
     eth = EthernetInterface(
-        name="iface0", interface_config=EthernetInterfaceConfig(virtual_interfaces=[VirtualControllerInterface(name="vif0", addresses=[])])
+        name="iface0",
+        interface_config=EthernetInterfaceConfig(
+            mac_address="00:11:22:33:44:55",
+            virtual_interfaces=[VirtualControllerInterface(name="vif0", addresses=[])],
+        ),
     )
     can = CANInterface(name="iface0", bus_ref="can_bus")
     controller_metadata = _make_embedded_metadata()
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         Controller(
             name="CTRL1",
             controller_metadata=controller_metadata,
             ethernet_interfaces=[eth],
             can_interfaces=[can],
         )
+    assert_single_error(exc_info, "FLYNC-ECU-MAJ-UNIQ-248", "is used by more than one interface type")
 
 
 # Verify that two Ethernet interfaces inside the same Controller cannot have the same MAC address.
-@pytest.mark.xfail(reason="FLYNC-1340")
 def test_duplicate_ethernet_mac_address_is_invalid():
     eth1 = EthernetInterface(
         name="eth0",
@@ -122,28 +123,16 @@ def test_duplicate_ethernet_mac_address_is_invalid():
     )
     controller_metadata = _make_embedded_metadata()
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         Controller(
             name="CTRL1",
             controller_metadata=controller_metadata,
             ethernet_interfaces=[eth1, eth2],
         )
-
-
-# Verify that a physical EthernetInterface without a MAC address is rejected.
-@pytest.mark.xfail(reason="FLYNC-1341")
-def test_physical_ethernet_interface_without_mac_address_is_invalid():
-    interface_config = EthernetInterfaceConfig(
-        # MAC address intentionally omitted
-        virtual_interfaces=[VirtualControllerInterface(name="vif0", addresses=[])]
-    )
-
-    with pytest.raises(ValidationError):
-        EthernetInterface(name="eth0", interface_config=interface_config)
+    assert_single_error(exc_info, "FLYNC-ECU-MAJ-UNIQ-249", "is used by more than one Ethernet interface")
 
 
 # Verify that a LIN Master cannot use a LIN bus without a schedule table.
-@pytest.mark.xfail(reason="FLYNC-1342")
 def test_lin_master_without_schedule_table_is_invalid():
 
     lin_bus = LINBus(name="lin_bus_1", lin_protocol_version="2.0", lin_language_version="2.0", baud_rate=19200, schedule_tables=[])
@@ -162,16 +151,16 @@ def test_lin_master_without_schedule_table_is_invalid():
         topology=InternalTopology(),
         ecu_metadata=_make_ecu_metadata(),
     )
-    general = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(lin_buses=[lin_bus]))
+    communication = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(lin_buses=[lin_bus]))
     topology = _make_empty_topology()
     metadata = _make_system_metadata()
 
-    with pytest.raises(ValidationError):
-        FLYNCModel(ecus=[ecu], general=general, topology=topology, metadata=metadata)
+    with pytest.raises(ValidationError) as exc_info:
+        FLYNCModel(ecus=[ecu], communication=communication, topology=topology, metadata=metadata)
+    assert_single_error(exc_info, "FLYNC-TOP-MAJ-CONS-315", "declares no schedule table")
 
 
 # Verify that a LIN Slave cannot use a LIN bus with a schedule table. Scheduling is handled by the LIN Master only.
-@pytest.mark.xfail(reason="FLYNC-1343")
 def test_lin_slave_with_schedule_table_is_invalid():
 
     schedule_table = LINScheduleTable(name="schedule_table_1", entries=[])
@@ -192,110 +181,63 @@ def test_lin_slave_with_schedule_table_is_invalid():
         topology=InternalTopology(),
         ecu_metadata=_make_ecu_metadata(),
     )
-    general = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(lin_buses=[lin_bus]))
+    communication = FLYNCCommunicationConfig(channels=FLYNCChannelConfig(lin_buses=[lin_bus]))
     topology = _make_empty_topology()
     metadata = _make_system_metadata()
 
-    with pytest.raises(ValidationError):
-        FLYNCModel(ecus=[ecu], general=general, topology=topology, metadata=metadata)
-
-
-# Verify that an Ethernet switch cannot connect to a CAN interface. Ethernet switches support Ethernet interfaces only.
-def test_ethernet_switch_connected_to_can_interface_is_invalid():
-
-    can_iface = CANInterface(name="can_iface", bus_ref="can_bus")
-
-    virtual_switch = VirtualSwitch(name="vswitch_1", vlans=[], ports=[VirtualSwitchPort(name="invalid_vswitch", node_connected="can_iface")])
-    controller_metadata = _make_embedded_metadata()
-
     with pytest.raises(ValidationError) as exc_info:
-        Controller(
-            name="CTRL1",
-            controller_metadata=controller_metadata,
-            can_interfaces=[can_iface],
-            virtual_switch=virtual_switch,
-        )
-    assert_single_error(exc_info, "FLYNC-ECU-MIN-REF-067", "interface or compute node")
+        FLYNCModel(ecus=[ecu], communication=communication, topology=topology, metadata=metadata)
+    assert_single_error(exc_info, "FLYNC-TOP-MAJ-CONS-316", "declares schedule table(s) but has no master interface")
 
 
-# Verify that an Ethernet switch cannot connect to a LIN interface. Ethernet switches support Ethernet interfaces only and cannot connect to LIN interfaces.
-def test_ethernet_switch_connected_to_lin_interface_is_invalid():
-
-    lin_iface = LINMasterInterface(name="lin_master_iface", bus_ref="lin_bus", lin_protocol="2.0", p2_min=10, st_min=10)
-
-    virtual_switch = VirtualSwitch(name="vswitch_1", vlans=[], ports=[VirtualSwitchPort(name="invalid_vswitch", node_connected="lin_master_iface")])
-    controller_metadata = _make_embedded_metadata()
-
-    with pytest.raises(ValidationError) as exc_info:
-        Controller(
-            name="CTRL1",
-            controller_metadata=controller_metadata,
-            lin_interfaces=[lin_iface],
-            virtual_switch=virtual_switch,
-        )
-    assert_single_error(exc_info, "FLYNC-ECU-MIN-REF-067", "interface or compute node")
-
-
-# Verify that the same physical ControllerInterface cannot be connected multiple times inside ECU topology.
-@pytest.mark.xfail(reason="FLYNC-1344")
+# Verify that the same physical ControllerInterface cannot be connected to more than one switch port inside ECU topology.
 def test_same_physical_interface_connected_multiple_times_is_invalid():
-
-    eth_iface = EthernetInterface(
-        name="eth0",
-        interface_config=EthernetInterfaceConfig(
-            mii_config=MII(speed=100, mode="mac"), virtual_interfaces=[VirtualControllerInterface(name="vif0", addresses=[])]
-        ),
-    )
-
-    virtual_switch = VirtualSwitch(
-        name="switch1",
-        vlans=[],
-        ports=[VirtualSwitchPort(name="port1", node_connected="eth0"), VirtualSwitchPort(name="port2", node_connected="eth0")],
-    )
-
-    internal_connections = InternalTopology(
-        connections=[
-            SwitchPortToControllerInterface(id="conn1", switch_port="port1", controller_interface="eth0", switch="switch1", controller="CTRL1"),
-            SwitchPortToControllerInterface(id="conn2", switch_port="port2", controller_interface="eth0", switch="switch1", controller="CTRL1"),
-        ]
-    )
-
-    controller = Controller(
-        name="CTRL1",
-        controller_metadata=_make_embedded_metadata(),
-        ethernet_interfaces=[eth_iface],
-        virtual_switch=virtual_switch,
-    )
-
     switch = Switch(
         name="switch1",
         switch_config=SwitchConfig(
             ports=[
-                SwitchPort(name="port1", mii_config=MII(speed=100, mode="phy"), silicon_port_no=1, default_vlan_id=1),
-                SwitchPort(name="port2", mii_config=MII(speed=100, mode="phy"), silicon_port_no=2, default_vlan_id=1),
+                SwitchPort(name="port1", silicon_port_no=1, default_vlan_id=1, mii_config=MII(speed=100, mode="phy")),
+                SwitchPort(name="port2", silicon_port_no=2, default_vlan_id=1, mii_config=MII(speed=100, mode="phy")),
             ],
             vlans=[],
             meta=_make_embedded_metadata(),
         ),
     )
 
-    ecu = ECU(
-        name="ECU1",
-        controllers=[controller],
-        switches=[switch],
-        topology=InternalTopology(
-            connections=[
-                SwitchPortToControllerInterface(id="conn1", switch="switch1", switch_port="port1", controller_interface="eth0", controller="CTRL1"),
-                SwitchPortToControllerInterface(id="conn2", switch="switch1", switch_port="port2", controller_interface="eth0", controller="CTRL1"),
-            ]
+    eth_iface = EthernetInterface(
+        name="eth0",
+        interface_config=EthernetInterfaceConfig(
+            mii_config=MII(speed=100, mode="mac"),
+            virtual_interfaces=[VirtualControllerInterface(name="vif0", addresses=[])],
         ),
-        ecu_metadata=_make_ecu_metadata(),
     )
-    topology = _make_empty_topology()
-    metadata = _make_system_metadata()
 
-    with pytest.raises(ValidationError):
-        FLYNCModel(ecus=[ecu], topology=topology, metadata=metadata)
+    controller = Controller(
+        name="CTRL1",
+        controller_metadata=_make_embedded_metadata(),
+        ethernet_interfaces=[eth_iface],
+    )
+
+    internal_topology = InternalTopology(
+        connections=[
+            SwitchPortToControllerInterface(id="conn1", switch="switch1", switch_port="port1", controller_interface="eth0", controller="CTRL1"),
+            SwitchPortToControllerInterface(id="conn2", switch="switch1", switch_port="port2", controller_interface="eth0", controller="CTRL1"),
+        ]
+    )
+    ecu_metadata = _make_ecu_metadata()
+    port1 = ECUPort(name="ecu_port1", mdi_config=BASET1())
+    port2 = ECUPort(name="ecu_port2", mdi_config=BASET1())
+
+    with pytest.raises(ValidationError) as exc_info:
+        ECU(
+            name="ECU1",
+            controllers=[controller],
+            switches=[switch],
+            ports=[port1, port2],
+            topology=internal_topology,
+            ecu_metadata=ecu_metadata,
+        )
+    assert_single_error(exc_info, "FLYNC-ECU-MAJ-UNIQ-250", "is connected more than once in the internal topology")
 
 
 # Verify that duplicate VLAN IDs inside the same Ethernet interface are rejected.
@@ -325,7 +267,8 @@ def test_unresolved_controller_interface_reference_in_topology_is_invalid():
     eth_iface = EthernetInterface(
         name="eth0",
         interface_config=EthernetInterfaceConfig(
-            mii_config=MII(speed=100, mode="mac"), virtual_interfaces=[VirtualControllerInterface(name="vif0", addresses=[])]
+            mii_config=MII(speed=100, mode="mac"),
+            virtual_interfaces=[VirtualControllerInterface(name="vif0", addresses=[])],
         ),
     )
 

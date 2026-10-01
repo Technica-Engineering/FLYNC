@@ -1,0 +1,15 @@
+vlan_id: 20
+sockets:
+- name: sd_multicast_socket
+  endpoint_address: 10.0.20.3
+  endpoint_type: multicast
+  port_no: 30490
+  protocol: udp
+  multicast_tx:
+    - 224.244.224.245
+  deployments:
+  - deployment_type: someip_sd
+    multicast:
+      ip_address: 224.244.224.245
+      port: 30490
+      ip_ttl: 1

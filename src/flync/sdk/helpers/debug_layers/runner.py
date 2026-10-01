@@ -19,6 +19,7 @@ from rich.console import Console
 from rich.panel import Panel
 
 from flync.model.flync_model import FLYNCModel
+from flync.sdk.context.diagnostics_result import DiagnosticsResult
 
 _console = Console(force_terminal=True)
 
@@ -81,11 +82,15 @@ def _warn(message: str, path: str = "", hint: str = "", line: int | None = None,
 # ---------------------------------------------------------------------------
 
 
-def run_debug(dir_path: Path) -> None:
-    """Run all five debug layers against dir_path and print results."""
+def run_debug(dir_path: Path) -> DiagnosticsResult | None:
+    """Run all five debug layers against dir_path, print results, and return the workspace result.
+
+    Returns ``None`` when the path does not exist or the run stopped before the workspace could be loaded
+    (layer 1 or layer 2 errors), since no :class:`DiagnosticsResult` exists yet in that case.
+    """
     if not dir_path.exists():
         _console.print(f"[bold red]Path does not exist:[/bold red] {dir_path}")
-        return
+        return None
 
     _console.print(
         Panel(
@@ -95,26 +100,38 @@ def run_debug(dir_path: Path) -> None:
         )
     )
 
-    _run_layers(dir_path)
+    return _run_layers(dir_path)
 
 
-def _run_layers(dir_path: Path) -> None:
-    """Run layers 1-5 in order, stopping and printing a summary at the first hard-error layer."""
-    from .layer1_structure import check_structure
-    from .layer2_yaml import check_yaml_syntax
-    from .layer3_4_5_workspace import run_workspace_validation
+def _run_pre_workspace_layers(check_structure, check_yaml_syntax, dir_path: Path) -> list | None:
+    """Run layers 1-2 (structure & YAML syntax), stopping at the first hard-error layer.
 
+    Returns the layer 1 warnings, or ``None`` if the run should stop before loading the workspace.
+    """
     l1_errors, l1_warnings = _report_layer1(check_structure, dir_path)
     if l1_errors:
         _console.print("\n[bold red]Stopped at Layer 1.[/bold red]  Fix the structure issues above before proceeding.")
         _print_summary(l1_errors=len(l1_errors), l1_warnings=len(l1_warnings))
-        return
+        return None
 
     yaml_issues = _report_layer2(check_yaml_syntax, dir_path)
     if yaml_issues:
         _console.print("\n[bold red]Stopped at Layer 2.[/bold red]  Fix YAML syntax errors before proceeding.")
         _print_summary(l1_warnings=len(l1_warnings), l2_errors=len(yaml_issues))
-        return
+        return None
+
+    return l1_warnings
+
+
+def _run_layers(dir_path: Path) -> DiagnosticsResult | None:
+    """Run layers 1-5 in order, stopping and printing a summary at the first hard-error layer."""
+    from .layer1_structure import check_structure
+    from .layer2_yaml import check_yaml_syntax
+    from .layer3_4_5_workspace import run_workspace_validation
+
+    l1_warnings = _run_pre_workspace_layers(check_structure, check_yaml_syntax, dir_path)
+    if l1_warnings is None:
+        return None
 
     _console.print("\n[dim]Loading workspace...[/dim]")
     ws_result, ws_issues = run_workspace_validation(dir_path)
@@ -126,7 +143,7 @@ def _run_layers(dir_path: Path) -> None:
     if l3:
         _console.print("\n[bold red]Stopped at Layer 3.[/bold red]  Fix schema errors above before checking constraints and system validation.")
         _print_summary(l1_warnings=len(l1_warnings), l3_errors=len(l3), model_loaded=ws_result.model is not None)
-        return
+        return None
 
     _report_layer4(l4)
     _report_layer5(l5)
@@ -138,6 +155,8 @@ def _run_layers(dir_path: Path) -> None:
         l5_warnings=len(l5),
         model_loaded=ws_result.model is not None,
     )
+
+    return ws_result
 
 
 # ---------------------------------------------------------------------------

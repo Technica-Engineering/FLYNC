@@ -69,6 +69,11 @@ exports/
 
 # Sphinx documentation
 docs/_build/
+docs/source/_static/mermaid
+docs/source/_static/images/ecu_variants
+docs/source/_static/flync_example
+docs/source/_static/flync_example_experimental
+docs/source/flync_cli/usage.md
 
 # PyBuilder
 target/
@@ -150,3 +155,11 @@ tests/converter_tests/generated_test_output/
 # scan also writes an unredacted trivy-secret.json; only CI strips the source
 # context, so keep both out of commits.
 /requirements.txt
+/local_examples
+/docs/source/error_catalog.rst
+
+# AI
+/.opencode
+/opencode.json
+/.claude
+/.mcp.json

@@ -1,0 +1,42 @@
+mac_address: 00:11:01:01:01:01
+mii_config:
+  type: sgmii
+  speed: 1000
+  mode: mac
+ptp_config:
+    cmlds_linkport_enabled: false
+    ptp_ports:
+      - domain_id: 0
+        src_port_identity: 0
+        sync_config:
+          type: time_receiver
+          sync_timeout: 3
+          sync_followup_timeout: 10
+        pdelay_config:
+          log_tx_period: 1
+macsec_config:
+  vlan_bypass: []
+  ckn: hpc1_eth_ecu
+  mka_enabled: true
+  hello_time: 1000
+  bounded_hello_time: 2000
+  life_time: 100000
+  sak_retire_time: 20000
+  macsec_mode: integrity
+  kay_on: true
+  key_role: key_server_always
+  delay_protect: false
+  participant_activation: always
+# The physical interface is the bridge's uplink trunk: it carries both VLANs that br0 forwards
+# between the VMs and the outside world.
+virtual_interfaces:
+  - name: eth_ecu_c1_iface1_viface1
+    vlanid: 40
+    addresses:
+      - address: 10.0.40.8
+        ipv4netmask: 255.255.255.0
+  - name: eth_ecu_c1_iface1_viface2
+    vlanid: 50
+    addresses:
+      - address: 10.0.50.8
+        ipv4netmask: 255.255.255.0

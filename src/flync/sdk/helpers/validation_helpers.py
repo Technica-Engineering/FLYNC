@@ -10,6 +10,7 @@ import logging
 from pathlib import Path
 
 from pydantic_core import (
+    ErrorDetails,
     InitErrorDetails,
     PydanticCustomError,
     ValidationError,
@@ -74,14 +75,21 @@ def validate_external_node(
 
     node = type_from_input(node)
     state = WorkspaceState.EMPTY
-    errors = {}
+    errors: dict[str, list[ErrorDetails]] = {}
     model = None
     ws = None
+    node_path = Path(node_path)
     try:
         if workspace_config:
             workspace_config = WorkspaceConfiguration.create_from_config(workspace_config, root_model=node)
         else:
             workspace_config = WorkspaceConfiguration(root_model=node)
+    except Exception as ex:
+        logger.exception("Encountered issue while validating node %s: %s", node_path, ex)
+        return DiagnosticsResult(state=WorkspaceState.BROKEN, errors=errors, model=model, workspace=ws)
+    if node_path.is_dir() and not any(p.is_file() and "".join(p.suffixes) in workspace_config.allowed_extensions for p in node_path.rglob("*")):
+        return DiagnosticsResult(state=WorkspaceState.EMPTY, errors=errors, model=model, workspace=ws)
+    try:
         ws = FLYNCWorkspace.safe_load_workspace(
             "validation_workspace",
             node_path,

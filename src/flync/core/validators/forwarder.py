@@ -56,10 +56,10 @@ def _with_source(err: PydanticCustomError, locator: str) -> PydanticCustomError:
     ctx["yaml_path"] = locator
     # err.type / err.message_template are typed as ``str`` but were originally constructed
     # from ``LiteralString``, so re-forwarding them through PydanticCustomError is safe.
-    return PydanticCustomError(err.type, err.message_template, ctx)  # type: ignore[arg-type]
+    return PydanticCustomError(err.type, err.message_template, ctx)
 
 
-def _pdu_forwarder_locator(controller: "Controller", socket: "Socket", fwd: PDUForwarder) -> str:
+def _pdu_forwarder_locator(controller: Controller, socket: Socket, fwd: PDUForwarder) -> str:
     """Path-style Source locator for a ``PDUForwarder`` deployment.
 
     Bracket-free on purpose: the validate CLI renders this through Rich, which treats
@@ -69,13 +69,13 @@ def _pdu_forwarder_locator(controller: "Controller", socket: "Socket", fwd: PDUF
     return f"controllers/{controller.name}/sockets/{socket.name}/pdu_forwarder/{fwd.pdu_ref}"
 
 
-def _pdu_deployment_locator(controller: "Controller", socket: "Socket", dep: "Union[PDUSender, PDUReceiver]") -> str:
+def _pdu_deployment_locator(controller: Controller, socket: Socket, dep: PDUSender | PDUReceiver) -> str:
     """Path-style Source locator for a ``PDUSender`` / ``PDUReceiver`` deployment (bracket-free, see above)."""
 
     return f"controllers/{controller.name}/sockets/{socket.name}/{dep.deployment_type}/{dep.pdu_ref}"
 
 
-def _can_forwarder_locator(controller: "Controller", iface: CANInterface, fwd: CANFrameForwarder) -> str:
+def _can_forwarder_locator(controller: Controller, iface: CANInterface, fwd: CANFrameForwarder) -> str:
     """Path-style Source locator for a ``CANFrameForwarder`` deployment (``iface.bus_ref`` names the interface)."""
 
     return f"controllers/{controller.name}/can_interfaces/{iface.bus_ref}/forwarder_frames/{fwd.frame_ref}"
@@ -86,7 +86,7 @@ def _can_forwarder_locator(controller: "Controller", iface: CANInterface, fwd: C
 # ---------------------------------------------------------------------------
 
 
-def _iter_sockets_on_controller(controller: "Controller"):
+def _iter_sockets_on_controller(controller: Controller):
     """Yield every :class:`Socket` owned by *controller* (across all eth interfaces / VLAN containers)."""
 
     for eth_iface in controller.ethernet_interfaces or []:
@@ -95,7 +95,7 @@ def _iter_sockets_on_controller(controller: "Controller"):
                 yield socket
 
 
-def _iter_pdu_forwarders_on_socket(socket: "Socket"):
+def _iter_pdu_forwarders_on_socket(socket: Socket):
     """Yield every :class:`PDUForwarder` deployment carried by *socket*."""
 
     for dep_root in socket.deployments or []:
@@ -104,10 +104,10 @@ def _iter_pdu_forwarders_on_socket(socket: "Socket"):
             yield dep
 
 
-def _collect_pdu_forwarders(model: "FLYNCModel") -> List[Tuple["Controller", "Socket", PDUForwarder]]:
+def _collect_pdu_forwarders(model: FLYNCModel) -> List[Tuple[Controller, Socket, PDUForwarder]]:
     """Collect every PDUForwarder in the workspace alongside its parent socket and owning controller."""
 
-    out: List[Tuple["Controller", "Socket", PDUForwarder]] = []
+    out: List[Tuple[Controller, Socket, PDUForwarder]] = []
     for ecu in model.ecus:
         for controller in ecu.controllers:
             for socket in _iter_sockets_on_controller(controller):
@@ -116,7 +116,7 @@ def _collect_pdu_forwarders(model: "FLYNCModel") -> List[Tuple["Controller", "So
     return out
 
 
-def _iter_pdu_deployments_on_socket(socket: "Socket"):
+def _iter_pdu_deployments_on_socket(socket: Socket):
     """Yield every :class:`PDUSender` / :class:`PDUReceiver` deployment carried by *socket*."""
 
     from flync.model.flync_4_signal.pdu_deployment import PDUReceiver, PDUSender  # local import — avoid module cycle
@@ -127,14 +127,14 @@ def _iter_pdu_deployments_on_socket(socket: "Socket"):
             yield dep
 
 
-def _collect_pdu_deployments(model: "FLYNCModel") -> List[Tuple["Controller", "Socket", "Union[PDUSender, PDUReceiver]"]]:
+def _collect_pdu_deployments(model: FLYNCModel) -> List[Tuple[Controller, Socket, PDUSender | PDUReceiver]]:
     """Collect every PDUSender / PDUReceiver in the workspace alongside its parent socket and owning controller.
 
     Deployments are collected unconditionally — standalone senders/receivers (plain ECU-to-ECU
     PDU exchange with no forwarder involved) are included exactly like forwarder-adjacent ones.
     """
 
-    out: List[Tuple["Controller", "Socket", "Union[PDUSender, PDUReceiver]"]] = []
+    out: List[Tuple[Controller, Socket, PDUSender | PDUReceiver]] = []
     for ecu in model.ecus:
         for controller in ecu.controllers:
             for socket in _iter_sockets_on_controller(controller):
@@ -143,7 +143,7 @@ def _collect_pdu_deployments(model: "FLYNCModel") -> List[Tuple["Controller", "S
     return out
 
 
-def _iter_can_interfaces(model: "FLYNCModel"):
+def _iter_can_interfaces(model: FLYNCModel):
     """Yield ``(controller, can_interface)`` for every CAN interface in the workspace."""
 
     for ecu in model.ecus:
@@ -152,7 +152,7 @@ def _iter_can_interfaces(model: "FLYNCModel"):
                 yield controller, can_iface
 
 
-def _collect_can_frame_forwarders(model: "FLYNCModel"):
+def _collect_can_frame_forwarders(model: FLYNCModel):
     """Collect every CANFrameForwarder in the workspace alongside its parent CAN interface and owning controller."""
 
     out = []
@@ -162,10 +162,10 @@ def _collect_can_frame_forwarders(model: "FLYNCModel"):
     return out
 
 
-def _build_socket_indexes(model: "FLYNCModel"):
+def _build_socket_indexes(model: FLYNCModel):
     """Build controller-scoped indexes for socket and PDUForwarder lookup (socket names may collide across controllers)."""
 
-    socket_by_controller_name: Dict[Tuple[str, str], Tuple["Controller", "Socket"]] = {}
+    socket_by_controller_name: Dict[Tuple[str, str], Tuple[Controller, Socket]] = {}
     pdu_forwarder_by_controller_socket_pdu: Dict[Tuple[str, str, str], PDUForwarder] = {}
 
     for ecu in model.ecus:
@@ -190,7 +190,7 @@ def _index_can_forwarders_by_bus_id(
             out[(can_iface.bus_ref, frame.can_id)] = fwd
 
 
-def _build_can_indexes(model: "FLYNCModel", can_frame_catalog: Optional[Dict[str, CANAnyFrame]] = None):
+def _build_can_indexes(model: FLYNCModel, can_frame_catalog: Optional[Dict[str, CANAnyFrame]] = None):
     """Build indexes for CAN interface lookup ``(controller, bus)`` and CAN forwarder lookup ``(bus, can_id)``."""
 
     can_iface_by_controller_bus: Dict[Tuple[str, str], CANInterface] = {}
@@ -208,7 +208,7 @@ def _build_can_indexes(model: "FLYNCModel", can_frame_catalog: Optional[Dict[str
 # ---------------------------------------------------------------------------
 
 
-def _build_pdu_catalog(model: "FLYNCModel") -> Dict[str, PDU]:
+def _build_pdu_catalog(model: FLYNCModel) -> Dict[str, PDU]:
     """Return a name-keyed dict of every Standard / Multiplexed / Container PDU declared under ``communication.channels``."""
 
     out: Dict[str, PDU] = {}
@@ -222,7 +222,7 @@ def _build_pdu_catalog(model: "FLYNCModel") -> Dict[str, PDU]:
     return out
 
 
-def _build_can_frame_catalog(model: "FLYNCModel") -> Dict[str, CANAnyFrame]:
+def _build_can_frame_catalog(model: FLYNCModel) -> Dict[str, CANAnyFrame]:
     """Return a name-keyed dict of every CAN / CAN FD frame declared under ``communication.channels.can_buses``."""
 
     out: Dict[str, CANAnyFrame] = {}
@@ -235,7 +235,7 @@ def _build_can_frame_catalog(model: "FLYNCModel") -> Dict[str, CANAnyFrame]:
     return out
 
 
-def _build_can_frame_catalog_by_bus_id(model: "FLYNCModel") -> Dict[Tuple[str, int], CANAnyFrame]:
+def _build_can_frame_catalog_by_bus_id(model: FLYNCModel) -> Dict[Tuple[str, int], CANAnyFrame]:
     """Return a ``(bus_name, can_id)``-keyed dict of every CAN / CAN FD frame, for egress lookups by CAN ID."""
 
     out: Dict[Tuple[str, int], CANAnyFrame] = {}
@@ -385,7 +385,7 @@ def _resolve_sinks_for(
                 )
 
 
-def validate_forwarder_refs(model: "FLYNCModel") -> None:
+def validate_forwarder_refs(model: FLYNCModel) -> None:
     """Workspace pass: resolve every forwarder's PDU / frame / extract refs and assert payload-fit on CAN egresses."""
 
     pdu_catalog = _build_pdu_catalog(model)
@@ -405,7 +405,7 @@ def validate_forwarder_refs(model: "FLYNCModel") -> None:
             raise _with_source(err, _can_forwarder_locator(ctrl, iface, fwd)) from None
 
 
-def validate_pdu_deployment_refs(model: "FLYNCModel") -> None:
+def validate_pdu_deployment_refs(model: FLYNCModel) -> None:
     """Workspace pass: every pdu_sender / pdu_receiver ``pdu_ref`` must name a PDU declared under ``communication.channels``.
 
     Any PDU kind is a valid target (Standard, Multiplexed, or Container). The pass covers all
@@ -440,8 +440,8 @@ def _check_eth_socket_egress(
     egress: EthSocketEgress,
     owner: str,
     egress_pdu_ref: str,
-    forwarder_controller: "Controller",
-    socket_by_controller_name: Dict[Tuple[str, str], Tuple["Controller", "Socket"]],
+    forwarder_controller: Controller,
+    socket_by_controller_name: Dict[Tuple[str, str], Tuple[Controller, Socket]],
 ) -> None:
     """Assert a ``eth_socket`` egress targets a same-controller socket carrying a matching PDUSender."""
 
@@ -473,7 +473,7 @@ def _check_eth_socket_egress(
 def _check_can_frame_egress(
     egress: CANFrameEgress,
     owner: str,
-    forwarder_controller: "Controller",
+    forwarder_controller: Controller,
     can_iface_by_controller_bus: Dict[Tuple[str, str], CANInterface],
     can_frame_by_bus_id: Dict[Tuple[str, int], CANAnyFrame],
 ) -> None:
@@ -507,8 +507,8 @@ def _check_forwarder_egress_locality(
     egress,
     egress_owner: str,
     egress_pdu_ref: Optional[str],
-    controller: "Controller",
-    socket_by_controller_name: Dict[Tuple[str, str], Tuple["Controller", "Socket"]],
+    controller: Controller,
+    socket_by_controller_name: Dict[Tuple[str, str], Tuple[Controller, Socket]],
     can_iface_by_controller_bus: Dict[Tuple[str, str], CANInterface],
     can_frame_by_bus_id: Dict[Tuple[str, int], CANAnyFrame],
 ) -> None:
@@ -528,10 +528,10 @@ def _check_forwarder_egress_locality(
 
 
 def _validate_pdu_forwarder_locality(
-    controller: "Controller",
-    socket: "Socket",
+    controller: Controller,
+    socket: Socket,
     fwd: PDUForwarder,
-    socket_by_controller_name: Dict[Tuple[str, str], Tuple["Controller", "Socket"]],
+    socket_by_controller_name: Dict[Tuple[str, str], Tuple[Controller, Socket]],
     can_iface_by_controller_bus: Dict[Tuple[str, str], CANInterface],
     can_frame_by_bus_id: Dict[Tuple[str, int], CANAnyFrame],
 ) -> None:
@@ -553,10 +553,10 @@ def _validate_pdu_forwarder_locality(
 
 
 def _validate_can_frame_forwarder_locality(
-    controller: "Controller",
+    controller: Controller,
     parent_iface: CANInterface,
     fwd: CANFrameForwarder,
-    socket_by_controller_name: Dict[Tuple[str, str], Tuple["Controller", "Socket"]],
+    socket_by_controller_name: Dict[Tuple[str, str], Tuple[Controller, Socket]],
     can_iface_by_controller_bus: Dict[Tuple[str, str], CANInterface],
     can_frame_catalog: Dict[str, CANAnyFrame],
     can_frame_by_bus_id: Dict[Tuple[str, int], CANAnyFrame],
@@ -579,7 +579,7 @@ def _validate_can_frame_forwarder_locality(
         )
 
 
-def validate_forwarder_locality(model: "FLYNCModel") -> None:
+def validate_forwarder_locality(model: FLYNCModel) -> None:
     """Workspace pass: assert every egress is same-controller and the target carries the matching ``pdu_sender`` / ``sender_frames``."""
 
     socket_by_controller_name, _ = _build_socket_indexes(model)
@@ -633,7 +633,7 @@ _WHITE, _GRAY, _BLACK = 0, 1, 2
 class _ForwarderCycleDetector(object):
     """Three-colour DFS over the workspace forwarder graph."""
 
-    def __init__(self, model: "FLYNCModel") -> None:
+    def __init__(self, model: FLYNCModel) -> None:
         _, self._pdu_forwarder_idx = _build_socket_indexes(model)
         self._can_frame_catalog = _build_can_frame_catalog(model)
         _, self._can_forwarder_idx = _build_can_indexes(model, self._can_frame_catalog)
@@ -644,7 +644,7 @@ class _ForwarderCycleDetector(object):
         self._nodes: List[object] = [fwd for _, _, fwd in pdu_fwds]
         self._nodes.extend(fwd for _, _, fwd in can_fwds)
 
-        self._controller_of: Dict[int, "Controller"] = {id(fwd): ctrl for ctrl, _, fwd in pdu_fwds}
+        self._controller_of: Dict[int, Controller] = {id(fwd): ctrl for ctrl, _, fwd in pdu_fwds}
         self._controller_of.update({id(fwd): ctrl for ctrl, _, fwd in can_fwds})
 
         # Full path-style Source locator per node, so a detected cycle can name the
@@ -745,7 +745,7 @@ class _ForwarderCycleDetector(object):
                 self._dfs(n)
 
 
-def detect_forwarder_cycles(model: "FLYNCModel") -> None:
+def detect_forwarder_cycles(model: FLYNCModel) -> None:
     """Workspace pass: three-colour DFS over the forwarder graph; raises ``err_major`` with the cycle path on a back-edge."""
 
     _ForwarderCycleDetector(model).detect()

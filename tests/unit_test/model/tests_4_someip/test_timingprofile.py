@@ -1,4 +1,5 @@
 import pytest
+from pydantic import ValidationError
 
 from flync.model.flync_4_someip import (
     SDConfig,
@@ -13,6 +14,7 @@ from flync.model.flync_4_someip import (
     SOMEIPTimingProfile,
     UInt8,
 )
+from tests.error_assertions import assert_single_error
 
 
 @pytest.mark.parametrize(
@@ -156,8 +158,9 @@ def test_field_not_implemented_timing_profile(
         ],
     )
 
-    with pytest.raises(ValueError):
-        config = SOMEIPConfig(services=[s], sd_config=sd_config, someip_timings=someip_timings)
+    with pytest.raises(ValidationError) as exc_info:
+        SOMEIPConfig(services=[s], sd_config=sd_config, someip_timings=someip_timings)
+    assert_single_error(exc_info, "FLYNC-SOM-MAJ-REF-340", "does not exist in SOMEIPFieldTimings")
 
 
 def test_event_not_implemented_timing_profile(
@@ -208,8 +211,9 @@ def test_event_not_implemented_timing_profile(
         ],
     )
 
-    with pytest.raises(ValueError):
-        config = SOMEIPConfig(services=[s], sd_config=sd_config, someip_timings=someip_timings)
+    with pytest.raises(ValidationError) as exc_info:
+        SOMEIPConfig(services=[s], sd_config=sd_config, someip_timings=someip_timings)
+    assert_single_error(exc_info, "FLYNC-SOM-MAJ-REF-340", "does not exist in SOMEIPEventTimings")
 
 
 @pytest.mark.parametrize(
@@ -285,5 +289,6 @@ def test_method_not_implemented_timing_profile(
         ],
     )
 
-    with pytest.raises(ValueError):
-        config = SOMEIPConfig(services=[s], sd_config=sd_config, someip_timings=someip_timings)
+    with pytest.raises(ValidationError) as exc_info:
+        SOMEIPConfig(services=[s], sd_config=sd_config, someip_timings=someip_timings)
+    assert_single_error(exc_info, "FLYNC-SOM-MAJ-REF-340", "does not exist in SOMEIPMethodTimings")

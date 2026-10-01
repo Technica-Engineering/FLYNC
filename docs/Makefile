@@ -3,11 +3,15 @@
 
 # You can set these variables from the command line, and also
 # from the environment for the first two.
-SPHINXOPTS    ?=
+# -W turns Sphinx warnings into build errors so a broken :ref:/:class: cannot reach the
+# published docs unnoticed; --keep-going still reports every warning in one run.
+# Override with `SPHINXOPTS= make html` to build a work-in-progress tree anyway.
+SPHINXOPTS    ?= -W --keep-going
 SPHINXBUILD   ?= uv run python -m sphinx.cmd.build
 SOURCEDIR     = source
 BUILDDIR      = build
 EXAMPLE_NAME  = flync_example
+EXAMPLE_NAME2 = flync_example_experimental
 EXAMPLE_SOURCE= ../examples/
 EXAMPLE_DST	  = ./source/_static/
 
@@ -21,16 +25,20 @@ generations:
 # create mermaid schematics
 	uv run python3 ./source/_scripts/create_mermaid.py
 	uv run python3 ./source/_scripts/generate_ecu_diagram.py $(EXAMPLE_SOURCE)/ecu_variants -o $(EXAMPLE_DST)/images/ecu_variants
+	uv run python3 ./source/_scripts/generate_multidrop_segment_diagram.py $(EXAMPLE_SOURCE)/$(EXAMPLE_NAME)
 # create cli docu
 	uv run typer flync_cli.main utils docs --name flync --title Usage --output $(SOURCEDIR)/flync_cli/usage.md
+# generate error catalog
+	uv run python3 ../src/flync_cli/main.py errors generate-catalog
 
 clear:
-# remove mermaid files again
+# remove mermaid files
 	rm -r $(EXAMPLE_DST)/mermaid
 # remove ecu_variant diagrams
 	rm -r $(EXAMPLE_DST)/images/ecu_variants
-# remove flync_example again
+# remove flync_example
 	rm -r $(EXAMPLE_DST)$(EXAMPLE_NAME)
+	rm -r $(EXAMPLE_DST)$(EXAMPLE_NAME2)
 # remove generated cli usage page
 	rm $(SOURCEDIR)/flync_cli/usage.md
 
@@ -39,6 +47,7 @@ clear:
 html: generations
 # copy flync_example for yaml references during runtime of docs build
 	cp -a $(EXAMPLE_SOURCE)$(EXAMPLE_NAME) $(EXAMPLE_DST)
+	cp -a $(EXAMPLE_SOURCE)$(EXAMPLE_NAME2) $(EXAMPLE_DST)
 # build html docs
 	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 

@@ -1,15 +1,15 @@
 """defines the simple SOME/IP datatypes (primitives, bitfields, enums and strings)"""
 
-from typing import Annotated, ClassVar, List, Literal, Optional
+from typing import Annotated, ClassVar, List, Literal, Optional, Self
 
 from pydantic import (
-    BaseModel,
     Field,
     ValidationInfo,
     field_validator,
     model_validator,
 )
 
+from flync.core.base_models import FLYNCBaseModel
 from flync.core.datatypes import Datatype
 from flync.core.utils.exceptions import Category, err_minor
 
@@ -32,9 +32,6 @@ class PrimitiveDatatype(Datatype):
     endianness : Literal["BE", "LE"], optional
         Byte order used for encoding multibyte values.
         Defaults to big-endian ("BE").
-
-    bit_size : int
-        Size in bits of the primitive datatype.
     """
 
 
@@ -58,11 +55,12 @@ class Boolean(PrimitiveDatatype):
 
     bit_size : int
         Storage size in bits: 8.
+        Defaults to 8.
 
     """
 
     name: str = Field(default="BOOLEAN")
-    type: Literal["boolean"] = Field("boolean")  # type: ignore
+    type: Literal["boolean"] = Field("boolean")
     signed: Literal[False] = Field(False)
     endianness: Literal["BE"] = "BE"
     bit_size: Annotated[int, Field(ge=8, le=8, default=8)]
@@ -106,10 +104,11 @@ class UInt8(BaseInt):
 
     bit_size : int
         Storage size in bits: 8.
+        Defaults to 8.
     """
 
     name: str = Field(default="UINT8")
-    type: Literal["uint8"] = Field("uint8")  # type: ignore
+    type: Literal["uint8"] = Field("uint8")
     signed: Literal[False] = Field(False)
     endianness: Literal["BE"] = Field("BE")
     bit_size: Annotated[int, Field(8)]
@@ -136,10 +135,11 @@ class UInt16(BaseInt):
 
     bit_size : int
         Storage size in bits: 16.
+        Defaults to 16.
     """
 
     name: str = Field(default="UINT16")
-    type: Literal["uint16"] = Field("uint16")  # type: ignore
+    type: Literal["uint16"] = Field("uint16")
     signed: Literal[False] = Field(False)
     endianness: Literal["BE", "LE"] = "BE"
     bit_size: Annotated[int, Field(ge=16, le=16, default=16)]
@@ -166,10 +166,11 @@ class UInt32(BaseInt):
 
     bit_size : int
         Storage size in bits: 32.
+        Defaults to 32.
     """
 
     name: str = Field(default="UINT32")
-    type: Literal["uint32"] = Field("uint32")  # type: ignore
+    type: Literal["uint32"] = Field("uint32")
     signed: Literal[False] = Field(False)
     endianness: Literal["BE", "LE"] = "BE"
     bit_size: Annotated[int, Field(ge=32, le=32, default=32)]
@@ -196,10 +197,11 @@ class UInt64(BaseInt):
 
     bit_size : int
         Storage size in bits: 64.
+        Defaults to 64.
     """
 
     name: str = Field(default="UINT64")
-    type: Literal["uint64"] = Field("uint64")  # type: ignore
+    type: Literal["uint64"] = Field("uint64")
     signed: Literal[False] = Field(False)
     endianness: Literal["BE", "LE"] = "BE"
     bit_size: Annotated[int, Field(ge=64, le=64, default=64)]
@@ -225,10 +227,11 @@ class Int8(BaseInt):
 
     bit_size : int
         Storage size in bits: 8.
+        Defaults to 8.
     """
 
     name: str = Field(default="INT8")
-    type: Literal["int8"] = Field("int8")  # type: ignore
+    type: Literal["int8"] = Field("int8")
     signed: Literal[True] = Field(True)
     endianness: Literal["BE"] = "BE"
     bit_size: Annotated[int, Field(ge=8, le=8, default=8)]
@@ -255,10 +258,11 @@ class Int16(BaseInt):
 
     bit_size : int
         Storage size in bits: 16.
+        Defaults to 16.
     """
 
     name: str = Field(default="INT16")
-    type: Literal["int16"] = Field("int16")  # type: ignore
+    type: Literal["int16"] = Field("int16")
     signed: Literal[True] = Field(True)
     endianness: Literal["BE", "LE"] = "BE"
     bit_size: Annotated[int, Field(ge=16, le=16, default=16)]
@@ -284,11 +288,11 @@ class Int32(BaseInt):
         Defaults to big-endian ("BE").
 
     bit_size : int
-        Storage size in bits: 32.
+        Storage size in bits: 32. Defaults to 32.
     """
 
     name: str = Field(default="INT32")
-    type: Literal["int32"] = Field("int32")  # type: ignore
+    type: Literal["int32"] = Field("int32")
     signed: Literal[True] = Field(True)
     endianness: Literal["BE", "LE"] = "BE"
     bit_size: Annotated[int, Field(ge=32, le=32, default=32)]
@@ -314,11 +318,11 @@ class Int64(BaseInt):
         Defaults to big-endian ("BE").
 
     bit_size : int
-        Storage size in bits: 64.
+        Storage size in bits: 64. Defaults to 64.
     """
 
     name: str = Field(default="INT64")
-    type: Literal["int64"] = Field("int64")  # type: ignore
+    type: Literal["int64"] = Field("int64")
     signed: Literal[True] = Field(True)
     endianness: Literal["BE", "LE"] = "BE"
     bit_size: Annotated[int, Field(ge=64, le=64, default=64)]
@@ -344,11 +348,11 @@ class Float32(PrimitiveDatatype):
         Defaults to big-endian ("BE").
 
     bit_size : int
-        Storage size in bits: 32.
+        Storage size in bits: 32. Defaults to 32.
     """
 
     name: str = Field(default="FLOAT32")
-    type: Literal["float32"] = Field("float32")  # type: ignore
+    type: Literal["float32"] = Field("float32")
     signed: Literal[True] = Field(True)
     endianness: Literal["BE", "LE"] = "BE"
     bit_size: Annotated[int, Field(ge=32, le=32, default=32)]
@@ -374,17 +378,17 @@ class Float64(BaseFloat):
         Defaults to big-endian ("BE").
 
     bit_size : int
-        Storage size in bits: 64.
+        Storage size in bits: 64. Defaults to 64.
     """
 
     name: str = Field(default="FLOAT64")
-    type: Literal["float64"] = Field("float64")  # type: ignore
+    type: Literal["float64"] = Field("float64")
     signed: Literal[True] = Field(True)
     endianness: Literal["BE", "LE"] = "BE"
     bit_size: Annotated[int, Field(ge=64, le=64, default=64)]
 
 
-class BitfieldEntryValue(BaseModel):
+class BitfieldEntryValue(FLYNCBaseModel):
     """
     Represents a named value within a bitfield entry.
 
@@ -401,11 +405,11 @@ class BitfieldEntryValue(BaseModel):
     """
 
     value: int = Field()
-    name: str = Field()
+    name: str = Field(min_length=1)
     description: Optional[str] = Field("", description="Optional description")
 
 
-class BitfieldEntry(BaseModel):
+class BitfieldEntry(FLYNCBaseModel):
     """
     Describes a single field within a bitfield.
 
@@ -415,7 +419,7 @@ class BitfieldEntry(BaseModel):
         Name of the individual bitfield.
 
     bitposition : int
-        Bit position of the individual bitfield within the enclosing bitfield datatype.
+        Bit position of the individual bitfield within the enclosing bitfield datatype. Must be greater than or equal to 0.
 
     description : str, optional
         Human-readable description of the field.
@@ -440,7 +444,7 @@ class Bitfield(Datatype):
     Parameters
     ----------
     name : str
-        Unique name of the datatype.
+        Unique name of the datatype. Defaults to "Bitfield".
 
     description : str, optional
         Human-readable description of the datatype.
@@ -455,7 +459,7 @@ class Bitfield(Datatype):
     length : Literal[8, 16, 32, 64], optional
         Size of the bitfield in bits.
 
-    fields : list of :class:`BitfieldEntry`
+    fields : list of :class:`BitfieldEntry`, optional
         List of bitfield entries that define the individual bit ranges.
         Each entry must fit into ``length`` and claim a bitposition no other entry claims.
     """
@@ -472,7 +476,7 @@ class Bitfield(Datatype):
     fields: Optional[List[BitfieldEntry]] = Field(default=None, description="List of bitfield entries")
 
     @model_validator(mode="after")
-    def validate_length_against_fields_size(self):
+    def validate_length_against_fields_size(self) -> Self:
         """Validate the number of defined fields fits into the bitfield length"""
         if self.fields is not None and len(self.fields) > self.length:
             raise err_minor(
@@ -483,7 +487,7 @@ class Bitfield(Datatype):
         return self
 
     @model_validator(mode="after")
-    def validate_bitfieldposition_of_entries(self):
+    def validate_bitfieldposition_of_entries(self) -> Self:
         """Validate bitfield position for all entries must be in range"""
         if self.fields is not None:
             for field in self.fields:
@@ -496,7 +500,7 @@ class Bitfield(Datatype):
         return self
 
     @model_validator(mode="after")
-    def validate_bitpositions_to_be_unique(self):
+    def validate_bitpositions_to_be_unique(self) -> Self:
         """Validate each bitposition is claimed by at most one entry"""
         if self.fields is not None:
             owner_by_bitposition: dict[int, str] = {}
@@ -512,7 +516,7 @@ class Bitfield(Datatype):
         return self
 
 
-class EnumEntry(BaseModel):
+class EnumEntry(FLYNCBaseModel):
     """
     Represents a single entry in an enumeration.
 
@@ -529,7 +533,7 @@ class EnumEntry(BaseModel):
     """
 
     value: int = Field()
-    name: str = Field()
+    name: str = Field(min_length=1)
     description: str = Field("")
 
 
@@ -540,7 +544,7 @@ class Enum(Datatype):
     Parameters
     ----------
     name : str
-        Unique name of the datatype.
+        Unique name of the datatype. Defaults to "Enum".
 
     description : str, optional
         Human-readable description of the datatype.
@@ -577,7 +581,7 @@ class Enum(Datatype):
 
     @field_validator("entries")
     @classmethod
-    def validate_entries(cls, entries: list["EnumEntry"], info: ValidationInfo) -> list["EnumEntry"]:
+    def validate_entries(cls, entries: list[EnumEntry], info: ValidationInfo) -> list[EnumEntry]:
         """
         Check that enum entries have unique values that fit into the range of the base type.
 
@@ -637,13 +641,13 @@ class FixedLengthString(BaseString):
     Parameters
     ----------
     name : str
-        Name of the String.
+        Name of the String. Defaults to "FixedLengthString".
 
     type : Literal["fixed_length_string"]
         Discriminator used to identify this datatype.
 
     length : int
-        Total length of the string in bytes, including zero-termination and any padding.
+        Total length of the string in bytes, including zero-termination and any padding. Must be greater than or equal to 1.
 
     length_of_length_field : Literal[0, 8, 16, 32]
         Size of the optional length field in bits.
@@ -674,15 +678,15 @@ class DynamicLengthString(BaseString):
     Parameters
     ----------
     name : str
-        Name of the String.
+        Name of the String. Defaults to "DynamicLengthString".
 
     type : Literal["dynamic_length_string"]
         Discriminator used to identify this datatype.
 
-    max_length: Optional[int]
-        Maximum string length in bytes. None means no limit.
+    max_length: Optional[int], optional
+        Maximum string length in bytes. None means no limit. Must be greater than or equal to 0.
 
-    min_length: Optional[int]
+    min_length: Optional[int], optional
         Minimum string length in bytes. None means 0.
 
     length_of_length_field : Literal[8, 16, 32]

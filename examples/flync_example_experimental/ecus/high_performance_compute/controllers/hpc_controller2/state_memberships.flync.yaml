@@ -1,0 +1,11 @@
+# Central compute controller: participates in TWO vehicle functions, so it
+# references two relevance bits in one membership. AutonomousDriving keeps the
+# network awake while autonomous driving runs; OnlineCommunication while
+# connectivity/telematics runs. Union sleep — the HPC may sleep only when
+# BOTH functions released it.
+state_memberships:
+- group: VEHICLE
+  role: participant
+  relevance_bits:
+    - AutonomousDriving
+    - OnlineCommunication

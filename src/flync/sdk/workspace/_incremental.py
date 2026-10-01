@@ -7,7 +7,7 @@ affected node's ancestor spine, falling back to a full reload when that is not p
 
 import logging
 from pathlib import Path
-from typing import Optional, cast
+from typing import Optional
 
 from flync.core.annotations import External, Implied
 from flync.sdk.utils.field_utils import get_metadata
@@ -17,7 +17,6 @@ from ._base import LoadNode, ParentLink
 from ._loading import _WorkspaceLoading
 from .document import Document, read_file
 from .ids import ObjectId
-from .objects import SemanticObject
 
 logger = logging.getLogger(__name__)
 
@@ -292,7 +291,7 @@ class _WorkspaceIncremental(_WorkspaceLoading):
         if semantic is None or semantic.model is None:
             return
         self._unmap_object_id(semantic.model, oid)
-        cast(SemanticObject, semantic).model = None  # type: ignore[assignment]
+        semantic.model = None  # type: ignore[assignment]
 
     @staticmethod
     def _splice_branch(old_parent, link: ParentLink, new_child):

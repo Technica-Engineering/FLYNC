@@ -1,0 +1,6 @@
+# Rear lamp module on the shared segment. A node there is an ordinary IP host running
+# its own NM stack, so it holds its own membership like any other Ethernet node.
+state_memberships:
+- group: VEHICLE
+  role: participant
+  relevance_bits: [ExteriorLights]

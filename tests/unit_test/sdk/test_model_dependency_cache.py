@@ -1,9 +1,8 @@
 """Tests for model dependency graph cache invalidation."""
 
 from typing import Optional
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import pytest
 from pydantic import BaseModel, Field
 
 from flync.sdk.utils.model_dependencies import (
