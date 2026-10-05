@@ -8,8 +8,11 @@ import logging
 from pathlib import Path
 
 from .base import BaseConverter, ConverterConfig
+from .base.converter_config import converter_config_file
 from .converters import FLYNCConverter, JsonConverter, YamlConverter
 from .registry import registry
+from .reporting import ConversionLogReport
+from .utils import get_config_model
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +34,8 @@ def convert(
         source_type: Optional source converter key/name.
         source_config: Optional configuration for the source converter.
         destination_config: Optional configuration for the destination
-            converter.
+            converter. Values set on it override the configuration stored in
+            the destination workspace; see :meth:`Converter.convert`.
     """
     Converter().convert(
         source,
@@ -69,7 +73,10 @@ class Converter(object):
             destination_type: Destination converter name.
             source_config: Optional source converter configuration instance.
             destination_config: Optional destination converter
-                configuration instance.
+                configuration instance. The fields set on it (see
+                ``model_fields_set``) override the configuration stored in
+                the destination workspace, which in turn overrides the
+                field defaults.
 
         Returns:
             None
@@ -78,6 +85,16 @@ class Converter(object):
             This method sets converter.config on registry converter
             instances as a convenience; individual converters are expected
             to use their config when decoding/encoding.
+
+            Unless ``persist_config`` is ``False``, the resolved destination
+            configuration is written to
+            ``<destination>/.flync/converters/<converter_name>.yaml`` before
+            the conversion starts. Unless ``report_enabled`` is ``False``, the
+            conversion log is written to ``<destination>/.flync/reports/logs.txt``
+            and each converter gets its own folder
+            ``<destination>/.flync/reports/<converter_name>/``, holding the
+            records of its ``report_loggers`` and any files it writes to its
+            ``report_dir``.
         """
         if source_type is None:
             logger.info("No source type provided. Attempting to auto-detect source type.")
@@ -101,16 +118,50 @@ class Converter(object):
 
         destination_converter = registry[destination_type]
         logger.debug("Destination converter: %s", type(destination_converter).__name__)
-        destination_converter.config = destination_config or ConverterConfig(config_path=str(destination))
+        destination_config = _resolve_destination_config(destination, destination_type, destination_converter.name, destination_config)
+        destination_converter.config = destination_config
         logger.debug("Destination config: %s", destination_converter.config)
 
-        logger.debug("Starting decode from source")
-        source_model = source_converter.decode()
-        logger.debug("Decode complete, model type: %s", type(source_model).__name__)
+        if destination_config.persist_config:
+            destination_config.to_yaml_file(converter_config_file(destination_config.config_path, destination_converter.name))
 
-        logger.debug("Starting encode to destination")
-        destination_converter.encode(source_model)
-        logger.debug("Encode complete")
+        with ConversionLogReport(
+            destination_config.config_path,
+            [source_converter, destination_converter],
+            enabled=destination_config.report_enabled,
+            min_level=destination_config.report_level,
+        ):
+            logger.debug("Starting decode from source")
+            source_model = source_converter.decode()
+            logger.debug("Decode complete, model type: %s", type(source_model).__name__)
+
+            logger.debug("Starting encode to destination")
+            destination_converter.encode(source_model)
+            logger.debug("Encode complete")
+
+
+def _resolve_destination_config(
+    destination: Path | str,
+    destination_type: str,
+    converter_name: str,
+    explicit: ConverterConfig | None,
+) -> ConverterConfig:
+    """Layer the explicitly set destination values over the configuration stored in the workspace.
+
+    Args:
+        destination: Destination path, used when ``explicit`` is ``None``.
+        destination_type: Destination converter key, used to pick the config class when ``explicit`` is ``None``.
+        converter_name: Name the stored configuration file is keyed by.
+        explicit: Configuration supplied by the caller, if any.
+
+    Returns:
+        The stored configuration (or the defaults) with every field set on ``explicit`` applied on top.
+    """
+    if explicit is None:
+        return get_config_model(destination_type).from_workspace(destination, converter_name)
+    model = type(explicit)
+    stored = model.from_workspace(explicit.config_path, converter_name)
+    return model.create_from_config(stored, **{name: getattr(explicit, name) for name in explicit.model_fields_set})
 
 
 __all__ = [

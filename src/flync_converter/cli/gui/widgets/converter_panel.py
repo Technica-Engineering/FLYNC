@@ -31,6 +31,10 @@ def _resolve_field_type(annotation):
     return annotation
 
 
+#: Config fields managed by the stored configuration file, not edited in the panel.
+_NON_EDITABLE_FIELDS = frozenset({"version"})
+
+
 class ConverterPanel(QWidget):
     """One half of the split panel: format selector + dynamic config form."""
 
@@ -115,6 +119,8 @@ class ConverterPanel(QWidget):
     def _build_fields(self, converter_type: str) -> None:  # NOSONAR
         model = get_config_model(converter_type)
         for name, fld in model.model_fields.items():
+            if name in _NON_EDITABLE_FIELDS:
+                continue
             required = fld.is_required()
             default = None if required else fld.get_default()
             field_type = _resolve_field_type(fld.annotation)
@@ -160,6 +166,8 @@ class ConverterPanel(QWidget):
         model = get_config_model(self._converter_type)
         config_dict: dict = {}
         for name, fld in model.model_fields.items():
+            if name in _NON_EDITABLE_FIELDS:
+                continue
             field_type = _resolve_field_type(fld.annotation)
             widget = self._field_widgets.get(name)
             if widget is None:

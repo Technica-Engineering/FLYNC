@@ -28,40 +28,40 @@ class TestConverterConvert:
             Converter.convert("s", "d", source_type="flync", destination_type="flync")
         mock_reg.__getitem__.assert_not_called()
 
-    def test_normal_flow_calls_decode_then_encode(self):
+    def test_normal_flow_calls_decode_then_encode(self, tmp_path):
         fake_reg, src_conv, dst_conv, decoded = _make_fake_registry()
         with patch("flync_converter.registry", fake_reg):
-            Converter.convert("src/path", "dst/path", source_type="json", destination_type="yaml")
+            Converter.convert(str(tmp_path / "src"), str(tmp_path / "dst"), source_type="json", destination_type="yaml")
         src_conv.decode.assert_called_once()
         dst_conv.encode.assert_called_once_with(decoded)
 
-    def test_auto_detects_source_type_via_pick(self):
+    def test_auto_detects_source_type_via_pick(self, tmp_path):
         fake_reg, src_conv, dst_conv, decoded = _make_fake_registry()
         with patch("flync_converter.registry", fake_reg):
-            Converter.convert("src/path", "dst/path", destination_type="yaml")
-        fake_reg.pick.assert_called_once_with("src/path")
+            Converter.convert(str(tmp_path / "src"), str(tmp_path / "dst"), destination_type="yaml")
+        fake_reg.pick.assert_called_once_with(str(tmp_path / "src"))
         src_conv.decode.assert_called_once()
 
-    def test_source_config_set_on_converter(self):
+    def test_source_config_set_on_converter(self, tmp_path):
         fake_reg, src_conv, dst_conv, _ = _make_fake_registry()
         src_cfg = ConverterConfig(config_path="/custom/src")
         with patch("flync_converter.registry", fake_reg):
-            Converter.convert("src/path", "dst/path", source_type="json", destination_type="yaml", source_config=src_cfg)
+            Converter.convert(str(tmp_path / "src"), str(tmp_path / "dst"), source_type="json", destination_type="yaml", source_config=src_cfg)
         assert src_conv.config is src_cfg
 
-    def test_destination_config_set_on_converter(self):
+    def test_destination_config_set_on_converter(self, tmp_path):
         fake_reg, src_conv, dst_conv, _ = _make_fake_registry()
-        dst_cfg = ConverterConfig(config_path="/custom/dst")
+        dst_cfg = ConverterConfig(config_path=str(tmp_path / "custom_dst"))
         with patch("flync_converter.registry", fake_reg):
-            Converter.convert("src/path", "dst/path", source_type="json", destination_type="yaml", destination_config=dst_cfg)
-        assert dst_conv.config is dst_cfg
+            Converter.convert(str(tmp_path / "src"), str(tmp_path / "dst"), source_type="json", destination_type="yaml", destination_config=dst_cfg)
+        assert dst_conv.config == dst_cfg
 
-    def test_default_config_uses_path_string(self):
+    def test_default_config_uses_path_string(self, tmp_path):
         fake_reg, src_conv, dst_conv, _ = _make_fake_registry()
         with patch("flync_converter.registry", fake_reg):
-            Converter.convert("src/path", "dst/path", source_type="json", destination_type="yaml")
-        assert src_conv.config.config_path == "src/path"
-        assert dst_conv.config.config_path == "dst/path"
+            Converter.convert(str(tmp_path / "src"), str(tmp_path / "dst"), source_type="json", destination_type="yaml")
+        assert src_conv.config.config_path == str(tmp_path / "src")
+        assert dst_conv.config.config_path == str(tmp_path / "dst")
 
 
 class TestConvertFunction:

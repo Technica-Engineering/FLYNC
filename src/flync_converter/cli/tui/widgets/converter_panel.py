@@ -27,6 +27,10 @@ def _resolve_field_type(annotation):
     return annotation
 
 
+#: Config fields managed by the stored configuration file, not edited in the panel.
+_NON_EDITABLE_FIELDS = frozenset({"version"})
+
+
 class ConverterPanel(Vertical):
     """One half of the split-panel: format selector + dynamic config form."""
 
@@ -130,6 +134,8 @@ class ConverterPanel(Vertical):
         model = get_config_model(converter_type)
         widgets: list = []
         for name, fld in model.model_fields.items():
+            if name in _NON_EDITABLE_FIELDS:
+                continue
             required = fld.is_required()
             default = None if required else fld.get_default()
             field_type = _resolve_field_type(fld.annotation)
@@ -175,6 +181,8 @@ class ConverterPanel(Vertical):
         model = get_config_model(self._converter_type)
         config_dict: dict = {}
         for name, fld in model.model_fields.items():
+            if name in _NON_EDITABLE_FIELDS:
+                continue
             field_type = _resolve_field_type(fld.annotation)
             widget_id = f"#field-{self.id}-{name}"
             if isinstance(field_type, type) and issubclass(field_type, enum.Enum):

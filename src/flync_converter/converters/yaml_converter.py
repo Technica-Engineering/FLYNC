@@ -54,6 +54,7 @@ class YamlConverter(BaseConverter):
     """
 
     name = "yaml"
+    report_loggers = (__name__,)
 
     def can_decode(self):
         """Return True — the YAML converter supports decoding."""
@@ -75,7 +76,7 @@ class YamlConverter(BaseConverter):
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, "w", encoding="utf-8") as output:
             yaml.safe_dump(pydantic_dump(source), output, indent=2, sort_keys=False)
-        logger.debug("YAML encode complete: %s", output_path)
+        logger.info("YAML encode complete: %s", output_path)
 
     def decode(self) -> FLYNCModel:
         """Decode data into a FLYNCModel.

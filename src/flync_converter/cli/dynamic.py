@@ -2,9 +2,14 @@
 
 import click
 
+from flync_converter.base.converter_config import DESTINATION_ONLY_FIELDS
 from flync_converter.utils import get_config_model
 
 from .types import _annotation_to_click_type
+
+#: Config fields never exposed as options: ``config_path`` comes from
+#: ``--source`` / ``--output`` and ``version`` is managed by the stored file.
+_SKIPPED_FIELDS = frozenset({"config_path", "version"})
 
 
 class DynamicConverterCommand(click.Command):
@@ -43,8 +48,11 @@ class DynamicConverterCommand(click.Command):
         """Inject converter-specific config options into Click command params.
 
         Looks up the converter's pydantic config model and creates a Click
-        Option for each field (excluding config_path). Silently skips if the
-        model has no fields or lookup fails.
+        Option for each field (excluding config_path, and the destination-only
+        fields on the source side). Options default to ``None`` so that only
+        values given on the command line override the configuration stored in
+        the destination workspace; the field default is shown in ``--help``.
+        Silently skips if the model has no fields or lookup fails.
 
         Args:
             converter_type: Converter key/name as registered.
@@ -55,27 +63,56 @@ class DynamicConverterCommand(click.Command):
             if not hasattr(model, "model_fields"):
                 return
             for name, fld in model.model_fields.items():
-                if name == "config_path":
-                    continue  # satisfied by --source / --output
-                param_name = f"{prefix}{name}"
-                if any(p.name == param_name for p in self.params):
-                    continue
-                required = fld.is_required()
-                default = None if required else fld.get_default()
-                click_type = _annotation_to_click_type(fld.annotation)
-                opt_flag = f"--{prefix.rstrip('_').replace('_', '-')}-{name.replace('_', '-')}"
-                self.params.append(
-                    click.Option(
-                        [opt_flag],
-                        type=click_type,
-                        default=default,
-                        required=False,
-                        help=f"{'[required] ' if required else ''}{name} for {converter_type} ({prefix.rstrip('_')} config)",
-                        show_default=default is not None,
-                    )
-                )
+                if self._is_offered(name, prefix):
+                    self.params.append(self._make_option(converter_type, prefix, name, fld))
         except Exception:
             pass
+
+    def _is_offered(self, name: str, prefix: str) -> bool:
+        """Return whether a config field becomes an option for the given side.
+
+        Args:
+            name: Config field name.
+            prefix: Prefix for option names ('src_' or 'dst_').
+
+        Returns:
+            ``False`` for fields in ``_SKIPPED_FIELDS``, destination-only fields
+            on the source side, and fields whose option already exists.
+        """
+        if name in _SKIPPED_FIELDS:
+            return False
+        if prefix == self._SRC_PREFIX and name in DESTINATION_ONLY_FIELDS:
+            return False
+        param_name = f"{prefix}{name}"
+        return not any(p.name == param_name for p in self.params)
+
+    @staticmethod
+    def _make_option(converter_type: str, prefix: str, name: str, fld) -> click.Option:
+        """Build the Click option for one config field.
+
+        The option defaults to ``None`` so that only values given on the command
+        line are passed on; the field default is shown in ``--help``.
+
+        Args:
+            converter_type: Converter key/name as registered.
+            prefix: Prefix for option names ('src_' or 'dst_').
+            name: Config field name.
+            fld: Pydantic field info of the config field.
+
+        Returns:
+            The Click option.
+        """
+        required = fld.is_required()
+        default = None if required else fld.get_default()
+        side = prefix.rstrip("_")
+        return click.Option(
+            [f"--{side.replace('_', '-')}-{name.replace('_', '-')}"],
+            type=_annotation_to_click_type(fld.annotation),
+            default=None,
+            required=False,
+            help=f"{'[required] ' if required else ''}{name} for {converter_type} ({side} config)",
+            show_default=str(default) if default is not None else False,
+        )
 
     def parse_args(self, ctx, args):
         """Pre-scan format flags and inject per-converter config options before Click parses args.

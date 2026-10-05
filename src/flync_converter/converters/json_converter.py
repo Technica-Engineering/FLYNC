@@ -53,6 +53,7 @@ class JsonConverter(BaseConverter):
     """
 
     name = "json"
+    report_loggers = (__name__,)
 
     def can_decode(self):
         """Return True — the JSON converter supports decoding."""

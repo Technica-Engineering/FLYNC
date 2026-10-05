@@ -161,6 +161,54 @@ Refer to the :doc:`examples` section for a complete, production-ready plugin imp
 - Error handling with validation
 - Plugin registration
 
+Logging & Conversion Reports
+-----------------------------
+
+Every conversion writes a report into the destination workspace's ``.flync`` metadata directory: a shared log for the whole conversion, and one folder per converter taking part in it, source and destination:
+
+.. code-block:: text
+
+   <destination>/.flync/reports/logs.txt                   whole conversion
+   <destination>/.flync/reports/<converter_name>/logs.txt  your converter's records
+   <destination>/.flync/reports/<converter_name>/...       files your converter writes itself
+
+Your converter decides which records are its own by listing logger names in ``report_loggers``: its own logger, and the loggers of the libraries it delegates to. Records from those loggers are written to your converter's ``logs.txt`` and to the shared log, whether the converter runs as source or destination, and the loggers' level is lowered to the report level for the duration of the conversion and restored afterwards.
+
+.. code-block:: python
+
+   import logging
+
+   logger = logging.getLogger(__name__)
+
+   class MyConverter(BaseConverter):
+       name = "my_format"
+       report_loggers = (__name__, "my_format_library")
+
+       def can_decode(self):
+           logger.info("Scanning %s for decoding", self.config.config_path)
+           return True
+
+The shared log also captures every logger under the main converter logger, ``flync_converter``, so a converter that logs under ``flync_converter.converters.<name>`` reaches the shared log without listing anything. Without ``report_loggers`` it gets a folder but no ``logs.txt`` of its own.
+
+The built-in converters list their own module logger. The FLYNC converter also lists ``flync.sdk``, and logs the workspace diagnostics (one line per finding, with its error id) after loading or writing a workspace.
+
+- Logs at or above the configured minimum level are written (``report_min_log_level`` on the destination configuration, default ``"INFO"``), formatted by the base library.
+- Reporting is enabled by default and can be disabled per destination with ``report_enabled=False`` on its :class:`~flync_converter.ConverterConfig`, either passed in or stored in the destination workspace. See the :doc:`usage guide <../usage>` for the full configuration options.
+
+Writing your own report files
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+During a conversion, ``self.report_dir`` is your converter's report folder, ``<destination>/.flync/reports/<converter_name>``. Write any converter-specific output there, for example a validation report or a mapping table. ``report_dir`` is ``None`` outside a conversion and when reporting is disabled:
+
+.. code-block:: python
+
+   def encode(self, source):
+       ...
+       if self.report_dir is not None:
+           (self.report_dir / "mapping.csv").write_text(mapping_csv, encoding="utf-8")
+
+A converter configuration class that subclasses :class:`~flync_converter.ConverterConfig` is stored in the destination workspace with its own fields, so those fields must be serialisable to YAML.
+
 Adding a Built-in Converter
 ----------------------------
 

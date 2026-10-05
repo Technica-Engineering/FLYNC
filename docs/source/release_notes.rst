@@ -14,6 +14,28 @@ Release Notes
 Release 0.15
 ------------
 
+Converter configuration file and conversion log
+'''''''''''''''''''''''''''''''''''''''''''''''
+
+Every conversion writes a report into ``<destination>/.flync/reports/``: a shared ``logs.txt`` for the whole
+conversion, and one folder per converter (source and destination) holding that converter's own ``logs.txt``
+and any files it writes to its ``report_dir``. Converters list the loggers that belong to them in
+``report_loggers``; the shared log captures the ``flync_converter`` logger and every listed logger, and no other
+logger is captured or has its level changed. A failed conversion ends the shared log with the exception and its
+traceback. The FLYNC converter lists ``flync.sdk`` and logs the workspace diagnostics, one line per finding with
+its error id, after loading or writing a workspace.
+
+The destination converter's configuration is stored in ``<destination>/.flync/converters/<converter_name>.yaml``
+after every conversion (unless ``persist_config`` is ``False``) and by ``ConverterConfig.to_yaml_file``. The
+next conversion into the same destination starts from it; values set on the command line or on the
+destination ``ConverterConfig`` override it. ``ConverterConfig`` is now frozen and rejects unknown fields.
+
+Reporting is configured through the ``report_enabled`` and ``report_min_log_level`` fields of the destination
+configuration (``--dst-report-enabled`` and ``--dst-report-min-log-level`` on the command line). The
+``FLYNC_REPORT_ENABLED`` and ``FLYNC_REPORT_MIN_LOG_LEVEL`` environment variables and the ``report_enabled`` /
+``min_log_level`` arguments of ``convert`` and ``Converter.convert`` are removed. Unknown level names and
+non-boolean ``report_enabled`` values raise a validation error.
+
 JSON Schema export
 ''''''''''''''''''
 

@@ -23,6 +23,7 @@ class DbcConverter(BaseConverter):
     """
 
     name = "dbc"
+    report_loggers = ("flync_converter.converters.dbc",)
     config: Optional[DbcConverterConfig] = None
 
     def can_decode(self):
