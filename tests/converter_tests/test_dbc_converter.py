@@ -240,7 +240,7 @@ class TestDecodeStandardPdu:
         pdu.signal_groups = [MagicMock()]
         with caplog.at_level(logging.WARNING, logger="flync_converter.converters.dbc.encoder"):
             result = _decode_standard_pdu(pdu, 0, None)
-        assert "Signal Group not supported" in caplog.text
+        assert "not supported, skipped" in caplog.text
         assert result == []
 
 
@@ -297,7 +297,7 @@ class TestDecodeMultiplexedPdu:
         pdu.mux_groups = [grp]
         with caplog.at_level(logging.WARNING, logger="flync_converter.converters.dbc.encoder"):
             _decode_multiplexed_pdu(MagicMock(), pdu, 0, None, pdus={"grp_pdu": grp_pdu})
-        assert "Signal Group inside MuxGroup not supported" in caplog.text
+        assert "of PDU 'grp_pdu' not supported" in caplog.text
 
     def test_with_static_group(self):
         sel_inst = _mock_si(_mock_signal("sel", 4), 0)
@@ -349,7 +349,7 @@ class TestDecodePdu:
         container = ContainerPDU.model_construct(name="c", length=8, pdu_id=0, header=hdr, contained_pdus=[], type="container")
         with caplog.at_level(logging.WARNING, logger="flync_converter.converters.dbc.encoder"):
             result = decode_pdu(MagicMock(), container, 0)
-        assert "ContainerPDU not implemented" in caplog.text
+        assert "Container PDU 'c' not supported" in caplog.text
         assert result == []
 
     def test_unknown_type_warns_and_returns_empty(self, caplog):
@@ -499,14 +499,14 @@ class TestWriteDbcFiles:
         model.communication = None
         with caplog.at_level(logging.WARNING, logger="flync_converter.converters.dbc.encoder"):
             write_dbc_files(model, "/tmp")
-        assert "Could not find communication/channels" in caplog.text
+        assert "Model has no communication channels" in caplog.text
 
     def test_no_channels_warns(self, caplog):
         model = MagicMock()
         model.communication.channels = None
         with caplog.at_level(logging.WARNING, logger="flync_converter.converters.dbc.encoder"):
             write_dbc_files(model, "/tmp")
-        assert "Could not find communication/channels" in caplog.text
+        assert "Model has no communication channels" in caplog.text
 
     def test_no_can_buses_no_output(self, tmp_path):
         model = MagicMock()

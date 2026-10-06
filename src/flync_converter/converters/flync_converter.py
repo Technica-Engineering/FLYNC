@@ -11,6 +11,7 @@ from flync.sdk.workspace.flync_workspace import (  # noqa # type: ignore[import-
 )
 
 from ..base.base_converter import BaseConverter
+from ..base.converter_report import INACTIVE_REPORT, ConverterReport
 from ..registry import hookimpl
 
 """classe for converter between :class:`FLYNCModel` a FLYNC workspace."""
@@ -18,25 +19,39 @@ from ..registry import hookimpl
 logger = logging.getLogger(__name__)
 
 
-def log_workspace_diagnostics(ws: FLYNCWorkspace) -> None:
-    """Log the validation findings collected while loading a workspace.
+def log_workspace_diagnostics(ws: FLYNCWorkspace, report: ConverterReport = INACTIVE_REPORT) -> None:
+    """Log and report the validation findings collected while loading a workspace.
 
     Each finding is logged on its own line with its document, error id (or
     Pydantic error type), location and message: warnings at ``WARNING``, every
     other finding at ``ERROR``. A summary line is logged at ``INFO``.
 
+    The findings are also recorded in ``report`` as ``diagnostics``, one entry
+    per finding with its document, id, severity, location and message.
+
     Args:
         ws: The loaded workspace.
+        report: The converter's report.
     """
-    count = 0
+    findings = []
     for document, errors in ws.documents_diags.items():
         for error in errors:
-            count += 1
-            level = logging.WARNING if error.get("type") == "warning" else logging.ERROR
+            is_warning = error.get("type") == "warning"
             error_id = (error.get("ctx") or {}).get("error_id", error.get("type"))
             location = ".".join(str(part) for part in error.get("loc", ())) or "<root>"
-            logger.log(level, "%s: %s at %s: %s", document, error_id, location, error.get("msg"))
-    logger.info("Workspace diagnostics: %d finding(s)", count)
+            logger.log(logging.WARNING if is_warning else logging.ERROR, "%s: %s at %s: %s", document, error_id, location, error.get("msg"))
+            findings.append(
+                {
+                    "document": document,
+                    "id": error_id,
+                    "severity": "warning" if is_warning else "error",
+                    "location": location,
+                    "message": error.get("msg"),
+                }
+            )
+    logger.info("Workspace diagnostics: %d finding(s)", len(findings))
+    if findings:
+        report.add("diagnostics", findings)
 
 
 class FLYNCConverter(BaseConverter):
@@ -72,7 +87,8 @@ class FLYNCConverter(BaseConverter):
         ws = FLYNCWorkspace.load_model(source, "converted workspace", self.config.config_path)
         ws.generate_configs()
         logger.info("FLYNC workspace written to: %s", self.config.config_path)
-        log_workspace_diagnostics(ws)
+        self.report.add("workspace", self.config.config_path)
+        log_workspace_diagnostics(ws, self.report)
 
     def decode(self) -> FLYNCModel:
         """Decode data into a FLYNCBaseModel.
@@ -90,7 +106,8 @@ class FLYNCConverter(BaseConverter):
             raise ValueError("config must be set before decoding")
         logger.info("Loading FLYNC workspace from: %s", self.config.config_path)
         ws = FLYNCWorkspace.safe_load_workspace("converted_workspace", self.config.config_path)
-        log_workspace_diagnostics(ws)
+        self.report.add("workspace", self.config.config_path)
+        log_workspace_diagnostics(ws, self.report)
         if not isinstance(ws.flync_model, FLYNCModel):
             raise ValidationError.from_exception_data(
                 title="Model (converted_workspace) Creation Error",

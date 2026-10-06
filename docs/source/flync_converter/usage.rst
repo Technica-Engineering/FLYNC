@@ -250,6 +250,33 @@ under ``flync_converter`` are captured, and only the level of the
 ``flync_converter`` logger is changed during the conversion. Loggers exist once
 per process, so run one conversion at a time per process.
 
+Next to the logs, the report holds structured data, again shared and per
+converter. ``reports/report.yaml`` describes the conversion as a whole::
+
+    source: {converter: flync, path: examples/flync_example}
+    destination: {converter: yaml, path: path/to/output}
+    status: succeeded            # or failed, with the error
+    model: {ecus: 16, apps: 0, can_buses: 4, lin_buses: 1, shared_pdus: 14, ethernet_pdus: 4}
+
+Each converter's folder holds what that converter recorded, source and
+destination alike: model content it ``skipped``, content its format leaves
+``unsupported``, and any ``custom`` data. Groups with nothing in them are left
+out, and a converter that recorded nothing has no such file. The converter's
+reporters decide the files: ``report.yaml`` by default, ``report.json`` for a
+converter that lists the JSON reporter, or any format a plugin adds (see
+:doc:`plugin_guide/creating_plugin`).
+
+The shared report is written the same way, by the reporters passed to
+``convert``, ``report.yaml`` by default:
+
+.. code-block:: python
+
+    from flync_converter import convert
+    from flync_converter.base import JsonReporter, YamlReporter
+
+    convert("path/to/source", "path/to/output", destination_type="yaml",
+            reporters=(YamlReporter(), JsonReporter()))
+
 On the command line:
 
 .. code-block:: bash

@@ -3,7 +3,7 @@
 from unittest.mock import MagicMock, patch
 
 from flync_converter import Converter, convert
-from flync_converter.base import ConverterConfig
+from flync_converter.base import DEFAULT_REPORTERS, ConverterConfig
 
 
 def _make_fake_registry(src_name="json", dst_name="yaml"):
@@ -75,6 +75,7 @@ class TestConvertFunction:
             destination_type="yaml",
             source_config=None,
             destination_config=None,
+            reporters=DEFAULT_REPORTERS,
         )
 
     def test_source_type_defaults_to_flync(self):

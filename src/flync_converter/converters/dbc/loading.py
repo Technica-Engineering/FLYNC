@@ -9,16 +9,20 @@ from cantools.database.can.database import Database
 
 from flync.model.flync_4_bus.can_bus import _ALLOWED_CAN_BAUD_RATES, _ALLOWED_CAN_FD_DATA_RATES
 
+from ...base.converter_report import INACTIVE_REPORT, ConverterReport
 from .dbc_config import DbcConverterConfig
 
 logger = logging.getLogger(__name__)
 
 
-def load_dbc_files(root_folder) -> List[Tuple[Database, Path]]:
+def load_dbc_files(root_folder, report: ConverterReport = INACTIVE_REPORT) -> List[Tuple[Database, Path]]:
     """Recursively load all DBC files from a folder.
+
+    The files read are recorded in ``report`` as ``input_files``.
 
     Args:
         root_folder: Root folder path to search for DBC files.
+        report: The converter's report.
 
     Returns:
         List of ``(cantools Database, source Path)`` tuples, one entry per
@@ -41,9 +45,13 @@ def load_dbc_files(root_folder) -> List[Tuple[Database, Path]]:
     for dbc_file in candidates:
         logger.debug("Loading DBC file: %s", dbc_file)
         tmp = cast(Database, cantools.database.load_file(dbc_file))
+        logger.info("Loaded %s: %d message(s), %d node(s)", dbc_file, len(tmp.messages), len(tmp.nodes))
         dbc_files.append((tmp, dbc_file))
 
+    if not candidates:
+        logger.warning("No DBC file found under: %s", root_folder)
     logger.debug("Finished loading DBC files: %d total files found", len(dbc_files))
+    report.add("input_files", candidates)
 
     return dbc_files
 
@@ -67,17 +75,27 @@ def _attribute_value(db, name: str) -> Optional[int]:
     return None
 
 
-def _nominal_baud_rate(db, config: DbcConverterConfig) -> int:
+def _baud_rate(db, attribute: str, allowed, default: int, bus_name: str, report: ConverterReport) -> int:
+    """Return the value of a ``Baudrate*`` attribute, or ``default`` when it is absent or not allowed.
+
+    An attribute value outside the FLYNC allow-list is logged and recorded in
+    ``report`` as ``skipped``.
+    """
+    value = _attribute_value(db, attribute)
+    if value is None:
+        return default
+    if value in allowed:
+        return value
+    logger.warning("%s %d of bus '%s' is not an allowed FLYNC rate, using %d", attribute, value, bus_name, default)
+    report.skipped(f"{bus_name}.{attribute}", reason=f"{value} is not an allowed FLYNC rate, {default} used instead")
+    return default
+
+
+def _nominal_baud_rate(db, config: DbcConverterConfig, bus_name: str = "", report: ConverterReport = INACTIVE_REPORT) -> int:
     """Return the bus nominal bit rate, honouring the ``Baudrate`` attribute."""
-    value = _attribute_value(db, "Baudrate")
-    if value is not None and value in _ALLOWED_CAN_BAUD_RATES:
-        return value
-    return config.baud_rate_default
+    return _baud_rate(db, "Baudrate", _ALLOWED_CAN_BAUD_RATES, config.baud_rate_default, bus_name, report)
 
 
-def _fd_baud_rate(db, config: DbcConverterConfig) -> int:
+def _fd_baud_rate(db, config: DbcConverterConfig, bus_name: str = "", report: ConverterReport = INACTIVE_REPORT) -> int:
     """Return the CAN FD data-phase bit rate, honouring the ``BaudrateCANFD`` attribute."""
-    value = _attribute_value(db, "BaudrateCANFD")
-    if value is not None and value in _ALLOWED_CAN_FD_DATA_RATES:
-        return value
-    return config.fd_baud_rate_default
+    return _baud_rate(db, "BaudrateCANFD", _ALLOWED_CAN_FD_DATA_RATES, config.fd_baud_rate_default, bus_name, report)

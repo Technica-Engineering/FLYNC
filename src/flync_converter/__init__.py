@@ -5,13 +5,14 @@ that use the registry to select and run concrete converters.
 """
 
 import logging
+from collections.abc import Sequence
 from pathlib import Path
 
-from .base import BaseConverter, ConverterConfig
+from .base import DEFAULT_REPORTERS, BaseConverter, BaseReporter, ConverterConfig
 from .base.converter_config import converter_config_file
 from .converters import FLYNCConverter, JsonConverter, YamlConverter
 from .registry import registry
-from .reporting import ConversionLogReport
+from .reporting import ConversionReport
 from .utils import get_config_model
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,7 @@ def convert(
     source_type: str | None = "flync",
     source_config: ConverterConfig | str | Path | None = None,
     destination_config: ConverterConfig | str | Path | None = None,
+    reporters: Sequence[BaseReporter] = DEFAULT_REPORTERS,
 ):
     """Convenience function to run a conversion.
 
@@ -37,6 +39,7 @@ def convert(
         destination_config: Optional configuration for the destination
             converter: a configuration object, or the path of a configuration
             YAML file.
+        reporters: Reporters writing the shared report of the conversion.
 
     See :meth:`Converter.convert` for how the configurations are resolved.
     """
@@ -47,6 +50,7 @@ def convert(
         destination_type=destination_type,
         source_config=source_config,
         destination_config=destination_config,
+        reporters=reporters,
     )
 
 
@@ -65,6 +69,7 @@ class Converter(object):
         destination_type: str = "flync",
         source_config: ConverterConfig | str | Path | None = None,
         destination_config: ConverterConfig | str | Path | None = None,
+        reporters: Sequence[BaseReporter] = DEFAULT_REPORTERS,
     ):
         """Run conversion from source to destination types.
 
@@ -79,6 +84,8 @@ class Converter(object):
             destination_config: Optional destination converter
                 configuration: a configuration object, or the path of a
                 configuration YAML file.
+            reporters: Reporters writing the shared report of the
+                conversion, one file each. Defaults to ``report.yaml``.
 
         Returns:
             None
@@ -108,7 +115,10 @@ class Converter(object):
             and each converter gets its own folder
             ``<destination>/.flync/reports/<converter_name>/``, holding the
             configuration it ran with (``config.yaml``), the records of its
-            ``report_loggers`` and any files it writes to its ``report_dir``.
+            ``report_loggers``, what it recorded in its ``report`` and any
+            files it writes to its ``report_dir``. The shared
+            ``reports/report.yaml`` records both converters, the outcome and
+            the counts of the decoded model.
         """
         if source_type is None:
             logger.info("No source type provided. Attempting to auto-detect source type.")
@@ -139,15 +149,18 @@ class Converter(object):
         if destination_config.persist_config:
             destination_config.to_yaml_file(converter_config_file(destination_config.config_path, destination_converter.name))
 
-        with ConversionLogReport(
+        with ConversionReport(
             destination_config.config_path,
-            [source_converter, destination_converter],
+            source_converter,
+            destination_converter,
             enabled=destination_config.report_enabled,
             min_level=destination_config.report_level,
-        ):
+            reporters=reporters,
+        ) as report:
             logger.debug("Starting decode from source")
             source_model = source_converter.decode()
             logger.debug("Decode complete, model type: %s", type(source_model).__name__)
+            report.record_model(source_model)
 
             logger.debug("Starting encode to destination")
             destination_converter.encode(source_model)

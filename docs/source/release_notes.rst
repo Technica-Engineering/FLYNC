@@ -25,6 +25,15 @@ logger is captured or has its level changed. A failed conversion ends the shared
 traceback. The FLYNC converter lists ``flync.sdk`` and logs the workspace diagnostics, one line per finding with
 its error id, after loading or writing a workspace.
 
+The report also holds structured data. ``reports/report.yaml`` records the converters, the outcome (with the
+error when the conversion failed) and the counts of the decoded model, written by the reporters passed to
+``convert(..., reporters=...)``. Each converter, source or destination,
+records what it ``skipped``, what its format leaves ``unsupported`` and any ``custom`` data through
+``self.report``; that is written into its folder by the reporters it lists in ``reporters``: ``report.yaml`` by
+default, ``report.json`` with ``JsonReporter``, or a format added by subclassing ``BaseReporter``. The built-in
+converters report the files they read or write; the FLYNC converter its workspace diagnostics; the DBC converter the
+model and DBC content it cannot convert, which it also logs, together with the ``cantools`` records.
+
 Converter configurations are stored per workspace in ``<workspace>/.flync/converters/<converter_name>.yaml``.
 Both the source and the destination configuration are resolved from the field defaults, then a configuration
 file, then the values set by the caller. The file is the one passed with ``--src-config`` / ``--dst-config``,

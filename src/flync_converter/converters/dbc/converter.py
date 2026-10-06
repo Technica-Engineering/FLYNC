@@ -19,11 +19,14 @@ class DbcConverter(BaseConverter):
     """Converter between FLYNCModel and DBC format.
 
     Supports both directions: encoding (FLYNC to DBC) and decoding
-    (DBC to FLYNC).
+    (DBC to FLYNC). The cantools log records are part of the converter's log.
+    Its report lists the DBC files read or written, and the content that
+    could not be converted: ``unsupported`` for content the target format
+    cannot represent, ``skipped`` for content left out or replaced.
     """
 
     name = "dbc"
-    report_loggers = ("flync_converter.converters.dbc",)
+    report_loggers = ("flync_converter.converters.dbc", "cantools")
     config: Optional[DbcConverterConfig] = None
 
     def can_decode(self):
@@ -40,14 +43,14 @@ class DbcConverter(BaseConverter):
         if self.config is None:
             raise ValueError("config must be set before encoding")
 
-        logger.debug("Encoding FLYNCModel to DBC at: %s", self.config.config_path)
+        logger.info("Encoding FLYNCModel to DBC at: %s", self.config.config_path)
         destination_path = Path(self.config.config_path)
         output_directory = destination_path.parent if destination_path.suffix.casefold() == ".dbc" else destination_path
         output_directory.mkdir(parents=True, exist_ok=True)
 
-        write_dbc_files(source, self.config.config_path)
+        written = write_dbc_files(source, self.config.config_path, self.report)
 
-        logger.debug("DBC encode complete: %s", self.config.config_path)
+        logger.info("DBC encode complete: %d file(s) written to %s", len(written), self.config.config_path)
 
     def decode(self) -> FLYNCModel:
         """Decode data into a FLYNCBaseModel.
@@ -58,13 +61,10 @@ class DbcConverter(BaseConverter):
 
         if self.config is None:
             raise ValueError("config must be set before decoding")
-        logger.debug(
-            "Decoding FLYNCModel from DBC path: %s",
-            self.config.config_path,
-        )
+        logger.info("Decoding FLYNCModel from DBC path: %s", self.config.config_path)
 
-        dbc_files = load_dbc_files(self.config.config_path)
+        dbc_files = load_dbc_files(self.config.config_path, self.report)
 
-        model = decode_dbc_files(dbc_files, self.config)
-        logger.debug("DBC decode complete")
+        model = decode_dbc_files(dbc_files, self.config, self.report)
+        logger.info("DBC decode complete: %d file(s) decoded", len(dbc_files))
         return model

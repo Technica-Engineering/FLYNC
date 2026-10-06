@@ -18,6 +18,8 @@ from flync.model.flync_4_signal import ContainerPDU, MultiplexedPDU, SignalInsta
 from flync.model.flync_4_signal.pdu import PDU
 from flync.model.flync_4_signal.value_encoding import TextTable
 
+from ...base.converter_report import INACTIVE_REPORT, ConverterReport
+
 logger = logging.getLogger(__name__)
 
 
@@ -143,13 +145,19 @@ def decode_signal_instance(
     return ret
 
 
-def _decode_standard_pdu(pdu: StandardPDU, bit_pos: int, receivers: Optional[List[str]]) -> List[Signal]:
+def _report_signal_groups(pdu: StandardPDU, report: ConverterReport) -> None:
+    """Log and report the signal groups of ``pdu``, which DBC output does not support."""
+    for group in pdu.signal_groups:
+        logger.warning("Signal group '%s' of PDU '%s' not supported, skipped", group.signal_group.name, pdu.name)
+        report.unsupported(f"pdus.{pdu.name}.signal_groups.{group.signal_group.name}", reason="signal groups are not supported in DBC output")
+
+
+def _decode_standard_pdu(pdu: StandardPDU, bit_pos: int, receivers: Optional[List[str]], report: ConverterReport = INACTIVE_REPORT) -> List[Signal]:
     """Decode a StandardPDU into a flat list of cantools Signal objects."""
     ret: List[Signal] = []
     for s in pdu.signals:
         ret.append(decode_signal_instance(s, bit_pos, receivers=receivers))
-    for _ in pdu.signal_groups:
-        logger.warning("Signal Group not supported yet!")
+    _report_signal_groups(pdu, report)
     return ret
 
 
@@ -173,6 +181,7 @@ def _decode_multiplexed_pdu(
     bit_pos: int,
     receivers: Optional[List[str]],
     pdus: Optional[dict] = None,
+    report: ConverterReport = INACTIVE_REPORT,
 ) -> List[Signal]:
     """Decode a MultiplexedPDU into a flat list of cantools Signal objects."""
     if pdus is None:
@@ -187,8 +196,9 @@ def _decode_multiplexed_pdu(
         static_offset = bit_pos + (static.bit_position or 0)
         if static_pdu is None:
             logger.warning("Referenced static PDU '%s' not found", static_ref)
+            report.skipped(f"pdus.{pdu.name}.static_group.{static_ref}", reason="referenced PDU not found")
         else:
-            ret.extend(decode_pdu(flync_model, static_pdu, static_offset, receivers, pdus))
+            ret.extend(decode_pdu(flync_model, static_pdu, static_offset, receivers, pdus, report=report))
 
     for group in pdu.mux_groups:
         mux_ref = group.pdu.pdu_ref
@@ -196,6 +206,7 @@ def _decode_multiplexed_pdu(
         mux_offset = bit_pos + (group.pdu.bit_position or 0)
         if mux_pdu is None:
             logger.warning("Referenced mux PDU '%s' not found", mux_ref)
+            report.skipped(f"pdus.{pdu.name}.mux_groups.{mux_ref}", reason="referenced PDU not found")
             continue
         for s in mux_pdu.signals:
             ret.append(
@@ -207,8 +218,7 @@ def _decode_multiplexed_pdu(
                     multiplexer_ids=[group.selector_value],
                 )
             )
-        for _ in mux_pdu.signal_groups:
-            logger.warning("Signal Group inside MuxGroup not supported yet!")
+        _report_signal_groups(mux_pdu, report)
 
     return ret
 
@@ -219,18 +229,24 @@ def decode_pdu(  # NOSONAR
     bit_pos: int,
     receivers: Optional[List[str]] = None,
     pdus: Optional[dict] = None,
+    report: ConverterReport = INACTIVE_REPORT,
 ) -> List[Signal]:
-    """Recursively decode a PDU and its nested signals into a flat list of cantools Signal objects."""
+    """Recursively decode a PDU and its nested signals into a flat list of cantools Signal objects.
+
+    Content DBC output cannot hold is logged and recorded in ``report``.
+    """
     if pdu is None:
         return []
     if isinstance(pdu, StandardPDU):
-        return _decode_standard_pdu(pdu, bit_pos, receivers)
+        return _decode_standard_pdu(pdu, bit_pos, receivers, report)
     if isinstance(pdu, MultiplexedPDU):
-        return _decode_multiplexed_pdu(flync_model, pdu, bit_pos, receivers, pdus)
+        return _decode_multiplexed_pdu(flync_model, pdu, bit_pos, receivers, pdus, report)
     if isinstance(pdu, ContainerPDU):
-        logger.warning("ContainerPDU not implemented yet!")
+        logger.warning("Container PDU '%s' not supported, skipped", pdu.name)
+        report.unsupported(f"pdus.{pdu.name}", reason="container PDUs are not supported in DBC output")
     else:
         logger.warning("Unknown PDU type: %s", type(pdu))
+        report.unsupported(f"pdus.{getattr(pdu, 'name', '?')}", reason=f"unknown PDU type {type(pdu).__name__}")
     return []
 
 
@@ -248,19 +264,26 @@ def _collect_frame_participants(flync_model: FLYNCModel):
     return frame_senders, frame_receivers
 
 
-def _build_can_messages(flync_model: FLYNCModel, can_bus, pdus: dict, frame_senders: dict, frame_receivers: dict) -> list:
+def _build_can_messages(
+    flync_model: FLYNCModel, can_bus, pdus: dict, frame_senders: dict, frame_receivers: dict, report: ConverterReport = INACTIVE_REPORT
+) -> list:
     """Build a list of cantools Message objects for all frames in one CAN bus."""
     messages = []
     for frame in can_bus.frames:
         sigs: List[Signal] = []
         for pdu_inst in frame.packed_pdus:
             pdu_obj = pdus.get(pdu_inst.pdu_ref, None)
+            if pdu_obj is None:
+                logger.warning("PDU '%s' packed in frame '%s' not found, skipped", pdu_inst.pdu_ref, frame.name)
+                report.skipped(f"can_buses.{can_bus.name}.frames.{frame.name}.{pdu_inst.pdu_ref}", reason="referenced PDU not found")
+                continue
             sigs += decode_pdu(
                 flync_model,
-                pdu_obj,  # type: ignore[arg-type]
+                pdu_obj,
                 pdu_inst.bit_position or 0,
                 frame_receivers.get((can_bus.name, frame.can_id), None),
                 pdus,
+                report=report,
             )
         messages.append(
             Message(
@@ -277,29 +300,56 @@ def _build_can_messages(flync_model: FLYNCModel, can_bus, pdus: dict, frame_send
     return messages
 
 
-def write_dbc_files(flync_model: FLYNCModel, destination_path: str):
+def _report_non_can_content(channels, report: ConverterReport) -> None:
+    """Log and report the channels content that DBC, a CAN-only format, cannot hold."""
+    for lin_bus in channels.lin_buses or []:
+        logger.warning("LIN bus '%s' not supported, skipped", lin_bus.name)
+        report.unsupported(f"lin_buses.{lin_bus.name}", reason="DBC describes CAN buses only")
+    for container in channels.ethernet_pdu_containers or []:
+        logger.warning("Ethernet PDU container '%s' not supported, skipped", container.name)
+        report.unsupported(f"ethernet_pdu_containers.{container.name}", reason="DBC describes CAN buses only")
+
+
+def write_dbc_files(flync_model: FLYNCModel, destination_path: str, report: ConverterReport = INACTIVE_REPORT) -> List[Path]:
     """Write DBC output to an exact file path or to a destination folder.
 
     If an exact ``.dbc`` path is provided and the model contains one CAN bus,
     that exact file name is used. For multiple CAN buses, files are named
     ``<selected_stem>_<bus_name>.dbc`` next to the selected file.
+
+    Model content that DBC cannot hold (LIN buses, Ethernet PDU containers,
+    container PDUs, signal groups) and references that cannot be resolved are
+    logged and recorded in ``report``, as are the files written
+    (``output_files``).
+
+    Args:
+        flync_model: The model to write.
+        destination_path: A ``.dbc`` file path or a destination folder.
+        report: The converter's report.
+
+    Returns:
+        The DBC files written, one per CAN bus.
     """
     if flync_model.communication is None or flync_model.communication.channels is None:
-        logger.warning("Could not find communication/channels!")
-        return
+        logger.warning("Model has no communication channels, no DBC file written")
+        report.skipped("communication", reason="model has no communication channels")
+        return []
 
-    pdus = {pdu.name: pdu for pdu in flync_model.communication.channels.pdus or []}
+    channels = flync_model.communication.channels
+    _report_non_can_content(channels, report)
+    pdus = {pdu.name: pdu for pdu in channels.pdus or []}
     frame_senders, frame_receivers = _collect_frame_participants(flync_model)
     nodes = [Node(ecu.name) for ecu in flync_model.ecus]
-    can_buses = list(flync_model.communication.channels.can_buses or [])
+    can_buses = list(channels.can_buses or [])
     configured_path = Path(destination_path)
     exact_file = configured_path.suffix.casefold() == ".dbc"
 
     output_directory = configured_path.parent if exact_file else configured_path
     output_directory.mkdir(parents=True, exist_ok=True)
 
+    written: List[Path] = []
     for can_bus in can_buses:
-        messages = _build_can_messages(flync_model, can_bus, pdus, frame_senders, frame_receivers)
+        messages = _build_can_messages(flync_model, can_bus, pdus, frame_senders, frame_receivers, report)
         db = Database(messages=messages, nodes=nodes)
         if exact_file and len(can_buses) == 1:
             output_file = configured_path
@@ -313,3 +363,10 @@ def write_dbc_files(flync_model: FLYNCModel, destination_path: str):
             database_format="dbc",
             sort_signals=lambda signals: sorted(signals, key=lambda sig: sig.start, reverse=True),
         )
+        logger.info("Wrote CAN bus '%s' to %s: %d message(s)", can_bus.name, output_file, len(messages))
+        written.append(output_file)
+
+    if not can_buses:
+        logger.warning("Model has no CAN bus, no DBC file written")
+    report.add("output_files", written)
+    return written

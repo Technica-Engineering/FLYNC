@@ -24,6 +24,7 @@ from flync.model.flync_4_signal.signal import Signal as FLYNCSignal
 from flync.model.flync_4_signal.signal import SignalDataType
 from flync.model.flync_4_signal.value_encoding import TextEntry, TextTable
 
+from ...base.converter_report import INACTIVE_REPORT, ConverterReport
 from .dbc_config import DbcConverterConfig
 from .loading import _fd_baud_rate, _nominal_baud_rate
 
@@ -84,8 +85,12 @@ def _coerce_initial_value(raw_initial, data_type: SignalDataType) -> bytes | int
     return result
 
 
-def _to_flync_signal(s: Signal) -> FLYNCSignal:
-    """Convert a cantools Signal into a FLYNC Signal."""
+def _to_flync_signal(s: Signal, report: ConverterReport = INACTIVE_REPORT, where: str = "") -> FLYNCSignal:
+    """Convert a cantools Signal into a FLYNC Signal.
+
+    ``where`` locates the signal's message (``<bus>.<message>``) in what is
+    recorded in ``report``.
+    """
     data_type = map_data_type(s.length, s.is_signed, s.is_float)
     kwargs: dict = {
         "name": s.name,
@@ -102,7 +107,7 @@ def _to_flync_signal(s: Signal) -> FLYNCSignal:
     if s.maximum is not None:
         kwargs["upper_limit"] = s.maximum
 
-    choices = _in_range_choices(s, data_type)
+    choices = _in_range_choices(s, data_type, report, f"{where}.{s.name}")
     if choices:
         kwargs["value_encoding"] = TextTable(
             type="text_table",
@@ -111,18 +116,24 @@ def _to_flync_signal(s: Signal) -> FLYNCSignal:
     return FLYNCSignal(**kwargs)
 
 
-def _in_range_choices(s: Signal, data_type: SignalDataType) -> Optional[Dict[int, object]]:
+def _in_range_choices(
+    s: Signal, data_type: SignalDataType, report: ConverterReport = INACTIVE_REPORT, item: str = ""
+) -> Optional[Dict[int, object]]:
     """Return ``s.choices`` filtered to entries representable by the FLYNC signal.
 
     Complex types (``bytearray``) have no text-table encoding, and raw values
     that fall outside the signal's bit range (common in hand-edited DBCs, e.g.
     a ``7-bit`` signal with a ``VAL_`` entry at ``127``) are dropped since FLYNC
-    cannot represent them. Drops are surfaced as warnings.
+    cannot represent them. Drops are logged as warnings and recorded in
+    ``report`` under ``item``: a dropped table as ``unsupported``, dropped
+    entries as ``skipped``.
     """
     if not s.choices:
         return None
+    item = item or s.name
     if data_type.is_complex_datattype():
         logger.warning("Value table dropped for bytearray signal '%s'", s.name)
+        report.unsupported(f"{item}.value_table", reason="bytearray signals have no value table in FLYNC")
         return None
     if s.is_signed:
         lo, hi = -(1 << (s.length - 1)), (1 << (s.length - 1)) - 1
@@ -137,10 +148,11 @@ def _in_range_choices(s: Signal, data_type: SignalDataType) -> Optional[Dict[int
             hi,
             sorted(dropped),
         )
+        report.skipped(f"{item}.value_table", reason=f"entries {sorted(dropped)} outside the bit range [{lo}, {hi}]")
     return {value: label for value, label in s.choices.items() if lo <= int(value) <= hi}
 
 
-def _to_flync_signal_instance(s: Signal) -> SignalInstance:
+def _to_flync_signal_instance(s: Signal, report: ConverterReport = INACTIVE_REPORT, where: str = "") -> SignalInstance:
     """Convert a cantools Signal into a FLYNC SignalInstance, keeping its absolute bit start.
 
     ``s.start`` is Motorola-numbered (MSB-in-byte position) for big-endian
@@ -149,13 +161,15 @@ def _to_flync_signal_instance(s: Signal) -> SignalInstance:
 
     """
     return SignalInstance(
-        signal=_to_flync_signal(s),
+        signal=_to_flync_signal(s, report, where),
         bit_position=start_bit(s),
         endianness="BE" if s.byte_order == "big_endian" else "LE",
     )
 
 
-def _build_sub_pdu(name: str, sig_list: List[Signal]) -> Tuple[Optional[StandardPDU], Optional[int]]:
+def _build_sub_pdu(
+    name: str, sig_list: List[Signal], report: ConverterReport = INACTIVE_REPORT, where: str = ""
+) -> Tuple[Optional[StandardPDU], Optional[int]]:
     """Build a StandardPDU from signals, re-basing them relative to their lowest start bit.
 
     FLYNC's :class:`MultiplexedPDU` placement model expects a static/mux-group PDU to
@@ -170,7 +184,7 @@ def _build_sub_pdu(name: str, sig_list: List[Signal]) -> Tuple[Optional[Standard
     if not sig_list:
         return None, None
     base = min(s.start for s in sig_list)
-    instances = [_to_flync_signal_instance(s) for s in sig_list]
+    instances = [_to_flync_signal_instance(s, report, where) for s in sig_list]
     for si in instances:
         si.bit_position = (si.bit_position or 0) - base
     footprint = max((si.bit_position or 0) + si.signal.bit_length for si in instances)
@@ -193,12 +207,14 @@ def _build_static_group(
     extra: List[StandardPDU | MultiplexedPDU],
     main_name: str,
     static_signals: List[Signal],
+    report: ConverterReport = INACTIVE_REPORT,
+    where: str = "",
 ) -> Optional[List[PDUInstance]]:
     """Build the static-group placement and register its PDU in ``extra``."""
     if not static_signals:
         return None
     static_name = f"{main_name}_static"
-    static_pdu, static_base = _build_sub_pdu(static_name, static_signals)
+    static_pdu, static_base = _build_sub_pdu(static_name, static_signals, report, where)
     assert static_pdu is not None and static_base is not None
     extra.append(static_pdu)
     return [PDUInstance(pdu_ref=static_name, bit_position=static_base)]
@@ -208,19 +224,23 @@ def _build_mux_placements(
     extra: List[StandardPDU | MultiplexedPDU],
     main_name: str,
     mux_groups: Dict[int, List[Signal]],
+    report: ConverterReport = INACTIVE_REPORT,
+    where: str = "",
 ) -> List[MuxGroup]:
     """Build the per-id mux-group placements and register their PDUs in ``extra``."""
     placements = []
     for mid in sorted(mux_groups.keys()):
         group_name = f"{main_name}_mux{mid}"
-        group_pdu, group_base = _build_sub_pdu(group_name, mux_groups[mid])
+        group_pdu, group_base = _build_sub_pdu(group_name, mux_groups[mid], report, where)
         assert group_pdu is not None and group_base is not None
         extra.append(group_pdu)
         placements.append(MuxGroup(selector_value=mid, pdu=PDUInstance(pdu_ref=group_name, bit_position=group_base)))
     return placements
 
 
-def _build_pdu_for_message(message: Message, prefix: str) -> Tuple[StandardPDU | MultiplexedPDU, List[StandardPDU | MultiplexedPDU]]:
+def _build_pdu_for_message(
+    message: Message, prefix: str, report: ConverterReport = INACTIVE_REPORT
+) -> Tuple[StandardPDU | MultiplexedPDU, List[StandardPDU | MultiplexedPDU]]:
     """Build the top-level PDU for a message plus any auxiliary PDUs it needs.
 
     A message without a multiplexer signal maps to a single :class:`StandardPDU`.
@@ -233,27 +253,28 @@ def _build_pdu_for_message(message: Message, prefix: str) -> Tuple[StandardPDU |
     selector = next((s for s in signals if s.is_multiplexer), None)
 
     main_name = f"{prefix}_{message.name}"
+    where = f"{prefix}.{message.name}"
     pdu: StandardPDU | MultiplexedPDU
     if selector is None:
         pdu = StandardPDU(
             name=main_name,
             type="standard",
             length=message.length,
-            signals=[_to_flync_signal_instance(s) for s in signals],
+            signals=[_to_flync_signal_instance(s, report, where) for s in signals],
         )
         return pdu, []
 
     extra: List[StandardPDU | MultiplexedPDU] = []
     mux_groups = _collect_mux_groups(signals)
     static_signals = [s for s in signals if not s.is_multiplexer and not s.multiplexer_signal]
-    static_group = _build_static_group(extra, main_name, static_signals)
-    mux_placements = _build_mux_placements(extra, main_name, mux_groups)
+    static_group = _build_static_group(extra, main_name, static_signals, report, where)
+    mux_placements = _build_mux_placements(extra, main_name, mux_groups, report, where)
 
     pdu = MultiplexedPDU(
         name=main_name,
         type="multiplexed",
         length=message.length,
-        selector_signal=_to_flync_signal_instance(selector),
+        selector_signal=_to_flync_signal_instance(selector, report, where),
         static_group=static_group,
         mux_groups=mux_placements,
     )
@@ -311,12 +332,18 @@ def _register_frame_participants(
             frame_receivers[(bus_name, message.frame_id)].add(receiver)
 
 
-def decode_dbc_files(dbc_files, config: Optional[DbcConverterConfig] = None) -> FLYNCModel:
+def decode_dbc_files(dbc_files, config: Optional[DbcConverterConfig] = None, report: ConverterReport = INACTIVE_REPORT) -> FLYNCModel:
     """Build and validate a FLYNCModel from loaded ``(Database, Path)`` tuples.
+
+    DBC content FLYNC cannot represent (value tables of bytearray signals,
+    value table entries outside the signal range, bit rates outside the
+    allow-list, nodes taking part in no message) is logged and recorded in
+    ``report``.
 
     Args:
         dbc_files: Output of :func:`load_dbc_files`.
         config: Optional DBC converter configuration (baud defaults).
+        report: The converter's report.
 
     Returns:
         The validated FLYNCModel with one ``CANBus`` per DBC file and one
@@ -332,14 +359,14 @@ def decode_dbc_files(dbc_files, config: Optional[DbcConverterConfig] = None) -> 
 
     for db, path in dbc_files:
         bus_name = path.stem
-        baud_rate = _nominal_baud_rate(db, config)
+        baud_rate = _nominal_baud_rate(db, config, bus_name, report)
         fd_enabled = any(m.is_fd for m in db.messages)
 
         declared_nodes.update(node.name for node in db.nodes)
 
         frames = []
         for message in db.messages:
-            pdu, extra = _build_pdu_for_message(message, bus_name)
+            pdu, extra = _build_pdu_for_message(message, bus_name, report)
             pdus.append(pdu)
             pdus.extend(extra)
             frames.append(_to_flync_frame(message, pdu.name))
@@ -350,12 +377,12 @@ def decode_dbc_files(dbc_files, config: Optional[DbcConverterConfig] = None) -> 
                 name=bus_name,
                 baud_rate=cast(CANBaudRate, baud_rate),
                 fd_enabled=fd_enabled,
-                fd_baud_rate=_fd_baud_rate(db, config) if fd_enabled else None,
+                fd_baud_rate=_fd_baud_rate(db, config, bus_name, report) if fd_enabled else None,
                 frames=frames,
             )
         )
 
-    ecus = _to_flync_ecus(frame_senders, frame_receivers, declared_nodes)
+    ecus = _to_flync_ecus(frame_senders, frame_receivers, declared_nodes, report)
     version = _flync_version()
 
     return FLYNCModel(
@@ -379,6 +406,7 @@ def _to_flync_ecus(
     frame_senders: Dict[Tuple[str, int], set],
     frame_receivers: Dict[Tuple[str, int], set],
     declared_nodes: Optional[set] = None,
+    report: ConverterReport = INACTIVE_REPORT,
 ) -> List[ECU]:
     """Synthesize one ECU per DBC node with a single CAN controller and per-bus interfaces.
 
@@ -418,6 +446,7 @@ def _to_flync_ecus(
                 "cannot represent it as a FLYNC ECU and it will be omitted.",
                 node,
             )
+            report.skipped(f"nodes.{node}", reason="declared in BU_ but sends and receives no message")
             continue
         controller = Controller(
             name="CONTROLLER",

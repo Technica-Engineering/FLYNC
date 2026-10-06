@@ -4,13 +4,16 @@ This module provides utility functions for working with Pydantic models,
 data serialization and the files of a converted folder.
 """
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from pathlib import Path
+from typing import Any
 
 from pydantic import BaseModel
 
 from flync.sdk.context.workspace_config import CONFIG_DIRNAME
 from flync.sdk.utils.model_dumper import dump_model_with_discriminators
+
+from ..base.converter_report import ConverterReport
 
 
 def content_files(root: str | Path, pattern: str) -> Iterator[Path]:
@@ -31,6 +34,28 @@ def content_files(root: str | Path, pattern: str) -> Iterator[Path]:
     for path in root_path.rglob(pattern):
         if CONFIG_DIRNAME not in path.relative_to(root_path).parts:
             yield path
+
+
+def merge_tracking_overrides(
+    combined: dict[str, Any], data: Mapping[str, Any], path: Path, origins: dict[str, Path], report: ConverterReport
+) -> None:
+    """Merge one loaded file into ``combined``, reporting the top-level keys it overrides.
+
+    A top-level key already loaded from an earlier file is replaced by this
+    file's value; the earlier value is recorded as ``skipped`` in ``report``.
+
+    Args:
+        combined: The content merged so far, updated in place.
+        data: The content of the file being merged.
+        path: The file being merged.
+        origins: The file each key of ``combined`` comes from, updated in place.
+        report: The converter's report.
+    """
+    for key in data:
+        if key in origins:
+            report.skipped(f"{origins[key]}: {key}", reason=f"overridden by {path}")
+        origins[key] = path
+    combined.update(data)
 
 
 def pydantic_dump(model: BaseModel):
