@@ -140,3 +140,88 @@ def test_get_config_model_fallback_to_base():
     with patch("flync_converter.utils.registry", fake_registry):
         result = get_config_model("plain")
     assert result is ConverterConfig
+
+
+def _dbc_registry():
+    """Registry with a converter whose config carries a defaulted numeric field."""
+
+    class DbcCfg(ConverterConfig):
+        baud_rate_default: int = 500_000
+
+    class _DbcConverter:
+        name = "dbc"
+        __doc__ = "DBC converter."
+
+        def __init__(self, config: DbcCfg = None):
+            pass
+
+    return {"dbc": _DbcConverter(), "yaml": MagicMock(name="yaml")}
+
+
+def _invoke_convert(runner, args):
+    reg = _dbc_registry()
+    with (
+        patch("flync_converter.cli.commands.registry", reg),
+        patch("flync_converter.cli.interactive.registry", reg),
+        patch("flync_converter.utils.registry", reg),
+        patch("flync_converter.convert") as mock_convert,
+    ):
+        result = runner.invoke(cli, ["convert", *args])
+    return result, mock_convert
+
+
+_DBC_TO_YAML = ["-s", "in", "-o", "out", "-sf", "dbc", "-of", "yaml"]
+
+
+def test_convert_without_src_field_flags_sets_only_config_path(runner):
+    """Options left unset must not count as explicit values, so stored or file configs still apply."""
+    result, mock_convert = _invoke_convert(runner, _DBC_TO_YAML)
+
+    assert result.exit_code == 0, result.output
+    config = mock_convert.call_args.kwargs["source_config"]
+    assert config.model_fields_set == {"config_path"}
+
+
+def test_convert_with_src_field_flag_sets_that_field(runner):
+    result, mock_convert = _invoke_convert(runner, [*_DBC_TO_YAML, "--src-baud-rate-default", "1000000"])
+
+    assert result.exit_code == 0, result.output
+    config = mock_convert.call_args.kwargs["source_config"]
+    assert config.baud_rate_default == 1_000_000
+    assert config.model_fields_set == {"config_path", "baud_rate_default"}
+
+
+def test_convert_passes_config_file_alone_as_path(runner, tmp_path):
+    """A file without per-field options is passed on as a path, replacing the stored configuration."""
+    src_cfg = tmp_path / "src-dbc.yaml"
+    dst_cfg = tmp_path / "dst-yaml.yaml"
+    src_cfg.write_text("baud_rate_default: 123\n", encoding="utf-8")
+    dst_cfg.write_text("report_min_log_level: DEBUG\n", encoding="utf-8")
+
+    result, mock_convert = _invoke_convert(runner, [*_DBC_TO_YAML, "--src-config", str(src_cfg), "--dst-config", str(dst_cfg)])
+
+    assert result.exit_code == 0, result.output
+    assert mock_convert.call_args.kwargs["source_config"] == str(src_cfg)
+    assert mock_convert.call_args.kwargs["destination_config"] == str(dst_cfg)
+
+
+def test_convert_applies_field_options_over_config_file(runner, tmp_path):
+    src_cfg = tmp_path / "src-dbc.yaml"
+    src_cfg.write_text("baud_rate_default: 123\nreport_min_log_level: DEBUG\n", encoding="utf-8")
+
+    result, mock_convert = _invoke_convert(runner, [*_DBC_TO_YAML, "--src-config", str(src_cfg), "--src-baud-rate-default", "1000000"])
+
+    assert result.exit_code == 0, result.output
+    config = mock_convert.call_args.kwargs["source_config"]
+    assert config.config_path == "in"
+    # From the option, over the file.
+    assert config.baud_rate_default == 1_000_000
+    # From the file.
+    assert config.report_min_log_level == "DEBUG"
+
+
+def test_convert_rejects_missing_config_file(runner, tmp_path):
+    result, _ = _invoke_convert(runner, [*_DBC_TO_YAML, "--src-config", str(tmp_path / "nope.yaml")])
+
+    assert result.exit_code != 0
+    assert "--src-config" in result.output

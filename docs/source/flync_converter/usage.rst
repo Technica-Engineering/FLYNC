@@ -112,15 +112,23 @@ Every conversion writes a report into the destination workspace's ``.flync``
 metadata directory: one shared log for the whole conversion, and one folder per
 converter taking part in it, source and destination::
 
-    <destination>/.flync/reports/logs.txt                   whole conversion
-    <destination>/.flync/reports/<converter_name>/logs.txt  that converter's records
-    <destination>/.flync/reports/<converter_name>/...       files the converter writes itself
+    <destination>/.flync/reports/logs.txt                      whole conversion
+    <destination>/.flync/reports/<converter_name>/config.yaml  configuration the converter ran with
+    <destination>/.flync/reports/<converter_name>/logs.txt     that converter's records
+    <destination>/.flync/reports/<converter_name>/...          files the converter writes itself
 
 For example, converting a FLYNC workspace to YAML outputs::
 
     path/to/output/.flync/reports/logs.txt
+    path/to/output/.flync/reports/flync/config.yaml
     path/to/output/.flync/reports/flync/logs.txt
+    path/to/output/.flync/reports/yaml/config.yaml
     path/to/output/.flync/reports/yaml/logs.txt
+
+``config.yaml`` records every value of the configuration that converter ran
+with, defaults and ``config_path`` included. It describes the conversion that
+produced the report, while the stored configuration (see below) is the
+starting point of the next one.
 
 The loggers of that conversion and the files they are written to:
 
@@ -155,30 +163,61 @@ shared log.
 Converter configuration file
 ----------------------------
 
-Each destination workspace stores the configuration of the converters that
-wrote into it, one file per converter, next to the workspace configuration::
+A workspace stores the configuration of the converters that work with it, one
+file per converter, next to the workspace configuration::
 
-    <destination>/.flync/converters/<converter_name>.yaml
+    <workspace>/.flync/converters/<converter_name>.yaml
 
 The file holds only values that differ from the defaults, plus the FLYNC
 version that last wrote it. ``config_path`` is never stored, because it is the
 location the file belongs to. Unknown keys are rejected, so a typo in a
 hand-edited file is reported instead of ignored.
 
-Every conversion first resolves the destination configuration in three
-layers, each overriding the one before:
+Every conversion resolves the source and the destination configuration in
+three layers, each overriding the one before:
 
 1. The field defaults of the converter's configuration class.
-2. The stored file, when it exists.
-3. The values set by the caller: ``--dst-<field>`` options on the command
-   line, or the fields passed to the destination
-   :class:`~flync_converter.ConverterConfig` in Python.
+2. A configuration file: the one given with ``--src-config`` /
+   ``--dst-config``, otherwise the file stored in that side's workspace, when
+   it exists.
+3. The values set on the command line with ``--src-<field>`` /
+   ``--dst-<field>``. Options left unset do not override the file.
 
-The resolved configuration is then written back to the file, so the next
-conversion into the same destination starts from it. Set
-``persist_config`` to ``False`` to skip that write.
-:meth:`~flync_converter.ConverterConfig.to_yaml_file` writes the file
-regardless of ``persist_config``:
+In Python, ``source_config`` / ``destination_config`` take either the path of
+a configuration file, which replaces the stored file, or a configuration
+object, whose set fields (see ``model_fields_set``) override the stored file.
+Folder loaders such as the YAML and JSON converters never read the ``.flync``
+folder, so stored configurations and reports do not end up in the model.
+
+The source side reads ``<source>/.flync/converters/<converter_name>.yaml``. A
+source that is a single file, such as a ``.dbc`` file, has no stored
+configuration. For example, storing ``my_workspace/.flync/converters/dbc.yaml``
+with::
+
+   baud_rate_default: 250000
+
+makes every DBC conversion from ``my_workspace`` use a ``250000`` default baud
+rate, without any option:
+
+.. code-block:: bash
+
+   flync-converter convert -s my_workspace -o path/to/output -sf dbc -of yaml
+
+To use the same settings across several workspaces, keep them in one file and
+pass it explicitly. It replaces the stored file for that conversion, and
+options given on the command line still override it:
+
+.. code-block:: bash
+
+   flync-converter convert -s my_workspace -o path/to/output -sf dbc -of yaml \
+       --src-config shared/dbc.yaml --src-baud-rate-default 500000
+
+After the destination configuration is resolved, it is written back to the
+destination's stored file, so the next conversion into the same destination
+starts from it. Set ``persist_config`` to ``False`` to skip that write. The
+source configuration is never written.
+:meth:`~flync_converter.ConverterConfig.to_yaml_file` writes a file regardless
+of ``persist_config``:
 
 .. code-block:: python
 

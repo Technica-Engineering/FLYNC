@@ -8,6 +8,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from flync_converter import Converter
+from flync_converter.base import ConverterConfig
 from flync_converter.registry import registry
 from flync_converter.utils import get_config_model
 
@@ -102,8 +103,20 @@ def convert_interactive():
 )
 @click.option("-sf", "--source-format", help="Source format type.", default="flync")
 @click.option("-of", "--output-format", help="Output format type.", default="flync")
+@click.option(
+    "--src-config",
+    "source_config_file",
+    type=click.Path(exists=True, dir_okay=False),
+    help="Source converter configuration YAML, used instead of the one stored in the source workspace.",
+)
+@click.option(
+    "--dst-config",
+    "destination_config_file",
+    type=click.Path(exists=True, dir_okay=False),
+    help="Destination converter configuration YAML, used instead of the one stored in the destination workspace.",
+)
 @click.pass_context
-def convert(ctx, source, output, source_format, output_format, **kwargs):
+def convert(ctx, source, output, source_format, output_format, source_config_file, destination_config_file, **kwargs):
     """Quick command to convert a single source to a destination.
 
     Any config fields for the selected converter formats are exposed as
@@ -115,6 +128,10 @@ def convert(ctx, source, output, source_format, output_format, **kwargs):
         output: Output folder path.
         source_format: Source format (default: flync).
         output_format: Destination format (default: flync).
+        source_config_file: Optional source configuration YAML (``--src-config``).
+            ``--src-<field>`` options override the values in it.
+        destination_config_file: Optional destination configuration YAML (``--dst-config``).
+            ``--dst-<field>`` options override the values in it.
     """
     if source_format == output_format:
         click.echo("Source and output formats are the same. No conversion needed.")
@@ -133,8 +150,8 @@ def convert(ctx, source, output, source_format, output_format, **kwargs):
         if k.startswith(DynamicConverterCommand._DST_PREFIX) and v is not None
     }
 
-    source_config = get_config_model(source_format)(config_path=source, **src_fields)
-    destination_config = get_config_model(output_format)(config_path=output, **dst_fields)
+    source_config = _cli_config(source_format, source, source_config_file, src_fields)
+    destination_config = _cli_config(output_format, output, destination_config_file, dst_fields)
 
     from flync_converter import convert as convert_func
 
@@ -146,6 +163,28 @@ def convert(ctx, source, output, source_format, output_format, **kwargs):
         source_config=source_config,
         destination_config=destination_config,
     )
+
+
+def _cli_config(converter_type: str, path: str, config_file: str | None, fields: dict) -> ConverterConfig | str:
+    """Combine a ``--src-config`` / ``--dst-config`` file and the per-field options into one config argument.
+
+    Args:
+        converter_type: Converter key, used to pick the config class.
+        path: Source or destination path, used as ``config_path``.
+        config_file: The configuration file given on the command line, if any.
+        fields: The per-field options given on the command line.
+
+    Returns:
+        The file path when only a file is given, so it replaces the stored configuration;
+        the file's configuration with the options applied when both are given; otherwise a
+        configuration object holding the options, layered over the stored configuration.
+    """
+    model = get_config_model(converter_type)
+    if config_file is None:
+        return model(config_path=path, **fields)
+    if not fields:
+        return config_file
+    return model.create_from_config(model.from_yaml_file(config_file, path), **fields)
 
 
 @cli.command()

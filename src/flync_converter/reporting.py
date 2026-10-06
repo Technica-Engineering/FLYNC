@@ -5,6 +5,7 @@ Writes the log records of a conversion into the destination workspace's
 folder per converter taking part in it::
 
     <destination>/.flync/reports/logs.txt                   whole conversion
+    <destination>/.flync/reports/<converter_name>/config.yaml  configuration the converter ran with
     <destination>/.flync/reports/<converter_name>/logs.txt  that converter's records
     <destination>/.flync/reports/<converter_name>/...       files the converter writes itself
 
@@ -30,9 +31,12 @@ from pathlib import Path
 from types import TracebackType
 from typing import Self
 
+import yaml
+
 from flync.sdk.context.workspace_config import CONFIG_DIRNAME
 
 from .base.base_converter import BaseConverter
+from .base.converter_config import ConverterConfig
 
 #: Name of the main converter logger that converter sub-loggers propagate into.
 MAIN_LOGGER = "flync_converter"
@@ -42,6 +46,9 @@ REPORTS_DIRNAME = "reports"
 
 #: Filename of the shared log and of every per-converter log.
 LOG_FILENAME = "logs.txt"
+
+#: Filename of the configuration record in every per-converter folder.
+CONFIG_RECORD_FILENAME = "config.yaml"
 
 #: Format of every line in a log.
 LOG_FORMAT = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
@@ -88,6 +95,21 @@ def report_dir(destination: str | Path, converter_name: str) -> Path:
     return reports_root(destination) / converter_name
 
 
+def _write_config_record(path: Path, config: ConverterConfig) -> None:
+    """Write every value of a converter configuration, defaults and ``config_path`` included.
+
+    Unlike :meth:`~flync_converter.ConverterConfig.to_yaml_file`, which stores
+    the starting point of the next conversion, this records what one
+    conversion ran with.
+
+    Args:
+        path: File to write, replacing an existing one.
+        config: The resolved configuration.
+    """
+    with open(path, "w", encoding="utf-8") as f:
+        yaml.safe_dump(config.model_dump(mode="json"), f, sort_keys=False)
+
+
 class ConversionLogReport:
     """Context manager writing the report of one conversion.
 
@@ -97,8 +119,10 @@ class ConversionLogReport:
       :class:`logging.FileHandler` attached to the ``flync_converter`` logger
       and to the ``report_loggers`` of every converter;
     * each converter gets its folder ``reports/<name>/``, exposed to it as
-      :attr:`~flync_converter.base.BaseConverter.report_dir`, and, when it lists
-      ``report_loggers``, its own ``logs.txt`` capturing only those loggers;
+      :attr:`~flync_converter.base.BaseConverter.report_dir`, holding
+      ``config.yaml`` (every value of the configuration the converter runs
+      with, defaults included) and, when it lists ``report_loggers``, its own
+      ``logs.txt`` capturing only those loggers;
     * every captured logger has its level lowered to ``min_level`` when it would
       otherwise drop those records.
 
@@ -152,6 +176,8 @@ class ConversionLogReport:
         for converter in self._converters:
             folder = self.root / converter.name
             folder.mkdir(parents=True, exist_ok=True)
+            if isinstance(converter.config, ConverterConfig):
+                _write_config_record(folder / CONFIG_RECORD_FILENAME, converter.config)
             if converter.report_loggers:
                 self._attach(folder / LOG_FILENAME, converter.report_loggers)
             converter.report_dir = folder

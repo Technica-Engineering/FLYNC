@@ -47,7 +47,7 @@ class TestConverterConvert:
         src_cfg = ConverterConfig(config_path="/custom/src")
         with patch("flync_converter.registry", fake_reg):
             Converter.convert(str(tmp_path / "src"), str(tmp_path / "dst"), source_type="json", destination_type="yaml", source_config=src_cfg)
-        assert src_conv.config is src_cfg
+        assert src_conv.config == src_cfg
 
     def test_destination_config_set_on_converter(self, tmp_path):
         fake_reg, src_conv, dst_conv, _ = _make_fake_registry()

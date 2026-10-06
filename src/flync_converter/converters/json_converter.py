@@ -9,7 +9,7 @@ from flync.model import FLYNCModel
 
 from ..base.base_converter import BaseConverter
 from ..registry import hookimpl
-from .helpers import pydantic_dump
+from .helpers import content_files, pydantic_dump
 
 """classe for converter between :class:`FLYNCModel` a JSON file."""
 
@@ -18,6 +18,8 @@ logger = logging.getLogger(__name__)
 
 def load_json_files(root_folder):
     """Recursively load all JSON files and merge into a single dict.
+
+    Files inside a ``.flync`` metadata folder are skipped.
 
     Args:
         root_folder: Root folder path to search for JSON files.
@@ -32,7 +34,7 @@ def load_json_files(root_folder):
     root = Path(root_folder)
     logger.debug("Scanning for JSON files under: %s", root_folder)
 
-    for json_file in root.rglob("*.json"):
+    for json_file in content_files(root, "*.json"):
         logger.debug("Loading JSON file: %s", json_file)
         with json_file.open("r", encoding="utf-8") as f:
             data = json.load(f)

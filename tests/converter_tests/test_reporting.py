@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+import yaml
 
 from flync_converter import Converter, ConverterConfig
 from flync_converter.base.converter_config import converter_config_file
@@ -18,10 +19,11 @@ LIBRARY_LOGGER = "some_library"
 class _Converter:
     """Minimal stand-in exposing what the report reads and sets on a converter."""
 
-    def __init__(self, name, report_loggers=()):
+    def __init__(self, name, report_loggers=(), config=None):
         self.name = name
         self.report_loggers = tuple(report_loggers)
         self.report_dir = None
+        self.config = config
 
 
 @pytest.fixture
@@ -185,6 +187,21 @@ def test_converter_log_holds_only_its_own_records(tmp_path, loggers):
     assert "driver record" not in destination_log
 
 
+def test_converter_folder_records_the_config_it_ran_with(tmp_path, loggers):
+    destination = _Converter("flync", config=ConverterConfig(config_path=str(tmp_path), report_min_log_level="DEBUG"))
+    with ConversionLogReport(tmp_path, [_Converter("json"), destination]):
+        pass
+
+    record = yaml.safe_load(_read(report_dir(tmp_path, "flync") / "config.yaml"))
+    # Every value, defaults and config_path included.
+    assert record["config_path"] == str(tmp_path)
+    assert record["report_min_log_level"] == "DEBUG"
+    assert record["report_enabled"] is True
+    assert "version" in record
+    # A converter without a configuration object gets no record.
+    assert not (report_dir(tmp_path, "json") / "config.yaml").exists()
+
+
 def test_converter_without_loggers_gets_a_folder_but_no_log(tmp_path, loggers):
     source, destination = _converters(source_loggers=())
     with ConversionLogReport(tmp_path, [source, destination]):
@@ -309,6 +326,16 @@ def test_convert_writes_shared_and_converter_logs(tmp_path, loggers):
     assert "decoded" in _read(report_dir(tmp_path / "dst", "json") / LOG_FILENAME)
     assert "encoded" in _read(report_dir(tmp_path / "dst", "flync") / LOG_FILENAME)
     assert loggers[MAIN_LOGGER].handlers == handlers
+
+
+def test_convert_records_both_configs(tmp_path, loggers):
+    _run(tmp_path, destination_config=ConverterConfig(config_path=str(tmp_path / "dst"), report_min_log_level="DEBUG"))
+
+    source_record = yaml.safe_load(_read(report_dir(tmp_path / "dst", "json") / "config.yaml"))
+    destination_record = yaml.safe_load(_read(report_dir(tmp_path / "dst", "flync") / "config.yaml"))
+    assert source_record["config_path"] == str(tmp_path / "src")
+    assert destination_record["config_path"] == str(tmp_path / "dst")
+    assert destination_record["report_min_log_level"] == "DEBUG"
 
 
 def test_convert_gives_converters_their_report_dir(tmp_path, loggers):

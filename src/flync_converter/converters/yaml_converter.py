@@ -10,7 +10,7 @@ from flync.model import FLYNCModel
 
 from ..base.base_converter import BaseConverter
 from ..registry import hookimpl
-from .helpers import pydantic_dump
+from .helpers import content_files, pydantic_dump
 
 """classe for converter between :class:`FLYNCModel` a YAML file."""
 
@@ -19,6 +19,8 @@ logger = logging.getLogger(__name__)
 
 def load_yaml_files(root_folder):
     """Recursively load all YAML files and merge into a single dict.
+
+    Files inside a ``.flync`` metadata folder are skipped.
 
     Args:
         root_folder: Root folder path to search for YAML files.
@@ -33,7 +35,7 @@ def load_yaml_files(root_folder):
     root = Path(root_folder)
     logger.debug("Scanning for YAML files under: %s", root_folder)
 
-    for yaml_file in root.rglob("*.yaml"):
+    for yaml_file in content_files(root, "*.yaml"):
         logger.debug("Loading YAML file: %s", yaml_file)
         with yaml_file.open("r", encoding="utf-8") as f:
             data = yaml.safe_load(f)

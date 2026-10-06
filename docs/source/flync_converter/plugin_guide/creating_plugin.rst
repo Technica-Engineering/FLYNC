@@ -168,9 +168,10 @@ Every conversion writes a report into the destination workspace's ``.flync`` met
 
 .. code-block:: text
 
-   <destination>/.flync/reports/logs.txt                   whole conversion
-   <destination>/.flync/reports/<converter_name>/logs.txt  your converter's records
-   <destination>/.flync/reports/<converter_name>/...       files your converter writes itself
+   <destination>/.flync/reports/logs.txt                      whole conversion
+   <destination>/.flync/reports/<converter_name>/config.yaml  configuration your converter ran with
+   <destination>/.flync/reports/<converter_name>/logs.txt     your converter's records
+   <destination>/.flync/reports/<converter_name>/...          files your converter writes itself
 
 Your converter decides which records are its own by listing logger names in ``report_loggers``: its own logger, and the loggers of the libraries it delegates to. Records from those loggers are written to your converter's ``logs.txt`` and to the shared log, whether the converter runs as source or destination, and the loggers' level is lowered to the report level for the duration of the conversion and restored afterwards.
 
