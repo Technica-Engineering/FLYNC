@@ -3,15 +3,19 @@
 from __future__ import annotations
 
 import enum
+import os
 import typing
 from typing import Optional, Union
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QComboBox,
+    QFileDialog,
     QFrame,
+    QHBoxLayout,
     QLabel,
     QLineEdit,
+    QPushButton,
     QScrollArea,
     QVBoxLayout,
     QWidget,
@@ -31,8 +35,8 @@ def _resolve_field_type(annotation):
     return annotation
 
 
-#: Config fields managed by the stored configuration file, not edited in the panel.
-_NON_EDITABLE_FIELDS = frozenset({"version"})
+#: Config fields managed by the stored configuration file or elsewhere, not edited in the panel.
+_NON_EDITABLE_FIELDS = frozenset({"version", "report_enabled", "report_min_log_level", "persist_config"})
 
 
 class ConverterPanel(QWidget):
@@ -78,6 +82,10 @@ class ConverterPanel(QWidget):
         for name in registry.keys():
             self._format_combo.addItem(name, name)
         self._format_combo.currentIndexChanged.connect(self._on_format_changed)
+        self._format_combo.setSizePolicy(
+            self._format_combo.sizePolicy().horizontalPolicy(),
+            self._format_combo.sizePolicy().verticalPolicy(),
+        )
         layout.addWidget(self._format_combo)
 
         scroll = QScrollArea()
@@ -85,6 +93,7 @@ class ConverterPanel(QWidget):
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         self._fields_container = QWidget()
         self._fields_layout = QVBoxLayout(self._fields_container)
+        self._fields_layout.setContentsMargins(0, 0, 0, 0)
         self._fields_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self._fields_layout.setSpacing(4)
         scroll.setWidget(self._fields_container)
@@ -121,6 +130,7 @@ class ConverterPanel(QWidget):
         for name, fld in model.model_fields.items():
             if name in _NON_EDITABLE_FIELDS:
                 continue
+
             required = fld.is_required()
             default = None if required else fld.get_default()
             field_type = _resolve_field_type(fld.annotation)
@@ -151,8 +161,115 @@ class ConverterPanel(QWidget):
                     line.setText(str(default))
                 if required:
                     line.setPlaceholderText("required")
-                self._fields_layout.addWidget(line)
+                if name == "config_path":
+                    self._add_path_field(line)
+                else:
+                    self._fields_layout.addWidget(line)
                 self._field_widgets[name] = line
+
+    def _add_path_field(self, line_edit: QLineEdit) -> None:
+        """Add one Browse button with automatic file/folder behavior."""
+        row = QHBoxLayout()
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(4)
+        row.addWidget(line_edit, stretch=1)
+
+        browse = QPushButton("Browse...")
+        browse.clicked.connect(lambda _checked=False, le=line_edit: self._browse_path(le))
+        row.addWidget(browse)
+
+        container = QWidget()
+        container.setContentsMargins(0, 0, 0, 0)
+        container.setLayout(row)
+        container.setSizePolicy(
+            self._format_combo.sizePolicy().horizontalPolicy(),
+            container.sizePolicy().verticalPolicy(),
+        )
+        self._fields_layout.addWidget(container)
+
+    @property
+    def _is_source(self) -> bool:
+        return self._title.casefold() == "source"
+
+    @staticmethod
+    def _initial_directory(line_edit: QLineEdit) -> str:
+        current = line_edit.text().strip()
+        if not current:
+            return ""
+        if os.path.isdir(current):
+            return current
+        return os.path.dirname(current)
+
+    def _browse_path(self, line_edit: QLineEdit) -> None:
+        """Open a picker using metadata from the selected converter."""
+        converter = registry.get(self._converter_type) if self._converter_type else None
+        if converter is None:
+            return
+
+        converter_class = type(converter)
+        if converter_class.uses_directory:
+            self._browse_folder(line_edit)
+            return
+
+        extensions = converter_class.get_source_extensions() if self._is_source else converter_class.get_destination_extensions()
+        file_filter = converter_class.build_file_filter(extensions)
+
+        if self._is_source:
+            self._browse_source_file(line_edit, file_filter)
+            return
+
+        self._browse_destination_file(line_edit, extensions, file_filter)
+
+    def _browse_source_file(
+        self,
+        line_edit: QLineEdit,
+        file_filter: str,
+    ) -> None:
+        """Select a source file and update the input field."""
+        path, _selected_filter = QFileDialog.getOpenFileName(
+            self,
+            "Choose source file",
+            line_edit.text().strip() or self._initial_directory(line_edit),
+            file_filter,
+        )
+        if path:
+            line_edit.setText(path)
+
+    def _browse_destination_file(
+        self,
+        line_edit: QLineEdit,
+        extensions: tuple[str, ...],
+        file_filter: str,
+    ) -> None:
+        """Select a destination file and update the input field."""
+        path, _selected_filter = QFileDialog.getSaveFileName(
+            self,
+            "Save destination",
+            line_edit.text().strip() or self._initial_directory(line_edit),
+            file_filter,
+        )
+        if path:
+            line_edit.setText(self._append_destination_extension(path, extensions))
+
+    @staticmethod
+    def _append_destination_extension(
+        path: str,
+        extensions: tuple[str, ...],
+    ) -> str:
+        """Append the default converter extension when the path has none."""
+        if os.path.splitext(path)[1] or not extensions:
+            return path
+        return f"{path}.{extensions[0].lstrip('.')}"
+
+    def _browse_folder(self, line_edit: QLineEdit) -> None:
+        path = QFileDialog.getExistingDirectory(
+            self,
+            f"Choose {self._title.lower()} folder",
+            self._initial_directory(line_edit),
+            QFileDialog.Option.ShowDirsOnly,
+        )
+        if path:
+            line_edit.setText(path)
 
     def read_config(self) -> ConverterConfig:  # NOSONAR
         """Read current field values and return a validated config instance.
@@ -166,8 +283,6 @@ class ConverterPanel(QWidget):
         model = get_config_model(self._converter_type)
         config_dict: dict = {}
         for name, fld in model.model_fields.items():
-            if name in _NON_EDITABLE_FIELDS:
-                continue
             field_type = _resolve_field_type(fld.annotation)
             widget = self._field_widgets.get(name)
             if widget is None:

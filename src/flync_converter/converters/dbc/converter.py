@@ -41,7 +41,9 @@ class DbcConverter(BaseConverter):
             raise ValueError("config must be set before encoding")
 
         logger.debug("Encoding FLYNCModel to DBC at: %s", self.config.config_path)
-        Path(self.config.config_path).mkdir(parents=True, exist_ok=True)
+        destination_path = Path(self.config.config_path)
+        output_directory = destination_path.parent if destination_path.suffix.casefold() == ".dbc" else destination_path
+        output_directory.mkdir(parents=True, exist_ok=True)
 
         write_dbc_files(source, self.config.config_path)
 

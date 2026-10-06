@@ -48,10 +48,29 @@ class BaseConverter(ABC):
     """
 
     name: str = ""
+    uses_directory: bool = False
+    source_extensions: tuple[str, ...] = ()
+    destination_extensions: tuple[str, ...] = ()
 
     report_loggers: ClassVar[tuple[str, ...]] = ()
 
     report_dir: Optional[Path] = None
+
+    @classmethod
+    def get_source_extensions(cls) -> tuple[str, ...]:
+        """Return source extensions, defaulting to the converter name."""
+        return cls.source_extensions or ((cls.name,) if cls.name else ())
+
+    @classmethod
+    def get_destination_extensions(cls) -> tuple[str, ...]:
+        """Return destination extensions, defaulting to the converter name."""
+        return cls.destination_extensions or ((cls.name,) if cls.name else ())
+
+    @classmethod
+    def build_file_filter(cls, extensions: tuple[str, ...]) -> str:
+        """Build a QFileDialog filter from converter metadata."""
+        patterns = " ".join(f"*.{extension.lstrip('.')}" for extension in extensions)
+        return f"{cls.name.upper()} files ({patterns})"
 
     def __init__(self, config: Optional[ConverterConfig] = None):
         """Initializes the converter.

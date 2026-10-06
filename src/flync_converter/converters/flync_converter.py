@@ -47,6 +47,7 @@ class FLYNCConverter(BaseConverter):
     """
 
     name = "flync"
+    uses_directory = True
     report_loggers = (__name__, "flync.sdk")
 
     def can_decode(self):

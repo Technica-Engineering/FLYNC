@@ -1,7 +1,6 @@
 """Converter that loads and writes FLYNC models as YAML."""
 
 import logging
-import os
 from pathlib import Path
 
 import yaml
@@ -35,7 +34,14 @@ def load_yaml_files(root_folder):
     root = Path(root_folder)
     logger.debug("Scanning for YAML files under: %s", root_folder)
 
-    for yaml_file in content_files(root, "*.yaml"):
+    if root.is_file():
+        if root.suffix.casefold() not in {".yaml", ".yml"}:
+            raise ValueError(f"Expected a YAML file, got: {root}")
+        candidates = [root]
+    else:
+        candidates = sorted(path for pattern in ("*.yaml", "*.yml") for path in content_files(root, pattern))
+
+    for yaml_file in candidates:
         logger.debug("Loading YAML file: %s", yaml_file)
         with yaml_file.open("r", encoding="utf-8") as f:
             data = yaml.safe_load(f)
@@ -57,6 +63,7 @@ class YamlConverter(BaseConverter):
 
     name = "yaml"
     report_loggers = (__name__,)
+    source_extensions = ("yaml", "yml")
 
     def can_decode(self):
         """Return True — the YAML converter supports decoding."""
@@ -73,9 +80,12 @@ class YamlConverter(BaseConverter):
         """
         if self.config is None:
             raise ValueError("config must be set before encoding")
-        output_path = os.path.join(self.config.config_path, source.__class__.__name__ + ".yaml")
+        configured_path = Path(self.config.config_path)
+        output_path = (
+            configured_path if configured_path.suffix.casefold() in {".yaml", ".yml"} else configured_path / f"{source.__class__.__name__}.yaml"
+        )
         logger.debug("Encoding FLYNCModel to YAML at: %s", output_path)
-        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, "w", encoding="utf-8") as output:
             yaml.safe_dump(pydantic_dump(source), output, indent=2, sort_keys=False)
         logger.info("YAML encode complete: %s", output_path)

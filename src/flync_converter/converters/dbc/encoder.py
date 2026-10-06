@@ -277,8 +277,13 @@ def _build_can_messages(flync_model: FLYNCModel, can_bus, pdus: dict, frame_send
     return messages
 
 
-def write_dbc_files(flync_model: FLYNCModel, root_folder: str):
-    """Write one DBC file per CAN bus defined in the FLYNCModel to root_folder."""
+def write_dbc_files(flync_model: FLYNCModel, destination_path: str):
+    """Write DBC output to an exact file path or to a destination folder.
+
+    If an exact ``.dbc`` path is provided and the model contains one CAN bus,
+    that exact file name is used. For multiple CAN buses, files are named
+    ``<selected_stem>_<bus_name>.dbc`` next to the selected file.
+    """
     if flync_model.communication is None or flync_model.communication.channels is None:
         logger.warning("Could not find communication/channels!")
         return
@@ -286,14 +291,25 @@ def write_dbc_files(flync_model: FLYNCModel, root_folder: str):
     pdus = {pdu.name: pdu for pdu in flync_model.communication.channels.pdus or []}
     frame_senders, frame_receivers = _collect_frame_participants(flync_model)
     nodes = [Node(ecu.name) for ecu in flync_model.ecus]
+    can_buses = list(flync_model.communication.channels.can_buses or [])
+    configured_path = Path(destination_path)
+    exact_file = configured_path.suffix.casefold() == ".dbc"
 
-    for can_bus in flync_model.communication.channels.can_buses or []:
+    output_directory = configured_path.parent if exact_file else configured_path
+    output_directory.mkdir(parents=True, exist_ok=True)
+
+    for can_bus in can_buses:
         messages = _build_can_messages(flync_model, can_bus, pdus, frame_senders, frame_receivers)
         db = Database(messages=messages, nodes=nodes)
-        fn = Path(root_folder) / Path(f"{can_bus.name}.dbc")
+        if exact_file and len(can_buses) == 1:
+            output_file = configured_path
+        elif exact_file:
+            output_file = output_directory / f"{configured_path.stem}_{can_bus.name}.dbc"
+        else:
+            output_file = output_directory / f"{can_bus.name}.dbc"
         cantools.database.dump_file(
             db,
-            str(fn),
+            str(output_file),
             database_format="dbc",
             sort_signals=lambda signals: sorted(signals, key=lambda sig: sig.start, reverse=True),
         )

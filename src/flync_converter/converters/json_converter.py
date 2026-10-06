@@ -2,7 +2,6 @@
 
 import json
 import logging
-import os
 from pathlib import Path
 
 from flync.model import FLYNCModel
@@ -34,7 +33,14 @@ def load_json_files(root_folder):
     root = Path(root_folder)
     logger.debug("Scanning for JSON files under: %s", root_folder)
 
-    for json_file in content_files(root, "*.json"):
+    if root.is_file():
+        if root.suffix.casefold() != ".json":
+            raise ValueError(f"Expected a JSON file, got: {root}")
+        candidates = [root]
+    else:
+        candidates = sorted(content_files(root, "*.json"))
+
+    for json_file in candidates:
         logger.debug("Loading JSON file: %s", json_file)
         with json_file.open("r", encoding="utf-8") as f:
             data = json.load(f)
@@ -72,9 +78,10 @@ class JsonConverter(BaseConverter):
         """
         if self.config is None:
             raise ValueError("config must be set before encoding")
-        output_path = os.path.join(self.config.config_path, source.__class__.__name__ + ".json")
+        configured_path = Path(self.config.config_path)
+        output_path = configured_path if configured_path.suffix.casefold() == ".json" else configured_path / f"{source.__class__.__name__}.json"
         logger.debug("Encoding FLYNCModel to JSON at: %s", output_path)
-        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, "w", encoding="utf-8") as output:
             json.dump(pydantic_dump(source), output, indent=2, sort_keys=False)
         logger.debug("JSON encode complete: %s", output_path)
