@@ -968,6 +968,37 @@ class Test_SignalInstance:
         si = SignalInstance(signal=uint8_signal)
         assert si.bit_position is None
 
+    def test_positive_signal_instance_spn_exposed_on_signal(self, uint8_signal):
+        si = SignalInstance(signal=uint8_signal, bit_position=0)
+        assert si.signal.spn is None
+
+    def test_positive_signal_spn_defaults_to_none(self, uint8_signal):
+        assert uint8_signal.spn is None
+
+    def test_positive_signal_with_spn(self):
+        sig = Signal(name="spn_sig", bit_length=8, data_type=SignalDataType.UINT8, spn=190)
+        assert sig.spn == 190
+
+    @pytest.mark.parametrize(
+        "spn",
+        [pytest.param(0, id="min"), pytest.param(524287, id="max_19bit")],
+    )
+    def test_positive_signal_spn_boundaries(self, spn):
+        sig = Signal(name="spn_bound", bit_length=8, data_type=SignalDataType.UINT8, spn=spn)
+        assert sig.spn == spn
+
+    @pytest.mark.parametrize(
+        "spn,msg",
+        [
+            pytest.param(-1, "greater than or equal to 0", id="neg"),
+            pytest.param(524288, "less than or equal to 524287", id="hi"),
+        ],
+    )
+    def test_negative_signal_spn_out_of_range(self, spn, msg):
+        with pytest.raises(ValidationError) as exc_info:
+            Signal(name="spn_bad", bit_length=8, data_type=SignalDataType.UINT8, spn=spn)
+        assert_single_error(exc_info, None, msg)
+
 
 class Test_SignalGroup:
 

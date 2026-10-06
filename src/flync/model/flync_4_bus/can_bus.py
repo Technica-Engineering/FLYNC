@@ -9,7 +9,7 @@ from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major, err_minor
 from flync.core.validators.generic import none_to_empty_list
 from flync.model.flync_4_nm import StateMembershipRef
-from flync.model.flync_4_signal.frame import CANFDFrame, CANFrame
+from flync.model.flync_4_signal.frame import CANFDFrame, CANFrame, J1939Frame
 
 type CANBaudRate = Literal[10_000, 20_000, 50_000, 100_000, 125_000, 250_000, 500_000, 1_000_000]
 _ALLOWED_CAN_BAUD_RATES = frozenset(get_args(CANBaudRate.__value__))
@@ -43,7 +43,7 @@ class CANBus(FLYNCBaseModel):
     fd_baud_rate : int, optional
         Data-phase bit rate in bits/s.  Required when ``fd_enabled`` is ``True``; must be ``None`` otherwise.  Must be one of: 2 000 000,
         4 000 000, 5 000 000, or 8 000 000.
-    frames : list of :class:`CANFrame` | :class:`CANFDFrame`
+    frames : list of :class:`CANFrame` | :class:`CANFDFrame` | :class:`J1939Frame`
         Frames transmitted on this bus.  :class:`CANFDFrame` entries are only permitted when ``fd_enabled`` is ``True``.
     state_memberships : list of \
     :class:`~flync.model.flync_4_nm.StateMembershipRef`, optional
@@ -59,7 +59,7 @@ class CANBus(FLYNCBaseModel):
     baud_rate: CANBaudRate = Field()
     fd_enabled: bool = Field(default=False)
     fd_baud_rate: Optional[int] = Field(default=None)
-    frames: List[Annotated[CANFrame | CANFDFrame, Field(discriminator="type")]] = Field(default_factory=list)
+    frames: List[Annotated[CANFrame | CANFDFrame | J1939Frame, Field(discriminator="type")]] = Field(default_factory=list)
     state_memberships: Annotated[
         Optional[List[StateMembershipRef]],
         BeforeValidator(none_to_empty_list),
@@ -111,7 +111,8 @@ class CANBus(FLYNCBaseModel):
 
     @model_validator(mode="after")
     def validate_unique_can_ids(self) -> Self:
-        keys = [(f.can_id, f.id_format) for f in self.frames]
+        can_frames = [f for f in self.frames if isinstance(f, (CANFrame, CANFDFrame))]
+        keys = [(f.can_id, f.id_format) for f in can_frames]
         duplicates = sorted(f"{cid:#x}/{fmt}" for (cid, fmt), c in Counter(keys).items() if c > 1)
         if duplicates:
             raise err_major(
@@ -120,5 +121,18 @@ class CANBus(FLYNCBaseModel):
                 duplicates=duplicates,
                 category=Category.UNIQUENESS,
                 error_number="054",
+            )
+        return self
+
+    @model_validator(mode="after")
+    def validate_frame_types(self) -> Self:
+        unsupported = sorted({type(f).__name__ for f in self.frames if not isinstance(f, (CANFrame, CANFDFrame, J1939Frame))})
+        if unsupported:
+            raise err_major(
+                "CANBus '{name}' declares unsupported frame type(s): {types}. Frames must be CANFrame, CANFDFrame, or J1939Frame.",
+                name=self.name,
+                types=", ".join(unsupported),
+                category=Category.CONSISTENCY,
+                error_number="371",
             )
         return self

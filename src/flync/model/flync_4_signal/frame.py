@@ -12,7 +12,7 @@ from typing import Annotated, FrozenSet, List, Literal, Optional, Self
 from pydantic import Field, model_validator
 
 from flync.core.base_models import FLYNCBaseModel
-from flync.core.utils.exceptions import Category, err_minor
+from flync.core.utils.exceptions import Category, err_major, err_minor
 from flync.model.flync_4_signal.pdu import (
     PDUInstance,
 )
@@ -236,6 +236,90 @@ class LINFrame(Frame):
     checksum_type: Literal["classic", "enhanced"] = Field(default="enhanced")
     length: int = Field(ge=1, le=8)
     timing: Optional[FrameTransmissionTiming] = Field(default=None)
+
+
+class J1939Frame(Frame):
+    """
+    Basic J1939 Frame.
+
+    Parameters
+    ----------
+    type : Literal["j1939"]
+        Discriminator tag selecting this frame kind when parsed from a CAN bus frame list.
+    priority : int
+        J1939 message priority.
+    pdu_format : int
+        PDU Format (PF) field. Values below 240 select the PDU1 format, where ``pdu_specific`` is a
+        Destination Address; values 240-255 select the PDU2 format, where ``pdu_specific`` is a Group Extension.
+    pdu_specific: int
+        Message PDU Specific (PS) field. For PDU1 (``pdu_format`` < 240) it is a Destination Address;
+        for PDU2 (``pdu_format`` >= 240) it is a Group Extension that groups related messages.
+    data_page: int
+        Message data page.
+    extended_data_page: int
+        Message extended data page.
+    destination_type: Literal["global", "specific"]
+        Destination type. For PDU1 (``pdu_format`` < 240) the ``pdu_specific`` field is a destination address:
+        ``"specific"`` targets a single node (DA 0-254) and ``"global"`` broadcasts to every node (DA = 255).
+        For PDU2 (``pdu_format`` >= 240) the message is always a group broadcast, so this must be ``"global"``.
+    timing : :class:`FrameTransmissionTiming`, optional
+            Transmission timing for this frame.
+
+    Notes
+    -----
+    A J1939 message carries exactly one Parameter Group (one PGN) in its 8-byte data field, so ``packed_pdus``
+    may contain at most one entry. This is unlike classical CAN, where a single frame may pack several PDUs.
+    """
+
+    priority: int = Field(ge=0, le=7)
+    pdu_format: int = Field(ge=0, le=255)
+    pdu_specific: int = Field(ge=0, le=255)
+    data_page: int = Field(ge=0, le=1)
+    extended_data_page: int = Field(ge=0, le=1)
+    destination_type: Literal["global", "specific"]
+    length: Literal[8] = Field(default=8)
+    type: Literal["j1939"] = Field(default="j1939")
+    timing: Optional[FrameTransmissionTiming] = Field(default=None)
+
+    @model_validator(mode="after")
+    def validate_single_packed_pdu(self) -> Self:
+        if len(self.packed_pdus) > 1:
+            raise err_major(
+                "J1939 '{name}': a J1939 frame carries exactly one Parameter Group, got {n} packed PDUs",
+                name=self.name,
+                n=len(self.packed_pdus),
+                category=Category.CONSISTENCY,
+                error_number="370",
+            )
+        return self
+
+    @model_validator(mode="after")
+    def validate_pdu_format(self) -> Self:
+        if self.pdu_format >= 240:
+            # PDU2 (PF 240-255): pdu_specific is a Group Extension; these messages are always a group broadcast.
+            if self.destination_type != "global":
+                raise err_minor(
+                    "J1939 '{name}': pdu_format>=240 (PDU2) is always a group broadcast, requires "
+                    "destination_type=global got destination_type={destination_type}",
+                    name=self.name,
+                    destination_type=self.destination_type,
+                    category=Category.CONSISTENCY,
+                    error_number="347",
+                )
+        elif self.pdu_format < 240:
+            # PDU1 (PF 0-239): pdu_specific is a Destination Address; a global broadcast is DA = 255.
+            global_da = self.pdu_specific == 255
+            if (self.destination_type == "global") != global_da:
+                raise err_minor(
+                    "J1939 '{name}': destination_type={destination_type} does not match pdu_specific={pdu_specific} "
+                    "(PDU1: 'global' requires pdu_specific=255, 'specific' requires pdu_specific in 0-254)",
+                    name=self.name,
+                    destination_type=self.destination_type,
+                    pdu_specific=self.pdu_specific,
+                    category=Category.CONSISTENCY,
+                    error_number="348",
+                )
+        return self
 
 
 _CAN_FD_VALID_LENGTHS: FrozenSet[int] = frozenset({0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 16, 20, 24, 32, 48, 64})

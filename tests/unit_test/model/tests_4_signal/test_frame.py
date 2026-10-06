@@ -7,6 +7,7 @@ from flync.model.flync_4_signal.frame import (
     FrameCyclicTiming,
     FrameEventTiming,
     FrameTransmissionTiming,
+    J1939Frame,
     LINFrame,
 )
 from flync.model.flync_4_signal.pdu import PDUInstance
@@ -452,3 +453,186 @@ def test_negative_lin_frame_duplicate_pdu_bit_positions():
     with pytest.raises(ValidationError) as exc_info:
         LINFrame(name="lin_dup_pdu", lin_id=0x01, length=8, packed_pdus=packed_pdus)
     assert_single_error(exc_info, "FLYNC-SIG-MIN-UNIQ-105", "share bit_position")
+
+
+def _make_j1939_frame(
+    name="j1939_frm",
+    pdu_format=240,
+    pdu_specific=4,
+    destination_type="global",
+    length=8,
+    packed_pdus=None,
+):
+    return J1939Frame(
+        name=name,
+        priority=3,
+        pdu_format=pdu_format,
+        pdu_specific=pdu_specific,
+        data_page=0,
+        extended_data_page=0,
+        destination_type=destination_type,
+        length=length,
+        packed_pdus=packed_pdus or [],
+    )
+
+
+def test_positive_j1939_frame_minimal():
+    frm = _make_j1939_frame()
+    assert frm.priority == 3
+    assert frm.pdu_format == 240
+    assert frm.pdu_specific == 4
+    assert frm.destination_type == "global"
+    assert frm.length == 8
+
+
+def test_positive_j1939_frame_global_edge():
+    frm = _make_j1939_frame(pdu_format=240, destination_type="global")
+    assert frm.destination_type == "global"
+
+
+def test_positive_j1939_frame_specific_edge():
+    frm = _make_j1939_frame(pdu_format=239, pdu_specific=0x1F, destination_type="specific")
+    assert frm.destination_type == "specific"
+
+
+def test_positive_j1939_frame_zero_pdus_allowed():
+    frm = _make_j1939_frame()
+    assert frm.packed_pdus == []
+
+
+def test_positive_j1939_frame_with_pdu():
+    frm = J1939Frame(
+        name="j1939_pdu",
+        priority=3,
+        pdu_format=240,
+        pdu_specific=4,
+        data_page=0,
+        extended_data_page=0,
+        destination_type="global",
+        length=8,
+        packed_pdus=[PDUInstance(pdu_ref="pdu_nm", bit_position=0)],
+    )
+    assert len(frm.packed_pdus) == 1
+
+
+def test_positive_j1939_frame_zero_pdus_allowed():
+    frm = _make_j1939_frame()
+    assert frm.packed_pdus == []
+
+
+def test_negative_j1939_frame_zero_length_rejected():
+    """J1939 data frames always carry 8 bytes; length < 8 is rejected (TP isn't modelled)."""
+    with pytest.raises(ValidationError) as exc_info:
+        _make_j1939_frame(length=0)
+    assert_single_error(exc_info, None, "Input should be 8")
+
+
+def test_negative_j1939_frame_multiple_pdus_rejected():
+    with pytest.raises(ValidationError) as exc_info:
+        _make_j1939_frame(
+            packed_pdus=[
+                PDUInstance(pdu_ref="pdu_nm_1", bit_position=0),
+                PDUInstance(pdu_ref="pdu_nm_2", bit_position=1),
+            ]
+        )
+    assert_single_error(exc_info, "FLYNC-SIG-MAJ-CONS-370", "carries exactly one Parameter Group")
+
+
+def test_positive_j1939_frame_model_validate():
+    data = {
+        "name": "j1939_mv",
+        "priority": 3,
+        "pdu_format": 240,
+        "pdu_specific": 4,
+        "data_page": 0,
+        "extended_data_page": 0,
+        "destination_type": "global",
+        "length": 8,
+    }
+    frm = J1939Frame.model_validate(data)
+    assert isinstance(frm, J1939Frame)
+
+
+@pytest.mark.parametrize(
+    "pdu_format,destination_type",
+    [
+        pytest.param(0, "specific", id="pf_0_specific"),
+        pytest.param(239, "specific", id="pf_239_specific"),
+        pytest.param(240, "global", id="pf_240_global"),
+        pytest.param(255, "global", id="pf_255_global"),
+    ],
+)
+def test_positive_j1939_frame_pdu_format_destination_type(pdu_format, destination_type):
+    frm = _make_j1939_frame(pdu_format=pdu_format, destination_type=destination_type)
+    assert frm.pdu_format == pdu_format
+
+
+@pytest.mark.parametrize(
+    "pdu_format,destination_type,error_id",
+    [
+        pytest.param(0, "global", "FLYNC-SIG-MIN-CONS-348", id="pf_0_global"),
+        pytest.param(239, "global", "FLYNC-SIG-MIN-CONS-348", id="pf_239_global"),
+        pytest.param(240, "specific", "FLYNC-SIG-MIN-CONS-347", id="pf_240_specific"),
+        pytest.param(255, "specific", "FLYNC-SIG-MIN-CONS-347", id="pf_255_specific"),
+    ],
+)
+def test_negative_j1939_frame_pdu_format_destination_type_mismatch(pdu_format, destination_type, error_id):
+    with pytest.raises(ValidationError) as exc_info:
+        _make_j1939_frame(pdu_format=pdu_format, destination_type=destination_type)
+    assert_single_error(exc_info, error_id, "destination_type")
+
+
+@pytest.mark.parametrize(
+    "pdu_format,pdu_specific,destination_type",
+    [
+        pytest.param(0, 254, "specific", id="pdu1_specific_da254"),
+        pytest.param(238, 255, "global", id="pdu1_global_address_claim"),
+        pytest.param(240, 1, "global", id="pdu2_global"),
+        pytest.param(255, 0, "global", id="pdu2_global_ge0"),
+    ],
+)
+def test_positive_j1939_frame_destination_matches_da(pdu_format, pdu_specific, destination_type):
+    frm = _make_j1939_frame(pdu_format=pdu_format, pdu_specific=pdu_specific, destination_type=destination_type)
+    assert frm.destination_type == destination_type
+
+
+@pytest.mark.parametrize(
+    "pdu_format,pdu_specific,destination_type,error_id",
+    [
+        pytest.param(238, 255, "specific", "FLYNC-SIG-MIN-CONS-348", id="pdu1_specific_but_da255"),
+        pytest.param(238, 254, "global", "FLYNC-SIG-MIN-CONS-348", id="pdu1_global_but_da254"),
+    ],
+)
+def test_negative_j1939_frame_destination_mismatches_da(pdu_format, pdu_specific, destination_type, error_id):
+    with pytest.raises(ValidationError) as exc_info:
+        _make_j1939_frame(pdu_format=pdu_format, pdu_specific=pdu_specific, destination_type=destination_type)
+    assert_single_error(exc_info, error_id, "destination_type")
+
+
+@pytest.mark.parametrize(
+    "field,value,msg",
+    [
+        pytest.param("priority", -1, "greater than or equal to 0", id="priority_neg"),
+        pytest.param("priority", 8, "less than or equal to 7", id="priority_hi"),
+        pytest.param("pdu_format", -1, "greater than or equal to 0", id="pf_neg"),
+        pytest.param("pdu_format", 256, "less than or equal to 255", id="pf_hi"),
+        pytest.param("pdu_specific", -1, "greater than or equal to 0", id="ps_neg"),
+        pytest.param("pdu_specific", 256, "less than or equal to 255", id="ps_hi"),
+        pytest.param("data_page", 2, "less than or equal to 1", id="dp_hi"),
+        pytest.param("extended_data_page", 2, "less than or equal to 1", id="edp_hi"),
+    ],
+)
+def test_negative_j1939_frame_out_of_range(field, value, msg):
+    kwargs = dict(
+        name="j1939_rng", priority=3, pdu_format=240, pdu_specific=4, data_page=0, extended_data_page=0, destination_type="global", length=8
+    )
+    kwargs[field] = value
+    with pytest.raises(ValidationError) as exc_info:
+        J1939Frame(**kwargs)
+    assert_single_error(exc_info, None, msg)
+
+
+def test_negative_j1939_frame_invalid_destination_type():
+    with pytest.raises(ValidationError) as exc_info:
+        _make_j1939_frame(destination_type="bogus")
+    assert_single_error(exc_info, None, "'global' or 'specific'")

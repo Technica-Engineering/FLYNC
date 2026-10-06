@@ -1,0 +1,49 @@
+name: J1939BusCAN
+description: >-
+  Powertrain/brake domain bus at 250 kbit/s. J1939 is a CAN 2.0B multi-master
+  bus (29-bit extended identifiers). Each node owns its CAN ID priority (3-bit
+  PGN priority) and its SA in the extended identifier, so receivers filter
+  messages directly from the CAN ID: a node stays awake only for the PGNs it
+  has subscribed to (e.g. EBC1 from the powertrain node j1939_node_2) while
+  unrelated nodes on the same bus may stay asleep. Per-node NM is handled
+  by address claiming, in which each node broadcasts its 64-bit NAME and claims
+  its SA.
+version: "1.0"
+baud_rate: 250000
+
+frames:
+  - name: Frame_AddressClaim
+    type: j1939
+    description: >-
+      Address claiming: the network-management message each node broadcasts to
+      claim its source address (SA), PGN 0x00EE00 (PF 0xEE, PDU1). As a PDU1 the
+      pdu_specific field is a Destination Address; DA=255 broadcasts globally,
+      which is how the claim reaches every node. j1939_node_2 claims its SA on
+      this bus.
+    length: 8
+    priority: 6
+    pdu_format: 238
+    pdu_specific: 255
+    data_page: 0
+    extended_data_page: 0
+    destination_type: global
+    packed_pdus:
+      - pdu_ref: PDU_AddressClaim
+        bit_position: 0
+
+  - name: Frame_EBC1
+    type: j1939
+    description: >-
+      Electronic Brake Controller 1 - brake pedal position and brake/ABS status
+      from j1939_node_2 (address 33), broadcast, PGN 0x00F001 (PF 0xF0 >= 240,
+      PDU2; the pdu_specific field is a group extension).
+    length: 8
+    priority: 6
+    pdu_format: 240
+    pdu_specific: 1
+    data_page: 0
+    extended_data_page: 0
+    destination_type: global
+    packed_pdus:
+      - pdu_ref: PDU_EBC1
+        bit_position: 0

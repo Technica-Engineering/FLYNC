@@ -1,0 +1,6 @@
+bus_ref: J1939BusCAN
+j1939_name: 4672927760384
+source_address: 33
+j1939_sender_frames:
+  - bus_ref: J1939BusCAN
+    pgn: 61441

@@ -448,7 +448,9 @@ def _check_bus_reachability(group_name, group, bus, sent_frame_ids_by_bus) -> No
             category=Category.REFERENCE,
             error_number="198",
         )
-    nm_frame_ids = {frame.can_id if hasattr(frame, "can_id") else frame.lin_id for frame in nm_frames}
+    nm_frame_ids = {frame.can_id for frame in nm_frames if hasattr(frame, "can_id")} | {
+        frame.lin_id for frame in nm_frames if hasattr(frame, "lin_id")
+    }
     if not (nm_frame_ids & sent_frame_ids_by_bus.get(bus.name, set())):
         raise err_major(
             "state management group '{group}': no ECU attached to bus participant '{bus}' sends NM PDU '{pdu}' — "

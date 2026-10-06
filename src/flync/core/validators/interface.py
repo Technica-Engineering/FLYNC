@@ -15,7 +15,7 @@ from pydantic_core import PydanticCustomError
 from flync.core.utils.exceptions import Category, err_major
 from flync.model.flync_4_ecu.can_interface import CANFrameRef, CANInterface
 from flync.model.flync_4_ecu.lin_interface import LINFrameRef, LINMasterInterface, LINSlaveInterface
-from flync.model.flync_4_signal.frame import CANFDFrame, CANFrame, LINFrame
+from flync.model.flync_4_signal.frame import CANFDFrame, CANFrame, J1939Frame, LINFrame
 
 if TYPE_CHECKING:
     from flync.model.flync_4_ecu.controller import Controller
@@ -74,7 +74,7 @@ def _build_can_frames_by_bus(model: FLYNCModel) -> Dict[str, Dict[int, CANAnyFra
     if channels is None or channels.can_buses is None:
         return out
     for bus in channels.can_buses:
-        out[bus.name] = {frame.can_id: frame for frame in bus.frames or []}
+        out[bus.name] = {frame.can_id: frame for frame in bus.frames or [] if not isinstance(frame, J1939Frame)}
     return out
 
 
@@ -87,6 +87,25 @@ def _build_lin_frames_by_bus(model: FLYNCModel) -> Dict[str, Dict[int, LINFrame]
         return out
     for bus in channels.lin_buses:
         out[bus.name] = {frame.lin_id: frame for frame in bus.frames or []}
+    return out
+
+
+def _j1939_pgn(frame: J1939Frame) -> int:
+    """Return the 18-bit J1939 Parameter Group Number of *frame* (EDP/DP/PF/PS)."""
+
+    ps = frame.pdu_specific if frame.pdu_format >= 240 else 0
+    return (frame.extended_data_page << 17) | (frame.data_page << 16) | (frame.pdu_format << 8) | ps
+
+
+def _build_j1939_frames_by_bus(model: FLYNCModel) -> Dict[str, Dict[int, J1939Frame]]:
+    """Return ``{bus_name: {pgn: frame}}`` for every J1939 frame under ``communication.channels``."""
+
+    out: Dict[str, Dict[int, J1939Frame]] = {}
+    channels = _channels(model)
+    if channels is None or channels.can_buses is None:
+        return out
+    for bus in channels.can_buses:
+        out[bus.name] = {_j1939_pgn(frame): frame for frame in bus.frames or [] if isinstance(frame, J1939Frame)}
     return out
 
 
@@ -172,6 +191,41 @@ def _validate_interface(iface: AnyBusInterface, kind: str, frames_by_bus: Dict[s
             )
 
 
+def _validate_j1939_interface(iface: CANInterface, j1939_frames_by_bus: Dict[str, Dict[int, J1939Frame]]) -> None:
+    """Resolve a J1939 interface's own ``bus_ref`` plus every J1939 sender / receiver PGN reference.
+
+    ``J1939Frame`` objects are addressed by PGN (they carry no CAN ID), so the catalog here is keyed by PGN.
+    The ``bus_ref`` is checked against the declared CAN buses; a J1939 bus must exist for the node to attach to.
+    """
+
+    owner = f"CANInterface(name={iface.name})"
+    catalog = "communication.channels.can_buses"
+
+    for field_name in ("j1939_sender_frames", "j1939_receiver_frames"):
+        for ref in getattr(iface, field_name) or []:
+            if ref.bus_ref not in j1939_frames_by_bus:
+                raise err_major(
+                    "{owner}: {field}: bus_ref '{bus}' does not name any bus declared under {catalog}.",
+                    owner=owner,
+                    field=field_name,
+                    bus=ref.bus_ref,
+                    catalog=catalog,
+                    category=Category.REFERENCE,
+                    error_number="374",
+                )
+            if ref.pgn not in j1939_frames_by_bus[ref.bus_ref]:
+                raise err_major(
+                    "{owner}: {field}: pgn {pgn} does not name any J1939 frame declared on bus '{bus}' under {catalog}.",
+                    owner=owner,
+                    field=field_name,
+                    pgn=ref.pgn,
+                    bus=ref.bus_ref,
+                    catalog=catalog,
+                    category=Category.REFERENCE,
+                    error_number="372",
+                )
+
+
 def validate_interface_frame_refs(model: FLYNCModel) -> None:
     """Workspace pass: every CAN / LIN interface must name a declared bus of its own kind and resolve its frame refs.
 
@@ -197,6 +251,7 @@ def validate_interface_frame_refs(model: FLYNCModel) -> None:
 
     can_frames_by_bus = _build_can_frames_by_bus(model)
     lin_frames_by_bus = _build_lin_frames_by_bus(model)
+    j1939_frames_by_bus = _build_j1939_frames_by_bus(model)
 
     for controller, iface, kind in _iter_bus_interfaces(model):
         frames_by_bus: Dict[str, Dict[int, AnyFrame]] = can_frames_by_bus if kind == "can" else lin_frames_by_bus  # type: ignore[assignment]
@@ -206,3 +261,8 @@ def validate_interface_frame_refs(model: FLYNCModel) -> None:
             _validate_interface(iface, kind, frames_by_bus)
         except PydanticCustomError as err:
             raise _with_source(err, _interface_locator(controller, iface, kind)) from None
+        if isinstance(iface, CANInterface) and iface.is_j1939():
+            try:
+                _validate_j1939_interface(iface, j1939_frames_by_bus)
+            except PydanticCustomError as err:
+                raise _with_source(err, _interface_locator(controller, iface, "can")) from None

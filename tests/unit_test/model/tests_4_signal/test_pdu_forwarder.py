@@ -43,7 +43,17 @@ def test_positive_eth_eth_socket_egress_fields_exact():
 
 
 def test_positive_can_interface_config_fields_exact():
-    assert list(CANInterface.model_fields) == ["name", "bus_ref", "sender_frames", "receiver_frames", "forwarder_frames"]
+    assert list(CANInterface.model_fields) == [
+        "name",
+        "bus_ref",
+        "sender_frames",
+        "receiver_frames",
+        "forwarder_frames",
+        "j1939_sender_frames",
+        "j1939_receiver_frames",
+        "j1939_name",
+        "source_address",
+    ]
 
 
 def test_positive_pdu_forwarder_constructs_without_registry():

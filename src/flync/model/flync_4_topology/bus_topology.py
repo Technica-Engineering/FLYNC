@@ -93,7 +93,7 @@ class LINBusTopology(BusTopology):
 
 def build_bus_topologies(
     flync_model: "FLYNCModel",
-) -> Tuple[List[CANBusTopology], List[LINBusTopology], Optional[dict], Optional[dict]]:
+) -> Tuple[List[CANBusTopology], List[LINBusTopology], Optional[dict], Optional[dict], set]:
     """
     Derive the system-wide CAN and LIN bus topology from bus definitions and ECU controller interfaces.
 
@@ -103,13 +103,15 @@ def build_bus_topologies(
     Returns
     -------
     tuple
-        ``(can_topologies, lin_topologies, can_defs, lin_defs)``. ``can_defs``/``lin_defs`` are ``{bus_name: bus}``
-        registries, or ``None`` when no bus definitions could be determined (e.g. no ``communication.channels``);
-        pass them straight through to :func:`validate_bus_topologies`.
+        ``(can_topologies, lin_topologies, can_defs, lin_defs, j1939_buses)``. ``can_defs``/``lin_defs`` are
+        ``{bus_name: bus}`` registries, or ``None`` when no bus definitions could be determined (e.g. no
+        ``communication.channels``); ``j1939_buses`` is the set of CAN bus names attached through a J1939-capable
+        CAN interface. Pass them straight through to :func:`validate_bus_topologies`.
     """
 
     can_defs = _bus_registry(flync_model, "can_buses")
     lin_defs = _bus_registry(flync_model, "lin_buses")
+    j1939_buses = _j1939_referenced_buses(flync_model)
 
     can_by_name: Dict[str, CANBusTopology] = {}
     lin_by_name: Dict[str, LINBusTopology] = {}
@@ -122,7 +124,24 @@ def build_bus_topologies(
     _link_bus_definitions(can_by_name, can_defs)
     _link_bus_definitions(lin_by_name, lin_defs)
 
-    return list(can_by_name.values()), list(lin_by_name.values()), can_defs, lin_defs
+    return list(can_by_name.values()), list(lin_by_name.values()), can_defs, lin_defs, j1939_buses
+
+
+def _j1939_referenced_buses(flync_model: "FLYNCModel") -> set:
+    """
+    Return the set of CAN bus names attached through a J1939-capable ``CANInterface``.
+
+    A CAN interface is J1939-capable when it declares a 64-bit ``j1939_name`` or a source ``address``
+    (:meth:`~flync.model.flync_4_ecu.can_interface.CANInterface.is_j1939`). Buses reached that way are exempt
+    from the "no attached ECU CAN interface" warning.
+    """
+    names: set = set()
+    for ecu in flync_model.ecus:
+        for controller in ecu.controllers:
+            for can_iface in controller.can_interfaces or []:
+                if can_iface.is_j1939() and can_iface.bus_ref:
+                    names.add(can_iface.bus_ref)
+    return names
 
 
 def _collect_ecu_bus_attachments(
@@ -201,13 +220,14 @@ def validate_bus_topologies(
     lin_topos: List[LINBusTopology],
     can_defs: Optional[dict],
     lin_defs: Optional[dict],
+    j1939_buses: Optional[set] = None,
 ) -> None:
     """Run the system-wide CAN/LIN bus consistency checks: unknown ``bus_ref``, LIN master cardinality, LIN schedule table
     presence, unused/singly-attached buses."""
 
     for can_topo in can_topos:
         _validate_bus_ref_known(can_topo, can_defs)
-        _validate_attachment_count(can_topo, "CAN", can_defs)
+        _validate_attachment_count(can_topo, "CAN", can_defs, j1939_buses)
     for lin_topo in lin_topos:
         _validate_bus_ref_known(lin_topo, lin_defs)
         _validate_lin_masters(lin_topo)
@@ -327,12 +347,18 @@ def _validate_lin_schedule_tables(topo: LINBusTopology) -> None:
         )
 
 
-def _validate_attachment_count(topo: BusTopology, kind: str, defs: Optional[dict]) -> None:
+def _validate_attachment_count(
+    topo: BusTopology,
+    kind: str,
+    defs: Optional[dict],
+    j1939_buses: Optional[set] = None,
+) -> None:
     """
     Warn when a declared bus has zero or only a single attached ECU interface.
 
     Skipped entirely when *defs* is ``None`` or the bus is not among the declared definitions
-    (unknown-ref errors are handled by :func:`_validate_bus_ref_known`).
+    (unknown-ref errors are handled by :func:`_validate_bus_ref_known`). A bus attached through a J1939-capable
+    CAN interface (member of *j1939_buses*) is not warned about having zero CAN interfaces.
 
     Parameters
     ----------
@@ -342,10 +368,14 @@ def _validate_attachment_count(topo: BusTopology, kind: str, defs: Optional[dict
         Human-readable bus kind label used in warning messages (e.g. ``"CAN"`` or ``"LIN"``).
     defs : dict or None
         ``{bus_name: bus}`` registry of declared buses, or ``None`` if unavailable.
+    j1939_buses : set or None
+        CAN bus names attached through a J1939-capable CAN interface; these are exempt from the zero-attachment warning.
     """
     if defs is None or topo.bus_name not in defs:
         return
     if not topo.attachments:
+        if j1939_buses and topo.bus_name in j1939_buses:
+            return
         warn(
             f"{kind} bus '{topo.bus_name}' is defined but no ECU interface attaches to it.",
             category=Category.CONSISTENCY,

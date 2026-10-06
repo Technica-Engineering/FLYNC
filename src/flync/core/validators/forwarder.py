@@ -17,6 +17,7 @@ from flync.model.flync_4_signal.forwarder import (
 from flync.model.flync_4_signal.frame import (
     CANFDFrame,
     CANFrame,
+    J1939Frame,
 )
 from flync.model.flync_4_signal.pdu import (
     PDU,
@@ -231,6 +232,8 @@ def _build_can_frame_catalog(model: FLYNCModel) -> Dict[str, CANAnyFrame]:
         return out
     for bus in channels.can_buses:
         for frame in bus.frames or []:
+            if isinstance(frame, J1939Frame):
+                continue
             out[frame.name] = frame
     return out
 
@@ -244,6 +247,8 @@ def _build_can_frame_catalog_by_bus_id(model: FLYNCModel) -> Dict[Tuple[str, int
         return out
     for bus in channels.can_buses:
         for frame in bus.frames or []:
+            if isinstance(frame, J1939Frame):
+                continue
             out[(bus.name, frame.can_id)] = frame
     return out
 

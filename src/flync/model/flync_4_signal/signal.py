@@ -175,6 +175,10 @@ class Signal(FLYNCBaseModel):
         flags, multiple may be active simultaneously).  May be combined
         with ``factor``/``offset``/``unit`` to express a mixed
         linear-and-text-table conversion.
+    spn : int, optional
+        J1939 Suspect Parameter Number (SPN).  Identifies the parameter from the SAE J1939-71
+        database that this signal represents.  Only meaningful for signals carried by J1939
+        Parameter Groups; a PDU packed by a non-J1939 frame must not contain a signal with an SPN.
     """
 
     name: str = Field(min_length=1)
@@ -188,6 +192,7 @@ class Signal(FLYNCBaseModel):
     unit: Optional[str] = Field(default=None)
     initial_value: Optional[float | int | bytes | str] = Field(default=None)
     value_encoding: Optional[ValueEncoding] = Field(default=None)
+    spn: Optional[int] = Field(default=None, ge=0, le=524287)
 
     @field_serializer("data_type")
     def serialize_data_type(self, data_type: SignalDataType) -> str:

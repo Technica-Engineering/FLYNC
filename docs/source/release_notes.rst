@@ -40,6 +40,25 @@ configuration (``--dst-report-enabled`` and ``--dst-report-min-log-level`` on th
 ``min_log_level`` arguments of ``convert`` and ``Converter.convert`` are removed. Unknown level names and
 non-boolean ``report_enabled`` values raise a validation error.
 
+J1939 node modelling
+''''''''''''''''''''
+
+New in this release: J1939 (SAE J1939) modelling over CAN 2.0B. A J1939 node is modelled as a
+:class:`~flync.model.flync_4_ecu.can_interface.CANInterface` that declares a 64-bit ``j1939_name`` and an
+optional preferred ``source_address`` (the SA the node claims at runtime through address claiming, J1939-81).
+Each controller that participates in J1939 exposes one such interface.
+
+* J1939 frames are declared on a :class:`~flync.model.flync_4_bus.can_bus.CANBus` as
+  :class:`~flync.model.flync_4_signal.frame.J1939Frame` (``type: j1939``). A J1939 frame carries a single
+  Parameter Group, identified by its PGN (priority, PDU format, PDU specific, data and extended data pages),
+  and always has an 8-byte data field.
+* A node lists the J1939 frames it sends / receives by PGN via ``j1939_sender_frames`` and
+  ``j1939_receiver_frames``, referencing a frame by ``(bus_ref, pgn)``.
+* ``j1939_name`` is the mandatory identity of a J1939 node; ``source_address`` is optional and claimed
+  at runtime. Declaring an SA without a NAME (or frame references without a NAME) is rejected.
+* A bus reached by a J1939 node may only carry ``J1939Frame`` frames, and every referenced PGN must resolve
+  to a frame declared on the referenced bus. J1939 frames cannot be addressed over classical CAN IDs.
+
 JSON Schema export
 ''''''''''''''''''
 

@@ -1,0 +1,18 @@
+name: PDU_AddressClaim
+type: standard
+length: 8
+pdu_usage: network_management
+description: >-
+  J1939 address claiming / NAME exchange (PGN 60928, 0x00EE00). On power-up
+  each node broadcasts its 64-bit NAME and claims its Source Address (SA);
+  collisions are resolved by comparing NAME priority. This is node identity,
+  not sensed data, so it carries no SPN.
+
+signals:
+  - bit_position: 0
+    endianness: LE
+    signal:
+      name: J1939NodeName
+      description: 64-bit J1939-81 NAME of the claiming node (identity, not an SPN).
+      bit_length: 64
+      data_type: uint64

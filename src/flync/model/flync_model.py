@@ -44,6 +44,7 @@ from flync.model.flync_4_ecu import (
 from flync.model.flync_4_instrumentation import Instrumentation
 from flync.model.flync_4_instrumentation.measurement_point import bind_measurement_points
 from flync.model.flync_4_metadata import SystemMetadata
+from flync.model.flync_4_signal import ContainerPDU, J1939Frame, MultiplexedPDU, StandardPDU
 from flync.model.flync_4_signal.forwarder import CANFrameForwarder, PDUForwarder
 from flync.model.flync_4_someip import SOMEIPServiceDeployment, SOMEIPServiceInterface, SOMEIPServiceProvider
 from flync.model.flync_4_topology import FLYNCTopology
@@ -59,6 +60,126 @@ from flync.model.flync_4_topology.ethernet_multidrop import (
     wire_multidrop_connections,
 )
 from flync.model.flync_4_topology.ethernet_topology import validate_no_multidrop_in_point_to_point, warn_unconnected_ports
+
+
+def _compute_j1939_pgn(frame: J1939Frame) -> int:
+    """Return the 18-bit J1939 Parameter Group Number (PGN) of *frame*.
+
+    The PGN is formed from the Extended Data Page (EDP), Data Page (DP), PDU Format (PF) and PDU Specific (PS)
+    fields: ``(EDP << 17) | (DP << 16) | (PF << 8) | PS``. For PDU1 (``pdu_format`` < 240) the ``pdu_specific``
+    byte is a Destination Address, not part of the PGN, so it contributes 0.
+    """
+
+    ps = frame.pdu_specific if frame.pdu_format >= 240 else 0
+    return (frame.extended_data_page << 17) | (frame.data_page << 16) | (frame.pdu_format << 8) | ps
+
+
+def _j1939_buses(model: "FLYNCModel") -> set:
+    """Return the set of CAN bus names attached through a J1939-capable ``CANInterface``.
+
+    A CAN interface participates in J1939 when it declares a ``j1939_name`` or a source ``address``. Those buses
+    must only carry ``J1939Frame`` frames (and, conversely, ``J1939Frame`` frames may only live on one of them).
+    """
+    buses: set = set()
+    for controller in model.get_all_controllers():
+        for can_iface in controller.can_interfaces or []:
+            if can_iface.is_j1939():
+                buses.add(can_iface.bus_ref)
+    return buses
+
+
+def _signal_spn_names(signals) -> List[str]:
+    """Return the name of each signal instance in *signals* that carries an SPN."""
+    names: list = []
+    for si in signals:
+        if si.signal.spn is not None:
+            names.append(si.signal.name)
+    return names
+
+
+def _pdu_own_spn_signal_names(pdu) -> List[Tuple[str, str]]:
+    """Return ``(pdu_name, signal_name)`` for the SPN-bearing signals declared directly by *pdu*."""
+    name = pdu.name
+    found: list = []
+    if isinstance(pdu, StandardPDU):
+        found.extend((name, signal_name) for signal_name in _signal_spn_names(pdu.signals))
+        for sgi in pdu.signal_groups:
+            found.extend((name, signal_name) for signal_name in _signal_spn_names(sgi.signal_group.signals))
+    elif isinstance(pdu, MultiplexedPDU):
+        selector = pdu.selector_signal.signal
+        if selector.spn is not None:
+            found.append((name, selector.name))
+    return found
+
+
+def _enqueue_pdu_children(stack: list, pdu_registry, pdu) -> None:
+    """Push the child PDUs referenced by *pdu* (located in *pdu_registry*) onto *stack*."""
+    if isinstance(pdu, MultiplexedPDU):
+        refs = [inst.pdu_ref for inst in pdu.static_group or []]
+        refs.extend(group.pdu.pdu_ref for group in pdu.mux_groups)
+    elif isinstance(pdu, ContainerPDU):
+        refs = [inst.pdu_ref for inst in pdu.contained_pdus]
+    else:
+        refs = []
+    for ref in refs:
+        child = pdu_registry.get(ref)
+        if child is not None:
+            stack.append(child)
+
+
+def _iter_pdu_spn_signal_names(pdu, pdu_registry):
+    """Yield ``(pdu_name, signal_name)`` for every SPN-bearing signal instance in a PDU subtree."""
+    seen_pdus: set = set()
+    stack = [pdu]
+    while stack:
+        current = stack.pop()
+        if id(current) in seen_pdus:
+            continue
+        seen_pdus.add(id(current))
+        yield from _pdu_own_spn_signal_names(current)
+        _enqueue_pdu_children(stack, pdu_registry, current)
+
+
+def _check_can_frame_spn(frame, pdu_registry, checked: set) -> None:
+    """Raise ``err_major`` if a CAN (non-J1939) *frame* packs a PDU that carries an SPN."""
+    for inst in frame.packed_pdus:
+        if inst.pdu_ref not in pdu_registry or inst.pdu_ref in checked:
+            continue
+        checked.add(inst.pdu_ref)
+        pdu = pdu_registry[inst.pdu_ref]
+        offenders = list(_iter_pdu_spn_signal_names(pdu, pdu_registry))
+        if offenders:
+            names = ", ".join(f"{pdu}.{signal}" for pdu, signal in offenders)
+            raise err_major(
+                "CAN PDU '{pdu}' must not carry SPN (SPN is only allowed on J1939 PDUs): {names}.",
+                pdu=inst.pdu_ref,
+                names=names,
+                category=Category.CONSISTENCY,
+                error_number="367",
+            )
+
+
+def _check_j1939_bus_pgn_uniqueness(bus) -> None:
+    """Raise ``err_major`` if *bus* carries two J1939 frames sharing the same PGN."""
+    seen: dict = {}
+    duplicate_frames: list = []
+    for frame in bus.frames or []:
+        if not isinstance(frame, J1939Frame):
+            continue
+        pgn = _compute_j1939_pgn(frame)
+        if pgn in seen:
+            duplicate_frames.append(frame.name)
+        else:
+            seen[pgn] = frame.name
+    if duplicate_frames:
+        raise err_major(
+            "CANBus '{bus}' carries J1939 frame(s) with a duplicated PGN {pgn}: {frames}. Each J1939 frame on a bus must have a unique PGN.",
+            bus=bus.name,
+            pgn=pgn,
+            frames=", ".join(duplicate_frames),
+            category=Category.UNIQUENESS,
+            error_number="346",
+        )
 
 
 class FLYNCModel(FLYNCBaseModel):
@@ -444,7 +565,142 @@ class FLYNCModel(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_service_refs_in_apps(self) -> Self:
+    def validate_j1939_pdu_consistency(self):
+        """A PDU packed by a CAN (non-J1939) frame must never carry SPN (``FLYNC-GEN-MAJ-CONS-251``)."""
+
+        if self.communication and self.communication.channels and self.communication.channels.can_buses:
+            channels = self.communication.channels
+            pdu_registry = channels._pdu_registry()
+            checked: set = set()
+            for bus in channels.can_buses:
+                for frame in bus.frames:
+                    if not isinstance(frame, J1939Frame):
+                        _check_can_frame_spn(frame, pdu_registry, checked)
+        return self
+
+    @model_validator(mode="after")
+    def validate_j1939_application_buses_only_j1939_frames(self):
+        """A bus attached through a J1939-capable CAN interface may only carry ``J1939Frame`` frames, never CAN ones."""
+
+        j1939_buses = _j1939_buses(self)
+        if j1939_buses and self.communication and self.communication.channels and self.communication.channels.can_buses:
+            for bus in self.communication.channels.can_buses:
+                if bus.name not in j1939_buses:
+                    continue
+                offenders = [frame.name for frame in bus.frames if not isinstance(frame, J1939Frame)]
+                if offenders:
+                    raise err_major(
+                        "CANBus '{bus}' is attached through a J1939-capable CAN interface but carries non-J1939 frame(s): {frames}. "
+                        "J1939 buses may only carry J1939 frames.",
+                        bus=bus.name,
+                        frames=", ".join(offenders),
+                        category=Category.CONSISTENCY,
+                        error_number="369",
+                    )
+        return self
+
+    @model_validator(mode="after")
+    def validate_j1939_frames_on_j1939_application_buses(self):
+        """``J1939Frame`` frames may only be deployed on a bus attached through a J1939-capable CAN interface."""
+
+        if self.communication and self.communication.channels and self.communication.channels.can_buses:
+            j1939_buses = _j1939_buses(self)
+            for bus in self.communication.channels.can_buses:
+                if bus.name in j1939_buses:
+                    continue
+                offenders = [frame.name for frame in bus.frames if isinstance(frame, J1939Frame)]
+                if offenders:
+                    raise err_major(
+                        "CANBus '{bus}' is not attached through any J1939-capable CAN interface, but it carries J1939 frame(s): {frames}. "
+                        "J1939 frames are only allowed on J1939 buses.",
+                        bus=bus.name,
+                        frames=", ".join(offenders),
+                        category=Category.CONSISTENCY,
+                        error_number="368",
+                    )
+        return self
+
+    @model_validator(mode="after")
+    def validate_j1939_sa_uniqueness(self):
+        """Two J1939 nodes on the same CAN bus must not claim the same source address (SA).
+
+        A controller (one CAN interface) is a single J1939 node, so an ECU exposes multiple nodes by
+        declaring several J1939-capable CAN interfaces (possibly on different controllers). Each node must
+        hold a distinct SA on the bus it attaches to, or address claiming would collide at runtime.
+        """
+
+        seen: dict = {}
+        for controller in self.get_all_controllers():
+            for iface in controller.can_interfaces or []:
+                if not iface.is_j1939() or iface.source_address is None:
+                    continue
+                key = (iface.bus_ref, iface.source_address)
+                if key in seen:
+                    raise err_major(
+                        "CAN bus '{bus}' has more than one J1939 node claiming source address (SA) {sa}: "
+                        "{first} and {second}. Each J1939 node on a bus must hold a distinct SA.",
+                        bus=iface.bus_ref,
+                        sa=iface.source_address,
+                        first=seen[key],
+                        second=iface.name,
+                        category=Category.UNIQUENESS,
+                        error_number="373",
+                    )
+                seen[key] = iface.name
+        return self
+
+    @model_validator(mode="after")
+    def validate_j1939_bus_nodes_are_j1939(self):
+        """Every node on a J1939 bus (one carrying ``J1939Frame`` frames) must declare ``j1939_name``.
+
+        A bus is identified as a J1939 bus by carrying ``J1939Frame`` frames. Any CAN interface attached to
+        it -- whether or not it declares sender/receiver frames -- must then provide a ``j1939_name``: the
+        NAME is what identifies a node in the J1939 address-claiming scheme. ``source_address`` remains
+        optional and is claimed at runtime.
+        """
+
+        if not self.communication or not self.communication.channels or not self.communication.channels.can_buses:
+            return self
+        j1939_bus_names = {
+            bus.name for bus in self.communication.channels.can_buses if any(isinstance(frame, J1939Frame) for frame in bus.frames or [])
+        }
+        if not j1939_bus_names:
+            return self
+        offenders: list = []
+        for controller in self.get_all_controllers():
+            for iface in controller.can_interfaces or []:
+                if iface.bus_ref not in j1939_bus_names:
+                    continue
+                if iface.j1939_name is None:
+                    offenders.append(iface.name)
+        if offenders:
+            raise err_major(
+                "CAN bus(es) '{buses}' carry J1939 frame(s), but node(s) {nodes} attached to them are missing "
+                "j1939_name. Every node on a J1939 bus must declare a NAME.",
+                buses=", ".join(sorted(j1939_bus_names)),
+                nodes=", ".join(sorted(set(offenders))),
+                category=Category.CONSISTENCY,
+                error_number="361",
+            )
+        return self
+
+    @model_validator(mode="after")
+    def validate_j1939_pgn_uniqueness(self):
+        """Two ``J1939Frame`` frames on the same CAN bus must not share a Parameter Group Number (PGN).
+
+        In J1939 the PGN (built from the frame's data page / extended data page / PDU Format / PDU Specific) identifies
+        a message on the bus independently of priority and source address, so two frames declaring the same PGN on the
+        same bus are indistinguishable. The CAN ``can_id`` uniqueness check skips J1939 frames on purpose, so this pass
+        is the J1939 equivalent.
+        """
+
+        if self.communication and self.communication.channels and self.communication.channels.can_buses:
+            for bus in self.communication.channels.can_buses:
+                _check_j1939_bus_pgn_uniqueness(bus)
+        return self
+
+    @model_validator(mode="after")
+    def validate_service_refs_in_apps(self):
         """Validate that applications are referencing existing services."""
         known_services = self.get_someip_services_by_identity()
         for app in self.apps or []:
@@ -495,10 +751,10 @@ class FLYNCModel(FLYNCBaseModel):
     def build_and_validate_bus_topologies(self) -> Self:
         """Derive the system-wide CAN, LIN and Ethernet multidrop topology from bus definitions and ECU interfaces, then validate it."""
 
-        can_topos, lin_topos, can_defs, lin_defs = build_bus_topologies(self)
+        can_topos, lin_topos, can_defs, lin_defs, j1939_buses = build_bus_topologies(self)
         self.topology.can_bus_topology = can_topos
         self.topology.lin_bus_topology = lin_topos
-        validate_bus_topologies(can_topos, lin_topos, can_defs, lin_defs)
+        validate_bus_topologies(can_topos, lin_topos, can_defs, lin_defs, j1939_buses)
 
         validate_multidrop_connections(self.multidrop_connections)
         return self
