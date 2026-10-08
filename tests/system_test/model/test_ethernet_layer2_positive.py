@@ -9,12 +9,13 @@ from flync.model.flync_4_ecu.controller import (
     VirtualControllerInterface,
 )
 from flync.model.flync_4_ecu.ecu import ECU
-from flync.model.flync_4_ecu.internal_topology import InternalTopology
+from flync.model.flync_4_ecu.internal_topology import ECUPortToSwitchPort, InternalTopology
 from flync.model.flync_4_ecu.phy import (
     BASET,
     BASET1,
     BASET1S,
     RGMII,
+    RMII,
     SGMII,
 )
 from flync.model.flync_4_ecu.port import ECUPort
@@ -107,6 +108,7 @@ def test_ecu_port_base_t1_100_mbps():
     assert port.mdi_config.speed == 100
     assert port.mdi_config.duplex == "full"
     assert port.mdi_config.role == "master"
+    assert isinstance(port.mdi_config, BASET1)
 
 
 """
@@ -140,6 +142,7 @@ def test_ecu_port_base_t1_1000_mbps():
     assert port.mdi_config.speed == 1000
     assert port.mdi_config.duplex == "full"
     assert port.mdi_config.role == "slave"
+    assert isinstance(port.mdi_config, BASET1)
 
 
 """
@@ -170,6 +173,7 @@ def test_ecu_port_base_t1s():
     assert mdi.mode == "base_t1s"
     assert mdi.speed == 10
     assert mdi.duplex == "half"
+    assert isinstance(mdi, BASET1S)
 
 
 """
@@ -201,6 +205,8 @@ def test_ecu_port_base_t_100_and_1000():
     speeds = {p.mdi_config.speed for p in model.ecus[0].ports}
     assert speeds == {100, 1000}
     assert {p.mdi_config.mode for p in model.ecus[0].ports} == {"base_t"}
+    assert isinstance(p100.mdi_config, BASET)
+    assert isinstance(p1000.mdi_config, BASET)
 
 
 """
@@ -233,6 +239,8 @@ def test_ecu_port_mdi_mii_speed_consistency():
     p = model.ecus[0].ports[0]
     assert p.mdi_config.speed == 1000
     assert p.mii_config.speed == 1000
+    assert isinstance(p.mdi_config, BASET1)
+    assert isinstance(p.mii_config, RGMII)
 
 
 """
@@ -264,6 +272,8 @@ def test_ecu_port_sgmii_speed_consistency():
 
     p = model.ecus[0].ports[0]
     assert p.mdi_config.speed == p.mii_config.speed == 1000
+    assert isinstance(p.mdi_config, BASET1)
+    assert isinstance(p.mii_config, SGMII)
 
 
 """
@@ -307,6 +317,8 @@ def test_switch_vlan_membership_valid():
     assert switch.vlans[0].id == 10
     assert set(switch.vlans[0].ports) == {"SP1", "SP2"}
     assert switch.find_switch_port("SP1").silicon_port_no == 0
+    assert isinstance(switch, Switch)
+    assert isinstance(switch.vlans[0], VLANEntry)
 
 
 """
@@ -350,6 +362,7 @@ def test_switch_unique_port_names_and_silicon():
     assert len(switch.ports) == 3
     assert {p.name for p in switch.ports} == {"SP1", "SP2", "SP3"}
     assert {p.silicon_port_no for p in switch.ports} == {0, 1, 2}
+    assert isinstance(switch.ports[0], SwitchPort)
 
 
 """
@@ -395,6 +408,8 @@ def test_ethernet_interface_multiple_unique_vlans():
 
     vifs = model.ecus[0].controllers[0].ethernet_interfaces[0].interface_config.virtual_interfaces
     assert {vif.vlanid for vif in vifs} == {10, 20, 30}
+    assert isinstance(vifs[0], VirtualControllerInterface)
+    assert isinstance(model.ecus[0].controllers[0].ethernet_interfaces[0], EthernetInterface)
 
 
 """
@@ -435,6 +450,8 @@ def test_vlan_id_boundary_values_valid():
 
     ids = {v.id for v in model.ecus[0].switches[0].vlans}
     assert ids == {0, 4094}
+    assert isinstance(sw, Switch)
+    assert isinstance(sw.vlans[0], VLANEntry)
 
 
 """
@@ -468,3 +485,174 @@ def test_ethernet_layer2_model_serialization_roundtrip():
     rebuilt = FLYNCModel.model_validate(dumped)
 
     assert json.dumps(rebuilt.model_dump(by_alias=True), sort_keys=True) == json.dumps(model.model_dump(by_alias=True), sort_keys=True)
+    assert isinstance(rebuilt, FLYNCModel)
+
+
+"""
+============================================================
+TEST NAME: Layer-2 ECU port with an MII RMII config
+RULE / CONSTRAINT: An Ethernet port may declare
+    a MAC-side media-independent (MII-family) interface, e.g.
+    RMII, alongside a matching PHY.
+============================================================
+
+       FLYNCModel
+         |
+        ECU1
+         |  ports=[p0]
+      ECUPort p0
+         +-- mdi_config = BASE-T1 speed 100
+         +-- mii_config = RMII     speed 100 (match)
+
+Relationships:
+- mdi and mii belong to the same ECUPort
+- Important configuration:
+  - mii_config typed "rmii" at 100 Mbit/s
+"""
+
+
+def test_ecu_port_mii_rmii_config():
+    port = ECUPort(name="p0", mdi_config=BASET1(speed=100, role="master"), mii_config=RMII(speed=100, mode="phy"))
+    model = _full_model(ports=[port])
+
+    p = model.ecus[0].ports[0]
+    assert p.mii_config is not None
+    assert p.mii_config.type == "rmii"
+    assert p.mii_config.speed == 100
+    assert p.mdi_config.speed == 100
+    assert isinstance(p.mii_config, RMII)
+
+
+"""
+============================================================
+TEST NAME: switch ports with default (PVID) VLANs
+RULE / CONSTRAINT: every switch port may be
+    assigned a default VLAN (PVID) used for untagged ingress
+    frames.
+============================================================
+
+       FLYNCModel
+         |
+        ECU1
+         |  switches=[SW1]
+      Switch SW1
+         |  ports=[SP1(PVID 1), SP2(PVID 1)]
+
+Relationships:
+- each switch port carries its default VLAN for untagged frames
+- Important configuration:
+  - default_vlan_id 1 on both SP1 and SP2
+"""
+
+
+def test_switch_ports_default_vlan_ids():
+    sw = Switch(
+        name="SW1",
+        switch_config=SwitchConfig(
+            meta=_embedded(),
+            ports=[
+                SwitchPort(name="SP1", silicon_port_no=0, default_vlan_id=1),
+                SwitchPort(name="SP2", silicon_port_no=1, default_vlan_id=1),
+            ],
+            vlans=[],
+        ),
+    )
+    model = _full_model(switches=[sw])
+
+    switch = model.ecus[0].switches[0]
+    assert [p.default_vlan_id for p in switch.ports] == [1, 1]
+    assert isinstance(switch, Switch)
+
+
+"""
+============================================================
+TEST NAME: switch port with an MII RMII config
+RULE / CONSTRAINT: a Layer-2 switch port may declare
+    an MII-family media-independent interface.
+============================================================
+
+       FLYNCModel
+         |
+        ECU1
+         |  switches=[SW1]
+      Switch SW1
+         |  ports=[SP1(mii RMII 100), SP2]
+
+Relationships:
+- SP1 exposes a media-independent RMII interface
+- Important configuration:
+  - mii_config typed "rmii" at 100 Mbit/s
+"""
+
+
+def test_switch_port_mii_config():
+    sw = Switch(
+        name="SW1",
+        switch_config=SwitchConfig(
+            meta=_embedded(),
+            ports=[
+                SwitchPort(name="SP1", silicon_port_no=0, default_vlan_id=1, mii_config=RMII(speed=100, mode="mac")),
+                SwitchPort(name="SP2", silicon_port_no=1, default_vlan_id=1),
+            ],
+            vlans=[],
+        ),
+    )
+    model = _full_model(switches=[sw])
+
+    switch = model.ecus[0].switches[0]
+    assert switch.ports[0].mii_config is not None
+    assert switch.ports[0].mii_config.type == "rmii"
+    assert switch.ports[0].mii_config.speed == 100
+    assert isinstance(switch.ports[0].mii_config, RMII)
+
+
+"""
+============================================================
+TEST NAME: internal topology ECU-port <-> switch-port binding
+RULE / CONSTRAINT: an ECU port is wired to a switch
+    port through the internal topology so a Layer-2 path exists
+    between the two, and the switch port is bound back to the
+    ECU port.
+============================================================
+
+       FLYNCModel
+         |
+        ECU1 (ports=[p0], switches=[SW1])
+         |  topology.connections=[conn1 ecu_port_to_switch_port]
+         |                          p0 <-> sp0
+
+Relationships:
+- connections[0] is an ECUPortToSwitchPort resolving sp0 to p0
+- Important configuration:
+  - p0 wired to sp0 through internal topology
+"""
+
+
+def test_internal_topology_ecu_to_switch_port():
+    port = ECUPort(name="p0", mdi_config=BASET1(speed=100, role="master"))
+    switch = Switch(
+        name="SW1",
+        switch_config=SwitchConfig(
+            meta=_embedded(),
+            ports=[SwitchPort(name="sp0", silicon_port_no=0, default_vlan_id=1)],
+            vlans=[],
+        ),
+    )
+    conn = ECUPortToSwitchPort(type="ecu_port_to_switch_port", id="conn1", ecu_port_name="p0", switch_port_name="sp0")
+    ecu = ECU(
+        name="ECU1",
+        ports=[port],
+        controllers=[],
+        switches=[switch],
+        topology=InternalTopology(connections=[conn]),
+        ecu_metadata=_ecu_metadata(),
+    )
+    model = FLYNCModel(ecus=[ecu], topology=_topology(), metadata=_system_metadata())
+
+    switch = model.ecus[0].switches[0]
+    bound = switch.ports[0].connected_component
+    assert bound is not None
+    assert bound.name == "p0"
+    conns = model.ecus[0].topology.connections
+    assert len(conns) == 1
+    assert conns[0].root.type == "ecu_port_to_switch_port"

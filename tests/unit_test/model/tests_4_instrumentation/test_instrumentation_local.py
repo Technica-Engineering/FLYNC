@@ -10,7 +10,7 @@ import pytest
 from pydantic import TypeAdapter, ValidationError
 from pydantic_core import PydanticCustomError
 
-from flync.model.flync_4_instrumentation import Instrumentation, MeasurementPointType, validate_measurement_points_local
+from flync.model.flync_4_instrumentation import CANBusMeasurementPoint, Instrumentation, MeasurementPointType, validate_measurement_points_local
 from tests.error_assertions import assert_bind_error, assert_single_error
 
 
@@ -38,6 +38,7 @@ def test_valid_list_parses_cleanly():
     assert point.observed_bus is None
     assert point.name == "tap1"
     assert point.interface_ids() == [1]
+    assert isinstance(point, CANBusMeasurementPoint)
 
 
 def test_rejects_duplicate_interface_id():
@@ -107,8 +108,10 @@ def test_wrapper_accepts_clean_points():
     wrapper = Instrumentation(measurement_points=_valid_points())
 
     assert wrapper.measurement_points[0].name == "tap1"
+    assert isinstance(wrapper, Instrumentation)
 
 
 def test_wrapper_without_points_is_valid():
     """``measurement_points`` is itself optional inside the wrapper (absent file -> ``None``)."""
     assert Instrumentation(measurement_points=None).measurement_points is None
+    assert isinstance(Instrumentation(measurement_points=None), Instrumentation)

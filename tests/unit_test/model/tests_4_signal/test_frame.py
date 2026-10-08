@@ -20,12 +20,14 @@ def test_positive_frame_event_timing_defaults():
     t = FrameEventTiming()
     assert t.final_repetitions == 0
     assert t.repeating_time_range == 0.0
+    assert isinstance(t, FrameEventTiming)
 
 
 def test_positive_frame_event_timing_custom():
     t = FrameEventTiming(final_repetitions=3, repeating_time_range=0.01)
     assert t.final_repetitions == 3
     assert t.repeating_time_range == 0.01
+    assert isinstance(t, FrameEventTiming)
 
 
 def test_negative_frame_event_timing_negative_repetitions():
@@ -43,11 +45,13 @@ def test_negative_frame_event_timing_negative_repeating_time():
 def test_positive_frame_cyclic_timing():
     t = FrameCyclicTiming(cycle=0.01)
     assert t.cycle == 0.01
+    assert isinstance(t, FrameCyclicTiming)
 
 
 def test_positive_frame_cyclic_timing_large_cycle():
     t = FrameCyclicTiming(cycle=1.0)
     assert t.cycle == 1.0
+    assert isinstance(t, FrameCyclicTiming)
 
 
 def test_negative_frame_cyclic_timing_zero_cycle():
@@ -67,11 +71,13 @@ def test_positive_frame_transmission_timing_empty():
     assert t.cyclic_timings == []
     assert t.event_timings == []
     assert t.debounce_time is None
+    assert isinstance(t, FrameTransmissionTiming)
 
 
 def test_positive_frame_transmission_timing_cyclic_only():
     t = FrameTransmissionTiming(cyclic_timings=[FrameCyclicTiming(cycle=0.1)])
     assert len(t.cyclic_timings) == 1
+    assert isinstance(t, FrameTransmissionTiming)
 
 
 def test_positive_frame_transmission_timing_both():
@@ -82,21 +88,25 @@ def test_positive_frame_transmission_timing_both():
     )
     assert t.debounce_time == 0.005
     assert len(t.event_timings) == 1
+    assert isinstance(t, FrameTransmissionTiming)
 
 
 def test_positive_can_frame_standard_id_min():
     frm = CANFrame(name="can_std_min", can_id=0, id_format="standard_11bit", length=8)
     assert frm.can_id == 0
+    assert isinstance(frm, CANFrame)
 
 
 def test_positive_can_frame_standard_id_max():
     frm = CANFrame(name="can_std_max", can_id=0x7FF, id_format="standard_11bit", length=8)
     assert frm.can_id == 0x7FF
+    assert isinstance(frm, CANFrame)
 
 
 def test_positive_can_frame_extended_id():
     frm = CANFrame(name="can_ext", can_id=0x1FFFFFFF, id_format="extended_29bit", length=8)
     assert frm.id_format == "extended_29bit"
+    assert isinstance(frm, CANFrame)
 
 
 def test_positive_can_frame_rtr():
@@ -108,6 +118,7 @@ def test_positive_can_frame_rtr():
         is_remote_frame=True,
     )
     assert frm.is_remote_frame is True
+    assert isinstance(frm, CANFrame)
 
 
 @pytest.mark.parametrize(
@@ -122,6 +133,7 @@ def test_positive_can_frame_all_lengths(length):
         length=length,
     )
     assert frm.length == length
+    assert isinstance(frm, CANFrame)
 
 
 def test_positive_can_frame_with_timing():
@@ -133,6 +145,7 @@ def test_positive_can_frame_with_timing():
         timing=FrameTransmissionTiming(cyclic_timings=[FrameCyclicTiming(cycle=0.01)]),
     )
     assert frm.timing is not None
+    assert isinstance(frm, CANFrame)
 
 
 def test_positive_can_frame_with_pdu():
@@ -144,6 +157,7 @@ def test_positive_can_frame_with_pdu():
         packed_pdus=[PDUInstance(pdu_ref="can_pdu_ref", bit_position=0)],
     )
     assert len(frm.packed_pdus) == 1
+    assert isinstance(frm, CANFrame)
 
 
 def test_positive_can_frame_model_validate():
@@ -251,6 +265,7 @@ def test_positive_can_fd_frame_valid_lengths(length):
         length=length,
     )
     assert frm.length == length
+    assert isinstance(frm, CANFDFrame)
 
 
 def test_positive_can_fd_frame_with_brs():
@@ -263,6 +278,7 @@ def test_positive_can_fd_frame_with_brs():
     )
     assert frm.bit_rate_switch is True
     assert frm.type == "can_fd"
+    assert isinstance(frm, CANFDFrame)
 
 
 def test_positive_can_fd_frame_no_brs():
@@ -274,6 +290,7 @@ def test_positive_can_fd_frame_no_brs():
         bit_rate_switch=False,
     )
     assert frm.bit_rate_switch is False
+    assert isinstance(frm, CANFDFrame)
 
 
 def test_positive_can_fd_frame_extended_id():
@@ -284,6 +301,7 @@ def test_positive_can_fd_frame_extended_id():
         length=64,
     )
     assert frm.id_format == "extended_29bit"
+    assert isinstance(frm, CANFDFrame)
 
 
 def test_positive_can_fd_frame_with_esi():
@@ -295,6 +313,7 @@ def test_positive_can_fd_frame_with_esi():
         error_state_indicator=True,
     )
     assert frm.error_state_indicator is True
+    assert isinstance(frm, CANFDFrame)
 
 
 def test_positive_can_fd_frame_model_validate():
@@ -376,16 +395,19 @@ def test_positive_lin_frame_minimal():
     assert frm.type == "lin"
     assert frm.lin_id == 0x01
     assert frm.checksum_type == "enhanced"
+    assert isinstance(frm, LINFrame)
 
 
 def test_positive_lin_frame_max_id():
     frm = LINFrame(name="lin_frm_max_id", lin_id=0x3F, length=8)
     assert frm.lin_id == 0x3F
+    assert isinstance(frm, LINFrame)
 
 
 def test_positive_lin_frame_classic_checksum():
     frm = LINFrame(name="lin_frm_classic", lin_id=0x10, length=4, checksum_type="classic")
     assert frm.checksum_type == "classic"
+    assert isinstance(frm, LINFrame)
 
 
 def test_positive_lin_frame_with_timing():
@@ -396,6 +418,7 @@ def test_positive_lin_frame_with_timing():
         timing=FrameTransmissionTiming(cyclic_timings=[FrameCyclicTiming(cycle=0.005)]),
     )
     assert frm.timing is not None
+    assert isinstance(frm, LINFrame)
 
 
 def test_positive_lin_frame_with_pdu():
@@ -406,6 +429,7 @@ def test_positive_lin_frame_with_pdu():
         packed_pdus=[PDUInstance(pdu_ref="lin_pdu_1", bit_position=0)],
     )
     assert len(frm.packed_pdus) == 1
+    assert isinstance(frm, LINFrame)
 
 
 @pytest.mark.parametrize(
@@ -415,6 +439,7 @@ def test_positive_lin_frame_with_pdu():
 def test_positive_lin_frame_all_lengths(length):
     frm = LINFrame(name=f"lin_frm_{length}", lin_id=0x01, length=length)
     assert frm.length == length
+    assert isinstance(frm, LINFrame)
 
 
 def test_positive_lin_frame_model_validate():

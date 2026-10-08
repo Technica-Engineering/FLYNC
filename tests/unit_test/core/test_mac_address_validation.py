@@ -7,6 +7,7 @@ from flync.core.datatypes.macaddress import MACAddressEntry
 from flync.core.validators.address import before_validate_mac_address
 from flync.model.flync_4_ecu.controller import EthernetInterfaceConfig
 from flync.model.flync_4_ecu.mac_multicast_endpoint import MACMulticastEndpoint
+from tests.error_assertions import assert_single_error
 
 # --- before_validate_mac_address unit tests ---
 
@@ -45,53 +46,61 @@ def test_before_validator_passes_non_mac_string_to_pydantic():
 
 
 def test_mac_address_entry_rejects_integer_with_validation_error():
-    with pytest.raises(ValidationError, match="MAC address must be a string"):
+    with pytest.raises(ValidationError) as exc_info:
         MACAddressEntry(address=1122334455)
+    assert_single_error(exc_info, None, "MAC address must be a string")
 
 
 def test_mac_address_entry_rejects_no_separator_string_with_validation_error():
-    with pytest.raises(ValidationError, match="missing separators"):
+    with pytest.raises(ValidationError) as exc_info:
         MACAddressEntry(address="aabbccddeeff")
+    assert_single_error(exc_info, None, "missing separators")
 
 
 def test_mac_address_entry_accepts_valid_mac():
     entry = MACAddressEntry(address="aa:bb:cc:dd:ee:ff")
     assert entry.address == "aa:bb:cc:dd:ee:ff"
+    assert isinstance(entry, MACAddressEntry)
 
 
 def test_controller_interface_mac_rejects_integer():
-    with pytest.raises(ValidationError, match="MAC address must be a string"):
+    with pytest.raises(ValidationError) as exc_info:
         EthernetInterfaceConfig(mac_address=1122334455)
+    assert_single_error(exc_info, None, "MAC address must be a string")
 
 
 def test_controller_interface_mac_rejects_no_separator():
-    with pytest.raises(ValidationError, match="missing separators"):
+    with pytest.raises(ValidationError) as exc_info:
         EthernetInterfaceConfig(mac_address="aabbccddeeff")
+    assert_single_error(exc_info, None, "missing separators")
 
 
 def test_mac_multicast_endpoint_rejects_integer_mac():
-    with pytest.raises(ValidationError, match="MAC address must be a string"):
+    with pytest.raises(ValidationError) as exc_info:
         MACMulticastEndpoint(
             name="ep",
             mac_address=1122334455,
             protocol="avtp",
         )
+    assert_single_error(exc_info, None, "MAC address must be a string")
 
 
 def test_mac_multicast_endpoint_rejects_no_separator_mac():
-    with pytest.raises(ValidationError, match="missing separators"):
+    with pytest.raises(ValidationError) as exc_info:
         MACMulticastEndpoint(
             name="ep",
             mac_address="91e0f0000001",
             protocol="avtp",
         )
+    assert_single_error(exc_info, None, "missing separators")
 
 
 def test_mac_multicast_endpoint_tx_rejects_no_separator():
-    with pytest.raises(ValidationError, match="missing separators"):
+    with pytest.raises(ValidationError) as exc_info:
         MACMulticastEndpoint(
             name="ep",
             mac_address="91:e0:f0:00:00:01",
             protocol="avtp",
             multicast_tx=["91e0f0000001"],
         )
+    assert_single_error(exc_info, None, "missing separators")

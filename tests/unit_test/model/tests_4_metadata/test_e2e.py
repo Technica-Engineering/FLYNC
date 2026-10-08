@@ -20,6 +20,7 @@ def test_e2e_config():
     )
     assert e.e2e.profile == "AUTOSAR_Profile_1"
     assert e.e2e.data_id == 0x12345678
+    assert isinstance(e, SOMEIPEvent)
 
 
 def test_e2e_duplicate_data_id_in_profiles(

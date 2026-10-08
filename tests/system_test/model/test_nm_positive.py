@@ -901,6 +901,9 @@ def test_Simple_Ethernet_ECU_Multicast_NM(tmpdir):
     zonal_ports = {c.ecu2_port_name for c in conns}
     assert zonal_ports == {"zonal1_port1", "zonal2_port1", "zonal3_port1"}
     assert all(c.ecu1_port_name == "hpc_port1" for c in conns)
+    assert isinstance(flync_model, FLYNCModel)
+
+    _roundtrip(flync_model, tmpdir)
 
     _roundtrip(flync_model, tmpdir)
 
@@ -924,6 +927,10 @@ def test_Simple_Ethernet_ECU_Multicast_NM_pdu_chain_structure():
     assert nm_tx.deployments[0].root.deployment_type == "pdu_sender"
     assert nm_rx.deployments[0].root.pdu_ref == nm_container.name
     assert nm_rx.deployments[0].root.deployment_type == "pdu_receiver"
+
+    assert isinstance(nm_container, ContainerPDU)
+    assert isinstance(nm_tx, SocketUDP)
+    assert isinstance(nm_rx, SocketUDP)
 
 
 def test_Simple_Ethernet_ECU_Multicast_NM_vlan_isolation():
@@ -956,6 +963,10 @@ def test_Simple_Ethernet_ECU_Multicast_NM_vlan_isolation():
                 for vci in eth.interface_config.virtual_interfaces:
                     mcast_strs = [str(m) for m in vci.multicast]
                     assert NM_MULTICAST_ADDR in mcast_strs, f"{zonal.name}: must subscribe to NM multicast {NM_MULTICAST_ADDR}"
+
+    assert isinstance(hpc, ECU)
+    assert isinstance(z1, ECU)
+    assert isinstance(z2, ECU)
 
 
 def test_Simple_Ethernet_ECU_Multicast_NM_single_sender_multiple_receivers(tmpdir):
@@ -997,6 +1008,7 @@ def test_Simple_Ethernet_ECU_Multicast_NM_single_sender_multiple_receivers(tmpdi
 
     assert sender_count == 1, f"Exactly one PDUSender expected; found {sender_count}"
     assert receiver_count == 4, f"Exactly four PDUReceiver expected; found {receiver_count}"
+    assert isinstance(model, FLYNCModel)
 
     _roundtrip(model, tmpdir)
 
@@ -1049,6 +1061,7 @@ def test_Simple_Ethernet_ECU_Unicast_NM_active(tmpdir):
     assert receiver_socket.endpoint_type == "unicast"
     assert str(receiver_socket.endpoint_address) == "192.168.1.20"
     assert receiver_socket.deployments[0].root.deployment_type == "pdu_receiver"
+    assert isinstance(model, FLYNCModel)
 
     _roundtrip(model, tmpdir)
 
@@ -1083,6 +1096,7 @@ def test_Simple_Ethernet_ECU_Multicast_NM_single_receiver(tmpdir):
     assert [str(a) for a in tx_socket.multicast_tx] == [NM_MULTICAST_ADDR]
     assert rx_socket.multicast_tx == []
     assert z1.multicast_groups[0].mode == "rx"
+    assert isinstance(model, FLYNCModel)
 
     _roundtrip(model, tmpdir)
 
@@ -1132,6 +1146,9 @@ def test_Simple_Ethernet_ECU_NM_sleep_and_wake_states():
     assert sleepy_sender.controllers[0].ethernet_interfaces[0].sockets[0].sockets[0].deployments == []
     assert sleepy_receiver.controllers[0].ethernet_interfaces[0].sockets[0].sockets[0].deployments == []
     assert awake_receiver.controllers[0].ethernet_interfaces[0].sockets[0].sockets[0].deployments[0].root.deployment_type == "pdu_receiver"
+    assert isinstance(sleepy_sender, ECU)
+    assert isinstance(sleepy_receiver, ECU)
+    assert isinstance(awake_receiver, ECU)
 
 
 def test_Switch_ECU_Controller_and_switch_topology():
@@ -1155,6 +1172,8 @@ def test_Switch_ECU_Controller_and_switch_topology():
     assert switch.ports[1].connected_component.type == "controller_interface"
     assert switch_ecu.controllers[0].ethernet_interfaces[0].connected_component != []
     assert switch_ecu.controllers[0].ethernet_interfaces[0].connected_component[0].type == "switch_port"
+    assert isinstance(switch, Switch)
+    assert isinstance(switch_ecu, ECU)
 
 
 def test_Switch_ECU_NM_forwarder_wakes_controller(tmpdir):
@@ -1217,6 +1236,7 @@ def test_Switch_ECU_NM_forwarder_wakes_controller(tmpdir):
     assert len(forwarders) == 1
     assert forwarders[0].egresses[0].root.socket_ref == "nm_a_tx"
     assert passive_b.controllers[0].ethernet_interfaces[0].sockets[0].sockets[0].deployments[0].root.deployment_type == "pdu_receiver"
+    assert isinstance(model, FLYNCModel)
 
     _roundtrip(model, tmpdir)
 
@@ -1350,6 +1370,8 @@ def test_Switch_ECU_PDU_forwarder_switch_topology(tmpdir):
     ]
     assert len(forwarders) == 1
     assert forwarders[0].egresses[0].root.socket_ref == "nm_a_tx"
+    assert isinstance(model, FLYNCModel)
+    assert isinstance(ext_ecu, ECU)
 
     _roundtrip(model, tmpdir)
 
@@ -1383,6 +1405,7 @@ def test_Simple_CAN_ECU_NM_Timeout_sleep_phase(tmpdir):
 
     bus_frame = flync_model.communication.channels.can_buses[0].frames[0]
     assert bus_frame.timing is None, "Post-timeout NM frame must carry no FrameTransmissionTiming (sender has stopped transmitting)"
+    assert isinstance(flync_model, FLYNCModel)
 
     _roundtrip(flync_model, tmpdir)
 
@@ -1402,6 +1425,8 @@ def test_Simple_CAN_ECU_NM_Timeout_state_transition():
     sleeping_iface = ecu_sleeping.controllers[0].can_interfaces[0]
     assert sleeping_iface.sender_frames == [], "Sleeping ECU must have empty sender_frames"
     assert sleeping_iface.receiver_frames == [], "Sleeping ECU must have empty receiver_frames"
+    assert isinstance(ecu_active, ECU)
+    assert isinstance(ecu_sleeping, ECU)
 
 
 def test_Simple_CAN_ECU_NM_Timeout_active_phase(tmpdir):
@@ -1440,6 +1465,7 @@ def test_Simple_CAN_ECU_NM_Timeout_active_phase(tmpdir):
     assert bus_frame.can_id == sender_iface.sender_frames[0].frame_ref
     assert bus_frame.timing is not None
     assert len(bus_frame.timing.cyclic_timings) == 1
+    assert isinstance(flync_model, FLYNCModel)
 
     _roundtrip(flync_model, tmpdir)
 

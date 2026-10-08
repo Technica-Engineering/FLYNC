@@ -43,21 +43,25 @@ def test_positive_can_bus_minimal():
     assert bus.fd_enabled is False
     assert bus.fd_baud_rate is None
     assert bus.frames == []
+    assert isinstance(bus, CANBus)
 
 
 def test_positive_can_bus_with_description():
     bus = CANBus(name="CAN_bus_desc", baud_rate=250_000, description="Body CAN bus")
     assert bus.description == "Body CAN bus"
+    assert isinstance(bus, CANBus)
 
 
 def test_positive_can_bus_with_version():
     bus = CANBus(name="CAN_bus_ver", baud_rate=500_000, version="1.0")
     assert bus.version == "1.0"
+    assert isinstance(bus, CANBus)
 
 
 def test_positive_can_bus_empty_version():
     bus = CANBus(name="CAN_bus_empty_ver", baud_rate=500_000)
     assert bus.version == ""
+    assert isinstance(bus, CANBus)
 
 
 @pytest.mark.parametrize(
@@ -76,6 +80,7 @@ def test_positive_can_bus_empty_version():
 def test_positive_can_bus_all_valid_baud_rates(baud_rate):
     bus = CANBus(name=f"CAN_br_{baud_rate}", baud_rate=baud_rate)
     assert bus.baud_rate == baud_rate
+    assert isinstance(bus, CANBus)
 
 
 @pytest.mark.parametrize(
@@ -95,12 +100,14 @@ def test_positive_can_bus_all_valid_fd_data_rates(fd_baud_rate):
         fd_baud_rate=fd_baud_rate,
     )
     assert bus.fd_baud_rate == fd_baud_rate
+    assert isinstance(bus, CANBus)
 
 
 def test_positive_can_bus_with_can_frame():
     frm = _make_can_frame("bus_frm_1")
     bus = CANBus(name="CAN_frm_bus", baud_rate=500_000, frames=[frm])
     assert len(bus.frames) == 1
+    assert isinstance(bus, CANBus)
 
 
 def test_positive_can_bus_fd_with_canfd_frame():
@@ -113,6 +120,7 @@ def test_positive_can_bus_fd_with_canfd_frame():
         frames=[fd_frm],
     )
     assert len(bus.frames) == 1
+    assert isinstance(bus, CANBus)
 
 
 def test_positive_can_bus_model_validate():

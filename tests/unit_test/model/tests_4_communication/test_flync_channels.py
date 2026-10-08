@@ -73,6 +73,7 @@ def test_positive_can_frame_packed_pdus_no_overlap():
         ],
     }
     assert FLYNCChannelConfig.model_validate(cfg)
+    assert isinstance(FLYNCChannelConfig.model_validate(cfg), FLYNCChannelConfig)
 
 
 def test_negative_can_frame_packed_pdus_overlap():
@@ -94,8 +95,9 @@ def test_negative_can_frame_packed_pdus_overlap():
             )
         ],
     }
-    with pytest.raises(ValidationError, match="overlap"):
+    with pytest.raises(ValidationError) as exc_info:
         FLYNCChannelConfig.model_validate(cfg)
+    assert_single_error(exc_info, "FLYNC-CMN-MIN-CONS-030", "overlap")
 
 
 def test_negative_can_frame_packed_pdu_overflows_frame():
@@ -114,8 +116,9 @@ def test_negative_can_frame_packed_pdu_overflows_frame():
             )
         ],
     }
-    with pytest.raises(ValidationError, match="overflows"):
+    with pytest.raises(ValidationError) as exc_info:
         FLYNCChannelConfig.model_validate(cfg)
+    assert_single_error(exc_info, "FLYNC-CMN-MIN-VAL-029", "overflows")
 
 
 def test_positive_can_frame_packed_pdu_unplaced_skipped():
@@ -138,6 +141,7 @@ def test_positive_can_frame_packed_pdu_unplaced_skipped():
         ],
     }
     assert FLYNCChannelConfig.model_validate(cfg)
+    assert isinstance(FLYNCChannelConfig.model_validate(cfg), FLYNCChannelConfig)
 
 
 def test_positive_lin_frame_packed_pdus_no_overlap():
@@ -157,6 +161,7 @@ def test_positive_lin_frame_packed_pdus_no_overlap():
         ],
     }
     assert FLYNCChannelConfig.model_validate(cfg)
+    assert isinstance(FLYNCChannelConfig.model_validate(cfg), FLYNCChannelConfig)
 
 
 def test_negative_lin_frame_packed_pdus_overlap():
@@ -178,8 +183,9 @@ def test_negative_lin_frame_packed_pdus_overlap():
             )
         ],
     }
-    with pytest.raises(ValidationError, match="overlap"):
+    with pytest.raises(ValidationError) as exc_info:
         FLYNCChannelConfig.model_validate(cfg)
+    assert_single_error(exc_info, "FLYNC-CMN-MIN-CONS-030", "overlap")
 
 
 def test_negative_lin_frame_unknown_pdu_ref():
@@ -198,8 +204,9 @@ def test_negative_lin_frame_unknown_pdu_ref():
             )
         ],
     }
-    with pytest.raises(ValidationError, match="LINBus 'L1' references unknown PDU"):
+    with pytest.raises(ValidationError) as exc_info:
         FLYNCChannelConfig.model_validate(cfg)
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-REF-057", "references unknown PDU")
 
 
 def test_negative_can_frame_unknown_pdu_ref():
@@ -218,8 +225,9 @@ def test_negative_can_frame_unknown_pdu_ref():
             )
         ],
     }
-    with pytest.raises(ValidationError, match="CANBus 'B1' references unknown PDU"):
+    with pytest.raises(ValidationError) as exc_info:
         FLYNCChannelConfig.model_validate(cfg)
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-REF-057", "references unknown PDU")
 
 
 def test_positive_ethernet_pdu_container_known_pdu_refs():
@@ -239,6 +247,7 @@ def test_positive_ethernet_pdu_container_known_pdu_refs():
         ],
     }
     assert FLYNCChannelConfig.model_validate(cfg)
+    assert isinstance(FLYNCChannelConfig.model_validate(cfg), FLYNCChannelConfig)
 
 
 def test_negative_ethernet_pdu_container_unknown_pdu_ref():
@@ -280,6 +289,7 @@ def test_positive_multiplexed_pdu_known_pdu_refs():
         ],
     }
     assert FLYNCChannelConfig.model_validate(cfg)
+    assert isinstance(FLYNCChannelConfig.model_validate(cfg), FLYNCChannelConfig)
 
 
 def test_positive_multiplexed_pdu_static_group_single_mapping():
@@ -289,6 +299,7 @@ def test_positive_multiplexed_pdu_static_group_single_mapping():
     cfg = {"pdus": [_make_pdu("P1", 2), _make_pdu("P2", 2), mp]}
     config = FLYNCChannelConfig.model_validate(cfg)
     assert [inst.pdu_ref for inst in config.pdus[2].static_group] == ["P1"]
+    assert isinstance(config, FLYNCChannelConfig)
 
 
 def test_negative_multiplexed_pdu_static_group_unknown_pdu_ref():
@@ -349,6 +360,7 @@ def test_positive_multiplexed_pdu_placements_clear_of_selector():
         ],
     }
     assert FLYNCChannelConfig.model_validate(cfg)
+    assert isinstance(FLYNCChannelConfig.model_validate(cfg), FLYNCChannelConfig)
 
 
 def test_positive_multiplexed_pdu_mux_groups_may_share_bits():
@@ -361,6 +373,7 @@ def test_positive_multiplexed_pdu_mux_groups_may_share_bits():
         ],
     }
     assert FLYNCChannelConfig.model_validate(cfg)
+    assert isinstance(FLYNCChannelConfig.model_validate(cfg), FLYNCChannelConfig)
 
 
 def test_negative_multiplexed_pdu_static_overlaps_selector():
@@ -444,3 +457,4 @@ def test_positive_multiplexed_pdu_unplaced_instances_skipped():
     cfg["pdus"][2]["static_group"][0].pop("bit_position")
     cfg["pdus"][2]["mux_groups"][0]["pdu"].pop("bit_position")
     assert FLYNCChannelConfig.model_validate(cfg)
+    assert isinstance(FLYNCChannelConfig.model_validate(cfg), FLYNCChannelConfig)

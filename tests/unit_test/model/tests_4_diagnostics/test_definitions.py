@@ -14,16 +14,19 @@ WRITE_DATA = DiagDataRecord(byte_length=1)
 def test_did_read_access_accepted_with_read_data():
     did = DataIdentifier(name="vin", did=0xF190, access="read", read_data=READ_DATA)
     assert did.did == 0xF190
+    assert isinstance(did, DataIdentifier)
 
 
 def test_did_read_write_access_accepted_with_both_data():
     did = DataIdentifier(name="vin", did=0xF190, access="read_write", read_data=READ_DATA, write_data=WRITE_DATA)
     assert did.access == "read_write"
+    assert isinstance(did, DataIdentifier)
 
 
 def test_did_write_access_accepted_with_write_data():
     did = DataIdentifier(name="vin", did=0xF190, access="write", write_data=WRITE_DATA)
     assert did.write_data is WRITE_DATA
+    assert isinstance(did, DataIdentifier)
 
 
 def test_did_read_access_rejected_without_read_data():
@@ -65,11 +68,13 @@ def test_did_write_access_rejected_with_read_data():
 def test_did_write_access_accepted_with_write_data_only():
     did = DataIdentifier(name="vin", did=0xF190, access="write", write_data=WRITE_DATA)
     assert did.read_data is None
+    assert isinstance(did, DataIdentifier)
 
 
 def test_routine_start_accepted_with_start_request():
     routine = Routine(name="r", rid=0xFF00, supported_sub_functions=["start"], start_request=DiagDataRecord(byte_length=0))
     assert routine.rid == 0xFF00
+    assert isinstance(routine, Routine)
 
 
 def test_routine_start_rejected_without_start_request():
@@ -113,12 +118,14 @@ def test_routine_accepts_all_sub_functions_with_their_data():
         request_results_response=DiagDataRecord(byte_length=1),
     )
     assert routine.supported_sub_functions == ["start", "stop", "request_results"]
+    assert isinstance(routine, Routine)
 
 
 def test_dtc_accepts_defaults():
     dtc = DiagnosticTroubleCode(name="d", dtc=0x010203)
     assert dtc.format == "iso_14229_1"
     assert dtc.severity == "no_severity"
+    assert isinstance(dtc, DiagnosticTroubleCode)
 
 
 @pytest.mark.parametrize("dtc_value", [0x000000, 0xFFFFFF])

@@ -9,3 +9,4 @@ def test_ets():
         "./examples/flync_example/communication/someip/services/ets.flync.yaml",
     )
     assert ets_high.id == 0x101
+    assert isinstance(ets_high, SOMEIPServiceInterface)

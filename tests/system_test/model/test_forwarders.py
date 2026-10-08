@@ -6,9 +6,12 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+from flync.model import FLYNCModel
 from flync.model.flync_4_signal.forwarder import (
     CANFrameEgress,
+    CANFrameForwarder,
     EthSocketEgress,
+    PDUForwarder,
 )
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 
@@ -27,6 +30,8 @@ def test_canonical_workspace_loads_with_forwarder_content(loaded_canonical_works
     ws = loaded_canonical_workspace
     assert ws is not None
     assert ws.flync_model is not None
+    assert isinstance(ws, FLYNCWorkspace)
+    assert isinstance(ws.flync_model, FLYNCModel)
 
 
 def test_canonical_workspace_exposes_can_frame_forwarder(loaded_canonical_workspace):
@@ -35,6 +40,7 @@ def test_canonical_workspace_exposes_can_frame_forwarder(loaded_canonical_worksp
     fwd = forwarders[0]
     assert fwd.frame_ref == "Frame_EngineStatus"
     assert len(fwd.egresses) == 2
+    assert isinstance(forwarders[0], CANFrameForwarder)
 
 
 def test_canonical_scenario_1_can_to_can_egress_present(loaded_canonical_workspace):
@@ -43,6 +49,7 @@ def test_canonical_scenario_1_can_to_can_egress_present(loaded_canonical_workspa
     fwd = loaded_canonical_workspace.flync_model.get_all_can_frame_forwarders()[0]
     can_sinks = [s.root for s in fwd.egresses if isinstance(s.root, CANFrameEgress)]
     assert any(s.bus_ref == "DiagCAN" and s.frame_ref == 2024 for s in can_sinks)
+    assert isinstance(fwd, CANFrameForwarder)
 
 
 def test_canonical_scenario_2_can_to_eth_sink_present(loaded_canonical_workspace):
@@ -51,6 +58,7 @@ def test_canonical_scenario_2_can_to_eth_sink_present(loaded_canonical_workspace
     fwd = loaded_canonical_workspace.flync_model.get_all_can_frame_forwarders()[0]
     socket_sinks = [s.root for s in fwd.egresses if isinstance(s.root, EthSocketEgress)]
     assert any(s.socket_ref == "pdu_engine_status_tx" for s in socket_sinks)
+    assert isinstance(fwd, CANFrameForwarder)
 
 
 def test_canonical_workspace_exposes_pdu_forwarder(loaded_canonical_workspace):
@@ -61,6 +69,7 @@ def test_canonical_workspace_exposes_pdu_forwarder(loaded_canonical_workspace):
     fwd = forwarders[0]
     assert fwd.pdu_ref == "EthPowertrainContainer"
     assert len(fwd.egresses) == 2
+    assert isinstance(forwarders[0], PDUForwarder)
 
 
 def test_canonical_scenario_3_eth_to_can_with_extraction(loaded_canonical_workspace):
@@ -69,6 +78,7 @@ def test_canonical_scenario_3_eth_to_can_with_extraction(loaded_canonical_worksp
     fwd = loaded_canonical_workspace.flync_model.get_all_pdu_forwarders()[0]
     can_sinks = [s.root for s in fwd.egresses if isinstance(s.root, CANFrameEgress)]
     assert any(s.bus_ref == "DiagCAN" and s.frame_ref == 2024 and s.extract_pdu_ref == "PDU_EngineStatus" for s in can_sinks)
+    assert isinstance(fwd, PDUForwarder)
 
 
 def test_canonical_scenario_4_eth_to_eth_rebridge(loaded_canonical_workspace):
@@ -79,6 +89,7 @@ def test_canonical_scenario_4_eth_to_eth_rebridge(loaded_canonical_workspace):
     rebridge = next((s for s in socket_sinks if s.socket_ref == "pdu_powertrain_rebridge_tx"), None)
     assert rebridge is not None
     assert rebridge.extract_pdu_ref is None
+    assert isinstance(fwd, PDUForwarder)
 
 
 # Tmpdir helpers for the workspace-level validator tests below (each test copies the canonical workspace and mutates one or two YAMLs).
@@ -345,6 +356,8 @@ def test_positive_scenario_4_eth_to_eth_rebridge(workspace_copy):
         return isinstance(egress, EthSocketEgress) and egress.socket_ref == "pdu_engine_rebridge_tx"
 
     assert any(_targets_rebridge(f) for f in pdu_fwds)
+    assert isinstance(ws, FLYNCWorkspace)
+    assert isinstance(ws.flync_model, FLYNCModel)
 
 
 def test_positive_scenario_3_eth_container_extracted_to_can(workspace_copy):
@@ -364,6 +377,8 @@ def test_positive_scenario_3_eth_container_extracted_to_can(workspace_copy):
     egress = fwd.egresses[0].root
     assert isinstance(egress, CANFrameEgress)
     assert egress.extract_pdu_ref == "PDU_EngineStatus"
+    assert isinstance(ws, FLYNCWorkspace)
+    assert isinstance(ws.flync_model, FLYNCModel)
 
 
 def test_negative_extract_pdu_ref_not_in_container(workspace_copy):

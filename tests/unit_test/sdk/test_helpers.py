@@ -114,6 +114,8 @@ def test_load_workspace_from_flync_object_relative_path(
     assert loaded_ws.flync_model.communication.tcp_profiles
     assert loaded_ws.flync_model.metadata
     assert model_has_socket(loaded_ws.flync_model)
+    assert isinstance(loaded_ws, FLYNCWorkspace)
+    assert isinstance(loaded_ws.flync_model, FLYNCModel)
 
 
 def test_roundtrip_conversion(get_flync_example_path, get_flync_workspace_minimal_config, tmp_path):

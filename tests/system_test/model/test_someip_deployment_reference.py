@@ -143,3 +143,4 @@ def test_deployment_of_known_service_and_profile_accepted():
     model = _make_model(deployment)
 
     assert model.communication.someip_config.services[0].name == SERVICE_NAME
+    assert isinstance(model, FLYNCModel)

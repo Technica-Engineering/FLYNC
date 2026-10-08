@@ -167,6 +167,7 @@ def test_mdi_speed_at_or_below_mii_speed_is_accepted(mii_type, mii_speed, mdi):
 
     assert port.mii_config.speed == mii_speed
     assert port.mdi_config.speed <= mii_speed
+    assert isinstance(port, ECUPort)
 
 
 @pytest.mark.parametrize(

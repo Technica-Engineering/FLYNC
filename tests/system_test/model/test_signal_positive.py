@@ -40,6 +40,9 @@ def test_standard_pdu_all_frames(frame_class, frame_args):
     assert frame.packed_pdus[0].pdu_ref == "PDU_EngineStatus"
     assert sender.pdu_ref == "PDU_EngineStatus"
     assert receiver.pdu_ref == "PDU_EngineStatus"
+    assert isinstance(frame.packed_pdus[0], PDUInstance)
+    assert isinstance(sender, PDUSender)
+    assert isinstance(receiver, PDUReceiver)
 
 
 def test_standard_pdu_with_signalgroup():
@@ -64,6 +67,8 @@ def test_standard_pdu_with_signalgroup():
     assert frame.packed_pdus[0].pdu_ref == "PDU_EngineSensors"
     assert receiver.pdu_ref == "PDU_EngineSensors"
     assert receiver.pdu_ref == "PDU_EngineSensors"
+    assert isinstance(frame.packed_pdus[0], PDUInstance)
+    assert isinstance(receiver, PDUReceiver)
 
 
 def test_multiplexed_pdu():
@@ -86,6 +91,9 @@ def test_multiplexed_pdu():
     assert frame.packed_pdus[0].pdu_ref == "PDU_TransmissionStatus"
     assert sender.pdu_ref == "PDU_TransmissionStatus"
     assert receiver.pdu_ref == "PDU_TransmissionStatus"
+    assert isinstance(frame.packed_pdus[0], PDUInstance)
+    assert isinstance(sender, PDUSender)
+    assert isinstance(receiver, PDUReceiver)
 
 
 def test_container_pdu():
@@ -107,6 +115,9 @@ def test_container_pdu():
     assert container.contained_pdus[0].pdu_ref == "PDU_EngineStatus"
     assert sender.pdu_ref == "ContainerPowertrain"
     assert receiver.pdu_ref == "ContainerPowertrain"
+    assert isinstance(container.contained_pdus[0], ContainedPDURef)
+    assert isinstance(sender, PDUSender)
+    assert isinstance(receiver, PDUReceiver)
 
 
 def test_frame_with_timing():
@@ -127,3 +138,4 @@ def test_frame_with_timing():
 
     assert frame.timing.cyclic_timings[0].cycle == 0.1
     assert frame.timing.event_timings[0].final_repetitions == 3
+    assert isinstance(frame.timing, FrameTransmissionTiming)

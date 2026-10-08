@@ -22,6 +22,7 @@ def test_positive_embedded_metadata():
 
     assert emb.type == "embedded"
     assert emb.target_system == "rtos"
+    assert isinstance(emb, EmbeddedMetadata)
     assert isinstance(emb.app.version, Pep440Version)
     assert isinstance(emb.bootloader.version, SemVersion)
 

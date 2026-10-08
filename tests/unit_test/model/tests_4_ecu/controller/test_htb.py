@@ -126,3 +126,4 @@ def test_htb_accepts(data: dict) -> None:
     htb: Any = HTBInstance(**data)
     assert htb.root_id == data["root_id"]
     assert htb.default_class == data["default_class"]
+    assert isinstance(htb, HTBInstance)

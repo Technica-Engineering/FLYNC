@@ -7,6 +7,7 @@ from flync.model.flync_4_bus.lin_bus import (
     LINScheduleTable,
 )
 from flync.model.flync_4_signal.frame import LINFrame
+from tests.error_assertions import assert_single_error
 
 
 def _make_lin_frame(name="lin_frm", lin_id=0x01, length=4):
@@ -17,11 +18,13 @@ def test_positive_lin_schedule_entry_basic():
     entry = LINScheduleEntry(frame_name="frm_A", period=10.0)
     assert entry.frame_name == "frm_A"
     assert entry.period == 10.0
+    assert isinstance(entry, LINScheduleEntry)
 
 
 def test_positive_lin_schedule_entry_small_period():
     entry = LINScheduleEntry(frame_name="frm_B", period=0.001)
     assert entry.period == 0.001
+    assert isinstance(entry, LINScheduleEntry)
 
 
 def test_positive_lin_schedule_entry_model_validate():
@@ -31,18 +34,21 @@ def test_positive_lin_schedule_entry_model_validate():
 
 
 def test_negative_lin_schedule_entry_zero_period():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         LINScheduleEntry(frame_name="frm_bad", period=0.0)
+    assert_single_error(exc_info, None, "greater than 0")
 
 
 def test_negative_lin_schedule_entry_negative_period():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         LINScheduleEntry(frame_name="frm_neg", period=-10.0)
+    assert_single_error(exc_info, None, "greater than 0")
 
 
 def test_positive_lin_schedule_table_empty():
     table = LINScheduleTable(name="sched_empty")
     assert table.entries == []
+    assert isinstance(table, LINScheduleTable)
 
 
 def test_positive_lin_schedule_table_with_entries():
@@ -54,11 +60,13 @@ def test_positive_lin_schedule_table_with_entries():
         ],
     )
     assert len(table.entries) == 2
+    assert isinstance(table, LINScheduleTable)
 
 
 def test_positive_lin_schedule_table_with_description():
     table = LINScheduleTable(name="sched_desc", description="Main schedule", entries=[])
     assert table.description == "Main schedule"
+    assert isinstance(table, LINScheduleTable)
 
 
 def test_positive_lin_bus_minimal():
@@ -71,6 +79,7 @@ def test_positive_lin_bus_minimal():
     assert bus.name == "LIN_bus_1"
     assert bus.frames == []
     assert bus.schedule_tables == []
+    assert isinstance(bus, LINBus)
 
 
 def test_positive_lin_bus_with_description():
@@ -82,6 +91,7 @@ def test_positive_lin_bus_with_description():
         description="Body LIN bus",
     )
     assert bus.description == "Body LIN bus"
+    assert isinstance(bus, LINBus)
 
 
 @pytest.mark.parametrize(
@@ -103,6 +113,7 @@ def test_positive_lin_bus_all_valid_baud_rates(baud_rate):
         baud_rate=baud_rate,
     )
     assert bus.baud_rate == baud_rate
+    assert isinstance(bus, LINBus)
 
 
 def test_positive_lin_bus_with_frames():
@@ -115,6 +126,7 @@ def test_positive_lin_bus_with_frames():
         frames=[frm],
     )
     assert len(bus.frames) == 1
+    assert isinstance(bus, LINBus)
 
 
 def test_positive_lin_bus_with_schedule_table():
@@ -132,6 +144,7 @@ def test_positive_lin_bus_with_schedule_table():
         schedule_tables=[table],
     )
     assert len(bus.schedule_tables) == 1
+    assert isinstance(bus, LINBus)
 
 
 def test_positive_lin_bus_different_protocol_versions():
@@ -143,6 +156,7 @@ def test_positive_lin_bus_different_protocol_versions():
     )
     assert bus.lin_protocol_version == "2.1"
     assert bus.lin_language_version == "2.2A"
+    assert isinstance(bus, LINBus)
 
 
 def test_positive_lin_bus_with_channel_name():
@@ -154,6 +168,7 @@ def test_positive_lin_bus_with_channel_name():
         channel_name="LIN_1",
     )
     assert bus.channel_name == "LIN_1"
+    assert isinstance(bus, LINBus)
 
 
 def test_positive_lin_bus_model_validate():
@@ -177,13 +192,14 @@ def test_positive_lin_bus_model_validate():
     ],
 )
 def test_negative_lin_bus_invalid_baud_rate(bad_baud):
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         LINBus(
             name=f"LIN_bad_br_{bad_baud}",
             lin_protocol_version="2.2A",
             lin_language_version="2.2A",
             baud_rate=bad_baud,
         )
+    assert_single_error(exc_info, None, "Input should be 1200, 2400, 4800, 9600, 10400 or 19200")
 
 
 def test_negative_lin_bus_schedule_references_unknown_frame():
@@ -191,7 +207,7 @@ def test_negative_lin_bus_schedule_references_unknown_frame():
         name="bad_sched",
         entries=[LINScheduleEntry(frame_name="nonexistent_frame", period=10.0)],
     )
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         LINBus(
             name="LIN_bad_ref",
             lin_protocol_version="2.2A",
@@ -199,6 +215,7 @@ def test_negative_lin_bus_schedule_references_unknown_frame():
             baud_rate=19_200,
             schedule_tables=[table],
         )
+    assert_single_error(exc_info, "FLYNC-BUS-MAJ-REF-056", "references unknown frame")
 
 
 def test_negative_lin_bus_schedule_references_unknown_frame_with_existing():
@@ -210,7 +227,7 @@ def test_negative_lin_bus_schedule_references_unknown_frame_with_existing():
             LINScheduleEntry(frame_name="missing_frm", period=10.0),
         ],
     )
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         LINBus(
             name="LIN_partial_ref",
             lin_protocol_version="2.2A",
@@ -219,3 +236,4 @@ def test_negative_lin_bus_schedule_references_unknown_frame_with_existing():
             frames=[frm],
             schedule_tables=[table],
         )
+    assert_single_error(exc_info, "FLYNC-BUS-MAJ-REF-056", "references unknown frame")

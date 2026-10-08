@@ -93,13 +93,14 @@ class TestFireForgetMethod:
 
     def test_fire_forget_missing_type_raises(self, input_params):
         """We expect a ValidationError when type is missing."""
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError) as exc_info:
             SOMEIPFireAndForgetMethod(
                 name="f&f",
                 id=0x123,
                 type=None,
                 input_parameters=input_params,
             )
+        assert_single_error(exc_info, None, "Input should be 'fire_and_forget'")
 
 
 @pytest.mark.parametrize(
@@ -215,7 +216,7 @@ class TestRequestAndResponseMethod:
 
     def test_request_response_missing_type_raises(self, input_params, output_params):
         """We expect a ValidationError when type is missing."""
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError) as exc_info:
             SOMEIPRequestResponseMethod(
                 name="r&r",
                 id=0x123,
@@ -223,6 +224,7 @@ class TestRequestAndResponseMethod:
                 input_parameters=input_params,
                 output_parameters=output_params,
             )
+        assert_single_error(exc_info, None, "Input should be 'request_response'")
 
 
 def _service_with_corrupt_bitfield(metadata_entry: dict, method_type: str) -> dict:

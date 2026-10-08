@@ -3,6 +3,7 @@ from pydantic import ValidationError
 
 import flync.core.utils.base_utils as utils
 from flync.model.flync_4_ecu import MulticastGroup
+from tests.error_assertions import assert_single_error
 
 
 @pytest.mark.parametrize(
@@ -72,8 +73,9 @@ def test_positive_multicast_group_ipv4():
 
 def test_negative_multicast_group_ipv4():
     m_cast1 = {"address": "10.0.0.1", "ports": ["port1", "port2"]}
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         MulticastGroup.model_validate(m_cast1)
+    assert_single_error(exc_info, "FLYNC-CMN-MIN-FMT-006", "is not an IP Multicast")
 
 
 def test_positive_multicast_group_ipv6():
@@ -87,8 +89,9 @@ def test_negative_multicast_group_ipv6():
         "address": "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
         "ports": ["port1", "port2"],
     }
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         MulticastGroup.model_validate(m_cast1)
+    assert_single_error(exc_info, "FLYNC-CMN-MIN-FMT-006", "is not an IP Multicast")
 
 
 def test_positive_multicast_group_mac():
@@ -99,5 +102,6 @@ def test_positive_multicast_group_mac():
 
 def test_negative_multicast_group_mac():
     m_cast1 = {"address": "00:00:5E:00:00:00", "ports": ["port1", "port2"]}
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         MulticastGroup.model_validate(m_cast1)
+    assert_single_error(exc_info, "FLYNC-CMN-MIN-FMT-005", "is not a MAC Multicast")

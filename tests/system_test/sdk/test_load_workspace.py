@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+from flync.model.flync_model import FLYNCModel
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 
 from .helper import (
@@ -25,6 +26,7 @@ def test_load_workspace_multiple_times(tmpdir):
         shutil.copytree(absolute_path, destination_folder)
         workspace = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
         assert workspace is not None
+        assert isinstance(workspace, FLYNCWorkspace)
         if destination_folder.exists():
             shutil.rmtree(destination_folder)
 
@@ -42,6 +44,8 @@ def test_load_workspace_valid_absolute_path():
     assert workspace.flync_model.communication.tcp_profiles
     assert workspace.flync_model.metadata
     assert model_has_socket(workspace)
+    assert isinstance(workspace, FLYNCWorkspace)
+    assert isinstance(workspace.flync_model, FLYNCModel)
 
 
 # Verify workspace loads with valid relative path
@@ -60,6 +64,8 @@ def test_load_workspace_valid_relative_path():
     assert workspace.flync_model.communication.tcp_profiles
     assert workspace.flync_model.metadata
     assert model_has_socket(workspace)
+    assert isinstance(workspace, FLYNCWorkspace)
+    assert isinstance(workspace.flync_model, FLYNCModel)
 
 
 def test_load_workspace_valid_str_path():
@@ -74,6 +80,8 @@ def test_load_workspace_valid_str_path():
     assert workspace.flync_model.communication.tcp_profiles
     assert workspace.flync_model.metadata
     assert model_has_socket(workspace)
+    assert isinstance(workspace, FLYNCWorkspace)
+    assert isinstance(workspace.flync_model, FLYNCModel)
 
 
 # Verify the existence of attributes
@@ -331,8 +339,7 @@ def test_load_workspace_missing_key_value(tmpdir):
 def _assert_workspace_valid(ws: FLYNCWorkspace):
     assert ws is not None
     assert ws.flync_model is not None
-    # Model loaded successfully. Note: workspace may have warnings/diagnostics
-    # in load_errors, but the model is still considered valid if it loads.
+    assert isinstance(ws, FLYNCWorkspace)
     # Only verify core attributes that should always be present.
     assert len(ws.flync_model.ecus) > 0, "No ECUs loaded in the workspace"
     assert ws.flync_model.topology
@@ -341,6 +348,9 @@ def _assert_workspace_valid(ws: FLYNCWorkspace):
     assert ws.flync_model.communication.someip_config
     assert ws.flync_model.communication.tcp_profiles
     assert ws.flync_model.metadata
+    # Model loaded successfully. Note: workspace may have warnings/diagnostics
+    # in load_errors, but the model is still considered valid if it loads.
+    assert isinstance(ws.flync_model, FLYNCModel)
 
 
 # Verify loading multiple independent workspace copies sequentially

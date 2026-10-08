@@ -107,6 +107,7 @@ class Test_TextEntry:
         assert entry.from_value == from_value
         assert entry.to_value == to_value
         assert entry.label == label
+        assert isinstance(entry, TextEntry)
 
     @pytest.mark.parametrize(
         "value, label",
@@ -122,6 +123,7 @@ class Test_TextEntry:
         assert entry.from_value == value
         assert entry.to_value == value
         assert "to_value" not in entry.model_dump(exclude_unset=True)
+        assert isinstance(entry, TextEntry)
 
     @pytest.mark.parametrize(
         "dict_input",
@@ -138,6 +140,7 @@ class Test_TextEntry:
         assert entry.from_value == lower
         assert entry.to_value == upper
         assert entry.label == dict_input["label"]
+        assert isinstance(entry, TextEntry)
 
     @pytest.mark.parametrize(
         "dict_input, error_id, error_message",
@@ -313,6 +316,7 @@ class Test_Signal:
         assert sig.data_type == SignalDataType.UINT8
         assert sig.factor == 1.0
         assert sig.offset == 0.0
+        assert isinstance(sig, Signal)
 
     def test_positive_signal_with_optional_fields(self):
         sig = Signal(
@@ -328,6 +332,7 @@ class Test_Signal:
         )
         assert sig.unit == "km/h"
         assert sig.factor == 0.1
+        assert isinstance(sig, Signal)
 
     @pytest.mark.parametrize(
         "data_type, bit_length",
@@ -358,10 +363,12 @@ class Test_Signal:
     def test_positive_signal_float32(self):
         sig = Signal(name="torque", bit_length=32, data_type=SignalDataType.FLOAT32)
         assert sig.data_type == SignalDataType.FLOAT32
+        assert isinstance(sig, Signal)
 
     def test_positive_signal_float64(self):
         sig = Signal(name="latitude", bit_length=64, data_type=SignalDataType.FLOAT64)
         assert sig.data_type == SignalDataType.FLOAT64
+        assert isinstance(sig, Signal)
 
     def test_positive_signal_with_text_table_single_values(self):
         sig = Signal(
@@ -378,6 +385,7 @@ class Test_Signal:
         )
         assert isinstance(sig.value_encoding, TextTable)
         assert len(sig.value_encoding.entries) == 3
+        assert isinstance(sig, Signal)
 
     def test_positive_signal_with_range_text_table(self):
         sig = Signal(
@@ -395,6 +403,7 @@ class Test_Signal:
         )
         assert isinstance(sig.value_encoding, TextTable)
         assert len(sig.value_encoding.entries) == 4
+        assert isinstance(sig, Signal)
 
     def test_positive_signal_with_range_text_table_signed(self):
         sig = Signal(
@@ -410,6 +419,7 @@ class Test_Signal:
             ),
         )
         assert len(sig.value_encoding.entries) == 3
+        assert isinstance(sig, Signal)
 
     def test_positive_signal_text_table_mixed_terse_and_range(self):
         """Terse single values (using 'value' alias) and explicit ranges coexist in one table."""
@@ -427,6 +437,7 @@ class Test_Signal:
         )
         assert len(sig.value_encoding.entries) == 3
         assert sig.value_encoding.entries[2].to_value == 255
+        assert isinstance(sig, Signal)
 
     def test_positive_signal_text_table_combined_with_linear(self):
         sig = Signal(
@@ -446,6 +457,7 @@ class Test_Signal:
         )
         assert sig.factor == 0.01
         assert isinstance(sig.value_encoding, TextTable)
+        assert isinstance(sig, Signal)
 
     def test_positive_signal_with_bitmask_flags(self):
         sig = Signal(
@@ -465,6 +477,7 @@ class Test_Signal:
         )
         assert isinstance(sig.value_encoding, BitmaskFlags)
         assert len(sig.value_encoding.flags) == 6
+        assert isinstance(sig, Signal)
 
     def test_positive_signal_with_bitmask_flags_multi_bit_mask(self):
         """A single flag may span several bits (e.g. 0x03 = 'front mirrors')."""
@@ -480,6 +493,7 @@ class Test_Signal:
             ),
         )
         assert sig.value_encoding.flags[0].mask == 0x03
+        assert isinstance(sig, Signal)
 
     def test_positive_signal_with_bitfield_text_table(self):
         sig = Signal(
@@ -504,6 +518,7 @@ class Test_Signal:
         assert isinstance(sig.value_encoding, BitfieldTextTable)
         assert sig.value_encoding.groups[0].mask == 0xFF
         assert len(sig.value_encoding.groups[0].states) == 4
+        assert isinstance(sig, Signal)
 
     def test_positive_signal_with_bitfield_text_table_multiple_groups(self):
         sig = Signal(
@@ -532,6 +547,7 @@ class Test_Signal:
             ),
         )
         assert len(sig.value_encoding.groups) == 2
+        assert isinstance(sig, Signal)
 
     def test_positive_signal_with_negative_factor(self):
         sig = Signal(
@@ -541,6 +557,7 @@ class Test_Signal:
             factor=-1.0,
         )
         assert sig.factor == -1.0
+        assert isinstance(sig, Signal)
 
     def test_positive_signal_limits_equal(self):
         sig = Signal(
@@ -551,6 +568,7 @@ class Test_Signal:
             upper_limit=5.0,
         )
         assert sig.lower_limit == sig.upper_limit
+        assert isinstance(sig, Signal)
 
     def test_positive_signal_only_lower_limit(self):
         sig = Signal(
@@ -560,6 +578,7 @@ class Test_Signal:
             lower_limit=0.0,
         )
         assert sig.upper_limit is None
+        assert isinstance(sig, Signal)
 
     def test_positive_signal_only_upper_limit(self):
         sig = Signal(
@@ -569,6 +588,7 @@ class Test_Signal:
             upper_limit=100.0,
         )
         assert sig.lower_limit is None
+        assert isinstance(sig, Signal)
 
     @pytest.mark.parametrize(
         "data_type, bit_length, initial_value",
@@ -590,6 +610,7 @@ class Test_Signal:
             initial_value=initial_value,
         )
         assert sig.initial_value == initial_value
+        assert isinstance(sig, Signal)
 
     def test_positive_signal_initial_value_float(self):
         sig = Signal(
@@ -599,6 +620,7 @@ class Test_Signal:
             initial_value=3.14,
         )
         assert sig.initial_value == 3.14
+        assert isinstance(sig, Signal)
 
     def test_positive_signal_initial_value_int_for_float(self):
         sig = Signal(
@@ -608,6 +630,7 @@ class Test_Signal:
             initial_value=0,
         )
         assert sig.initial_value == 0
+        assert isinstance(sig, Signal)
 
     def test_positive_signal_initial_value_char(self):
         sig = Signal(
@@ -617,6 +640,7 @@ class Test_Signal:
             initial_value="A",
         )
         assert sig.initial_value == "A"
+        assert isinstance(sig, Signal)
 
     def test_positive_signal_initial_value_bytearray(self):
         sig = Signal(
@@ -626,6 +650,7 @@ class Test_Signal:
             initial_value=b"\x00\xff",
         )
         assert sig.initial_value == b"\x00\xff"
+        assert isinstance(sig, Signal)
 
     def test_positive_signal_model_validate(self):
         data = {
@@ -939,6 +964,7 @@ class Test_InstancePlacement:
         ip = InstancePlacement()
         assert ip.bit_position is None
         assert ip.endianness == "LE"
+        assert isinstance(ip, InstancePlacement)
 
     @pytest.mark.parametrize(
         "endianness",
@@ -950,6 +976,7 @@ class Test_InstancePlacement:
     def test_positive_instance_placement_endianness(self, endianness):
         ip = InstancePlacement(endianness=endianness, bit_position=0)
         assert ip.endianness == endianness
+        assert isinstance(ip, InstancePlacement)
 
     def test_negative_instance_placement_negative_bit_position(self):
         with pytest.raises(ValidationError) as exc_info:
@@ -963,10 +990,12 @@ class Test_SignalInstance:
         si = SignalInstance(signal=uint8_signal, bit_position=0)
         assert si.bit_position == 0
         assert si.signal.name == "sig_uint8"
+        assert isinstance(si, SignalInstance)
 
     def test_positive_signal_instance_without_bit_position(self, uint8_signal):
         si = SignalInstance(signal=uint8_signal)
         assert si.bit_position is None
+        assert isinstance(si, SignalInstance)
 
     def test_positive_signal_instance_spn_exposed_on_signal(self, uint8_signal):
         si = SignalInstance(signal=uint8_signal, bit_position=0)
@@ -1005,6 +1034,7 @@ class Test_SignalGroup:
     def test_positive_signal_group_single_signal(self, uint8_signal_instance):
         sg = SignalGroup(name="grp_single", signals=[uint8_signal_instance])
         assert len(sg.signals) == 1
+        assert isinstance(sg, SignalGroup)
 
     def test_positive_signal_group_multiple_signals(self):
         s1 = Signal(name="grp_s1", bit_length=8, data_type=SignalDataType.UINT8)
@@ -1017,6 +1047,7 @@ class Test_SignalGroup:
             ],
         )
         assert len(sg.signals) == 2
+        assert isinstance(sg, SignalGroup)
 
     def test_positive_signal_group_with_description(self, uint8_signal_instance):
         sg = SignalGroup(
@@ -1025,6 +1056,7 @@ class Test_SignalGroup:
             description="Test group",
         )
         assert sg.description == "Test group"
+        assert isinstance(sg, SignalGroup)
 
     def test_positive_signal_group_adjacent_no_overlap(self):
         """Signal instances whose ranges touch at the boundary are not overlapping."""
@@ -1038,6 +1070,7 @@ class Test_SignalGroup:
             ],
         )
         assert len(sg.signals) == 2
+        assert isinstance(sg, SignalGroup)
 
     def test_positive_signal_group_unplaced_instance(self):
         """Signal instances without a bit_position are accepted and skipped by checks."""
@@ -1045,6 +1078,7 @@ class Test_SignalGroup:
         sg = SignalGroup(name="grp_unplaced", signals=[SignalInstance(signal=s)])
         assert len(sg.signals) == 1
         assert sg.signals[0].bit_position is None
+        assert isinstance(sg, SignalGroup)
 
     def test_negative_signal_group_empty_signals(self):
         with pytest.raises(ValidationError) as exc_info:
@@ -1078,7 +1112,9 @@ class Test_SignalGroupInstance:
         sgi = SignalGroupInstance(signal_group=uint8_signal_group, bit_position=0)
         assert sgi.bit_position == 0
         assert sgi.signal_group.name == "grp_uint8"
+        assert isinstance(sgi, SignalGroupInstance)
 
     def test_positive_signal_group_instance_no_placement(self, uint8_signal_group):
         sgi = SignalGroupInstance(signal_group=uint8_signal_group)
         assert sgi.bit_position is None
+        assert isinstance(sgi, SignalGroupInstance)

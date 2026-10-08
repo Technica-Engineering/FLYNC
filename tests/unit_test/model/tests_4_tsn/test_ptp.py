@@ -87,6 +87,7 @@ def test_positive_two_domains_different_roles():
         "time_transmitter",
         "time_receiver",
     }
+    assert isinstance(ptp_config, PTPConfig)
 
 
 @pytest.mark.parametrize(
@@ -100,6 +101,7 @@ def test_positive_time_transmitter_log_tx_period_boundaries(log_tx_period):
     port = PTPPort.model_validate(_ptp_port(sync_config={"type": "time_transmitter", "log_tx_period": log_tx_period}))
 
     assert port.sync_config.log_tx_period == log_tx_period
+    assert isinstance(port, PTPPort)
 
 
 @pytest.mark.parametrize(
@@ -113,12 +115,14 @@ def test_positive_pdelay_log_tx_period_boundaries(log_tx_period):
     port = PTPPort.model_validate(_ptp_port(pdelay_config={"log_tx_period": log_tx_period}))
 
     assert port.pdelay_config.log_tx_period == log_tx_period
+    assert isinstance(port, PTPPort)
 
 
 def test_positive_pdelay_optional():
     port = PTPPort.model_validate(_without(_ptp_port(), "pdelay_config"))
 
     assert port.pdelay_config is None
+    assert isinstance(port, PTPPort)
 
 
 def test_positive_zero_identifiers():
@@ -126,6 +130,7 @@ def test_positive_zero_identifiers():
 
     assert port.domain_id == 0
     assert port.src_port_identity == 0
+    assert isinstance(port, PTPPort)
 
 
 def test_positive_ptp_config_on_controller(virtual_controller_interface: VirtualControllerInterface):
@@ -175,6 +180,7 @@ def test_positive_ptp_config_cmlds_linkport_enabled():
     )
 
     assert switch_port.ptp_config.cmlds_linkport_enabled is True
+    assert isinstance(switch_port, SwitchPort)
 
 
 def test_positive_ptp_config_cmlds_linkport_default_false():
@@ -189,6 +195,7 @@ def test_positive_ptp_config_cmlds_linkport_default_false():
     )
 
     assert switch_port.ptp_config.cmlds_linkport_enabled is False
+    assert isinstance(switch_port, SwitchPort)
 
 
 # NEGATIVE TESTS

@@ -155,6 +155,7 @@ def test_distinct_app_names_accepted():
     model = FLYNCModel(ecus=[], apps=apps, metadata=_make_metadata())
 
     assert [app.name for app in model.apps] == ["dashboard_app", "diagnostics_app"]
+    assert isinstance(model, FLYNCModel)
 
 
 @pytest.mark.parametrize(
@@ -179,3 +180,4 @@ def test_app_bound_to_controller_with_matching_deployment_accepted():
     model = _make_bound_model([_make_consumer()])
 
     assert [app.name for app in model.get_all_controllers()[0].app_bindings.apps] == [APP_NAME]
+    assert isinstance(model, FLYNCModel)

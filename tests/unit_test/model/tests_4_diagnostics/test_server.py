@@ -53,6 +53,7 @@ def minimal_server(**overrides):
 def test_minimal_server_accepted():
     server = minimal_server()
     assert server.name == "EngineEcuDiagnostic"
+    assert isinstance(server, UDSServer)
 
 
 @pytest.mark.parametrize(
@@ -91,6 +92,7 @@ def test_access_profile_accepts_known_security_level():
         services=[SESSION_CONTROL, SECURITY_ACCESS],
     )
     assert server.access_profiles[0].security_level == 1
+    assert isinstance(server, UDSServer)
 
 
 def test_session_control_requires_exactly_one_default_session():
@@ -110,6 +112,7 @@ def test_service_rejects_unknown_access_profile():
 def test_service_accepts_known_access_profile():
     server = minimal_server(services=[SESSION_CONTROL, ClearDiagnosticInformationService(access_profile="standard")])
     assert server.services[1].access_profile == "standard"
+    assert isinstance(server, UDSServer)
 
 
 def test_server_rejects_duplicate_service_sids():

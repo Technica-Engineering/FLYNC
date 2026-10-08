@@ -6,6 +6,7 @@ from flync.model.flync_4_ecu.controller import (
     ControllerInterface,
     VirtualControllerInterface,
 )
+from tests.error_assertions import assert_single_error
 
 
 def test_positive_controller_interface_config(
@@ -59,7 +60,7 @@ def test_negative_controller_interface_wrong_mac(
         "virtual_interfaces": [virtual_controller_interface],
     }
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         Controller.model_validate(
             {
                 "controller_metadata": embedded_metadata_entry,
@@ -67,3 +68,5 @@ def test_negative_controller_interface_wrong_mac(
                 "ethernet_interfaces": [{"name": "interface_test", "interface_config": ctrl_interface}],
             }
         )
+
+    assert_single_error(exc_info, None, "Must have the format xx-xx-xx-xx-xx-xx")

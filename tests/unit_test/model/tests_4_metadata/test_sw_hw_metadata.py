@@ -24,6 +24,7 @@ def test_hardware_metadata_optional_fields():
     )
     assert hw.supplier == "My-HW-Supplier"
     assert hw.product_id == "ABC-123"
+    assert isinstance(hw, HardwareBaseMetadata)
     assert isinstance(hw.version, SemVersion)
 
 

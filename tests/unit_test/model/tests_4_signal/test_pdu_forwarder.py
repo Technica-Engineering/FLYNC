@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from flync.model.flync_4_ecu.can_interface import CANFrameRef, CANInterface
 from flync.model.flync_4_ecu.sockets import DeploymentUnion, SocketUDP
 from flync.model.flync_4_signal.forwarder import CANFrameEgress, CANFrameForwarder, EthSocketEgress, ForwarderEgress, PDUForwarder
+from flync.model.flync_4_signal.pdu_deployment import PDUReceiver, PDUSender
 from tests.error_assertions import assert_single_error
 
 
@@ -65,6 +66,7 @@ def test_positive_pdu_forwarder_constructs_without_registry():
     )
     assert fwd.pdu_ref == "PDU_Anything"
     assert len(fwd.egresses) == 1
+    assert isinstance(fwd, PDUForwarder)
 
 
 def test_positive_pdu_forwarder_different_egress_targets_ok():
@@ -77,6 +79,7 @@ def test_positive_pdu_forwarder_different_egress_targets_ok():
         ],
     )
     assert len(fwd.egresses) == 3
+    assert isinstance(fwd, PDUForwarder)
 
 
 def test_positive_deployment_union_dispatches_pdu_forwarder():
@@ -98,6 +101,8 @@ def test_positive_deployment_union_existing_variants_unaffected():
     receiver = DeploymentUnion.model_validate({"deployment_type": "pdu_receiver", "pdu_ref": "Y"})
     assert sender.root.deployment_type == "pdu_sender"
     assert receiver.root.deployment_type == "pdu_receiver"
+    assert isinstance(sender.root, PDUSender)
+    assert isinstance(receiver.root, PDUReceiver)
 
 
 def test_positive_forwarder_egress_dispatches_both_kinds():
@@ -251,6 +256,7 @@ def test_positive_can_interface_receiver_and_forwarder_coexist():
     )
     assert iface.receiver_frames[0].frame_ref == 0x101
     assert iface.forwarder_frames[0].frame_ref == "Frame_X"
+    assert isinstance(iface, CANInterface)
 
 
 def _build_socket_with_deployments(deployments: list) -> SocketUDP:
@@ -279,3 +285,4 @@ def test_positive_socket_forwarder_and_receiver_for_same_pdu_coexist():
     sk = _build_socket_with_deployments(deployments)
     types = sorted(d.root.deployment_type for d in (sk.deployments or []))
     assert types == ["pdu_forwarder", "pdu_receiver"]
+    assert isinstance(sk, SocketUDP)

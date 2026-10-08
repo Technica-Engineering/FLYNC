@@ -84,3 +84,4 @@ def test_switch_flooded(tmpdir, example_workspace_path):
         if v.id == 40:
             mcast_addresses = [str(m.address) for m in v.multicast]
             assert "224.0.0.1" in mcast_addresses
+    assert isinstance(switch, Switch)

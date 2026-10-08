@@ -85,12 +85,14 @@ def test_doip_discovery_deployment_defaults():
     assert dep.vehicle_identification is True
     assert dep.vehicle_announcement is True
     assert dep.name is None
+    assert isinstance(dep, DoIPDiscoveryDeployment)
 
 
 @pytest.mark.parametrize("logical_address", [0x0000, 0xFFFF])
 def test_doip_server_logical_address_boundaries_accepted(logical_address):
     dep = DoIPServerDeployment(name="e", logical_address=logical_address, uds_server="EngineEcuDiagnostic")
     assert dep.logical_address == logical_address
+    assert isinstance(dep, DoIPServerDeployment)
 
 
 def test_doip_server_logical_address_out_of_range_rejected():

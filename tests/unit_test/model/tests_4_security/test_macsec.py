@@ -344,6 +344,7 @@ def test_positive_integrity_with_confidentiality_xpn_offset_0(cipher_suite):
         cipher_suite=cipher_suite,
         confidentiality_offset=0,
     )
+    assert isinstance(config, IntegrityWithConfidentiality)
     assert config.xpn() is True
     assert config.confidentiality_offset == 0
 
@@ -392,12 +393,14 @@ def test_positive_mka_disabled_with_disabled_macsec_mode():
     config = MACsecConfig.model_validate(_macsec_config({"mka_enabled": False, "macsec_mode": "disabled"}))
     assert config.mka_enabled is False
     assert config.macsec_mode == "disabled"
+    assert isinstance(config, MACsecConfig)
 
 
 def test_positive_mka_enabled_with_non_disabled_macsec_mode():
     config = MACsecConfig.model_validate(_macsec_config({"mka_enabled": True, "macsec_mode": "integrity"}))
     assert config.mka_enabled is True
     assert config.macsec_mode == "integrity"
+    assert isinstance(config, MACsecConfig)
 
 
 def test_negative_life_time_less_than_hello_time():
@@ -415,6 +418,7 @@ def test_negative_life_time_less_than_hello_time():
 def test_positive_life_time_at_least_hello_time(life_time, hello_time):
     config = MACsecConfig.model_validate(_macsec_config({"life_time": life_time, "hello_time": hello_time}))
     assert config.life_time >= config.hello_time
+    assert isinstance(config, MACsecConfig)
 
 
 def test_replay_protection_window_defaults_to_zero_no_finding():
@@ -431,6 +435,7 @@ def test_positive_mac_address_bypass_defaults_to_empty():
     config = MACsecConfig.model_validate(_macsec_config())
     assert config.src_mac_address_bypass == []
     assert config.dest_mac_address_bypass == []
+    assert isinstance(config, MACsecConfig)
 
 
 def test_positive_mac_address_bypass():
@@ -471,6 +476,7 @@ def test_cn_required_missing_rejected():
 def test_positive_ckn(ckn):
     config = MACsecConfig.model_validate(_macsec_config({"ckn": ckn}))
     assert config.ckn == ckn
+    assert isinstance(config, MACsecConfig)
 
 
 @pytest.mark.parametrize("ckn", ["", "a" * 33], ids=["empty", "over-32"])
@@ -489,7 +495,7 @@ def test_negative_ckn_non_octet():
 
 def test_positive_ckn_allows_utf8_boundary_octet():
     config = MACsecConfig.model_validate(_macsec_config({"ckn": "\u00ff"}))
-    config.ckn == "\u00ff"
+    assert isinstance(config, MACsecConfig)
 
 
 def test_ckn_to_byte_array():

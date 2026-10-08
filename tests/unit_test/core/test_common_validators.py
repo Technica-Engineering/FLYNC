@@ -8,6 +8,7 @@ from flync.core.validators.connection_compatibility import (
     validate_macsec,
     validate_optional_mii_config_compatibility,
 )
+from tests.error_assertions import assert_bind_error
 
 
 def _mii(mode, speed=100, mii_type="mii"):
@@ -51,7 +52,7 @@ class TestValidateOptionalMIIConfigCompatibility:
         with pytest.raises(PydanticCustomError) as exc_info:
             validate_optional_mii_config_compatibility(comp1, comp2, "conn1")
 
-        assert exc_info.value.context["error_id"] == "FLYNC-CMN-MAJ-COMP-012"
+        assert_bind_error(exc_info, "FLYNC-CMN-MAJ-COMP-012", "Both or None of the components should have a MII config")
 
     def test_compatible_pair_is_accepted(self):
         comp1 = _component("a", mii_config=_mii("mac"))
@@ -60,21 +61,21 @@ class TestValidateOptionalMIIConfigCompatibility:
         assert validate_optional_mii_config_compatibility(comp1, comp2, "conn1") is None
 
     @pytest.mark.parametrize(
-        "mii1, mii2, expected_error_id",
+        "mii1, mii2, expected_error_id, message_fragment",
         [
-            (_mii("mac"), _mii("mac"), "FLYNC-CMN-MAJ-COMP-013"),
-            (_mii("mac"), _mii("phy", speed=1000), "FLYNC-CMN-MAJ-COMP-014"),
-            (_mii("mac"), _mii("phy", mii_type="rmii"), "FLYNC-CMN-MAJ-COMP-015"),
+            (_mii("mac"), _mii("mac"), "FLYNC-CMN-MAJ-COMP-013", "Incompatible MII Mode"),
+            (_mii("mac"), _mii("phy", speed=1000), "FLYNC-CMN-MAJ-COMP-014", "Incompatible MII Speed"),
+            (_mii("mac"), _mii("phy", mii_type="rmii"), "FLYNC-CMN-MAJ-COMP-015", "Incompatible MII Type"),
         ],
     )
-    def test_incompatible_pair_raises(self, mii1, mii2, expected_error_id):
+    def test_incompatible_pair_raises(self, mii1, mii2, expected_error_id, message_fragment):
         comp1 = _component("a", mii_config=mii1)
         comp2 = _component("b", mii_config=mii2)
 
         with pytest.raises(PydanticCustomError) as exc_info:
             validate_optional_mii_config_compatibility(comp1, comp2, "conn1")
 
-        assert exc_info.value.context["error_id"] == expected_error_id
+        assert_bind_error(exc_info, expected_error_id, message_fragment)
 
 
 class TestValidateMacsec:
@@ -102,10 +103,11 @@ class TestValidateMacsec:
         with pytest.raises(PydanticCustomError) as exc_info:
             validate_macsec(comp1, comp2, "conn1")
 
-        assert exc_info.value.context["error_id"] == "FLYNC-CMN-MAJ-COMP-018"
-        message = str(exc_info.value)
-        assert f"{configured_name} has a macsec config" in message
-        assert f"but {unconfigured_name} does not" in message
+        assert_bind_error(
+            exc_info,
+            "FLYNC-CMN-MAJ-COMP-018",
+            f"{configured_name} has a macsec config but {unconfigured_name} does not",
+        )
 
     def test_matching_pair_is_accepted(self):
         comp1 = _component("a", macsec_config=_macsec())
@@ -114,20 +116,25 @@ class TestValidateMacsec:
         assert validate_macsec(comp1, comp2, "conn1") is None
 
     @pytest.mark.parametrize(
-        "macsec1, macsec2, expected_error_id",
+        "macsec1, macsec2, expected_error_id, message_fragment",
         [
-            (_macsec(mka_enabled=True), _macsec(mka_enabled=False), "FLYNC-CMN-MAJ-COMP-019"),
-            (_macsec(macsec_mode="integrity"), _macsec(macsec_mode="confidentiality"), "FLYNC-CMN-MAJ-COMP-020"),
+            (_macsec(mka_enabled=True), _macsec(mka_enabled=False), "FLYNC-CMN-MAJ-COMP-019", "MACsec should be enabled in both"),
+            (
+                _macsec(macsec_mode="integrity"),
+                _macsec(macsec_mode="confidentiality"),
+                "FLYNC-CMN-MAJ-COMP-020",
+                "should have the same macsec_mode",
+            ),
         ],
     )
-    def test_incompatible_pair_raises(self, macsec1, macsec2, expected_error_id):
+    def test_incompatible_pair_raises(self, macsec1, macsec2, expected_error_id, message_fragment):
         comp1 = _component("a", macsec_config=macsec1)
         comp2 = _component("b", macsec_config=macsec2)
 
         with pytest.raises(PydanticCustomError) as exc_info:
             validate_macsec(comp1, comp2, "conn1")
 
-        assert exc_info.value.context["error_id"] == expected_error_id
+        assert_bind_error(exc_info, expected_error_id, message_fragment)
 
 
 class TestValidateGptp:
@@ -155,7 +162,7 @@ class TestValidateGptp:
         with pytest.raises(PydanticCustomError) as exc_info:
             validate_gptp(comp1, comp2, "conn1")
 
-        assert exc_info.value.context["error_id"] == "FLYNC-CMN-MAJ-COMP-021"
+        assert_bind_error(exc_info, "FLYNC-CMN-MAJ-COMP-021", "PTP config not present in either")
 
     def test_cmlds_mismatch_raises(self):
         comp1 = _component("a", ptp_config=_ptp(cmlds_linkport_enabled=True))
@@ -164,4 +171,4 @@ class TestValidateGptp:
         with pytest.raises(PydanticCustomError) as exc_info:
             validate_gptp(comp1, comp2, "conn1")
 
-        assert exc_info.value.context["error_id"] == "FLYNC-CMN-MAJ-COMP-022"
+        assert_bind_error(exc_info, "FLYNC-CMN-MAJ-COMP-022", "CMLDS mismatch")

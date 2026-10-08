@@ -396,6 +396,7 @@ def test_htb():
     }
 
     assert HTBInstance.model_validate(htb_instance)
+    assert isinstance(HTBInstance.model_validate(htb_instance), HTBInstance)
 
 
 class Test_FrameFilter_Ethertype:
@@ -413,6 +414,7 @@ class Test_FrameFilter_Ethertype:
         """Test FrameFilter accepts Ethertypes enum value directly."""
         frame_filter = FrameFilter(ethertype=ethertype)
         assert frame_filter.ethertype == Ethertype.AVTP
+        assert isinstance(frame_filter, FrameFilter)
 
     @pytest.mark.parametrize(
         "ethertype",
@@ -443,6 +445,7 @@ class Test_FrameFilter_Ethertype:
         assert len(frame_filter.ethertype) == len(assert_type)
         for i in range(len(assert_type)):
             assert frame_filter.ethertype[i] == assert_type[i]
+        assert isinstance(frame_filter, FrameFilter)
 
     @pytest.mark.parametrize(
         "ethertype, assert_serialized",
@@ -464,8 +467,10 @@ class Test_FrameFilter_Ethertype:
         """Test FrameFilter allows ethertype to be None (optional)."""
         frame_filter = FrameFilter(ethertype=None)
         assert frame_filter.ethertype is None
+        assert isinstance(frame_filter, FrameFilter)
 
     def test_positive_framefilter_ethertype_not_specified(self):
         """Test FrameFilter defaults ethertype to None when not specified."""
         frame_filter = FrameFilter()
         assert frame_filter.ethertype is None
+        assert isinstance(frame_filter, FrameFilter)

@@ -28,6 +28,11 @@ def test_positive_udp_socket():
     }
     udp_example = SocketUDP.model_validate(udp_socket)
     assert isinstance(udp_example, SocketUDP)
+    assert str(udp_example.endpoint_address) == "10.0.0.1"
+    assert udp_example.name == "my_socket"
+    assert udp_example.port_no == 123
+    assert udp_example.protocol == "udp"
+    assert udp_example.udp_options.udp_cork is False
 
 
 @pytest.mark.parametrize(
@@ -122,6 +127,11 @@ def test_positive_tcp_socket():
     }
     tcp_example = SocketTCP.model_validate(tcp_socket)
     assert isinstance(tcp_example, SocketTCP)
+    assert str(tcp_example.endpoint_address) == "10.0.0.1"
+    assert tcp_example.name == "my_socket"
+    assert tcp_example.port_no == 123
+    assert tcp_example.protocol == "tcp"
+    assert tcp_example.tcp_profile == 1
 
 
 @pytest.mark.parametrize(
@@ -274,6 +284,7 @@ def test_positive_tcp_options(tcp_options):
 
     tcp_options_example = TCPOption.model_validate(tcp_options)
     assert isinstance(tcp_options_example, TCPOption)
+    assert tcp_options_example.tcp_profile_id == 1
 
 
 def test_positive_tcp_profile_invalid():
@@ -287,16 +298,22 @@ def test_positive_tcp_profile_invalid():
     }
     tcp_example = SocketTCP.model_validate(tcp_socket)
     assert isinstance(tcp_example, SocketTCP)
+    assert str(tcp_example.endpoint_address) == "10.0.0.1"
+    assert tcp_example.name == "my_socket"
+    assert tcp_example.port_no == 123
+    assert tcp_example.protocol == "tcp"
+    assert tcp_example.tcp_profile == 3
 
 
 @pytest.mark.parametrize(
-    "tcp_options",
+    "tcp_options, expected_fragment",
     [
         pytest.param(
             {
                 "tcp_profile_id": 1,
                 "no_delay": "Off",
             },
+            "Extra inputs are not permitted",
             id="Test No delay",
         ),
         pytest.param(
@@ -304,6 +321,7 @@ def test_positive_tcp_profile_invalid():
                 "tcp_profile_id": 1,
                 "keepalive_enabled": "Off",
             },
+            "Input should be a valid boolean",
             id="Test Keepalive enabled",
         ),
         pytest.param(
@@ -311,6 +329,7 @@ def test_positive_tcp_profile_invalid():
                 "tcp_profile_id": 1,
                 "keepidle": "five",
             },
+            "Input should be a valid integer",
             id="Test Keep Idle",
         ),
         pytest.param(
@@ -318,6 +337,7 @@ def test_positive_tcp_profile_invalid():
                 "tcp_profile_id": 1,
                 "keepcount": "five",
             },
+            "Input should be a valid integer",
             id="Test Keep count",
         ),
         pytest.param(
@@ -325,6 +345,7 @@ def test_positive_tcp_profile_invalid():
                 "tcp_profile_id": 1,
                 "keepintvl": "one",
             },
+            "Input should be a valid integer",
             id="Test Keep Interval",
         ),
         pytest.param(
@@ -332,6 +353,7 @@ def test_positive_tcp_profile_invalid():
                 "tcp_profile_id": 1,
                 "user_timeout": "fourteen",
             },
+            "Input should be a valid integer",
             id="Test User timeout",
         ),
         pytest.param(
@@ -339,6 +361,7 @@ def test_positive_tcp_profile_invalid():
                 "tcp_profile_id": 1,
                 "congestion_avoidance": "cuboid",
             },
+            "Input should be 'reno', 'cubic' or 'bbr'",
             id="Test Congestion avoidance",
         ),
         pytest.param(
@@ -346,6 +369,7 @@ def test_positive_tcp_profile_invalid():
                 "tcp_profile_id": 1,
                 "tcp_maxseg": "2 thousand",
             },
+            "Input should be a valid integer",
             id="Test Max Segment",
         ),
         pytest.param(
@@ -353,6 +377,7 @@ def test_positive_tcp_profile_invalid():
                 "tcp_profile_id": 1,
                 "tcp_quickack": "no",
             },
+            "Input should be a valid boolean",
             id="Test Quickack",
         ),
         pytest.param(
@@ -360,10 +385,12 @@ def test_positive_tcp_profile_invalid():
                 "tcp_profile_id": 1,
                 "tcp_syncnt": "four",
             },
+            "Input should be a valid integer",
             id="Test SYNC retries",
         ),
         pytest.param(
             {"tcp_syncnt": 4},
+            "Field required",
             id="No TCP profile",
         ),
         pytest.param(
@@ -371,22 +398,32 @@ def test_positive_tcp_profile_invalid():
                 "tcp_profile_id": 1,
                 "tcp_ack_retries": 4,
             },
+            "Extra inputs are not permitted",
             id="Extra input",
         ),
     ],
 )
-def test_negative_tcp_options(tcp_options):
+def test_negative_tcp_options(tcp_options, expected_fragment):
 
-    with pytest.raises(ValidationError) as e:
+    with pytest.raises(ValidationError) as exc_info:
         TCPOption.model_validate(tcp_options)
+    assert_single_error(exc_info, None, expected_fragment)
 
 
 def test_tcp_socket_is_instance_of_socket(tcp_socket_entry_ipv4):
     assert isinstance(tcp_socket_entry_ipv4, Socket)
+    assert str(tcp_socket_entry_ipv4.endpoint_address) == "10.0.1.1"
+    assert tcp_socket_entry_ipv4.name == "my_socket"
+    assert tcp_socket_entry_ipv4.port_no == 4400
+    assert tcp_socket_entry_ipv4.protocol == "tcp"
 
 
 def test_udp_socket_is_instance_of_socket(udp_socket_entry_ipv4):
     assert isinstance(udp_socket_entry_ipv4, Socket)
+    assert str(udp_socket_entry_ipv4.endpoint_address) == "10.0.1.1"
+    assert udp_socket_entry_ipv4.name == "my_socket"
+    assert udp_socket_entry_ipv4.port_no == 4400
+    assert udp_socket_entry_ipv4.protocol == "udp"
 
 
 def test_ipv4_address_endpoint_with_tcp_and_udp_sockets(tcp_socket_entry_ipv4, udp_socket_entry_ipv4):
@@ -397,6 +434,11 @@ def test_ipv4_address_endpoint_with_tcp_and_udp_sockets(tcp_socket_entry_ipv4, u
     }
     ip_obj = IPv4AddressEndpoint.model_validate(ip_obj)
     assert isinstance(ip_obj, IPv4AddressEndpoint)
+    assert str(ip_obj.address) == "10.0.1.1"
+    assert str(ip_obj.ipv4netmask) == "224.0.0.1"
+    assert len(ip_obj.sockets) == 2
+    assert {s.protocol for s in ip_obj.sockets} == {"tcp", "udp"}
+    assert all(str(s.endpoint_address) == "10.0.1.1" for s in ip_obj.sockets)
 
 
 def test_ipv6_address_endpoint_with_tcp_and_udp_sockets(tcp_socket_entry_ipv6, udp_socket_entry_ipv6):
@@ -407,6 +449,11 @@ def test_ipv6_address_endpoint_with_tcp_and_udp_sockets(tcp_socket_entry_ipv6, u
     }
     ip_obj = IPv6AddressEndpoint.model_validate(ip_obj)
     assert isinstance(ip_obj, IPv6AddressEndpoint)
+    assert str(ip_obj.address) == "2001:db8:85a3::8a2e:370:7334"
+    assert ip_obj.ipv6prefix == 64
+    assert len(ip_obj.sockets) == 2
+    assert {s.protocol for s in ip_obj.sockets} == {"tcp", "udp"}
+    assert all(str(s.endpoint_address) == "2001:db8:85a3::8a2e:370:7334" for s in ip_obj.sockets)
 
 
 def test_negative_ipv4_address_endpoint_with_tcp_and_udp_sockets(tcp_socket_entry_ipv6, udp_socket_entry_ipv6):
@@ -415,8 +462,9 @@ def test_negative_ipv4_address_endpoint_with_tcp_and_udp_sockets(tcp_socket_entr
         "ipv4netmask": "224.0.0.1",
         "sockets": [tcp_socket_entry_ipv6, udp_socket_entry_ipv6],
     }
-    with pytest.raises(ValidationError) as e:
-        ip_obj = IPv4AddressEndpoint.model_validate(ip_obj)
+    with pytest.raises(ValidationError) as exc_info:
+        IPv4AddressEndpoint.model_validate(ip_obj)
+    assert_single_error(exc_info, "FLYNC-ECU-MIN-CONS-085", "Sockets must be tied to the same address as the IPv4 endpoint.")
 
 
 def test_negative_ipv6_address_endpoint_with_tcp_and_udp_sockets(tcp_socket_entry_ipv4, udp_socket_entry_ipv4):
@@ -425,8 +473,9 @@ def test_negative_ipv6_address_endpoint_with_tcp_and_udp_sockets(tcp_socket_entr
         "ipv6prefix": 64,
         "sockets": [tcp_socket_entry_ipv4, udp_socket_entry_ipv4],
     }
-    with pytest.raises(ValidationError) as e:
-        ip_obj = IPv6AddressEndpoint.model_validate(ip_obj)
+    with pytest.raises(ValidationError) as exc_info:
+        IPv6AddressEndpoint.model_validate(ip_obj)
+    assert_single_error(exc_info, "FLYNC-ECU-MIN-CONS-086", "Sockets must be tied to the same address as the IPv6 endpoint.")
 
 
 @pytest.mark.parametrize(
@@ -473,6 +522,12 @@ def test_sockets_deployments(
     }
     udp_example = SocketUDP.model_validate(udp_socket)
     assert isinstance(udp_example, Socket)
+    assert str(udp_example.endpoint_address) == "10.0.0.1"
+    assert udp_example.name == "my_socket"
+    assert udp_example.port_no == 123
+    assert udp_example.protocol == "udp"
+    assert udp_example.udp_options.udp_cork is False
+    assert len(udp_example.deployments) == 1
 
 
 def test_someip_consumer_rejects_unknown_multicast_field():

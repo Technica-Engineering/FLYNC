@@ -8,6 +8,8 @@ covers the file layout and the whole validator chain in order.  What each rule r
 
 import pytest
 
+from flync.model.flync_4_ecu.port import ECUPort
+from flync.model.flync_4_topology.ethernet_multidrop import EthernetMultidropConnection
 from flync.sdk.context.diagnostics_result import WorkspaceState
 from flync.sdk.helpers.validation_helpers import validate_workspace
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
@@ -33,6 +35,7 @@ def _messages(validation):
 
 def test_the_segment_loads_as_one_connection_with_four_nodes(connection):
     assert connection is not None
+    assert isinstance(connection, EthernetMultidropConnection)
     assert connection.type == "ethernet_multidrop"
     assert len(connection.nodes) == 4
     assert connection.plca.transmit_opportunity_count == 4
@@ -56,6 +59,7 @@ def test_every_node_resolves_to_a_multidrop_port_on_its_own_ecu(connection):
 
     for node in connection.nodes:
         assert node.ecu_port is not None, node.ecu_port_name
+        assert isinstance(node.ecu_port, ECUPort), node.ecu_port_name
         assert node.ecu_port.mdi_config.mode == "base_t1s"
         assert node.ecu_port.mdi_config.topology == "multidrop"
         assert node.ecu_name is not None
