@@ -92,8 +92,7 @@ def _iter_sockets_on_controller(controller: Controller):
 
     for eth_iface in controller.ethernet_interfaces or []:
         for socket_container in eth_iface.sockets or []:
-            for socket in socket_container.sockets or []:
-                yield socket
+            yield from socket_container.sockets or []
 
 
 def _iter_pdu_forwarders_on_socket(socket: Socket):

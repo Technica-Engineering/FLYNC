@@ -119,8 +119,9 @@ def test_negative_can_pdu_with_spn_rejected():
         baud_rate=500000,
         frames=[CANFrame(name="Frame_Bad", length=8, can_id=0x100, id_format="standard_11bit", packed_pdus=[PDUInstance(pdu_ref=pdu.name)])],
     )
+    can_interfaces = [CANInterface(name="CAN_IF_1", bus_ref="PowertrainCAN")]
     with pytest.raises(ValidationError) as exc_info:
-        _wrap(pdus=[pdu], buses=[bus], can_interfaces=[CANInterface(name="CAN_IF_1", bus_ref="PowertrainCAN")])
+        _wrap(pdus=[pdu], buses=[bus], can_interfaces=can_interfaces)
     assert_single_error(exc_info, "FLYNC-GEN-MAJ-CONS-367", "must not carry SPN (SPN is only allowed on J1939 PDUs)")
 
 
@@ -144,8 +145,9 @@ def test_negative_j1939_frame_on_non_j1939_bus_rejected():
     pdu = _make_pdu("PDU_EBC1", spn=521)
     bus = CANBus(name="J1939BusCAN", baud_rate=250000, frames=[_make_j1939_frame("Frame_EBC1", pdu.name)])
     other = CANBus(name="OtherCAN", baud_rate=500000)
+    can_interfaces = [_j1939_iface("OtherCAN")]
     with pytest.raises(ValidationError) as exc_info:
-        _wrap(pdus=[pdu], buses=[bus, other], can_interfaces=[_j1939_iface("OtherCAN")])
+        _wrap(pdus=[pdu], buses=[bus, other], can_interfaces=can_interfaces)
     assert_single_error(exc_info, "FLYNC-GEN-MAJ-CONS-368", "not attached through any J1939-capable CAN interface, but it carries J1939 frame")
 
 
@@ -161,8 +163,9 @@ def test_negative_can_frame_on_j1939_referenced_bus_rejected():
             CANFrame(name="Frame_Plain", length=8, can_id=0x200, id_format="standard_11bit", packed_pdus=[PDUInstance(pdu_ref=pdu.name)]),
         ],
     )
+    can_interfaces = [_j1939_iface("J1939BusCAN")]
     with pytest.raises(ValidationError) as exc_info:
-        _wrap(pdus=[pdu, j1939_pdu], buses=[bus], can_interfaces=[_j1939_iface("J1939BusCAN")])
+        _wrap(pdus=[pdu, j1939_pdu], buses=[bus], can_interfaces=can_interfaces)
     assert_single_error(exc_info, "FLYNC-GEN-MAJ-CONS-369", "attached through a J1939-capable CAN interface but carries non-J1939 frame(s)")
 
 
@@ -185,8 +188,10 @@ def test_negative_j1939_interface_unresolved_bus_ref_rejected():
             )
         ],
     )
+    pdus = [_make_pdu("PDU_Plain", None)]
+    can_interfaces = [_j1939_iface("GhostBus")]
     with pytest.raises(ValidationError) as exc_info:
-        _wrap(pdus=[_make_pdu("PDU_Plain", None)], buses=[bus], can_interfaces=[_j1939_iface("GhostBus")])
+        _wrap(pdus=pdus, buses=[bus], can_interfaces=can_interfaces)
     assert_single_error(
         exc_info, "FLYNC-CMN-MAJ-REF-215", "bus_ref 'GhostBus' does not name any bus declared under communication.channels.can_buses"
     )
@@ -200,8 +205,9 @@ def test_negative_j1939_duplicate_pgn_rejected():
         baud_rate=250000,
         frames=[_make_j1939_frame("Frame_A", pdu.name), _make_j1939_frame("Frame_B", pdu.name)],
     )
+    can_interfaces = [_j1939_iface("J1939BusCAN")]
     with pytest.raises(ValidationError) as exc_info:
-        _wrap(pdus=[pdu], buses=[bus], can_interfaces=[_j1939_iface("J1939BusCAN")])
+        _wrap(pdus=[pdu], buses=[bus], can_interfaces=can_interfaces)
     assert_single_error(exc_info, "FLYNC-GEN-MAJ-UNIQ-346", "duplicated PGN")
 
 
@@ -271,15 +277,12 @@ def test_negative_plain_can_node_on_j1939_bus_rejected():
     """A plain CAN interface attached to a J1939 bus (one carrying J1939 frames) is rejected: FLYNC-GEN-MAJ-CONS-361."""
     pdu = _make_pdu("PDU_EBC1", spn=521)
     bus = CANBus(name="J1939BusCAN", baud_rate=250000, frames=[_make_j1939_frame("Frame_EBC1", pdu.name)])
+    can_interfaces = [
+        _j1939_iface("J1939BusCAN"),
+        CANInterface(name="Plain_Node", bus_ref="J1939BusCAN"),
+    ]
     with pytest.raises(ValidationError) as exc_info:
-        _wrap(
-            pdus=[pdu],
-            buses=[bus],
-            can_interfaces=[
-                _j1939_iface("J1939BusCAN"),
-                CANInterface(name="Plain_Node", bus_ref="J1939BusCAN"),
-            ],
-        )
+        _wrap(pdus=[pdu], buses=[bus], can_interfaces=can_interfaces)
     assert_single_error(exc_info, "FLYNC-GEN-MAJ-CONS-361", "node(s) Plain_Node attached to them are missing j1939_name")
 
 

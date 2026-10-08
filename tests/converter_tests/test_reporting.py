@@ -251,9 +251,10 @@ def test_logger_listed_by_both_converters_reaches_both_folders(tmp_path, loggers
 
 
 def test_report_records_the_exception_in_the_shared_log(tmp_path, loggers):
-    with pytest.raises(RuntimeError):
-        with ConversionReport(tmp_path, *_converters()) as report:
-            raise RuntimeError("boom")
+    report = ConversionReport(tmp_path, *_converters())
+    boom = RuntimeError("boom")
+    with pytest.raises(RuntimeError), report:
+        raise boom
 
     content = _read(report.path)
     assert "[ERROR] flync_converter: Conversion failed: boom" in content
@@ -264,9 +265,10 @@ def test_report_records_the_exception_in_the_shared_log(tmp_path, loggers):
 def test_report_cleans_up_when_conversion_raises(tmp_path, loggers):
     source, destination = _converters()
     handlers = list(loggers[MAIN_LOGGER].handlers)
-    with pytest.raises(RuntimeError):
-        with ConversionReport(tmp_path, source, destination):
-            raise RuntimeError("boom")
+    report = ConversionReport(tmp_path, source, destination)
+    boom = RuntimeError("boom")
+    with pytest.raises(RuntimeError), report:
+        raise boom
     assert loggers[MAIN_LOGGER].handlers == handlers
     assert destination.report_dir is None
 
@@ -277,9 +279,10 @@ def test_report_exception_does_not_reach_other_handlers(tmp_path, loggers):
     other.emit = seen.append  # type: ignore[method-assign]
     loggers[MAIN_LOGGER].addHandler(other)
 
-    with pytest.raises(RuntimeError):
-        with ConversionReport(tmp_path, *_converters()):
-            raise RuntimeError("boom")
+    report = ConversionReport(tmp_path, *_converters())
+    boom = RuntimeError("boom")
+    with pytest.raises(RuntimeError), report:
+        raise boom
 
     assert not seen
 
@@ -554,7 +557,8 @@ def test_base_converter_defaults():
 def test_converters_get_an_active_report_during_the_conversion(tmp_path, loggers):
     source, destination = _converters()
     with ConversionReport(tmp_path, source, destination):
-        assert source.report.active and destination.report.active
+        assert source.report.active
+        assert destination.report.active
         assert source.report is not destination.report
 
     assert source.report is INACTIVE_REPORT
@@ -605,9 +609,10 @@ def test_shared_report_records_a_successful_conversion(tmp_path, loggers):
 
 
 def test_shared_report_records_a_failure(tmp_path, loggers):
-    with pytest.raises(RuntimeError):
-        with ConversionReport(tmp_path, *_converters()):
-            raise RuntimeError("boom")
+    report = ConversionReport(tmp_path, *_converters())
+    boom = RuntimeError("boom")
+    with pytest.raises(RuntimeError), report:
+        raise boom
 
     shared = yaml.safe_load((reports_root(tmp_path) / "report.yaml").read_text(encoding="utf-8"))
     assert shared["status"] == "failed"
@@ -726,8 +731,9 @@ def test_convert_writes_both_converter_reports_and_the_shared_report(tmp_path, l
 
 
 def test_failing_conversion_keeps_its_own_exception_and_report(tmp_path, loggers):
+    source, destination = _ReportingConverter("src"), _ReportingConverter("dst", fail=True)
     with pytest.raises(RuntimeError, match="the real encode error"):
-        _convert_with(tmp_path, _ReportingConverter("src"), _ReportingConverter("dst", fail=True))
+        _convert_with(tmp_path, source, destination)
 
     reports = reports_root(tmp_path / "dst")
     assert yaml.safe_load((reports / "report.yaml").read_text(encoding="utf-8"))["status"] == "failed"

@@ -525,12 +525,10 @@ RULE / CONSTRAINT: a Layer-2 ECU port joining a PHY
 
 def test_ecu_port_mdi_mii_speed_mismatch_invalid():
     """An ECU port must pair its MDI and MII with compatible link speeds."""
+    mdi_config = BASET1(speed=1000)
+    mii_config = RMII(speed=100, mode="mac")
     with pytest.raises(ValidationError) as exc_info:
-        ECUPort(
-            name="p0",
-            mdi_config=BASET1(speed=1000),
-            mii_config=RMII(speed=100, mode="mac"),
-        )
+        ECUPort(name="p0", mdi_config=mdi_config, mii_config=mii_config)
     assert_single_error(
         exc_info,
         "FLYNC-ECU-MAJ-CONS-081",
@@ -559,14 +557,7 @@ RULE / CONSTRAINT: VLAN IDs are limited to 0-4094
 def test_switch_vlan_id_above_range_invalid():
     """A switch VLAN ID above the 802.1Q 12-bit range (4094) is rejected."""
     with pytest.raises(ValidationError) as exc_info:
-        Switch(
-            name="SW1",
-            switch_config=SwitchConfig(
-                meta=_embedded(),
-                ports=[SwitchPort(name="sp0", silicon_port_no=0, default_vlan_id=1)],
-                vlans=[VLANEntry(name="VLAN10", id=4096, default_priority=0, ports=["sp0"])],
-            ),
-        )
+        VLANEntry(name="VLAN10", id=4096, default_priority=0, ports=["sp0"])
     assert_single_error(
         exc_info,
         "FLYNC-CMN-MIN-VAL-002",
@@ -591,14 +582,7 @@ RULE / CONSTRAINT: VLAN IDs cannot be negative; a
 def test_switch_vlan_id_below_range_invalid():
     """A switch VLAN ID below zero is rejected."""
     with pytest.raises(ValidationError) as exc_info:
-        Switch(
-            name="SW1",
-            switch_config=SwitchConfig(
-                meta=_embedded(),
-                ports=[SwitchPort(name="sp0", silicon_port_no=0, default_vlan_id=1)],
-                vlans=[VLANEntry(name="VLAN10", id=-1, default_priority=0, ports=["sp0"])],
-            ),
-        )
+        VLANEntry(name="VLAN10", id=-1, default_priority=0, ports=["sp0"])
     assert_single_error(exc_info, "FLYNC-CMN-MIN-VAL-002", "got -1")
 
 
@@ -618,18 +602,16 @@ RULE / CONSTRAINT: Layer-2 switch ports must be
 
 def test_switch_duplicate_port_names_invalid():
     """Two switch ports may not share the same name."""
+    switch_config = SwitchConfig(
+        meta=_embedded(),
+        ports=[
+            SwitchPort(name="sp0", silicon_port_no=0, default_vlan_id=1),
+            SwitchPort(name="sp0", silicon_port_no=1, default_vlan_id=1),
+        ],
+        vlans=[],
+    )
     with pytest.raises(ValidationError) as exc_info:
-        Switch(
-            name="SW1",
-            switch_config=SwitchConfig(
-                meta=_embedded(),
-                ports=[
-                    SwitchPort(name="sp0", silicon_port_no=0, default_vlan_id=1),
-                    SwitchPort(name="sp0", silicon_port_no=1, default_vlan_id=1),
-                ],
-                vlans=[],
-            ),
-        )
+        Switch(name="SW1", switch_config=switch_config)
     assert_single_error(exc_info, "FLYNC-CMN-MAJ-UNIQ-009", "Switch Ports (name)")
 
 
@@ -650,18 +632,16 @@ RULE / CONSTRAINT: Layer-2 switch ports must be
 
 def test_switch_duplicate_silicon_ports_invalid():
     """Two switch ports may not share the same silicon port number."""
+    switch_config = SwitchConfig(
+        meta=_embedded(),
+        ports=[
+            SwitchPort(name="sp0", silicon_port_no=0, default_vlan_id=1),
+            SwitchPort(name="sp1", silicon_port_no=0, default_vlan_id=1),
+        ],
+        vlans=[],
+    )
     with pytest.raises(ValidationError) as exc_info:
-        Switch(
-            name="SW1",
-            switch_config=SwitchConfig(
-                meta=_embedded(),
-                ports=[
-                    SwitchPort(name="sp0", silicon_port_no=0, default_vlan_id=1),
-                    SwitchPort(name="sp1", silicon_port_no=0, default_vlan_id=1),
-                ],
-                vlans=[],
-            ),
-        )
+        Switch(name="SW1", switch_config=switch_config)
     assert_single_error(exc_info, "FLYNC-CMN-MAJ-UNIQ-009", "Switch Ports (silicon_port_number)")
 
 
@@ -682,18 +662,16 @@ RULE / CONSTRAINT: a Layer-2 VLAN must map only
 
 def test_switch_vlan_missing_port_invalid():
     """A switch VLAN may only list ports that exist on the switch."""
+    switch_config = SwitchConfig(
+        meta=_embedded(),
+        ports=[
+            SwitchPort(name="sp0", silicon_port_no=0, default_vlan_id=1),
+            SwitchPort(name="sp1", silicon_port_no=1, default_vlan_id=1),
+        ],
+        vlans=[VLANEntry(name="VLAN10", id=10, default_priority=0, ports=["sp0", "no_such_port"])],
+    )
     with pytest.raises(ValidationError) as exc_info:
-        Switch(
-            name="SW1",
-            switch_config=SwitchConfig(
-                meta=_embedded(),
-                ports=[
-                    SwitchPort(name="sp0", silicon_port_no=0, default_vlan_id=1),
-                    SwitchPort(name="sp1", silicon_port_no=1, default_vlan_id=1),
-                ],
-                vlans=[VLANEntry(name="VLAN10", id=10, default_priority=0, ports=["sp0", "no_such_port"])],
-            ),
-        )
+        Switch(name="SW1", switch_config=switch_config)
     assert_single_error(
         exc_info,
         "FLYNC-CMN-MAJ-VAL-025",
@@ -718,29 +696,18 @@ RULE / CONSTRAINT: VLAN IDs on one Ethernet
 
 def test_interface_duplicate_vlan_ids_invalid():
     """A controller interface may not declare two virtual interfaces with the same VLAN ID."""
+    virtual_interfaces = [
+        VirtualControllerInterface(
+            name="viface1",
+            vlanid=10,
+            addresses=[IPv4AddressEndpoint(address="10.0.10.5", ipv4netmask="255.255.255.0")],
+        ),
+        VirtualControllerInterface(
+            name="viface2",
+            vlanid=10,
+            addresses=[IPv4AddressEndpoint(address="10.0.10.6", ipv4netmask="255.255.255.0")],
+        ),
+    ]
     with pytest.raises(ValidationError) as exc_info:
-        Controller(
-            name="CTRL1",
-            controller_metadata=_embedded(),
-            ethernet_interfaces=[
-                EthernetInterface(
-                    name="eth0",
-                    interface_config=EthernetInterfaceConfig(
-                        mac_address="00:11:22:33:44:66",
-                        virtual_interfaces=[
-                            VirtualControllerInterface(
-                                name="viface1",
-                                vlanid=10,
-                                addresses=[IPv4AddressEndpoint(address="10.0.10.5", ipv4netmask="255.255.255.0")],
-                            ),
-                            VirtualControllerInterface(
-                                name="viface2",
-                                vlanid=10,
-                                addresses=[IPv4AddressEndpoint(address="10.0.10.6", ipv4netmask="255.255.255.0")],
-                            ),
-                        ],
-                    ),
-                )
-            ],
-        )
+        EthernetInterfaceConfig(mac_address="00:11:22:33:44:66", virtual_interfaces=virtual_interfaces)
     assert_single_error(exc_info, "FLYNC-CMN-MAJ-UNIQ-009", "VLAN IDs of virtual Controller Interface")

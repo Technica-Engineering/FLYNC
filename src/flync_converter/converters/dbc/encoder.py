@@ -22,6 +22,8 @@ from ...base.converter_report import INACTIVE_REPORT, ConverterReport
 
 logger = logging.getLogger(__name__)
 
+_PDU_NOT_FOUND = "referenced PDU not found"
+
 
 def _value_encoding_choices(signal) -> Optional[OrderedDict[int, str | NamedSignalValue]]:
     """Convert a FLYNC signal ``value_encoding`` into a cantools ``VAL_`` choices dict.
@@ -196,7 +198,7 @@ def _decode_multiplexed_pdu(
         static_offset = bit_pos + (static.bit_position or 0)
         if static_pdu is None:
             logger.warning("Referenced static PDU '%s' not found", static_ref)
-            report.skipped(f"pdus.{pdu.name}.static_group.{static_ref}", reason="referenced PDU not found")
+            report.skipped(f"pdus.{pdu.name}.static_group.{static_ref}", reason=_PDU_NOT_FOUND)
         else:
             ret.extend(decode_pdu(flync_model, static_pdu, static_offset, receivers, pdus, report=report))
 
@@ -206,7 +208,7 @@ def _decode_multiplexed_pdu(
         mux_offset = bit_pos + (group.pdu.bit_position or 0)
         if mux_pdu is None:
             logger.warning("Referenced mux PDU '%s' not found", mux_ref)
-            report.skipped(f"pdus.{pdu.name}.mux_groups.{mux_ref}", reason="referenced PDU not found")
+            report.skipped(f"pdus.{pdu.name}.mux_groups.{mux_ref}", reason=_PDU_NOT_FOUND)
             continue
         for s in mux_pdu.signals:
             ret.append(
@@ -275,7 +277,7 @@ def _build_can_messages(
             pdu_obj = pdus.get(pdu_inst.pdu_ref, None)
             if pdu_obj is None:
                 logger.warning("PDU '%s' packed in frame '%s' not found, skipped", pdu_inst.pdu_ref, frame.name)
-                report.skipped(f"can_buses.{can_bus.name}.frames.{frame.name}.{pdu_inst.pdu_ref}", reason="referenced PDU not found")
+                report.skipped(f"can_buses.{can_bus.name}.frames.{frame.name}.{pdu_inst.pdu_ref}", reason=_PDU_NOT_FOUND)
                 continue
             sigs += decode_pdu(
                 flync_model,

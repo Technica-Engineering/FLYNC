@@ -30,6 +30,13 @@ from .source import SourceRef
 logger = logging.getLogger(__name__)
 
 
+@lru_cache(maxsize=None)
+def _document_id(doc_path: str, workspace_root: Path) -> str:
+    """Return *doc_path* relative to *workspace_root* as a POSIX string (cached, keyed on both arguments)."""
+
+    return Path(doc_path).absolute().relative_to(workspace_root).as_posix()
+
+
 @dataclass
 class ParentLink(object):
     """
@@ -268,19 +275,18 @@ class _WorkspaceBase(object):
                 return key, value
         return None
 
-    @lru_cache(maxsize=None)
-    def document_id_from_path(self, doc_path: str) -> str:
+    def document_id_from_path(self, doc_path: PathType) -> str:
         """
         Return the workspace-relative string identifier for a document path.
 
         Args:
-            doc_path (str): An absolute path to a document file.
+            doc_path (PathType): An absolute path to a document file.
 
         Returns:
             str: The path relative to the workspace root, as a string.
         """
 
-        return Path(doc_path).absolute().relative_to(self.workspace_root).as_posix()  # type: ignore[arg-type]
+        return _document_id(str(doc_path), self.workspace_root)
 
     @staticmethod
     def new_object_path(current_path: str, new_object_name: int | str) -> str:

@@ -73,8 +73,9 @@ def test_negative_j1939_source_address_without_name():
 def test_negative_j1939_frame_refs_without_name_or_address():
     from flync.model.flync_4_ecu.can_interface import J1939FrameRef
 
+    sender_frames = [J1939FrameRef(bus_ref="J1939BusCAN", pgn=1)]
     with pytest.raises(ValidationError) as exc_info:
-        CANInterface(name="bad", bus_ref="J1939BusCAN", j1939_sender_frames=[J1939FrameRef(bus_ref="J1939BusCAN", pgn=1)])
+        CANInterface(name="bad", bus_ref="J1939BusCAN", j1939_sender_frames=sender_frames)
     assert_single_error(exc_info, "FLYNC-ECU-MAJ-REQ-376", "a J1939 node requires a NAME")
 
 

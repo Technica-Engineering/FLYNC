@@ -553,13 +553,12 @@ def test_negative_j1939_frame_zero_length_rejected():
 
 
 def test_negative_j1939_frame_multiple_pdus_rejected():
+    packed_pdus = [
+        PDUInstance(pdu_ref="pdu_nm_1", bit_position=0),
+        PDUInstance(pdu_ref="pdu_nm_2", bit_position=1),
+    ]
     with pytest.raises(ValidationError) as exc_info:
-        _make_j1939_frame(
-            packed_pdus=[
-                PDUInstance(pdu_ref="pdu_nm_1", bit_position=0),
-                PDUInstance(pdu_ref="pdu_nm_2", bit_position=1),
-            ]
-        )
+        _make_j1939_frame(packed_pdus=packed_pdus)
     assert_single_error(exc_info, "FLYNC-SIG-MAJ-CONS-370", "carries exactly one Parameter Group")
 
 
