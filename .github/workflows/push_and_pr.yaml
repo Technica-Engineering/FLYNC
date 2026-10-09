@@ -46,7 +46,7 @@ jobs:
           uv run isort --check --diff --color --line-length 149 src scripts > format-reports/isort-report.diff
 
       - name: Archive artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: isort-artifacts
           path: format-reports
@@ -75,7 +75,7 @@ jobs:
         run: python3 scripts/ci/check_lazy_typing.py
 
       - name: Archive artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: lint-artifacts
           path: flake8-report
@@ -105,7 +105,7 @@ jobs:
           uv run pre-commit run --all-files
 
       - name: Archive artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: lint-artifacts
           path: flake8-report
@@ -133,7 +133,7 @@ jobs:
           uv run mypy src scripts/ci/check_lazy_typing.py --show-error-codes --pretty --install-types --non-interactive | tee type-check-reports/mypy-report.txt
 
       - name: Archive artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: type-check-artifacts
           path: type-check-reports
@@ -162,7 +162,7 @@ jobs:
           uv run python src/flync_cli/main.py errors validate-catalog | tee error-catalog-check/error-catalog-check.txt
 
       - name: Archive artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: error-catalog-artifacts
           path: error-catalog-check
@@ -191,7 +191,7 @@ jobs:
           uv run python scripts/ci/check_model_docstrings.py | tee model-docstring-check/model-docstring-check.txt
 
       - name: Archive artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: model-docstring-artifacts
           path: model-docstring-check
@@ -224,7 +224,7 @@ jobs:
 
       - name: Upload artifacts
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: unit-coverage
           path: |
@@ -263,7 +263,7 @@ jobs:
 
       - name: Upload artifacts
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: system-coverage
           path: |
@@ -300,7 +300,7 @@ jobs:
 
       - name: Upload artifacts
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: cli-coverage
           path: |
@@ -343,7 +343,7 @@ jobs:
 
       - name: Upload artifacts
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: converter-coverage
           path: |
@@ -392,7 +392,7 @@ jobs:
 
       - name: Upload artifacts
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: performance-coverage
           path: |
@@ -419,35 +419,35 @@ jobs:
       # Every download is best-effort: a job that died before its upload step
       # leaves no artifact, and that must not block the partial summary.
       - name: Download unit-tests artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         continue-on-error: true
         with:
           name: unit-coverage
           path: .
 
       - name: Download system-tests artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         continue-on-error: true
         with:
           name: system-coverage
           path: .
 
       - name: Download cli-tests artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         continue-on-error: true
         with:
           name: cli-coverage
           path: .
 
       - name: Download converter-tests artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         continue-on-error: true
         with:
           name: converter-coverage
           path: .
 
       - name: Download performance-tests artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         continue-on-error: true
         with:
           name: performance-coverage
@@ -507,14 +507,14 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
 
       - name: Store Pull Request comment to be posted
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: steps.coverage_comment.outputs.comment_file_written == 'true'
         with:
           name: python-coverage-comment-action
           path: python-coverage-comment-action.txt
 
       - name: Archive artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: pytest-artifacts
           path: |
@@ -587,7 +587,7 @@ jobs:
           make html
 
       - name: Archive artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: documentation-artifacts
           path: docs/build/
