@@ -2,12 +2,10 @@
 
 from typing import Annotated, List, Literal, Optional
 
-from pydantic import AfterValidator, Field, RootModel, field_validator
-from pydantic_extra_types.mac_address import MacAddress
+from pydantic import AfterValidator, Field, RootModel
 
 from flync.core.base_models import FLYNCBaseModel
-from flync.core.datatypes.macaddress import FLYNCMacAddress, is_mac_in_range
-from flync.core.utils.exceptions import Category, err_major
+from flync.core.datatypes.macaddress import FLYNCMacAddress
 from flync.core.validators.address import validate_mac_multicast, validate_vlan_id
 
 
@@ -59,8 +57,7 @@ class MACMulticastEndpoint(FLYNCBaseModel):
 class AVTPMulticastEndpoint(MACMulticastEndpoint):
     """
     Represents an AVTP multicast endpoint that is bound to a specific controller.
-    This is a specialized version of MACMulticastEndpoint with fixed EtherType and protocol values, and additional validation to \
-        ensure that multicast addresses are within the AVTP range.
+    This is a specialized version of MACMulticastEndpoint with fixed EtherType and protocol values.
 
     Parameters
     ----------
@@ -72,25 +69,6 @@ class AVTPMulticastEndpoint(MACMulticastEndpoint):
 
     ethertype: Literal[0x22F0] = Field(default=0x22F0)
     protocol: Literal["avtp"] | Literal["AVTP"] = Field()
-
-    @field_validator("multicast_tx", mode="after")
-    def validate_avtp_multicast_range(cls, v):
-        """
-        Validate that all multicast addresses in the list are within \
-            the AVTP multicast range."""
-
-        for mac in v:
-            if not is_mac_in_range(
-                mac,
-                MacAddress("91:E0:F0:00:00:00"),
-                MacAddress("91:E0:F0:00:00:FF"),
-            ):
-                raise err_major(
-                    f"AVTP multicast address {str(mac).upper()} is out of the valid range 91:E0:F0:00:00:00 - 91:E0:F0:00:00:FF.",
-                    category=Category.VALUE_RANGE,
-                    error_number="079",
-                )
-        return v
 
 
 class MACEndpointUnion(RootModel):

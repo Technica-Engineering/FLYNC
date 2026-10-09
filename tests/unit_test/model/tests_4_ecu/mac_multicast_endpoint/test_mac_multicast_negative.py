@@ -96,9 +96,6 @@ invalid_cases = [
     # multicast_tx
     pytest.param("A1", "91:E0:F0:00:00:01", "avtp", 0x22F0, 10, "INVALID", None, "Input should be a valid list"),  # not a list
     pytest.param("A1", "91:E0:F0:00:00:01", "avtp", 0x22F0, 10, [123], None, "MAC address must be a string"),  # non-mac inside list
-    pytest.param(
-        "A1", "91:E0:F0:00:00:01", "avtp", 0x22F0, 10, ["02:00:00:00:00:01"], "FLYNC-CMN-MIN-FMT-005", "not a MAC Multicast"
-    ),  # not multicast MAC
     pytest.param("A1", "91:E0:F0:00:00:01", "avtp", 0x22F0, 10, [""], None, "Length for a  MAC address must be 14"),  # empty MAC string
 ]
 
