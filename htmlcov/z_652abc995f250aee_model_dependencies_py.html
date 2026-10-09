@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Coverage for src/flync/sdk/utils/model_dependencies.py: 93%</title>
+    <title>Coverage for src/flync/sdk/utils/model_dependencies.py: 92%</title>
     <link rel="icon" sizes="32x32" href="favicon_32_cb_c827f16f.png">
     <link rel="stylesheet" href="style_cb_4667309f.css" type="text/css">
     <script src="coverage_html_cb_15cffcd0.js" defer></script>
@@ -12,7 +12,7 @@
     <div class="content">
         <h1>
             <span class="text">Coverage for </span><b>src<span class="sep">/</span>flync<span class="sep">/</span>sdk<span class="sep">/</span>utils<span class="sep">/</span>model_dependencies.py</b>:
-            <span class="pc_cov">93%</span>
+            <span class="pc_cov">92%</span>
         </h1>
         <aside id="help_panel_wrapper">
             <input id="help_panel_state" type="checkbox">
@@ -54,8 +54,8 @@
             </div>
         </aside>
         <h2>
-            <span class="text">294 statements &nbsp;</span>
-            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">272<span class="text"> run</span></button>
+            <span class="text">293 statements &nbsp;</span>
+            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">271<span class="text"> run</span></button>
             <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">22<span class="text"> missing</span></button>
             <button type="button" class="exc show_exc button_toggle_exc" value="exc" data-shortcut="x" title="Toggle lines excluded">0<span class="text"> excluded</span></button>
         </h2>
@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_652abc995f250aee_model_dumper_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.16.1">coverage.py v7.16.1</a>,
-            created at 2026-10-08 12:33 +0000
+            created at 2026-10-09 07:24 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -851,13 +851,12 @@
     <p class="pln"><span class="n"><a id="t769" href="#t769">769</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t770" href="#t770">770</a></span><span class="t">    <span class="nam">shelv_location</span><span class="op">,</span> <span class="nam">shelv_file_name</span> <span class="op">=</span> <span class="nam">cleanup_old_caches</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t771" href="#t771">771</a></span><span class="t">    <span class="nam">lock_path</span> <span class="op">=</span> <span class="nam">join</span><span class="op">(</span><span class="nam">shelv_location</span><span class="op">,</span> <span class="nam">shelv_file_name</span> <span class="op">+</span> <span class="str">&quot;.lock&quot;</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t772" href="#t772">772</a></span><span class="t">    <span class="key">with</span> <span class="nam">FileLock</span><span class="op">(</span><span class="nam">lock_path</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t773" href="#t773">773</a></span><span class="t">        <span class="key">with</span> <span class="nam">shelve</span><span class="op">.</span><span class="nam">open</span><span class="op">(</span><span class="nam">join</span><span class="op">(</span><span class="nam">shelv_location</span><span class="op">,</span> <span class="nam">shelv_file_name</span><span class="op">)</span><span class="op">)</span> <span class="key">as</span> <span class="nam">cache</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t774" href="#t774">774</a></span><span class="t">            <span class="key">if</span> <span class="nam">key</span> <span class="key">not</span> <span class="key">in</span> <span class="nam">cache</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t775" href="#t775">775</a></span><span class="t">                <span class="nam">cache</span><span class="op">[</span><span class="nam">key</span><span class="op">]</span> <span class="op">=</span> <span class="nam">ModelDependencyGraph</span><span class="op">(</span><span class="nam">root</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t776" href="#t776">776</a></span><span class="t">            <span class="nam">graph</span> <span class="op">=</span> <span class="nam">cache</span><span class="op">[</span><span class="nam">key</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t777" href="#t777">777</a></span><span class="t">    <span class="nam">_graph_cache</span><span class="op">[</span><span class="nam">key</span><span class="op">]</span> <span class="op">=</span> <span class="nam">graph</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t778" href="#t778">778</a></span><span class="t">    <span class="key">return</span> <span class="nam">graph</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t772" href="#t772">772</a></span><span class="t">    <span class="key">with</span> <span class="nam">FileLock</span><span class="op">(</span><span class="nam">lock_path</span><span class="op">)</span><span class="op">,</span> <span class="nam">shelve</span><span class="op">.</span><span class="nam">open</span><span class="op">(</span><span class="nam">join</span><span class="op">(</span><span class="nam">shelv_location</span><span class="op">,</span> <span class="nam">shelv_file_name</span><span class="op">)</span><span class="op">)</span> <span class="key">as</span> <span class="nam">cache</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t773" href="#t773">773</a></span><span class="t">        <span class="key">if</span> <span class="nam">key</span> <span class="key">not</span> <span class="key">in</span> <span class="nam">cache</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t774" href="#t774">774</a></span><span class="t">            <span class="nam">cache</span><span class="op">[</span><span class="nam">key</span><span class="op">]</span> <span class="op">=</span> <span class="nam">ModelDependencyGraph</span><span class="op">(</span><span class="nam">root</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t775" href="#t775">775</a></span><span class="t">        <span class="nam">graph</span> <span class="op">=</span> <span class="nam">cache</span><span class="op">[</span><span class="nam">key</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t776" href="#t776">776</a></span><span class="t">    <span class="nam">_graph_cache</span><span class="op">[</span><span class="nam">key</span><span class="op">]</span> <span class="op">=</span> <span class="nam">graph</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t777" href="#t777">777</a></span><span class="t">    <span class="key">return</span> <span class="nam">graph</span>&nbsp;</span><span class="r"></span></p>
 </main>
 <footer>
     <div class="content">
@@ -867,7 +866,7 @@
             <a class="nav" href="z_652abc995f250aee_model_dumper_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.16.1">coverage.py v7.16.1</a>,
-            created at 2026-10-08 12:33 +0000
+            created at 2026-10-09 07:24 +0000
         </p>
     </div>
 </footer>
