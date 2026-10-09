@@ -2,8 +2,6 @@ import pytest
 from pydantic import ValidationError
 
 from flync.model.flync_4_someip import (
-    SDConfig,
-    SDTimings,
     SOMEIPConfig,
     SOMEIPEvent,
     SOMEIPEventgroup,
@@ -17,31 +15,8 @@ from flync.model.flync_4_someip import (
 from tests.error_assertions import assert_single_error
 
 
-@pytest.mark.parametrize(
-    "input_params",
-    [
-        pytest.param(
-            SOMEIPFireAndForgetMethod(
-                name="f&f",
-                type="fire_and_forget",
-                id=0x123,
-                someip_timing="method_default",
-            )
-        ),
-        pytest.param(
-            SOMEIPFireAndForgetMethod(
-                name="f&f",
-                type="fire_and_forget",
-                id=0x123,
-                someip_timing="method_custom",
-            )
-        ),
-    ],
-)
-def test_implemented_timing_profile(
-    metadata_entry,
-    input_params,
-    someip_sdconfig,
+@pytest.fixture
+def someip_timings(
     someip_event_default_timings_profile,
     someip_field_default_timings_profile,
     someip_method_default_timings_profile,
@@ -49,103 +24,8 @@ def test_implemented_timing_profile(
     someip_field_custom_timings_profile,
     someip_method_custom_timings_profile,
 ):
-
-    f = SOMEIPField(
-        name="a",
-        parameters=[SOMEIPParameter(name="p1", datatype=UInt8())],
-        notifier_id=1,
-        someip_timing="field_default",
-    )
-    e = SOMEIPEvent(
-        name="t",
-        id=2,
-        parameters=[SOMEIPParameter(name="p1", datatype=UInt8())],
-        someip_timing="event_default",
-    )
-
-    m = input_params
-
-    s = SOMEIPServiceInterface(
-        meta=metadata_entry,
-        name="a",
-        id=1,
-        events=[e],
-        fields=[f],
-        methods=[m],
-        eventgroups=[SOMEIPEventgroup(name="eg", id=1, events=[f, e])],
-    )
-    sd_config = SDConfig(
-        ip_address="224.224.224.255",
-        port=30490,
-        sd_timings=[
-            SDTimings(
-                profile_id="default",
-                initial_delay_min=10,
-                initial_delay_max=10,
-                repetitions_base_delay=30,
-                repetitions_max=3,
-                request_response_delay_min=10,
-                request_response_delay_max=10,
-                offer_cyclic_delay=1000,
-                offer_ttl=3,
-                find_ttl=1000,
-                subscribe_ttl=3,
-            )
-        ],
-    )
-
-    config = SOMEIPConfig(
-        services=[s],
-        sd_config=sd_config,
-        someip_timings=SOMEIPTimingProfile(
-            profiles=[
-                someip_event_custom_timings_profile,
-                someip_field_custom_timings_profile,
-                someip_method_custom_timings_profile,
-            ],
-            defaults=[
-                someip_event_default_timings_profile,
-                someip_field_default_timings_profile,
-                someip_method_default_timings_profile,
-            ],
-        ),
-    )
-
-
-def test_field_not_implemented_timing_profile(
-    metadata_entry,
-    someip_sdconfig,
-    someip_event_default_timings_profile,
-    someip_field_default_timings_profile,
-    someip_method_default_timings_profile,
-    someip_event_custom_timings_profile,
-    someip_field_custom_timings_profile,
-    someip_method_custom_timings_profile,
-):
-
-    f = SOMEIPField(
-        name="a",
-        parameters=[SOMEIPParameter(name="p1", datatype=UInt8())],
-        notifier_id=1,
-        someip_timing="field_efault",
-    )
-    e = SOMEIPEvent(
-        name="t",
-        id=2,
-        parameters=[SOMEIPParameter(name="p1", datatype=UInt8())],
-        someip_timing="event_default",
-    )
-    s = SOMEIPServiceInterface(
-        meta=metadata_entry,
-        name="a",
-        id=1,
-        events=[e],
-        fields=[f],
-        eventgroups=[SOMEIPEventgroup(name="eg", id=1, events=[f, e])],
-    )
-    sd_config = someip_sdconfig
-
-    someip_timings = SOMEIPTimingProfile(
+    """The timing catalog every case resolves its ``someip_timing`` references against."""
+    return SOMEIPTimingProfile(
         profiles=[
             someip_event_custom_timings_profile,
             someip_field_custom_timings_profile,
@@ -158,137 +38,75 @@ def test_field_not_implemented_timing_profile(
         ],
     )
 
-    with pytest.raises(ValidationError) as exc_info:
-        SOMEIPConfig(services=[s], sd_config=sd_config, someip_timings=someip_timings)
-    assert_single_error(exc_info, "FLYNC-SOM-MAJ-REF-340", "does not exist in SOMEIPFieldTimings")
+
+def _fire_and_forget_method(someip_timing):
+    """Build the fire-and-forget method whose timing reference is under test."""
+    return SOMEIPFireAndForgetMethod(name="f&f", type="fire_and_forget", id=0x123, someip_timing=someip_timing)
 
 
-def test_event_not_implemented_timing_profile(
-    metadata_entry,
-    someip_sdconfig,
-    someip_event_default_timings_profile,
-    someip_field_default_timings_profile,
-    someip_method_default_timings_profile,
-    someip_event_custom_timings_profile,
-    someip_field_custom_timings_profile,
-    someip_method_custom_timings_profile,
-):
-
-    f = SOMEIPField(
+def _someip_config(metadata_entry, sd_config, someip_timings, field_timing, event_timing, method=None):
+    """Build a one-service SOMEIPConfig whose field, event and method name the given timing profiles."""
+    field = SOMEIPField(
         name="a",
         parameters=[SOMEIPParameter(name="p1", datatype=UInt8())],
         notifier_id=1,
-        someip_timing="field_default",
+        someip_timing=field_timing,
     )
-
-    e = SOMEIPEvent(
+    event = SOMEIPEvent(
         name="t",
         id=2,
         parameters=[SOMEIPParameter(name="p1", datatype=UInt8())],
-        someip_timing="event_efault",
+        someip_timing=event_timing,
     )
-
-    s = SOMEIPServiceInterface(
+    service = SOMEIPServiceInterface(
         meta=metadata_entry,
         name="a",
         id=1,
-        events=[e],
-        fields=[f],
-        eventgroups=[SOMEIPEventgroup(name="eg", id=1, events=[f, e])],
-    )
-    sd_config = someip_sdconfig
-
-    someip_timings = SOMEIPTimingProfile(
-        profiles=[
-            someip_event_custom_timings_profile,
-            someip_field_custom_timings_profile,
-            someip_method_custom_timings_profile,
-        ],
-        defaults=[
-            someip_event_default_timings_profile,
-            someip_field_default_timings_profile,
-            someip_method_default_timings_profile,
-        ],
+        events=[event],
+        fields=[field],
+        methods=[method] if method is not None else [],
+        eventgroups=[SOMEIPEventgroup(name="eg", id=1, events=[field, event])],
     )
 
-    with pytest.raises(ValidationError) as exc_info:
-        SOMEIPConfig(services=[s], sd_config=sd_config, someip_timings=someip_timings)
-    assert_single_error(exc_info, "FLYNC-SOM-MAJ-REF-340", "does not exist in SOMEIPEventTimings")
+    return SOMEIPConfig(services=[service], sd_config=sd_config, someip_timings=someip_timings)
+
+
+@pytest.mark.parametrize("method_timing", ["method_default", "method_custom"])
+def test_implemented_timing_profile(metadata_entry, someip_sdconfig, someip_timings, method_timing):
+    """Timing references that name a declared default or custom profile resolve."""
+
+    config = _someip_config(
+        metadata_entry,
+        someip_sdconfig,
+        someip_timings,
+        field_timing="field_default",
+        event_timing="event_default",
+        method=_fire_and_forget_method(method_timing),
+    )
+
+    assert isinstance(config, SOMEIPConfig)
 
 
 @pytest.mark.parametrize(
-    "input_params",
+    "field_timing, event_timing, method_timing, message",
     [
-        pytest.param(
-            SOMEIPFireAndForgetMethod(
-                name="f&f",
-                type="fire_and_forget",
-                id=0x123,
-                someip_timing="method_efault",
-            )
-        ),
-        pytest.param(
-            SOMEIPFireAndForgetMethod(
-                name="f&f",
-                type="fire_and_forget",
-                id=0x123,
-                someip_timing="method_ustom",
-            )
-        ),
+        pytest.param("field_efault", "event_default", None, "does not exist in SOMEIPFieldTimings", id="field"),
+        pytest.param("field_default", "event_efault", None, "does not exist in SOMEIPEventTimings", id="event"),
+        pytest.param("field_default", "event_default", "method_efault", "does not exist in SOMEIPMethodTimings", id="method_default_typo"),
+        pytest.param("field_default", "event_default", "method_ustom", "does not exist in SOMEIPMethodTimings", id="method_custom_typo"),
     ],
 )
-def test_method_not_implemented_timing_profile(
-    metadata_entry,
-    input_params,
-    someip_sdconfig,
-    someip_event_default_timings_profile,
-    someip_field_default_timings_profile,
-    someip_method_default_timings_profile,
-    someip_event_custom_timings_profile,
-    someip_field_custom_timings_profile,
-    someip_method_custom_timings_profile,
-):
-
-    f = SOMEIPField(
-        name="a",
-        parameters=[SOMEIPParameter(name="p1", datatype=UInt8())],
-        notifier_id=1,
-        someip_timing="field_default",
-    )
-
-    e = SOMEIPEvent(
-        name="t",
-        id=2,
-        parameters=[SOMEIPParameter(name="p1", datatype=UInt8())],
-        someip_timing="event_default",
-    )
-
-    m = input_params
-
-    s = SOMEIPServiceInterface(
-        meta=metadata_entry,
-        name="a",
-        id=1,
-        events=[e],
-        fields=[f],
-        methods=[m],
-        eventgroups=[SOMEIPEventgroup(name="eg", id=1, events=[f, e])],
-    )
-    sd_config = someip_sdconfig
-
-    someip_timings = SOMEIPTimingProfile(
-        profiles=[
-            someip_event_custom_timings_profile,
-            someip_field_custom_timings_profile,
-            someip_method_custom_timings_profile,
-        ],
-        defaults=[
-            someip_event_default_timings_profile,
-            someip_field_default_timings_profile,
-            someip_method_default_timings_profile,
-        ],
-    )
+def test_not_implemented_timing_profile(metadata_entry, someip_sdconfig, someip_timings, field_timing, event_timing, method_timing, message):
+    """A ``someip_timing`` naming no declared profile is rejected, and the message names the timing table it was looked up in."""
 
     with pytest.raises(ValidationError) as exc_info:
-        SOMEIPConfig(services=[s], sd_config=sd_config, someip_timings=someip_timings)
-    assert_single_error(exc_info, "FLYNC-SOM-MAJ-REF-340", "does not exist in SOMEIPMethodTimings")
+        _someip_config(
+            metadata_entry,
+            someip_sdconfig,
+            someip_timings,
+            field_timing=field_timing,
+            event_timing=event_timing,
+            method=_fire_and_forget_method(method_timing) if method_timing is not None else None,
+        )
+
+    assert_single_error(exc_info, "FLYNC-SOM-MAJ-REF-340", message)

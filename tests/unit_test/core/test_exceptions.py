@@ -1,3 +1,4 @@
+import pytest
 from pydantic_core import PydanticCustomError
 
 from flync.core.utils.exceptions import (
@@ -20,17 +21,17 @@ class TestModuleCodeFor:
         assert module_code_for("flync.model.flync_4_tsn.qos") == "TSN"
         assert module_code_for("flync.model.flync_4_someip.service_interface") == "SOM"
 
-    def test_top_level_model_falls_back_to_gen(self):
-        assert module_code_for("flync.model.flync_model") == "GEN"
-
-    def test_version_migrators_fall_back_to_gen(self):
-        assert module_code_for("flync.core.version_migrators.legacy_controller_check") == "GEN"
-
-    def test_shared_utils_fall_back_to_cmn(self):
-        assert module_code_for("flync.core.validators.generic") == "CMN"
-
-    def test_unknown_module_falls_back_to_cmn(self):
-        assert module_code_for("totally.made.up.module") == "CMN"
+    @pytest.mark.parametrize(
+        "module, expected_code",
+        [
+            pytest.param("flync.model.flync_model", "GEN", id="top_level_model"),
+            pytest.param("flync.core.version_migrators.legacy_controller_check", "GEN", id="version_migrators"),
+            pytest.param("flync.core.validators.generic", "CMN", id="shared_utils"),
+            pytest.param("totally.made.up.module", "CMN", id="unknown_module"),
+        ],
+    )
+    def test_module_without_its_own_key_falls_back(self, module, expected_code):
+        assert module_code_for(module) == expected_code
 
 
 class TestComposeErrorId:

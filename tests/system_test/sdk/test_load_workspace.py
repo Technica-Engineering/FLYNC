@@ -235,12 +235,23 @@ def test_load_workspace_upper_key(tmpdir):
         shutil.rmtree(destination_folder)
 
 
-# Validate handling of extra key/value
-def test_load_workspace_extra_key_value(tmpdir):
+# Malformed YAML in one interface config: each case patches the same file a different way.
+
+
+@pytest.fixture
+def workspace_copy(tmpdir):
+    """A private copy of the example workspace, removed again after the test."""
     destination_folder = Path(tmpdir) / "copy"
     shutil.copytree(absolute_path, destination_folder)
-    file_to_update = (
-        destination_folder
+    yield destination_folder
+    if destination_folder.exists():
+        shutil.rmtree(destination_folder)
+
+
+def _eth_iface_config(workspace_root):
+    """Path of the interface config every malformed-YAML case patches."""
+    return (
+        workspace_root
         / "ecus"
         / "eth_ecu"
         / "controllers"
@@ -249,91 +260,43 @@ def test_load_workspace_extra_key_value(tmpdir):
         / "eth_ecu_c1_iface1"
         / "interface_config.flync.yaml"
     )
-    append_yaml_content(file_to_update, "\nnew_value: something\n")
+
+
+@pytest.mark.parametrize(
+    "mutate, messages",
+    [
+        pytest.param(
+            lambda path: append_yaml_content(path, "\nnew_value: something\n"),
+            ["new_value\n  Extra inputs are not permitted"],
+            id="extra_key_value",
+        ),
+        pytest.param(
+            lambda path: update_yaml_content(path, "  mode: mac", "mode: mac"),
+            ["mii_config.sgmii.mode\n  Field required", "mode\n  Extra inputs are not permitted"],
+            id="key_value_misplaced",
+        ),
+        pytest.param(
+            lambda path: update_yaml_content(path, "    multicast:\n      - 224.0.0.1", "    multicast:\n      224.0.0.1"),
+            ["multicast\n  Input should be a valid list"],
+            id="missing_dash_in_list_item",
+        ),
+        pytest.param(
+            lambda path: update_yaml_content(path, "name: eth_ecu_c1_iface1_viface1", "name:"),
+            ["name\n  Input should be a valid string"],
+            id="missing_key_value",
+        ),
+    ],
+)
+def test_load_workspace_malformed_interface_config(workspace_copy, mutate, messages):
+    """A malformed interface config is reported, either through load_errors or as a raised ValidationError."""
+    mutate(_eth_iface_config(workspace_copy))
+
     try:
-        loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
+        loaded_ws = FLYNCWorkspace.load_workspace("flync_example", workspace_copy)
         assert loaded_ws.load_errors != []
     except ValidationError as exc_info:
-        assert "new_value\n  Extra inputs are not permitted" in str(exc_info)
-    if destination_folder.exists():
-        shutil.rmtree(destination_folder)
-
-
-# Verify handling indentation fault
-def test_load_workspace_key_value_misplaced(tmpdir):
-    destination_folder = Path(tmpdir) / "copy"
-    shutil.copytree(absolute_path, destination_folder)
-    file_to_update = (
-        destination_folder
-        / "ecus"
-        / "eth_ecu"
-        / "controllers"
-        / "eth_ecu_controller1"
-        / "ethernet_interfaces"
-        / "eth_ecu_c1_iface1"
-        / "interface_config.flync.yaml"
-    )
-    update_yaml_content(file_to_update, "  mode: mac", "mode: mac")
-    try:
-        loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
-        assert loaded_ws.load_errors != []
-    except ValidationError as exc_info:
-        assert "mii_config.sgmii.mode\n  Field required" in str(exc_info)
-        assert "mode\n  Extra inputs are not permitted" in str(exc_info)
-    if destination_folder.exists():
-        shutil.rmtree(destination_folder)
-
-
-# Verify handling missing dash in list items
-def test_load_workspace_missing_dash(tmpdir):
-    destination_folder = Path(tmpdir) / "copy"
-    shutil.copytree(absolute_path, destination_folder)
-    file_to_update = (
-        destination_folder
-        / "ecus"
-        / "eth_ecu"
-        / "controllers"
-        / "eth_ecu_controller1"
-        / "ethernet_interfaces"
-        / "eth_ecu_c1_iface1"
-        / "interface_config.flync.yaml"
-    )
-    update_yaml_content(
-        file_to_update,
-        "    multicast:\n      - 224.0.0.1",
-        "    multicast:\n      224.0.0.1",
-    )
-    try:
-        loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
-        assert loaded_ws.load_errors != []
-    except ValidationError as exc_info:
-        assert "multicast\n  Input should be a valid list" in str(exc_info)
-    if destination_folder.exists():
-        shutil.rmtree(destination_folder)
-
-
-# Verify handling missing key/value
-def test_load_workspace_missing_key_value(tmpdir):
-    destination_folder = Path(tmpdir) / "copy"
-    shutil.copytree(absolute_path, destination_folder)
-    file_to_update = (
-        destination_folder
-        / "ecus"
-        / "eth_ecu"
-        / "controllers"
-        / "eth_ecu_controller1"
-        / "ethernet_interfaces"
-        / "eth_ecu_c1_iface1"
-        / "interface_config.flync.yaml"
-    )
-    update_yaml_content(file_to_update, "name: eth_ecu_c1_iface1_viface1", "name:")
-    try:
-        loaded_ws = FLYNCWorkspace.load_workspace("flync_example", destination_folder)
-        assert loaded_ws.load_errors != []
-    except ValidationError as exc_info:
-        assert "name\n  Input should be a valid string" in str(exc_info)
-    if destination_folder.exists():
-        shutil.rmtree(destination_folder)
+        for message in messages:
+            assert message in str(exc_info)
 
 
 def _assert_workspace_valid(ws: FLYNCWorkspace):

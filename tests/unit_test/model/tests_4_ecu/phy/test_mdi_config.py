@@ -116,123 +116,84 @@ def test_positive_legacy_payload_without_topology_defaults_to_point_to_point():
     assert ecu_port.mdi_config.topology == "p2p"
 
 
-def test_negative_autonegotiation_on_a_multidrop_segment():
-    """A shared medium has no peer to negotiate with: autonegotiation runs between the two ends of a link."""
-
-    with pytest.raises(ValidationError) as exc_info:
-        ECUPort.model_validate(
-            {
-                "name": "test_ecu_port",
-                "mdi_config": {
-                    "mode": "base_t1s",
-                    "topology": "multidrop",
-                    "autonegotiation": True,
-                },
-            }
-        )
-    assert_single_error(exc_info, "FLYNC-ECU-MAJ-CONS-319", "10BASE-T1S PHY on a multidrop segment does not support autoneg")
-
-
-def test_negative_10baset1s_full_duplex_on_multidrop():
-    """Full duplex contradicts a shared medium, which is half duplex by construction."""
-
-    mii_config = MII(mode="phy", speed=10)
-    with pytest.raises(ValidationError) as exc_info:
-        ECUPort.model_validate(
-            {
-                "name": "test_ecu_port",
-                "mii_config": mii_config,
-                "mdi_config": {
-                    "mode": "base_t1s",
-                    "duplex": "full",
-                    "topology": "multidrop",
-                },
-            }
-        )
-    assert_single_error(exc_info, "FLYNC-ECU-MAJ-CONS-324", "duplex 'full' on topology 'multidrop'")
+# Negative MDI Tests
 
 
 @pytest.mark.parametrize(
-    "speed",
-    [100, 1000],
-    ids=["100", "1000"],
+    "mii_config, mdi_config, error_id, message",
+    [
+        # A shared medium has no peer to negotiate with: autonegotiation runs between the two ends of a link.
+        pytest.param(
+            None,
+            {"mode": "base_t1s", "topology": "multidrop", "autonegotiation": True},
+            "FLYNC-ECU-MAJ-CONS-319",
+            "10BASE-T1S PHY on a multidrop segment does not support autoneg",
+            id="t1s-autonegotiation-on-multidrop",
+        ),
+        # Full duplex contradicts a shared medium, which is half duplex by construction.
+        pytest.param(
+            MII(mode="phy", speed=10),
+            {"mode": "base_t1s", "duplex": "full", "topology": "multidrop"},
+            "FLYNC-ECU-MAJ-CONS-324",
+            "duplex 'full' on topology 'multidrop'",
+            id="t1s-full-duplex-on-multidrop",
+        ),
+        # 10BASE-T1S is fixed at 10 Mbit/s, so pydantic's Literal rejects anything else before any FLYNC rule runs.
+        pytest.param(
+            MII(mode="phy"),
+            {"mode": "base_t1s", "speed": 100, "topology": "multidrop"},
+            None,
+            "Input should be 10",
+            id="t1s-rejects-speed-100",
+        ),
+        pytest.param(
+            MII(mode="phy"),
+            {"mode": "base_t1s", "speed": 1000, "topology": "multidrop"},
+            None,
+            "Input should be 10",
+            id="t1s-rejects-speed-1000",
+        ),
+        # BASE-T1 runs at 100 or 1000 Mbit/s; 10 Mbit/s belongs to BASE-T1S.
+        pytest.param(
+            MII(mode="phy"),
+            {"mode": "base_t1", "speed": 10, "autonegotiation": False, "duplex": "full", "role": "master"},
+            None,
+            "Input should be 100 or 1000",
+            id="baset1-rejects-speed-10",
+        ),
+        # BASE-T1 is full duplex only.
+        pytest.param(
+            MII(mode="phy"),
+            {"mode": "base_t1", "speed": 100, "autonegotiation": False, "duplex": "half", "role": "master"},
+            None,
+            "Input should be 'full'",
+            id="baset1-100-rejects-half-duplex",
+        ),
+        pytest.param(
+            MII(mode="phy"),
+            {"mode": "base_t1", "speed": 1000, "autonegotiation": False, "duplex": "half", "role": "master"},
+            None,
+            "Input should be 'full'",
+            id="baset1-1000-rejects-half-duplex",
+        ),
+        # The ``mode`` discriminator accepts only the declared PHY variants; anything else is rejected before a field is looked at.
+        pytest.param(
+            MII(mode="phy"),
+            {"mode": "base_t9000", "speed": 10},
+            None,
+            "mdi_config",
+            id="unknown-mdi-mode",
+        ),
+    ],
 )
-def test_negative_10baset1s_rejects_speeds_other_than_10(speed):
-    """10BASE-T1S is fixed at 10 Mbit/s, so pydantic's Literal rejects anything else before any FLYNC rule runs."""
+def test_negative_mdi_config(mii_config, mdi_config, error_id, message):
+    """An MDI config that contradicts its PHY variant is rejected when the ECU port is built."""
 
-    mii_config = MII(mode="phy")
+    payload = {"name": "test_ecu_port", "mdi_config": mdi_config}
+    if mii_config is not None:
+        payload["mii_config"] = mii_config
+
     with pytest.raises(ValidationError) as exc_info:
-        ECUPort.model_validate(
-            {
-                "name": "test_ecu_port",
-                "mii_config": mii_config,
-                "mdi_config": {
-                    "mode": "base_t1s",
-                    "speed": speed,
-                    "topology": "multidrop",
-                },
-            }
-        )
-    assert_single_error(exc_info, None, "Input should be 10")
+        ECUPort.model_validate(payload)
 
-
-def test_negative_baset1_rejects_speed_10():
-    """BASE-T1 runs at 100 or 1000 Mbit/s; 10 Mbit/s belongs to BASE-T1S."""
-
-    mii_config = MII(mode="phy")
-    with pytest.raises(ValidationError) as exc_info:
-        ECUPort.model_validate(
-            {
-                "name": "test_ecu_port",
-                "mii_config": mii_config,
-                "mdi_config": {
-                    "mode": "base_t1",
-                    "speed": 10,
-                    "autonegotiation": False,
-                    "duplex": "full",
-                    "role": "master",
-                },
-            }
-        )
-    assert_single_error(exc_info, None, "Input should be 100 or 1000")
-
-
-@pytest.mark.parametrize(
-    "speed",
-    [100, 1000],
-    ids=["100", "1000"],
-)
-def test_negative_baset1_rejects_half_duplex(speed):
-    """BASE-T1 is full duplex only."""
-
-    mii_config = MII(mode="phy")
-    with pytest.raises(ValidationError) as exc_info:
-        ECUPort.model_validate(
-            {
-                "name": "test_ecu_port",
-                "mii_config": mii_config,
-                "mdi_config": {
-                    "mode": "base_t1",
-                    "speed": speed,
-                    "autonegotiation": False,
-                    "duplex": "half",
-                    "role": "master",
-                },
-            }
-        )
-    assert_single_error(exc_info, None, "Input should be 'full'")
-
-
-def test_negative_unknown_mdi_mode_is_rejected():
-    """The ``mode`` discriminator accepts only the declared PHY variants; anything else is rejected before a field is looked at."""
-
-    mii_config = MII(mode="phy")
-    with pytest.raises(ValidationError) as exc_info:
-        ECUPort.model_validate(
-            {
-                "name": "test_ecu_port",
-                "mii_config": mii_config,
-                "mdi_config": {"mode": "base_t9000", "speed": 10},
-            }
-        )
-    assert_single_error(exc_info, None, "mdi_config")
+    assert_single_error(exc_info, error_id, message)

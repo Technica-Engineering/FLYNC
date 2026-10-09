@@ -117,7 +117,8 @@ class TestConvertPuml:
         assert result is False
         assert "SVG generation failed" in capsys.readouterr().out
 
-    def test_pdf_uses_tpdf_flag(self, tmp_path, monkeypatch):
+    @pytest.mark.parametrize("output_format", ["pdf", "svg", "png"])
+    def test_output_format_selects_the_matching_plantuml_flag(self, tmp_path, monkeypatch, output_format):
         monkeypatch.chdir(tmp_path)
         puml = tmp_path / "test.puml"
         puml.write_text("@startuml\n@enduml")
@@ -125,33 +126,9 @@ class TestConvertPuml:
         proc = MagicMock()
         proc.returncode = 0
         with patch("subprocess.run", return_value=proc) as mock_run:
-            result = convert_puml(str(puml), "pdf")
+            result = convert_puml(str(puml), output_format)
         assert result is True
-        assert "-tpdf" in mock_run.call_args[0][0]
-
-    def test_svg_uses_tsvg_flag(self, tmp_path, monkeypatch):
-        monkeypatch.chdir(tmp_path)
-        puml = tmp_path / "test.puml"
-        puml.write_text("@startuml\n@enduml")
-        (tmp_path / "plantuml.jar").write_bytes(b"fake")
-        proc = MagicMock()
-        proc.returncode = 0
-        with patch("subprocess.run", return_value=proc) as mock_run:
-            result = convert_puml(str(puml), "svg")
-        assert result is True
-        assert "-tsvg" in mock_run.call_args[0][0]
-
-    def test_png_uses_tpng_flag(self, tmp_path, monkeypatch):
-        monkeypatch.chdir(tmp_path)
-        puml = tmp_path / "test.puml"
-        puml.write_text("@startuml\n@enduml")
-        (tmp_path / "plantuml.jar").write_bytes(b"fake")
-        proc = MagicMock()
-        proc.returncode = 0
-        with patch("subprocess.run", return_value=proc) as mock_run:
-            result = convert_puml(str(puml), "png")
-        assert result is True
-        assert "-tpng" in mock_run.call_args[0][0]
+        assert f"-t{output_format}" in mock_run.call_args[0][0]
 
     def test_exception_in_subprocess_returns_false(self, tmp_path, monkeypatch, capsys):
         monkeypatch.chdir(tmp_path)
