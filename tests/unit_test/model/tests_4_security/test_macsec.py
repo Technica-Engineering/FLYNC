@@ -490,7 +490,7 @@ def test_negative_ckn_non_octet():
     config = _macsec_config({"ckn": "\u0101" * 4})
     with pytest.raises(ValidationError) as exc_info:
         MACsecConfig.model_validate(config)
-    assert_single_error(exc_info, "FLYNC-SEC-MIN-FMT-252", "ckn")
+    assert_single_error(exc_info, None, "ckn")
 
 
 def test_positive_ckn_allows_utf8_boundary_octet():

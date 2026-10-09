@@ -9,10 +9,10 @@ signal instances of a PDU stay within its length and do not overlap.
 
 from typing import Annotated, List, Literal, Optional, Self
 
-from pydantic import BeforeValidator, Field, field_validator, model_validator
+from pydantic import BeforeValidator, Field, model_validator
 
 from flync.core.base_models import FLYNCBaseModel
-from flync.core.utils.exceptions import Category, err_major, err_minor
+from flync.core.utils.exceptions import Category, err_minor
 from flync.core.validators.bit_ranges import (
     BitRange,
     check_bit_ranges_no_overlap,
@@ -216,20 +216,13 @@ class ContainerPDUHeader(FLYNCBaseModel):
     Parameters
     ----------
     id_length_bits : int
-        Bit length of the PDU ID field
+        Bit length of the PDU ID field. Must be a multiple of 8 and at most 32.
     length_field_bits : int
-        Bit length of the payload-length field
+        Bit length of the payload-length field. Must be a multiple of 8 and at most 32.
     """
 
-    id_length_bits: int = Field()
-    length_field_bits: int = Field()
-
-    @field_validator("id_length_bits", "length_field_bits")
-    @classmethod
-    def must_be_byte_aligned(cls, v: int) -> int:
-        if v % 8 != 0:
-            raise err_major("must be a multiple of 8, got {value}", value=v, category=Category.VALUE_RANGE, error_number="109")
-        return v
+    id_length_bits: int = Field(multiple_of=8, le=32)
+    length_field_bits: int = Field(multiple_of=8, le=32)
 
 
 class ContainerPDU(PDU):

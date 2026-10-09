@@ -42,6 +42,19 @@ Negative values are rejected on quantities that cannot be negative
 * PTP time-receiver timeouts — ``sync_timeout``, ``sync_followup_timeout``,
 * HTB shaping — ``classid``, ``rate``, ``ceil``, ``priority``, and ``HTBFilter.filter_priority``,
 
+Container PDU header field widths are capped at 32 bits
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``ContainerPDUHeader.id_length_bits`` and ``ContainerPDUHeader.length_field_bits`` now
+declare ``le=32`` in addition to the existing ``multiple_of=8``. Widths above 32 bits were
+previously accepted although no supported container format uses one.
+
+.. code-block:: yaml
+
+   header:
+     id_length_bits: 40     # no longer valid, must be 0, 8, 16, 24 or 32
+     length_field_bits: 64  # no longer valid, must be 0, 8, 16, 24 or 32
+
 Additive — YAML schema
 ----------------------
 

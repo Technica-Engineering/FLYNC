@@ -2,7 +2,7 @@
 
 from typing import Annotated, List, Literal, Optional, Self
 
-from pydantic import AfterValidator, BeforeValidator, Field, PlainSerializer, field_validator, model_validator
+from pydantic import AfterValidator, BeforeValidator, Field, PlainSerializer, model_validator
 
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.datatypes import Ethertype, FLYNCMacAddress, serialize_ethertype, validate_ethertype_input
@@ -162,7 +162,7 @@ class MACsecConfig(FLYNCBaseModel):
     ethertype_bypass: List[Annotated[Ethertype, PlainSerializer(serialize_ethertype), BeforeValidator(validate_ethertype_input)]] = Field([])
     src_mac_address_bypass: List[FLYNCMacAddress] = Field([])
     dest_mac_address_bypass: List[FLYNCMacAddress] = Field([])
-    ckn: str = Field(min_length=1, max_length=32)
+    ckn: str = Field(min_length=1, max_length=32, pattern=r"^[\x00-\xff]*$")
     mka_enabled: Optional[bool] = Field(default=True)
     hello_time: int = Field(ge=0)
     bounded_hello_time: int = Field(ge=0)
@@ -178,19 +178,6 @@ class MACsecConfig(FLYNCBaseModel):
     sci_included: Optional[bool] = Field(default=False)
     replay_protection_window: int = Field(default=0, ge=0)
     cipher_preference: List[DiscriminatedCipher] = Field(default_factory=lambda: MACsecConfig.default_entries_list())
-
-    @field_validator("ckn")
-    @classmethod
-    def validate_ckn_octets(cls, value: str) -> str:
-        """Validate that the CKN only contains octets (characters in range 0x00-0xFF)."""
-        if any(ord(char) > 0xFF for char in value):
-            raise err_minor(
-                "ckn must only contain octets (characters in range 0x00-0xFF), got {ckn}",
-                category=Category.FORMAT,
-                error_number="252",
-                ckn=value,
-            )
-        return value
 
     def ckn_to_byte_array(self) -> bytearray:
         """Return the CKN as a byte array, one byte per octet."""

@@ -603,13 +603,35 @@ def test_negative_container_pdu_too_small_6byte_header():
 def test_negative_container_pdu_non_byte_aligned_id_length():
     with pytest.raises(ValidationError) as exc_info:
         ContainerPDUHeader(id_length_bits=12, length_field_bits=8)
-    assert_single_error(exc_info, "FLYNC-SIG-MAJ-VAL-109", "multiple of 8")
+    assert_single_error(exc_info, None, "multiple of 8")
+
+
+def test_negative_container_pdu_id_length_above_maximum():
+    with pytest.raises(ValidationError) as exc_info:
+        ContainerPDUHeader(id_length_bits=40, length_field_bits=8)
+    assert_single_error(exc_info, None, "less than or equal to 32")
+
+
+def test_positive_container_pdu_id_length_at_maximum():
+    header = ContainerPDUHeader(id_length_bits=32, length_field_bits=8)
+    assert header.id_length_bits == 32
 
 
 def test_negative_container_pdu_non_byte_aligned_length_length():
     with pytest.raises(ValidationError) as exc_info:
         ContainerPDUHeader(id_length_bits=16, length_field_bits=4)
-    assert_single_error(exc_info, "FLYNC-SIG-MAJ-VAL-109", "multiple of 8")
+    assert_single_error(exc_info, None, "multiple of 8")
+
+
+def test_negative_container_pdu_length_field_above_maximum():
+    with pytest.raises(ValidationError) as exc_info:
+        ContainerPDUHeader(id_length_bits=16, length_field_bits=40)
+    assert_single_error(exc_info, None, "less than or equal to 32")
+
+
+def test_positive_container_pdu_length_field_at_maximum():
+    header = ContainerPDUHeader(id_length_bits=16, length_field_bits=32)
+    assert header.length_field_bits == 32
 
 
 def test_negative_container_pdu_zero_length():
