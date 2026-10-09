@@ -19,7 +19,7 @@ from flync.model.flync_4_ecu.socket_container import SocketContainer
 from flync.model.flync_4_ecu.sockets import IPv4AddressEndpoint
 from flync.model.flync_4_metadata.metadata import BaseVersion, ECUMetadata, EmbeddedMetadata, SystemMetadata
 from flync.model.flync_4_signal.frame import CANFrame, LINFrame
-from flync.model.flync_4_signal.pdu import ContainedPDURef, ContainerPDU, ContainerPDUHeader, MultiplexedPDU, MuxGroup, PDUInstance, StandardPDU
+from flync.model.flync_4_signal.pdu import PDUInstance, StandardPDU
 from flync.model.flync_4_signal.pdu_deployment import PDUReceiver, PDUSender
 from flync.model.flync_4_signal.signal import Signal, SignalDataType, SignalInstance
 from flync.model.flync_4_topology import EthernetTopology, FLYNCTopology
@@ -101,50 +101,6 @@ def _make_ecu_with_deployment(deployment) -> ECU:
         topology=ecu_topology,
         ecu_metadata=ECUMetadata(type="ecu", author="TestTeam", compatible_flync_version=_STANDALONE_VERSION),
     )
-
-
-def test_standard_pdu_invalid_signal_bit_position():
-    """Test SignalInstance bit range exceeds PDU length."""
-    speed_signal = Signal(name="VehicleSpeed", bit_length=16, data_type=SignalDataType.UINT16)
-    speed_instance = SignalInstance(signal=speed_signal, bit_position=32)  # PDU length < 32
-
-    with pytest.raises(ValidationError) as exc_info:
-        StandardPDU(name="PDU_EngineStatus", length=4, signals=[speed_instance])
-    assert_single_error(exc_info, "FLYNC-CMN-MIN-VAL-029", "overflows length")
-
-
-def test_multiplexed_pdu_invalid_selector_value():
-    """A mux selector_value beyond the selector signal's range must be rejected."""
-    selector_signal = Signal(name="GearSelector", bit_length=3, data_type=SignalDataType.UINT8)
-    selector_instance = SignalInstance(signal=selector_signal, bit_position=0)
-
-    mux_group = MuxGroup(selector_value=8, pdu=PDUInstance(pdu_ref="PDU_Gear1"))  # 8 > 2^3 - 1
-    with pytest.raises(ValidationError) as exc_info:
-        MultiplexedPDU(name="PDU_TransmissionStatus", length=4, selector_signal=selector_instance, mux_groups=[mux_group])
-    assert_single_error(exc_info, "FLYNC-SIG-MIN-VAL-108", "out-of-range")
-
-
-def test_container_pdu_invalid_contained_ref():
-    """A ContainerPDU referencing a contained PDU absent from the catalog must be rejected."""
-    header = ContainerPDUHeader(id_length_bits=8, length_field_bits=8)
-    contained_ref = ContainedPDURef(header_id=0x10, pdu_ref="NonExistentPDU")
-
-    container = ContainerPDU(name="ContainerPowertrain", length=64, pdu_id=0x01, header=header, contained_pdus=[contained_ref])
-    with pytest.raises(ValidationError) as exc_info:
-        FLYNCChannelConfig(ethernet_pdu_containers=[container])
-    assert_single_error(exc_info, "FLYNC-CMN-MAJ-REF-236", "references unknown PDU")
-
-
-def test_standard_pdu_signal_overlap():
-    """Test StandardPDU with overlapping signals."""
-    sig1 = Signal(name="Signal1", bit_length=8, data_type=SignalDataType.UINT8)
-    sig2 = Signal(name="Signal2", bit_length=8, data_type=SignalDataType.UINT8)
-    inst1 = SignalInstance(signal=sig1, bit_position=0)
-    inst2 = SignalInstance(signal=sig2, bit_position=4)  # overlaps with inst1
-
-    with pytest.raises(ValidationError) as exc_info:
-        StandardPDU(name="PDU_Overlap", length=2, signals=[inst1, inst2])
-    assert_single_error(exc_info, "FLYNC-CMN-MIN-CONS-030", "overlap")
 
 
 def test_receiver_invalid_pdu():

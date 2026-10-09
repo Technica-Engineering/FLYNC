@@ -2,7 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 import flync.core.utils.base_utils as utils
-from flync.model.flync_4_ecu import MulticastGroup
+from flync.model.flync_4_ecu import MulticastGroup, VLANEntry
 from tests.error_assertions import assert_single_error
 
 
@@ -65,43 +65,45 @@ def test_ip_multicast_helper(input_value, expected_test_result):
     assert is_mcast == expected_test_result
 
 
-def test_positive_multicast_group_ipv4():
-    m_cast1 = {"address": "224.0.0.1", "ports": ["port1", "port2"]}
-    m_cast1 = MulticastGroup.model_validate(m_cast1)
-    assert isinstance(m_cast1, MulticastGroup)
+@pytest.mark.parametrize(
+    "address",
+    ["224.0.0.1", "ff02::1", "01:00:5E:00:00:00"],
+)
+def test_positive_multicast_group_address(address):
+    """The multicast validator is wired onto MulticastGroup.address for IPv4, IPv6 and MAC groups."""
+    group = MulticastGroup.model_validate({"address": address, "ports": ["port1", "port2"]})
+    assert isinstance(group, MulticastGroup)
 
 
-def test_negative_multicast_group_ipv4():
-    m_cast1 = {"address": "10.0.0.1", "ports": ["port1", "port2"]}
+@pytest.mark.parametrize(
+    "address,error_id,message",
+    [
+        ("10.0.0.1", "FLYNC-CMN-MIN-FMT-006", "is not an IP Multicast"),
+        ("2001:0db8:85a3:0000:0000:8a2e:0370:7334", "FLYNC-CMN-MIN-FMT-006", "is not an IP Multicast"),
+        ("00:00:5E:00:00:00", "FLYNC-CMN-MIN-FMT-005", "is not a MAC Multicast"),
+    ],
+)
+def test_negative_multicast_group_address(address, error_id, message):
+    """A unicast address is rejected on MulticastGroup.address.
+
+    The exhaustive address matrix lives in ``tests/unit_test/model/tests_4_ecu/multicast_groups/test_multicast_groups_negative.py``; this only
+    proves the validator is attached to this field.
+    """
     with pytest.raises(ValidationError) as exc_info:
-        MulticastGroup.model_validate(m_cast1)
+        MulticastGroup.model_validate({"address": address, "ports": ["port1", "port2"]})
+    assert_single_error(exc_info, error_id, message)
+
+
+def test_negative_multicast_group_nested_in_vlan_entry():
+    """A bad multicast address is still rejected when the group is nested inside a VLANEntry."""
+    with pytest.raises(ValidationError) as exc_info:
+        VLANEntry.model_validate(
+            {
+                "name": "vlan_entry1",
+                "id": 10,
+                "default_priority": 1,
+                "ports": ["port1", "port2"],
+                "multicast": [{"address": "10.0.0.1", "ports": ["port1", "port2"]}],
+            }
+        )
     assert_single_error(exc_info, "FLYNC-CMN-MIN-FMT-006", "is not an IP Multicast")
-
-
-def test_positive_multicast_group_ipv6():
-    m_cast1 = {"address": "ff02::1", "ports": ["port1", "port2"]}
-    m_cast1 = MulticastGroup.model_validate(m_cast1)
-    assert isinstance(m_cast1, MulticastGroup)
-
-
-def test_negative_multicast_group_ipv6():
-    m_cast1 = {
-        "address": "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
-        "ports": ["port1", "port2"],
-    }
-    with pytest.raises(ValidationError) as exc_info:
-        MulticastGroup.model_validate(m_cast1)
-    assert_single_error(exc_info, "FLYNC-CMN-MIN-FMT-006", "is not an IP Multicast")
-
-
-def test_positive_multicast_group_mac():
-    m_cast1 = {"address": "01:00:5E:00:00:00", "ports": ["port1", "port2"]}
-    m_cast1 = MulticastGroup.model_validate(m_cast1)
-    assert isinstance(m_cast1, MulticastGroup)
-
-
-def test_negative_multicast_group_mac():
-    m_cast1 = {"address": "00:00:5E:00:00:00", "ports": ["port1", "port2"]}
-    with pytest.raises(ValidationError) as exc_info:
-        MulticastGroup.model_validate(m_cast1)
-    assert_single_error(exc_info, "FLYNC-CMN-MIN-FMT-005", "is not a MAC Multicast")
