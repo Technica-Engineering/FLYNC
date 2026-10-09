@@ -53,8 +53,10 @@ def test_positive_firewall_config(firewall, virtual_controller_interface):
 )
 def test_negative_firewall_config(firewall, virtual_controller_interface):
     """The firewall is rejected while the interface config is built, so no Controller is ever assembled."""
+    config = _interface_config(virtual_controller_interface, firewall)
+
     with pytest.raises(ValidationError) as exc_info:
-        EthernetInterfaceConfig.model_validate(_interface_config(virtual_controller_interface, firewall))
+        EthernetInterfaceConfig.model_validate(config)
 
     assert_single_error(exc_info, "FLYNC-CMN-MIN-UNC-000", "while validating firewall")
 

@@ -98,6 +98,7 @@ def test_implemented_timing_profile(metadata_entry, someip_sdconfig, someip_timi
 )
 def test_not_implemented_timing_profile(metadata_entry, someip_sdconfig, someip_timings, field_timing, event_timing, method_timing, message):
     """A ``someip_timing`` naming no declared profile is rejected, and the message names the timing table it was looked up in."""
+    method = _fire_and_forget_method(method_timing) if method_timing is not None else None
 
     with pytest.raises(ValidationError) as exc_info:
         _someip_config(
@@ -106,7 +107,7 @@ def test_not_implemented_timing_profile(metadata_entry, someip_sdconfig, someip_
             someip_timings,
             field_timing=field_timing,
             event_timing=event_timing,
-            method=_fire_and_forget_method(method_timing) if method_timing is not None else None,
+            method=method,
         )
 
     assert_single_error(exc_info, "FLYNC-SOM-MAJ-REF-340", message)

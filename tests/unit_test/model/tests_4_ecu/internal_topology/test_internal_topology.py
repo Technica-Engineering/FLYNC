@@ -216,8 +216,10 @@ def _with_controller_interface_b(virtual_controller_interface):
     ],
 )
 def test_negative_internal_topology_connection(components, connection, error_id, message, virtual_controller_interface):
+    ecu_kwargs = components(virtual_controller_interface)
+
     with pytest.raises(ValidationError) as exc_info:
-        _ecu(connections=[connection], **components(virtual_controller_interface))
+        _ecu(connections=[connection], **ecu_kwargs)
 
     assert_single_error(exc_info, error_id, message)
 
