@@ -1,9 +1,6 @@
 name: SBOM
 
 on:
-  push:
-    branches:
-    - main
   release:
     types: [published]
   workflow_dispatch:
@@ -18,14 +15,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: sbom-${{ github.event.release.tag_name || inputs.tag || github.ref }}
+  group: sbom-${{ github.event.release.tag_name || inputs.tag }}
   cancel-in-progress: false
 
-# Third-party actions are pinned by commit SHA, as in security.yaml.
+# Third-party actions are pinned by commit SHA.
 env:
   SCANNER_VERSION: "v0.74.0"
-  # Empty on a push to main: the SBOM then describes that commit and is kept as
-  # a workflow artifact only.
   RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
 
 jobs:
@@ -39,9 +34,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ env.RELEASE_TAG || github.sha }}
-          # git describe needs the release-* tags to version a main build.
-          fetch-depth: 0
+          ref: ${{ env.RELEASE_TAG }}
           # The install step below builds third-party packages, which runs their
           # code on this runner.
           persist-credentials: false
@@ -49,17 +42,11 @@ jobs:
       - name: Resolve version
         id: version
         run: |
-          if [ -n "$RELEASE_TAG" ]; then
-            case "$RELEASE_TAG" in
-              release-*) ;;
-              *) echo "::error::${RELEASE_TAG} is not a release-* tag."; exit 1 ;;
-            esac
-            version="${RELEASE_TAG#release-}"
-          else
-            # e.g. release-0.14.0-12-g5da1e2d -> 0.14.0-12-g5da1e2d
-            desc=$(git describe --tags --long --match 'release-*' 2>/dev/null || echo "release-0.0.0-0-g$(git rev-parse --short HEAD)")
-            version="${desc#release-}"
-          fi
+          case "$RELEASE_TAG" in
+            release-*) ;;
+            *) echo "::error::${RELEASE_TAG} is not a release-* tag."; exit 1 ;;
+          esac
+          version="${RELEASE_TAG#release-}"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
           echo "file=flync-${version}.cdx.json" >> "$GITHUB_OUTPUT"
           echo "SBOM version: ${version}"
@@ -70,8 +57,8 @@ jobs:
           enable-cache: true
 
       # The SBOM describes what consumers of the flync distribution receive: the
-      # runtime dependencies plus every extra, the same set the licence job in
-      # security.yaml covers. Nothing under [dependency-groups] is distributed.
+      # runtime dependencies plus every extra. Nothing under [dependency-groups]
+      # is distributed.
       # --no-default-groups is required because pyproject.toml sets
       # default-groups = ["dev"].
       #
@@ -101,7 +88,7 @@ jobs:
           scan-ref: requirements.txt
           # The licence scanner needs no vulnerability database. Vulnerabilities
           # do not belong in a release SBOM anyway: they go stale while the
-          # component list does not, and security.yaml reports them.
+          # component list does not.
           scanners: license
           format: cyclonedx
           output: sbom.raw.json
@@ -119,14 +106,14 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
           FILE: ${{ steps.version.outputs.file }}
         run: |
-          jq --arg v "$VERSION" --arg release "$RELEASE_TAG" '
+          jq --arg v "$VERSION" '
             del(.vulnerabilities)
             | .metadata.component |= (
                 .name = "flync"
                 | .version = $v
                 | .type = "library"
                 | .licenses = [{license: {id: "Apache-2.0"}}]
-                | if $release != "" then .purl = "pkg:pypi/flync@\($v)" else . end
+                | .purl = "pkg:pypi/flync@\($v)"
               )
           ' sbom.raw.json > "$FILE"
 
@@ -140,10 +127,8 @@ jobs:
             echo "## SBOM"
             echo
             echo "\`${FILE}\`: **${components}** components, **${licensed}** with a licence."
-            if [ -n "$RELEASE_TAG" ]; then
-              echo
-              echo "Attached to release \`${RELEASE_TAG}\`."
-            fi
+            echo
+            echo "Attached to release \`${RELEASE_TAG}\`."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Archive artifacts
@@ -159,7 +144,6 @@ jobs:
   attach-to-release:
     name: Attach SBOM to release
     needs: generate
-    if: ${{ github.event_name == 'release' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
