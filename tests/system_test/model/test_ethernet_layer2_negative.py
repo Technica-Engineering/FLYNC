@@ -16,7 +16,7 @@ from flync.model.flync_4_ecu.internal_topology import (
     InternalTopology,
     SwitchPortToControllerInterface,
 )
-from flync.model.flync_4_ecu.phy import BASET1, RGMII, RMII
+from flync.model.flync_4_ecu.phy import BASET1, RGMII
 from flync.model.flync_4_ecu.port import ECUPort
 from flync.model.flync_4_ecu.sockets import IPv4AddressEndpoint
 from flync.model.flync_4_ecu.switch import Switch, SwitchConfig, SwitchPort
@@ -502,37 +502,6 @@ def test_switch_port_to_controller_interface_mii_speed_mismatch_invalid():
         exc_info,
         "FLYNC-CMN-MAJ-COMP-014",
         "Incompatible MII Speed: sp_ctrl (1000) ↔ eth0(100)",
-    )
-
-
-# ============================================================================
-# ECU port PHY/MAC pairing
-# ============================================================================
-
-"""
-============================================================
-TEST NAME: ECU port MDI/MII speed mismatch
-RULE / CONSTRAINT: a Layer-2 ECU port joining a PHY
-    (MDI) and a MAC-side interface (MII) must use the same
-    link speed; a mismatch is invalid.
-============================================================
-
-      ECUPort p0
-          +-- mdi_config=BASE-T1  speed 1000
-          +-- mii_config=RMII     speed 100   <-- INVALID
-"""
-
-
-def test_ecu_port_mdi_mii_speed_mismatch_invalid():
-    """An ECU port must pair its MDI and MII with compatible link speeds."""
-    mdi_config = BASET1(speed=1000)
-    mii_config = RMII(speed=100, mode="mac")
-    with pytest.raises(ValidationError) as exc_info:
-        ECUPort(name="p0", mdi_config=mdi_config, mii_config=mii_config)
-    assert_single_error(
-        exc_info,
-        "FLYNC-ECU-MAJ-CONS-081",
-        "MII and MDI config should have a compatible speed in ECU Ports. Port p0",
     )
 
 

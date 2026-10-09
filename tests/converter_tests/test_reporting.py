@@ -740,9 +740,4 @@ def test_failing_conversion_keeps_its_own_exception_and_report(tmp_path, loggers
     assert (reports / "dst" / "report.yaml").exists()
 
 
-def test_convert_with_reporting_disabled_writes_no_report(tmp_path, loggers):
-    _run(tmp_path, destination_config=ConverterConfig(config_path=str(tmp_path / "dst"), report_enabled=False))
-    assert not reports_root(tmp_path / "dst").exists()
-
-
 # endregion

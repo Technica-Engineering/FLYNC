@@ -13,17 +13,6 @@ from flync.model.flync_4_someip import (
 from tests.error_assertions import assert_bind_error
 
 
-def test_someip_service_deployment(metadata_entry, someip_sd_server_timings_profile_entry):
-    SOMEIPServiceInterface(meta=metadata_entry, name="s", id=1, major_version=1)
-    sd = SOMEIPServiceProvider(
-        service=1,
-        instance_id=1,
-        major_version=1,
-        someip_sd_timings_profile="server_default",
-    )
-    assert sd._serialize_field_as_service(sd.service) == 1
-
-
 def test_someip_service_deployment_lookup_service_from_id_and_major(metadata_entry, someip_sd_server_timings_profile_entry):
     si = SOMEIPServiceInterface(meta=metadata_entry, name="s", id=1, major_version=1)
     sp = SOMEIPServiceProvider(

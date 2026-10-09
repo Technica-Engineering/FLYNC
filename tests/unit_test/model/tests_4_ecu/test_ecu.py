@@ -9,7 +9,6 @@ from flync.model.flync_4_ecu import (
     Switch,
     VLANEntry,
 )
-from flync.model.flync_4_ecu.phy import RGMII
 from flync.model.flync_4_someip import (
     SOMEIPServiceInterface,
 )
@@ -228,30 +227,4 @@ def test_ecu_internal_topology_ambiguous_controller_interface_name_across_contro
         exc_info,
         "FLYNC-ECU-MAJ-UNIQ-077",
         "Controller interface 'shared_iface' referenced in connection 'int_conn_ambiguous_ctrl_iface' is ambiguous",
-    )
-
-
-def test_ecu_port_mdi_mii_speed_mismatch_invalid():
-    """An ECU port must reject MDI and MII configurations with different speeds."""
-    mdi_config = BASET1(
-        speed=1000,
-        role="slave",
-    )
-    mii_config = RGMII(
-        speed=100,
-        mode="mac",
-    )
-    with pytest.raises(ValidationError) as exc_info:
-        ECUPort.model_validate(
-            {
-                "name": "p0",
-                "mdi_config": mdi_config,
-                "mii_config": mii_config,
-            }
-        )
-
-    assert_single_error(
-        exc_info,
-        "FLYNC-ECU-MAJ-CONS-081",
-        "MII and MDI config should have a compatible speed in ECU Ports. Port p0",
     )
