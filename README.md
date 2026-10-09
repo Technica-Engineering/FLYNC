@@ -19,7 +19,7 @@
 | src/flync/core/datatypes/duration.py                            |       15 |        0 |    100% |           |
 | src/flync/core/datatypes/ethertypes.py                          |       45 |        1 |     98% |       124 |
 | src/flync/core/datatypes/ipaddress.py                           |       27 |        0 |    100% |           |
-| src/flync/core/datatypes/macaddress.py                          |       23 |        0 |    100% |           |
+| src/flync/core/datatypes/macaddress.py                          |       23 |        8 |     65% |16-17, 22-27 |
 | src/flync/core/datatypes/value\_range.py                        |        5 |        0 |    100% |           |
 | src/flync/core/datatypes/value\_table.py                        |        5 |        0 |    100% |           |
 | src/flync/core/utils/\_\_init\_\_.py                            |        0 |        0 |    100% |           |
@@ -75,7 +75,7 @@
 | src/flync/model/flync\_4\_ecu/ecu.py                            |      295 |        5 |     98% |331, 373, 530, 593-594 |
 | src/flync/model/flync\_4\_ecu/internal\_topology.py             |      206 |        4 |     98% |51, 481-483 |
 | src/flync/model/flync\_4\_ecu/lin\_interface.py                 |       29 |        0 |    100% |           |
-| src/flync/model/flync\_4\_ecu/mac\_multicast\_endpoint.py       |       27 |        1 |     96% |        88 |
+| src/flync/model/flync\_4\_ecu/mac\_multicast\_endpoint.py       |       19 |        0 |    100% |           |
 | src/flync/model/flync\_4\_ecu/multicast\_groups.py              |       27 |        0 |    100% |           |
 | src/flync/model/flync\_4\_ecu/phy.py                            |       74 |        0 |    100% |           |
 | src/flync/model/flync\_4\_ecu/port.py                           |       36 |        0 |    100% |           |
@@ -95,19 +95,19 @@
 | src/flync/model/flync\_4\_safety/e2e.py                         |        5 |        0 |    100% |           |
 | src/flync/model/flync\_4\_security/\_\_init\_\_.py              |        4 |        0 |    100% |           |
 | src/flync/model/flync\_4\_security/firewall.py                  |       38 |        4 |     89% |38, 44, 46, 48 |
-| src/flync/model/flync\_4\_security/macsec.py                    |       70 |        0 |    100% |           |
+| src/flync/model/flync\_4\_security/macsec.py                    |       64 |        0 |    100% |           |
 | src/flync/model/flync\_4\_signal/\_\_init\_\_.py                |        7 |        0 |    100% |           |
 | src/flync/model/flync\_4\_signal/forwarder.py                   |       40 |        0 |    100% |           |
 | src/flync/model/flync\_4\_signal/frame.py                       |       92 |        0 |    100% |           |
-| src/flync/model/flync\_4\_signal/pdu.py                         |       91 |        2 |     98% |  302, 305 |
+| src/flync/model/flync\_4\_signal/pdu.py                         |       85 |        2 |     98% |  295, 298 |
 | src/flync/model/flync\_4\_signal/pdu\_deployment.py             |        9 |        0 |    100% |           |
 | src/flync/model/flync\_4\_signal/signal.py                      |      161 |        0 |    100% |           |
 | src/flync/model/flync\_4\_signal/value\_encoding.py             |       94 |        1 |     99% |       127 |
 | src/flync/model/flync\_4\_someip/\_\_init\_\_.py                |        8 |        0 |    100% |           |
 | src/flync/model/flync\_4\_someip/deployment.py                  |       83 |        1 |     99% |       190 |
 | src/flync/model/flync\_4\_someip/service\_interface.py          |      223 |        4 |     98% |401, 596, 877, 915 |
-| src/flync/model/flync\_4\_someip/someip\_complex\_datatypes.py  |       51 |        0 |    100% |           |
-| src/flync/model/flync\_4\_someip/someip\_simple\_datatypes.py   |      150 |        0 |    100% |           |
+| src/flync/model/flync\_4\_someip/someip\_complex\_datatypes.py  |       49 |        0 |    100% |           |
+| src/flync/model/flync\_4\_someip/someip\_simple\_datatypes.py   |      147 |        0 |    100% |           |
 | src/flync/model/flync\_4\_topology/\_\_init\_\_.py              |        6 |        0 |    100% |           |
 | src/flync/model/flync\_4\_topology/bus\_topology.py             |      120 |        0 |    100% |           |
 | src/flync/model/flync\_4\_topology/ethernet\_multidrop.py       |      214 |       11 |     95% |97-99, 141, 256, 304, 362, 382, 399, 445, 497 |
@@ -143,7 +143,7 @@
 | src/flync/sdk/workspace/\_loading.py                            |      271 |       19 |     93% |55, 257, 345-361, 379, 425, 594, 633, 672, 700, 761-762, 774 |
 | src/flync/sdk/workspace/\_object\_mapping.py                    |      243 |       21 |     91% |122-123, 422, 515-524, 561, 568, 588-590, 625, 628, 637, 653, 681 |
 | src/flync/sdk/workspace/\_saving.py                             |      105 |       12 |     89% |69, 90, 164, 169, 177, 228-233, 277, 284 |
-| src/flync/sdk/workspace/document.py                             |       65 |        4 |     94% |108-109, 174-175 |
+| src/flync/sdk/workspace/document.py                             |       65 |        2 |     97% |   174-175 |
 | src/flync/sdk/workspace/flync\_workspace.py                     |       47 |        3 |     94% |59, 62, 120 |
 | src/flync/sdk/workspace/ids.py                                  |        3 |        0 |    100% |           |
 | src/flync/sdk/workspace/objects.py                              |       95 |        3 |     97% |   166-169 |
@@ -207,7 +207,7 @@
 | src/flync\_converter/registry.py                                |       32 |       19 |     41% |23-30, 37-49, 56-59 |
 | src/flync\_converter/reporting.py                               |      103 |        0 |    100% |           |
 | src/flync\_converter/utils.py                                   |       75 |        4 |     95% |63-64, 93-94 |
-| **TOTAL**                                                       | **13515** |  **819** | **94%** |           |
+| **TOTAL**                                                       | **13490** |  **824** | **94%** |           |
 
 
 ## Setup coverage badge

@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_484f350866509b46___init___py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.16.1">coverage.py v7.16.1</a>,
-            created at 2026-10-09 07:24 +0000
+            created at 2026-10-09 18:36 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -131,7 +131,7 @@
     <p class="run"><span class="n"><a id="t49" href="#t49">49</a></span><span class="t">                <span class="key">continue</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t50" href="#t50">50</a></span><span class="t">        <span class="com"># list[X] &#8212; signal to callers that we should render a placeholder item row.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t51" href="#t51">51</a></span><span class="t">        <span class="com"># Also unwrap X itself: items like Annotated[Union[StandardPDU, MultiplexedPDU], Field(...)]</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t52" href="#t52">52</a></span><span class="t">        <span class="com"># need the same Annotated/Union stripping before _is_pydantic_model can recognise them.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t52" href="#t52">52</a></span><span class="t">        <span class="com"># need the same Annotated/Union stripping before _is_pydantic_model can recognize them.</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t53" href="#t53">53</a></span><span class="t">        <span class="key">if</span> <span class="nam">origin</span> <span class="key">is</span> <span class="nam">list</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t54" href="#t54">54</a></span><span class="t">            <span class="nam">args</span> <span class="op">=</span> <span class="nam">get_args</span><span class="op">(</span><span class="nam">tp</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t55" href="#t55">55</a></span><span class="t">            <span class="key">if</span> <span class="nam">args</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
@@ -221,7 +221,7 @@
     <p class="run"><span class="n"><a id="t139" href="#t139">139</a></span><span class="t">        <span class="nam">is_opt</span> <span class="op">=</span> <span class="nam">_is_optional</span><span class="op">(</span><span class="nam">ann</span><span class="op">)</span> <span class="key">or</span> <span class="key">not</span> <span class="nam">field_info</span><span class="op">.</span><span class="nam">is_required</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t140" href="#t140">140</a></span><span class="t">        <span class="nam">req_mark</span> <span class="op">=</span> <span class="str">&quot;   &quot;</span> <span class="key">if</span> <span class="nam">is_opt</span> <span class="key">else</span> <span class="str">&quot;!! &quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t141" href="#t141">141</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t142" href="#t142">142</a></span><span class="t">        <span class="com"># OutputStrategy.SINGLE_FILE means this field serialises to one .yaml file;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t142" href="#t142">142</a></span><span class="t">        <span class="com"># OutputStrategy.SINGLE_FILE means this field serializes to one .yaml file;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t143" href="#t143">143</a></span><span class="t">        <span class="com"># anything else (FOLDER / AUTO) means it gets its own subdirectory</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t144" href="#t144">144</a></span><span class="t">        <span class="nam">is_file</span> <span class="op">=</span> <span class="nam">OutputStrategy</span><span class="op">.</span><span class="nam">SINGLE_FILE</span> <span class="key">in</span> <span class="nam">ext</span><span class="op">.</span><span class="nam">output_structure</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t145" href="#t145">145</a></span><span class="t">        <span class="nam">display</span> <span class="op">=</span> <span class="nam">_display_name</span><span class="op">(</span><span class="nam">field_name</span><span class="op">,</span> <span class="nam">ext</span><span class="op">,</span> <span class="nam">is_file</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
@@ -253,7 +253,7 @@
     <p class="pln"><span class="n"><a id="t171" href="#t171">171</a></span><span class="t"><span class="str">    e.g. List[ECU]: each item lives in its own named subfolder. We don&#x27;t have</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t172" href="#t172">172</a></span><span class="t"><span class="str">    real data here, so show one placeholder row followed by &quot;...&quot; to indicate</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t173" href="#t173">173</a></span><span class="t"><span class="str">    N items exist at runtime. If the item type has no External fields every</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t174" href="#t174">174</a></span><span class="t"><span class="str">    item serialises to a single file (not a sub-directory), so a trailing &quot;/&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t174" href="#t174">174</a></span><span class="t"><span class="str">    item serializes to a single file (not a sub-directory), so a trailing &quot;/&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t175" href="#t175">175</a></span><span class="t"><span class="str">    is omitted in that case.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t176" href="#t176">176</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t177" href="#t177">177</a></span><span class="t"><span class="str">    If inner was already visited on this path (a model that can nest itself,</span>&nbsp;</span><span class="r"></span></p>
@@ -315,7 +315,7 @@
     <p class="pln"><span class="n"><a id="t233" href="#t233">233</a></span><span class="t"><span class="str">    Write the FLYNC directory structure to exports/&lt;ModelName&gt;_structure.txt.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t234" href="#t234">234</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t235" href="#t235">235</a></span><span class="t"><span class="str">    Starts traversal from FLYNCModel by default. Pass any other pydantic model</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t236" href="#t236">236</a></span><span class="t"><span class="str">    class to visualise a subtree instead.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t236" href="#t236">236</a></span><span class="t"><span class="str">    class to visualize a subtree instead.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t237" href="#t237">237</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t238" href="#t238">238</a></span><span class="t"><span class="str">    Returns the Path of the file that was written.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t239" href="#t239">239</a></span><span class="t"><span class="str">    &quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
@@ -340,7 +340,7 @@
             <a class="nav" href="z_484f350866509b46___init___py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.16.1">coverage.py v7.16.1</a>,
-            created at 2026-10-09 07:24 +0000
+            created at 2026-10-09 18:36 +0000
         </p>
     </div>
 </footer>

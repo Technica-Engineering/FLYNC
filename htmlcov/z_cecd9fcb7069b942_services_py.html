@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_cecd9fcb7069b942_subfunctions_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.16.1">coverage.py v7.16.1</a>,
-            created at 2026-10-09 07:24 +0000
+            created at 2026-10-09 18:36 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -90,8 +90,8 @@
     <p class="pln"><span class="n"><a id="t8" href="#t8">8</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t9" href="#t9">9</a></span><span class="t"><span class="str">Selection uses a *callable* discriminator (:data:`UDSServiceEntry`) rather than the usual</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t10" href="#t10">10</a></span><span class="t"><span class="str">``Field(discriminator=...)``: the set of UDS service ids is open-ended - OEM-specific and</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t11" href="#t11">11</a></span><span class="t"><span class="str">not-yet-modelled services must still load - so no single ``Literal`` field can cover every</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t12" href="#t12">12</a></span><span class="t"><span class="str">member. The callable maps a modelled ``sid`` to its tag and everything else to ``&quot;generic&quot;``.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t11" href="#t11">11</a></span><span class="t"><span class="str">not-yet-modeled services must still load - so no single ``Literal`` field can cover every</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t12" href="#t12">12</a></span><span class="t"><span class="str">member. The callable maps a modeled ``sid`` to its tag and everything else to ``&quot;generic&quot;``.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t13" href="#t13">13</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t14" href="#t14">14</a></span><span class="t"><span class="str">Services that carry no configuration of their own - WriteDataByIdentifier (0x2E),</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t15" href="#t15">15</a></span><span class="t"><span class="str">TransferData (0x36), RequestTransferExit (0x37), TesterPresent (0x3E) and the rest - stay</span>&nbsp;</span><span class="r"></span></p>
@@ -99,7 +99,7 @@
     <p class="pln"><span class="n"><a id="t17" href="#t17">17</a></span><span class="t"><span class="str">DID&#x27;s writability on :class:`~flync.model.flync_4_diagnostics.uds.data_identifier.DataIdentifier`,</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t18" href="#t18">18</a></span><span class="t"><span class="str">the transfer block length on :class:`RequestDownloadService`, ``S3_server`` on the server&#x27;s</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t19" href="#t19">19</a></span><span class="t"><span class="str">timing profile. They are still spell-checked, because :data:`CANONICAL_SERVICE_NAMES` pins the</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t20" href="#t20">20</a></span><span class="t"><span class="str">``service`` name of every service id ISO 14229-1 standardises.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t20" href="#t20">20</a></span><span class="t"><span class="str">``service`` name of every service id ISO 14229-1 standardizes.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t21" href="#t21">21</a></span><span class="t"><span class="str">&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t22" href="#t22">22</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t23" href="#t23">23</a></span><span class="t"><span class="key">from</span> <span class="nam">typing</span> <span class="key">import</span> <span class="nam">Annotated</span><span class="op">,</span> <span class="nam">Any</span><span class="op">,</span> <span class="nam">List</span><span class="op">,</span> <span class="nam">Literal</span><span class="op">,</span> <span class="nam">Optional</span><span class="op">,</span> <span class="nam">Self</span><span class="op">,</span> <span class="nam">Union</span>&nbsp;</span><span class="r"></span></p>
@@ -124,7 +124,7 @@
     <p class="pln"><span class="n"><a id="t42" href="#t42">42</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t43" href="#t43">43</a></span><span class="t"><span class="key">def</span> <span class="nam">coerce_sid</span><span class="op">(</span><span class="nam">value</span><span class="op">:</span> <span class="nam">Any</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="nam">Any</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t44" href="#t44">44</a></span><span class="t">    <span class="str">&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t45" href="#t45">45</a></span><span class="t"><span class="str">    Normalise a service id written as a string (e.g. ``&quot;0x10&quot;``) to an ``int``.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t45" href="#t45">45</a></span><span class="t"><span class="str">    Normalize a service id written as a string (e.g. ``&quot;0x10&quot;``) to an ``int``.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t46" href="#t46">46</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t47" href="#t47">47</a></span><span class="t"><span class="str">    Anything that is not a parsable string is returned unchanged, so the field&#x27;s own</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t48" href="#t48">48</a></span><span class="t"><span class="str">    validation reports it.</span>&nbsp;</span><span class="r"></span></p>
@@ -139,7 +139,7 @@
     <p class="pln"><span class="n"><a id="t57" href="#t57">57</a></span><span class="t"><span class="com">#: A sub-function or record number, also accepting a hex or decimal string in YAML.</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t58" href="#t58">58</a></span><span class="t"><span class="nam">SubfunctionValue</span> <span class="op">=</span> <span class="nam">Annotated</span><span class="op">[</span><span class="nam">int</span><span class="op">,</span> <span class="nam">Field</span><span class="op">(</span><span class="nam">ge</span><span class="op">=</span><span class="num">0x00</span><span class="op">,</span> <span class="nam">le</span><span class="op">=</span><span class="num">0xFF</span><span class="op">)</span><span class="op">,</span> <span class="nam">BeforeValidator</span><span class="op">(</span><span class="nam">coerce_int</span><span class="op">)</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t59" href="#t59">59</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t60" href="#t60">60</a></span><span class="t"><span class="com">#: The canonical ISO 14229-1 name of every standardised service id.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t60" href="#t60">60</a></span><span class="t"><span class="com">#: The canonical ISO 14229-1 name of every standardized service id.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t61" href="#t61">61</a></span><span class="t"><span class="com">#:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t62" href="#t62">62</a></span><span class="t"><span class="com">#: A ``services`` entry whose ``sid`` appears here must use the matching ``service`` name, so</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t63" href="#t63">63</a></span><span class="t"><span class="com">#: a typo is caught even for the many service ids that have no dedicated model. Service ids</span>&nbsp;</span><span class="r"></span></p>
@@ -202,7 +202,7 @@
     <p class="pln"><span class="n"><a id="t120" href="#t120">120</a></span><span class="t"><span class="str">    ----------</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t121" href="#t121">121</a></span><span class="t"><span class="str">    service : str</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t122" href="#t122">122</a></span><span class="t"><span class="str">        Name of the service, e.g. ``&quot;tester_present&quot;``. Pinned to the ISO 14229-1 name</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t123" href="#t123">123</a></span><span class="t"><span class="str">        whenever :attr:`sid` is a standardised service id.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t123" href="#t123">123</a></span><span class="t"><span class="str">        whenever :attr:`sid` is a standardized service id.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t124" href="#t124">124</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t125" href="#t125">125</a></span><span class="t"><span class="str">    sid : int</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t126" href="#t126">126</a></span><span class="t"><span class="str">        The UDS service identifier, e.g. ``0x3E``.</span>&nbsp;</span><span class="r"></span></p>
@@ -227,7 +227,7 @@
     <p class="run"><span class="n"><a id="t145" href="#t145">145</a></span><span class="t">    <span class="op">@</span><span class="nam">model_validator</span><span class="op">(</span><span class="nam">mode</span><span class="op">=</span><span class="str">&quot;after&quot;</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t146" href="#t146">146</a></span><span class="t">    <span class="key">def</span> <span class="nam">validate_service_name_is_canonical</span><span class="op">(</span><span class="nam">self</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="nam">Self</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t147" href="#t147">147</a></span><span class="t">        <span class="str">&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t148" href="#t148">148</a></span><span class="t"><span class="str">        Raise when a standardised service id carries a name other than its ISO 14229-1 one.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t148" href="#t148">148</a></span><span class="t"><span class="str">        Raise when a standardized service id carries a name other than its ISO 14229-1 one.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t149" href="#t149">149</a></span><span class="t"><span class="str">        &quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t150" href="#t150">150</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t151" href="#t151">151</a></span><span class="t">        <span class="nam">canonical</span> <span class="op">=</span> <span class="nam">CANONICAL_SERVICE_NAMES</span><span class="op">.</span><span class="nam">get</span><span class="op">(</span><span class="nam">self</span><span class="op">.</span><span class="nam">sid</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
@@ -867,7 +867,7 @@
     <p class="pln"><span class="n"><a id="t785" href="#t785">785</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t786" href="#t786">786</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t787" href="#t787">787</a></span><span class="t"><span class="com">#: UDS service ids that have a dedicated model, mapped to their union tag.</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t788" href="#t788">788</a></span><span class="t"><span class="nam">SPECIALISED_SIDS</span><span class="op">:</span> <span class="nam">dict</span><span class="op">[</span><span class="nam">int</span><span class="op">,</span> <span class="nam">str</span><span class="op">]</span> <span class="op">=</span> <span class="op">{</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t788" href="#t788">788</a></span><span class="t"><span class="nam">SPECIALIZED_SIDS</span><span class="op">:</span> <span class="nam">dict</span><span class="op">[</span><span class="nam">int</span><span class="op">,</span> <span class="nam">str</span><span class="op">]</span> <span class="op">=</span> <span class="op">{</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t789" href="#t789">789</a></span><span class="t">    <span class="num">0x10</span><span class="op">:</span> <span class="str">&quot;0x10&quot;</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t790" href="#t790">790</a></span><span class="t">    <span class="num">0x11</span><span class="op">:</span> <span class="str">&quot;0x11&quot;</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t791" href="#t791">791</a></span><span class="t">    <span class="num">0x14</span><span class="op">:</span> <span class="str">&quot;0x14&quot;</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
@@ -882,7 +882,7 @@
     <p class="pln"><span class="n"><a id="t800" href="#t800">800</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t801" href="#t801">801</a></span><span class="t"><span class="key">def</span> <span class="nam">uds_service_tag</span><span class="op">(</span><span class="nam">value</span><span class="op">:</span> <span class="nam">Any</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="nam">str</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t802" href="#t802">802</a></span><span class="t">    <span class="str">&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t803" href="#t803">803</a></span><span class="t"><span class="str">    Return the union tag of a service entry: its ``sid`` when modelled, else ``&quot;generic&quot;``.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t803" href="#t803">803</a></span><span class="t"><span class="str">    Return the union tag of a service entry: its ``sid`` when modeled, else ``&quot;generic&quot;``.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t804" href="#t804">804</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t805" href="#t805">805</a></span><span class="t"><span class="str">    Accepts both raw YAML mappings (during validation) and already-constructed models.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t806" href="#t806">806</a></span><span class="t"><span class="str">    &quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
@@ -890,7 +890,7 @@
     <p class="run"><span class="n"><a id="t808" href="#t808">808</a></span><span class="t">    <span class="nam">sid</span> <span class="op">=</span> <span class="nam">coerce_sid</span><span class="op">(</span><span class="nam">value</span><span class="op">.</span><span class="nam">get</span><span class="op">(</span><span class="str">&quot;sid&quot;</span><span class="op">)</span> <span class="key">if</span> <span class="nam">isinstance</span><span class="op">(</span><span class="nam">value</span><span class="op">,</span> <span class="nam">dict</span><span class="op">)</span> <span class="key">else</span> <span class="nam">getattr</span><span class="op">(</span><span class="nam">value</span><span class="op">,</span> <span class="str">&quot;sid&quot;</span><span class="op">,</span> <span class="key">None</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t809" href="#t809">809</a></span><span class="t">    <span class="key">if</span> <span class="key">not</span> <span class="nam">isinstance</span><span class="op">(</span><span class="nam">sid</span><span class="op">,</span> <span class="nam">int</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t810" href="#t810">810</a></span><span class="t">        <span class="key">return</span> <span class="str">&quot;generic&quot;</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t811" href="#t811">811</a></span><span class="t">    <span class="key">return</span> <span class="nam">SPECIALISED_SIDS</span><span class="op">.</span><span class="nam">get</span><span class="op">(</span><span class="nam">sid</span><span class="op">,</span> <span class="str">&quot;generic&quot;</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t811" href="#t811">811</a></span><span class="t">    <span class="key">return</span> <span class="nam">SPECIALIZED_SIDS</span><span class="op">.</span><span class="nam">get</span><span class="op">(</span><span class="nam">sid</span><span class="op">,</span> <span class="str">&quot;generic&quot;</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t812" href="#t812">812</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t813" href="#t813">813</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t814" href="#t814">814</a></span><span class="t"><span class="nam">UDSServiceEntry</span> <span class="op">=</span> <span class="nam">Annotated</span><span class="op">[</span>&nbsp;</span><span class="r"></span></p>
@@ -917,7 +917,7 @@
             <a class="nav" href="z_cecd9fcb7069b942_subfunctions_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.16.1">coverage.py v7.16.1</a>,
-            created at 2026-10-09 07:24 +0000
+            created at 2026-10-09 18:36 +0000
         </p>
     </div>
 </footer>

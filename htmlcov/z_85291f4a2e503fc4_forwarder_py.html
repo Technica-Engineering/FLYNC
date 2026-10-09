@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_85291f4a2e503fc4_generic_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.16.1">coverage.py v7.16.1</a>,
-            created at 2026-10-09 07:24 +0000
+            created at 2026-10-09 18:36 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -709,7 +709,7 @@
     <p class="pln"><span class="n"><a id="t627" href="#t627">627</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t628" href="#t628">628</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t629" href="#t629">629</a></span><span class="t"><span class="com"># ---------------------------------------------------------------------------</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t630" href="#t630">630</a></span><span class="t"><span class="com"># Cycle detection (three-colour DFS)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t630" href="#t630">630</a></span><span class="t"><span class="com"># Cycle detection (three-color DFS)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t631" href="#t631">631</a></span><span class="t"><span class="com"># ---------------------------------------------------------------------------</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t632" href="#t632">632</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t633" href="#t633">633</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
@@ -717,7 +717,7 @@
     <p class="pln"><span class="n"><a id="t635" href="#t635">635</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t636" href="#t636">636</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t637" href="#t637">637</a></span><span class="t"><span class="key">class</span> <span class="nam">_ForwarderCycleDetector</span><span class="op">(</span><span class="nam">object</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t638" href="#t638">638</a></span><span class="t">    <span class="str">&quot;&quot;&quot;Three-colour DFS over the workspace forwarder graph.&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t638" href="#t638">638</a></span><span class="t">    <span class="str">&quot;&quot;&quot;Three-color DFS over the workspace forwarder graph.&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t639" href="#t639">639</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t640" href="#t640">640</a></span><span class="t">    <span class="key">def</span> <span class="nam">__init__</span><span class="op">(</span><span class="nam">self</span><span class="op">,</span> <span class="nam">model</span><span class="op">:</span> <span class="nam">FLYNCModel</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t641" href="#t641">641</a></span><span class="t">        <span class="nam">_</span><span class="op">,</span> <span class="nam">self</span><span class="op">.</span><span class="nam">_pdu_forwarder_idx</span> <span class="op">=</span> <span class="nam">_build_socket_indexes</span><span class="op">(</span><span class="nam">model</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
@@ -818,7 +818,7 @@
     <p class="run"><span class="n"><a id="t736" href="#t736">736</a></span><span class="t">            <span class="nam">self</span><span class="op">.</span><span class="nam">_dfs</span><span class="op">(</span><span class="nam">v</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t737" href="#t737">737</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t738" href="#t738">738</a></span><span class="t">    <span class="key">def</span> <span class="nam">_dfs</span><span class="op">(</span><span class="nam">self</span><span class="op">,</span> <span class="nam">u</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t739" href="#t739">739</a></span><span class="t">        <span class="str">&quot;&quot;&quot;Recursive three-colour DFS body.&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t739" href="#t739">739</a></span><span class="t">        <span class="str">&quot;&quot;&quot;Recursive three-color DFS body.&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t740" href="#t740">740</a></span><span class="t">        <span class="nam">self</span><span class="op">.</span><span class="nam">_state</span><span class="op">[</span><span class="nam">id</span><span class="op">(</span><span class="nam">u</span><span class="op">)</span><span class="op">]</span> <span class="op">=</span> <span class="nam">_GRAY</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t741" href="#t741">741</a></span><span class="t">        <span class="key">for</span> <span class="nam">v</span> <span class="key">in</span> <span class="nam">self</span><span class="op">.</span><span class="nam">_neighbours</span><span class="op">(</span><span class="nam">u</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t742" href="#t742">742</a></span><span class="t">            <span class="nam">self</span><span class="op">.</span><span class="nam">_visit_neighbour</span><span class="op">(</span><span class="nam">u</span><span class="op">,</span> <span class="nam">v</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
@@ -832,7 +832,7 @@
     <p class="pln"><span class="n"><a id="t750" href="#t750">750</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t751" href="#t751">751</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t752" href="#t752">752</a></span><span class="t"><span class="key">def</span> <span class="nam">detect_forwarder_cycles</span><span class="op">(</span><span class="nam">model</span><span class="op">:</span> <span class="nam">FLYNCModel</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t753" href="#t753">753</a></span><span class="t">    <span class="str">&quot;&quot;&quot;Workspace pass: three-colour DFS over the forwarder graph; raises ``err_major`` with the cycle path on a back-edge.&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t753" href="#t753">753</a></span><span class="t">    <span class="str">&quot;&quot;&quot;Workspace pass: three-color DFS over the forwarder graph; raises ``err_major`` with the cycle path on a back-edge.&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t754" href="#t754">754</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t755" href="#t755">755</a></span><span class="t">    <span class="nam">_ForwarderCycleDetector</span><span class="op">(</span><span class="nam">model</span><span class="op">)</span><span class="op">.</span><span class="nam">detect</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
 </main>
@@ -844,7 +844,7 @@
             <a class="nav" href="z_85291f4a2e503fc4_generic_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.16.1">coverage.py v7.16.1</a>,
-            created at 2026-10-09 07:24 +0000
+            created at 2026-10-09 18:36 +0000
         </p>
     </div>
 </footer>
