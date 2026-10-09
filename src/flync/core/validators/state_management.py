@@ -214,7 +214,7 @@ def _warn_controller_under_ecu(name, participants) -> None:
 
 def _check_single_variant_per_bus(name, participants, ctx: _ValidationContext) -> None:
     """
-    A CAN bus is modelled with ONE membership variant: bus-level (the whole bus
+    A CAN bus is modeled with ONE membership variant: bus-level (the whole bus
     as one participant) OR node-level (its ECUs / controllers as individual
     participants) — never both, that would model the same bus twice. LIN buses
     are exempt: LIN has no per-node NM, so an attached ECU's own membership is

@@ -112,7 +112,7 @@ J1939 over CAN
 .. note::
    J1939 rides on a regular :class:`~flync.model.flync_4_ecu.can_interface.CANInterface`: a CAN interface
    participates in J1939 on its bus when it declares a 64-bit ``j1939_name`` (used for address claiming) and/or a
-   source ``address`` (0-253; 254 NULL and 255 GLOBAL are reserved). A controller may be modelled with only J1939
+   source ``address`` (0-253; 254 NULL and 255 GLOBAL are reserved). A controller may be modeled with only J1939
    CAN interfaces and still satisfy the "at least one interface" requirement. J1939 frames live on a
    :ref:`CAN bus <can_bus>` and are of type :class:`~flync.model.flync_4_signal.J1939Frame`; a bus reached by a
    J1939-capable CAN interface may only carry ``J1939Frame`` frames.

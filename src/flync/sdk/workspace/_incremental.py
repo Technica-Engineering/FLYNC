@@ -157,7 +157,7 @@ class _WorkspaceIncremental(_WorkspaceLoading):
         """
         Reload ``node``'s subtree and re-validate every ancestor up to the root.
 
-        Shared by every partial-update flavour: a changed document reloads its own node, while a new or
+        Shared by every partial-update flavor: a changed document reloads its own node, while a new or
         removed document reloads the nearest surviving ancestor (whose directory scan then picks up or
         drops the affected file).
 

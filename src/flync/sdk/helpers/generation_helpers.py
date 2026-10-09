@@ -845,7 +845,7 @@ def __attach_to_owner(
     When the generated node is of the same type as the owner, the owner is patched in-place using
     the override values: collections are appended to (e.g. union-list ``connections``), while empty
     or scalar fields are assigned. Otherwise the generated node is treated as a child and attached to
-    the owner's ``node_field_name`` field (existing list/assignment behaviour).
+    the owner's ``node_field_name`` field (existing list/assignment behavior).
 
     Args:
         ws (FLYNCWorkspace): The workspace object.

@@ -327,7 +327,7 @@ def _report_unexpected(
         issues.append(
             StructureIssue(
                 severity="warning",
-                message=f"Unrecognised {'folder' if actual.is_dir() else 'file'}: '{name}'",
+                message=f"Unrecognized {'folder' if actual.is_dir() else 'file'}: '{name}'",
                 hint=f"Did you mean '{suggestion}'? Also verify this is the right folder for it.",
                 path=_rel(actual, root_path),
             )
@@ -340,7 +340,7 @@ def _report_unexpected(
         issues.append(
             StructureIssue(
                 severity="warning",
-                message=f"Unrecognised {'folder' if actual.is_dir() else 'file'}: '{name}'",
+                message=f"Unrecognized {'folder' if actual.is_dir() else 'file'}: '{name}'",
                 hint=f"Expected entries here: {expected_list}.",
                 path=_rel(actual, root_path),
             )

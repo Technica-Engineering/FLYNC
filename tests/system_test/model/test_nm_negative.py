@@ -22,7 +22,7 @@ NM_PDU_NAME = "NmPdu"
 # multicast isolation, an unmapped transport, and a catalog-only NM PDU. They
 # were removed on review: all three actually passed on an unrelated
 # "Sockets must be tied to the same address as the IPv4 endpoint" error, and
-# the behaviours they claimed (VLAN isolation, ignoring an unmapped transport,
+# the behaviors they claimed (VLAN isolation, ignoring an unmapped transport,
 # catalog-vs-deployment binding) are not construction-time validations of the
 # model. Genuine model-level NM negatives (unknown pdu_ref, duplicate NM PDU)
 # live in test_nm_positive.py, next to the model builders they need.

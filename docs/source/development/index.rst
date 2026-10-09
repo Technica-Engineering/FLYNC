@@ -4,7 +4,7 @@
 Model Development Guide
 =======================
 
-This guide documents the modelling conventions of ``flync.core`` and ``flync.model`` — what
+This guide documents the modeling conventions of ``flync.core`` and ``flync.model`` — what
 makes a new class, field, or validator feel native to FLYNC. Nearly every rule here is enforced
 somewhere — by ``mypy`` with the pydantic plugin, by ``scripts/ci/check_lazy_typing.py``, by the
 model docstring check, by the error catalog tooling, or by SonarQube — and each page names the
@@ -30,13 +30,13 @@ gate that backs it, so you can tell a checked rule from a convention.
 
    .. grid-item-card:: :doc:`validators_and_errors`
 
-      Choosing a validator, raising catalogued errors, pinning them in tests.
+      Choosing a validator, raising cataloged errors, pinning them in tests.
 
 Rules at a glance
 -----------------
 
 * Every model extends :class:`~flync.core.base_models.base_model.FLYNCBaseModel` —
-  ``extra="forbid"`` and the dump behaviour come with it.
+  ``extra="forbid"`` and the dump behavior come with it.
 * Every field is documented in the class docstring's NumPy ``Parameters`` section, with a
   ``:class:`` cross-reference for its type and the default stated — as a ``", optional"`` suffix
   or in the description. ``Literal`` tags and ``default_factory`` collections are exempt.

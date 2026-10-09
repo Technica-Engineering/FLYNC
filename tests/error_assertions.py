@@ -114,7 +114,7 @@ def assert_no_findings(validation_result: ValidationResult) -> None:
     """Assert the fixture loaded cleanly: a model was built and no error or warning was recorded.
 
     The positive counterpart of :func:`assert_single_error` / :func:`assert_single_warning`, used to show that a
-    rule is scoped to the case it targets and leaves neighbouring configurations alone.
+    rule is scoped to the case it targets and leaves neighboring configurations alone.
 
     Parameters
     ----------

@@ -280,7 +280,7 @@ def _ptp_switch_port(*, cmlds=False, two_step=True, domain_id=0):
 
 
 def test_warning_shaper_on_a_switch_port_leading_onto_a_segment():
-    """On a sharet medium the cycle, not the shaper, sets the latency bound; the shaper keeps prioritising within the queue."""
+    """On a sharet medium the cycle, not the shaper, sets the latency bound; the shaper keeps prioritizing within the queue."""
 
     assert_single_warning(_validated([_segment_with_switch(_shaped_switch_port())]), "FLYNC-TOP-WARN-CONS-318", "CBS")
 

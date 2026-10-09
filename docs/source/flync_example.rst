@@ -23,11 +23,11 @@ The configuration includes the following key components:
 
 - **Quality of Service (QoS), Layer 2 TSN, and TCAM Usage** - Provides sample configurations for traffic prioritization and deterministic networking using Time-Sensitive Networking (TSN) features. It also illustrates how TCAM rules can be allocated and used for traffic classification and filtering. You can use this configuration as a starting point, adapting interface mappings, policies, and feature parameters to match the specific requirements of your hardware platform and application.
 
-- **Network Management (NM)** - Shows how an NM message is modelled vendor-neutral as an ordinary PDU with ordinary signals, tagged via the ``pdu_usage`` / ``frame_usage`` fields, and bound to both Ethernet and CAN transports.
+- **Network Management (NM)** - Shows how an NM message is modeled vendor-neutral as an ordinary PDU with ordinary signals, tagged via the ``pdu_usage`` / ``frame_usage`` fields, and bound to both Ethernet and CAN transports.
 
 - **Signals, PDUs and CAN Communication** - Shows how bus-agnostic signals are grouped into PDUs and carried by CAN and CAN FD frames, and how the same PDUs are packed into Ethernet container PDUs.
 
-- **10BASE-T1S Multidrop** - Shows a shared single-pair segment carrying three rear lamp modules and the zone controller that coordinates them. It covers the PLCA parameters every node agrees on, the per-node node id on each port's PHY, and how the whole segment enrols in network management as a single participant.
+- **10BASE-T1S Multidrop** - Shows a shared single-pair segment carrying three rear lamp modules and the zone controller that coordinates them. It covers the PLCA parameters every node agrees on, the per-node node id on each port's PHY, and how the whole segment enrolls in network management as a single participant.
 
 
 
@@ -828,7 +828,7 @@ Each frame references its payload PDU by name via ``packed_pdus`` and may carry 
               bit_position: 0
 
         # --------------------------------------------------------------------------
-        # Frame: NmMessage (0x500, 8 bytes, sent cyclically by HPC, the sole modelled
+        # Frame: NmMessage (0x500, 8 bytes, sent cyclically by HPC, the sole modeled
         # NM-sending ECU on this bus). Tagged frame_usage: network_management;
         # carries PDU_NmMessage. Receivers are implicit external NM peers because HPC
         # is the only DiagCAN-connected ECU in this workspace; in a multi-ECU CAN
@@ -840,7 +840,7 @@ Each frame references its payload PDU by name via ``packed_pdus`` and may carry 
           frame_usage: network_management
           description: >-
             Network Management frame on DiagCAN. Sent cyclically by HPC, the sole
-            NM-sending ECU modelled in this workspace. Carries the ordinary NM PDU
+            NM-sending ECU modeled in this workspace. Carries the ordinary NM PDU
             (PDU_NmMessage) as its payload.
           length: 8
           can_id: 1280         # 0x500
@@ -880,7 +880,7 @@ Network Management (NM)
 
 The example illustrates how vendor-neutral state management membership is configured around **vehicle functions** (``AutonomousDriving``, ``Comfort``, …). Instead of per-node NM identity, each participant declares which function it contributes to, and several nodes may share the same function. The example spans Ethernet, CAN, and LIN within one vehicle-wide state management group, ``VEHICLE`` (see :ref:`flync_4_nm` for the model).
 
-The NM message is modelled as an ordinary PDU (``PDU_NmMessage``) with ordinary signals:
+The NM message is modeled as an ordinary PDU (``PDU_NmMessage``) with ordinary signals:
 
 - ``sender_id`` (uint8) - identifies the sending node.
 - ``control_vector`` (uint8) - control bits of the NM message:
@@ -953,7 +953,7 @@ On ``BodyCAN``, the ``VEHICLE`` group follows the classic CAN pattern: ``zonal_g
 Instrumentation (Measurement Points)
 """"""""""""""""""""""""""""""""""""""
 
-The instrumentation overlay taps buses and links with **measurement points** for network analysers such as ASAM CMP or TECMP (see :ref:`flync_4_instrumentation <instrumentation>` for the model). It is **optional** - a workspace that is not being instrumented simply has no ``instrumentation/`` folder, in which case ``flync_model.instrumentation`` stays ``None``.
+The instrumentation overlay taps buses and links with **measurement points** for network analyzers such as ASAM CMP or TECMP (see :ref:`flync_4_instrumentation <instrumentation>` for the model). It is **optional** - a workspace that is not being instrumented simply has no ``instrumentation/`` folder, in which case ``flync_model.instrumentation`` stays ``None``.
 
 When present, the points are declared in ``instrumentation/measurement_points.flync.yaml``. Each point is identified by a unique ``name`` and carries an ``interface_id`` (per direction for Ethernet port taps); every interface id is unique across the overlay. The example exercises all four point types:
 

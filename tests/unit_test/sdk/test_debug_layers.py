@@ -334,13 +334,13 @@ class Detail(BaseModel):
 
 
 class ItemWithSub(BaseModel):
-    """List item whose type has an External sub-field -> serialises to a subfolder."""
+    """List item whose type has an External sub-field -> serializes to a subfolder."""
 
     detail: Annotated[Detail, External(output_structure=OutputStrategy.SINGLE_FILE)]
 
 
 class LeafOnly(BaseModel):
-    """List item with no External fields -> serialises to a flat file."""
+    """List item with no External fields -> serializes to a flat file."""
 
     id: str = "leaf"
 
@@ -484,7 +484,7 @@ def test_check_structure_scenarios(tmp_path):
     warnings = [i for i in check_structure(Root, typo_dir, typo_dir) if i.severity == "warning"]
     assert any("Did you mean 'items'" in w.hint for w in warnings)
 
-    # An unrecognised entry with no typo match still warns.
+    # An unrecognized entry with no typo match still warns.
     unknown_dir = tmp_path / "unknown"
     unknown_dir.mkdir()
     _populate_valid_root(unknown_dir)

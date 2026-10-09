@@ -2,7 +2,7 @@
 ISO 14229-1 sub-function name tables shared by the UDS service models.
 
 Every UDS service that offers sub-functions accepts them as *either* the ISO snake_case name
-*or* the raw numeric value, because the sub-function ranges are only partly standardised -
+*or* the raw numeric value, because the sub-function ranges are only partly standardized -
 EcuReset 0x40-0x5F and InputOutputControlByIdentifier 0x04-0xFF are supplier- or
 manufacturer-specific and must still load. The ``Literal`` aliases below therefore always
 appear as ``List[Union[<Alias>, int]]`` on a service, never as a bare ``Literal``.
@@ -14,7 +14,7 @@ so the two cannot drift.
 
 from typing import Any, Iterable, List, Literal
 
-#: The EcuReset (0x11) ``resetType`` values standardised by ISO 14229-1. Values 0x40-0x5F are
+#: The EcuReset (0x11) ``resetType`` values standardized by ISO 14229-1. Values 0x40-0x5F are
 #: system-supplier specific and are written as plain integers instead.
 ResetType = Literal[
     "hard_reset",
@@ -33,7 +33,7 @@ RESET_TYPE_IDS: dict[str, int] = {
     "disable_rapid_power_shutdown": 0x05,
 }
 
-#: The ReadDTCInformation (0x19) ``reportType`` values standardised by ISO 14229-1.
+#: The ReadDTCInformation (0x19) ``reportType`` values standardized by ISO 14229-1.
 DTCReportType = Literal[
     "report_number_of_dtc_by_status_mask",
     "report_dtc_by_status_mask",
@@ -99,7 +99,7 @@ DTC_REPORT_TYPE_IDS: dict[str, int] = {
     "report_dtc_information_by_dtc_readiness_group_identifier": 0x56,
 }
 
-#: Report types ISO 14229-1:2020 deprecated in favour of the user-defined-memory reports
+#: Report types ISO 14229-1:2020 deprecated in favor of the user-defined-memory reports
 #: (0x17-0x19) and the WWH-OBD reports (0x42/0x55).
 DEPRECATED_DTC_REPORT_TYPES: frozenset[str] = frozenset(
     {
@@ -175,7 +175,7 @@ DTC_STATUS_BITS: dict[str, int] = {
 }
 
 #: The InputOutputControlByIdentifier (0x2F) ``inputOutputControlParameter`` values
-#: standardised by ISO 14229-1. Values 0x04-0xFF are vehicle-manufacturer specific.
+#: standardized by ISO 14229-1. Values 0x04-0xFF are vehicle-manufacturer specific.
 IOControlParameter = Literal[
     "return_control_to_ecu",
     "reset_to_default",
@@ -217,7 +217,7 @@ ALL_DTC_GROUPS: int = 0xFFFFFF
 
 def coerce_int(value: Any) -> Any:
     """
-    Normalise an integer written as a string (e.g. ``"0x19"``, ``"25"``) to an ``int``.
+    Normalize an integer written as a string (e.g. ``"0x19"``, ``"25"``) to an ``int``.
 
     Anything that is not a parsable string is returned unchanged, so the field's own
     validation reports it. Sub-function *names* are strings too and are deliberately left

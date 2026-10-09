@@ -146,7 +146,7 @@ def test_service_class_is_selected_by_sid(raw_service, expected_cls):
 
 
 def test_modelled_sid_enforces_its_service_name():
-    """A modelled ``sid`` pins the ``service`` name too - it cannot fall back to the generic service."""
+    """A modeled ``sid`` pins the ``service`` name too - it cannot fall back to the generic service."""
 
     with pytest.raises(ValidationError) as exc_info:
         minimal_server(access_profiles=[], services=[{"service": "something_else", "sid": 0x27}])

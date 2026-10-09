@@ -11,7 +11,7 @@ from rich import box
 from rich.table import Table
 
 # ---------------------------------------------------------------------------
-# Semantic colour palette
+# Semantic color palette
 # ---------------------------------------------------------------------------
 
 # Structural / identity columns

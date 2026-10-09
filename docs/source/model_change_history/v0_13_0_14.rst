@@ -101,7 +101,7 @@ medium rather than a cable between two ports:
 
 ``BASET1S`` gained ``topology: p2p | multidrop`` (default ``p2p``), widened ``duplex`` to
 ``half | full``, and exposes ``node_id``/``burst_count``/``burst_timer``/``role`` read-only,
-reflected from the segment. Its ``role`` **input** key is no longer modelled: a file that still sets
+reflected from the segment. Its ``role`` **input** key is no longer modeled: a file that still sets
 it loads with warning ``FLYNC-ECU-WARN-LIFE-338`` and the key is dropped.
 
 
@@ -109,7 +109,7 @@ Topology: ``SystemTopology`` → ``EthernetTopology`` (+ split)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``system_topology.py`` was renamed ``ethernet_topology.py`` (new siblings ``bus_topology.py`` and
-``ethernet_multidrop.py``) and the class ``SystemTopology`` was **removed with no alias** in favour
+``ethernet_multidrop.py``) and the class ``SystemTopology`` was **removed with no alias** in favor
 of ``EthernetTopology``. The ``FLYNCTopology`` attribute ``system_topology`` → ``ethernet_topology``
 keeps ``alias="system_topology"``, so the old **YAML key** still loads with a deprecation warning
 ``FLYNC-TOP-WARN-LIFE-229`` — only the Python class name is gone outright. CAN/LIN bus topologies
@@ -157,7 +157,7 @@ TCAM ``TCAMRule`` / ``FrameMask`` rework (``FLYNC-1402``)
   ``match_filter``/``frame_mask``, and ``action`` is optional. Errors **176, 179–182** and **184**
   were removed; **231–235** are new.
 
-Behaviour changes with no schema change
+Behavior changes with no schema change
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 * **MACsec without MKA is now only a warning.** Error **100** (``macsec_mode`` enabled while

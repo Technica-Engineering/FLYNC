@@ -102,7 +102,7 @@ def filetree(
         Optional[str],
         typer.Option(
             "--class",
-            help=("Sub-tree to visualise. " f"Choices: {', '.join(_CLASS_MAP)}. " "Defaults to the full FLYNCModel."),
+            help=("Sub-tree to visualize. " f"Choices: {', '.join(_CLASS_MAP)}. " "Defaults to the full FLYNCModel."),
         ),
     ] = None,
 ):

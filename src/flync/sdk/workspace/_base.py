@@ -160,7 +160,7 @@ class _WorkspaceBase(object):
 
     def is_path_supported(self, path: PathType):
         """
-        Return whether a path is a directory or a recognised FLYNC file.
+        Return whether a path is a directory or a recognized FLYNC file.
 
         Args:
             path (PathType): The path to check.
@@ -175,7 +175,7 @@ class _WorkspaceBase(object):
 
     def is_flync_file(self, path: PathType):
         """
-        Return whether a path has a recognised FLYNC file extension.
+        Return whether a path has a recognized FLYNC file extension.
 
         Args:
             path (PathType): The path to check.
@@ -190,7 +190,7 @@ class _WorkspaceBase(object):
 
     def name_form_file(self, file_name: str | Path) -> str:
         """
-        Strip all recognised FLYNC file extensions from a filename.
+        Strip all recognized FLYNC file extensions from a filename.
 
         Iterates over every extension in :attr:`~flync.sdk.context.workspace_config.WorkspaceConfiguration.allowed_extensions`
         and removes it as a suffix, leaving the bare stem.
@@ -338,7 +338,7 @@ class _WorkspaceBase(object):
         paths; they are normalized with the same ``strip(".")`` used when objects
         are registered, so the recorded ids match :attr:`objects` keys. Root-level
         ids (which normalize to an empty parent) are skipped, preserving the
-        "root has no children" behaviour.
+        "root has no children" behavior.
         """
 
         if not parent_id or child_id in self._linked_child_ids:

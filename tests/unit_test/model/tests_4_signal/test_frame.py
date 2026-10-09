@@ -541,7 +541,7 @@ def test_positive_j1939_frame_with_pdu():
 
 
 def test_negative_j1939_frame_zero_length_rejected():
-    """J1939 data frames always carry 8 bytes; length < 8 is rejected (TP isn't modelled)."""
+    """J1939 data frames always carry 8 bytes; length < 8 is rejected (TP isn't modeled)."""
     with pytest.raises(ValidationError) as exc_info:
         _make_j1939_frame(length=0)
     assert_single_error(exc_info, None, "Input should be 8")

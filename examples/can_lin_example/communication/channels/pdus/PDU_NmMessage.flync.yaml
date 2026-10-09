@@ -3,13 +3,13 @@ type: standard
 length: 8
 pdu_usage: network_management
 description: >-
-  Vendor-independent Network Management message modelled as an ordinary PDU
+  Vendor-independent Network Management message modeled as an ordinary PDU
   with ordinary signals. Carries the source node identifier, a partial-network
   relevance vector, and an opaque user-data area reserved for OEM/application
   extensions. The relevance_vector flag labels intentionally match the names
   of real application PDUs in this workspace, so the NM bits identify which
   application functions are currently relevant/awake. Tagged via pdu_usage so
-  it can be recognised as an NM message regardless of transport.
+  it can be recognized as an NM message regardless of transport.
 
 signals:
   - bit_position: 0
@@ -46,7 +46,7 @@ signals:
           - mask: 0x20
             label: VehicleDynamics
 
-  # Opaque trailing bytes reserved for OEM/application extensions. Modelled as
+  # Opaque trailing bytes reserved for OEM/application extensions. Modeled as
   # a plain bytearray so the NM example does not pre-commit to any specific
   # additional fields.
   - bit_position: 16

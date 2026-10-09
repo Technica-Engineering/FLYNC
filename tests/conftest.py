@@ -6,7 +6,7 @@ from tests.example_paths import FLYNC_EXAMPLE, FLYNC_EXAMPLE_EXPERIMENTAL
 
 def pytest_configure(config):
     # Build the on-disk dependency graph cache once in the xdist master so that
-    # workers start with a warm cache and don't serialise on the FileLock.
+    # workers start with a warm cache and don't serialize on the FileLock.
     if hasattr(config, "workerinput"):
         return
     cleanup_old_caches(force=True)

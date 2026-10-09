@@ -51,7 +51,7 @@ class DIDIOControl(FLYNCBaseModel):
         when that parameter is supported.
 
     description : str, optional
-        Human-readable description of the control behaviour.
+        Human-readable description of the control behavior.
     """
 
     supported_parameters: List[IOControlParameterEntry] = Field(default_factory=_default_io_control_parameters)

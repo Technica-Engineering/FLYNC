@@ -173,7 +173,7 @@ class DiagDataRecord(FLYNCBaseModel):
 
     fields : list of :class:`DiagField`, optional
         Fields contained in the record. May be empty for a record whose contents are not
-        modelled in detail.
+        modeled in detail.
 
     description : str, optional
         Human-readable description of the record.

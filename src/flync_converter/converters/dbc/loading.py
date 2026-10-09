@@ -92,10 +92,10 @@ def _baud_rate(db, attribute: str, allowed, default: int, bus_name: str, report:
 
 
 def _nominal_baud_rate(db, config: DbcConverterConfig, bus_name: str = "", report: ConverterReport = INACTIVE_REPORT) -> int:
-    """Return the bus nominal bit rate, honouring the ``Baudrate`` attribute."""
+    """Return the bus nominal bit rate, honoring the ``Baudrate`` attribute."""
     return _baud_rate(db, "Baudrate", _ALLOWED_CAN_BAUD_RATES, config.baud_rate_default, bus_name, report)
 
 
 def _fd_baud_rate(db, config: DbcConverterConfig, bus_name: str = "", report: ConverterReport = INACTIVE_REPORT) -> int:
-    """Return the CAN FD data-phase bit rate, honouring the ``BaudrateCANFD`` attribute."""
+    """Return the CAN FD data-phase bit rate, honoring the ``BaudrateCANFD`` attribute."""
     return _baud_rate(db, "BaudrateCANFD", _ALLOWED_CAN_FD_DATA_RATES, config.fd_baud_rate_default, bus_name, report)

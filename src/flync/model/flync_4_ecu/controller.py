@@ -402,7 +402,7 @@ class Controller(FLYNCBaseModel):
         unique across the whole subtree. Stored in the ``compute_nodes/`` folder.
 
     switches : list of :class:`~flync.model.flync_4_ecu.switch.Switch`, optional
-        Virtual switches hosted by this controller, modelled with the same class as a hardware
+        Virtual switches hosted by this controller, modeled with the same class as a hardware
         switch. Stored in the ``switches/`` folder.
 
     controller_topology : :class:`~flync.model.flync_4_ecu.controller_topology.ControllerTopology`, optional

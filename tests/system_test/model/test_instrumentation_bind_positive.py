@@ -3,7 +3,7 @@ Positive tests: binding a set of measurement points against a self-contained FLY
 each reference to the real bus, segment or port it names.
 
 The model is built programmatically (``make_instrumentation_model``) rather than loaded from an
-example workspace, so the bind behaviour is exercised without depending on the bundled examples.
+example workspace, so the bind behavior is exercised without depending on the bundled examples.
 """
 
 from pydantic import TypeAdapter

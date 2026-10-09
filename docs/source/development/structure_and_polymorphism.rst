@@ -55,7 +55,7 @@ because changing one changes the other.
 Strategies combine with ``|``: ``SINGLE_FILE`` writes one ``<field>.flync.yaml``, ``FOLDER`` writes a
 directory, ``OMMIT_ROOT`` suppresses the wrapper key, ``FIXED_PATH`` fixes the name instead of
 deriving it from the field. ``FIXED_ROOT`` together with ``External(root=...)`` re-bases the
-path on a directory other than the parent's. The full behaviour is in :ref:`field_annotations`.
+path on a directory other than the parent's. The full behavior is in :ref:`field_annotations`.
 
 ``Implied`` — the name is the folder
 ------------------------------------
@@ -135,7 +135,7 @@ mapping in YAML:
             | DoIPDiscoveryDeployment
         ) = Field(discriminator="deployment_type")
 
-Variants that share behaviour hang off an abstract base, which keeps the common fields and the
+Variants that share behavior hang off an abstract base, which keeps the common fields and the
 tag type honest:
 
 .. code-block:: python

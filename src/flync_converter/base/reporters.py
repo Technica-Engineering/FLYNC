@@ -1,6 +1,6 @@
 """Reporters writing a converter's structured report data.
 
-A reporter serialises report data into one file of a report folder: a
+A reporter serializes report data into one file of a report folder: a
 converter's report (see :class:`~flync_converter.base.ConverterReport`) into
 the converter's folder, and the shared report of a conversion into the reports
 folder::
@@ -24,7 +24,7 @@ import yaml
 
 
 def _plain(data: Mapping[str, Any]) -> Any:
-    """Return ``data`` with every value a reporter cannot serialise turned into its string form.
+    """Return ``data`` with every value a reporter cannot serialize turned into its string form.
 
     Converters record values such as paths, enums or addresses; reporters only
     need to handle plain mappings, lists, strings, numbers, booleans and ``None``.
@@ -58,7 +58,7 @@ class BaseReporter(ABC):
 
     @abstractmethod
     def dump(self, data: Any, stream: IO[str]) -> None:
-        """Serialise plain report data to an open text stream.
+        """Serialize plain report data to an open text stream.
 
         Args:
             data: The report data, holding only plain values.
@@ -72,7 +72,7 @@ class YamlReporter(BaseReporter):
     filename = "report.yaml"
 
     def dump(self, data: Any, stream: IO[str]) -> None:
-        """Serialise the report data as YAML, keeping the recording order."""
+        """Serialize the report data as YAML, keeping the recording order."""
         yaml.safe_dump(data, stream, sort_keys=False, allow_unicode=True)
 
 
@@ -82,7 +82,7 @@ class JsonReporter(BaseReporter):
     filename = "report.json"
 
     def dump(self, data: Any, stream: IO[str]) -> None:
-        """Serialise the report data as indented JSON."""
+        """Serialize the report data as indented JSON."""
         json.dump(data, stream, indent=2, ensure_ascii=False)
 
 

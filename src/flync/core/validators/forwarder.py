@@ -627,7 +627,7 @@ def _egress_pdu_for_can_forwarder(
 
 
 # ---------------------------------------------------------------------------
-# Cycle detection (three-colour DFS)
+# Cycle detection (three-color DFS)
 # ---------------------------------------------------------------------------
 
 
@@ -635,7 +635,7 @@ _WHITE, _GRAY, _BLACK = 0, 1, 2
 
 
 class _ForwarderCycleDetector(object):
-    """Three-colour DFS over the workspace forwarder graph."""
+    """Three-color DFS over the workspace forwarder graph."""
 
     def __init__(self, model: FLYNCModel) -> None:
         _, self._pdu_forwarder_idx = _build_socket_indexes(model)
@@ -736,7 +736,7 @@ class _ForwarderCycleDetector(object):
             self._dfs(v)
 
     def _dfs(self, u) -> None:
-        """Recursive three-colour DFS body."""
+        """Recursive three-color DFS body."""
         self._state[id(u)] = _GRAY
         for v in self._neighbours(u):
             self._visit_neighbour(u, v)
@@ -750,6 +750,6 @@ class _ForwarderCycleDetector(object):
 
 
 def detect_forwarder_cycles(model: FLYNCModel) -> None:
-    """Workspace pass: three-colour DFS over the forwarder graph; raises ``err_major`` with the cycle path on a back-edge."""
+    """Workspace pass: three-color DFS over the forwarder graph; raises ``err_major`` with the cycle path on a back-edge."""
 
     _ForwarderCycleDetector(model).detect()

@@ -1,5 +1,5 @@
 """
-State management modelling for FLYNC.
+State management modeling for FLYNC.
 
 A :class:`StateManagementGroup` is a thin coordination construct: it owns an
 identity, a reference to an ordinary NM PDU (``pdu_usage:
@@ -17,7 +17,7 @@ A bus-level membership makes the bus ONE participant: while requested the
 whole bus is kept awake, when released it may sleep as a unit; that one
 participant may reference several bits when the bus is needed for several
 functions. The bus cannot speak NM itself, so a proxy is derived during
-validation and never modelled: for a CAN bus the proxy is the entity that
+validation and never modeled: for a CAN bus the proxy is the entity that
 feeds the group's NM frame onto that bus; for a LIN bus - which carries no NM
 message - the proxy is a LIN master that drives the LIN sleep, either as the
 source of the group state (e.g. a central gateway) or after receiving it on
@@ -292,7 +292,7 @@ class StateMembershipRef(FLYNCBaseModel):
 
     Entities declare membership ONLY - never timing and never the NM PDU;
     everything the group owns stays in the central group registry. A bus
-    membership enrols the bus as a single participant (default bit: the bus
+    membership enrolls the bus as a single participant (default bit: the bus
     name) - it is never expanded into per-attached-ECU participants.
 
     Parameters

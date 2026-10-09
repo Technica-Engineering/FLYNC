@@ -174,7 +174,7 @@ A group needs no coordinator object. When a group spans several buses, an
 ordinary gateway forwards its NM PDU from one bus onto the next using plain
 ``sender_frames`` / ``receiver_frames`` — the same mechanism any PDU uses to
 cross a bus. Each node reads the relevance vector it receives and applies the
-sleep decision locally, so the group's behaviour emerges from ordinary
+sleep decision locally, so the group's behavior emerges from ordinary
 forwarding plus each entity's local sleep decision, not from a dedicated
 coordinating role.
 

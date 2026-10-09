@@ -1,4 +1,4 @@
-"""Top-level package for flync-4-safety, modelling functional-safety configuration such as E2E protection."""
+"""Top-level package for flync-4-safety, modeling functional-safety configuration such as E2E protection."""
 
 from flync.model.flync_4_safety.e2e import E2EConfig
 

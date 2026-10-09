@@ -49,10 +49,10 @@ configuration (``--dst-report-enabled`` and ``--dst-report-min-log-level`` on th
 ``min_log_level`` arguments of ``convert`` and ``Converter.convert`` are removed. Unknown level names and
 non-boolean ``report_enabled`` values raise a validation error.
 
-J1939 node modelling
-''''''''''''''''''''
+J1939 node modeling
+'''''''''''''''''''
 
-New in this release: J1939 (SAE J1939) modelling over CAN 2.0B. A J1939 node is modelled as a
+New in this release: J1939 (SAE J1939) modeling over CAN 2.0B. A J1939 node is modeled as a
 :class:`~flync.model.flync_4_ecu.can_interface.CANInterface` that declares a 64-bit ``j1939_name`` and an
 optional preferred ``source_address`` (the SA the node claims at runtime through address claiming, J1939-81).
 Each controller that participates in J1939 exposes one such interface.

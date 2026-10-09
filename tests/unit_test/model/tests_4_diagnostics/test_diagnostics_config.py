@@ -48,7 +48,7 @@ def test_diagnostics_config_accepts_any_present_protocol(doip, uds):
 def test_diagnostics_config_rejects_having_neither_protocol():
     """Raised as a bare ``ValueError`` on purpose: the loader reads it as "this folder is not a
     diagnostics config" and leaves the field unset, so an absent ``communication/diagnostics/``
-    directory does not materialise a phantom config that would be written back to disk."""
+    directory does not materialize a phantom config that would be written back to disk."""
 
     with pytest.raises(ValidationError) as exc_info:
         DiagnosticsConfig()

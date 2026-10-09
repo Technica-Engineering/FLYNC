@@ -277,7 +277,7 @@ A new format is a subclass of :class:`~flync_converter.base.BaseReporter` with a
            for group, content in data.items():
                stream.write(f"{group}: {content}\n")
 
-A converter configuration class that subclasses :class:`~flync_converter.ConverterConfig` is stored in the destination workspace with its own fields, so those fields must be serialisable to YAML.
+A converter configuration class that subclasses :class:`~flync_converter.ConverterConfig` is stored in the destination workspace with its own fields, so those fields must be serializable to YAML.
 
 Adding a Built-in Converter
 ----------------------------

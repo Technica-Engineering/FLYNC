@@ -26,7 +26,7 @@ def two_socket_ecu_kwargs(someip_deployment, udp_socket_data, minimal_ecu_kwargs
     """Return a factory for ECU kwargs whose two sockets each deploy one instance of the given *role*.
 
     ``difference`` is applied to the second socket's deployment, so a caller flips between "same instance
-    twice" (the default, no difference) and a neighbouring instance that must stay unaffected.
+    twice" (the default, no difference) and a neighboring instance that must stay unaffected.
     """
 
     def _build(role: str, **difference) -> dict:

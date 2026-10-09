@@ -73,7 +73,7 @@ class CANInterface(ControllerInterface):
     j1939_receiver_frames : list of :class:`J1939FrameRef`, optional
         J1939 frames (by PGN) received by this node from the bus.
     j1939_name : int, optional
-        64-bit J1939 NAME of the node this interface exposes; a node may be modelled by its NAME alone.
+        64-bit J1939 NAME of the node this interface exposes; a node may be modeled by its NAME alone.
         Setting it marks the interface as a J1939 participant on ``bus_ref``, which must then only carry
         ``J1939Frame`` frames.
     source_address : int, optional

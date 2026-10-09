@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-FLYNC (FLexible Yaml-based Network Configuration) — Python library for automotive E/E network configuration as code. Requires **Python 3.12+** (`requires-python = ">=3.12,<3.15"`). Uses **uv** for dependency management and **hatchling** as build backend.
+FLYNC (FLexible Yaml-based Network Configuration) — Python library for automotive E/E network configuration as code. Requires **Python 3.12+** (`requires-python = ">=3.12,<3.15"`). Uses **uv** for dependency management and **hatchling** as build backend. Project language is American English.
 
 ## Quick Start
 

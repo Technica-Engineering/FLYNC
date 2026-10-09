@@ -13,7 +13,7 @@ def app_data():
     """Return a factory for the *data* of an app consuming :data:`SERVICE_REFERENCE`.
 
     ``provider_difference`` is applied to the provider reference, so a caller flips between an app that
-    provides the very instance it consumes (the default, no difference) and neighbouring instances.
+    provides the very instance it consumes (the default, no difference) and neighboring instances.
     """
 
     def _build(**provider_difference) -> dict:

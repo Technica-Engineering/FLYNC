@@ -52,7 +52,7 @@ _SCIENTIFIC_NOTATION_THRESHOLD = 10**16
 def _as_dbc_number(value: Optional[float | int]) -> Optional[float | int]:
     """Render integral values without a trailing ``.0`` in the DBC output.
 
-    Cantools serialises the linear conversion as ``(scale,offset)`` using plain
+    Cantools serializes the linear conversion as ``(scale,offset)`` using plain
     ``str()``, so a float ``1.0``/``0.0`` becomes ``(1.0,0.0)``.  Erasing the
     redundant fractional part for whole numbers gives the conventional
     ``(1,0)`` used by most DBC tools.

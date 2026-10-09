@@ -71,7 +71,7 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
         # asyncio.to_thread(...), so the default POSIX "fork" start method forks from a
         # multi-threaded process and can deadlock the child. Use a non-fork context
         # (forkserver on POSIX, spawn elsewhere); everything submitted (module-level
-        # parse_document, path/str/bool args) is picklable, so this is behaviour-neutral.
+        # parse_document, path/str/bool args) is picklable, so this is behavior-neutral.
         mp_context = multiprocessing.get_context("forkserver" if sys.platform != "win32" else "spawn")
         with ProcessPoolExecutor(mp_context=mp_context) as pool:
             futures = [
@@ -738,13 +738,13 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
         Merge the contents of a FLYNC file into a model load-info dict.
 
         Opens the file at ``path``, registers it as a document, and merges its parsed YAML content into ``model_load_info``.
-        The merge behaviour depends on ``output_strategy``:
+        The merge behavior depends on ``output_strategy``:
 
         - ``OMMIT_ROOT``: assigns the raw content to ``model_load_info[field_name]``.
         - ``FIXED_ROOT``: assigns only the ``fixed_name`` key of the content.
         - Default: updates ``model_load_info`` with all top-level keys.
 
-        Does nothing when ``path`` is not a file or is not a recognised FLYNC file extension.
+        Does nothing when ``path`` is not a file or is not a recognized FLYNC file extension.
 
         Args:
             path (Path): Path to the FLYNC YAML file.
@@ -799,7 +799,7 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
         """
         Validate ``module_load_info`` for ``node`` the same way the initial load does.
 
-        Resets the node's diagnostics, applies the parent-aware type rebuild/normalisation, records any
+        Resets the node's diagnostics, applies the parent-aware type rebuild/normalization, records any
         validation errors against the node's document id and stores the result on ``node.model``.
 
         Args:

@@ -107,9 +107,9 @@ entry becomes is decided by its ``sid``, so a service id FLYNC does not model in
 an OEM-specific one, for instance - still loads as the generic service.
 
 .. note::
-   A service id standardised by ISO 14229-1 must use its canonical ``service`` name even
+   A service id standardized by ISO 14229-1 must use its canonical ``service`` name even
    when it has no dedicated model, so a typo is caught for every UDS service rather than
-   only the modelled ones. The names are listed in
+   only the modeled ones. The names are listed in
    :data:`~flync.model.flync_4_diagnostics.uds.services.CANONICAL_SERVICE_NAMES`.
 
    Services that carry no configuration of their own - WriteDataByIdentifier (0x2E),

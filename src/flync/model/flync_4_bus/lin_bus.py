@@ -106,7 +106,7 @@ class LINBus(FLYNCBaseModel):
         Unconditional LIN frames for the LDF ``Frames`` section.
     state_memberships : list of \
     :class:`~flync.model.flync_4_nm.StateMembershipRef`, optional
-        Assignments of this bus to a state management group.  A bus membership enrols the whole bus as one participant — the entire bus
+        Assignments of this bus to a state management group.  A bus membership enrolls the whole bus as one participant — the entire bus
         stays awake or sleeps as a unit, never expanded into per-attached-node participants.  It contributes one relevance bit by default
         (the bus name) and may reference several when the bus serves several functions.  LIN has no per-node NM, so a LIN bus always
         participates as a whole.

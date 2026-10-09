@@ -49,7 +49,7 @@ def _unwrap_type(tp: Any) -> tuple[bool, Any]:
                 continue
         # list[X] — signal to callers that we should render a placeholder item row.
         # Also unwrap X itself: items like Annotated[Union[StandardPDU, MultiplexedPDU], Field(...)]
-        # need the same Annotated/Union stripping before _is_pydantic_model can recognise them.
+        # need the same Annotated/Union stripping before _is_pydantic_model can recognize them.
         if origin is list:
             args = get_args(tp)
             if args:
@@ -139,7 +139,7 @@ def _build_lines(model_cls: type[BaseModel], prefix: str, seen: frozenset[type[B
         is_opt = _is_optional(ann) or not field_info.is_required()
         req_mark = "   " if is_opt else "!! "
 
-        # OutputStrategy.SINGLE_FILE means this field serialises to one .yaml file;
+        # OutputStrategy.SINGLE_FILE means this field serializes to one .yaml file;
         # anything else (FOLDER / AUTO) means it gets its own subdirectory
         is_file = OutputStrategy.SINGLE_FILE in ext.output_structure
         display = _display_name(field_name, ext, is_file)
@@ -171,7 +171,7 @@ def _build_list_item_lines(field_name: str, inner: type[BaseModel], child_prefix
     e.g. List[ECU]: each item lives in its own named subfolder. We don't have
     real data here, so show one placeholder row followed by "..." to indicate
     N items exist at runtime. If the item type has no External fields every
-    item serialises to a single file (not a sub-directory), so a trailing "/"
+    item serializes to a single file (not a sub-directory), so a trailing "/"
     is omitted in that case.
 
     If inner was already visited on this path (a model that can nest itself,
@@ -233,7 +233,7 @@ def print_flync_structure(model_cls: type[BaseModel] | None = None) -> Path:
     Write the FLYNC directory structure to exports/<ModelName>_structure.txt.
 
     Starts traversal from FLYNCModel by default. Pass any other pydantic model
-    class to visualise a subtree instead.
+    class to visualize a subtree instead.
 
     Returns the Path of the file that was written.
     """

@@ -9,7 +9,7 @@ They are expressed directly on the pydantic model attributes, inside ``Annotated
 .. seealso::
 
    :ref:`structure_and_polymorphism` in the Model Development Guide shows how to *choose*
-   between these annotations when adding a field. This page is the behaviour reference.
+   between these annotations when adding a field. This page is the behavior reference.
 
 
 Overview
@@ -25,7 +25,7 @@ All three are frozen dataclasses in ``flync.core.annotations``, together with th
 enums that refine them:
 
 * ``NamingStrategy`` - how the external file / folder is named.
-* ``OutputStrategy`` - how the external representation is organised (single file vs folder).
+* ``OutputStrategy`` - how the external representation is organized (single file vs folder).
 * ``ImpliedStrategy`` - how an implied field is calculated.
 * ``ReferenceStrategy`` - how a reference is stored and resolved.
 

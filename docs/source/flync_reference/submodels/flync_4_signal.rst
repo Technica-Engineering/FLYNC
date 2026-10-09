@@ -442,7 +442,7 @@ PDU Forwarder Deployments
 A **PDU Forwarder** is a third per-PDU role (alongside ``pdu_sender``
 and ``pdu_receiver``) that consumes a PDU on its parent carrier and re-emits
 it on one or more **egresses**. The same primitive exists on both sides of the
-modelled network:
+modeled network:
 
 * :class:`~flync.model.flync_4_signal.PDUForwarder` is an Ethernet-side
   deployment that lives inside a socket's ``deployments`` block.

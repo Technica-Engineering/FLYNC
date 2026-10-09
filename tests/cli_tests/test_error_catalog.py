@@ -150,7 +150,7 @@ class TestCategoryNameAndTitle:
     def test_category_name(self):
         assert errors._category_name(1) == "VALUE_RANGE"
         assert errors._category_name(9) == "LIFECYCLE"
-        assert errors._category_name(0) == "UNCATEGORISED"
+        assert errors._category_name(0) == "UNCATEGORIZED"
 
     def test_title_strips_prefix_and_quotes(self):
         assert errors._title("f'hello world'") == "hello world"
@@ -197,15 +197,15 @@ class TestValidateCatalog:
         report = validate_catalog([rec(number=None)], "")
         assert len(report.unnumbered) == 1
 
-    def test_detects_uncategorised(self):
+    def test_detects_uncategorized(self):
         report = validate_catalog([rec(category=0)], None)
-        assert len(report.uncategorised) == 1
+        assert len(report.uncategorized) == 1
         assert report.invalid_category == []
 
     def test_detects_invalid_category_separately(self):
         report = validate_catalog([rec(category=0, bad_category="Category.NOPE")], None)
         assert len(report.invalid_category) == 1
-        assert report.uncategorised == []
+        assert report.uncategorized == []
 
     def test_detects_duplicate_numbers(self):
         records = [rec(number="001"), rec(number="001")]

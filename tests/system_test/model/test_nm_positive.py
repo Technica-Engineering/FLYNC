@@ -1103,9 +1103,9 @@ def test_Simple_Ethernet_ECU_Multicast_NM_single_receiver(tmpdir):
 
 def test_Simple_Ethernet_ECU_NM_sleep_and_wake_states():
     """
-    Structural check of the sleep/active split: ECUs modelled as asleep carry
+    Structural check of the sleep/active split: ECUs modeled as asleep carry
     no NM socket deployments, while an awake receiver ECU carries a
-    pdu_receiver deployment. Runtime sleep/wake behaviour itself is out of
+    pdu_receiver deployment. Runtime sleep/wake behavior itself is out of
     scope for the static model.
     """
     sleeping_tx = _make_unicast_nm_socket("nm_unicast_tx_sleep", "192.168.2.10", is_sender=True)
@@ -1379,7 +1379,7 @@ def test_Switch_ECU_PDU_forwarder_switch_topology(tmpdir):
 def test_Simple_CAN_ECU_NM_Timeout_sleep_phase(tmpdir):
     """
     CAN NM sleep phase: with the NM frame present on the bus but every ECU
-    modelled as asleep, no CAN interface declares sender or receiver frames,
+    modeled as asleep, no CAN interface declares sender or receiver frames,
     and the bus-carried NM frame has no cyclic timing (TX stopped). Model stays
     consistent across a workspace roundtrip.
     """

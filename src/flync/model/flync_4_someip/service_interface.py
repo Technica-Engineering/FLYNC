@@ -825,7 +825,7 @@ TimingProfile = SOMEIPEventTimings | SOMEIPFieldTimings | SOMEIPMethodTimings
 
 #: (service element class, matching timing class) pairs checked by
 #: SOMEIPConfig.validate_timing_exist. Order matters: SOMEIPMethod is the base of
-#: both method flavours, so it is matched last.
+#: both method flavors, so it is matched last.
 _TIMING_KINDS: tuple[tuple[type[TimedElement], type[TimingProfile]], ...] = (
     (SOMEIPField, SOMEIPFieldTimings),
     (SOMEIPEvent, SOMEIPEventTimings),

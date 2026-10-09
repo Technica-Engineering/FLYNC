@@ -245,7 +245,7 @@ def validate_interface_frame_refs(model: FLYNCModel) -> None:
     per kind but not across kinds, so a workspace may hold a CAN bus and a LIN bus of the same name.
 
     A bus kind whose catalog is empty is skipped: FLYNC supports partial models (an ECU or controller may be
-    modelled without the bus catalog it will later be wired into), and there is nothing to resolve against.
+    modeled without the bus catalog it will later be wired into), and there is nothing to resolve against.
     Once a workspace declares buses of a kind, every interface of that kind must resolve.
     """
 

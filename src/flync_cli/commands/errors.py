@@ -21,7 +21,7 @@ app = typer.Typer(help="Inspect and maintain the FLYNC error catalog.")
 _ALL_ERRORS_KINDS = {
     "unnumbered",
     "invalid_category",
-    "uncategorised",
+    "uncategorized",
     "duplicate_numbers",
     "missing_from_catalog",
     "orphaned_in_catalog",
@@ -38,7 +38,7 @@ def _drift_rows(report: CatalogReport) -> dict[str, list[tuple[str, str]]]:
     return {
         "unnumbered": [("unnumbered", f"{r.file}:{r.lineno} ({r.location})") for r in report.unnumbered],
         "invalid_category": [("invalid category", f"{r.bad_category!r} at {r.file}:{r.lineno} ({r.location})") for r in report.invalid_category],
-        "uncategorised": [("uncategorised", f"{r.error_id} — {r.file}:{r.lineno}") for r in report.uncategorised],
+        "uncategorized": [("uncategorized", f"{r.error_id} — {r.file}:{r.lineno}") for r in report.uncategorized],
         "duplicate_numbers": [
             ("duplicate number", f"{number}: " + ", ".join(f"{r.file}:{r.lineno}" for r in rs)) for number, rs in report.duplicate_numbers.items()
         ],

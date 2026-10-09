@@ -8,8 +8,8 @@ and ``sid`` to a ``Literal``.
 
 Selection uses a *callable* discriminator (:data:`UDSServiceEntry`) rather than the usual
 ``Field(discriminator=...)``: the set of UDS service ids is open-ended - OEM-specific and
-not-yet-modelled services must still load - so no single ``Literal`` field can cover every
-member. The callable maps a modelled ``sid`` to its tag and everything else to ``"generic"``.
+not-yet-modeled services must still load - so no single ``Literal`` field can cover every
+member. The callable maps a modeled ``sid`` to its tag and everything else to ``"generic"``.
 
 Services that carry no configuration of their own - WriteDataByIdentifier (0x2E),
 TransferData (0x36), RequestTransferExit (0x37), TesterPresent (0x3E) and the rest - stay
@@ -17,7 +17,7 @@ TransferData (0x36), RequestTransferExit (0x37), TesterPresent (0x3E) and the re
 DID's writability on :class:`~flync.model.flync_4_diagnostics.uds.data_identifier.DataIdentifier`,
 the transfer block length on :class:`RequestDownloadService`, ``S3_server`` on the server's
 timing profile. They are still spell-checked, because :data:`CANONICAL_SERVICE_NAMES` pins the
-``service`` name of every service id ISO 14229-1 standardises.
+``service`` name of every service id ISO 14229-1 standardizes.
 """
 
 from typing import Annotated, Any, List, Literal, Optional, Self, Union
@@ -42,7 +42,7 @@ from .subfunctions import (
 
 def coerce_sid(value: Any) -> Any:
     """
-    Normalise a service id written as a string (e.g. ``"0x10"``) to an ``int``.
+    Normalize a service id written as a string (e.g. ``"0x10"``) to an ``int``.
 
     Anything that is not a parsable string is returned unchanged, so the field's own
     validation reports it.
@@ -57,7 +57,7 @@ ServiceId = Annotated[int, Field(ge=0x00, le=0xFF), BeforeValidator(coerce_sid)]
 #: A sub-function or record number, also accepting a hex or decimal string in YAML.
 SubfunctionValue = Annotated[int, Field(ge=0x00, le=0xFF), BeforeValidator(coerce_int)]
 
-#: The canonical ISO 14229-1 name of every standardised service id.
+#: The canonical ISO 14229-1 name of every standardized service id.
 #:
 #: A ``services`` entry whose ``sid`` appears here must use the matching ``service`` name, so
 #: a typo is caught even for the many service ids that have no dedicated model. Service ids
@@ -120,7 +120,7 @@ class GenericUDSService(FLYNCBaseModel):
     ----------
     service : str
         Name of the service, e.g. ``"tester_present"``. Pinned to the ISO 14229-1 name
-        whenever :attr:`sid` is a standardised service id.
+        whenever :attr:`sid` is a standardized service id.
 
     sid : int
         The UDS service identifier, e.g. ``0x3E``.
@@ -145,7 +145,7 @@ class GenericUDSService(FLYNCBaseModel):
     @model_validator(mode="after")
     def validate_service_name_is_canonical(self) -> Self:
         """
-        Raise when a standardised service id carries a name other than its ISO 14229-1 one.
+        Raise when a standardized service id carries a name other than its ISO 14229-1 one.
         """
 
         canonical = CANONICAL_SERVICE_NAMES.get(self.sid)
@@ -785,7 +785,7 @@ class RequestUploadService(TransferSetupService):
 
 
 #: UDS service ids that have a dedicated model, mapped to their union tag.
-SPECIALISED_SIDS: dict[int, str] = {
+SPECIALIZED_SIDS: dict[int, str] = {
     0x10: "0x10",
     0x11: "0x11",
     0x14: "0x14",
@@ -800,7 +800,7 @@ SPECIALISED_SIDS: dict[int, str] = {
 
 def uds_service_tag(value: Any) -> str:
     """
-    Return the union tag of a service entry: its ``sid`` when modelled, else ``"generic"``.
+    Return the union tag of a service entry: its ``sid`` when modeled, else ``"generic"``.
 
     Accepts both raw YAML mappings (during validation) and already-constructed models.
     """
@@ -808,7 +808,7 @@ def uds_service_tag(value: Any) -> str:
     sid = coerce_sid(value.get("sid") if isinstance(value, dict) else getattr(value, "sid", None))
     if not isinstance(sid, int):
         return "generic"
-    return SPECIALISED_SIDS.get(sid, "generic")
+    return SPECIALIZED_SIDS.get(sid, "generic")
 
 
 UDSServiceEntry = Annotated[

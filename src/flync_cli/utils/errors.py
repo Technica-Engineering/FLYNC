@@ -32,7 +32,7 @@ class ErrorRecord(object):
     error_id: str
     module: str  # module code segment of the id, e.g. "ECU"
     severity: Severity
-    category: int  # 0 when uncategorised
+    category: int  # 0 when uncategorized
     number: str | None  # None when the call site has not been numbered yet
     location: str  # last 2-3 dotted parts: [file.][Class.]function
     message: str  # source text of the first positional argument
@@ -256,7 +256,7 @@ def _title(message: str) -> str:
 def _category_name(category: int) -> str:
     """Get category name from it's number or default category else"""
 
-    return Category(category).name if category else "UNCATEGORISED"
+    return Category(category).name if category else "UNCATEGORIZED"
 
 
 def _catalog_sort_key(record: ErrorRecord) -> tuple[int, int, str, int]:
@@ -301,7 +301,7 @@ class CatalogReport(object):
     """Outcome of comparing the source of truth (code) against the catalog."""
 
     unnumbered: list[ErrorRecord]
-    uncategorised: list[ErrorRecord]
+    uncategorized: list[ErrorRecord]
     invalid_category: list[ErrorRecord]  # category= names that are not Category members
     duplicate_numbers: dict[str, list[ErrorRecord]]
     missing_from_catalog: list[str]  # ids in code, absent from the .rst
@@ -312,7 +312,7 @@ class CatalogReport(object):
         return not any(
             (
                 self.unnumbered,
-                self.uncategorised,
+                self.uncategorized,
                 self.invalid_category,
                 self.duplicate_numbers,
                 self.missing_from_catalog,
@@ -333,7 +333,7 @@ def validate_catalog(records: list[ErrorRecord], catalog_text: str | None) -> Ca
     code_ids = {r.error_id for r in records if r.number is not None}
     return CatalogReport(
         unnumbered=[r for r in records if r.number is None],
-        uncategorised=[r for r in records if r.category == 0 and r.bad_category is None],
+        uncategorized=[r for r in records if r.category == 0 and r.bad_category is None],
         invalid_category=[r for r in records if r.bad_category is not None],
         duplicate_numbers={num: rs for num, rs in numbers.items() if len(rs) > 1},
         missing_from_catalog=sorted(code_ids - catalog_ids),

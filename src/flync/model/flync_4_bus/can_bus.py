@@ -47,7 +47,7 @@ class CANBus(FLYNCBaseModel):
         Frames transmitted on this bus.  :class:`CANFDFrame` entries are only permitted when ``fd_enabled`` is ``True``.
     state_memberships : list of \
     :class:`~flync.model.flync_4_nm.StateMembershipRef`, optional
-        Assignments of this bus to a state management group.  A bus membership enrols the whole bus as one participant — the entire bus
+        Assignments of this bus to a state management group.  A bus membership enrolls the whole bus as one participant — the entire bus
         stays awake or sleeps as a unit, never expanded into per-attached-node participants.  It contributes one relevance bit by default
         (the bus name) and may reference several when the bus serves several functions.  On CAN you may instead give the individual nodes
         their own memberships for selective, per-function participation.

@@ -215,7 +215,7 @@ def _resolve_signal_ranges(inst: PDUInstance, label: str, pdu_registry: Mapping[
     signals = getattr(ref_pdu, "signals", None)
     if not signals:
         # Nothing is known to be empty inside a signal-less PDU, so keep the
-        # full footprint (mirrors the old bounding-box behaviour).
+        # full footprint (mirrors the old bounding-box behavior).
         return [(f"{label} '{inst.pdu_ref}'", inst.bit_position, inst.bit_position + ref_pdu.length * 8)]
     ranges: List[BitRange] = []
     for si in signals:

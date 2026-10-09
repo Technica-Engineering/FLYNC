@@ -70,7 +70,7 @@ class ConverterReport:
 
         Args:
             key: Name of the datum. Adding the same key again replaces the value.
-            value: The datum. Values a reporter cannot serialise are written in
+            value: The datum. Values a reporter cannot serialize are written in
                 their string form.
         """
         if self.active:

@@ -5,7 +5,7 @@ Computes and validates multicast paths through a FLYNC network.
 within a given VLAN, along with a "parent" breadcrumb for each one (who first discovered it);
 :func:`backtrack_to_source` follows those breadcrumbs back to the starting interface to recover the actual
 shortest path to a component instead of the whole flooded set. :func:`serialize_components` renders a
-component list for diagnostics. The ``get_*_connected_component`` helpers add the neighbours of a switch
+component list for diagnostics. The ``get_*_connected_component`` helpers add the neighbors of a switch
 port, ECU port or controller interface and :func:`check_vlan_conn_valid` decides whether a connection may be
 followed for the given VLAN.
 """

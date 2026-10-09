@@ -4,7 +4,7 @@ UDS services, and the DIDs/DTCs it offers.
 
 A UDS server is the ISO 14229 server side of a diagnostic connection - one ECU, or one
 diagnostic entity inside an ECU. The DoIP transport that carries it (logical address, DoIP
-timers) is modelled separately by
+timers) is modeled separately by
 :class:`~flync.model.flync_4_diagnostics.doip.deployment.DoIPServerDeployment`.
 
 The DID and DTC catalogs are system-wide while the services are per server, so the two are

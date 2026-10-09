@@ -283,7 +283,7 @@ def test_positive_default_bit_matches_pdu_vector():
 
 def test_default_bit_not_in_pdu_vector_negative():
     # No relevance_bits declared -> the bit defaults to the entity name 'E',
-    # which is not a flag of the modelled relevance vector -> caught.
+    # which is not a flag of the modeled relevance vector -> caught.
     model = FakeModel(
         ecus=[_participant_with_tx()],
         groups=[_group()],
