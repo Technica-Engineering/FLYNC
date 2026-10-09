@@ -5,11 +5,15 @@ that use the registry to select and run concrete converters.
 """
 
 import logging
+from collections.abc import Sequence
 from pathlib import Path
 
-from .base import BaseConverter, ConverterConfig
+from .base import DEFAULT_REPORTERS, BaseConverter, BaseReporter, ConverterConfig
+from .base.converter_config import converter_config_file
 from .converters import FLYNCConverter, JsonConverter, YamlConverter
 from .registry import registry
+from .reporting import ConversionReport
+from .utils import get_config_model
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +23,9 @@ def convert(
     destination: Path | str,
     destination_type: str = "flync",
     source_type: str | None = "flync",
-    source_config: ConverterConfig | None = None,
-    destination_config: ConverterConfig | None = None,
+    source_config: ConverterConfig | str | Path | None = None,
+    destination_config: ConverterConfig | str | Path | None = None,
+    reporters: Sequence[BaseReporter] = DEFAULT_REPORTERS,
 ):
     """Convenience function to run a conversion.
 
@@ -29,9 +34,14 @@ def convert(
         destination: Path or identifier for the destination.
         destination_type: Destination converter key/name.
         source_type: Optional source converter key/name.
-        source_config: Optional configuration for the source converter.
+        source_config: Optional configuration for the source converter: a
+            configuration object, or the path of a configuration YAML file.
         destination_config: Optional configuration for the destination
-            converter.
+            converter: a configuration object, or the path of a configuration
+            YAML file.
+        reporters: Reporters writing the shared report of the conversion.
+
+    See :meth:`Converter.convert` for how the configurations are resolved.
     """
     Converter().convert(
         source,
@@ -40,6 +50,7 @@ def convert(
         destination_type=destination_type,
         source_config=source_config,
         destination_config=destination_config,
+        reporters=reporters,
     )
 
 
@@ -56,8 +67,9 @@ class Converter(object):
         destination: Path | str,
         source_type: str | None = None,
         destination_type: str = "flync",
-        source_config: ConverterConfig | None = None,
-        destination_config: ConverterConfig | None = None,
+        source_config: ConverterConfig | str | Path | None = None,
+        destination_config: ConverterConfig | str | Path | None = None,
+        reporters: Sequence[BaseReporter] = DEFAULT_REPORTERS,
     ):
         """Run conversion from source to destination types.
 
@@ -67,9 +79,13 @@ class Converter(object):
             source_type: Optional source converter name; if None the
                 registry will try to pick.
             destination_type: Destination converter name.
-            source_config: Optional source converter configuration instance.
+            source_config: Optional source converter configuration: a
+                configuration object, or the path of a configuration YAML file.
             destination_config: Optional destination converter
-                configuration instance.
+                configuration: a configuration object, or the path of a
+                configuration YAML file.
+            reporters: Reporters writing the shared report of the
+                conversion, one file each. Defaults to ``report.yaml``.
 
         Returns:
             None
@@ -78,6 +94,31 @@ class Converter(object):
             This method sets converter.config on registry converter
             instances as a convenience; individual converters are expected
             to use their config when decoding/encoding.
+
+            Each side's configuration is resolved from what is passed for it:
+
+            * ``None``: the configuration stored in that side's workspace,
+              ``<path>/.flync/converters/<converter_name>.yaml``, or the field
+              defaults when there is none. A source that is a single file has
+              no stored configuration.
+            * a path: that YAML file, instead of the stored configuration.
+              ``config_path`` is the source or destination path.
+            * a configuration object: the fields set on it (see
+              ``model_fields_set``) override the stored configuration, which
+              in turn overrides the field defaults.
+
+            Unless ``persist_config`` is ``False``, the resolved destination
+            configuration is written to
+            ``<destination>/.flync/converters/<converter_name>.yaml`` before
+            the conversion starts. Unless ``report_enabled`` is ``False``, the
+            conversion log is written to ``<destination>/.flync/reports/logs.txt``
+            and each converter gets its own folder
+            ``<destination>/.flync/reports/<converter_name>/``, holding the
+            configuration it ran with (``config.yaml``), the records of its
+            ``report_loggers``, what it recorded in its ``report`` and any
+            files it writes to its ``report_dir``. The shared
+            ``reports/report.yaml`` records both converters, the outcome and
+            the counts of the decoded model.
         """
         if source_type is None:
             logger.info("No source type provided. Attempting to auto-detect source type.")
@@ -96,21 +137,62 @@ class Converter(object):
 
         source_converter = registry[source_type]
         logger.debug("Source converter: %s", type(source_converter).__name__)
-        source_converter.config = source_config or ConverterConfig(config_path=str(source))
+        source_converter.config = _resolve_config(source, source_type, source_converter.name, source_config)
         logger.debug("Source config: %s", source_converter.config)
 
         destination_converter = registry[destination_type]
         logger.debug("Destination converter: %s", type(destination_converter).__name__)
-        destination_converter.config = destination_config or ConverterConfig(config_path=str(destination))
+        destination_config = _resolve_config(destination, destination_type, destination_converter.name, destination_config)
+        destination_converter.config = destination_config
         logger.debug("Destination config: %s", destination_converter.config)
 
-        logger.debug("Starting decode from source")
-        source_model = source_converter.decode()
-        logger.debug("Decode complete, model type: %s", type(source_model).__name__)
+        if destination_config.persist_config:
+            destination_config.to_yaml_file(converter_config_file(destination_config.config_path, destination_converter.name))
 
-        logger.debug("Starting encode to destination")
-        destination_converter.encode(source_model)
-        logger.debug("Encode complete")
+        with ConversionReport(
+            destination_config.config_path,
+            source_converter,
+            destination_converter,
+            enabled=destination_config.report_enabled,
+            min_level=destination_config.report_level,
+            reporters=reporters,
+        ) as report:
+            logger.debug("Starting decode from source")
+            source_model = source_converter.decode()
+            logger.debug("Decode complete, model type: %s", type(source_model).__name__)
+            report.record_model(source_model)
+
+            logger.debug("Starting encode to destination")
+            destination_converter.encode(source_model)
+            logger.debug("Encode complete")
+
+
+def _resolve_config(
+    root: Path | str,
+    converter_type: str,
+    converter_name: str,
+    config: ConverterConfig | str | Path | None,
+) -> ConverterConfig:
+    """Resolve the configuration of one side of a conversion.
+
+    Args:
+        root: Source or destination path, used as ``config_path`` unless ``config`` is an object.
+        converter_type: Converter key, used to pick the config class unless ``config`` is an object.
+        converter_name: Name the stored configuration file is keyed by.
+        config: What the caller passed: nothing, a configuration file, or a configuration object.
+
+    Returns:
+        For ``None``, the stored configuration or the defaults. For a path, the configuration
+        in that file. For an object, the stored configuration (or the defaults) with every
+        field set on the object applied on top.
+    """
+    if isinstance(config, (str, Path)):
+        return get_config_model(converter_type).from_yaml_file(config, root)
+    if config is None:
+        return get_config_model(converter_type).from_workspace(root, converter_name)
+    model = type(config)
+    stored = model.from_workspace(config.config_path, converter_name)
+    return model.create_from_config(stored, **{name: getattr(config, name) for name in config.model_fields_set})
 
 
 __all__ = [

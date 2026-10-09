@@ -1,0 +1,78 @@
+name: PDU_EBC1
+type: standard
+length: 8
+description: >-
+  Electronic Brake Controller 1 (J1939 PGN 61441, 0x00F001). Carries brake
+  pedal position and brake/ABS status, transmitted cyclically by j1939_node_2
+  on J1939BusCAN.
+
+signals:
+  - bit_position: 0
+    endianness: LE
+    signal:
+      name: BrakePedalPosition
+      spn: 521
+      description: Brake pedal position (J1939 SPN 521).
+      bit_length: 8
+      data_type: uint8
+      factor: 0.4
+      offset: 0.0
+      lower_limit: 0.0
+      upper_limit: 100.0
+      unit: "%"
+      value_encoding:
+        type: text_table
+        entries:
+          - value: 255
+            label: Signal_Not_Available
+  - bit_position: 16
+    endianness: LE
+    signal:
+      name: AntiLockBrakingSystemActive
+      spn: 563
+      description: Anti-lock braking system activity (J1939 SPN 563).
+      bit_length: 2
+      data_type: uint8
+      value_encoding:
+        type: text_table
+        entries:
+          - value: 1
+            label: Active
+          - value: 2
+            label: Not_Active
+          - value: 3
+            label: Error
+  - bit_position: 32
+    endianness: LE
+    signal:
+      name: EBSBrakeSwitch
+      spn: 1121
+      description: EBS brake switch state (J1939 SPN 1121).
+      bit_length: 2
+      data_type: uint8
+      value_encoding:
+        type: text_table
+        entries:
+          - value: 1
+            label: Pressed
+          - value: 2
+            label: Released
+          - value: 3
+            label: Error
+  - bit_position: 40
+    endianness: LE
+    signal:
+      name: TrailerABSStatus
+      spn: 1836
+      description: Trailer anti-lock braking system status (J1939 SPN 1836).
+      bit_length: 2
+      data_type: uint8
+      value_encoding:
+        type: text_table
+        entries:
+          - value: 0
+            label: Not_Equipped
+          - value: 1
+            label: Trailer_ABS_Active
+          - value: 2
+            label: Trailer_ABS_Not_Active

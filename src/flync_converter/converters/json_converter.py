@@ -2,25 +2,33 @@
 
 import json
 import logging
-import os
 from pathlib import Path
 
 from flync.model import FLYNCModel
 
 from ..base.base_converter import BaseConverter
+from ..base.converter_report import INACTIVE_REPORT, ConverterReport
 from ..registry import hookimpl
-from .helpers import pydantic_dump
+from .helpers import content_files, merge_tracking_overrides, pydantic_dump
 
 """classe for converter between :class:`FLYNCModel` a JSON file."""
 
 logger = logging.getLogger(__name__)
 
 
-def load_json_files(root_folder):
+def load_json_files(root_folder, report: ConverterReport = INACTIVE_REPORT):
     """Recursively load all JSON files and merge into a single dict.
+
+    Files inside a ``.flync`` metadata folder are skipped. Files are merged in
+    path order; a top-level key defined by several files takes the value of
+    the last one.
+
+    The files read are recorded in ``report`` as ``input_files``, and every
+    overridden top-level key as ``skipped``.
 
     Args:
         root_folder: Root folder path to search for JSON files.
+        report: The converter's report.
 
     Returns:
         Merged dictionary from all JSON files found.
@@ -28,17 +36,26 @@ def load_json_files(root_folder):
     Raises:
         ValueError: If a JSON file does not contain a JSON object.
     """
-    combined = {}
+    combined: dict = {}
+    origins: dict[str, Path] = {}
     root = Path(root_folder)
     logger.debug("Scanning for JSON files under: %s", root_folder)
 
-    for json_file in root.rglob("*.json"):
+    if root.is_file():
+        if root.suffix.casefold() != ".json":
+            raise ValueError(f"Expected a JSON file, got: {root}")
+        candidates = [root]
+    else:
+        candidates = sorted(content_files(root, "*.json"))
+
+    report.add("input_files", candidates)
+    for json_file in candidates:
         logger.debug("Loading JSON file: %s", json_file)
         with json_file.open("r", encoding="utf-8") as f:
             data = json.load(f)
             if isinstance(data, dict):
                 logger.debug("Merging %d keys from %s", len(data), json_file.name)
-                combined.update(data)
+                merge_tracking_overrides(combined, data, json_file, origins, report)
             else:
                 raise ValueError(f"File {json_file} is not a JSON object")
 
@@ -53,6 +70,7 @@ class JsonConverter(BaseConverter):
     """
 
     name = "json"
+    report_loggers = (__name__,)
 
     def can_decode(self):
         """Return True — the JSON converter supports decoding."""
@@ -69,11 +87,13 @@ class JsonConverter(BaseConverter):
         """
         if self.config is None:
             raise ValueError("config must be set before encoding")
-        output_path = os.path.join(self.config.config_path, source.__class__.__name__ + ".json")
+        configured_path = Path(self.config.config_path)
+        output_path = configured_path if configured_path.suffix.casefold() == ".json" else configured_path / f"{source.__class__.__name__}.json"
         logger.debug("Encoding FLYNCModel to JSON at: %s", output_path)
-        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, "w", encoding="utf-8") as output:
             json.dump(pydantic_dump(source), output, indent=2, sort_keys=False)
+        self.report.add("output_file", output_path)
         logger.debug("JSON encode complete: %s", output_path)
 
     def decode(self) -> FLYNCModel:
@@ -88,7 +108,7 @@ class JsonConverter(BaseConverter):
             "Decoding FLYNCModel from JSON path: %s",
             self.config.config_path,
         )
-        dict_content = load_json_files(self.config.config_path)
+        dict_content = load_json_files(self.config.config_path, self.report)
         logger.debug("Validating FLYNCModel from %d keys", len(dict_content))
         model = FLYNCModel.model_validate(dict_content)
         logger.debug("JSON decode complete")

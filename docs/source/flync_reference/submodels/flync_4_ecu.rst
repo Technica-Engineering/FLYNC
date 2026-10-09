@@ -99,12 +99,23 @@ CAN Interfaces
 
 .. note::
    CAN interfaces are optional per controller (a controller must declare at least one interface of any kind).
-   An ECU with only CAN/LIN interfaces needs no ECU ports and no internal topology. Each interface's ``bus_ref``
-   attaches it to a declared CAN bus; the system-wide attachment view is derived automatically (see
+   An ECU with only CAN/LIN/J1939 interfaces needs no ECU ports and no internal topology. Each interface's
+   ``bus_ref`` attaches it to a declared CAN bus; the system-wide attachment view is derived automatically (see
    :ref:`bus_topology`).
 
 .. autoclass:: flync.model.flync_4_ecu.can_interface.CANInterface()
 .. autoclass:: flync.model.flync_4_ecu.can_interface.CANFrameRef()
+
+J1939 over CAN
+==============
+
+.. note::
+   J1939 rides on a regular :class:`~flync.model.flync_4_ecu.can_interface.CANInterface`: a CAN interface
+   participates in J1939 on its bus when it declares a 64-bit ``j1939_name`` (used for address claiming) and/or a
+   source ``address`` (0-253; 254 NULL and 255 GLOBAL are reserved). A controller may be modelled with only J1939
+   CAN interfaces and still satisfy the "at least one interface" requirement. J1939 frames live on a
+   :ref:`CAN bus <can_bus>` and are of type :class:`~flync.model.flync_4_signal.J1939Frame`; a bus reached by a
+   J1939-capable CAN interface may only carry ``J1939Frame`` frames.
 
 LIN Interfaces
 ==============

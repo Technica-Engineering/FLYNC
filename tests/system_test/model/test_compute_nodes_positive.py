@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from flync.model.flync_4_ecu import ECU, EthernetInterface, EthernetInterfaceConfig
+from flync.model.flync_4_ecu import ECU, ComputeNode, Controller, EthernetInterface, EthernetInterfaceConfig
 from flync.model.flync_4_ecu.controller_topology import (
     ControllerTopology,
     InterfaceToInterfaceLink,
@@ -25,7 +25,8 @@ from flync.model.flync_4_ecu.controller_topology import (
 from flync.model.flync_4_ecu.internal_topology import ECUPortToSwitchPort, InternalTopology, SwitchPortToControllerInterface
 from flync.model.flync_4_ecu.phy import BASET1, RGMII
 from flync.model.flync_4_ecu.port import ECUPort
-from flync.model.flync_4_ecu.switch import SwitchPort
+from flync.model.flync_4_ecu.switch import Switch, SwitchPort
+from flync.model.flync_model import FLYNCModel
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 from tests.model_builders import (
     make_compute_node,
@@ -83,6 +84,7 @@ def test_node_interface_is_owned_by_its_compute_node():
     iface = controller.compute_nodes[0].ethernet_interfaces[0]
     assert iface.get_controller().name == "NODE0"
     assert [sibling.name for sibling in iface.get_other_interfaces()] == ["NODE0_eth0", "NODE0_eth1"]
+    assert isinstance(iface.get_controller(), ComputeNode)
 
 
 def test_subtree_accessors_walk_two_levels_of_nesting():
@@ -96,6 +98,7 @@ def test_subtree_accessors_walk_two_levels_of_nesting():
     assert [node.name for node in controller.iter_subtree_compute_nodes()] == ["NODE_OUTER", "NODE_INNER"]
     assert [switch.name for switch in controller.iter_subtree_switches()] == ["br0", "ibr0"]
     assert [iface.name for iface in controller.iter_subtree_interfaces()] == ["ETH0", "NODE_OUTER_eth0", "NODE_INNER_eth0"]
+    assert isinstance(controller, Controller)
 
 
 def test_compute_node_may_declare_only_virtual_switches():
@@ -104,6 +107,7 @@ def test_compute_node_may_declare_only_virtual_switches():
 
     assert node.get_interfaces() == []
     assert [switch.name for switch in node.virtual_switches] == ["ibr0"]
+    assert isinstance(node, ComputeNode)
 
 
 @pytest.mark.parametrize(
@@ -167,6 +171,8 @@ def test_nested_node_interface_binds_to_a_virtual_switch_two_levels_up():
     bypass, inner = (conn.root for conn in controller.controller_topology.connections)
     assert (bypass.switch.name, bypass.iface.name) == ("br0", "NODE_INNER_eth0")
     assert (inner.switch.name, inner.iface.name) == ("ibr0", "NODE_OUTER_eth0")
+    assert isinstance(bypass, VirtualSwitchPortToInterface)
+    assert isinstance(inner, VirtualSwitchPortToInterface)
 
 
 def test_virtual_switch_uplink_reaches_the_ecu_in_two_hops():
@@ -210,6 +216,8 @@ def test_virtual_switch_uplink_reaches_the_ecu_in_two_hops():
     assert (uplink.switch_port.name, uplink.iface.name) == ("UPLINK", "ETH0")
     # The one interface that crosses the controller boundary carries both hops.
     assert {component.name for component in physical._connected_component} == {"UPLINK", "SP0"}
+    assert isinstance(uplink, VirtualSwitchPortToInterface)
+    assert isinstance(physical, EthernetInterface)
 
 
 def test_controller_addresses_include_compute_node_interfaces():
@@ -228,6 +236,7 @@ def test_controller_addresses_include_compute_node_interfaces():
 
     assert controller.get_all_ips() == ["10.0.20.5", "10.0.20.6"]
     assert [str(mac) for mac in controller.get_all_macs()] == ["aa:bb:cc:dd:ee:ff", "aa:bb:cc:dd:ee:01"]
+    assert isinstance(controller, Controller)
 
 
 def test_virtual_switch_name_may_match_a_hardware_switch_name():
@@ -246,6 +255,8 @@ def test_virtual_switch_name_may_match_a_hardware_switch_name():
 
     assert [switch.name for switch in ecu.switches] == ["SW0"]
     assert [switch.name for switch in controller.iter_subtree_switches()] == ["SW0"]
+    assert isinstance(ecu.switches[0], Switch)
+    assert isinstance(controller.switches[0], Switch)
 
 
 def test_example_variant_loads_the_virtualization_subtree_from_disk(tmpdir):
@@ -267,3 +278,5 @@ def test_example_variant_loads_the_virtualization_subtree_from_disk(tmpdir):
         "ecu1_c1_node1_eth0",
         "ecu1_c1_node2_eth0",
     ]
+    assert isinstance(controller, Controller)
+    assert isinstance(workspace.flync_model, FLYNCModel)

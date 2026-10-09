@@ -8,11 +8,14 @@ IDE help and generated docs show parameter and return contracts clearly.
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional
+from pathlib import Path
+from typing import ClassVar, Optional
 
 from flync.model import FLYNCModel
 
 from .converter_config import ConverterConfig
+from .converter_report import INACTIVE_REPORT, ConverterReport
+from .reporters import DEFAULT_REPORTERS, BaseReporter
 
 """Base classes for converters between :class:`FLYNCModel` and other
 representations.
@@ -32,9 +35,56 @@ class BaseConverter(ABC):
     Attributes:
         config (Optional[ConverterConfig]): Optional configuration for the
             converter.
+        report_loggers (tuple[str, ...]): Loggers whose records belong to this
+            converter: its own logger(s) and those of the libraries it
+            delegates to. For every conversion the converter takes part in, as
+            source or destination, they are written to
+            ``<destination>/.flync/reports/<name>/logs.txt`` and to the shared
+            ``reports/logs.txt``, and their level is adjusted for the duration
+            of the conversion. Empty by default: the converter's records then
+            reach the shared log only.
+        reporters (tuple[BaseReporter, ...]): Reporters writing the converter's
+            :attr:`report` into its report folder, one file each. Defaults to
+            :data:`DEFAULT_REPORTERS` (``report.yaml``).
+        report (ConverterReport): The converter's structured report data.
+            During a conversion it records what the converter reports
+            (``self.report.skipped(...)``, ``self.report.unsupported(...)``,
+            ``self.report.add(...)``); outside a conversion, and when
+            reporting is disabled, it records nothing.
+        report_dir (Optional[Path]): The converter's report folder,
+            ``<destination>/.flync/reports/<name>``, set for the duration of a
+            conversion so the converter can write its own report files there.
+            ``None`` outside a conversion and when reporting is disabled.
     """
 
     name: str = ""
+    uses_directory: bool = False
+    source_extensions: tuple[str, ...] = ()
+    destination_extensions: tuple[str, ...] = ()
+
+    report_loggers: ClassVar[tuple[str, ...]] = ()
+
+    reporters: ClassVar[tuple[BaseReporter, ...]] = DEFAULT_REPORTERS
+
+    report_dir: Optional[Path] = None
+
+    report: ConverterReport = INACTIVE_REPORT
+
+    @classmethod
+    def get_source_extensions(cls) -> tuple[str, ...]:
+        """Return source extensions, defaulting to the converter name."""
+        return cls.source_extensions or ((cls.name,) if cls.name else ())
+
+    @classmethod
+    def get_destination_extensions(cls) -> tuple[str, ...]:
+        """Return destination extensions, defaulting to the converter name."""
+        return cls.destination_extensions or ((cls.name,) if cls.name else ())
+
+    @classmethod
+    def build_file_filter(cls, extensions: tuple[str, ...]) -> str:
+        """Build a QFileDialog filter from converter metadata."""
+        patterns = " ".join(f"*.{extension.lstrip('.')}" for extension in extensions)
+        return f"{cls.name.upper()} files ({patterns})"
 
     def __init__(self, config: Optional[ConverterConfig] = None):
         """Initializes the converter.

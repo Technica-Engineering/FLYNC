@@ -42,6 +42,7 @@ def test_diagnostics_config_accepts_any_present_protocol(doip, uds):
     config = DiagnosticsConfig(doip=doip_config() if doip else None, uds=uds_config() if uds else None)
     assert (config.doip is not None) is doip
     assert (config.uds is not None) is uds
+    assert isinstance(config, DiagnosticsConfig)
 
 
 def test_diagnostics_config_rejects_having_neither_protocol():

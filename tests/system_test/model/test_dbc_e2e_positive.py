@@ -193,3 +193,4 @@ def test_standard_and_multiplexed_pdu_convert_to_valid_dbc(tmp_path):
     assert decoded_torque["GearInfoMux"] == 1
     assert decoded_torque["TorqueConverterSlipSpeed"] == 200.0
     assert "CurrentGear" not in decoded_torque
+    assert isinstance(flync_model, FLYNCModel)

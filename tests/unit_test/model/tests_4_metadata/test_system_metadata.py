@@ -23,6 +23,7 @@ def test_positive_system_metadata():
     )
 
     assert sys_meta.type == "system"
+    assert isinstance(sys_meta, SystemMetadata)
     assert isinstance(sys_meta.release.version, SemVersion)
 
 

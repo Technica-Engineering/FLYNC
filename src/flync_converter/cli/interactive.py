@@ -1,6 +1,7 @@
 """Rich-based interactive prompt helpers for converter selection and config."""
 
 import logging
+from typing import get_args, get_origin
 
 from pydantic import BaseModel
 from rich.console import Console
@@ -9,11 +10,15 @@ from rich.prompt import Prompt
 from rich.table import Table
 
 from flync_converter.base import ConverterConfig
+from flync_converter.base.converter_config import DESTINATION_ONLY_FIELDS
 from flync_converter.registry import registry
 from flync_converter.utils import cast_value, get_config_model
 
 logger = logging.getLogger(__name__)
 console = Console()
+
+# ``version`` is managed by the stored configuration file, not entered by hand.
+_NON_PROMPTED_FIELDS = frozenset({"version"})
 
 
 def select_converter(step: str) -> str:
@@ -73,6 +78,10 @@ def interactive_configure_converter(converter_type: str, step: str) -> Converter
         pydantic_cls = config_model
         fields = pydantic_cls.model_fields
         for name, fld in fields.items():
+            if name in _NON_PROMPTED_FIELDS:
+                continue
+            if step == "source" and name in DESTINATION_ONLY_FIELDS:
+                continue
             required = fld.is_required()
             default = None if fld.is_required() else fld.get_default()
             prompt_label = f"[{'red' if required else 'yellow'}]{name}[/]"
@@ -84,7 +93,7 @@ def interactive_configure_converter(converter_type: str, step: str) -> Converter
 
             if raw is not None and raw != "":
                 ann = fld.annotation
-                target_type = ann.__origin__ if ann is not None and hasattr(ann, "__origin__") else ann
+                target_type = _annotation_scalar_type(ann)
                 casted = cast_value(raw, target_type)
                 config_dict[name] = casted
                 table.add_row(name, str(casted))
@@ -103,3 +112,20 @@ def interactive_configure_converter(converter_type: str, step: str) -> Converter
         return config_model(**config_dict)
     else:
         return ConverterConfig(**config_dict)
+
+
+def _annotation_scalar_type(annotation):
+    """Resolve a pydantic field annotation to a concrete scalar type.
+
+    Unwraps ``Optional``/``Union`` so that ``Optional[bool]`` resolves to
+    ``bool`` for :func:`cast_value`, mirroring the dynamic CLI's
+    ``_annotation_to_click_type``.  Annotations that resolve to more than one
+    non-``None`` member (e.g. ``Optional[Union[str, int]]``) are returned as-is
+    so Pydantic can coerce the raw string.
+    """
+    inner_args = get_args(annotation)
+    if inner_args and get_origin(annotation) is not None:
+        non_none = [a for a in inner_args if a is not type(None)]
+        if len(non_none) == 1:
+            return non_none[0]
+    return annotation

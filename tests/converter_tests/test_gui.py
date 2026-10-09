@@ -20,6 +20,7 @@ PySide6 = pytest.importorskip("PySide6", reason="PySide6 not installed")
 from PySide6.QtWidgets import QApplication, QComboBox  # noqa: E402
 
 from flync_converter.base import ConverterConfig  # noqa: E402
+from flync_converter.base.base_converter import BaseConverter  # noqa: E402
 from flync_converter.cli.gui.app import FlyncGUI  # noqa: E402
 from flync_converter.cli.gui.widgets.converter_panel import ConverterPanel  # noqa: E402
 from flync_converter.cli.gui.widgets.log_handler import LogWidgetHandler  # noqa: E402
@@ -36,18 +37,62 @@ def qapp_instance():
     return app
 
 
+class _FakeJSONConverter(BaseConverter):
+    """A BaseConverter-backed fake that exposes the picker metadata."""
+
+    name = "json"
+    uses_directory = False
+    source_extensions = ("json",)
+    destination_extensions = ("json",)
+
+    def can_decode(self) -> bool:
+        return True
+
+    def encode(self, source):
+        return None
+
+    def decode(self):
+        return None
+
+
+class _FakeYAMLConverter(BaseConverter):
+    """A BaseConverter-backed fake exposing multiple source extensions."""
+
+    name = "yaml"
+    uses_directory = False
+    source_extensions = ("yaml", "yml")
+    destination_extensions = ("yaml",)
+
+    def can_decode(self) -> bool:
+        return True
+
+    def encode(self, source):
+        return None
+
+    def decode(self):
+        return None
+
+
+class _FakeFLYNCConverter(BaseConverter):
+    """A BaseConverter-backed fake whose destinations are directories."""
+
+    name = "flync"
+    uses_directory = True
+
+    def can_decode(self) -> bool:
+        return True
+
+    def encode(self, source):
+        return None
+
+    def decode(self):
+        return None
+
+
 @pytest.fixture
 def fake_registry():
-    """Two minimal fake converters backed by the base ConverterConfig."""
-    mock_json = MagicMock()
-    mock_json.name = "json"
-    mock_json.__class__.__init__.__annotations__ = {"config": ConverterConfig}
-
-    mock_yaml = MagicMock()
-    mock_yaml.name = "yaml"
-    mock_yaml.__class__.__init__.__annotations__ = {"config": ConverterConfig}
-
-    return {"json": mock_json, "yaml": mock_yaml}
+    """Two minimal fake converters backed by real BaseConverter subclasses."""
+    return {"json": _FakeJSONConverter(), "yaml": _FakeYAMLConverter()}
 
 
 _PANEL_REGISTRY = "flync_converter.cli.gui.widgets.converter_panel.registry"
@@ -116,6 +161,107 @@ def test_panel_enum_combo_contains_all_members(qapp_instance):
     assert isinstance(combo, QComboBox)
     names = [combo.itemText(i) for i in range(combo.count())]
     assert names == ["RED", "GREEN", "BLUE"]
+
+
+def test_panel_config_path_renders_browse_button(qapp_instance, fake_registry):
+    """The config_path field pairs the line edit with a Browse button."""
+    from PySide6.QtWidgets import QLineEdit, QPushButton
+
+    with patch(_PANEL_REGISTRY, fake_registry), patch(_UTILS_REGISTRY, fake_registry):
+        panel = ConverterPanel("Source", default="json")
+
+    line = panel._field_widgets["config_path"]
+    found = [btn for btn in panel._fields_container.findChildren(QPushButton) if btn.text() == "Browse..."]
+    assert isinstance(line, QLineEdit)
+    assert found
+
+
+def test_panel_source_browse_uses_open_dialog(qapp_instance, fake_registry):
+    """The Source panel fills a file picked via QFileDialog.getOpenFileName."""
+    from PySide6.QtWidgets import QFileDialog
+
+    with patch(_PANEL_REGISTRY, fake_registry), patch(_UTILS_REGISTRY, fake_registry):
+        panel = ConverterPanel("Source", default="json")
+        line = panel._field_widgets["config_path"]
+        with patch.object(QFileDialog, "getOpenFileName", return_value=("/tmp/in.json", "")) as get_open:
+            panel._browse_path(line)
+
+    assert line.text() == "/tmp/in.json"
+    assert get_open.call_args[0][3] == "JSON files (*.json)"
+
+
+def test_panel_destination_browse_uses_save_dialog(qapp_instance, fake_registry):
+    """The Destination panel fills a file picked via QFileDialog.getSaveFileName."""
+    from PySide6.QtWidgets import QFileDialog
+
+    with patch(_PANEL_REGISTRY, fake_registry), patch(_UTILS_REGISTRY, fake_registry):
+        panel = ConverterPanel("Destination", default="json")
+        line = panel._field_widgets["config_path"]
+        with patch.object(QFileDialog, "getSaveFileName", return_value=("/tmp/out.json", "")):
+            panel._browse_path(line)
+
+    assert line.text() == "/tmp/out.json"
+
+
+def test_panel_browse_dialog_preseeded_from_line_edit(qapp_instance, fake_registry):
+    """The picker starts in the directory of the current field text."""
+    from PySide6.QtWidgets import QFileDialog
+
+    with patch(_PANEL_REGISTRY, fake_registry), patch(_UTILS_REGISTRY, fake_registry):
+        panel = ConverterPanel("Source", default="json")
+        line = panel._field_widgets["config_path"]
+        line.setText("/work/current.json")
+        with patch.object(QFileDialog, "getOpenFileName", return_value=("", "")) as get_open:
+            panel._browse_path(line)
+
+    assert "/work" in get_open.call_args[0][2]
+
+
+def test_panel_destination_flync_browse_uses_folder(qapp_instance):
+    """FLYNC destinations use the native folder picker, not Save As."""
+    from PySide6.QtWidgets import QFileDialog
+
+    reg = {"flync": _FakeFLYNCConverter()}
+    with patch(_PANEL_REGISTRY, reg), patch(_UTILS_REGISTRY, reg):
+        panel = ConverterPanel("Destination", default="flync")
+        line = panel._field_widgets["config_path"]
+        with patch.object(QFileDialog, "getExistingDirectory", return_value="/work/dir") as get_dir:
+            with patch.object(QFileDialog, "getSaveFileName", return_value=("", "")) as get_save:
+                panel._browse_path(line)
+
+    assert line.text() == "/work/dir"
+    get_dir.assert_called_once()
+    get_save.assert_not_called()
+
+
+def test_panel_source_browse_sets_name_filter(qapp_instance, fake_registry):
+    """The source picker applies a single format-specific name filter."""
+    from PySide6.QtWidgets import QFileDialog
+
+    with patch(_PANEL_REGISTRY, fake_registry), patch(_UTILS_REGISTRY, fake_registry):
+        panel = ConverterPanel("Source", default="json")
+        line = panel._field_widgets["config_path"]
+        with patch.object(QFileDialog, "getOpenFileName", return_value=("", "")) as get_open:
+            panel._browse_path(line)
+
+    get_open.assert_called_once()
+    assert get_open.call_args[0][3] == "JSON files (*.json)"
+
+
+def test_panel_browse_is_noop_for_unregistered_converter(qapp_instance, fake_registry):
+    """A converter with no registry entry does not open any dialog."""
+    from PySide6.QtWidgets import QFileDialog
+
+    with patch(_PANEL_REGISTRY, fake_registry), patch(_UTILS_REGISTRY, fake_registry):
+        panel = ConverterPanel("Destination", default="json")
+        line = panel._field_widgets["config_path"]
+        panel._converter_type = "csv"  # not in the registry
+        with patch.object(QFileDialog, "getSaveFileName", return_value=("/tmp/x.csv", "")) as get_save:
+            with patch.object(QFileDialog, "getExistingDirectory", return_value="/x"):
+                panel._browse_path(line)
+
+    get_save.assert_not_called()
+    assert line.text() == ""
 
 
 def test_panel_read_config_returns_instance(qapp_instance, fake_registry):

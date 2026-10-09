@@ -29,7 +29,8 @@ be reused across CAN, LIN, or Ethernet transport layers.
 
 Signals are not placed directly into PDUs; instead a
 :class:`~flync.model.flync_4_signal.SignalInstance` wraps a signal
-with its placement information (bit offset and byte order).
+with its placement information (bit offset, byte order, and, for J1939
+signals, an optional ``spn`` — a reference into SAE J1939-71).
 
 .. autoclass:: flync.model.flync_4_signal.SignalDataType()
 
@@ -389,7 +390,8 @@ Frame
 A **Frame** is the protocol-specific transport unit that carries one
 or more PDUs on a physical bus.  CAN and CAN FD frames are defined
 inside ``communication/channels/can/``; LIN frames inside
-``communication/channels/lin/``.  All frame types reference PDUs by
+``communication/channels/lin/``; J1939 frames alongside CAN frames in
+``communication/channels/can/``.  All frame types reference PDUs by
 name via :class:`~flync.model.flync_4_signal.PDUInstance`.
 
 For Ethernet, there is no frame layer — sockets reference a
@@ -408,6 +410,8 @@ For Ethernet, there is no frame layer — sockets reference a
 .. autoclass:: flync.model.flync_4_signal.CANFrame()
 
 .. autoclass:: flync.model.flync_4_signal.CANFDFrame()
+
+.. autoclass:: flync.model.flync_4_signal.J1939Frame()
 
 .. autoclass:: flync.model.flync_4_signal.LINFrame()
 

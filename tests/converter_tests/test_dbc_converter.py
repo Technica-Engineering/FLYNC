@@ -6,12 +6,15 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from flync.model.flync_4_signal.pdu import ContainerPDU, MultiplexedPDU, StandardPDU
+from flync.model.flync_4_signal.signal import SignalDataType
 from flync_converter.base import ConverterConfig
 from flync_converter.converters.dbc import DbcConverter, DbcConverterConfig
 from flync_converter.converters.dbc.decoder import (
     _build_pdu_for_message,
+    _coerce_initial_value,
     _comment_text,
     _to_flync_frame,
+    _to_flync_signal_instance,
     decode_dbc_files,
     map_data_type,
 )
@@ -237,7 +240,7 @@ class TestDecodeStandardPdu:
         pdu.signal_groups = [MagicMock()]
         with caplog.at_level(logging.WARNING, logger="flync_converter.converters.dbc.encoder"):
             result = _decode_standard_pdu(pdu, 0, None)
-        assert "Signal Group not supported" in caplog.text
+        assert "not supported, skipped" in caplog.text
         assert result == []
 
 
@@ -294,7 +297,7 @@ class TestDecodeMultiplexedPdu:
         pdu.mux_groups = [grp]
         with caplog.at_level(logging.WARNING, logger="flync_converter.converters.dbc.encoder"):
             _decode_multiplexed_pdu(MagicMock(), pdu, 0, None, pdus={"grp_pdu": grp_pdu})
-        assert "Signal Group inside MuxGroup not supported" in caplog.text
+        assert "of PDU 'grp_pdu' not supported" in caplog.text
 
     def test_with_static_group(self):
         sel_inst = _mock_si(_mock_signal("sel", 4), 0)
@@ -346,7 +349,7 @@ class TestDecodePdu:
         container = ContainerPDU.model_construct(name="c", length=8, pdu_id=0, header=hdr, contained_pdus=[], type="container")
         with caplog.at_level(logging.WARNING, logger="flync_converter.converters.dbc.encoder"):
             result = decode_pdu(MagicMock(), container, 0)
-        assert "ContainerPDU not implemented" in caplog.text
+        assert "Container PDU 'c' not supported" in caplog.text
         assert result == []
 
     def test_unknown_type_warns_and_returns_empty(self, caplog):
@@ -496,14 +499,14 @@ class TestWriteDbcFiles:
         model.communication = None
         with caplog.at_level(logging.WARNING, logger="flync_converter.converters.dbc.encoder"):
             write_dbc_files(model, "/tmp")
-        assert "Could not find communication/channels" in caplog.text
+        assert "Model has no communication channels" in caplog.text
 
     def test_no_channels_warns(self, caplog):
         model = MagicMock()
         model.communication.channels = None
         with caplog.at_level(logging.WARNING, logger="flync_converter.converters.dbc.encoder"):
             write_dbc_files(model, "/tmp")
-        assert "Could not find communication/channels" in caplog.text
+        assert "Model has no communication channels" in caplog.text
 
     def test_no_can_buses_no_output(self, tmp_path):
         model = MagicMock()
@@ -805,6 +808,57 @@ class TestBuildPduForMessage:
         assert frame.type == "can_fd"
         assert frame.id_format == "extended_29bit"
         assert frame.description == "hi"
+
+    @pytest.mark.parametrize(
+        "raw_initial,data_type,expected",
+        [
+            (b"\x01", SignalDataType.BYTEARRAY, b"\x01"),
+            (123, SignalDataType.BYTEARRAY, None),
+            (1.5, SignalDataType.FLOAT32, 1.5),
+            (42, SignalDataType.UINT32, 42),
+            (42.0, SignalDataType.UINT32, 42),
+            (42.5, SignalDataType.UINT32, None),
+            (True, SignalDataType.UINT32, None),
+            (None, SignalDataType.UINT32, None),
+        ],
+    )
+    def test_coerce_initial_value(self, raw_initial, data_type, expected):
+        assert _coerce_initial_value(raw_initial, data_type) == expected
+
+    @pytest.mark.parametrize(
+        "start,byte_order,expected",
+        [
+            (16, "little_endian", 16),
+            (23, "big_endian", 16),
+            (7, "big_endian", 0),
+            (15, "big_endian", 8),
+        ],
+    )
+    def test_signal_instance_bit_position_conversion(
+        self,
+        start,
+        byte_order,
+        expected,
+    ):
+        signal = MagicMock()
+        signal.name = "sig"
+        signal.start = start
+        signal.length = 8
+        signal.byte_order = byte_order
+        signal.is_signed = False
+        signal.is_float = False
+        signal.scale = 1.0
+        signal.offset = 0.0
+        signal.unit = None
+        signal.minimum = None
+        signal.maximum = None
+        signal.comment = None
+        signal.raw_initial = None
+        signal.choices = None
+
+        result = _to_flync_signal_instance(signal)
+
+        assert result.bit_position == expected
 
 
 class TestRoundTrip:

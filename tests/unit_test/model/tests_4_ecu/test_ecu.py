@@ -75,7 +75,8 @@ def test_ecu_parsing_from_dicts(metadata_entry, embedded_metadata_entry, ecu_por
         ),
     )
     Switch.model_validate(switch)
-    ECU.model_validate(kwargs)
+    ecu = ECU.model_validate(kwargs)
+    assert isinstance(ecu, ECU)
 
 
 def test_ecu_internal_topology_ambiguous_switch_port_name_across_switches(metadata_entry, embedded_metadata_entry, ecu_port):
@@ -156,11 +157,11 @@ def test_ecu_internal_topology_ambiguous_switch_port_name_across_switches(metada
     with pytest.raises(ValidationError) as exc_info:
         ECU.model_validate(kwargs)
 
-    error_messages = "\n".join(e.get("msg", "") for e in exc_info.value.errors())
-    assert "couplingPort_ConnectTo_Switch_A" in error_messages
-    assert "ambiguous" in error_messages.lower()
-    assert "Switch_B" in error_messages
-    assert "Switch_C" in error_messages
+    assert_single_error(
+        exc_info,
+        "FLYNC-ECU-MAJ-UNIQ-074",
+        "Switch port 'couplingPort_ConnectTo_Switch_A' referenced in connection 'int_conn_4' is ambiguous",
+    )
 
 
 def test_ecu_internal_topology_ambiguous_controller_interface_name_across_controllers(
@@ -223,11 +224,11 @@ def test_ecu_internal_topology_ambiguous_controller_interface_name_across_contro
     with pytest.raises(ValidationError) as exc_info:
         ECU.model_validate(kwargs)
 
-    error_messages = "\n".join(e.get("msg", "") for e in exc_info.value.errors())
-    assert "shared_iface" in error_messages
-    assert "ambiguous" in error_messages.lower()
-    assert "Controller_A" in error_messages
-    assert "Controller_B" in error_messages
+    assert_single_error(
+        exc_info,
+        "FLYNC-ECU-MAJ-UNIQ-077",
+        "Controller interface 'shared_iface' referenced in connection 'int_conn_ambiguous_ctrl_iface' is ambiguous",
+    )
 
 
 def test_ecu_port_mdi_mii_speed_mismatch_invalid():

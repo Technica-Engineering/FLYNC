@@ -107,6 +107,19 @@ def validate_external_node(
     except Exception as ex:
         state = WorkspaceState.BROKEN
         logger.exception("Encountered issue while validating node %s: %s", node_path, ex)
+        error = InitErrorDetails(
+            type=PydanticCustomError(
+                "unhandled_exception",
+                "unhandled exception caught: {ex}",
+                {"ex": str(ex)},
+            ),
+            ctx={"ex": str(ex)},
+            input=node_path.name,
+        )
+        try:
+            raise ValidationError.from_exception_data(title="node validation", line_errors=[error])
+        except ValidationError as validation_error:
+            errors[str(node_path)] = validation_error.errors()
     return DiagnosticsResult(state=state, errors=errors, model=model, workspace=ws)
 
 

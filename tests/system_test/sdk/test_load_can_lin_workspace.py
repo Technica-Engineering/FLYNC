@@ -2,6 +2,9 @@
 
 from pathlib import Path
 
+from flync.model.flync_4_ecu.ecu import ECU
+from flync.model.flync_4_topology.bus_topology import CANBusTopology, LINBusTopology
+from flync.model.flync_model import FLYNCModel
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 
 # The can_lin_example is a deliberately non-Ethernet workspace: its single ECU has no ports.flync.yaml,
@@ -16,12 +19,16 @@ def test_can_lin_only_workspace_loads():
     assert ws is not None
     assert ws.flync_model is not None
     assert ws.flync_model.ecus
+    assert isinstance(ws, FLYNCWorkspace)
+    assert isinstance(ws.flync_model, FLYNCModel)
 
 
 def test_can_lin_only_ecu_has_no_ethernet_hardware():
     """The CAN/LIN-only ECU loads with no ports and no internal topology (both optional)."""
     ws = FLYNCWorkspace.load_workspace("can_lin_example", CAN_LIN_EXAMPLE)
     ecu = ws.flync_model.ecus[0]
+    assert isinstance(ws, FLYNCWorkspace)
+    assert isinstance(ecu, ECU)
     assert not ecu.get_all_ports()
     assert ecu.get_internal_topology() is None
 
@@ -38,6 +45,7 @@ def test_can_bus_topology_is_derived():
     ws = FLYNCWorkspace.load_workspace("can_lin_example", CAN_LIN_EXAMPLE)
     topo = ws.flync_model.get_can_bus_topology("DiagCAN")
     assert topo is not None
+    assert isinstance(topo, CANBusTopology)
     assert topo.bus_type == "can"
     assert len(topo.attachments) >= 1
     assert all(a.role == "can_node" for a in topo.attachments)
@@ -48,6 +56,7 @@ def test_lin_bus_topology_is_present_in_model():
     ws = FLYNCWorkspace.load_workspace("can_lin_example", CAN_LIN_EXAMPLE)
     topo = ws.flync_model.get_lin_bus_topology("BodyLIN")
     assert topo is not None
+    assert isinstance(topo, LINBusTopology)
     assert topo.bus_type == "lin"
 
 

@@ -111,6 +111,9 @@ def assert_valid_result(result):
 def assert_broken_result(result):
     """Asserts that a validation result has a 'BROKEN' workspace state.
 
+    A broken result means loading failed with an unexpected exception; it may or may not
+    report the underlying error in ``result.errors`` (see FLYNC-1296).
+
     Args:
         result: The 'DiagnosticsResult' returned by the SDK.
 
@@ -120,7 +123,6 @@ def assert_broken_result(result):
     assert result.workspace is None
     assert result.state == WorkspaceState.BROKEN
     assert result.model is None
-    assert not result.errors
 
 
 def assert_valid_or_warning_result(result):

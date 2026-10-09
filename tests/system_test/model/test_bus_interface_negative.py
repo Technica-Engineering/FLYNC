@@ -136,6 +136,9 @@ def test_bus_interface_refs_accepted_when_declared():
 
     assert model.ecus[0].controllers[0].can_interfaces[0].bus_ref == "CAN0"
     assert model.ecus[0].controllers[0].lin_interfaces[0].bus_ref == "LIN0"
+    assert isinstance(model, FLYNCModel)
+    assert isinstance(model.ecus[0].controllers[0].can_interfaces[0], CANInterface)
+    assert isinstance(model.ecus[0].controllers[0].lin_interfaces[0], LINMasterInterface)
 
 
 def test_bus_interfaces_skipped_when_no_buses_declared():
@@ -145,3 +148,5 @@ def test_bus_interfaces_skipped_when_no_buses_declared():
     model = _make_model(FLYNCChannelConfig(), can_interfaces=[can_interface])
 
     assert model.ecus[0].controllers[0].can_interfaces[0].bus_ref == "CAN_NOT_MODELLED_YET"
+    assert isinstance(model, FLYNCModel)
+    assert isinstance(model.ecus[0].controllers[0].can_interfaces[0], CANInterface)

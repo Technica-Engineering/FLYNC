@@ -28,6 +28,7 @@ def test_ecu_metadata_full_positive():
 
     assert ecu.type == "ecu"
     assert ecu.hardware.supplier == "My-Tier1"
+    assert isinstance(ecu, ECUMetadata)
     assert isinstance(ecu.software.version, SemVersion)
     assert isinstance(ecu.hardware.version, Pep440Version)
 

@@ -44,6 +44,11 @@ CAN Bus
 
 .. autoclass:: flync.model.flync_4_bus.CANBus()
 
+The ``frames`` of a CAN bus may mix classical :class:`~flync.model.flync_4_signal.CANFrame`,
+:class:`~flync.model.flync_4_signal.CANFDFrame` and :class:`~flync.model.flync_4_signal.J1939Frame`
+entries. J1939 frames (CAN 2.0B extended identifiers) are identified by their PGN fields rather than a
+``can_id``, so only the classical CAN/CAN-FD frames are considered for the duplicate ``can_id`` check.
+
 
 .. _lin_bus:
 

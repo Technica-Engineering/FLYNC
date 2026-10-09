@@ -1,0 +1,62 @@
+name: PDU_CCL
+type: standard
+length: 8
+description: >-
+  Cruise Control / Vehicle Distance (J1939 PGN 65257, 0x00FEE9). Carries wheel
+  speed and cruise control state, broadcast by j1939_node_2 on J1939DrivelineBus.
+
+signals:
+  - bit_position: 0
+    endianness: LE
+    signal:
+      name: WheelBasedVehicleSpeed
+      spn: 84
+      description: Wheel-based vehicle speed (J1939 SPN 84).
+      bit_length: 16
+      data_type: uint16
+      factor: 0.00390625
+      offset: 0.0
+      lower_limit: 0.0
+      upper_limit: 250.996
+      unit: kmh
+      value_encoding:
+        type: text_table
+        entries:
+          - value: 65535
+            label: Signal_Not_Available
+  - bit_position: 16
+    endianness: LE
+    signal:
+      name: CruiseControlStatus
+      spn: 595
+      description: Cruise control active / engaged state (J1939 SPN 595).
+      bit_length: 4
+      data_type: uint8
+      value_encoding:
+        type: text_table
+        entries:
+          - value: 0
+            label: "Off"
+          - value: 1
+            label: Standby
+          - value: 2
+            label: Active
+          - value: 15
+            label: Signal_Not_Available
+  - bit_position: 32
+    endianness: LE
+    signal:
+      name: CruiseControlSetSpeed
+      spn: 86
+      description: Set cruise control speed (J1939 SPN 86).
+      bit_length: 16
+      data_type: uint16
+      factor: 0.00390625
+      offset: 0.0
+      lower_limit: 0.0
+      unit: kmh
+      value_encoding:
+        type: text_table
+        entries:
+          - value: 65535
+            label: Signal_Not_Available

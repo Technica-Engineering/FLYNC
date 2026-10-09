@@ -9,6 +9,7 @@ from flync.model.flync_4_ecu.sockets import (
     TCPOption,
 )
 from flync.model.flync_4_signal.pdu_deployment import PDUSender
+from tests.error_assertions import assert_single_error
 
 
 def test_positive_deployment_union_pdu_sender():
@@ -20,6 +21,7 @@ def test_positive_deployment_union_pdu_sender():
 def test_positive_deployment_union_pdu_sender_default_type():
     dep = DeploymentUnion.model_validate({"deployment_type": "pdu_sender", "pdu_ref": "pdu_A"})
     assert dep.root.deployment_type == "pdu_sender"
+    assert isinstance(dep.root, PDUSender)
 
 
 def test_positive_udp_socket_with_pdu_sender_deployment():
@@ -45,6 +47,7 @@ def test_positive_udp_socket_with_multiple_pdu_sender_deployments():
         ],
     )
     assert len(socket.deployments) == 2
+    assert isinstance(socket, Socket)
 
 
 def test_positive_udp_socket_multicast_with_pdu_sender():
@@ -76,6 +79,7 @@ def test_positive_udp_socket_no_deployments():
         deployments=[],
     )
     assert socket.deployments == []
+    assert isinstance(socket, Socket)
 
 
 def test_positive_tcp_socket_with_pdu_sender_deployment():
@@ -102,8 +106,10 @@ def test_negative_pdu_sender_missing_pdu_ref_on_socket():
 
 
 def test_negative_deployment_union_unknown_type():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         DeploymentUnion.model_validate({"deployment_type": "unknown_type", "pdu_ref": "pdu_X"})
+
+    assert_single_error(exc_info, None, "does not match any of the expected tags")
 
 
 def test_negative_pdu_sender_extra_fields():

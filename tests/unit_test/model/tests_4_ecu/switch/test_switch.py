@@ -17,7 +17,7 @@ def test_unique_silicon_port_number(embedded_metadata_entry, vlan_entry, switch_
     switch_port2 = SwitchPort(name="port2", default_vlan_id=2, silicon_port_no=1)
     switch_config = _switch_config(embedded_metadata_entry, [switch_port1, switch_port2], [vlan_entry])
 
-    with pytest.raises(ValidationError) as e:
+    with pytest.raises(ValidationError) as exc_info:
         Switch.model_validate(
             {
                 "name": "switch_example",
@@ -26,7 +26,7 @@ def test_unique_silicon_port_number(embedded_metadata_entry, vlan_entry, switch_
             }
         )
 
-    assert "Duplicates found in Switch Ports (silicon_port_number)" in str(e.value)
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-UNIQ-009", "Duplicates found in Switch Ports (silicon_port_number)")
 
 
 def test_switch_host(
@@ -95,23 +95,31 @@ def test_host_controller_is_a_controller(
     assert switch.host_controller.name == "host_controller"
 
 
-@pytest.mark.parametrize("invalid_vlan_id", [-1, 4096])
-def test_switch_port_default_vlan_id_out_of_range_rejected(invalid_vlan_id):
-    with pytest.raises(ValidationError):
+@pytest.mark.parametrize(
+    "invalid_vlan_id, expected_fragment",
+    [
+        (-1, "Input should be greater than or equal to 0"),
+        (4096, "Input should be less than or equal to 4095"),
+    ],
+)
+def test_switch_port_default_vlan_id_out_of_range_rejected(invalid_vlan_id, expected_fragment):
+    with pytest.raises(ValidationError) as exc_info:
         SwitchPort(
             name="port_x",
             default_vlan_id=invalid_vlan_id,
             silicon_port_no=1,
         )
+    assert_single_error(exc_info, None, expected_fragment)
 
 
 def test_switch_port_silicon_port_no_negative_rejected():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         SwitchPort(
             name="port_x",
             default_vlan_id=1,
             silicon_port_no=-1,
         )
+    assert_single_error(exc_info, None, "Input should be greater than or equal to 0")
 
 
 def test_validate_ipv_mapping_positive(embedded_metadata_entry, vlan_entry):

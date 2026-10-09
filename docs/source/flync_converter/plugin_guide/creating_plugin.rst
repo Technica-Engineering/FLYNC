@@ -161,6 +161,124 @@ Refer to the :doc:`examples` section for a complete, production-ready plugin imp
 - Error handling with validation
 - Plugin registration
 
+Logging & Conversion Reports
+-----------------------------
+
+Every conversion writes a report into the destination workspace's ``.flync`` metadata directory: a shared log for the whole conversion, and one folder per converter taking part in it, source and destination:
+
+.. code-block:: text
+
+   <destination>/.flync/reports/logs.txt                      whole conversion
+   <destination>/.flync/reports/<converter_name>/config.yaml  configuration your converter ran with
+   <destination>/.flync/reports/<converter_name>/logs.txt     your converter's records
+   <destination>/.flync/reports/<converter_name>/...          files your converter writes itself
+
+Your converter decides which records are its own by listing logger names in ``report_loggers``: its own logger, and the loggers of the libraries it delegates to. Records from those loggers are written to your converter's ``logs.txt`` and to the shared log, whether the converter runs as source or destination, and the loggers' level is lowered to the report level for the duration of the conversion and restored afterwards.
+
+.. code-block:: python
+
+   import logging
+
+   logger = logging.getLogger(__name__)
+
+   class MyConverter(BaseConverter):
+       name = "my_format"
+       report_loggers = (__name__, "my_format_library")
+
+       def can_decode(self):
+           logger.info("Scanning %s for decoding", self.config.config_path)
+           return True
+
+The shared log also captures every logger under the main converter logger, ``flync_converter``, so a converter that logs under ``flync_converter.converters.<name>`` reaches the shared log without listing anything. Without ``report_loggers`` it gets a folder but no ``logs.txt`` of its own.
+
+The built-in converters list their own module logger. The FLYNC converter also lists ``flync.sdk``, and logs the workspace diagnostics (one line per finding, with its error id) after loading or writing a workspace. The DBC converter also lists ``cantools``.
+
+- Logs at or above the configured minimum level are written (``report_min_log_level`` on the destination configuration, default ``"INFO"``), formatted by the base library.
+- Reporting is enabled by default and can be disabled per destination with ``report_enabled=False`` on its :class:`~flync_converter.ConverterConfig`, either passed in or stored in the destination workspace. See the :doc:`usage guide <../usage>` for the full configuration options.
+
+Writing your own report files
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+During a conversion, ``self.report_dir`` is your converter's report folder, ``<destination>/.flync/reports/<converter_name>``. Write any converter-specific output there, for example a validation report or a mapping table. ``report_dir`` is ``None`` outside a conversion and when reporting is disabled:
+
+.. code-block:: python
+
+   def encode(self, source):
+       ...
+       if self.report_dir is not None:
+           (self.report_dir / "mapping.csv").write_text(mapping_csv, encoding="utf-8")
+
+Recording structured report data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Every converter has a ``self.report`` to record what happened during ``decode`` or ``encode``. It has well-known groups with a fixed structure, and a free-form one:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Method
+     - Group
+     - Use it for
+   * - ``self.report.skipped(item, reason)``
+     - ``skipped``
+     - model content the converter did not use or write
+   * - ``self.report.unsupported(item, reason)``
+     - ``unsupported``
+     - content the converter's format cannot represent
+   * - ``self.report.add(key, value)``
+     - ``custom``
+     - any other data the converter wants to record
+
+.. code-block:: python
+
+   def encode(self, source):
+       for ecu in source.ecus:
+           if not ecu.can_interfaces:
+               self.report.skipped(f"ecus.{ecu.name}", reason="no CAN interface")
+       ...
+       self.report.add("dbc_files", [path.name for path in written])
+
+The built-in converters record:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Converter
+     - Report
+   * - YAML, JSON
+     - ``input_files`` or ``output_file``; a top-level key defined by several input files is ``skipped`` in all but the last one.
+   * - FLYNC
+     - ``workspace`` and the workspace ``diagnostics`` (document, id, severity, location, message).
+   * - DBC
+     - ``input_files`` or ``output_files``. On encode, LIN buses, Ethernet PDU containers, container PDUs and signal groups are ``unsupported``, unresolved PDU references ``skipped``. On decode, value tables of bytearray signals are ``unsupported``; out-of-range value table entries, bit rates outside the FLYNC allow-list and nodes taking part in no message are ``skipped``.
+
+``item`` is a readable path to the content, such as ``ecus.body_ecu``. Outside a conversion, and with reporting disabled, ``self.report`` records nothing, so a converter never needs to check. The report goes to ``<destination>/.flync/reports/<converter_name>/``, whether the converter is the source or the destination.
+
+The converter's ``reporters`` write it, one file each. The default is :class:`~flync_converter.base.YamlReporter` (``report.yaml``). List the reporters to use, the same way as ``report_loggers``:
+
+.. code-block:: python
+
+   from flync_converter.base import JsonReporter, YamlReporter
+
+   class MyConverter(BaseConverter):
+       name = "my_format"
+       reporters = (YamlReporter(), JsonReporter())
+
+A new format is a subclass of :class:`~flync_converter.base.BaseReporter` with a ``filename`` and a ``dump`` method. Values that are not plain (paths, enums, addresses) reach ``dump`` in their string form, and a reporter that fails is logged without affecting the conversion:
+
+.. code-block:: python
+
+   from flync_converter.base import BaseReporter
+
+   class TextReporter(BaseReporter):
+       filename = "report.txt"
+
+       def dump(self, data, stream):
+           for group, content in data.items():
+               stream.write(f"{group}: {content}\n")
+
+A converter configuration class that subclasses :class:`~flync_converter.ConverterConfig` is stored in the destination workspace with its own fields, so those fields must be serialisable to YAML.
+
 Adding a Built-in Converter
 ----------------------------
 

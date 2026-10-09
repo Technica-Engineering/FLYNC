@@ -58,6 +58,7 @@ def test_positive_group_timing():
     assert timing.sleep.timeout_ms == 2000
     assert timing.sleep.wait_before_sleep_ms == 1500
     assert timing.announcement.duration_ms == 1000
+    assert isinstance(timing, GroupTiming)
 
 
 def test_group_timing_timeout_must_exceed_cycle_time_negative():
@@ -82,18 +83,22 @@ def test_positive_group_timing_oem_extensions():
     timing = _make_timing(extensions={"oem_tx_confirmation": "true"})
     assert timing.extensions == {"oem_tx_confirmation": "true"}
     assert GroupTiming.model_validate(timing.model_dump()).extensions == {"oem_tx_confirmation": "true"}
+    assert isinstance(timing, GroupTiming)
+    assert isinstance(GroupTiming.model_validate(timing.model_dump()), GroupTiming)
 
 
 def test_positive_group_timing_with_announcement_burst():
     timing = _make_timing(burst_cycle_time_ms=20, burst_count=5)
     assert timing.announcement.burst_cycle_time_ms == 20
     assert timing.announcement.burst_count == 5
+    assert isinstance(timing, GroupTiming)
 
 
 def test_group_timing_defaults_without_announcement_burst():
     timing = _make_timing()
     assert timing.announcement.burst_cycle_time_ms is None
     assert timing.announcement.burst_count is None
+    assert isinstance(timing, GroupTiming)
 
 
 def test_positive_group_timing_without_announcement():
@@ -101,6 +106,7 @@ def test_positive_group_timing_without_announcement():
     timing = _make_timing(include_announcement=False)
     assert timing.announcement is None
     assert timing.sleep.timeout_ms == 2000
+    assert isinstance(timing, GroupTiming)
 
 
 def test_group_timing_requires_sleep_negative():
@@ -132,22 +138,26 @@ def test_positive_membership_defaults():
     ref = StateMembershipRef(group="COMFORT")
     assert ref.role == "participant"
     assert ref.relevance_bits is None
+    assert isinstance(ref, StateMembershipRef)
 
 
 def test_positive_membership_participant_with_bit():
     ref = StateMembershipRef(group="DRIVE", role="participant", relevance_bits=["PowerDist"])
     assert ref.relevance_bits == ["PowerDist"]
+    assert isinstance(ref, StateMembershipRef)
 
 
 def test_positive_membership_participant_with_several_bits():
     ref = StateMembershipRef(group="VEHICLE", role="participant", relevance_bits=["AutonomousDriving", "OnlineCommunication"])
     assert ref.relevance_bits == ["AutonomousDriving", "OnlineCommunication"]
+    assert isinstance(ref, StateMembershipRef)
 
 
 def test_positive_membership_observer_without_bit():
     ref = StateMembershipRef(group="COMFORT", role="observer")
     assert ref.role == "observer"
     assert ref.relevance_bits is None
+    assert isinstance(ref, StateMembershipRef)
 
 
 def test_membership_observer_owns_no_bit_negative():
@@ -160,6 +170,7 @@ def test_membership_observer_empty_bits_ok():
     # An empty list means "no bits" for an observer and is accepted, not rejected.
     ref = StateMembershipRef(group="COMFORT", role="observer", relevance_bits=[])
     assert ref.role == "observer"
+    assert isinstance(ref, StateMembershipRef)
 
 
 def test_membership_duplicate_bits_negative():
@@ -177,6 +188,8 @@ def test_positive_membership_oem_extensions():
     ref = StateMembershipRef(group="COMFORT", extensions={"oem_node_id": "7"})
     assert ref.extensions == {"oem_node_id": "7"}
     assert StateMembershipRef.model_validate(ref.model_dump()).extensions == {"oem_node_id": "7"}
+    assert isinstance(ref, StateMembershipRef)
+    assert isinstance(StateMembershipRef.model_validate(ref.model_dump()), StateMembershipRef)
 
 
 def test_positive_group_minimal():
@@ -186,6 +199,7 @@ def test_positive_group_minimal():
     assert group.timing_profile == "standard"
     assert group.description is None
     assert group.extensions is None
+    assert isinstance(group, StateManagementGroup)
 
 
 def test_positive_group_oem_extensions():
@@ -196,8 +210,10 @@ def test_positive_group_oem_extensions():
         extensions={"parameter_a": "value_a"},
     )
     assert group.extensions == {"parameter_a": "value_a"}
+    assert isinstance(group, StateManagementGroup)
     reloaded = StateManagementGroup.model_validate(group.model_dump())
     assert reloaded.extensions == {"parameter_a": "value_a"}
+    assert isinstance(reloaded, StateManagementGroup)
 
 
 def test_group_requires_nm_pdu_negative():
@@ -231,11 +247,13 @@ def test_config_duplicate_timing_profile_name_negative():
 def test_positive_config_defaults_to_empty():
     config = StateManagementConfig()
     assert config.groups == []
+    assert isinstance(config, StateManagementConfig)
 
 
 def test_positive_config_none_groups_to_empty():
     config = StateManagementConfig.model_validate({"groups": None})
     assert config.groups == []
+    assert isinstance(config, StateManagementConfig)
 
 
 def test_positive_config_multi_group_fixture():
@@ -245,6 +263,7 @@ def test_positive_config_multi_group_fixture():
     assert config.groups[1].timing_profile == "drive_fast"
     profiles = {p.name: p for p in config.timing_profiles}
     assert profiles["drive_fast"].cycle_time_ms == 100
+    assert isinstance(config, StateManagementConfig)
 
 
 def test_positive_config_single_group_variant_fixture():
@@ -253,6 +272,7 @@ def test_positive_config_single_group_variant_fixture():
     assert [g.name for g in config.groups] == ["VEHICLE"]
     assert config.groups[0].nm_pdu == "PDU_NmMessage"
     assert config.groups[0].timing_profile == "standard"
+    assert isinstance(config, StateManagementConfig)
 
 
 @pytest.mark.parametrize("fixture", ["groups.yaml", "groups_single_group_variant.yaml"])
@@ -268,8 +288,10 @@ def test_positive_bus_level_membership_fixture():
     assert bus.name == "BodyCan"
     # the fixture declares no role, so it defaults to "participant"
     assert [(m.group, m.role, m.relevance_bits) for m in bus.state_memberships] == [("COMFORT", "participant", ["BodyCan"])]
+    assert isinstance(bus, CANBus)
 
 
 def test_positive_bus_membership_defaults_to_empty():
     bus = CANBus(name="EmptyCan", baud_rate=500_000)
     assert bus.state_memberships == []
+    assert isinstance(bus, CANBus)

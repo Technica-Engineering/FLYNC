@@ -2,6 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from flync.model.flync_4_ecu.switch import FrameMask, Switch, TCAMRule
+from tests.error_assertions import assert_single_error
 
 
 def _make_switch(meta, name, vlans, ports, tcam_rules=None, **kwargs):
@@ -62,7 +63,7 @@ def test_negative_match_port_not_a_switch_port_tcam(
     switch_port,
     tcam_rule_invalid_match_port,
 ):
-    with pytest.raises(ValidationError) as e:
+    with pytest.raises(ValidationError) as exc_info:
         _make_switch(
             embedded_metadata_entry,
             "switch_example",
@@ -70,7 +71,7 @@ def test_negative_match_port_not_a_switch_port_tcam(
             [switch_port],
             tcam_rules=[tcam_rule_invalid_match_port],
         )
-    assert "TCAM Ports must exist on the Switch." in str(e.value)
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-VAL-025", "TCAM Ports must exist on the Switch.")
 
 
 def test_negative_action_port_not_a_switch_port_tcam(
@@ -79,7 +80,7 @@ def test_negative_action_port_not_a_switch_port_tcam(
     switch_port,
     tcam_rule_invalid_action_port,
 ):
-    with pytest.raises(ValidationError) as e:
+    with pytest.raises(ValidationError) as exc_info:
         _make_switch(
             embedded_metadata_entry,
             "switch_example",
@@ -87,12 +88,12 @@ def test_negative_action_port_not_a_switch_port_tcam(
             [switch_port],
             tcam_rules=[tcam_rule_invalid_action_port],
         )
-    assert "TCAM Ports must exist on the Switch." in str(e.value)
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-VAL-025", "TCAM Ports must exist on the Switch.")
 
 
 def test_negative_two_rules_having_same_name(embedded_metadata_entry, vlan_entry, switch_port, two_tcam_rules_same_name):
 
-    with pytest.raises(ValidationError) as e:
+    with pytest.raises(ValidationError) as exc_info:
         _make_switch(
             embedded_metadata_entry,
             "switch_example",
@@ -100,12 +101,12 @@ def test_negative_two_rules_having_same_name(embedded_metadata_entry, vlan_entry
             [switch_port],
             tcam_rules=two_tcam_rules_same_name,
         )
-    assert "Duplicates found in tcam_rules (name):" in str(e.value)
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-UNIQ-009", "Duplicates found in tcam_rules (name):")
 
 
 def test_negative_two_rules_having_same_id(embedded_metadata_entry, vlan_entry, switch_port, two_tcam_rules_same_id):
 
-    with pytest.raises(ValidationError) as e:
+    with pytest.raises(ValidationError) as exc_info:
         _make_switch(
             embedded_metadata_entry,
             "switch_example",
@@ -113,7 +114,7 @@ def test_negative_two_rules_having_same_id(embedded_metadata_entry, vlan_entry, 
             [switch_port],
             tcam_rules=two_tcam_rules_same_id,
         )
-    assert "Duplicates found in tcam_rules (id):" in str(e.value)
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-UNIQ-009", "Duplicates found in tcam_rules (id):")
 
 
 @pytest.mark.parametrize(
@@ -127,7 +128,7 @@ def test_negative_two_rules_having_same_id(embedded_metadata_entry, vlan_entry, 
 def test_negative_exclusive_drop_force_mirror_same_port(switch_port, tcam_match_filter, first_action, second_action):
     """A TCAM rule must not combine drop, force_egress, and mirror on the
     same port. Any pair on the same port must raise a ValidationError."""
-    with pytest.raises(ValidationError) as e:
+    with pytest.raises(ValidationError) as exc_info:
         TCAMRule.model_validate(
             {
                 "name": "tcam_rule_1",
@@ -140,7 +141,7 @@ def test_negative_exclusive_drop_force_mirror_same_port(switch_port, tcam_match_
                 ],
             }
         )
-    assert "drop OR force egress OR mirror" in str(e.value)
+    assert_single_error(exc_info, "FLYNC-ECU-MIN-CONS-088", "drop OR force egress OR mirror")
 
 
 def test_positive_drop_and_mirror_on_different_ports(switch_port, tcam_match_filter):
@@ -181,7 +182,7 @@ def test_positive_drop_and_vlan_overwrite_on_same_port(switch_port, tcam_match_f
 def test_negative_exclusive_vlan_action_same_port(switch_port, tcam_match_filter):
     """A TCAM rule must not combine remove_vlan and vlan_overwrite on the
     same port."""
-    with pytest.raises(ValidationError) as e:
+    with pytest.raises(ValidationError) as exc_info:
         TCAMRule.model_validate(
             {
                 "name": "tcam_rule_1",
@@ -194,8 +195,7 @@ def test_negative_exclusive_vlan_action_same_port(switch_port, tcam_match_filter
                 ],
             }
         )
-    assert "remove OR" in str(e.value)
-    assert "overwrite a vlan" in str(e.value)
+    assert_single_error(exc_info, "FLYNC-ECU-MIN-CONS-089", "remove OR overwrite a vlan")
 
 
 def test_positive_remove_vlan_and_vlan_overwrite_on_different_ports(switch_port, tcam_match_filter):
@@ -254,22 +254,22 @@ def test_positive_no_vehicle_state(switch_port, tcam_match_filter):
 
 
 @pytest.mark.parametrize(
-    "vehicle_state, error",
+    "vehicle_state, expected_id, expected_fragment",
     [
-        ({"mask": 0x0F}, "data\n  Field required"),  # a mask on its own is not a vehicle state
-        ({"data": 0x10, "mask": 0x0F}, "'data' has bits set outside 'mask'"),
-        ({"data": -1, "mask": 1}, "Input should be greater than or equal to 0"),
-        ({"data": 1, "mask": 0}, "Input should be greater than or equal to 1"),  # a zero mask matches everything
-        ({"data": "0x0100", "mask": "0xFFFF"}, "data and mask must each be <= 0xFF (255)"),  # wider than the 8-bit register
+        ({"mask": 0x0F}, None, "Field required"),  # a mask on its own is not a vehicle state
+        ({"data": 0x10, "mask": 0x0F}, "FLYNC-CMN-MIN-STRUCT-234", "'data' has bits set outside 'mask'"),
+        ({"data": -1, "mask": 1}, None, "Input should be greater than or equal to 0"),
+        ({"data": 1, "mask": 0}, None, "Input should be greater than or equal to 1"),  # a zero mask matches everything
+        ({"data": "0x0100", "mask": "0xFFFF"}, "FLYNC-ECU-MIN-VAL-231", "data and mask must each be <= 0xFF (255)"),  # wider than the 8-bit register
     ],
 )
-def test_negative_vehicle_state(switch_port, tcam_match_filter, vehicle_state, error):
+def test_negative_vehicle_state(switch_port, tcam_match_filter, vehicle_state, expected_id, expected_fragment):
     """A vehicle state must be a byte-wide pattern whose data bits all lie inside its mask."""
     rule = _vehicle_state_rule(switch_port, tcam_match_filter, vehicle_state=vehicle_state)
 
-    with pytest.raises(ValidationError) as e:
+    with pytest.raises(ValidationError) as exc_info:
         TCAMRule.model_validate(rule)
-    assert error in str(e.value)
+    assert_single_error(exc_info, expected_id, expected_fragment)
 
 
 def _frame_mask_rule(switch_port, masks, frame_window=None):
@@ -307,22 +307,22 @@ class Test_FrameMask_TCAM:
         assert FrameMask(offset=0, data="0x0800").mask == 0xFFFF
 
     @pytest.mark.parametrize(
-        "kwargs, error",
+        "kwargs, expected_id, expected_fragment",
         [
-            ({"offset": 0, "data": "0xZZ"}, "hexadecimal literal"),
-            ({"offset": 0, "data": "0800"}, "hexadecimal literal"),  # the 0x/0b prefix is mandatory
-            ({"offset": 0, "data": 1.5}, "hexadecimal literal"),
-            ({"offset": 0, "data": "0x0800", "mask": "0b11111111"}, "same number of bits"),
-            ({"offset": 0, "data": "0x0800", "mask": "0x0700"}, "bits set outside 'mask'"),
-            ({"offset": 0, "data": "0x0800", "mask": "0x0000"}, "greater than or equal to 1"),  # a zero mask matches everything
-            ({"offset": -1, "data": "0x0800"}, "greater than or equal to 0"),
+            ({"offset": 0, "data": "0xZZ"}, "FLYNC-CMN-MIN-VAL-177", "hexadecimal literal"),
+            ({"offset": 0, "data": "0800"}, "FLYNC-CMN-MIN-VAL-177", "hexadecimal literal"),  # the 0x/0b prefix is mandatory
+            ({"offset": 0, "data": 1.5}, "FLYNC-CMN-MIN-VAL-177", "hexadecimal literal"),
+            ({"offset": 0, "data": "0x0800", "mask": "0b11111111"}, "FLYNC-CMN-MIN-VAL-178", "same number of bits"),
+            ({"offset": 0, "data": "0x0800", "mask": "0x0700"}, "FLYNC-CMN-MIN-STRUCT-234", "bits set outside 'mask'"),
+            ({"offset": 0, "data": "0x0800", "mask": "0x0000"}, None, "greater than or equal to 1"),  # a zero mask matches everything
+            ({"offset": -1, "data": "0x0800"}, None, "greater than or equal to 0"),
         ],
     )
-    def test_negative_frame_mask(self, kwargs, error):
+    def test_negative_frame_mask(self, kwargs, expected_id, expected_fragment):
         """Unparsable literals, mismatching widths, data outside the mask and negative offsets are rejected."""
-        with pytest.raises(ValidationError) as e:
+        with pytest.raises(ValidationError) as exc_info:
             FrameMask(**kwargs)
-        assert error in str(e.value)
+        assert_single_error(exc_info, expected_id, expected_fragment)
 
     @pytest.mark.parametrize(
         "data_in, dumped_data",
@@ -354,37 +354,39 @@ class Test_FrameMask_TCAM:
         assert [(mask.offset, mask.data, mask.mask) for mask in rule.frame_mask] == [(12, 0x0800, 0xFFFF)]
 
     @pytest.mark.parametrize(
-        "masks, frame_window, error",
+        "masks, frame_window, expected_id, expected_fragment",
         [
-            ([(2, "0x0800"), (0, "0x0800")], None, None),  # adjacent 2-byte masks, given out of order
-            ([(0, "0x0800"), (1, "0x0800")], None, "must not overlap"),
-            ([(12, "0x0800")], 14, None),  # the mask ends exactly at the window boundary
-            ([(12, "0x0800")], 13, "exceeds the frame_window"),
-            ([(1, "0b101")], 1, "exceeds the frame_window"),  # a sub-byte pattern still occupies a whole byte
-            ([], 96, None),  # a frame_window without masks is pointless, but only warns
+            ([(2, "0x0800"), (0, "0x0800")], None, None, None),  # adjacent 2-byte masks, given out of order
+            ([(0, "0x0800"), (1, "0x0800")], None, "FLYNC-ECU-MIN-CONS-232", "must not overlap"),
+            ([(12, "0x0800")], 14, None, None),  # the mask ends exactly at the window boundary
+            ([(12, "0x0800")], 13, "FLYNC-ECU-MIN-VAL-233", "exceeds the frame_window"),
+            ([(1, "0b101")], 1, "FLYNC-ECU-MIN-VAL-233", "exceeds the frame_window"),  # a sub-byte pattern still occupies a whole byte
+            ([], 96, None, None),  # a frame_window without masks is pointless, but only warns
         ],
     )
-    def test_frame_mask_offsets_and_window(self, switch_port, masks, frame_window, error):
+    def test_frame_mask_offsets_and_window(self, switch_port, masks, frame_window, expected_id, expected_fragment):
         """Frame masks of one rule must cover disjoint bytes and stay inside ``frame_window``."""
         rule = _frame_mask_rule(switch_port, masks, frame_window)
 
-        if error is None:
+        if expected_id is None:
             assert isinstance(TCAMRule.model_validate(rule), TCAMRule)
         else:
-            with pytest.raises(ValidationError) as e:
+            with pytest.raises(ValidationError) as exc_info:
                 TCAMRule.model_validate(rule)
-            assert error in str(e.value)
+            assert_single_error(exc_info, expected_id, expected_fragment)
 
     @pytest.mark.parametrize(
-        "include_filter, include_mask, error",
+        "include_filter, include_mask, expected_id, expected_fragment",
         [
-            (True, False, None),  # only match_filter -> valid
-            (False, True, None),  # only frame_mask -> valid
-            (False, False, None),  # neither -> valid, the rule matches on every frame
-            (True, True, "Cannot specify both match_filter and frame_mask"),
+            (True, False, None, None),  # only match_filter -> valid
+            (False, True, None, None),  # only frame_mask -> valid
+            (False, False, None, None),  # neither -> valid, the rule matches on every frame
+            (True, True, "FLYNC-ECU-MIN-STRUCT-183", "Cannot specify both match_filter and frame_mask"),
         ],
     )
-    def test_match_filter_or_mask_exclusive(self, switch_port, tcam_match_filter, frame_mask_valid, include_filter, include_mask, error):
+    def test_match_filter_or_mask_exclusive(
+        self, switch_port, tcam_match_filter, frame_mask_valid, include_filter, include_mask, expected_id, expected_fragment
+    ):
         """A rule matches either on layers (match_filter) or on raw bytes (frame_mask), never on both."""
         rule = {
             "name": "tcam_rule",
@@ -397,18 +399,18 @@ class Test_FrameMask_TCAM:
         if include_mask:
             rule["frame_mask"] = [frame_mask_valid]
 
-        if error is None:
+        if expected_id is None:
             assert isinstance(TCAMRule.model_validate(rule), TCAMRule)
         else:
-            with pytest.raises(ValidationError) as e:
+            with pytest.raises(ValidationError) as exc_info:
                 TCAMRule.model_validate(rule)
-            assert error in str(e.value)
+            assert_single_error(exc_info, expected_id, expected_fragment)
 
     def test_negative_single_frame_mask_mapping(self, switch_port):
         """A single mapping instead of a list is rejected with the shared 'did you forget - ' hint."""
         rule = _frame_mask_rule(switch_port, [(0, "0x0800")])
         rule["frame_mask"] = rule["frame_mask"][0]
 
-        with pytest.raises(ValidationError) as e:
+        with pytest.raises(ValidationError) as exc_info:
             TCAMRule.model_validate(rule)
-        assert "must be a list of items" in str(e.value)
+        assert_single_error(exc_info, "FLYNC-CMN-MIN-FMT-185", "must be a list of items")

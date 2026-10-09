@@ -27,12 +27,14 @@ def test_positive_can_interface_minimal():
     assert iface.sender_frames == []
     assert iface.receiver_frames == []
     assert iface.forwarder_frames == []
+    assert isinstance(iface, CANInterface)
 
 
 def test_positive_can_frame_ref_fields():
     ref = CANFrameRef(bus_ref="DiagCAN", frame_ref=0x123)
     assert ref.bus_ref == "DiagCAN"
     assert ref.frame_ref == 0x123
+    assert isinstance(ref, CANFrameRef)
 
 
 def test_positive_can_interface_with_sender_and_receiver_frames():
@@ -44,6 +46,7 @@ def test_positive_can_interface_with_sender_and_receiver_frames():
     )
     assert len(iface.sender_frames) == 1
     assert len(iface.receiver_frames) == 1
+    assert isinstance(iface, CANInterface)
 
 
 def test_positive_can_interface_unique_forwarder_frames():
@@ -53,6 +56,7 @@ def test_positive_can_interface_unique_forwarder_frames():
         forwarder_frames=[_can_forwarder(frame_ref="0x100"), _can_forwarder(frame_ref="0x101")],
     )
     assert len(iface.forwarder_frames) == 2
+    assert isinstance(iface, CANInterface)
 
 
 def test_positive_can_interface_model_validate():
@@ -91,6 +95,7 @@ def test_positive_lin_master_minimal():
     assert master.node_type == "master"
     assert master.bus_ref == "BodyLIN"
     assert master.sender_frames == []
+    assert isinstance(master, LINMasterInterface)
 
 
 def test_positive_lin_slave_minimal():
@@ -104,12 +109,14 @@ def test_positive_lin_slave_minimal():
     assert slave.node_type == "slave"
     assert slave.product_id is None
     assert slave.receiver_frames == []
+    assert isinstance(slave, LINSlaveInterface)
 
 
 def test_positive_lin_frame_ref_fields():
     ref = LINFrameRef(bus_ref="BodyLIN", frame_ref=0x1A)
     assert ref.bus_ref == "BodyLIN"
     assert ref.frame_ref == 0x1A
+    assert isinstance(ref, LINFrameRef)
 
 
 @pytest.mark.parametrize("protocol", ["1.3", "2.0", "2.1", "2.2A"])
@@ -122,6 +129,7 @@ def test_positive_lin_master_all_protocols(protocol):
         st_min=10.0,
     )
     assert master.lin_protocol == protocol
+    assert isinstance(master, LINMasterInterface)
 
 
 @pytest.mark.parametrize("nad", [0x00, 0x7F, 0xFF])
@@ -134,6 +142,7 @@ def test_positive_lin_slave_valid_nad_bounds(nad):
         initial_nad=nad,
     )
     assert slave.configured_nad == nad
+    assert isinstance(slave, LINSlaveInterface)
 
 
 def test_negative_lin_master_missing_timing():

@@ -59,6 +59,7 @@ def test_someip_service_deployment_profile_serialize(metadata_entry, someip_sd_s
         someip_sd_timings_profile="server_default",
     )
     assert sd.someip_sd_timings_profile == someip_sd_server_timings_profile_entry.profile_id
+    assert isinstance(sd, SOMEIPServiceProvider)
 
 
 def test_someip_service_consumer_deployment_empty_eventgroups(metadata_entry, someip_sd_server_timings_profile_entry):

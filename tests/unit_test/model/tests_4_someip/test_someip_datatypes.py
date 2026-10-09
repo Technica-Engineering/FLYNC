@@ -30,6 +30,7 @@ class TestBitfield:
         """Entries inside the declared length are accepted; leaving bits undefined and declaring them out of order is allowed."""
         bitfield = Bitfield(name="bf", length=length, fields=fields)
         assert bitfield.fields == ([BitfieldEntry(**field) for field in fields] if fields else None)
+        assert isinstance(bitfield, Bitfield)
 
     @pytest.mark.parametrize(
         "length, fields, error_id, message_fragment",
@@ -96,6 +97,7 @@ class TestEnumEntries:
         )
         assert isinstance(enum.base_type, UInt8)
         assert len(enum.entries) == 4
+        assert isinstance(enum, Enum)
 
     def test_duplicate_value_raises(self):
         """We expect a ValidationError when two entries share the same value."""
@@ -103,7 +105,7 @@ class TestEnumEntries:
 
         with pytest.raises(ValidationError) as exc_info:
             Enum(name="MyEnum", entries=entries)
-        assert "Duplicate enum value: 1" in str(exc_info.value)
+        assert_single_error(exc_info, "FLYNC-SOM-MIN-UNIQ-140", "Duplicate enum value: 1")
 
     def test_value_above_base_type_range_raises(self):
         """We expect a ValidationError when a value does not fit into the unsigned base type."""
@@ -111,7 +113,7 @@ class TestEnumEntries:
 
         with pytest.raises(ValidationError) as exc_info:
             Enum(name="MyEnum", entries=entries)
-        assert "exceeds valid range for UInt8" in str(exc_info.value)
+        assert_single_error(exc_info, "FLYNC-SOM-MIN-VAL-141", "exceeds valid range for UInt8")
 
 
 class TestArrayDimension:
@@ -125,6 +127,7 @@ class TestArrayDimension:
         """A dynamic dimension with a positive length-field size is accepted."""
         dimension = ArrayDimension(kind="dynamic", length_of_length_field=length_of_length_field)
         assert dimension.length_of_length_field == length_of_length_field
+        assert isinstance(dimension, ArrayDimension)
 
     def test_negative_dynamic_length_field_zero_raises(self):
         """A dynamic dimension whose length-field size is 0 is rejected."""
@@ -136,6 +139,7 @@ class TestArrayDimension:
         """Negative values are accepted for a signed base type."""
         enum = Enum(name="MyEnum", base_type=Int8(), entries=[EnumEntry(value=-128, name="minimum")])
         assert enum.entries[0].value == -128
+        assert isinstance(enum, Enum)
 
     def test_value_below_int8_range_raises(self):
         """We expect a ValidationError when a value is below the signed base type minimum."""
@@ -144,7 +148,7 @@ class TestArrayDimension:
 
         with pytest.raises(ValidationError) as exc_info:
             Enum(name="MyEnum", base_type=base_type, entries=entries)
-        assert "exceeds valid range for Int8" in str(exc_info.value)
+        assert_single_error(exc_info, "FLYNC-SOM-MIN-VAL-141", "exceeds valid range for Int8")
 
     def test_invalid_base_type_reports_cleanly(self):
         """An invalid base type is reported as ValidationError instead of crashing the entry validation."""
@@ -152,4 +156,4 @@ class TestArrayDimension:
 
         with pytest.raises(ValidationError) as exc_info:
             Enum(name="MyEnum", base_type={"type": "nonsense"}, entries=entries)
-        assert "base_type" in str(exc_info.value)
+        assert_single_error(exc_info, None, "does not match any of the expected tags")

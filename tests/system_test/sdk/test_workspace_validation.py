@@ -148,13 +148,13 @@ TYPE_AND_SEMANTIC_ERROR_SCENARIOS = [
     TYPE_AND_SEMANTIC_ERROR_SCENARIOS,
     ids=[s["sceanrio_name"] for s in TYPE_AND_SEMANTIC_ERROR_SCENARIOS],
 )
-@pytest.mark.xfail(reason="FLYNC-1295")
 def test_validate_workspace_with_a_content_error(tmp_path, sceanrio: dict):
     """
     Validates that a workspace with a specific content error is reported with diagnostics.
 
     The test creates a copy of flync_example workspace, injects a single syntax/semantic mistake as described by the scenario,
-    runs the SDK validator and checks that the resulting DiagnosticsResult has the state 'WARNING' with at least one error.
+    runs the SDK validator and checks that the resulting DiagnosticsResult has the state 'INVALID' (the model could not be
+    constructed due to validation errors) reporting the error details.
 
     Args:
         tmp_path: A pytest fixture that provides an empty temporary directory.
@@ -172,7 +172,7 @@ def test_validate_workspace_with_a_content_error(tmp_path, sceanrio: dict):
 
     assert result.workspace is not None
     assert result.state == WorkspaceState.INVALID
-    assert result.model is not None
+    assert result.model is None
     assert result.errors != {}
 
     if destination_folder.exists():
@@ -184,7 +184,8 @@ def test_validate_workspace_with_duplicate_yaml_key(tmp_path):
     Validates that a workspace with a duplicate YAML key is marked as BROKEN.
 
     A duplicate YAML key prevents the YAML parser from constructing the node,
-    so the workspace cannot be loaded successfully.
+    so the workspace cannot be loaded successfully; the underlying YAML parsing
+    exception is still reported in the diagnostics.
 
     Args:
         tmp_path: A pytest fixture that provides an empty temporary directory.
@@ -205,7 +206,7 @@ def test_validate_workspace_with_duplicate_yaml_key(tmp_path):
     assert result.state == WorkspaceState.BROKEN
     assert result.workspace is None
     assert result.model is None
-    assert result.errors == {}
+    assert result.errors != {}
 
 
 STRUCTURAL_SCENARIOS = [
@@ -235,13 +236,13 @@ STRUCTURAL_SCENARIOS = [
     STRUCTURAL_SCENARIOS,
     ids=[s["sceanrio_name"] for s in STRUCTURAL_SCENARIOS],
 )
-@pytest.mark.xfail(reason="FLYNC-1296")
 def test_validate_workspace_with_incorrect_structure(tmp_path, sceanrio2: dict):
     """
     Validates that a workspace with a structural YAML issue is marked as BROKEN.
 
     The test creates a copy of flync_example workspace, injects a single structural mistake as described by the scenario,
-    runs the SDK validator and checks that the resulting DiagnosticsResult has the state 'BROKEN' with no workspace loaded.
+    runs the SDK validator and checks that the resulting DiagnosticsResult has the state 'BROKEN' with no workspace loaded
+    while still reporting the underlying YAML parsing exception in its diagnostics.
 
     Args:
         tmp_path: A pytest fixture that provides an empty temporary directory.

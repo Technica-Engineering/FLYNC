@@ -769,10 +769,9 @@ def get_model_dependency_graph(root: type[BaseModel]) -> ModelDependencyGraph:
 
     shelv_location, shelv_file_name = cleanup_old_caches()
     lock_path = join(shelv_location, shelv_file_name + ".lock")
-    with FileLock(lock_path):
-        with shelve.open(join(shelv_location, shelv_file_name)) as cache:
-            if key not in cache:
-                cache[key] = ModelDependencyGraph(root)
-            graph = cache[key]
+    with FileLock(lock_path), shelve.open(join(shelv_location, shelv_file_name)) as cache:
+        if key not in cache:
+            cache[key] = ModelDependencyGraph(root)
+        graph = cache[key]
     _graph_cache[key] = graph
     return graph

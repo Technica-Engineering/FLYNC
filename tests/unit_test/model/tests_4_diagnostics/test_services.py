@@ -130,6 +130,7 @@ def test_ecu_reset_rejects_duplicate_reset_types():
 def test_ecu_reset_accepts_power_down_time_with_rapid_shutdown(power_down_time):
     service = EcuResetService(reset_types=["enable_rapid_power_shutdown"], power_down_time=power_down_time)
     assert service.power_down_time == power_down_time
+    assert isinstance(service, EcuResetService)
 
 
 def test_ecu_reset_rejects_power_down_time_no_reset_type_reports():
@@ -284,6 +285,7 @@ def test_user_def_memory_report_type_with_memory_selections_does_not_warn():
 def test_clear_diagnostic_information_accepts_unique_groups():
     service = ClearDiagnosticInformationService(dtc_groups=[{"name": "all", "id": 0xFFFFFF}, {"name": "powertrain", "id": 0x010000}])
     assert len(service.dtc_groups) == 2
+    assert isinstance(service, ClearDiagnosticInformationService)
 
 
 @pytest.mark.parametrize(
@@ -323,6 +325,7 @@ def test_clear_diagnostic_information_warns_on_incomplete_groups(overrides, expe
 @pytest.mark.parametrize("max_dids", [pytest.param(None, id="unset"), pytest.param(1, id="lower_bound"), pytest.param(16, id="typical")])
 def test_read_data_by_identifier_accepts_a_request_limit(max_dids):
     assert ReadDataByIdentifierService(max_dids_per_request=max_dids).max_dids_per_request == max_dids
+    assert isinstance(ReadDataByIdentifierService(max_dids_per_request=max_dids), ReadDataByIdentifierService)
 
 
 def test_read_data_by_identifier_rejects_a_zero_request_limit():
@@ -364,6 +367,7 @@ def test_transfer_setup_defaults_to_an_uncompressed_four_byte_format(cls):
 def test_transfer_setup_checks_regions_against_the_declared_widths(region, expected_id, fragment):
     if expected_id is None:
         assert RequestDownloadService(max_block_length=1026, memory_regions=[region]).memory_regions[0].name == "app"
+        assert isinstance(RequestDownloadService(max_block_length=1026, memory_regions=[region]), RequestDownloadService)
         return
     with pytest.raises(ValidationError) as exc_info:
         RequestDownloadService(max_block_length=1026, memory_regions=[region])
@@ -401,6 +405,7 @@ def test_server_rejects_dtcs_without_a_dtc_service():
 def test_server_accepts_dtcs_with_either_dtc_service(dtc_service):
     server = UDSServer(**server_data(services=[SESSION_CONTROL, dtc_service], dtcs=["overheat"]))
     assert server.dtcs == ["overheat"]
+    assert isinstance(server, UDSServer)
 
 
 @pytest.mark.parametrize(
@@ -435,6 +440,7 @@ def test_server_accepts_a_complete_block_transfer_set():
         {"service": "request_transfer_exit", "sid": 0x37},
     ]
     assert len(UDSServer(**server_data(services=services)).services) == 4
+    assert isinstance(UDSServer(**server_data(services=services)), UDSServer)
 
 
 @pytest.mark.parametrize(
@@ -648,6 +654,7 @@ def test_io_control_defaults_to_short_term_adjustment():
 )
 def test_io_control_without_short_term_adjustment_needs_no_control_state(supported_parameters):
     assert DIDIOControl(supported_parameters=supported_parameters).control_state is None
+    assert isinstance(DIDIOControl(supported_parameters=supported_parameters), DIDIOControl)
 
 
 def test_io_control_requires_a_control_state_for_short_term_adjustment():

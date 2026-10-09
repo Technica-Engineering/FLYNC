@@ -144,6 +144,35 @@ class TestInjectConfigParams:
         param_names = [p.name for p in cmd.params]
         assert "dst_config_path" not in param_names
 
+    def test_skips_version(self):
+        cmd = self._cmd()
+        with patch("flync_converter.cli.dynamic.get_config_model", return_value=ConverterConfig):
+            cmd._inject_config_params("myconv", "dst_")
+
+        assert "dst_version" not in [p.name for p in cmd.params]
+
+    def test_destination_only_fields_are_not_offered_for_source(self):
+        cmd = self._cmd()
+        with patch("flync_converter.cli.dynamic.get_config_model", return_value=ConverterConfig):
+            cmd._inject_config_params("myconv", "src_")
+            cmd._inject_config_params("myconv", "dst_")
+
+        param_names = [p.name for p in cmd.params]
+        assert "src_report_enabled" not in param_names
+        assert "src_persist_config" not in param_names
+        assert "dst_report_enabled" in param_names
+        assert "dst_report_min_log_level" in param_names
+        assert "dst_persist_config" in param_names
+
+    def test_options_default_to_none_so_stored_config_applies(self):
+        cmd = self._cmd()
+        with patch("flync_converter.cli.dynamic.get_config_model", return_value=ConverterConfig):
+            cmd._inject_config_params("myconv", "dst_")
+
+        option = next(p for p in cmd.params if p.name == "dst_report_min_log_level")
+        assert option.default is None
+        assert option.show_default == "INFO"
+
     def test_no_duplicate_injection(self):
         class MyConfig(ConverterConfig):
             extra_field: Optional[str] = None

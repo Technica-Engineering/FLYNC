@@ -21,6 +21,7 @@ def test_route_entry_required_fields_only_ipv4():
     assert route.egress_interface == "eth0"
     assert str(route.destination.address) == "10.0.0.0"
     assert str(route.default_gateway) == "10.0.0.1"
+    assert isinstance(route, RouteEntry)
 
 
 def test_route_entry_required_fields_only_ipv6():
@@ -29,6 +30,7 @@ def test_route_entry_required_fields_only_ipv6():
     assert route.egress_interface == "eth1"
     assert str(route.destination.address) == "2001:db8::"
     assert str(route.default_gateway) == "2001:db8::1"
+    assert isinstance(route, RouteEntry)
 
 
 # Test Negative: Test the class with missing required fields.

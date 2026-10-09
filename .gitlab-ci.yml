@@ -73,6 +73,32 @@ integrity:
       echo "===== LAZY TYPING ====="
       python3 scripts/ci/check_lazy_typing.py
 
+review:
+  extends: .base
+  stage: static-analysis
+  allow_failure: true
+  interruptible: true
+  parallel:
+    matrix:
+      - CHECK: ["error-numbers"]
+  variables:
+    GITLAB_TOKEN: "$MERGE_REQUEST_BOT_TOKEN"
+    GIT_DEPTH: "0"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+  script:
+    - |
+      set -eo pipefail
+      case "$CHECK" in
+        # Collisions only become visible once the branch sits on top of its target, so the
+        # target has to be fetched -- GIT_DEPTH 0 above is what makes it readable at all.
+        error-numbers)
+          git fetch --quiet origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
+          uv sync --frozen
+          uv run python scripts/ci/post_error_catalog_mr.py
+          ;;
+      esac
+
 examples_validation:
   extends: .base
   stage: tests
@@ -131,6 +157,30 @@ unit_tests:
     paths:
       - .coverage.unit
       - report_not_performance.xml
+
+profiler_report:
+  extends: .base
+  tags:
+    - k8s-pilot-cluster-linux-runner
+  allow_failure: true
+  stage: tests
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: manual
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "web"'
+      when: manual
+    - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "web"'
+      when: manual
+    - if: '$CI_COMMIT_TAG'
+      when: manual
+  script:
+    - uv sync --frozen
+    - FLYNC_PROFILER_OUT="$CI_PROJECT_DIR/profiler_reports" uv run python scripts/ci/profile_sdk_apis.py
+  artifacts:
+    when: always
+    expire_in: "30 days"
+    paths:
+      - profiler_reports
 
 test-summary:
   extends: .base

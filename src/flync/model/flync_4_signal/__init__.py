@@ -15,6 +15,7 @@ from flync.model.flync_4_signal.frame import (
     FrameCyclicTiming,
     FrameEventTiming,
     FrameTransmissionTiming,
+    J1939Frame,
     LINFrame,
 )
 from flync.model.flync_4_signal.pdu import (
@@ -85,6 +86,7 @@ __all__ = [
     "CANFrameBase",
     "CANFrame",
     "CANFDFrame",
+    "J1939Frame",
     "LINFrame",
     # forwarder
     "PDUForwarder",

@@ -8,6 +8,7 @@ from flync.core.version_migrators.legacy_controller_check import (
     reject_legacy_controller,
 )
 from flync.model.flync_4_ecu.controller import Controller
+from tests.error_assertions import assert_single_error
 
 
 def _legacy_payload(version: str = "0.10.0") -> dict:
@@ -80,17 +81,16 @@ def test_controller_model_validate_rejects_legacy_payload():
 
     with pytest.raises(ValidationError) as exc_info:
         Controller.model_validate(payload)
-    errors = exc_info.value.errors()
-    fatal_errors = [e for e in errors if e.get("type") == "fatal"]
-    assert fatal_errors, f"expected a fatal error, got {errors}"
-    msg = fatal_errors[0]["msg"]
-    assert "0.9.0" in msg
-    assert "0.11.0" in msg
-    assert "0.10" in msg  # downgrade hint
+
+    assert_single_error(
+        exc_info,
+        "FLYNC-GEN-FAT-COMP-048",
+        "Incompatible Controller Config detected (compatible_flync_version=0.9.0)",
+    )
 
 
 def test_controller_model_validate_accepts_new_payload(embedded_metadata_entry, virtual_controller_interface):
-    Controller.model_validate(
+    ctrl = Controller.model_validate(
         {
             "name": "new_ctrl",
             "controller_metadata": embedded_metadata_entry,
@@ -106,3 +106,4 @@ def test_controller_model_validate_accepts_new_payload(embedded_metadata_entry, 
             ],
         }
     )
+    assert isinstance(ctrl, Controller)

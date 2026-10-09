@@ -13,6 +13,7 @@ def test_minimal_creation():
     assert m.vlan == 0
     assert m.src_ip is None
     assert m.solicited_node_multicast is False
+    assert isinstance(m, MulticastGroupMembership)
 
 
 @pytest.mark.parametrize(
@@ -26,6 +27,7 @@ def test_valid_multicast_addresses(group):
     """Test that valid IPv4 and IPv6 multicast addresses are accepted."""
     m = MulticastGroupMembership(group=group)
     assert m.group is not None
+    assert isinstance(m, MulticastGroupMembership)
 
 
 @pytest.mark.parametrize("vlanid", ["100", 101, None])
@@ -36,6 +38,7 @@ def test_valid_vlan_assignment(vlanid):
         assert m.vlan == int(vlanid)
     else:
         assert m.vlan == None
+    assert isinstance(m, MulticastGroupMembership)
 
 
 def test_valid_tx_group(ci):
@@ -47,6 +50,7 @@ def test_valid_tx_group(ci):
     assert str(tx_group.src_ip) == "192.168.1.20"
     assert tx_group.vlan == 10
     assert tx_group.interface == ci
+    assert isinstance(tx_group, MulticastGroupMembership)
 
 
 def test_valid_rx_group(ci):
@@ -58,6 +62,7 @@ def test_valid_rx_group(ci):
     assert rx_group.src_ip is None
     assert rx_group.vlan == 10
     assert rx_group.interface == ci
+    assert isinstance(rx_group, MulticastGroupMembership)
 
 
 def test_valid_tx_rx_communication(ci):
@@ -73,6 +78,8 @@ def test_valid_tx_rx_communication(ci):
     assert str(tx_group.src_ip) == "192.168.1.10"
     assert tx_group.interface == ci
     assert rx_group.interface == ci
+    assert isinstance(tx_group, MulticastGroupMembership)
+    assert isinstance(rx_group, MulticastGroupMembership)
 
 
 @pytest.mark.parametrize(
@@ -92,3 +99,4 @@ def test_valid_src_ip_mode(mode, src_ip, ci):
 
     assert mode_group.mode == mode
     assert mode_group.interface == ci
+    assert isinstance(mode_group, MulticastGroupMembership)

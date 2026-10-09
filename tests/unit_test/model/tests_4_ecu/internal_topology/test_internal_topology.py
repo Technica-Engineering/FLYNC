@@ -21,6 +21,7 @@ from flync.model.flync_4_ecu.internal_topology import (
     SwitchPortToSwitchPort,
 )
 from flync.model.flync_4_metadata import BaseVersion, EmbeddedMetadata
+from tests.error_assertions import assert_single_error, assert_warnings
 
 
 def _embedded_metadata():
@@ -135,20 +136,24 @@ def test_internal_topology_chooses_switch_to_switch_same_ecu_if_type_expected():
 
 def test_internal_topology_ecu_port_not_defined():
     switch = _switch("sw", [SwitchPort(name="b", silicon_port_no=1, default_vlan_id=0)])
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         _ecu(
             switches=[switch],
             connections=[{"type": "ecu_port_to_switch_port", "id": "1", "ecu_port": "c", "switch_port": "b"}],
         )
 
+    assert_single_error(exc_info, "FLYNC-ECU-MAJ-REF-072", "ECU port 'c' referenced in connection '1' was not found")
+
 
 def test_internal_topology_switch_port_not_defined():
     ecu_port = ECUPort(name="a", mdi_config=BASET1(speed=100, role="slave"))
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         _ecu(
             ports=[ecu_port],
             connections=[{"type": "ecu_port_to_switch_port", "id": "1", "ecu_port": "a", "switch_port": "d"}],
         )
+
+    assert_single_error(exc_info, "FLYNC-ECU-MAJ-REF-075", "Switch port 'd' referenced in connection '1' was not found")
 
 
 def test_negative_internal_topology_switch_port_to_controller_interface_missing_switch_port(
@@ -163,11 +168,13 @@ def test_negative_internal_topology_switch_port_to_controller_interface_missing_
             mii_config=MII(mode="phy"),
         ),
     )
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         _ecu(
             controllers=[ctrl],
             connections=[{"type": "switch_port_to_controller_interface", "id": "1", "switch_port": "a", "controller_interface": "b"}],
         )
+
+    assert_single_error(exc_info, "FLYNC-ECU-MAJ-REF-075", "Switch port 'a' referenced in connection '1' was not found")
 
 
 def test_negative_internal_topology_switch_port_to_controller_interface_missing_controller_interface(
@@ -177,11 +184,13 @@ def test_negative_internal_topology_switch_port_to_controller_interface_missing_
         "sw",
         [SwitchPort(name="a", silicon_port_no=1, default_vlan_id=0, mii_config=MII(mode="mac"))],
     )
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         _ecu(
             switches=[switch],
             connections=[{"type": "switch_port_to_controller_interface", "id": "1", "switch_port": "a", "controller_interface": "e"}],
         )
+
+    assert_single_error(exc_info, "FLYNC-ECU-MAJ-REF-078", "Controller interface 'e' referenced in connection '1' was not found")
 
 
 def test_negative_switch_to_switch_missing_port_2():
@@ -189,11 +198,13 @@ def test_negative_switch_to_switch_missing_port_2():
         "sw",
         [SwitchPort(name="a", silicon_port_no=1, default_vlan_id=0, mii_config=MII(mode="mac"))],
     )
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         _ecu(
             switches=[switch],
             connections=[{"type": "switch_to_switch_same_ecu", "id": "1", "switch_port": "a", "switch2_port": "f"}],
         )
+
+    assert_single_error(exc_info, "FLYNC-ECU-MAJ-REF-075", "Switch port 'f' referenced in connection '1' was not found")
 
 
 def test_switch_port_reused_across_two_connections(virtual_controller_interface):
@@ -209,7 +220,7 @@ def test_switch_port_reused_across_two_connections(virtual_controller_interface)
             mii_config=MII(mode="phy"),
         ),
     )
-    with pytest.raises(ValidationError, match="switch port 'a'"):
+    with pytest.raises(ValidationError) as exc_info:
         _ecu(
             switches=[switch],
             controllers=[ctrl],
@@ -220,17 +231,21 @@ def test_switch_port_reused_across_two_connections(virtual_controller_interface)
             ],
         )
 
+    assert_single_error(exc_info, "FLYNC-ECU-MAJ-COMP-210", "is connected to more than one component")
+
 
 def test_switch_port_connected_to_itself():
     switch = _switch(
         "sw",
         [SwitchPort(name="a", silicon_port_no=1, default_vlan_id=0, mii_config=MII(mode="mac"))],
     )
-    with pytest.raises(ValidationError, match="connected to itself"):
+    with pytest.raises(ValidationError) as exc_info:
         _ecu(
             switches=[switch],
             connections=[{"type": "switch_to_switch_same_ecu", "id": "1", "switch_port": "a", "switch2_port": "a"}],
         )
+
+    assert_single_error(exc_info, "FLYNC-ECU-MAJ-COMP-209", "is connected to itself")
 
 
 def test_switch_ports_each_used_once_is_valid(virtual_controller_interface):
@@ -257,6 +272,7 @@ def test_switch_ports_each_used_once_is_valid(virtual_controller_interface):
         ],
     )
     assert len(ecu.topology.connections) == 2
+    assert isinstance(ecu, ECU)
 
 
 def test_same_switch_port_name_in_different_switches_is_valid():
@@ -276,6 +292,7 @@ def test_same_switch_port_name_in_different_switches_is_valid():
     )
 
     assert len(ecu.topology.connections) == 2
+    assert isinstance(ecu, ECU)
 
 
 # ---------------------------------------------------------------------------
@@ -326,7 +343,7 @@ def test_switch_port_to_host_controller_interface_switch_has_no_host_controller(
     cpu_port = SwitchPort(name="cpu", silicon_port_no=9, default_vlan_id=0)
     switch = _switch("sw", [cpu_port])
 
-    with pytest.raises(ValidationError, match="has no host controller"):
+    with pytest.raises(ValidationError) as exc_info:
         _ecu(
             switches=[switch],
             connections=[
@@ -339,13 +356,15 @@ def test_switch_port_to_host_controller_interface_switch_has_no_host_controller(
             ],
         )
 
+    assert_single_error(exc_info, "FLYNC-ECU-MAJ-REF-239", "switch 'sw' has no host controller")
+
 
 def test_switch_port_to_host_controller_interface_interface_not_found(virtual_controller_interface):
     cpu_port = SwitchPort(name="cpu", silicon_port_no=9, default_vlan_id=0)
     host_controller = _host_controller("host_iface1", [virtual_controller_interface])
     switch = _switch("sw", [cpu_port], host_controller=host_controller)
 
-    with pytest.raises(ValidationError, match="was not found"):
+    with pytest.raises(ValidationError) as exc_info:
         _ecu(
             switches=[switch],
             connections=[
@@ -357,6 +376,8 @@ def test_switch_port_to_host_controller_interface_interface_not_found(virtual_co
                 }
             ],
         )
+
+    assert_single_error(exc_info, "FLYNC-ECU-MAJ-REF-240", "was not found on the host controller of switch 'sw'")
 
 
 def test_switch_port_to_host_controller_interface_cannot_reference_another_switchs_host_controller(virtual_controller_interface):
@@ -370,7 +391,7 @@ def test_switch_port_to_host_controller_interface_cannot_reference_another_switc
     host_controller_b = _host_controller("host_iface_b", [virtual_controller_interface])
     switch_b = _switch("switch_b", [cpu_port_b], host_controller=host_controller_b)
 
-    with pytest.raises(ValidationError, match="was not found"):
+    with pytest.raises(ValidationError) as exc_info:
         _ecu(
             switches=[switch_a, switch_b],
             connections=[
@@ -383,6 +404,8 @@ def test_switch_port_to_host_controller_interface_cannot_reference_another_switc
                 }
             ],
         )
+
+    assert_single_error(exc_info, "FLYNC-ECU-MAJ-REF-240", "was not found on the host controller of switch 'switch_a'")
 
 
 def test_switch_port_to_host_controller_interface_no_mii_compatibility_check(virtual_controller_interface):
@@ -405,6 +428,7 @@ def test_switch_port_to_host_controller_interface_no_mii_compatibility_check(vir
     )
 
     assert len(ecu.topology.connections) == 1
+    assert isinstance(ecu, ECU)
 
 
 def test_unconnected_host_controller_interface_warns(virtual_controller_interface):
@@ -414,7 +438,7 @@ def test_unconnected_host_controller_interface_warns(virtual_controller_interfac
     host_controller = _host_controller("host_iface1", [virtual_controller_interface])
     switch = _switch("sw", [cpu_port], host_controller=host_controller)
 
-    _, errors = validate_with_policy(
+    result = validate_with_policy(
         ECU,
         {
             "name": "test_ecu",
@@ -427,5 +451,9 @@ def test_unconnected_host_controller_interface_warns(virtual_controller_interfac
         path=None,
     )
 
-    warnings = [e for e in errors if e.get("type") == "warning"]
-    assert any("Host controller interface 'host_iface1'" in w["msg"] for w in warnings)
+    assert_warnings(
+        result,
+        "FLYNC-ECU-WARN-STRUCT-211",
+        "FLYNC-ECU-WARN-STRUCT-212",
+        "FLYNC-ECU-WARN-STRUCT-238",
+    )

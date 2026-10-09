@@ -114,6 +114,8 @@ def test_load_workspace_from_flync_object_relative_path(
     assert loaded_ws.flync_model.communication.tcp_profiles
     assert loaded_ws.flync_model.metadata
     assert model_has_socket(loaded_ws.flync_model)
+    assert isinstance(loaded_ws, FLYNCWorkspace)
+    assert isinstance(loaded_ws.flync_model, FLYNCModel)
 
 
 def test_roundtrip_conversion(get_flync_example_path, get_flync_workspace_minimal_config, tmp_path):
@@ -201,6 +203,30 @@ def test_references_object(
         received[path] = sorted(loaded_ws.get_references_of(path))
 
     verify(json.dumps(received, indent=4, sort_keys=True))
+
+
+def test_references_object_both_list_modes(get_relative_flync_example_path):
+    """
+    ``get_references_of`` must not mutate the object map while scanning references.
+
+    With both ``ListObjectsMode.INDEX`` and ``ListObjectsMode.NAME`` active (the
+    default) plus ``map_objects=True``, resolving a duplicate object id during the
+    scan changes the size of ``objects``. The scan iterates the snapshotted
+    duplicate-aware id list, so this must return without raising
+    "dictionary changed size during iteration" and yield the expected references.
+    """
+    config = WorkspaceConfiguration(map_objects=True)  # default = both list modes
+    ws = FLYNCWorkspace.load_workspace(
+        workspace_name="flync_workspace_both_modes",
+        workspace_path=get_relative_flync_example_path,
+        workspace_config=config,
+    )
+
+    # A name-based path (only valid once NAME mode is active alongside INDEX).
+    refs = ws.get_references_of(ObjectId("ecus.eth_ecu.ports.ports.eth_ecu_p1"))
+
+    # The port is referenced by the topology connection that wires its ecu_port.
+    assert ObjectId("ecus.eth_ecu.topology.connections.0.ecu_port") in refs
 
 
 def test_revalidate_changed_model(get_relative_flync_example_path, tmp_path):

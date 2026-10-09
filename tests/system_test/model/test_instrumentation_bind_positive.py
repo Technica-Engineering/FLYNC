@@ -9,7 +9,7 @@ example workspace, so the bind behaviour is exercised without depending on the b
 from pydantic import TypeAdapter
 
 from flync.model.flync_4_bus import CANBus, LINBus
-from flync.model.flync_4_ecu import ECUPort
+from flync.model.flync_4_ecu.port import ECUPort
 from flync.model.flync_4_instrumentation import (
     EthernetBusMeasurementPoint,
     EthernetPortsMeasurementPoint,
@@ -59,6 +59,7 @@ def test_bus_points_resolve_to_real_buses():
     can_fd = points["diagnostics_can_fd"]
     assert can_fd.observed_bus.fd_enabled is True
     assert can_fd.captured_payload_types() == ["can", "can_fd"]
+    assert isinstance(can_fd.observed_bus, CANBus)
 
     body_lin = points["body_lin"]
     assert isinstance(body_lin.observed_bus, LINBus)

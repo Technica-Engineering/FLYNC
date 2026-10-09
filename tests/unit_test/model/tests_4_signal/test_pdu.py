@@ -24,16 +24,19 @@ def test_positive_pdu_instance_with_bit_position():
     pi = PDUInstance(pdu_ref="my_pdu", bit_position=0)
     assert pi.pdu_ref == "my_pdu"
     assert pi.bit_position == 0
+    assert isinstance(pi, PDUInstance)
 
 
 def test_positive_pdu_instance_without_bit_position():
     pi = PDUInstance(pdu_ref="my_pdu")
     assert pi.bit_position is None
+    assert isinstance(pi, PDUInstance)
 
 
 def test_positive_pdu_instance_with_update_bit():
     pi = PDUInstance(pdu_ref="my_pdu", bit_position=0, update_bit_position=1)
     assert pi.update_bit_position == 1
+    assert isinstance(pi, PDUInstance)
 
 
 def test_negative_pdu_instance_negative_bit_position():
@@ -46,6 +49,7 @@ def test_positive_contained_pdu_ref():
     ref = ContainedPDURef(header_id=1, pdu_ref="inner_pdu")
     assert ref.header_id == 1
     assert ref.pdu_ref == "inner_pdu"
+    assert isinstance(ref, ContainedPDURef)
 
 
 def test_positive_contained_pdu_ref_model_validate():
@@ -64,11 +68,13 @@ def test_positive_standard_pdu_empty():
     pdu = StandardPDU(name="empty_pdu", length=4)
     assert pdu.signals == []
     assert pdu.signal_groups == []
+    assert isinstance(pdu, StandardPDU)
 
 
 def test_positive_standard_pdu_with_description():
     pdu = StandardPDU(name="desc_pdu", length=8, description="Test PDU")
     assert pdu.description == "Test PDU"
+    assert isinstance(pdu, StandardPDU)
 
 
 def test_positive_standard_pdu_with_unplaced_signals():
@@ -79,6 +85,7 @@ def test_positive_standard_pdu_with_unplaced_signals():
         signals=[SignalInstance(signal=sig)],
     )
     assert len(pdu.signals) == 1
+    assert isinstance(pdu, StandardPDU)
 
 
 def test_positive_standard_pdu_with_placed_signal():
@@ -89,6 +96,7 @@ def test_positive_standard_pdu_with_placed_signal():
         signals=[SignalInstance(signal=sig, bit_position=0)],
     )
     assert pdu.signals[0].bit_position == 0
+    assert isinstance(pdu, StandardPDU)
 
 
 def test_positive_standard_pdu_two_signals_no_overlap():
@@ -103,6 +111,7 @@ def test_positive_standard_pdu_two_signals_no_overlap():
         ],
     )
     assert len(pdu.signals) == 2
+    assert isinstance(pdu, StandardPDU)
 
 
 def test_positive_standard_pdu_with_signal_group():
@@ -117,13 +126,14 @@ def test_positive_standard_pdu_with_signal_group():
         signal_groups=[SignalGroupInstance(signal_group=sg, bit_position=0)],
     )
     assert len(pdu.signal_groups) == 1
+    assert isinstance(pdu, StandardPDU)
+    assert pdu.type == "standard"
 
 
 def test_positive_standard_pdu_model_validate():
     data = {"name": "mv_pdu", "length": 4}
     pdu = StandardPDU.model_validate(data)
     assert isinstance(pdu, StandardPDU)
-    assert pdu.type == "standard"
 
 
 def test_negative_standard_pdu_signal_overflow():
@@ -164,6 +174,7 @@ def test_positive_standard_pdu_signals_adjacent_no_overlap():
         ],
     )
     assert len(pdu.signals) == 2
+    assert isinstance(pdu, StandardPDU)
 
 
 def test_positive_standard_pdu_signal_fits_exactly_at_end():
@@ -175,6 +186,7 @@ def test_positive_standard_pdu_signal_fits_exactly_at_end():
         signals=[SignalInstance(signal=sig, bit_position=8)],
     )
     assert pdu.signals[0].bit_position == 8
+    assert isinstance(pdu, StandardPDU)
 
 
 def test_positive_standard_pdu_mixed_placed_and_unplaced_signals():
@@ -190,6 +202,7 @@ def test_positive_standard_pdu_mixed_placed_and_unplaced_signals():
         ],
     )
     assert len(pdu.signals) == 2
+    assert isinstance(pdu, StandardPDU)
 
 
 def test_positive_standard_pdu_signal_and_signal_group_no_overlap():
@@ -208,6 +221,7 @@ def test_positive_standard_pdu_signal_and_signal_group_no_overlap():
     )
     assert len(pdu.signals) == 1
     assert len(pdu.signal_groups) == 1
+    assert isinstance(pdu, StandardPDU)
 
 
 def test_negative_standard_pdu_signals_identical_position():
@@ -314,6 +328,7 @@ def test_positive_mux_group_empty():
     )
     assert mg.selector_value == 0
     assert mg.pdu.pdu_ref == "mg_empty_pdu"
+    assert isinstance(mg, MuxGroup)
 
 
 def test_positive_mux_group_with_bit_position():
@@ -324,6 +339,7 @@ def test_positive_mux_group_with_bit_position():
     assert mg.selector_value == 1
     assert mg.pdu.pdu_ref == "mg_sig_pdu"
     assert mg.pdu.bit_position == 8
+    assert isinstance(mg, MuxGroup)
 
 
 def test_negative_mux_group_negative_selector_value():
@@ -357,6 +373,7 @@ def test_positive_multiplexed_pdu_single_mux_group():
     )
     assert pdu.type == "multiplexed"
     assert len(pdu.mux_groups) == 1
+    assert isinstance(pdu, MultiplexedPDU)
 
 
 def test_positive_multiplexed_pdu_multiple_mux_groups():
@@ -370,6 +387,7 @@ def test_positive_multiplexed_pdu_multiple_mux_groups():
         mux_groups=[mg0, mg1],
     )
     assert len(pdu.mux_groups) == 2
+    assert isinstance(pdu, MultiplexedPDU)
 
 
 def test_positive_multiplexed_pdu_with_static_signals():
@@ -383,6 +401,7 @@ def test_positive_multiplexed_pdu_with_static_signals():
         static_group=[PDUInstance(pdu_ref="mp_pdu_3_static", bit_position=16)],
     )
     assert pdu.static_group == [PDUInstance(pdu_ref="mp_pdu_3_static", bit_position=16)]
+    assert isinstance(pdu, MultiplexedPDU)
 
 
 def test_positive_multiplexed_pdu_multiple_static_pdus():
@@ -396,6 +415,7 @@ def test_positive_multiplexed_pdu_multiple_static_pdus():
         static_group=[PDUInstance(pdu_ref="mp_pdu_3b_static_1"), PDUInstance(pdu_ref="mp_pdu_3b_static_2")],
     )
     assert [inst.pdu_ref for inst in pdu.static_group] == ["mp_pdu_3b_static_1", "mp_pdu_3b_static_2"]
+    assert isinstance(pdu, MultiplexedPDU)
 
 
 def test_positive_multiplexed_pdu_static_group_default_none():
@@ -408,6 +428,7 @@ def test_positive_multiplexed_pdu_static_group_default_none():
         mux_groups=[mg],
     )
     assert pdu.static_group is None
+    assert isinstance(pdu, MultiplexedPDU)
 
 
 def test_positive_multiplexed_pdu_static_group_single_instance_coerced():
@@ -422,6 +443,7 @@ def test_positive_multiplexed_pdu_static_group_single_instance_coerced():
         }
     )
     assert [inst.pdu_ref for inst in pdu.static_group] == ["mp_pdu_3d_static"]
+    assert isinstance(pdu, MultiplexedPDU)
 
 
 def test_positive_multiplexed_pdu_selector_no_position():
@@ -435,6 +457,7 @@ def test_positive_multiplexed_pdu_selector_no_position():
         mux_groups=[mg],
     )
     assert pdu.selector_signal.bit_position is None
+    assert isinstance(pdu, MultiplexedPDU)
 
 
 def test_negative_multiplexed_pdu_duplicate_selector_values():
@@ -490,6 +513,7 @@ def test_positive_container_pdu_16bit_id_8bit_length_empty():
     assert pdu.header.id_length_bits == 16
     assert pdu.header.length_field_bits == 8
     assert pdu.contained_pdus == []
+    assert isinstance(pdu, ContainerPDU)
 
 
 def test_positive_container_pdu_32bit_id_16bit_length_empty():
@@ -501,6 +525,7 @@ def test_positive_container_pdu_32bit_id_16bit_length_empty():
     )
     assert pdu.header.id_length_bits == 32
     assert pdu.header.length_field_bits == 16
+    assert isinstance(pdu, ContainerPDU)
 
 
 def test_positive_container_pdu_16bit_id_8bit_length_with_refs():
@@ -515,6 +540,7 @@ def test_positive_container_pdu_16bit_id_8bit_length_with_refs():
         ],
     )
     assert len(pdu.contained_pdus) == 2
+    assert isinstance(pdu, ContainerPDU)
 
 
 def test_positive_container_pdu_32bit_id_16bit_length_exact_minimum():
@@ -527,6 +553,7 @@ def test_positive_container_pdu_32bit_id_16bit_length_exact_minimum():
         contained_pdus=[ContainedPDURef(header_id=1, pdu_ref="inner_c")],
     )
     assert pdu.length == 6
+    assert isinstance(pdu, ContainerPDU)
 
 
 def test_positive_container_pdu_16bit_id_8bit_length_exact_minimum():
@@ -539,6 +566,7 @@ def test_positive_container_pdu_16bit_id_8bit_length_exact_minimum():
         contained_pdus=[ContainedPDURef(header_id=1, pdu_ref="inner_d")],
     )
     assert pdu.length == 3
+    assert isinstance(pdu, ContainerPDU)
 
 
 def test_positive_container_pdu_model_validate():
@@ -602,6 +630,7 @@ def test_positive_container_pdu_headerless_with_one_pdu():
         contained_pdus=[ContainedPDURef(header_id=1, pdu_ref="inner_hl")],
     )
     assert len(pdu.contained_pdus) == 1
+    assert isinstance(pdu, ContainerPDU)
 
 
 def test_negative_container_pdu_headerless_no_contained_pdus():

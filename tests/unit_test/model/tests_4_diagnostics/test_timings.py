@@ -10,6 +10,7 @@ def test_doip_timing_profile_uses_iso_13400_defaults():
     profile = DoIPTimingProfile(profile_id="p1")
     assert profile.a_doip_ctrl == 2000
     assert profile.t_tcp_general_inactivity == 300000
+    assert isinstance(profile, DoIPTimingProfile)
 
 
 def test_uds_timing_profile_uses_iso_14229_defaults():
@@ -17,6 +18,7 @@ def test_uds_timing_profile_uses_iso_14229_defaults():
     assert profile.p2_server == 50
     assert profile.p2_star_server == 5000
     assert profile.s3_server == 5000
+    assert isinstance(profile, UDSTimingProfile)
 
 
 @pytest.mark.parametrize(

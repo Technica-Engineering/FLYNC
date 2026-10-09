@@ -2,7 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from flync.model.flync_4_bus.can_bus import CANBus
-from flync.model.flync_4_signal.frame import CANFDFrame, CANFrame
+from flync.model.flync_4_signal.frame import CANFDFrame, CANFrame, J1939Frame
 from tests.error_assertions import assert_single_error
 
 
@@ -24,27 +24,44 @@ def _make_canfd_frame(name="fd_frm", can_id=0x100, id_format="standard_11bit", l
     return CANFDFrame(name=name, can_id=can_id, id_format=id_format, length=length)
 
 
+def _make_j1939_frame(name="j1939_frm", pdu_format=240, destination_type="global"):
+    return J1939Frame(
+        name=name,
+        priority=3,
+        pdu_format=pdu_format,
+        pdu_specific=4,
+        data_page=0,
+        extended_data_page=0,
+        destination_type=destination_type,
+        length=8,
+    )
+
+
 def test_positive_can_bus_minimal():
     bus = CANBus(name="CAN_bus_1", baud_rate=500_000)
     assert bus.baud_rate == 500_000
     assert bus.fd_enabled is False
     assert bus.fd_baud_rate is None
     assert bus.frames == []
+    assert isinstance(bus, CANBus)
 
 
 def test_positive_can_bus_with_description():
     bus = CANBus(name="CAN_bus_desc", baud_rate=250_000, description="Body CAN bus")
     assert bus.description == "Body CAN bus"
+    assert isinstance(bus, CANBus)
 
 
 def test_positive_can_bus_with_version():
     bus = CANBus(name="CAN_bus_ver", baud_rate=500_000, version="1.0")
     assert bus.version == "1.0"
+    assert isinstance(bus, CANBus)
 
 
 def test_positive_can_bus_empty_version():
     bus = CANBus(name="CAN_bus_empty_ver", baud_rate=500_000)
     assert bus.version == ""
+    assert isinstance(bus, CANBus)
 
 
 @pytest.mark.parametrize(
@@ -63,6 +80,7 @@ def test_positive_can_bus_empty_version():
 def test_positive_can_bus_all_valid_baud_rates(baud_rate):
     bus = CANBus(name=f"CAN_br_{baud_rate}", baud_rate=baud_rate)
     assert bus.baud_rate == baud_rate
+    assert isinstance(bus, CANBus)
 
 
 @pytest.mark.parametrize(
@@ -82,12 +100,14 @@ def test_positive_can_bus_all_valid_fd_data_rates(fd_baud_rate):
         fd_baud_rate=fd_baud_rate,
     )
     assert bus.fd_baud_rate == fd_baud_rate
+    assert isinstance(bus, CANBus)
 
 
 def test_positive_can_bus_with_can_frame():
     frm = _make_can_frame("bus_frm_1")
     bus = CANBus(name="CAN_frm_bus", baud_rate=500_000, frames=[frm])
     assert len(bus.frames) == 1
+    assert isinstance(bus, CANBus)
 
 
 def test_positive_can_bus_fd_with_canfd_frame():
@@ -100,6 +120,7 @@ def test_positive_can_bus_fd_with_canfd_frame():
         frames=[fd_frm],
     )
     assert len(bus.frames) == 1
+    assert isinstance(bus, CANBus)
 
 
 def test_positive_can_bus_model_validate():
@@ -185,3 +206,70 @@ def test_positive_can_bus_same_id_different_format_is_allowed():
     frm2 = _make_can_frame("id_ext", can_id=0x100, id_format="extended_29bit")
     bus = CANBus(name="CAN_mixed_fmt", baud_rate=500_000, frames=[frm1, frm2])
     assert len(bus.frames) == 2
+
+
+def test_positive_can_bus_with_j1939_frame_only():
+    j1939 = _make_j1939_frame("bus_j1939")
+    bus = CANBus(name="J1939_only", baud_rate=250_000, frames=[j1939])
+    assert len(bus.frames) == 1
+    assert isinstance(bus.frames[0], J1939Frame)
+
+
+def test_positive_can_bus_mixed_j1939_and_can_frame():
+    j1939 = _make_j1939_frame("bus_j1939")
+    can = _make_can_frame("bus_can", can_id=0x100, id_format="extended_29bit")
+    bus = CANBus(name="J1939_mixed", baud_rate=250_000, frames=[j1939, can])
+    assert len(bus.frames) == 2
+
+
+def test_positive_can_bus_mixed_frames_keep_concrete_types():
+    j1939 = _make_j1939_frame("bus_j1939")
+    can = _make_can_frame("bus_can", can_id=0x100, id_format="extended_29bit")
+    can_fd = _make_canfd_frame("bus_can_fd", can_id=0x200, id_format="extended_29bit")
+    bus = CANBus(name="J1939_mixed", baud_rate=250_000, fd_enabled=True, fd_baud_rate=5_000_000, frames=[j1939, can, can_fd])
+    assert isinstance(bus.frames[0], J1939Frame)
+    assert isinstance(bus.frames[1], CANFrame)
+    assert isinstance(bus.frames[2], CANFDFrame)
+
+
+def test_positive_can_bus_mixed_frames_from_dicts_resolve_concrete_types():
+    bus = CANBus(
+        name="J1939_mixed",
+        baud_rate=250_000,
+        fd_enabled=True,
+        fd_baud_rate=5_000_000,
+        frames=[
+            {
+                "name": "j1939",
+                "type": "j1939",
+                "priority": 3,
+                "pdu_format": 240,
+                "pdu_specific": 4,
+                "data_page": 0,
+                "extended_data_page": 0,
+                "destination_type": "global",
+                "length": 8,
+            },
+            {"name": "can", "type": "can", "can_id": 0x100, "id_format": "extended_29bit", "length": 8},
+            {"name": "can_fd", "type": "can_fd", "can_id": 0x200, "id_format": "extended_29bit", "length": 64},
+        ],
+    )
+    assert isinstance(bus.frames[0], J1939Frame)
+    assert isinstance(bus.frames[1], CANFrame)
+    assert isinstance(bus.frames[2], CANFDFrame)
+
+
+def test_positive_can_bus_duplicate_can_id_check_ignores_j1939_frames():
+    j1939_a = _make_j1939_frame("j1939_a")
+    j1939_b = _make_j1939_frame("j1939_b")
+    bus = CANBus(name="J1939_no_canid", baud_rate=250_000, frames=[j1939_a, j1939_b])
+    assert len(bus.frames) == 2
+
+
+def test_positive_can_bus_duplicate_can_id_still_detected_with_j1939_present():
+    can1 = _make_can_frame("dup_can_1", can_id=0x100, id_format="extended_29bit")
+    can2 = _make_can_frame("dup_can_2", can_id=0x100, id_format="extended_29bit")
+    j1939 = _make_j1939_frame("j1939_frm")
+    with pytest.raises(ValidationError) as exc_info:
+        CANBus(name="CAN_dup_id_j1939", baud_rate=250_000, frames=[can1, can2, j1939])
+    assert_single_error(exc_info, "FLYNC-BUS-MAJ-UNIQ-054", "duplicate CAN identifier")

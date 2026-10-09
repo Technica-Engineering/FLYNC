@@ -82,6 +82,7 @@ def test_controller_with_ethernet_interface():
     )
 
     assert flync_model.ecus[0].controllers[0].ethernet_interfaces[0] == eth_iface
+    assert isinstance(flync_model.ecus[0].controllers[0].ethernet_interfaces[0], EthernetInterface)
 
 
 # Verify that a Controller can contain a CANInterface.
@@ -113,6 +114,7 @@ def test_controller_with_can_interface():
     )
 
     assert flync_model.ecus[0].controllers[0].can_interfaces[0] == can_iface
+    assert isinstance(flync_model.ecus[0].controllers[0].can_interfaces[0], CANInterface)
 
 
 # Verify that a Controller can contain a LINInterface.
@@ -150,6 +152,8 @@ def test_controller_with_lin_interface():
 
     assert "lin_master_iface" in lin_names
     assert "lin_slave_iface" in lin_names
+    assert isinstance(flync_model.ecus[0].controllers[0].lin_interfaces[0], LINMasterInterface)
+    assert isinstance(flync_model.ecus[0].controllers[0].lin_interfaces[1], LINSlaveInterface)
 
 
 # Verify that one ECU can contain multiple communication technologies simultaneously: Ethernet + CAN + LIN
@@ -202,6 +206,8 @@ def test_controller_with_mixed_communication_interfaces():
     lin_names = {iface.name for iface in controller.lin_interfaces}
     assert "lin_master_iface" in lin_names
     assert "lin_slave_iface" in lin_names
+    assert isinstance(controller.lin_interfaces[0], LINMasterInterface)
+    assert isinstance(controller.lin_interfaces[1], LINSlaveInterface)
 
 
 # Verify that ControllerTopology can work with the ControllerInterface base class and accept EthernetInterface, CANInterface, and LINInterface derived classes.
@@ -275,6 +281,7 @@ def test_multi_can_controller_support():
     bus_refs = {interface.bus_ref for interface in controller.can_interfaces}
 
     assert bus_refs == {"powertrain_can_bus", "body_can_bus", "diagnostic_can_bus"}
+    assert isinstance(controller.can_interfaces[0], CANInterface)
 
 
 # Verify that two different Controllers/ECUs can use the same interface name because interface naming scope is limited to the Controller.
@@ -417,6 +424,7 @@ def test_ethernet_vlan_configuration_support():
     }
 
     assert all(isinstance(vif, VirtualControllerInterface) for vif in eth_iface.interface_config.virtual_interfaces)
+    assert isinstance(eth_iface.interface_config.virtual_interfaces[0], VirtualControllerInterface)
 
 
 # Verify that a Gateway ECU can connect Ethernet networks with CAN/LIN networks through valid gateway configuration and topology resolution.
@@ -690,6 +698,7 @@ def test_load_single_interface_configuration(tmpdir, ecu_folder):
             assert (
                 controller.ethernet_interfaces or controller.can_interfaces or controller.lin_interfaces
             ), f"{controller.name} has no communication interface"
+    assert isinstance(model, FLYNCModel)
 
 
 # Verify that multiple communication interfaces (Ethernet, CAN, LIN) are correctly loaded and mapped to the FLYNC model.
@@ -731,6 +740,7 @@ def test_load_multiple_communication_interfaces(tmpdir):
     assert has_ethernet_interface, "Ethernet interface was not loaded"
     assert has_can_interface, "CAN interface was not loaded"
     assert has_lin_interface, "LIN interface was not loaded"
+    assert isinstance(model, FLYNCModel)
 
 
 # Verify Serialization and Deserialization Consistency for EthernetInterface configuration.
