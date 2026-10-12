@@ -26,7 +26,7 @@ class IPv4AddressEntry(FLYNCBaseModel):
     ipv4netmask: IPv4Address = Field()
 
     @field_serializer("address", "ipv4netmask")
-    def serialize_address(self, address: IPv4Address):
+    def serialize_address(self, address: IPv4Address) -> str:
         return str(address)
 
 
@@ -58,9 +58,8 @@ class IPv6AddressEntry(FLYNCBaseModel):
     ipv6prefix: int = Field(..., ge=0, le=128)
 
     @field_serializer("address")
-    def serialize_address(self, address: IPv6Address):
-        if address is not None:
-            return str(address).lower()
+    def serialize_address(self, address: IPv6Address) -> str:
+        return str(address).lower()
 
     def derive_multicast_address(self) -> IPv6Address:
         """

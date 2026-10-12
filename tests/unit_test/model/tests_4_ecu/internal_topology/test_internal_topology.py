@@ -460,3 +460,13 @@ def test_unconnected_host_controller_interface_warns(virtual_controller_interfac
         "FLYNC-ECU-WARN-STRUCT-212",
         "FLYNC-ECU-WARN-STRUCT-238",
     )
+
+
+def test_internal_connections_know_their_ecu():
+    """The ECU hands itself to every internal connection, not just to the RootModel wrapper around it."""
+    from tests.model_builders import make_ethernet_ecu
+
+    ecu = make_ethernet_ecu()
+
+    assert ecu.topology is not None
+    assert [conn.root.ecu for conn in ecu.topology.connections] == [ecu]

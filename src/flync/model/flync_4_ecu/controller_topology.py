@@ -65,7 +65,7 @@ class VirtualSwitchPortToVirtualSwitchPort(SwitchPortToSwitchPort):
         return None
 
 
-class ControllerConnectionUnion(RootModel):
+class ControllerConnectionUnion(RootModel[VirtualSwitchPortToInterface | InterfaceToInterfaceLink | VirtualSwitchPortToVirtualSwitchPort]):
     """
     Union type representing a connection between two components inside a controller.
 

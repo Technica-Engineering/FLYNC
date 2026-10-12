@@ -8,7 +8,8 @@ to which bus) and validates it. The result is never authored in YAML; it is (re)
 :meth:`~flync.model.flync_model.FLYNCModel.build_and_validate_bus_topologies` on every model load.
 """
 
-from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Tuple
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Tuple, TypeVar
 
 from pydantic import Field
 
@@ -22,6 +23,14 @@ from flync.model.flync_4_ecu.lin_interface import LINMasterInterface, LINSlaveIn
 
 if TYPE_CHECKING:
     from flync.model.flync_model import FLYNCModel
+
+_BusT = TypeVar("_BusT", CANBus, LINBus)
+
+#: ``{bus_name: bus}`` registry of the CAN or LIN buses declared under ``communication.channels``.
+BusRegistry = Dict[str, _BusT]
+
+#: Read-only view of either registry, for checks that treat CAN and LIN buses alike.
+AnyBusRegistry = Mapping[str, CANBus | LINBus]
 
 
 class BusAttachmentPoint(FLYNCBaseModel):
@@ -91,9 +100,12 @@ class LINBusTopology(BusTopology):
         return [a for a in self.attachments if a.role == "lin_slave"]
 
 
+_TopoT = TypeVar("_TopoT", CANBusTopology, LINBusTopology)
+
+
 def build_bus_topologies(
     flync_model: "FLYNCModel",
-) -> Tuple[List[CANBusTopology], List[LINBusTopology], Optional[dict], Optional[dict], set]:
+) -> Tuple[List[CANBusTopology], List[LINBusTopology], Optional[BusRegistry[CANBus]], Optional[BusRegistry[LINBus]], set[str]]:
     """
     Derive the system-wide CAN and LIN bus topology from bus definitions and ECU controller interfaces.
 
@@ -109,8 +121,9 @@ def build_bus_topologies(
         CAN interface. Pass them straight through to :func:`validate_bus_topologies`.
     """
 
-    can_defs = _bus_registry(flync_model, "can_buses")
-    lin_defs = _bus_registry(flync_model, "lin_buses")
+    channels = flync_model.communication.channels if flync_model.communication else None
+    can_defs = _bus_registry(channels.can_buses if channels else None)
+    lin_defs = _bus_registry(channels.lin_buses if channels else None)
     j1939_buses = _j1939_referenced_buses(flync_model)
 
     can_by_name: Dict[str, CANBusTopology] = {}
@@ -127,7 +140,7 @@ def build_bus_topologies(
     return list(can_by_name.values()), list(lin_by_name.values()), can_defs, lin_defs, j1939_buses
 
 
-def _j1939_referenced_buses(flync_model: "FLYNCModel") -> set:
+def _j1939_referenced_buses(flync_model: "FLYNCModel") -> set[str]:
     """
     Return the set of CAN bus names attached through a J1939-capable ``CANInterface``.
 
@@ -135,7 +148,7 @@ def _j1939_referenced_buses(flync_model: "FLYNCModel") -> set:
     (:meth:`~flync.model.flync_4_ecu.can_interface.CANInterface.is_j1939`). Buses reached that way are exempt
     from the "no attached ECU CAN interface" warning.
     """
-    names: set = set()
+    names: set[str] = set()
     for ecu in flync_model.ecus:
         for controller in ecu.controllers:
             for can_iface in controller.can_interfaces or []:
@@ -160,24 +173,22 @@ def _collect_ecu_bus_attachments(
             _attach(lin_topo, ecu, controller.name, lin_iface, role)
 
 
-def _seed_defined_buses(by_name: dict, defs: Optional[dict], topo_cls: type) -> None:
+def _seed_defined_buses(by_name: dict[str, _TopoT], defs: Optional[AnyBusRegistry], topo_cls: type[_TopoT]) -> None:
     """Ensure every declared bus has an entry in *by_name*, even if no ECU attaches to it."""
     if defs is not None:
         for name in defs:
             by_name.setdefault(name, topo_cls(bus_name=name))
 
 
-def _link_bus_definitions(by_name: dict, defs: Optional[dict]) -> None:
+def _link_bus_definitions(by_name: Mapping[str, CANBusTopology | LINBusTopology], defs: Optional[AnyBusRegistry]) -> None:
     """Set each topology entry's ``_bus`` back-reference to the matching bus definition."""
     for name, entry in by_name.items():
         entry._bus = defs.get(name) if defs is not None else None
 
 
-def _bus_registry(flync_model: "FLYNCModel", attr: str) -> Optional[dict]:
-    """Return ``{bus_name: bus}`` for ``attr`` (a bus list on ``communication.channels``), or ``None`` if it cannot be determined."""
+def _bus_registry(buses: Optional[List[_BusT]]) -> Optional[BusRegistry[_BusT]]:
+    """Return ``{bus_name: bus}`` for a bus list on ``communication.channels``, or ``None`` if there is none."""
 
-    channels = flync_model.communication.channels if flync_model.communication else None
-    buses = getattr(channels, attr, None) if channels else None
     return {b.name: b for b in buses} if buses is not None else None
 
 
@@ -218,9 +229,9 @@ def _attach(
 def validate_bus_topologies(
     can_topos: List[CANBusTopology],
     lin_topos: List[LINBusTopology],
-    can_defs: Optional[dict],
-    lin_defs: Optional[dict],
-    j1939_buses: Optional[set] = None,
+    can_defs: Optional[BusRegistry[CANBus]],
+    lin_defs: Optional[BusRegistry[LINBus]],
+    j1939_buses: Optional[set[str]] = None,
 ) -> None:
     """Run the system-wide CAN/LIN bus consistency checks: unknown ``bus_ref``, LIN master cardinality, LIN schedule table
     presence, unused/singly-attached buses."""
@@ -235,7 +246,7 @@ def validate_bus_topologies(
         _validate_attachment_count(lin_topo, "LIN", lin_defs)
 
 
-def _validate_bus_ref_known(topo: BusTopology, defs: Optional[dict], kind: str = "CAN/LIN") -> None:
+def _validate_bus_ref_known(topo: BusTopology, defs: Optional[AnyBusRegistry], kind: str = "CAN/LIN") -> None:
     """
     Validate that a bus topology's ``bus_ref`` corresponds to a known bus definition.
 
@@ -350,8 +361,8 @@ def _validate_lin_schedule_tables(topo: LINBusTopology) -> None:
 def _validate_attachment_count(
     topo: BusTopology,
     kind: str,
-    defs: Optional[dict],
-    j1939_buses: Optional[set] = None,
+    defs: Optional[AnyBusRegistry],
+    j1939_buses: Optional[set[str]] = None,
 ) -> None:
     """
     Warn when a declared bus has zero or only a single attached ECU interface.

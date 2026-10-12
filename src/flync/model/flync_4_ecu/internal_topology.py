@@ -1,5 +1,8 @@
 """Defines the internal connection types between ECU components such as ECU ports, switch ports, and controller interfaces."""
 
+from __future__ import annotations
+
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Annotated, List, Literal, Optional
 
 from pydantic import Field, RootModel
@@ -20,6 +23,7 @@ from flync.model.flync_4_ecu.port import ECUPort
 from flync.model.flync_4_ecu.switch import Switch, SwitchPort
 
 if TYPE_CHECKING:
+    from flync.model.flync_4_ecu.compute_node import ComputeNode
     from flync.model.flync_4_ecu.ecu import ECU
 
 
@@ -44,13 +48,13 @@ class InternalConnection(FLYNCBaseModel):
 
     type: str = Field()
     id: str = Field(min_length=1)
-    _ecu: Optional["ECU"] = None
+    _ecu: Optional[ECU] = None
 
     @property
-    def ecu(self) -> Optional["ECU"]:
+    def ecu(self) -> Optional[ECU]:
         return self._ecu
 
-    def bind(self, switches: list, controllers: list, ports: list) -> None:
+    def bind(self, switches: Sequence[Switch], controllers: Sequence[Controller | ComputeNode], ports: Sequence[ECUPort]) -> None:
         """Resolve all component references and wire connected-component back-refs. Called by ECU after all components are loaded."""
 
     def validate_compatibility(self) -> None:
@@ -81,7 +85,7 @@ class ECUPortToXConnection(InternalConnection):
         assert self._ecu_port is not None
         return self._ecu_port
 
-    def resolve_ecu_port(self, ports: list) -> None:
+    def resolve_ecu_port(self, ports: Sequence[ECUPort]) -> None:
         self._ecu_port = next((p for p in ports if p.name == self.ecu_port_name), None)
         if self._ecu_port is None:
             raise err_major(
@@ -137,7 +141,7 @@ class SwitchPortToXConnection(InternalConnection):
         return [self.switch_port]
 
     @staticmethod
-    def _find_switch_port(port_name: str, switch_name: Optional[str], switches: list, connection_id: str) -> SwitchPort:
+    def _find_switch_port(port_name: str, switch_name: Optional[str], switches: Sequence[Switch], connection_id: str) -> SwitchPort:
         """Locate a switch port by name within the ECU's switches, with optional scoping to a named switch.
 
         Raises:
@@ -175,7 +179,7 @@ class SwitchPortToXConnection(InternalConnection):
             )
         return port
 
-    def resolve_switch_port(self, switches: list) -> None:
+    def resolve_switch_port(self, switches: Sequence[Switch]) -> None:
         self._switch_port = self._find_switch_port(self.switch_port_name, self.switch_name, switches, self.id)
         self._switch = self._switch_port.switch
 
@@ -208,7 +212,7 @@ class ControllerInterfaceToXConnection(InternalConnection):
     iface_name: Annotated[str, Reference(source="_iface")] = Field(alias="controller_interface")
     controller_name: Annotated[Optional[str], Reference(source="_controller")] = Field(default=None, alias="controller")
     _iface: Optional[EthernetInterface] = None
-    _controller: Optional[Controller] = None
+    _controller: Optional[Controller | ComputeNode] = None
 
     @property
     def iface(self) -> EthernetInterface:
@@ -216,14 +220,14 @@ class ControllerInterfaceToXConnection(InternalConnection):
         return self._iface
 
     @property
-    def controller(self) -> Controller:
+    def controller(self) -> Controller | ComputeNode:
         assert self._controller is not None
         return self._controller
 
     @staticmethod
     def _find_controller_interface(
-        iface_name: str, controller_name: Optional[str], controllers: list[Controller], connection_id: str
-    ) -> tuple[EthernetInterface, Controller]:
+        iface_name: str, controller_name: Optional[str], controllers: Sequence[Controller | ComputeNode], connection_id: str
+    ) -> tuple[EthernetInterface, Controller | ComputeNode]:
         """Locate a controller interface by name within the ECU's controllers, with optional scoping to a named controller.
 
         Raises:
@@ -261,7 +265,7 @@ class ControllerInterfaceToXConnection(InternalConnection):
             )
         return iface, ctrl
 
-    def resolve_controller_interface(self, controllers: list) -> None:
+    def resolve_controller_interface(self, controllers: Sequence[Controller | ComputeNode]) -> None:
         self._iface, self._controller = self._find_controller_interface(self.iface_name, self.controller_name, controllers, self.id)
 
 
@@ -277,7 +281,7 @@ class ECUPortToSwitchPort(ECUPortToXConnection, SwitchPortToXConnection):
 
     type: Literal["ecu_port_to_switch_port"] = Field("ecu_port_to_switch_port")
 
-    def bind(self, switches: list, controllers: list, ports: list) -> None:
+    def bind(self, switches: Sequence[Switch], controllers: Sequence[Controller | ComputeNode], ports: Sequence[ECUPort]) -> None:
         self.resolve_ecu_port(ports)
         self.resolve_switch_port(switches)
         if not any(c.name == self.switch_port.name for c in self.ecu_port._connected_components):
@@ -325,7 +329,7 @@ class ECUPortToControllerInterface(ECUPortToXConnection, ControllerInterfaceToXC
 
     type: Literal["ecu_port_to_controller_interface"] = Field("ecu_port_to_controller_interface")
 
-    def bind(self, switches: list, controllers: list, ports: list) -> None:
+    def bind(self, switches: Sequence[Switch], controllers: Sequence[Controller | ComputeNode], ports: Sequence[ECUPort]) -> None:
         self.resolve_ecu_port(ports)
         self.resolve_controller_interface(controllers)
         if not any(c.name == self.iface.name for c in self.ecu_port._connected_components):
@@ -350,7 +354,7 @@ class SwitchPortToControllerInterface(SwitchPortToXConnection, ControllerInterfa
 
     type: Literal["switch_port_to_controller_interface"] = Field("switch_port_to_controller_interface")
 
-    def bind(self, switches: list, controllers: list, ports: list) -> None:
+    def bind(self, switches: Sequence[Switch], controllers: Sequence[Controller | ComputeNode], ports: Sequence[ECUPort]) -> None:
         self.resolve_switch_port(switches)
         self.resolve_controller_interface(controllers)
         self.switch_port._connected_component = self.iface
@@ -400,7 +404,7 @@ class SwitchPortToHostControllerInterface(SwitchPortToXConnection):
         assert self._iface is not None
         return self._iface
 
-    def bind(self, switches: list, controllers: list, ports: list) -> None:
+    def bind(self, switches: Sequence[Switch], controllers: Sequence[Controller | ComputeNode], ports: Sequence[ECUPort]) -> None:
         self.resolve_switch_port(switches)
         host_controller = self.switch.host_controller
         if host_controller is None:
@@ -470,7 +474,7 @@ class SwitchPortToSwitchPort(SwitchPortToXConnection):
         assert self._switch2 is not None
         return self._switch2
 
-    def bind(self, switches: list, controllers: list, ports: list) -> None:
+    def bind(self, switches: Sequence[Switch], controllers: Sequence[Controller | ComputeNode], ports: Sequence[ECUPort]) -> None:
         self.resolve_switch_port(switches)
         self._switch2_port = self._find_switch_port(self.switch2_port_name, self.switch2_name, switches, self.id)
         self._switch2 = self._switch2_port.switch
@@ -529,7 +533,7 @@ class ControllerInterfaceToControllerInterface(ControllerInterfaceToXConnection)
     iface2_name: Annotated[str, Reference(source="_iface2")] = Field(alias="controller_interface2")
     controller2_name: Annotated[Optional[str], Reference(source="_controller2")] = Field(default=None, alias="controller2")
     _iface2: Optional[EthernetInterface] = None
-    _controller2: Optional[Controller] = None
+    _controller2: Optional[Controller | ComputeNode] = None
 
     @property
     def iface2(self) -> EthernetInterface:
@@ -537,11 +541,11 @@ class ControllerInterfaceToControllerInterface(ControllerInterfaceToXConnection)
         return self._iface2
 
     @property
-    def controller2(self) -> Controller:
+    def controller2(self) -> Controller | ComputeNode:
         assert self._controller2 is not None
         return self._controller2
 
-    def bind(self, switches: list, controllers: list, ports: list) -> None:
+    def bind(self, switches: Sequence[Switch], controllers: Sequence[Controller | ComputeNode], ports: Sequence[ECUPort]) -> None:
         self.resolve_controller_interface(controllers)
         self._iface2, self._controller2 = self._find_controller_interface(self.iface2_name, self.controller2_name, controllers, self.id)
         self.iface._connected_component.append(self.iface2)
@@ -557,7 +561,17 @@ class ControllerInterfaceToControllerInterface(ControllerInterfaceToXConnection)
         validate_gptp(self.iface.interface_config, self.iface2.interface_config, self.id)
 
 
-class InternalConnectionUnion(RootModel):
+_InternalConnection = (
+    ECUPortToSwitchPort
+    | ECUPortToControllerInterface
+    | SwitchPortToControllerInterface
+    | SwitchPortToHostControllerInterface
+    | SwitchPortToSwitchPort
+    | ControllerInterfaceToControllerInterface
+)
+
+
+class InternalConnectionUnion(RootModel[_InternalConnection]):
     """
     Union type representing a connection between two internal ECU components.
 
@@ -585,14 +599,7 @@ class InternalConnectionUnion(RootModel):
         Connection between two controller interfaces.
     """
 
-    root: (
-        ECUPortToSwitchPort
-        | ECUPortToControllerInterface
-        | SwitchPortToControllerInterface
-        | SwitchPortToHostControllerInterface
-        | SwitchPortToSwitchPort
-        | ControllerInterfaceToControllerInterface
-    ) = Field(discriminator="type")
+    root: _InternalConnection = Field(discriminator="type")
 
 
 class InternalTopology(FLYNCBaseModel):

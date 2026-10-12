@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator, Sequence
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 from pydantic_core import PydanticCustomError
@@ -12,6 +13,7 @@ from flync.model.flync_4_signal.forwarder import (
     CANFrameEgress,
     CANFrameForwarder,
     EthSocketEgress,
+    ForwarderEgress,
     PDUForwarder,
 )
 from flync.model.flync_4_signal.frame import (
@@ -32,6 +34,9 @@ if TYPE_CHECKING:
 
 
 CANAnyFrame = Union[CANFrame, CANFDFrame]
+
+#: A node of the forwarder graph: a PDU forwarder on a socket, or a CAN frame forwarder on a CAN interface.
+Forwarder = Union[PDUForwarder, CANFrameForwarder]
 
 
 # ---------------------------------------------------------------------------
@@ -87,7 +92,7 @@ def _can_forwarder_locator(controller: Controller, iface: CANInterface, fwd: CAN
 # ---------------------------------------------------------------------------
 
 
-def _iter_sockets_on_controller(controller: Controller):
+def _iter_sockets_on_controller(controller: Controller) -> Iterator[Socket]:
     """Yield every :class:`Socket` owned by *controller* (across all eth interfaces / VLAN containers)."""
 
     for eth_iface in controller.ethernet_interfaces or []:
@@ -95,7 +100,7 @@ def _iter_sockets_on_controller(controller: Controller):
             yield from socket_container.sockets or []
 
 
-def _iter_pdu_forwarders_on_socket(socket: Socket):
+def _iter_pdu_forwarders_on_socket(socket: Socket) -> Iterator[PDUForwarder]:
     """Yield every :class:`PDUForwarder` deployment carried by *socket*."""
 
     for dep_root in socket.deployments or []:
@@ -116,7 +121,7 @@ def _collect_pdu_forwarders(model: FLYNCModel) -> List[Tuple[Controller, Socket,
     return out
 
 
-def _iter_pdu_deployments_on_socket(socket: Socket):
+def _iter_pdu_deployments_on_socket(socket: Socket) -> Iterator[PDUSender | PDUReceiver]:
     """Yield every :class:`PDUSender` / :class:`PDUReceiver` deployment carried by *socket*."""
 
     from flync.model.flync_4_signal.pdu_deployment import PDUReceiver, PDUSender  # local import — avoid module cycle
@@ -143,7 +148,7 @@ def _collect_pdu_deployments(model: FLYNCModel) -> List[Tuple[Controller, Socket
     return out
 
 
-def _iter_can_interfaces(model: FLYNCModel):
+def _iter_can_interfaces(model: FLYNCModel) -> Iterator[Tuple[Controller, CANInterface]]:
     """Yield ``(controller, can_interface)`` for every CAN interface in the workspace."""
 
     for ecu in model.ecus:
@@ -152,17 +157,19 @@ def _iter_can_interfaces(model: FLYNCModel):
                 yield controller, can_iface
 
 
-def _collect_can_frame_forwarders(model: FLYNCModel):
+def _collect_can_frame_forwarders(model: FLYNCModel) -> List[Tuple[Controller, CANInterface, CANFrameForwarder]]:
     """Collect every CANFrameForwarder in the workspace alongside its parent CAN interface and owning controller."""
 
-    out = []
+    out: List[Tuple[Controller, CANInterface, CANFrameForwarder]] = []
     for controller, can_iface in _iter_can_interfaces(model):
         for fwd in can_iface.forwarder_frames or []:
             out.append((controller, can_iface, fwd))
     return out
 
 
-def _build_socket_indexes(model: FLYNCModel):
+def _build_socket_indexes(
+    model: FLYNCModel,
+) -> Tuple[Dict[Tuple[str, str], Tuple[Controller, Socket]], Dict[Tuple[str, str, str], PDUForwarder]]:
     """Build controller-scoped indexes for socket and PDUForwarder lookup (socket names may collide across controllers)."""
 
     socket_by_controller_name: Dict[Tuple[str, str], Tuple[Controller, Socket]] = {}
@@ -190,7 +197,9 @@ def _index_can_forwarders_by_bus_id(
             out[(can_iface.bus_ref, frame.can_id)] = fwd
 
 
-def _build_can_indexes(model: FLYNCModel, can_frame_catalog: Optional[Dict[str, CANAnyFrame]] = None):
+def _build_can_indexes(
+    model: FLYNCModel, can_frame_catalog: Optional[Dict[str, CANAnyFrame]] = None
+) -> Tuple[Dict[Tuple[str, str], CANInterface], Dict[Tuple[str, int], CANFrameForwarder]]:
     """Build indexes for CAN interface lookup ``(controller, bus)`` and CAN forwarder lookup ``(bus, can_id)``."""
 
     can_iface_by_controller_bus: Dict[Tuple[str, str], CANInterface] = {}
@@ -351,7 +360,7 @@ def _validate_can_frame_forwarder_refs_for(
 
 
 def _resolve_sinks_for(
-    egresses,
+    egresses: Sequence[ForwarderEgress],
     ingress_pdu: Optional[PDU],
     pdu_catalog: Dict[str, PDU],
     can_frame_by_bus_id: Dict[Tuple[str, int], CANAnyFrame],
@@ -402,11 +411,11 @@ def validate_forwarder_refs(model: FLYNCModel) -> None:
         except PydanticCustomError as err:
             raise _with_source(err, _pdu_forwarder_locator(ctrl, socket, fwd)) from None
 
-    for ctrl, iface, fwd in _collect_can_frame_forwarders(model):
+    for ctrl, iface, can_fwd in _collect_can_frame_forwarders(model):
         try:
-            _validate_can_frame_forwarder_refs_for(fwd, pdu_catalog, can_frame_catalog, can_frame_by_bus_id)
+            _validate_can_frame_forwarder_refs_for(can_fwd, pdu_catalog, can_frame_catalog, can_frame_by_bus_id)
         except PydanticCustomError as err:
-            raise _with_source(err, _can_forwarder_locator(ctrl, iface, fwd)) from None
+            raise _with_source(err, _can_forwarder_locator(ctrl, iface, can_fwd)) from None
 
 
 def validate_pdu_deployment_refs(model: FLYNCModel) -> None:
@@ -508,7 +517,7 @@ def _check_can_frame_egress(
 
 
 def _check_forwarder_egress_locality(
-    egress,
+    egress: CANFrameEgress | EthSocketEgress,
     egress_owner: str,
     egress_pdu_ref: Optional[str],
     controller: Controller,
@@ -597,19 +606,19 @@ def validate_forwarder_locality(model: FLYNCModel) -> None:
         except PydanticCustomError as err:
             raise _with_source(err, _pdu_forwarder_locator(controller, socket, fwd)) from None
 
-    for controller, parent_iface, fwd in _collect_can_frame_forwarders(model):
+    for controller, parent_iface, can_fwd in _collect_can_frame_forwarders(model):
         try:
             _validate_can_frame_forwarder_locality(
                 controller,
                 parent_iface,
-                fwd,
+                can_fwd,
                 socket_by_controller_name,
                 can_iface_by_controller_bus,
                 can_frame_catalog,
                 can_frame_by_bus_id,
             )
         except PydanticCustomError as err:
-            raise _with_source(err, _can_forwarder_locator(controller, parent_iface, fwd)) from None
+            raise _with_source(err, _can_forwarder_locator(controller, parent_iface, can_fwd)) from None
 
 
 def _egress_pdu_for_can_forwarder(
@@ -645,7 +654,7 @@ class _ForwarderCycleDetector(object):
         pdu_fwds = _collect_pdu_forwarders(model)
         can_fwds = _collect_can_frame_forwarders(model)
 
-        self._nodes: List[object] = [fwd for _, _, fwd in pdu_fwds]
+        self._nodes: List[Forwarder] = [fwd for _, _, fwd in pdu_fwds]
         self._nodes.extend(fwd for _, _, fwd in can_fwds)
 
         self._controller_of: Dict[int, Controller] = {id(fwd): ctrl for ctrl, _, fwd in pdu_fwds}
@@ -657,15 +666,15 @@ class _ForwarderCycleDetector(object):
         self._locator_of.update({id(fwd): _can_forwarder_locator(ctrl, iface, fwd) for ctrl, iface, fwd in can_fwds})
 
         self._state: Dict[int, int] = {id(n): _WHITE for n in self._nodes}
-        self._parent: Dict[int, object] = {}
+        self._parent: Dict[int, Forwarder] = {}
 
-    def _ingress_pdu_ref(self, fwd) -> Optional[str]:
+    def _ingress_pdu_ref(self, fwd: Forwarder) -> Optional[str]:
         """Return the PDU name received by ``fwd``."""
         if isinstance(fwd, PDUForwarder):
             return fwd.pdu_ref
         return _egress_pdu_for_can_forwarder(fwd, self._can_frame_catalog)
 
-    def _resolve_eth_neighbour(self, fwd, egress: EthSocketEgress) -> Optional[object]:
+    def _resolve_eth_neighbour(self, fwd: Forwarder, egress: EthSocketEgress) -> Optional[Forwarder]:
         """Resolve the PDU-forwarder reached via an ``eth_socket`` egress, or ``None`` if unresolvable."""
         egress_pdu_ref = egress.extract_pdu_ref if egress.extract_pdu_ref is not None else self._ingress_pdu_ref(fwd)
         src_controller = self._controller_of.get(id(fwd))
@@ -673,15 +682,15 @@ class _ForwarderCycleDetector(object):
             return None
         return self._pdu_forwarder_idx.get((src_controller.name, egress.socket_ref, egress_pdu_ref))
 
-    def _resolve_neighbour(self, fwd, egress) -> Optional[object]:
+    def _resolve_neighbour(self, fwd: Forwarder, egress: CANFrameEgress | EthSocketEgress) -> Optional[Forwarder]:
         """Resolve the forwarder reached via one egress, or ``None`` if it does not target one."""
         if isinstance(egress, EthSocketEgress):
             return self._resolve_eth_neighbour(fwd, egress)
         return self._can_forwarder_idx.get((egress.bus_ref, egress.frame_ref))
 
-    def _neighbours(self, fwd) -> List[object]:
+    def _neighbours(self, fwd: Forwarder) -> List[Forwarder]:
         """Return forwarders reachable via ``fwd``'s egresses (graph adjacency for the DFS)."""
-        out: List[object] = []
+        out: List[Forwarder] = []
         for egress_root in fwd.egresses:
             nxt = self._resolve_neighbour(fwd, egress_root.root)
             if nxt is not None:
@@ -689,27 +698,27 @@ class _ForwarderCycleDetector(object):
         return out
 
     @staticmethod
-    def _fmt(fwd) -> str:
+    def _fmt(fwd: Forwarder) -> str:
         """Format ``fwd`` as a short label for cycle-path error messages."""
         if isinstance(fwd, PDUForwarder):
             return f"PDUForwarder(pdu_ref={fwd.pdu_ref})"
         return f"CANFrameForwarder(frame_ref={fwd.frame_ref})"
 
-    def _cycle_nodes(self, start, end) -> List[object]:
+    def _cycle_nodes(self, start: Forwarder, end: Forwarder) -> List[Forwarder]:
         """Ordered forwarder nodes forming the detected cycle (``end ... start ... end``), via the DFS parent map."""
-        nodes: List[object] = [end]
-        cur = start
+        nodes: List[Forwarder] = [end]
+        cur: Optional[Forwarder] = start
         while cur is not None and cur is not end:
             nodes.append(cur)
             cur = self._parent.get(id(cur))
         nodes.append(end)
         return list(reversed(nodes))
 
-    def _cycle_path(self, start, end) -> List[str]:
+    def _cycle_path(self, start: Forwarder, end: Forwarder) -> List[str]:
         """Short labels for each forwarder on the cycle (for the error message)."""
         return [self._fmt(node) for node in self._cycle_nodes(start, end)]
 
-    def _cycle_source(self, start, end) -> str:
+    def _cycle_source(self, start: Forwarder, end: Forwarder) -> str:
         """Source locator spanning every distinct interface/socket the cycle passes through."""
         seen: List[str] = []
         for node in self._cycle_nodes(start, end):
@@ -718,7 +727,7 @@ class _ForwarderCycleDetector(object):
                 seen.append(locator)
         return " ; ".join(seen)
 
-    def _visit_neighbour(self, u, v) -> None:
+    def _visit_neighbour(self, u: Forwarder, v: Forwarder) -> None:
         """Apply DFS edge rules for ``u -> v``; raise on a GRAY back-edge."""
         v_state = self._state.get(id(v), _WHITE)
         if v_state == _GRAY:
@@ -735,7 +744,7 @@ class _ForwarderCycleDetector(object):
             self._parent[id(v)] = u
             self._dfs(v)
 
-    def _dfs(self, u) -> None:
+    def _dfs(self, u: Forwarder) -> None:
         """Recursive three-color DFS body."""
         self._state[id(u)] = _GRAY
         for v in self._neighbours(u):

@@ -4,7 +4,8 @@ validators, plus helpers to turn ``None``/singletons into lists and to check
 uniqueness and element membership.
 """
 
-from typing import Any, Iterable, Optional
+from collections.abc import Callable, Hashable, Iterable
+from typing import Optional
 
 from pydantic import TypeAdapter, ValidationError, ValidationInfo
 
@@ -33,7 +34,7 @@ def _resolve_location(info: ValidationInfo) -> str:
     return _LOCATION_SYSTEM
 
 
-def validate_or_remove(label: str, field_type: Any, severity: str = "minor"):
+def validate_or_remove(label: str, field_type: object, severity: str = "minor") -> Callable[[object, ValidationInfo], object]:
     """
     Factory that returns a BeforeValidator for sub-model fields.
 
@@ -51,7 +52,7 @@ def validate_or_remove(label: str, field_type: Any, severity: str = "minor"):
     ----------
     label : str
         Human-readable field label used in the error message.
-    field_type : Any
+    field_type : object
         Pydantic-compatible type to validate the data against.
     severity : str, optional
         Error severity — ``"minor"`` (default) or ``"major"``.
@@ -64,7 +65,7 @@ def validate_or_remove(label: str, field_type: Any, severity: str = "minor"):
 
     err_fn = err_major if severity == "major" else err_minor
 
-    def _validator(data, info: ValidationInfo):
+    def _validator(data: object, info: ValidationInfo) -> object:
         """
         Validate ``data`` against ``field_type`` and raise on failure.
 
@@ -108,7 +109,7 @@ def _format_validation_error_sub_errors(ve: ValidationError) -> str:
     )
 
 
-def _record_list_item_warning(label: str, location: str, field_name: str, idx: int, item: Any, sub_errors: str, severity: str) -> None:
+def _record_list_item_warning(label: str, location: str, field_name: str, idx: int, item: object, sub_errors: str, severity: str) -> None:
     """
     Append a removed-list-item warning to the ``_validation_warnings`` context var, if one is active.
     """
@@ -128,7 +129,7 @@ def _record_list_item_warning(label: str, location: str, field_name: str, idx: i
     )
 
 
-def validate_list_items_and_remove(label: str, item_type: Any, severity: str = "minor"):
+def validate_list_items_and_remove(label: str, item_type: object, severity: str = "minor") -> Callable[[object, ValidationInfo], object]:
     """
     Validate each item in a list individually, removing only invalid entries.
 
@@ -142,7 +143,7 @@ def validate_list_items_and_remove(label: str, item_type: Any, severity: str = "
     ----------
     label : str
         Human-readable field label used in error messages.
-    item_type : Any
+    item_type : object
         Pydantic-compatible type for each individual list item.
     severity : str, optional
         Error severity for removed items — ``"minor"`` (default) or
@@ -155,7 +156,7 @@ def validate_list_items_and_remove(label: str, item_type: Any, severity: str = "
         ``BeforeValidator``.
     """
 
-    def _validator(data, info: ValidationInfo):
+    def _validator(data: object, info: ValidationInfo) -> object:
         """
         Validate each item in ``data`` individually, dropping invalid ones.
 
@@ -174,7 +175,7 @@ def validate_list_items_and_remove(label: str, item_type: Any, severity: str = "
             return data
         location = _resolve_location(info)
         field_name = getattr(info, "field_name", None) or label
-        adapter = TypeAdapter(item_type)
+        adapter: TypeAdapter[object] = TypeAdapter(item_type)
         valid_items = []
         for idx, item in enumerate(data):
             try:
@@ -188,7 +189,7 @@ def validate_list_items_and_remove(label: str, item_type: Any, severity: str = "
     return _validator
 
 
-def validate_list_items_unique(input_list: list, list_label: Optional[str] = None) -> list:
+def validate_list_items_unique[H: Hashable](input_list: list[H], list_label: Optional[str] = None) -> list[H]:
     """
     Custom Validator for a list of items where every item should be unique.
 
@@ -216,18 +217,16 @@ def validate_list_items_unique(input_list: list, list_label: Optional[str] = Non
     return input_list
 
 
-def validate_elements_in(subset: Iterable[Any], superset: Iterable[Any], msg: Optional[str] = None):
+def validate_elements_in(subset: Iterable[str], superset: Iterable[str], msg: Optional[str] = None) -> None:
     """
     Custom Validator that checks if every element in `subset` appears at least once in `superset`.
     E.g. Validate if port_name is in switch_port_names.
 
     Args:
-        subset (Iterable[Any]): Subset where elements are expected to be in superset.
+        subset (Iterable[str]): Subset where elements are expected to be in superset.
 
-        superset (Iterable[Any]): Reference set.
+        superset (Iterable[str]): Reference set.
 
-    Returns:
-        Iterable[Any]: Return subset as received.
     """
 
     if msg:
@@ -237,7 +236,7 @@ def validate_elements_in(subset: Iterable[Any], superset: Iterable[Any], msg: Op
         raise err_major(f"{msg}Invalid values: {sorted(disallowed)}.", category=Category.VALUE_RANGE, error_number="025")
 
 
-def none_to_empty_list(v, info=None):
+def none_to_empty_list(v: object, info: ValidationInfo | None = None) -> object:
     """
     Make the field defined as optional [] if accidentally declared by the user as None.
     """
@@ -252,7 +251,7 @@ def none_to_empty_list(v, info=None):
     return [] if v is None else v
 
 
-def single_to_list(v):
+def single_to_list(v: object) -> object:
     """
     Accept a single item where a list is expected and wrap it into a one-element list.
 

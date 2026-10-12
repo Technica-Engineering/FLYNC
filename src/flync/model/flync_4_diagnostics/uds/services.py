@@ -20,7 +20,7 @@ timing profile. They are still spell-checked, because :data:`CANONICAL_SERVICE_N
 ``service`` name of every service id ISO 14229-1 standardizes.
 """
 
-from typing import Annotated, Any, List, Literal, Optional, Self, Union
+from typing import Annotated, List, Literal, Optional, Self, Union
 
 from pydantic import BeforeValidator, Discriminator, Field, Tag, field_serializer, model_validator
 
@@ -40,7 +40,7 @@ from .subfunctions import (
 )
 
 
-def coerce_sid(value: Any) -> Any:
+def coerce_sid(value: object) -> object:
     """
     Normalize a service id written as a string (e.g. ``"0x10"``) to an ``int``.
 
@@ -140,7 +140,7 @@ class GenericUDSService(FLYNCBaseModel):
     sid: ServiceId = Field()
     access_profile: Optional[str] = Field(default=None)
     subfunctions: Optional[List[UDSSubfunction]] = Field(default=None)
-    option_record: Optional[dict] = Field(default=None)
+    option_record: Optional[dict[str, object]] = Field(default=None)
 
     @model_validator(mode="after")
     def validate_service_name_is_canonical(self) -> Self:
@@ -798,7 +798,7 @@ SPECIALIZED_SIDS: dict[int, str] = {
 }
 
 
-def uds_service_tag(value: Any) -> str:
+def uds_service_tag(value: object) -> str:
     """
     Return the union tag of a service entry: its ``sid`` when modeled, else ``"generic"``.
 

@@ -9,6 +9,7 @@ from typing import (
 )
 
 from pydantic import (
+    BeforeValidator,
     Field,
     RootModel,
     StrictBool,
@@ -25,6 +26,7 @@ from flync.core.datatypes.ipaddress import (
     IPv6AddressEntry,
 )
 from flync.core.utils.exceptions import Category, err_major, err_minor, warn
+from flync.core.validators.generic import none_to_empty_list
 from flync.model.flync_4_diagnostics import DoIPDiscoveryDeployment, DoIPServerDeployment
 from flync.model.flync_4_signal.forwarder import PDUForwarder
 from flync.model.flync_4_signal.pdu_deployment import PDUReceiver, PDUSender
@@ -34,8 +36,19 @@ from flync.model.flync_4_someip import (
     SOMEIPServiceProvider,
 )
 
+_Deployment = (
+    SOMEIPServiceConsumer
+    | SOMEIPServiceProvider
+    | SOMEIPSDDeployment
+    | PDUSender
+    | PDUReceiver
+    | PDUForwarder
+    | DoIPServerDeployment
+    | DoIPDiscoveryDeployment
+)
 
-class DeploymentUnion(RootModel):
+
+class DeploymentUnion(RootModel[_Deployment]):
     """
     Union type representing a deployment configuration for a socket. This model wraps a union of different deployment models and uses the
     ``deployment_type`` field as a discriminator to determine which specific deployment model is present.
@@ -60,16 +73,7 @@ class DeploymentUnion(RootModel):
 
     """
 
-    root: (
-        SOMEIPServiceConsumer
-        | SOMEIPServiceProvider
-        | SOMEIPSDDeployment
-        | PDUSender
-        | PDUReceiver
-        | PDUForwarder
-        | DoIPServerDeployment
-        | DoIPDiscoveryDeployment
-    ) = Field(discriminator="deployment_type")
+    root: _Deployment = Field(discriminator="deployment_type")
 
 
 def get_endpoint_type_from_address(
@@ -117,13 +121,16 @@ class Socket(FLYNCBaseModel):
     port_no: int = Field()
     deployments: Optional[List[DeploymentUnion]] = Field(default_factory=list)
     endpoint_type: Optional[Literal["multicast", "unicast"]] = Field(default_factory=lambda x: get_endpoint_type_from_address(x["endpoint_address"]))
-    multicast_tx: Optional[List[IPvAnyAddress]] = Field(default_factory=list)
+    multicast_tx: Annotated[List[IPvAnyAddress], BeforeValidator(none_to_empty_list)] = Field(default_factory=list)
 
     @field_validator("deployments", mode="before")
-    def drop_invalid_deployment(cls, deployment):
+    def drop_invalid_deployment(cls, deployment: object) -> object:
         """
         Drop invalid deployments from the list of deployments.
         """
+
+        if not isinstance(deployment, list):
+            return deployment
 
         valid_deployment = []
         idx = 0
@@ -153,8 +160,8 @@ class Socket(FLYNCBaseModel):
         Raise ``err_major`` if two ``PDUForwarder`` deployments on this socket target the same ``pdu_ref``.
         """
 
-        seen: set = set()
-        duplicates: set = set()
+        seen: set[str] = set()
+        duplicates: set[str] = set()
         for dep_root in self.deployments or []:
             dep = dep_root.root
             if isinstance(dep, PDUForwarder):
@@ -179,7 +186,7 @@ class Socket(FLYNCBaseModel):
         """
 
         for deployment_type in (SOMEIPServiceProvider, SOMEIPServiceConsumer):
-            seen: set = set()
+            seen: set[tuple[int, int, int]] = set()
             for dep_root in self.deployments or []:
                 dep = dep_root.root
                 if not isinstance(dep, deployment_type):
@@ -221,14 +228,12 @@ class Socket(FLYNCBaseModel):
         return self
 
     @field_serializer("endpoint_address")
-    def serialize_endpoint_address(self, endpoint):
-        if endpoint is not None:
-            return str(endpoint).upper()
+    def serialize_endpoint_address(self, endpoint: IPvAnyAddress) -> str:
+        return str(endpoint).upper()
 
     @field_serializer("multicast_tx")
-    def serialize_multicast_tx(self, multicast_tx):
-        if multicast_tx is not None:
-            return [str(endpoint).upper() for endpoint in multicast_tx]
+    def serialize_multicast_tx(self, multicast_tx: list[IPvAnyAddress]) -> list[str]:
+        return [str(endpoint).upper() for endpoint in multicast_tx]
 
 
 class TCPOption(FLYNCBaseModel):
@@ -316,7 +321,7 @@ class SocketTCP(Socket):
     protocol: Literal["tcp"] = Field(default="tcp")
     tcp_profile: int = Field()
 
-    def bind(self, tcp_by_id: dict) -> None:
+    def bind(self, tcp_by_id: dict[int, TCPOption]) -> None:
         if self.tcp_profile not in tcp_by_id:
             warn(
                 f"TCP Socket with TCP Option profile ID {self.tcp_profile} does not exist. Creating a profile with default options.",
@@ -352,7 +357,9 @@ class IPv4AddressEndpoint(IPv4AddressEntry):
         Assigned TCP and UDP socket endpoints.
     """
 
-    sockets: List[Annotated[SocketTCP | SocketUDP, Field(discriminator="protocol")]] | None = Field(default_factory=list, exclude=True)
+    sockets: Annotated[List[Annotated[SocketTCP | SocketUDP, Field(discriminator="protocol")]], BeforeValidator(none_to_empty_list)] = Field(
+        default_factory=list, exclude=True
+    )
 
     @model_validator(mode="after")
     def check_if_sockets_have_the_same_ip(self) -> Self:
@@ -381,7 +388,9 @@ class IPv6AddressEndpoint(IPv6AddressEntry):
         Assigned TCP and UDP socket endpoints.
     """
 
-    sockets: List[Annotated[SocketTCP | SocketUDP, Field(discriminator="protocol")]] | None = Field(default_factory=list, exclude=True)
+    sockets: Annotated[List[Annotated[SocketTCP | SocketUDP, Field(discriminator="protocol")]], BeforeValidator(none_to_empty_list)] = Field(
+        default_factory=list, exclude=True
+    )
 
     @model_validator(mode="after")
     def check_if_sockets_have_the_same_ip(self) -> Self:

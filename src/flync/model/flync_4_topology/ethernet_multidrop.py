@@ -2,15 +2,18 @@
 The Ethernet multidrop branch of the system topology.
 """
 
-from typing import Annotated, Dict, List, Literal, Optional, Self, cast
+from collections.abc import Mapping
+from typing import Annotated, Dict, Iterator, List, Literal, Optional, Self, cast
 
 from pydantic import Field, model_serializer, model_validator
 
 from flync.core.annotations.reference import Reference
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major, warn
+from flync.model.flync_4_ecu.controller import EthernetInterface
 from flync.model.flync_4_ecu.phy import BASET1S
 from flync.model.flync_4_ecu.port import ECUPort
+from flync.model.flync_4_ecu.switch import SwitchPort
 
 #: PHYs that can sit on a shared medium. 10BASE-T1M joins this tuple.
 MULTIDROP_PHYS = (BASET1S,)
@@ -130,8 +133,8 @@ class EthernetMultidropNode(FLYNCBaseModel):
         return self
 
     @model_serializer
-    def serialize(self):
-        payload = {"ecu_port": self.ecu_port_name}
+    def serialize(self) -> dict[str, object]:
+        payload: dict[str, object] = {"ecu_port": self.ecu_port_name}
         if self.node_id is not None:
             payload["node_id"] = self.node_id
         # Defaults stay out, so a file that never mentioned bursting does not grow them on a round trip.
@@ -205,15 +208,15 @@ class EthernetMultidropConnection(FLYNCBaseModel):
         return self
 
     @model_serializer
-    def serialize(self):
-        payload = {"type": self.type, "id": self.id}
+    def serialize(self) -> dict[str, object]:
+        payload: dict[str, object] = {"type": self.type, "id": self.id}
         if self.plca is not None:
             # Dump the model, not its known fields, so a cycle widened later survives a save→reload round trip.
             payload["plca"] = self.plca.model_dump()
         payload["nodes"] = [node.serialize() for node in self.nodes]
         return payload
 
-    def bind(self, ports_by_name: dict) -> None:
+    def bind(self, ports_by_name: Mapping[str, ECUPort]) -> None:
         """Resolve every node's ``ecu_port`` against the model's ports."""
 
         for node in self.nodes:
@@ -391,13 +394,15 @@ def _warn_unused_opportunities(conn: EthernetMultidropConnection) -> None:
         )
 
 
-def _iter_internal_components(conn: EthernetMultidropConnection):
+def _iter_internal_components(
+    conn: EthernetMultidropConnection,
+) -> Iterator[tuple[EthernetMultidropNode, SwitchPort | EthernetInterface | ECUPort]]:
     """Yield ``(node, component)`` for what sits behind each port inside its own ECU: a switch port or a controller interface."""
 
     for node in conn.nodes:
         if node.ecu_port is None:
             continue
-        component = node.ecu_port.get_internal_connected_component(None)
+        component = node.ecu_port.get_internal_connected_component()
         if component is not None:
             yield node, component
 
@@ -406,7 +411,7 @@ def _warn_shaper_on_multidrop_port(conn: EthernetMultidropConnection) -> None:
     """Warn when an egress shaper leads onto a shared medium."""
 
     for _, component in _iter_internal_components(conn):
-        if component.type != "switch_port":
+        if not isinstance(component, SwitchPort):
             continue
         for traffic_class in component.traffic_classes or []:
             shaper = traffic_class.selection_mechanisms
@@ -476,7 +481,7 @@ def _validate_gptp_on_segment(conn: EthernetMultidropConnection) -> None:
     _warn_shared_gptp_domains(conn, transmitters_by_domain)
 
 
-def _groups_of(node: EthernetMultidropNode) -> set:
+def _groups_of(node: EthernetMultidropNode) -> set[str]:
     """State management groups the node's ECU belongs to, read off the ECU's resolved node-level memberships."""
 
     ecu = getattr(node.ecu_port, "_ecu", None) if node.ecu_port is not None else None

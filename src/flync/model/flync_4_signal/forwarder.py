@@ -52,7 +52,7 @@ class EthSocketEgress(FLYNCBaseModel):
     extract_pdu_ref: Optional[str] = Field(default=None)
 
 
-class ForwarderEgress(RootModel):
+class ForwarderEgress(RootModel[CANFrameEgress | EthSocketEgress]):
     """Discriminated-union wrapper over a single forwarder egress (``CANFrameEgress`` or ``EthSocketEgress``)."""
 
     root: CANFrameEgress | EthSocketEgress = Field(discriminator="egress_type")
@@ -111,10 +111,10 @@ class CANFrameForwarder(FLYNCBaseModel):
 def _check_egress_uniqueness(egresses: List[ForwarderEgress], owner: str) -> None:
     """Raise ``err_major`` if two egresses point at the exact same target carrier."""
 
-    seen: set = set()
+    seen: set[tuple[str | int, ...]] = set()
     for idx, egress_root in enumerate(egresses):
         egress = egress_root.root
-        key: tuple
+        key: tuple[str | int, ...]
         if isinstance(egress, CANFrameEgress):
             key = ("can_frame", egress.bus_ref, egress.frame_ref)
         else:

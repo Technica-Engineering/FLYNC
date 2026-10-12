@@ -327,7 +327,7 @@ _CAN_FD_VALID_LENGTHS: FrozenSet[int] = frozenset({0, 1, 2, 3, 4, 5, 6, 7, 8, 12
 
 def _check_pdu_bit_positions(frame_name: str, packed_pdus: List[PDUInstance]) -> None:
     """Raise if any two PDU in the frame share the same bit_position."""
-    seen: set = set()
+    seen: set[int] = set()
     for pdu in packed_pdus:
         if pdu.bit_position is None:
             continue

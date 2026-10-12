@@ -6,7 +6,6 @@ from collections import defaultdict
 from collections.abc import Iterator
 from typing import (
     Annotated,
-    Any,
     List,
     Literal,
     Optional,
@@ -280,7 +279,7 @@ class SOMEIPField(FLYNCBaseModel):
     someip_timing: Optional[str] = Field(description="SOME/IP timings for the field", default="field_default")
 
     @property
-    def id(self):
+    def id(self) -> int | None:
         return self.notifier_id
 
     @model_validator(mode="after")
@@ -476,9 +475,12 @@ class SOMEIPMethod(FLYNCBaseModel):
 
     someip_timing: Optional[str] = Field(default="method_default")
 
+    # An abstract member keeps the base class from being instantiated, without overriding ``__init__`` (which would hide the
+    # typed constructor the Pydantic mypy plugin synthesizes for the concrete subclasses).
+    @property
     @abc.abstractmethod
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def has_response(self) -> bool:
+        """Whether a call of this method is answered by a response message."""
 
 
 class SOMEIPRequestResponseMethod(SOMEIPMethod):
@@ -499,8 +501,9 @@ class SOMEIPRequestResponseMethod(SOMEIPMethod):
         BeforeValidator(none_to_empty_list),
     ] = Field(default=[])
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    @property
+    def has_response(self) -> bool:
+        return True
 
 
 class SOMEIPFireAndForgetMethod(SOMEIPMethod):
@@ -510,8 +513,9 @@ class SOMEIPFireAndForgetMethod(SOMEIPMethod):
 
     type: Literal["fire_and_forget"] = "fire_and_forget"
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    @property
+    def has_response(self) -> bool:
+        return False
 
 
 class SOMEIPServiceInterface(FLYNCBaseModel):
@@ -590,15 +594,32 @@ class SOMEIPServiceInterface(FLYNCBaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def resolve_eventgroup_event_refs(cls, data):
+    def resolve_eventgroup_event_refs(cls, data: object) -> object:
         """Resolve event/field name strings in eventgroups before child validation."""
         if not isinstance(data, dict):
             return data
-        all_by_name = {e["name"]: e for e in (data.get("events") or []) + (data.get("fields") or []) if isinstance(e, dict)}
-        for eg in data.get("eventgroups") or []:
+        by_name = cls._collect_events_and_fields_by_name(data.get("events"), data.get("fields"))
+        eventgroups = data.get("eventgroups")
+        for eg in eventgroups if isinstance(eventgroups, list) else []:
             if isinstance(eg, dict):
-                eg["events"] = [all_by_name.get(e, e) if isinstance(e, str) else e for e in eg.get("events", [])]
+                cls._resolve_eventgroup_refs(eg, by_name)
         return data
+
+    @staticmethod
+    def _collect_events_and_fields_by_name(events: object, fields: object) -> dict[str, object]:
+        """Index event/field dicts by their ``name`` so eventgroup refs can be resolved."""
+        by_name: dict[str, object] = {}
+        for e in (events if isinstance(events, list) else []) + (fields if isinstance(fields, list) else []):
+            # An entry without a usable name is left to the regular field validation to report.
+            if isinstance(e, dict) and isinstance(e.get("name"), str):
+                by_name[e["name"]] = e
+        return by_name
+
+    @staticmethod
+    def _resolve_eventgroup_refs(eg: dict[str, object], by_name: dict[str, object]) -> None:
+        """Replace event name strings in an eventgroup with their validated events."""
+        raw_events = eg.get("events")
+        eg["events"] = [by_name.get(e, e) if isinstance(e, str) else e for e in (raw_events if isinstance(raw_events, list) else [])]
 
     @model_validator(mode="after")
     def validate_for_notifiers_without_eventgroup(self) -> Self:
@@ -812,9 +833,8 @@ class SDConfig(FLYNCBaseModel):
     sd_timings: List[SDTimings] = Field()
 
     @field_serializer("ip_address")
-    def serialize_addresses(self, ip_address):
-        if ip_address is not None:
-            return str(ip_address).upper()
+    def serialize_addresses(self, ip_address: IPvAnyAddress) -> str:
+        return str(ip_address).upper()
 
 
 #: A service element that carries a ``someip_timing`` reference.
@@ -866,7 +886,7 @@ class SOMEIPConfig(FLYNCBaseModel):
     ] = Field(description="configuration of the SOME/IP timings")
 
     @staticmethod
-    def _iter_e2e_elements(service: SOMEIPServiceInterface) -> Iterator[tuple[Any, E2EConfig]]:
+    def _iter_e2e_elements(service: SOMEIPServiceInterface) -> Iterator[tuple[SOMEIPField | SOMEIPEvent, E2EConfig]]:
         """
         Yields all (element, e2e) pairs of a service that carry an E2E configuration.
         """
@@ -886,7 +906,7 @@ class SOMEIPConfig(FLYNCBaseModel):
         """
 
         # Mapping: profile -> data_id -> List[(service, element)]
-        per_profile: dict[str, dict[int, list[tuple[Any, Any]]]] = defaultdict(lambda: defaultdict(list))
+        per_profile: dict[str, dict[int, list[tuple[SOMEIPServiceInterface, SOMEIPField | SOMEIPEvent]]]] = defaultdict(lambda: defaultdict(list))
 
         for service in self.services:
             for element, e2e in self._iter_e2e_elements(service):

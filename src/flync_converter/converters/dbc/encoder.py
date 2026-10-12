@@ -37,11 +37,7 @@ def _value_encoding_choices(signal) -> Optional[OrderedDict[int, str | NamedSign
         return None
     choices: OrderedDict[int, str | NamedSignalValue] = OrderedDict()
     for entry in encoding.entries:
-        from_value = entry.from_value
-        to_value = entry.to_value
-        if from_value is None or to_value is None:
-            continue
-        for value in range(from_value, to_value + 1):
+        for value in range(entry.from_value, entry.to_value + 1):
             choices[value] = entry.label
     return choices
 

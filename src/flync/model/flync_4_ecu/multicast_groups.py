@@ -15,7 +15,7 @@ from flync.core.base_models import FLYNCBaseModel
 from flync.core.datatypes.macaddress import FLYNCMacAddress
 from flync.core.utils.exceptions import Category, err_minor
 from flync.core.validators.address import validate_any_multicast_address, validate_vlan_id
-from flync.model.flync_4_ecu.controller import EthernetInterfaceConfig
+from flync.model.flync_4_ecu.controller import EthernetInterface
 
 
 class MulticastGroupMembership(FLYNCBaseModel):
@@ -48,7 +48,7 @@ class MulticastGroupMembership(FLYNCBaseModel):
     vlan: Annotated[Optional[int], AfterValidator(validate_vlan_id)] = Field(default=0)
     src_ip: Optional[IPvAnyAddress] = Field(default=None)
     solicited_node_multicast: Optional[bool] = Field(default=False)
-    _interface: EthernetInterfaceConfig | None = None
+    _interface: EthernetInterface | None = None
 
     @model_validator(mode="after")
     def validate_src_ip_set_on_tx_ip_groups(self) -> Self:
@@ -62,7 +62,7 @@ class MulticastGroupMembership(FLYNCBaseModel):
         return self
 
     @property
-    def interface(self):
+    def interface(self) -> EthernetInterface:
         """Return the controller interface this membership belongs to."""
         if self._interface is None:
             raise AttributeError(

@@ -44,7 +44,9 @@ path). Until app-level membership lands with flync_4_app, controller-level
 membership is the documented recommendation for multi-controller ECUs.
 """
 
-from typing import TYPE_CHECKING, Annotated, Dict, List, Literal, NamedTuple, Optional, Self
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Annotated, Dict, Iterator, List, Literal, NamedTuple, Optional, Self
 
 from pydantic import BeforeValidator, Field, model_validator
 
@@ -53,7 +55,9 @@ from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major
 from flync.core.validators.generic import none_to_empty_list, validate_list_items_unique
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
+    from flync.model.flync_4_bus.can_bus import CANBus
+    from flync.model.flync_4_bus.lin_bus import LINBus
     from flync.model.flync_model import FLYNCModel
 
 
@@ -388,7 +392,7 @@ class StateManagementConfig(FLYNCBaseModel):
         return self
 
 
-def collect_effective_members(model: "FLYNCModel") -> Dict[str, List[EffectiveMember]]:
+def collect_effective_members(model: FLYNCModel) -> Dict[str, List[EffectiveMember]]:
     """
     Collect effective members from every source and group them by group name.
 
@@ -412,7 +416,7 @@ def collect_effective_members(model: "FLYNCModel") -> Dict[str, List[EffectiveMe
     return members
 
 
-def _add_bus_member(members: Dict[str, List[EffectiveMember]], ref, bus_name: str) -> None:
+def _add_bus_member(members: Dict[str, List[EffectiveMember]], ref: StateMembershipRef, bus_name: str) -> None:
     """Append bus-level EffectiveMember entries - mirrors ECU.__add_effective_state_member for buses."""
 
     if ref.role == "observer":
@@ -423,7 +427,7 @@ def _add_bus_member(members: Dict[str, List[EffectiveMember]], ref, bus_name: st
         members.setdefault(ref.group, []).append(EffectiveMember(ref.group, "bus", bus_name, None, ref.role, bit))
 
 
-def _iter_buses(model: "FLYNCModel"):
+def _iter_buses(model: FLYNCModel) -> Iterator[CANBus | LINBus]:
     """Yield every CAN and LIN bus declared under ``communication.channels``."""
 
     channels = getattr(model.communication, "channels", None) if model.communication else None

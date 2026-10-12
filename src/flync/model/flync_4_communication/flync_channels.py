@@ -259,7 +259,7 @@ def _validate_multiplexed_pdu_placements(pdus: Iterable[PDU], pdu_registry: Mapp
             check_bit_ranges_no_overlap(context, [*sel_ranges, *static_signals, *group_ranges])
 
 
-def _validate_frame_pdu_placements(kind: str, bus, pdu_registry: Mapping[str, PDU]) -> None:
+def _validate_frame_pdu_placements(kind: str, bus: CANBus | LINBus, pdu_registry: Mapping[str, PDU]) -> None:
     """Validate that PDU instances placed in each frame on ``bus`` fit without overlap.
 
     The referenced PDU's length (resolved from ``pdu_registry``) is used to

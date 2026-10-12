@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from flync.core.datatypes import Ethertype, ValueRange
+from flync.core.datatypes import Ethertype, MACAddressEntry, ValueRange
 from flync.model.flync_4_ecu.switch import Switch, SwitchPort
 from flync.model.flync_4_tsn.qos import (
     ATSInstance,
@@ -474,3 +474,21 @@ class Test_FrameFilter_Ethertype:
         frame_filter = FrameFilter()
         assert frame_filter.ethertype is None
         assert isinstance(frame_filter, FrameFilter)
+
+
+class Test_FrameFilter_MacAddresses:
+    def test_scalar_mac_is_kept(self):
+        frame_filter = FrameFilter(src_mac="aa:bb:cc:dd:ee:ff")
+        assert str(frame_filter.src_mac).lower() == "aa:bb:cc:dd:ee:ff"
+
+    def test_list_of_macs_stays_a_list(self):
+        frame_filter = FrameFilter(dst_mac=["aa:bb:cc:dd:ee:01", "aa:bb:cc:dd:ee:02"])
+        assert isinstance(frame_filter.dst_mac, list)
+        assert [str(m).lower() for m in frame_filter.dst_mac] == ["aa:bb:cc:dd:ee:01", "aa:bb:cc:dd:ee:02"]
+
+    def test_list_mixing_strings_and_entries_keeps_every_element(self):
+        entry = MACAddressEntry(address="aa:bb:cc:dd:ee:02")
+        frame_filter = FrameFilter(src_mac=["aa:bb:cc:dd:ee:01", entry])
+        assert isinstance(frame_filter.src_mac, list)
+        assert str(frame_filter.src_mac[0]).lower() == "aa:bb:cc:dd:ee:01"
+        assert frame_filter.src_mac[1] == entry

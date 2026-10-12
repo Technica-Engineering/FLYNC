@@ -545,3 +545,12 @@ def test_someip_consumer_rejects_unknown_multicast_field():
     # No error id: the unknown field is rejected by Pydantic's extra='forbid', not by a FLYNC validator, and the
     # field name shows up in the error location rather than in the message.
     assert_single_error(exc_info, None, "find_service_multicast")
+
+
+def test_socket_deployments_null_is_left_to_field_validation():
+    """``deployments: null`` must not crash the per-deployment filter; the field itself accepts ``None``."""
+    from flync.model.flync_4_ecu.sockets import SocketUDP
+
+    socket = SocketUDP(name="s", endpoint_address="10.0.20.5", port_no=30490, deployments=None)
+
+    assert socket.deployments is None

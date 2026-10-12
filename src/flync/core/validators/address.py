@@ -4,7 +4,6 @@ Validators for VLAN identifiers and unicast/multicast MAC and IP addresses.
 
 import re
 from ipaddress import IPv4Address, IPv6Address
-from typing import Any
 
 import flync.core.utils.base_utils as utils
 from flync.core.utils.exceptions import Category, err_minor, warn
@@ -16,7 +15,7 @@ VLAN_ID_MAX = VLAN_ID_RESERVED
 _MAC_NO_SEPARATOR_PATTERN = re.compile(r"^[0-9A-Fa-f]{12}$")
 
 
-def before_validate_mac_address(value: Any) -> Any:
+def before_validate_mac_address(value: object) -> str:
     """Pre-validation for MAC address fields with user-friendly error messages.
 
     Catches common mistakes before pydantic_extra_types processes the value:
@@ -32,7 +31,7 @@ def before_validate_mac_address(value: Any) -> Any:
     return value
 
 
-def validate_vlan_id(value):
+def validate_vlan_id(value: int | None) -> int | None:
     """
     Validate a VLAN identifier.
 
@@ -65,7 +64,7 @@ def validate_mac_unicast(input: str) -> str:
         err_minor: Input is not a Unicast address based on the expected format.
 
     Returns:
-        Any: Input is handed over.
+        str: Input is handed over.
     """
 
     is_unicast, msg = utils.is_mac_unicast(input)
@@ -74,7 +73,7 @@ def validate_mac_unicast(input: str) -> str:
     return input
 
 
-def validate_mac_multicast(input: str) -> Any:
+def validate_mac_multicast(input: str) -> str:
     """
     Custom Validator for Multicast MAC addresses.
 
@@ -85,7 +84,7 @@ def validate_mac_multicast(input: str) -> Any:
         err_minor: Input is not a Multicast address based on the expected format.
 
     Returns:
-        Any: Input is handed over.
+        str: Input is handed over.
     """
 
     is_multicast, msg = utils.is_mac_multicast(input)
@@ -94,7 +93,7 @@ def validate_mac_multicast(input: str) -> Any:
     return input
 
 
-def validate_ip_multicast(input: IPv4Address | IPv6Address | str) -> Any:
+def validate_ip_multicast(input: IPv4Address | IPv6Address | str) -> IPv4Address | IPv6Address | str:
     """
     Custom Validator for Multicast IP addresses.
 
@@ -105,7 +104,7 @@ def validate_ip_multicast(input: IPv4Address | IPv6Address | str) -> Any:
         err_minor: Input is not a Multicast address based on the expected format.
 
     Returns:
-        Any: Input is handed over.
+        IPv4Address | IPv6Address | str: Input is handed over.
     """
 
     is_multicast, msg = utils.is_ip_multicast(input)
@@ -116,7 +115,7 @@ def validate_ip_multicast(input: IPv4Address | IPv6Address | str) -> Any:
 
 def validate_any_multicast_address(
     input: IPv4Address | IPv6Address | str,
-) -> Any:
+) -> IPv4Address | IPv6Address | str:
     """
     Custom Validator for Multicast MAC or IP addresses.
 
@@ -127,7 +126,7 @@ def validate_any_multicast_address(
         err_minor: The address is not a multicast address.
 
     Returns:
-        Any: Input is handed over.
+        IPv4Address | IPv6Address | str: Input is handed over.
     """
 
     is_ip, _ = utils.is_ip_address(input)
@@ -135,12 +134,12 @@ def validate_any_multicast_address(
         validate_ip_multicast(input)
     if isinstance(input, str):
         is_mac, _ = utils.is_mac_address(input)
-        if is_mac and isinstance(input, str):
+        if is_mac:
             validate_mac_multicast(input)
     return input
 
 
-def validate_multicast_list_only_ip(input_list: list):
+def validate_multicast_list_only_ip(input_list: list[IPv4Address | IPv6Address | str]) -> list[IPv4Address | IPv6Address | str]:
     """
     Custom Validator for a list of Multicast IP addresses.
 
@@ -156,7 +155,7 @@ def validate_multicast_list_only_ip(input_list: list):
     return input_list
 
 
-def validate_multicast_list(input_list: list):
+def validate_multicast_list(input_list: list[IPv4Address | IPv6Address | str]) -> list[IPv4Address | IPv6Address | str]:
     """
     Custom Validator for a list of Multicast MAC or IP addresses.
 

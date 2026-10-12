@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from typing import (
+    TYPE_CHECKING,
     Annotated,
-    Any,
     List,
     Literal,
     Optional,
@@ -15,6 +15,7 @@ from pydantic import (
     AfterValidator,
     BeforeValidator,
     Field,
+    SerializationInfo,
     StrictInt,
     field_serializer,
     field_validator,
@@ -30,6 +31,7 @@ from flync.core.annotations import (
 )
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.datatypes import Bitmask
+from flync.core.datatypes.macaddress import FLYNCMacAddress
 from flync.core.utils.exceptions import Category, err_minor, warn
 from flync.core.validators import traffic_classes as traffic_class_validators
 from flync.core.validators.address import validate_vlan_id
@@ -60,6 +62,10 @@ from flync.model.flync_4_tsn import (
     Stream,
     TrafficClass,
 )
+
+if TYPE_CHECKING:
+    from flync.model.flync_4_ecu.controller import EthernetInterface
+    from flync.model.flync_4_ecu.port import ECUPort
 
 
 class SwitchPort(FLYNCBaseModel):
@@ -133,20 +139,20 @@ class SwitchPort(FLYNCBaseModel):
         BeforeValidator(validate_or_remove("MACsec config", MACsecConfig)),
     ] = Field(default=None)
     _mdi_config: BASET1 | BASET1S | BASET | None = None
-    _connected_component: Optional[Any] = None
+    _connected_component: ECUPort | EthernetInterface | SwitchPort | None = None
     _type: Literal["switch_port"] = "switch_port"
     _switch: Optional[Switch] = None
 
     @property
-    def mdi_config(self):
+    def mdi_config(self) -> BASET1 | BASET1S | BASET | None:
         return self._mdi_config
 
     @property
-    def type(self):
+    def type(self) -> Literal["switch_port"]:
         return self._type
 
     @property
-    def connected_component(self):
+    def connected_component(self) -> ECUPort | EthernetInterface | SwitchPort | None:
         return self._connected_component
 
     @property
@@ -162,7 +168,7 @@ class SwitchPort(FLYNCBaseModel):
             )
         return self
 
-    def copy_mdi_config_to_switch(self, mdi_config):
+    def copy_mdi_config_to_switch(self, mdi_config: BASET1 | BASET1S | BASET) -> None:
         """
         Helper function.
         Copies the MDI config from ECU port to switch port.
@@ -170,7 +176,7 @@ class SwitchPort(FLYNCBaseModel):
 
         self._mdi_config = mdi_config
 
-    def get_switch(self):
+    def get_switch(self) -> Switch:
         """
         Helper function.
         Returns the switch that the port is a part of.
@@ -180,7 +186,7 @@ class SwitchPort(FLYNCBaseModel):
             raise err_minor(f"The switch port {self.name} is not a part of any switch", category=Category.STRUCTURAL, error_number="087")
         return self._switch
 
-    def get_vlan_connected_ports(self, vlan):
+    def get_vlan_connected_ports(self, vlan: int | None) -> list[SwitchPort]:
         """
         Helper function.
         Returns the switch ports that are part of the same VLAN as that port.
@@ -193,7 +199,7 @@ class SwitchPort(FLYNCBaseModel):
         ports_obj = [sp for sport in ports for sp in self.get_switch().ports if sp.name == sport]
         return ports_obj
 
-    def is_part_of_vlan(self, vlan):
+    def is_part_of_vlan(self, vlan: int | None) -> bool:
         for vlan_entry in self.get_switch().vlans:
             if vlan_entry.id == vlan and self.name in vlan_entry.ports:
                 return True
@@ -216,11 +222,11 @@ class PortScopedAction(FLYNCBaseModel):
         Switch ports to which this action applies. Defaults to all ports if omitted.
     """
 
-    ports: Annotated[Optional[List[str]], BeforeValidator(none_to_empty_list)] = Field(default_factory=list)
+    ports: Annotated[List[str], BeforeValidator(none_to_empty_list)] = Field(default_factory=list)
     _ports_autofilled: bool = False
 
     @field_serializer("ports", check_fields=False)
-    def serialize_ports(self, ports: Optional[List[str]], _info):
+    def serialize_ports(self, ports: List[str], _info: SerializationInfo) -> list[str]:
         """Dump the user's original port list, not the runtime-expanded one."""
         return [] if self._ports_autofilled else ports
 
@@ -386,15 +392,15 @@ class TCAMRule(FLYNCBaseModel):
     match_filter: Optional[FrameFilter] = Field(default=None)
     frame_mask: Annotated[Optional[List[FrameMask]], BeforeValidator(none_to_empty_list)] = Field(default_factory=list)
     frame_window: Optional[int] = Field(default=None, ge=1)
-    match_ports: Annotated[Optional[List[str]], BeforeValidator(none_to_empty_list)] = Field(default_factory=list)
-    action: Annotated[Optional[List[(Drop | Mirror | VLANOverwrite | ForceEgress | RemoveVLAN)]], BeforeValidator(none_to_empty_list)] = Field(
+    match_ports: Annotated[List[str], BeforeValidator(none_to_empty_list)] = Field(default_factory=list)
+    action: Annotated[List[(Drop | Mirror | VLANOverwrite | ForceEgress | RemoveVLAN)], BeforeValidator(none_to_empty_list)] = Field(
         default_factory=list
     )
     vehicle_state: Optional[Bitmask] = Field(default=None)
     _match_ports_autofilled: bool = False
 
     @field_serializer("match_ports")
-    def serialize_match_ports(self, match_ports: Optional[List[str]], _info):
+    def serialize_match_ports(self, match_ports: List[str], _info: SerializationInfo) -> list[str]:
         """Dump the user's original port list, not the runtime-expanded one."""
         return [] if self._match_ports_autofilled else match_ports
 
@@ -452,7 +458,10 @@ class TCAMRule(FLYNCBaseModel):
     @model_validator(mode="after")
     def validate_exclusive_drop_force_mirror(self) -> Self:
         """Validate that no port is targeted by more than one of the mutually-exclusive actions *drop*, *force_egress* or *mirror*."""
+        self._check_exclusive_drop_force_mirror()
+        return self
 
+    def _check_exclusive_drop_force_mirror(self) -> None:
         all_ports: list[str] = []
         for action in self.action or []:
             if action.type in ["drop", "force_egress", "mirror"]:
@@ -464,12 +473,14 @@ class TCAMRule(FLYNCBaseModel):
                 category=Category.CONSISTENCY,
                 error_number="088",
             )
-        return self
 
     @model_validator(mode="after")
     def validate_exclusive_vlan_action(self) -> Self:
         """Validate that no port is targeted by both VLAN actions *remove_vlan* and *vlan_overwrite*."""
+        self._check_exclusive_vlan_action()
+        return self
 
+    def _check_exclusive_vlan_action(self) -> None:
         all_ports: list[str] = []
         for action in self.action or []:
             if action.type in ["remove_vlan", "vlan_overwrite"]:
@@ -481,7 +492,6 @@ class TCAMRule(FLYNCBaseModel):
                 category=Category.CONSISTENCY,
                 error_number="089",
             )
-        return self
 
 
 class SwitchConfig(FLYNCBaseModel):
@@ -606,7 +616,7 @@ class Switch(FLYNCBaseModel):
         )
         return self
 
-    def _has_stream_with_ipv(self, ipv) -> bool:
+    def _has_stream_with_ipv(self, ipv: int) -> bool:
         """
         Check whether any ingress stream on any port of this switch uses the given internal priority value.
 
@@ -742,22 +752,25 @@ class Switch(FLYNCBaseModel):
 
         return self
 
-    def get_mac(self):
+    def get_mac(self) -> FLYNCMacAddress | None:
         """Return MAC address from the host controller's first ethernet interface."""
-        macs = self.host_controller.get_all_macs()
+        host = self.host_controller
+        if host is None:
+            return None
+        macs = host.get_all_macs()
         return macs[0] if macs else None
 
     def find_switch_port(self, port_name: str) -> SwitchPort:
         return next(p for p in self.ports if p.name == port_name)
 
-    def model_post_init(self, __context):
+    def model_post_init(self, __context: object) -> None:
         for port in self.ports:
             port._switch = self
 
         self._fill_empty_tcam_port_lists()
-        return super().model_post_init(__context)
+        super().model_post_init(__context)
 
-    def _fill_empty_tcam_port_lists(self):
+    def _fill_empty_tcam_port_lists(self) -> None:
         """
         Fill empty or omitted port lists in TCAM rules with all available switch ports.
 
@@ -783,5 +796,5 @@ class Switch(FLYNCBaseModel):
                     object.__setattr__(action, "_ports_autofilled", True)
 
             # The port-based exclusivity checks ran on the (still empty) user input, so re-run them on the expanded lists.
-            rule.validate_exclusive_drop_force_mirror()
-            rule.validate_exclusive_vlan_action()
+            rule._check_exclusive_drop_force_mirror()
+            rule._check_exclusive_vlan_action()

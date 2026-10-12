@@ -3,11 +3,59 @@ Validators for the compatibility of interface/connection settings between two
 components: MII, MACsec, gPTP, HTB, CBS/ingress streams and VLAN uniqueness.
 """
 
+from __future__ import annotations
+
+from collections.abc import Iterable, Sequence
+from typing import TYPE_CHECKING, Protocol
+
 from flync.core.utils.exceptions import Category, err_major, err_minor
 from flync.core.validators.generic import validate_list_items_unique
 
+if TYPE_CHECKING:
+    from flync.model.flync_4_ecu.controller import VirtualControllerInterface
+    from flync.model.flync_4_ecu.phy import MII, RGMII, RMII, SGMII, XFI
+    from flync.model.flync_4_security import MACsecConfig
+    from flync.model.flync_4_tsn import HTBInstance, PTPConfig, Stream, TrafficClass
 
-def validate_ingress_streams_fields(streams, location: str):
+
+# The compatibility checks only read a few attributes of the components they compare (an ECU port, a switch port, an interface
+# configuration...). These protocols name exactly those attributes, so the validators do not depend on the concrete model classes.
+class Named(Protocol):
+    """A component that can be named in an error message (an interface configuration is unnamed until its interface binds it)."""
+
+    @property
+    def name(self) -> str | None: ...
+
+
+class HasMIIConfig(Named, Protocol):
+    """A component that may carry an MII configuration."""
+
+    @property
+    def mii_config(self) -> MII | RMII | SGMII | RGMII | XFI | None: ...
+
+
+class HasMACsecConfig(Named, Protocol):
+    """A component that may carry a MACsec configuration."""
+
+    @property
+    def macsec_config(self) -> MACsecConfig | None: ...
+
+
+class HasPTPConfig(Named, Protocol):
+    """A component that may carry a PTP configuration."""
+
+    @property
+    def ptp_config(self) -> PTPConfig | None: ...
+
+
+class HasHTB(Named, Protocol):
+    """A component that may carry an HTB configuration."""
+
+    @property
+    def htb(self) -> HTBInstance | None: ...
+
+
+def validate_ingress_streams_fields(streams: Sequence[Stream], location: str) -> Sequence[Stream]:
     """
     Raise err_minor if any stream carries an ipv or ats value.
 
@@ -36,17 +84,17 @@ def validate_ingress_streams_fields(streams, location: str):
     return streams
 
 
-def validate_vlan_ids_unique(virtual_interfaces, name: str):
+def validate_vlan_ids_unique(virtual_interfaces: Iterable[VirtualControllerInterface], name: str | None) -> None:
     """
     Raise err_major if any VLAN ID appears more than once.
     """
 
     all_vlans = [vi.vlanid for vi in virtual_interfaces]
-    list_label = f"VLAN IDs of virtual Controller Interface in interface {name}"
+    list_label = "VLAN IDs of virtual Controller Interface" + (f" in interface {name}" if name else "")
     validate_list_items_unique(all_vlans, list_label)
 
 
-def validate_cbs_idleslopes_fit_portspeed(traffic_classes: list, port_speed: int):
+def validate_cbs_idleslopes_fit_portspeed(traffic_classes: list[TrafficClass] | None, port_speed: int | None) -> list[TrafficClass] | None:
     """
     Custom Validator for a list of Traffic Classes to check conformity to MII/MDI speed.
 
@@ -63,7 +111,7 @@ def validate_cbs_idleslopes_fit_portspeed(traffic_classes: list, port_speed: int
     """
 
     if not traffic_classes:
-        return
+        return None
     if not port_speed:
         raise err_major(
             "Cannot validate Traffic Classes! No port speed defined. Make sure to configure MII or MDI.",
@@ -86,7 +134,7 @@ def validate_cbs_idleslopes_fit_portspeed(traffic_classes: list, port_speed: int
     return traffic_classes
 
 
-def validate_optional_mii_config_compatibility(comp1, comp2, id):
+def validate_optional_mii_config_compatibility(comp1: HasMIIConfig | None, comp2: HasMIIConfig | None, id: str) -> None:
     """
     Custom validator for optional MII configuration compatibility between two components.
 
@@ -95,7 +143,7 @@ def validate_optional_mii_config_compatibility(comp1, comp2, id):
 
         comp2 (object): Second component that may contain a ``mii_config`` attribute.
 
-        id (Any): Identifier of the connection (used only in error messages).
+        id (str): Identifier of the connection (used only in error messages).
 
     Raises:
         err_major: One component has an MII config while the other does not.
@@ -132,7 +180,13 @@ def validate_optional_mii_config_compatibility(comp1, comp2, id):
     _check_mii_pair_compatibility(comp1, comp2, mii_comp1, mii_comp2, id)
 
 
-def _check_mii_pair_compatibility(comp1, comp2, mii_comp1, mii_comp2, id):
+def _check_mii_pair_compatibility(
+    comp1: Named,
+    comp2: Named,
+    mii_comp1: MII | RMII | SGMII | RGMII | XFI,
+    mii_comp2: MII | RMII | SGMII | RGMII | XFI,
+    id: str,
+) -> None:
     """
     Compare the MII settings of two components that both carry an MII config.
 
@@ -145,7 +199,7 @@ def _check_mii_pair_compatibility(comp1, comp2, mii_comp1, mii_comp2, id):
 
         mii_comp2 (object): ``mii_config`` of ``comp2``.
 
-        id (Any): Identifier of the connection (used only in error messages).
+        id (str): Identifier of the connection (used only in error messages).
 
     Raises:
         err_major: The *mode* values are identical. The modes must differ.
@@ -175,7 +229,7 @@ def _check_mii_pair_compatibility(comp1, comp2, mii_comp1, mii_comp2, id):
         )
 
 
-def validate_compulsory_mii_config_compatibility(comp1, comp2, id):
+def validate_compulsory_mii_config_compatibility(comp1: HasMIIConfig, comp2: HasMIIConfig, id: str) -> None:
     """
     Validator that enforces a **mandatory** MII configuration on both components and then checks optional compatibility.
 
@@ -184,7 +238,7 @@ def validate_compulsory_mii_config_compatibility(comp1, comp2, id):
 
         comp2 (object): Second component. Must have ``mii_config``.
 
-        id (Any): Identifier of the connection (used only in error messages).
+        id (str): Identifier of the connection (used only in error messages).
 
     Raises:
         err_major: Either component is missing a required MII configuration.
@@ -201,7 +255,7 @@ def validate_compulsory_mii_config_compatibility(comp1, comp2, id):
     validate_optional_mii_config_compatibility(comp1, comp2, id)
 
 
-def validate_htb(comp, speed):
+def validate_htb(comp: HasHTB | None, speed: int | None) -> None:
     """
     Validator that checks an HTB (Hierarchical Token Bucket) configuration against the physical link speed.
 
@@ -225,7 +279,7 @@ def validate_htb(comp, speed):
         )
 
 
-def validate_macsec(comp1, comp2, id):
+def validate_macsec(comp1: HasMACsecConfig | None, comp2: HasMACsecConfig | None, id: str) -> None:
     """
     Validator for MACsec configuration compatibility between two components.
 
@@ -234,7 +288,7 @@ def validate_macsec(comp1, comp2, id):
 
         comp2 (object): Second component: May contain a ``macsec_config``.
 
-        id (Any): Identifier of the connection (used only in error messages).
+        id (str): Identifier of the connection (used only in error messages).
 
     Raises:
         err_major: One component has a MACsec config while the other does not.
@@ -268,7 +322,7 @@ def validate_macsec(comp1, comp2, id):
     _check_macsec_pair_compatibility(comp1, comp2, macsec1, macsec2, id)
 
 
-def _check_macsec_pair_compatibility(comp1, comp2, macsec1, macsec2, id):
+def _check_macsec_pair_compatibility(comp1: Named, comp2: Named, macsec1: MACsecConfig, macsec2: MACsecConfig, id: str) -> None:
     """
     Compare the MACsec settings of two components that both carry a MACsec config.
 
@@ -281,7 +335,7 @@ def _check_macsec_pair_compatibility(comp1, comp2, macsec1, macsec2, id):
 
         macsec2 (object): ``macsec_config`` of ``comp2``.
 
-        id (Any): Identifier of the connection (used only in error messages).
+        id (str): Identifier of the connection (used only in error messages).
 
     Raises:
         err_major: MKA (Key Agreement) enabled state differs between the two components.
@@ -304,7 +358,7 @@ def _check_macsec_pair_compatibility(comp1, comp2, macsec1, macsec2, id):
         )
 
 
-def validate_gptp(comp1, comp2, id):
+def validate_gptp(comp1: HasPTPConfig | None, comp2: HasPTPConfig | None, id: str) -> None:
     """
     Validator that checks gPTP (generic Precision Time Protocol) configuration compatibility between two components.
 
@@ -313,7 +367,7 @@ def validate_gptp(comp1, comp2, id):
 
         comp2 (object): Second component. May contain a ``ptp_config``.
 
-        id (Any): Identifier of the connection (used only in error messages).
+        id (str): Identifier of the connection (used only in error messages).
 
     Raises:
         err_major: PTP configuration present on one side only.
@@ -337,7 +391,7 @@ def validate_gptp(comp1, comp2, id):
         )
 
     # Neither side uses PTP, so there is nothing to compare
-    if not ptp1:
+    if not ptp1 or not ptp2:
         return
 
     validate_gptp_domains(comp1, comp2, ptp1, ptp2, id)
@@ -355,7 +409,7 @@ def validate_gptp(comp1, comp2, id):
         )
 
 
-def validate_gptp_domains(comp1, comp2, ptp1, ptp2, id):
+def validate_gptp_domains(comp1: Named | None, comp2: Named | None, ptp1: PTPConfig | None, ptp2: PTPConfig | None, id: str) -> None:
     """
     Helper that validates matching PTP domains and sync-config types between two components.
 
@@ -368,7 +422,7 @@ def validate_gptp_domains(comp1, comp2, ptp1, ptp2, id):
 
         ptp2 (object): ``ptp_config`` of ``comp2``.
 
-        id (Any): Identifier of the connection (used only in error messages).
+        id (str): Identifier of the connection (used only in error messages).
 
     Raises:
         err_major: A domain present in ``ptp1`` is missing in ``ptp2``.

@@ -9,6 +9,8 @@ from flync.core.base_models import FLYNCBaseModel
 from flync.core.validators.generic import validate_or_remove
 
 from .doip.doip_config import DoIPConfig
+from .doip.timings import DoIPTimingProfile
+from .uds.server import UDSServer
 from .uds.uds_config import UDSConfig
 
 
@@ -62,14 +64,14 @@ class DiagnosticsConfig(FLYNCBaseModel):
             raise ValueError("a diagnostics config must contain a 'doip' and/or a 'uds' sub-config")
         return self
 
-    def doip_timings_by_id(self) -> dict:
+    def doip_timings_by_id(self) -> dict[str, DoIPTimingProfile]:
         """
         Return every DoIP timing profile of the system, keyed by ``profile_id``.
         """
 
         return self.doip.timings.by_id() if self.doip else {}
 
-    def uds_servers_by_name(self) -> dict:
+    def uds_servers_by_name(self) -> dict[str, UDSServer]:
         """
         Return every UDS server of the system, keyed by name.
         """

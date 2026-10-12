@@ -11,7 +11,9 @@ controller, at any nesting depth, is declared once in that controller's
 :class:`~flync.model.flync_4_ecu.controller_topology.ControllerTopology`.
 """
 
-from typing import Annotated, Iterator, List, Optional, Self
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Annotated, Iterator, List, Optional, Self
 
 from pydantic import Field, model_validator
 
@@ -27,6 +29,10 @@ from flync.core.utils.exceptions import Category, err_major
 from flync.model.flync_4_app.app_bindings import AppBindings
 from flync.model.flync_4_ecu.controller import EthernetInterface
 from flync.model.flync_4_ecu.switch import Switch
+
+if TYPE_CHECKING:
+    from flync.model.flync_4_ecu.controller import Controller
+    from flync.model.flync_4_ecu.sockets import DeploymentUnion
 
 
 class ComputeNode(FLYNCBaseModel):
@@ -76,7 +82,7 @@ class ComputeNode(FLYNCBaseModel):
         External(output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT),
     ] = Field(default=None, description="Applications a compute node should bind to.")
     compute_nodes: Annotated[
-        Optional[List["ComputeNode"]],
+        Optional[List[ComputeNode]],
         External(
             output_structure=OutputStrategy.FOLDER,
             naming_strategy=NamingStrategy.FIELD_NAME,
@@ -116,7 +122,7 @@ class ComputeNode(FLYNCBaseModel):
         """Return this compute node's own Ethernet interfaces, excluding those of nested compute nodes."""
         return list(self.ethernet_interfaces or [])
 
-    def get_all_deployments(self) -> Iterator:
+    def get_all_deployments(self) -> Iterator[DeploymentUnion]:
         """Yield every SOME/IP deployment declared on this compute node's sockets."""
 
         for eth_iface in self.ethernet_interfaces or []:
@@ -124,7 +130,7 @@ class ComputeNode(FLYNCBaseModel):
                 for socket in sock_con.sockets or []:
                     yield from socket.deployments or []
 
-    def get_consumed_service_instances(self) -> set:
+    def get_consumed_service_instances(self) -> set[tuple[int, int, int]]:
         """Return the ``(service, major_version, instance_id)`` triples this compute node deploys as a SOME/IP consumer."""
 
         return {
@@ -133,7 +139,7 @@ class ComputeNode(FLYNCBaseModel):
             if dep.root.deployment_type == "someip_consumer"
         }
 
-    def model_post_init(self, __context):
+    def model_post_init(self, __context: object) -> None:
         for interface in self.ethernet_interfaces or []:
             if interface.interface_config is not None:
                 interface._controller = self
@@ -141,7 +147,7 @@ class ComputeNode(FLYNCBaseModel):
         return super().model_post_init(__context)
 
 
-def iter_subtree_compute_nodes(node) -> Iterator[ComputeNode]:
+def iter_subtree_compute_nodes(node: Controller | ComputeNode) -> Iterator[ComputeNode]:
     """
     Yield every :class:`ComputeNode` beneath ``node``, depth-first, at any nesting depth.
 
@@ -154,7 +160,7 @@ def iter_subtree_compute_nodes(node) -> Iterator[ComputeNode]:
         yield from iter_subtree_compute_nodes(child)
 
 
-def iter_subtree_switches(node) -> Iterator[Switch]:
+def iter_subtree_switches(node: Controller | ComputeNode) -> Iterator[Switch]:
     """
     Yield every virtual switch beneath ``node``, including those inside nested compute nodes.
 
@@ -168,7 +174,7 @@ def iter_subtree_switches(node) -> Iterator[Switch]:
         yield from child.virtual_switches or []
 
 
-def iter_subtree_interfaces(node) -> Iterator[EthernetInterface]:
+def iter_subtree_interfaces(node: Controller | ComputeNode) -> Iterator[EthernetInterface]:
     """
     Yield every Ethernet interface beneath ``node``, including those of nested compute nodes.
 

@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from enum import IntFlag
 from typing import Optional
 
+from pydantic import BaseModel
+
 
 class ReferenceStrategy(IntFlag):
     """
@@ -30,7 +32,7 @@ class Reference:
     reference_strategy: ReferenceStrategy = ReferenceStrategy.PRIVATE_ATTR
 
 
-def resolve_reference(model, field_name: str) -> Optional[object]:
+def resolve_reference(model: BaseModel, field_name: str) -> Optional[object]:
     """
     Return the concrete object a field's ``Reference`` annotation points to.
 

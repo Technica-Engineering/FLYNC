@@ -3,7 +3,8 @@ Define and validate ECU connections
 within the system.
 """
 
-from typing import Annotated, Any, Collection, List, Literal, Optional
+from collections.abc import Mapping
+from typing import Annotated, Collection, List, Literal, Optional
 
 from pydantic import Field, model_serializer, model_validator
 
@@ -67,7 +68,7 @@ class EthernetPointToPointConnection(FLYNCBaseModel):
         return self._ecu2_port
 
     @model_serializer
-    def serialize(self):
+    def serialize(self) -> dict[str, str]:
         return {
             "type": self.type,
             "id": self.id,
@@ -75,7 +76,7 @@ class EthernetPointToPointConnection(FLYNCBaseModel):
             "ecu2_port": self.ecu2_port_name,
         }
 
-    def bind(self, ports_by_name: dict) -> None:
+    def bind(self, ports_by_name: Mapping[str, ECUPort]) -> None:
         """Resolve port references and run all MDI/MACsec/gPTP compatibility checks."""
         port1 = ports_by_name.get(self.ecu1_port_name)
         if port1 is None:
@@ -99,64 +100,53 @@ class EthernetPointToPointConnection(FLYNCBaseModel):
         port1._connected_components.append(port2)
         port2._connected_components.append(port1)
 
+        label1, label2 = port1.qualified_name, port2.qualified_name
         mdi_ecu1_port = port1.mdi_config
         mdi_ecu2_port = port2.mdi_config
 
         if not mdi_ecu1_port or not mdi_ecu2_port:
             raise err_major(
-                f"One or both ports missing MDI config: {port1.ecu.name}:{self.ecu1_port_name}, {port2.ecu.name}:{self.ecu2_port_name}",
+                f"One or both ports missing MDI config: {label1}, {label2}",
                 category=Category.COMPATIBILITY,
                 error_number="144",
             )
         if mdi_ecu1_port.mode != mdi_ecu2_port.mode:
             raise err_major(
-                f"Incompatible MDI Mode: "
-                f"{port1.ecu.name}:{self.ecu1_port_name} "
-                f"({mdi_ecu1_port.mode}) ↔ {port2.ecu.name}:"
-                f"{self.ecu2_port_name} ({mdi_ecu2_port.mode})",
+                f"Incompatible MDI Mode: {label1} ({mdi_ecu1_port.mode}) ↔ {label2} ({mdi_ecu2_port.mode})",
                 category=Category.COMPATIBILITY,
                 error_number="145",
             )
         if mdi_ecu1_port.speed != mdi_ecu2_port.speed:
             raise err_major(
-                f"Incompatible MDI Speed: "
-                f"{port1.ecu.name}:{self.ecu1_port_name} "
-                f"({mdi_ecu1_port.speed}) ↔ {port2.ecu.name}:"
-                f"{self.ecu2_port_name} ({mdi_ecu2_port.speed})",
+                f"Incompatible MDI Speed: {label1} ({mdi_ecu1_port.speed}) ↔ {label2} ({mdi_ecu2_port.speed})",
                 category=Category.COMPATIBILITY,
                 error_number="146",
             )
         if mdi_ecu1_port.duplex != mdi_ecu2_port.duplex:
             raise err_major(
-                f"Incompatible MDI Duplex Mode: "
-                f"{port1.ecu.name}:{self.ecu1_port_name} "
-                f"({mdi_ecu1_port.duplex}) ↔ {port2.ecu.name}:"
-                f"{self.ecu2_port_name} ({mdi_ecu2_port.duplex})",
+                f"Incompatible MDI Duplex Mode: {label1} ({mdi_ecu1_port.duplex}) ↔ {label2} ({mdi_ecu2_port.duplex})",
                 category=Category.COMPATIBILITY,
                 error_number="147",
             )
         # BASET1S has no role
         if not isinstance(mdi_ecu1_port, BASET1S) and mdi_ecu1_port.role == mdi_ecu2_port.role:
             raise err_major(
-                f"Incompatible MDI Roles: "
-                f"{port1.ecu.name}:{self.ecu1_port_name} "
-                f"({mdi_ecu1_port.role}) ↔ {port2.ecu.name}:"
-                f"{self.ecu2_port_name} ({mdi_ecu2_port.role})",
+                f"Incompatible MDI Roles: {label1} ({mdi_ecu1_port.role}) ↔ {label2} ({mdi_ecu2_port.role})",
                 category=Category.COMPATIBILITY,
                 error_number="148",
             )
         if mdi_ecu1_port.autonegotiation != mdi_ecu2_port.autonegotiation:
             raise err_major(
                 f"Incompatible MDI Autonegotiation: "
-                f"{port1.ecu.name}:{self.ecu1_port_name} "
+                f"{label1} "
                 f"({mdi_ecu1_port.autonegotiation}) ↔ "
-                f"{port2.ecu.name}:{self.ecu2_port_name} "
+                f"{label2} "
                 f"({mdi_ecu2_port.autonegotiation})",
                 category=Category.COMPATIBILITY,
                 error_number="149",
             )
-        comp1 = port1.get_internal_connected_component([port1.ecu])
-        comp2 = port2.get_internal_connected_component([port2.ecu])
+        comp1 = port1.get_internal_connected_component()
+        comp2 = port2.get_internal_connected_component()
         validate_macsec(comp1, comp2, self.id)
         validate_gptp(comp1, comp2, self.id)
 
@@ -188,14 +178,16 @@ class EthernetTopology(FLYNCBaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def default_connection_type(cls, data: Any) -> Any:
+    def default_connection_type(cls, data: object) -> object:
         """Give a connection written without a ``type`` the point-to-point tag.
 
         Older files left the point-to-point ``type`` tag out.  The discriminated union reads that tag off the raw
         input before any default can fill it, so the tag is stamped here to keep such files loading.
         """
 
-        connections = data.get("connections") if isinstance(data, dict) else None
+        if not isinstance(data, dict):
+            return data
+        connections = data.get("connections")
         if not connections:
             return data
         return {
@@ -306,7 +298,8 @@ class FLYNCTopology(FLYNCBaseModel):
     lin_bus_topology: List[LINBusTopology] = Field(default_factory=list, exclude=True)
 
     @model_validator(mode="before")
-    def warn_deprecated(cls, data):
+    @classmethod
+    def warn_deprecated(cls, data: object) -> object:
         if isinstance(data, dict) and "system_topology" in data:
             warn(
                 "The 'system_topology' attribute is deprecated and will be removed in a future release. Please use 'ethernet_topology' instead.",

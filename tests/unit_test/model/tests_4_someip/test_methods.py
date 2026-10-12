@@ -272,3 +272,8 @@ class TestMethodsUnionDiscrimination:
         with pytest.raises(ValidationError) as exc_info:
             SOMEIPServiceInterface(**service)
         assert_single_error(exc_info, error_id, message_fragment)
+
+
+def test_has_response_tells_the_method_kinds_apart():
+    assert SOMEIPRequestResponseMethod(id=0x1, name="get").has_response
+    assert not SOMEIPFireAndForgetMethod(id=0x2, name="notify").has_response

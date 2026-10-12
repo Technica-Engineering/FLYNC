@@ -18,6 +18,7 @@ from flync.model.flync_4_ecu.lin_interface import LINFrameRef, LINMasterInterfac
 from flync.model.flync_4_signal.frame import CANFDFrame, CANFrame, J1939Frame, LINFrame
 
 if TYPE_CHECKING:
+    from flync.model.flync_4_communication.flync_channels import FLYNCChannelConfig
     from flync.model.flync_4_ecu.controller import Controller
     from flync.model.flync_model import FLYNCModel
 
@@ -60,7 +61,7 @@ def _interface_locator(controller: Controller, iface: AnyBusInterface, kind: str
 # ---------------------------------------------------------------------------
 
 
-def _channels(model: FLYNCModel):
+def _channels(model: FLYNCModel) -> FLYNCChannelConfig | None:
     """Return ``communication.channels`` or ``None`` when the model declares no communication."""
 
     return getattr(model.communication, "channels", None) if model.communication else None

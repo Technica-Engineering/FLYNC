@@ -12,7 +12,7 @@ exporters and for the docs, and are deliberately kept next to the ``Literal`` th
 so the two cannot drift.
 """
 
-from typing import Any, Iterable, List, Literal
+from typing import Iterable, List, Literal
 
 #: The EcuReset (0x11) ``resetType`` values standardized by ISO 14229-1. Values 0x40-0x5F are
 #: system-supplier specific and are written as plain integers instead.
@@ -215,7 +215,7 @@ ISO_DTC_GROUPS: dict[int, str] = {
 ALL_DTC_GROUPS: int = 0xFFFFFF
 
 
-def coerce_int(value: Any) -> Any:
+def coerce_int(value: object) -> object:
     """
     Normalize an integer written as a string (e.g. ``"0x19"``, ``"25"``) to an ``int``.
 

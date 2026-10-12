@@ -3,7 +3,7 @@ Define QoS models in FLYNC.
 """
 
 from ipaddress import IPv4Address, IPv6Address
-from typing import Annotated, List, Literal, Optional, Self
+from typing import Annotated, Any, List, Literal, Optional, Self
 
 from pydantic import (
     BeforeValidator,
@@ -223,6 +223,10 @@ class DoubleRateThreeColorMarker(FLYNCBaseModel):
     coupling: bool = Field(default=True)
 
 
+#: One IP match of a :class:`FrameFilter`: a bare address or an address entry with netmask.
+_IPFilterEntry = IPv4AddressEntry | IPv6AddressEntry | IPv4Address | IPv6Address
+
+
 class FrameFilter(FLYNCBaseModel):
     """
     Defines filtering rules for frames based on MAC/IP addresses, VLAN, and transport protocol ports.
@@ -305,7 +309,7 @@ class FrameFilter(FLYNCBaseModel):
 
     @field_validator("vlanid", mode="after")
     @classmethod
-    def validate_vlanids(cls, value):
+    def validate_vlanids(cls, value: int | ValueRange | List[int | ValueRange] | None) -> int | ValueRange | List[int | ValueRange] | None:
         """Ensure every VLAN id (a scalar, a bound, or a list element) is valid."""
         if isinstance(value, int):
             validate_vlan_id(value)
@@ -322,7 +326,7 @@ class FrameFilter(FLYNCBaseModel):
         return value
 
     @staticmethod
-    def pcp_validator(value):
+    def pcp_validator(value: int) -> None:
         if value < 0 or value > 7:
             raise err_minor(
                 "pcp value must be greater than or equal to 0 and less than or equal to 7", category=Category.VALUE_RANGE, error_number="150"
@@ -330,7 +334,7 @@ class FrameFilter(FLYNCBaseModel):
 
     @field_validator("pcp", mode="after")
     @classmethod
-    def validate_pcps(cls, value):
+    def validate_pcps(cls, value: int | List[int] | None) -> int | List[int] | None:
         if isinstance(value, int):
             cls.pcp_validator(value)
         if isinstance(value, list):
@@ -340,18 +344,28 @@ class FrameFilter(FLYNCBaseModel):
 
     @field_validator("src_mac", "dst_mac", mode="after")
     @classmethod
-    def validate_port_mac(cls, value):
+    def validate_port_mac(
+        cls, value: str | MACAddressEntry | List[str | MACAddressEntry] | None
+    ) -> str | MACAddressEntry | List[str | MACAddressEntry] | None:
         """MAC addresses must be valid."""
-        if isinstance(value, List):
+        if isinstance(value, list):
+            validated: list[str | MACAddressEntry] = []
             for element in value:
-                value = MacAddress.validate_mac_address(element.encode())
-        else:
-            value = MacAddress.validate_mac_address(value.encode())
-        return value
+                mac = cls._validate_mac_element(element)
+                if mac is not None:
+                    validated.append(mac)
+            return validated
+        return cls._validate_mac_element(value)
+
+    @staticmethod
+    def _validate_mac_element(element: str | MACAddressEntry | None) -> str | MACAddressEntry | None:
+        if element is None or isinstance(element, MACAddressEntry):
+            return element
+        return MacAddress.validate_mac_address(element.encode())
 
     @field_validator("src_port", "dst_port", mode="after")
     @classmethod
-    def validate_port_assignment(cls, value):
+    def validate_port_assignment(cls, value: int | ValueRange | List[int | ValueRange] | None) -> int | ValueRange | List[int | ValueRange] | None:
         """UDP / TCP Ports must be greater than 0."""
         msg = "Protocol port must be greater than 0."
         if isinstance(value, ValueRange):
@@ -362,27 +376,25 @@ class FrameFilter(FLYNCBaseModel):
         return value
 
     @field_serializer("src_ipv4", "dst_ipv4", "src_ipv6", "dst_ipv6")
-    def serialize_ip_address(self, value):
-        serialized = value
+    def serialize_ip_address(self, value: _IPFilterEntry | list[_IPFilterEntry] | None) -> str | dict[str, Any] | list[str | dict[str, Any]] | None:
         if isinstance(value, list):
-            serialized = [self.serialize_ip_address(v) for v in value]
+            return [self._serialize_ip_entry(v) for v in value]
+        return None if value is None else self._serialize_ip_entry(value)
 
-        if isinstance(value, IPv4AddressEntry) or isinstance(value, IPv6AddressEntry):
-            serialized = value.model_dump()
-
-        if isinstance(value, IPv4Address) or isinstance(value, IPv6Address):
-            serialized = str(value).upper()
-
-        return serialized
+    @staticmethod
+    def _serialize_ip_entry(value: _IPFilterEntry) -> str | dict[str, Any]:
+        if isinstance(value, (IPv4AddressEntry, IPv6AddressEntry)):
+            return value.model_dump()
+        return str(value).upper()
 
     @field_serializer("vlanid", "src_port", "dst_port")
-    def serialize_value_range(self, value):
+    def serialize_value_range(
+        self, value: int | ValueRange | list[int | ValueRange] | None
+    ) -> int | dict[str, Any] | list[int | dict[str, Any]] | None:
         if isinstance(value, list):
-            return [self.serialize_value_range(v) for v in value]
-
+            return [v.model_dump() if isinstance(v, ValueRange) else v for v in value]
         if isinstance(value, ValueRange):
             return value.model_dump()
-
         return value
 
 
@@ -462,22 +474,19 @@ class TrafficClass(FLYNCBaseModel):
     name: str = Field(min_length=1)
     priority: int = Field(..., ge=0, le=7)
     frame_priority_values: Annotated[
-        Optional[List[int]],
+        List[int],
         BeforeValidator(none_to_empty_list),
     ] = Field(default=[])
     internal_priority_values: Annotated[
-        Optional[List[int]],
+        List[int],
         BeforeValidator(none_to_empty_list),
     ] = Field(default=[])
     selection_mechanisms: Optional[CBSShaper | ATSShaper] = Field(default=None, discriminator="type")
 
     @field_validator("frame_priority_values", "internal_priority_values", mode="after")
     @classmethod
-    def validate_priority_values(cls, v):
+    def validate_priority_values(cls, v: list[int]) -> list[int]:
         """Priority values in list must be in range 0 - 7."""
-        if not v:
-            return []
-
         invalid = [num for num in v if not (0 <= num <= 7)]
         if invalid:
             raise err_minor(f"Priority value out of range [0..7]: {invalid}", category=Category.VALUE_RANGE, error_number="153")
@@ -629,7 +638,7 @@ class HTBInstance(FLYNCBaseModel):
         self.check_ceil_consistency(self.child_classes)
         return self
 
-    def check_default(self, child_class, default):
+    def check_default(self, child_class: ChildClass, default: int) -> bool:
         """
         Verify that the ``default`` class identifier refers to a leaf class within the HTB hierarchy.
 
@@ -670,7 +679,7 @@ class HTBInstance(FLYNCBaseModel):
                     exists = True
         return exists
 
-    def check_ceil_greater_than_rate(self, child):
+    def check_ceil_greater_than_rate(self, child: ChildClass) -> None:
         """
         Ensure that the ``ceil`` value of an HTB class is not smaller than its ``rate`` value, and apply the same check recursively
         to any nested child classes.
@@ -706,7 +715,7 @@ class HTBInstance(FLYNCBaseModel):
                 for child_class in child.child_classes:
                     self.check_ceil_greater_than_rate(child_class)
 
-    def check_all_class_priority_unique(self, child_classes, class_priority):
+    def check_all_class_priority_unique(self, child_classes: list[ChildClass], class_priority: list[int]) -> None:
         """
         Walk the HTB tree and verify that every ``prio``
         appears only once.
@@ -745,7 +754,7 @@ class HTBInstance(FLYNCBaseModel):
                 if child.child_classes:
                     self.check_all_class_priority_unique(child.child_classes, class_priority)
 
-    def check_all_classes_unique(self, child_classes, names):
+    def check_all_classes_unique(self, child_classes: list[ChildClass], names: list[int]) -> None:
         """
         Walk the HTB tree and verify that every ``classid`` appears only once.
 
@@ -782,7 +791,7 @@ class HTBInstance(FLYNCBaseModel):
                 if child.child_classes:
                     self.check_all_classes_unique(child.child_classes, names)
 
-    def check_rate_consistency(self, child_classes):
+    def check_rate_consistency(self, child_classes: list[ChildClass]) -> int:
         """
         Verify that, for every parent class, the sum of the ``rate`` values of its direct child classes does not exceed the parent’s own ````.
 
@@ -821,7 +830,7 @@ class HTBInstance(FLYNCBaseModel):
 
         return rate
 
-    def check_ceil_consistency(self, child_classes):
+    def check_ceil_consistency(self, child_classes: list[ChildClass]) -> int:
         """
         Ensure that each child class’s ``ceil`` does not exceed its parent’s ``ceil`` value.
 

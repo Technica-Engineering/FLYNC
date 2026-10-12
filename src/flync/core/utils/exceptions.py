@@ -93,7 +93,7 @@ def _caller_error_id(severity: Severity, category: Category | None, error_number
     return compose_error_id(severity, module_code_for(caller_module), category, error_number)
 
 
-def warn(msg: str, *, category: Category | None = None, error_number: str | None = None, **ctx) -> None:
+def warn(msg: str, *, category: Category | None = None, error_number: str | None = None, **ctx: object) -> None:
     """
     Record a validation warning without raising a validation error.
 
@@ -161,7 +161,7 @@ def warn_from_error(error: PydanticCustomError) -> None:
     )
 
 
-def err_minor(msg: str, *, category: Category | None = None, error_number: str | None = None, **ctx) -> PydanticCustomError:
+def err_minor(msg: str, *, category: Category | None = None, error_number: str | None = None, **ctx: object) -> PydanticCustomError:
     """
     Factory that returns PydanticCustomError with type **minor**.
 
@@ -188,7 +188,7 @@ def err_minor(msg: str, *, category: Category | None = None, error_number: str |
     return PydanticCustomError("minor", msg, ctx)
 
 
-def err_major(msg: str, *, category: Category | None = None, error_number: str | None = None, **ctx) -> PydanticCustomError:
+def err_major(msg: str, *, category: Category | None = None, error_number: str | None = None, **ctx: object) -> PydanticCustomError:
     """
     Factory that returns PydanticCustomError with type **major**.
 
@@ -215,7 +215,7 @@ def err_major(msg: str, *, category: Category | None = None, error_number: str |
     return PydanticCustomError("major", msg, ctx)
 
 
-def err_fatal(msg: str, *, category: Category | None = None, error_number: str | None = None, **ctx) -> PydanticCustomError:
+def err_fatal(msg: str, *, category: Category | None = None, error_number: str | None = None, **ctx: object) -> PydanticCustomError:
     """
     Factory that returns PydanticCustomError with type **fatal**.
 

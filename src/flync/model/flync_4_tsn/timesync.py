@@ -34,7 +34,7 @@ class PTPTimeTransmitterConfig(FLYNCBaseModel):
     log_tx_period: int = Field(..., ge=-7, le=1)
     two_step: Optional[bool] = Field(default=True)
     tlv: Annotated[
-        Optional[List[str]],
+        List[str],
         BeforeValidator(none_to_empty_list),
     ] = Field(default=[])
 

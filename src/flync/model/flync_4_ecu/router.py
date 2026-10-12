@@ -1,7 +1,9 @@
 """Defines the IP routing models and utilities for FLYNC controllers."""
 
+from __future__ import annotations
+
 from ipaddress import IPv4Address, IPv4Network, IPv6Address, IPv6Network
-from typing import Self
+from typing import TYPE_CHECKING, Self
 
 from pydantic import Field, model_validator
 from pydantic.networks import IPvAnyAddress
@@ -10,6 +12,9 @@ from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.datatypes.ipaddress import IPv4AddressEntry, IPv6AddressEntry
 from flync.core.utils.exceptions import Category, err_major
 from flync.model.flync_4_ecu.sockets import IPv4AddressEndpoint, IPv6AddressEndpoint
+
+if TYPE_CHECKING:
+    from flync.model.flync_4_ecu.controller import VirtualControllerInterface
 
 
 class RouteEntry(FLYNCBaseModel):
@@ -57,7 +62,7 @@ class RouteEntry(FLYNCBaseModel):
         return self
 
 
-def gateway_in_subnet(route: RouteEntry, vci) -> bool:
+def gateway_in_subnet(route: RouteEntry, vci: VirtualControllerInterface) -> bool:
     """
     Return ``True`` if ``route.default_gateway`` falls within any address subnet configured on ``vci``.
 

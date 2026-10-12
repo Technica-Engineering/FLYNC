@@ -692,7 +692,8 @@ def generate_system_uml(
     connections: list = []
 
     if target_ecu:
-        ecus = [flync_model.get_ecu_by_name(target_ecu)]
+        target = flync_model.get_ecu_by_name(target_ecu)
+        ecus = [target] if target is not None else []
     else:
         ecus = flync_model.ecus
         # ethernet_topology is optional: a CAN/LIN-only workspace has no ECU-to-ECU Ethernet wiring.

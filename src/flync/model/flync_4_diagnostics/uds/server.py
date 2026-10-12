@@ -305,7 +305,13 @@ class UDSServer(FLYNCBaseModel):
     def _known_access_profiles(self) -> set[str]:
         return {profile.name for profile in self.access_profiles}
 
-    def bind(self, timings_by_id: dict, dids_by_name: dict, dtcs_by_name: dict, routines_by_name: dict) -> None:
+    def bind(
+        self,
+        timings_by_id: dict[str, UDSTimingProfile],
+        dids_by_name: dict[str, DataIdentifier],
+        dtcs_by_name: dict[str, DiagnosticTroubleCode],
+        routines_by_name: dict[str, Routine],
+    ) -> None:
         """
         Resolve :attr:`uds_timings_profile`, :attr:`dids`, :attr:`dtcs`, and any
         ``routine_control`` service's routine names against the UDS catalogs, and check

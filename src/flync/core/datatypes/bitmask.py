@@ -3,7 +3,7 @@
 import string
 from typing import Optional, Self
 
-from pydantic import Field, field_serializer, model_validator
+from pydantic import Field, ModelWrapValidatorHandler, field_serializer, model_validator
 
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_minor
@@ -55,7 +55,7 @@ class Bitmask(FLYNCBaseModel):
 
     @model_validator(mode="wrap")
     @classmethod
-    def _parse_data_and_mask(cls, value, handler) -> Self:
+    def _parse_data_and_mask(cls, value: object, handler: ModelWrapValidatorHandler[Self]) -> Self:
         """Parse the ``data``/``mask`` literals into ints, keeping the bit width and notation they were written in."""
 
         if not isinstance(value, dict):

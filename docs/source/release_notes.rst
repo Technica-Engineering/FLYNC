@@ -103,3 +103,28 @@ Model Development Guide
 '''''''''''''''''''''''
 
 A new documentation section, :doc:`development/index` was added.
+
+
+Frame filter MAC address lists
+''''''''''''''''''''''''''''''
+
+``FrameFilter.src_mac`` and ``dst_mac`` given as a list are now validated element by element and stay a list.
+Previously the validator overwrote the value in its loop and returned only the last element's result.
+
+
+Stricter typing for ``flync.core`` and ``flync.model``
+
+
+``flync.core`` and ``flync.model`` are now fully annotated, and mypy enforces that with
+``disallow_untyped_defs``, ``disallow_any_generics`` and ``warn_unreachable`` for both packages. A few fixes came
+out of the typing work:
+
+* A MAC multicast endpoint without ``multicast_tx`` no longer requires a matching interface.
+* ``InternalConnection.ecu`` now returns the owning ECU instead of always ``None``.
+* A socket with ``deployments: null`` no longer crashes the loader.
+* A SOME/IP event or field without a ``name`` no longer crashes eventgroup resolution; the missing name is reported
+  by the regular field validation.
+
+The Python API changes (list fields that are no longer ``Optional``, the deprecated ``ecus`` argument of
+``ECUPort.get_internal_connected_component()``)
+are listed in the :ref:`model change history <chg__0_14__0_15>`.

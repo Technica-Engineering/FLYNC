@@ -29,12 +29,14 @@ class BaseVersion(FLYNCBaseModel):
     version: str = Field(examples=["0.0.1"])
 
     @field_serializer("version")
-    def serialize_version(self, v: str):
+    def serialize_version(self, v: str | Pep440Version | SemVersion) -> str:
         return str(v)
 
     @model_validator(mode="after")
     def validate_and_parse_version(self) -> Self:
-        raw_version = self.version
+        # ``version`` is declared as ``str`` for the schema, but this validator replaces it with the parsed version object, and
+        # re-validation (e.g. on assignment) sees that object again — so read it untyped and accept both.
+        raw_version: object = self.version
         parsed: Pep440Version | SemVersion
 
         if self.version_schema == "pep440":

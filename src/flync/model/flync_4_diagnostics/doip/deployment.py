@@ -54,7 +54,7 @@ class DoIPServerDeployment(FLYNCBaseModel):
     _uds_server_ref: Optional[UDSServer] = None
     _timings_ref: Optional[DoIPTimingProfile] = None
 
-    def bind(self, servers_by_name: dict, timings_by_id: dict) -> None:
+    def bind(self, servers_by_name: dict[str, UDSServer], timings_by_id: dict[str, DoIPTimingProfile]) -> None:
         """
         Resolve :attr:`uds_server` and :attr:`doip_timings_profile` against the system-wide catalogs.
         """
@@ -117,7 +117,7 @@ class DoIPDiscoveryDeployment(FLYNCBaseModel):
 
     _timings_ref: Optional[DoIPTimingProfile] = None
 
-    def bind(self, timings_by_id: dict) -> None:
+    def bind(self, timings_by_id: dict[str, DoIPTimingProfile]) -> None:
         """
         Resolve :attr:`doip_timings_profile` against the system-wide catalog, when given.
         """

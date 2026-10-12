@@ -12,7 +12,7 @@ This module exposes helpers that recognize that shape and raise a fatal validati
 the new layout or downgrade FLYNC to the 0.10.x line.
 """
 
-from typing import Any, Optional
+from typing import Optional
 
 from flync.core.utils.exceptions import Category, err_fatal
 
@@ -21,7 +21,7 @@ _VERSION_KEY = "compatible_flync_version"
 _REQUIRED_FLYNC_VERSION = "0.11.0"
 
 
-def detect_legacy_controller_version(data: Any) -> Optional[str]:
+def detect_legacy_controller_version(data: object) -> Optional[str]:
     """
     Return the legacy controller's ``compatible_flync_version`` when ``data`` matches the pre-0.11 single-file shape; ``None`` otherwise.
 
@@ -29,6 +29,7 @@ def detect_legacy_controller_version(data: Any) -> Optional[str]:
     none of these keys exist on a 0.11+ Controller dict, so their joint presence is a reliable signal.
     """
 
+    # ``data`` reaches this helper as raw Pydantic ``mode='before'`` input, which may be any type.
     if not isinstance(data, dict):
         return None
 
@@ -38,7 +39,7 @@ def detect_legacy_controller_version(data: Any) -> Optional[str]:
     return None if version is None else str(version)
 
 
-def reject_legacy_controller(data: Any) -> None:
+def reject_legacy_controller(data: object) -> None:
     """
     Raise a fatal error when ``data`` is a legacy Controller payload.
 

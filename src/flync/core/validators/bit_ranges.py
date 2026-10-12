@@ -3,7 +3,7 @@ Validators for bit-range placement inside PDUs and CAN/LIN frames, plus the
 value/from_value/to_value input-format check.
 """
 
-from typing import Any, Callable, Iterable, List, Optional, Tuple
+from typing import Callable, Iterable, List, Optional, Tuple, TypeVar
 
 from flync.core.utils.exceptions import (
     Category,
@@ -23,8 +23,10 @@ from flync.core.utils.exceptions import (
 
 BitRange = Tuple[str, int, int]
 
+T = TypeVar("T")
 
-def collect_bit_ranges(items: Iterable[Any], get_range: Callable[[Any], Optional[BitRange]]) -> List[BitRange]:
+
+def collect_bit_ranges(items: Iterable[T], get_range: Callable[[T], Optional[BitRange]]) -> List[BitRange]:
     """
     Build a list of ``(name, start_bit, end_bit_exclusive)`` ranges from ``items``.
 
@@ -91,7 +93,7 @@ def check_bit_ranges_no_overlap(context: str, ranges: List[BitRange]) -> None:
                 )
 
 
-def validate_value_input_format(data: dict) -> dict:
+def validate_value_input_format(data: object) -> object:
     """Validating combinations of 'value', 'from_value' and 'to_value'."""
     if not isinstance(data, dict):
         return data

@@ -35,18 +35,18 @@ class TextEntry(FLYNCBaseModel):
     """
 
     value: Optional[int] = Field(default=None)
-    from_value: Optional[int] = Field(default_factory=lambda data: data.get("value", 0))
-    to_value: Optional[int] = Field(default_factory=lambda data: data.get("value", 0))
+    # ``validate_default`` makes an explicit ``value: null`` fail as a type error instead of leaving ``None`` in the bounds.
+    from_value: int = Field(default_factory=lambda data: data.get("value", 0), validate_default=True)
+    to_value: int = Field(default_factory=lambda data: data.get("value", 0), validate_default=True)
     label: str = Field(min_length=1)
 
     @model_validator(mode="before")
     @classmethod
-    def _validate_value_input_format(cls, data: dict) -> dict:
+    def _validate_value_input_format(cls, data: object) -> object:
         return validate_value_input_format(data)
 
     @model_validator(mode="after")
     def _validate_bounds(self) -> Self:
-        assert self.from_value is not None and self.to_value is not None
         if self.to_value < self.from_value:
             raise err_major(
                 "TextEntry '{label}': to_value ({to_value}) must not be less than from_value ({from_value})",
@@ -112,17 +112,16 @@ class BitfieldState(FLYNCBaseModel):
 
     label: str = Field(min_length=1)
     value: Optional[int] = Field(default=None)
-    from_value: Optional[int] = Field(ge=0, default_factory=lambda data: data.get("value", 0))
-    to_value: Optional[int] = Field(ge=0, default_factory=lambda data: data.get("value", 0))
+    from_value: int = Field(ge=0, default_factory=lambda data: data.get("value", 0), validate_default=True)
+    to_value: int = Field(ge=0, default_factory=lambda data: data.get("value", 0), validate_default=True)
 
     @model_validator(mode="before")
     @classmethod
-    def validate_value_input_format(cls, data: dict) -> dict:
+    def validate_value_input_format(cls, data: object) -> object:
         return validate_value_input_format(data)
 
     @model_validator(mode="after")
     def _validate_bounds(self) -> Self:
-        assert self.from_value is not None and self.to_value is not None
         if self.to_value < self.from_value:
             raise err_major(
                 "BitfieldState '{label}': to_value ({to_value}) must not be less than from_value ({from_value})",
@@ -174,7 +173,6 @@ class BitfieldGroup(FLYNCBaseModel):
                     error_number="129",
                 )
             seen.add(s.label)
-            assert s.from_value is not None and s.to_value is not None
             if (s.from_value | s.to_value) & ~self.mask:
                 raise err_major(
                     "BitfieldGroup '{name}': state '{label}' range [{from_value}, {to_value}] has bits outside mask {mask}",

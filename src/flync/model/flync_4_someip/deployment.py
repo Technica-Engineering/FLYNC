@@ -68,9 +68,8 @@ class MulticastEndpoint(BaseUDPDeployment):
     ip_address: Annotated[IPvAnyAddress, is_ip_multicast] = Field()
 
     @field_serializer("ip_address")
-    def serialize_addresses(self, ip_address):
-        if ip_address is not None:
-            return str(ip_address).upper()
+    def serialize_addresses(self, ip_address: IPvAnyAddress) -> str:
+        return str(ip_address).upper()
 
 
 class MulticastSDEndpoint(MulticastEndpoint):
@@ -160,10 +159,10 @@ class SOMEIPServiceDeployment(abc.ABC, FLYNCBaseModel):
     _sd_timing_ref: SDTimings | None = None
 
     @abc.abstractmethod
-    def model_post_init(self, __context):
-        return super().model_post_init(__context)
+    def model_post_init(self, __context: object) -> None:
+        super().model_post_init(__context)
 
-    def bind(self, services_by_key: dict, sd_timings_by_id: dict) -> None:
+    def bind(self, services_by_key: dict[tuple[int, int], SOMEIPServiceInterface], sd_timings_by_id: dict[str, SDTimings]) -> None:
         svc = services_by_key.get((self.service, self.major_version))
         if svc is None:
             raise err_major(
@@ -185,7 +184,7 @@ class SOMEIPServiceDeployment(abc.ABC, FLYNCBaseModel):
         self._sd_timing_ref = sd
 
     @field_serializer("service")
-    def _serialize_field_as_service(self, service):
+    def _serialize_field_as_service(self, service: SOMEIPServiceInterface | int) -> int:
         if isinstance(service, SOMEIPServiceInterface):
             return service.id
         return service
@@ -213,10 +212,10 @@ class SOMEIPServiceConsumer(SOMEIPServiceDeployment):
 
     consumed_eventgroups: Optional[List[str]] = Field(default=None)
 
-    def model_post_init(self, __context):
-        return super().model_post_init(__context)
+    def model_post_init(self, __context: object) -> None:
+        super().model_post_init(__context)
 
-    def bind(self, services_by_key: dict, sd_timings_by_id: dict) -> None:
+    def bind(self, services_by_key: dict[tuple[int, int], SOMEIPServiceInterface], sd_timings_by_id: dict[str, SDTimings]) -> None:
         super().bind(services_by_key, sd_timings_by_id)
         if self.consumed_eventgroups is not None and self._service_ref is not None:
             consumed = set(self.consumed_eventgroups)
@@ -296,5 +295,5 @@ class SOMEIPServiceProvider(SOMEIPServiceDeployment):
     provided_eventgroups: Optional[List[str]] = Field(default=None)
     multicast_config: Optional[List[SOMEIPEventgroupMulticastConfig]] = Field(default=None)
 
-    def model_post_init(self, __context):
-        return super().model_post_init(__context)
+    def model_post_init(self, __context: object) -> None:
+        super().model_post_init(__context)

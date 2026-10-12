@@ -10,10 +10,22 @@ port, ECU port or controller interface and :func:`check_vlan_conn_valid` decides
 followed for the given VLAN.
 """
 
+from __future__ import annotations
+
+from collections.abc import Sequence
+from typing import TYPE_CHECKING
+
 from flync.core.utils.base_utils import check_obj_in_list
 
+if TYPE_CHECKING:
+    from flync.core.utils.base_utils import NetworkComponent
+    from flync.model.flync_4_ecu import ECUPort, EthernetInterface, SwitchPort
 
-def record_parent(parent, child, source):
+    #: Breadcrumbs of a path computation: ``id(component)`` -> ``(component, component it was first discovered from)``.
+    type ParentMap = dict[int, tuple[NetworkComponent, NetworkComponent]]
+
+
+def record_parent(parent: ParentMap, child: NetworkComponent, source: NetworkComponent) -> None:
     """
     Record that ``child`` was first discovered via ``source``. Breadth-first exploration means the first
     discovery is always the shortest route, so the first write wins (``setdefault``).
@@ -22,7 +34,7 @@ def record_parent(parent, child, source):
     parent.setdefault(id(child), (child, source))
 
 
-def backtrack_to_source(target, parent):
+def backtrack_to_source(target: NetworkComponent, parent: ParentMap) -> list[NetworkComponent]:
     """
     Follow the breadcrumb trail from ``target`` back to the starting interface, returning the components on
     that path (``target`` included, the starting interface excluded).
@@ -37,13 +49,13 @@ def backtrack_to_source(target, parent):
 
 
 def get_switch_port_connected_component(
-    comp,
-    connected_components,
-    new_connected_components,
-    new_list,
-    vlan,
-    parent,
-):
+    comp: SwitchPort,
+    connected_components: Sequence[NetworkComponent | None],
+    new_connected_components: Sequence[NetworkComponent | None],
+    new_list: list[NetworkComponent],
+    vlan: int | None,
+    parent: ParentMap,
+) -> None:
     """
     Helper function to help validate multicast paths.
 
@@ -51,7 +63,7 @@ def get_switch_port_connected_component(
     """
 
     conn = comp.connected_component
-    if check_vlan_conn_valid(conn, connected_components, new_connected_components, vlan):
+    if conn is not None and check_vlan_conn_valid(conn, connected_components, new_connected_components, vlan):
         new_list.append(conn)
         record_parent(parent, conn, comp)
     mcast_ports = comp.get_vlan_connected_ports(vlan)
@@ -66,7 +78,14 @@ def get_switch_port_connected_component(
             record_parent(parent, sport_obj, comp)
 
 
-def get_ecu_port_connected_component(comp, connected_components, new_connected_components, new_list, vlan, parent):
+def get_ecu_port_connected_component(
+    comp: ECUPort,
+    connected_components: Sequence[NetworkComponent | None],
+    new_connected_components: Sequence[NetworkComponent | None],
+    new_list: list[NetworkComponent],
+    vlan: int | None,
+    parent: ParentMap,
+) -> None:
     """
     Helper function to help validate multicast paths.
 
@@ -80,7 +99,14 @@ def get_ecu_port_connected_component(comp, connected_components, new_connected_c
             record_parent(parent, conn1, comp)
 
 
-def get_controller_interface_connected_component(comp, connected_components, new_connected_components, new_list, vlan, parent):
+def get_controller_interface_connected_component(
+    comp: EthernetInterface,
+    connected_components: Sequence[NetworkComponent | None],
+    new_connected_components: Sequence[NetworkComponent | None],
+    new_list: list[NetworkComponent],
+    vlan: int | None,
+    parent: ParentMap,
+) -> None:
     """
     Helper function to help validate multicast paths.
 
@@ -100,7 +126,9 @@ def get_controller_interface_connected_component(comp, connected_components, new
             record_parent(parent, iface, comp)
 
 
-def check_vlan_conn_valid(comp, list1, list2, vlan):
+def check_vlan_conn_valid(
+    comp: NetworkComponent | None, list1: Sequence[NetworkComponent | None], list2: Sequence[NetworkComponent | None], vlan: int | None
+) -> bool:
     """
     Helper to help compute multicast paths
     """
@@ -119,16 +147,18 @@ def check_vlan_conn_valid(comp, list1, list2, vlan):
     return flag
 
 
-def compute_path(vlan, interface):
+def compute_path(vlan: int | None, interface: EthernetInterface | None) -> tuple[list[NetworkComponent], ParentMap]:
     """
     Compute multicast path. Returns ``(connected_components, parent)`` -- everything reachable from
     ``interface`` within ``vlan``, and the breadcrumb map to feed to :func:`backtrack_to_source`.
     """
 
-    connected_components = []
-    new_connected_components = []
+    connected_components: list[NetworkComponent] = []
+    new_connected_components: list[NetworkComponent] = []
+    if interface is None:
+        return connected_components, {}
     connected_components.append(interface)
-    parent = {}
+    parent: ParentMap = {}
 
     direct_conn = interface.get_connected_components()
     for c1 in direct_conn:
@@ -138,44 +168,35 @@ def compute_path(vlan, interface):
 
     while len(new_connected_components) != 0:
 
-        new_list = []
+        new_list: list[NetworkComponent] = []
         for comp in new_connected_components:
-            if comp._type == "switch_port":
-                get_switch_port_connected_component(
-                    comp,
-                    connected_components,
-                    new_connected_components,
-                    new_list,
-                    vlan,
-                    parent,
-                )
-
-            if comp._type == "controller_interface":
-                get_controller_interface_connected_component(
-                    comp,
-                    connected_components,
-                    new_connected_components,
-                    new_list,
-                    vlan,
-                    parent,
-                )
-
-            if comp._type == "ecu_port":
-                get_ecu_port_connected_component(
-                    comp,
-                    connected_components,
-                    new_connected_components,
-                    new_list,
-                    vlan,
-                    parent,
-                )
+            _expand_component(comp, connected_components, new_connected_components, new_list, vlan, parent)
 
         connected_components.extend(new_connected_components)
         new_connected_components = new_list
     return connected_components, parent
 
 
-def serialize_components(list):
+def _expand_component(
+    comp: NetworkComponent,
+    connected_components: Sequence[NetworkComponent | None],
+    new_connected_components: Sequence[NetworkComponent | None],
+    new_list: list[NetworkComponent],
+    vlan: int | None,
+    parent: ParentMap,
+) -> None:
+    """Append the neighbors of ``comp`` reachable within ``vlan`` to ``new_list``."""
+    if comp._type == "switch_port":
+        get_switch_port_connected_component(comp, connected_components, new_connected_components, new_list, vlan, parent)
+
+    if comp._type == "controller_interface":
+        get_controller_interface_connected_component(comp, connected_components, new_connected_components, new_list, vlan, parent)
+
+    if comp._type == "ecu_port":
+        get_ecu_port_connected_component(comp, connected_components, new_connected_components, new_list, vlan, parent)
+
+
+def serialize_components(list: Sequence[NetworkComponent]) -> str:
     """
     Displays the names of the components object present in the list
     """

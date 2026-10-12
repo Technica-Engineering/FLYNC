@@ -161,6 +161,18 @@ strict_equality = true
 warn_redundant_casts = true
 warn_unused_ignores = true
 
+# The core library and the domain models are fully typed; keep them that way. Extend this list as other packages reach the same bar.
+# `warn_unreachable` catches annotations that contradict the code (a `None` check on a non-Optional value, an `isinstance`
+# check on input typed as already validated).
+# `disallow_any_explicit` is deliberately left off: Pydantic's own types carry `Any` (`ValidationInfo`, `SerializationInfo`,
+# `RootModel[...]`, the `model_dump` signature), so it fires on every module that uses them.
+[[tool.mypy.overrides]]
+module = ["flync.core", "flync.core.*", "flync.model", "flync.model.*"]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_any_generics = true
+warn_unreachable = true
+
 [tool.pydantic-mypy]
 # Type-check model construction: `ECU(nmae=...)` and a mistyped `Field(default=...)` become errors.
 init_typed = true

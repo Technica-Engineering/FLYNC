@@ -11,7 +11,11 @@ ECU and controller-level memberships are pre-populated during
 ``ECU.model_post_init()``; bus-level memberships are added by that function.
 """
 
-from typing import TYPE_CHECKING, Dict, NamedTuple, Set
+from __future__ import annotations
+
+from collections.abc import Iterable, Iterator, Mapping
+from itertools import chain
+from typing import TYPE_CHECKING, Dict, Literal, NamedTuple, Set
 
 from flync.core.utils.exceptions import Category, err_major, warn
 from flync.core.validators.forwarder import (
@@ -28,25 +32,40 @@ from flync.model.flync_4_signal.pdu_deployment import PDUReceiver, PDUSender
 from flync.model.flync_4_signal.value_encoding import BitmaskFlags
 
 if TYPE_CHECKING:  # pragma: no cover
+    from pydantic_core import PydanticCustomError
+
+    from flync.core.validators.forwarder import CANAnyFrame
+    from flync.model.flync_4_bus.can_bus import CANBus
+    from flync.model.flync_4_bus.lin_bus import LINBus
+    from flync.model.flync_4_ecu.can_interface import CANFrameRef, CANInterface
+    from flync.model.flync_4_ecu.controller import Controller
+    from flync.model.flync_4_ecu.ecu import ECU
+    from flync.model.flync_4_ecu.lin_interface import LINFrameRef, LINMasterInterface, LINSlaveInterface
+    from flync.model.flync_4_nm.state_management import EffectiveMember, StateManagementConfig, StateManagementGroup
+    from flync.model.flync_4_signal.frame import J1939Frame, LINFrame
+    from flync.model.flync_4_signal.pdu import PDU
     from flync.model.flync_model import FLYNCModel
+
+    type BusInterface = CANInterface | LINMasterInterface | LINSlaveInterface
+    type BusFrame = CANAnyFrame | J1939Frame | LINFrame
 
 
 class _ValidationContext(NamedTuple):
     """Model-wide catalogs shared by every group check, built once per model."""
 
-    model: "FLYNCModel"
+    model: FLYNCModel
     timing_profiles: Set[str]
     lin_bus_names: Set[str]
-    pdu_catalog: dict
-    frame_by_bus_id: dict
-    buses_by_name: dict
-    ecus_by_name: dict
+    pdu_catalog: Dict[str, PDU]
+    frame_by_bus_id: Dict[tuple[str, int], BusFrame]
+    buses_by_name: Dict[str, CANBus | LINBus]
+    ecus_by_name: Dict[str, ECU]
     sent_frame_ids_by_bus: Dict[str, Set[int]]
     attached_buses_by_ecu: Dict[str, Set[str]]
     paths_cache: Dict[str, tuple[Set[str], Set[str]]]
 
 
-def _build_context(model: "FLYNCModel", cfg) -> _ValidationContext:
+def _build_context(model: FLYNCModel, cfg: StateManagementConfig | None) -> _ValidationContext:
     """Assemble the group-independent catalogs (PDUs, frames, bus topology, timing profiles)."""
 
     channels = getattr(model.communication, "channels", None) if model.communication else None
@@ -75,7 +94,7 @@ def _paths(ctx: _ValidationContext, ecu_name: str) -> tuple[Set[str], Set[str]]:
     return cached
 
 
-def validate_state_management(model: "FLYNCModel") -> None:
+def validate_state_management(model: FLYNCModel) -> None:
     """Run all state management rules. Called from FLYNCModel."""
 
     cfg = model.communication.state_management if model.communication else None
@@ -93,7 +112,7 @@ def validate_state_management(model: "FLYNCModel") -> None:
         _validate_group(name, group, ctx)
 
 
-def _check_referenced_groups_exist(members, groups) -> None:
+def _check_referenced_groups_exist(members: Iterable[str], groups: Mapping[str, StateManagementGroup]) -> None:
     """Every group named in a ``state_memberships`` entry must exist in the registry."""
 
     for group_name in members:
@@ -107,7 +126,7 @@ def _check_referenced_groups_exist(members, groups) -> None:
             )
 
 
-def _validate_group(name, group, ctx: _ValidationContext) -> None:
+def _validate_group(name: str, group: StateManagementGroup, ctx: _ValidationContext) -> None:
     """Run every per-group rule: basics, relevance bits, single bus variant, reachability, wake lines, redundancy, timing."""
 
     participants = [m for m in group._effective_members if m.role == "participant"]
@@ -120,7 +139,7 @@ def _validate_group(name, group, ctx: _ValidationContext) -> None:
     _check_timing_feasibility(ctx.model, group)
 
 
-def _check_group_basics(name, group, participants, ctx: _ValidationContext) -> None:
+def _check_group_basics(name: str, group: StateManagementGroup, participants: list[EffectiveMember], ctx: _ValidationContext) -> None:
     """A group needs a participant, a resolvable network-management nm_pdu, and a defined timing profile."""
 
     if not participants:
@@ -159,7 +178,7 @@ def _check_group_basics(name, group, participants, ctx: _ValidationContext) -> N
         )
 
 
-def _check_group_reachability(name, group, effective, ctx: _ValidationContext) -> None:
+def _check_group_reachability(name: str, group: StateManagementGroup, effective: Iterable[EffectiveMember], ctx: _ValidationContext) -> None:
     """
     Cross-check each member's role against its transport bindings.
 
@@ -174,31 +193,31 @@ def _check_group_reachability(name, group, effective, ctx: _ValidationContext) -
             _check_lin_bus_reachability(name, group, m.entity_path, ctx)
         elif m.entity_kind == "bus":
             _check_bus_reachability(name, group, ctx.buses_by_name.get(m.entity_path), ctx.sent_frame_ids_by_bus)
-        elif m.ecu_name in ctx.ecus_by_name:
-            _check_ecu_member_reachability(name, group, m, ctx)
+        elif m.ecu_name is not None and m.ecu_name in ctx.ecus_by_name:
+            _check_ecu_member_reachability(name, group, m, m.ecu_name, ctx)
 
 
-def _check_ecu_member_reachability(name, group, member, ctx: _ValidationContext) -> None:
+def _check_ecu_member_reachability(name: str, group: StateManagementGroup, member: EffectiveMember, ecu_name: str, ctx: _ValidationContext) -> None:
     """
     A participant needs a TX path (announce its own state) AND an RX path
     (observe the group state — without it, it could never sleep correctly);
     an observer needs an RX path only.
     """
 
-    tx, rx = _paths(ctx, member.ecu_name)
+    tx, rx = _paths(ctx, ecu_name)
     if member.role == "participant" and group.nm_pdu not in tx:
         raise _reachability_error(name, group, member, "sender")
     if group.nm_pdu not in rx:  # required for participants and observers alike
         raise _reachability_error(name, group, member, "receiver")
 
 
-def _warn_redundant_memberships(name, participants) -> None:
+def _warn_redundant_memberships(name: str, participants: list[EffectiveMember]) -> None:
     """Emit warnings (never errors) for redundant-but-harmless declarations."""
 
     _warn_controller_under_ecu(name, participants)
 
 
-def _warn_controller_under_ecu(name, participants) -> None:
+def _warn_controller_under_ecu(name: str, participants: list[EffectiveMember]) -> None:
     """Warn when a controller participant's host ECU is already a whole-ECU participant."""
 
     ecu_level = {m.ecu_name for m in participants if m.entity_kind == "ecu"}
@@ -212,7 +231,7 @@ def _warn_controller_under_ecu(name, participants) -> None:
             )
 
 
-def _check_single_variant_per_bus(name, participants, ctx: _ValidationContext) -> None:
+def _check_single_variant_per_bus(name: str, participants: list[EffectiveMember], ctx: _ValidationContext) -> None:
     """
     A CAN bus is modeled with ONE membership variant: bus-level (the whole bus
     as one participant) OR node-level (its ECUs / controllers as individual
@@ -242,7 +261,9 @@ def _check_single_variant_per_bus(name, participants, ctx: _ValidationContext) -
             )
 
 
-def _reachability_error(group_name, group, member, direction):
+def _reachability_error(
+    group_name: str, group: StateManagementGroup, member: EffectiveMember, direction: Literal["sender", "receiver"]
+) -> PydanticCustomError:
     """
     Build the reachability error for a member missing a transport path.
 
@@ -270,7 +291,7 @@ def _reachability_error(group_name, group, member, direction):
     )
 
 
-def _bus_topology_index(model: "FLYNCModel"):
+def _bus_topology_index(model: FLYNCModel) -> tuple[Dict[str, Set[int]], Dict[str, Set[str]]]:
     """
     One pass over every CAN and LIN interface.
 
@@ -283,12 +304,14 @@ def _bus_topology_index(model: "FLYNCModel"):
     attached_buses_by_ecu: Dict[str, Set[str]] = {}
     for ecu in model.ecus:
         for controller in ecu.controllers:
-            for iface in (controller.can_interfaces or []) + (controller.lin_interfaces or []):
+            for iface in chain(controller.can_interfaces or [], controller.lin_interfaces or []):
                 _index_bus_interface(iface, ecu.name, sent_frame_ids_by_bus, attached_buses_by_ecu)
     return sent_frame_ids_by_bus, attached_buses_by_ecu
 
 
-def _index_bus_interface(iface, ecu_name, sent_frame_ids_by_bus, attached_buses_by_ecu) -> None:
+def _index_bus_interface(
+    iface: BusInterface, ecu_name: str, sent_frame_ids_by_bus: Dict[str, Set[int]], attached_buses_by_ecu: Dict[str, Set[str]]
+) -> None:
     """Record one interface's bus attachment and the frame ids it transmits."""
 
     bus_ref = getattr(iface, "bus_ref", None)
@@ -299,7 +322,7 @@ def _index_bus_interface(iface, ecu_name, sent_frame_ids_by_bus, attached_buses_
         sent_frame_ids_by_bus.setdefault(bus_ref, set()).add(ref.frame_ref)
 
 
-def _build_frame_catalog_by_bus_id(model: "FLYNCModel"):
+def _build_frame_catalog_by_bus_id(model: FLYNCModel) -> Dict[tuple[str, int], BusFrame]:
     """
     Return a ``(bus_name, frame_id)``-keyed dict of every CAN and LIN frame.
 
@@ -308,7 +331,7 @@ def _build_frame_catalog_by_bus_id(model: "FLYNCModel"):
     the same way CAN interfaces do.
     """
 
-    catalog = dict(_build_can_frame_catalog_by_bus_id(model))
+    catalog: Dict[tuple[str, int], BusFrame] = dict(_build_can_frame_catalog_by_bus_id(model))
     channels = getattr(model.communication, "channels", None) if model.communication else None
     for bus in channels.lin_buses or [] if channels else []:
         for frame in bus.frames or []:
@@ -316,7 +339,7 @@ def _build_frame_catalog_by_bus_id(model: "FLYNCModel"):
     return catalog
 
 
-def _pdu_paths_by_ecu(ecu, pdu_catalog, frame_by_bus_id) -> tuple[Set[str], Set[str]]:
+def _pdu_paths_by_ecu(ecu: ECU, pdu_catalog: Mapping[str, PDU], frame_by_bus_id: Mapping[tuple[str, int], BusFrame]) -> tuple[Set[str], Set[str]]:
     """
     Return ``(tx, rx)`` — the names of every PDU the ECU sends respectively
     receives on any path.
@@ -337,7 +360,7 @@ def _pdu_paths_by_ecu(ecu, pdu_catalog, frame_by_bus_id) -> tuple[Set[str], Set[
     return tx, rx
 
 
-def _collect_socket_pdus(controller, tx: Set[str], rx: Set[str], pdu_catalog) -> None:
+def _collect_socket_pdus(controller: Controller, tx: Set[str], rx: Set[str], pdu_catalog: Mapping[str, PDU]) -> None:
     """Add the Ethernet socket-deployed PDUs of a controller to ``tx`` / ``rx``."""
 
     for socket in _iter_sockets_on_controller(controller):
@@ -349,17 +372,17 @@ def _collect_socket_pdus(controller, tx: Set[str], rx: Set[str], pdu_catalog) ->
                 _add_pdu_with_contained(rx, dep.pdu_ref, pdu_catalog)
 
 
-def _collect_frame_pdus(controller, tx: Set[str], rx: Set[str], frame_by_bus_id) -> None:
+def _collect_frame_pdus(controller: Controller, tx: Set[str], rx: Set[str], frame_by_bus_id: Mapping[tuple[str, int], BusFrame]) -> None:
     """Add the CAN/LIN sender/receiver-frame PDUs of a controller to ``tx`` / ``rx``."""
 
-    for iface in (controller.can_interfaces or []) + (controller.lin_interfaces or []):
+    for iface in chain(controller.can_interfaces or [], controller.lin_interfaces or []):
         for frame_ref in getattr(iface, "sender_frames", None) or []:
             _add_frame_pdus(tx, frame_ref, frame_by_bus_id)
         for frame_ref in getattr(iface, "receiver_frames", None) or []:
             _add_frame_pdus(rx, frame_ref, frame_by_bus_id)
 
 
-def _add_pdu_with_contained(target: Set[str], pdu_ref: str, pdu_catalog) -> None:
+def _add_pdu_with_contained(target: Set[str], pdu_ref: str, pdu_catalog: Mapping[str, PDU]) -> None:
     """Add a deployed PDU ref plus, for Container PDUs, every contained PDU ref."""
 
     target.add(pdu_ref)
@@ -368,7 +391,7 @@ def _add_pdu_with_contained(target: Set[str], pdu_ref: str, pdu_catalog) -> None
         target.update(contained.pdu_ref for contained in carrier.contained_pdus)
 
 
-def _add_frame_pdus(target: Set[str], frame_ref, frame_by_bus_id) -> None:
+def _add_frame_pdus(target: Set[str], frame_ref: CANFrameRef | LINFrameRef, frame_by_bus_id: Mapping[tuple[str, int], BusFrame]) -> None:
     """Add every PDU packed in the referenced CAN or LIN frame."""
 
     frame = frame_by_bus_id.get((frame_ref.bus_ref, frame_ref.frame_ref))
@@ -376,7 +399,7 @@ def _add_frame_pdus(target: Set[str], frame_ref, frame_by_bus_id) -> None:
         target.update(inst.pdu_ref for inst in frame.packed_pdus or [])
 
 
-def _check_lin_bus_reachability(group_name, group, bus_name, ctx: _ValidationContext) -> None:
+def _check_lin_bus_reachability(group_name: str, group: StateManagementGroup, bus_name: str, ctx: _ValidationContext) -> None:
     """
     LIN branch of the reachability check.
 
@@ -404,7 +427,7 @@ def _check_lin_bus_reachability(group_name, group, bus_name, ctx: _ValidationCon
     )
 
 
-def _lin_master_knows_group_state(bus_name, pdu_ref, ctx: _ValidationContext) -> bool:
+def _lin_master_knows_group_state(bus_name: str, pdu_ref: str, ctx: _ValidationContext) -> bool:
     """True if a LIN master of ``bus_name`` runs on an ECU that receives or sends ``pdu_ref`` on another bus."""
 
     for ecu in ctx.model.ecus:
@@ -413,7 +436,7 @@ def _lin_master_knows_group_state(bus_name, pdu_ref, ctx: _ValidationContext) ->
     return False
 
 
-def _ecu_is_lin_master_with_group_state(ecu, bus_name, pdu_ref, ctx: _ValidationContext) -> bool:
+def _ecu_is_lin_master_with_group_state(ecu: ECU, bus_name: str, pdu_ref: str, ctx: _ValidationContext) -> bool:
     """
     True if ``ecu`` masters LIN bus ``bus_name`` and knows ``pdu_ref`` on
     another binding — receiving it (learns the state elsewhere) or sending it
@@ -429,7 +452,9 @@ def _ecu_is_lin_master_with_group_state(ecu, bus_name, pdu_ref, ctx: _Validation
     return False
 
 
-def _check_bus_reachability(group_name, group, bus, sent_frame_ids_by_bus) -> None:
+def _check_bus_reachability(
+    group_name: str, group: StateManagementGroup, bus: CANBus | LINBus | None, sent_frame_ids_by_bus: Mapping[str, Set[int]]
+) -> None:
     """
     Bus branch of the reachability check: the group's NM PDU must have a frame
     binding on the bus and at least one attached ECU must send that frame.
@@ -463,7 +488,7 @@ def _check_bus_reachability(group_name, group, bus, sent_frame_ids_by_bus) -> No
         )
 
 
-def _check_relevance_bits(name, group, participants, nm_pdu) -> None:
+def _check_relevance_bits(name: str, group: StateManagementGroup, participants: list[EffectiveMember], nm_pdu: PDU | None) -> None:
     """
     Every participant's relevance bit must name a flag of the group's NM PDU.
 
@@ -499,7 +524,7 @@ def _check_relevance_bits(name, group, participants, nm_pdu) -> None:
             )
 
 
-def _bitmask_flag_labels(nm_pdu) -> Set[str]:
+def _bitmask_flag_labels(nm_pdu: PDU | None) -> Set[str]:
     """Return every bitmask-flag label across the PDU's signals — its relevance-/control-vector bits."""
 
     labels: Set[str] = set()
@@ -518,7 +543,7 @@ def _bitmask_flag_labels(nm_pdu) -> Set[str]:
 _CAN_FRAME_OVERHEAD_BITS = 47  # SOF + arbitration + control + CRC + ACK + EOF (standard 11-bit id)
 
 
-def _check_timing_feasibility(model, group) -> None:
+def _check_timing_feasibility(model: FLYNCModel, group: StateManagementGroup) -> None:
     """
     Warn (never error) when the NM timing on a CAN bus is implausible — ONE check
     per NM frame, from two angles:
@@ -552,7 +577,7 @@ def _check_timing_feasibility(model, group) -> None:
         _warn_can_leg_timing(group, bus, cycle_time_ms)
 
 
-def _resolve_cycle_time_ms(model, group):
+def _resolve_cycle_time_ms(model: FLYNCModel, group: StateManagementGroup) -> float | None:
     """Resolve the group's timing profile to its ``cycle_time_ms``, or ``None`` if unresolvable."""
 
     cfg = model.communication.state_management if model.communication else None
@@ -563,7 +588,7 @@ def _resolve_cycle_time_ms(model, group):
     return getattr(profile, "cycle_time_ms", None)
 
 
-def _warn_can_leg_timing(group, bus, cycle_time_ms) -> None:
+def _warn_can_leg_timing(group: StateManagementGroup, bus: CANBus, cycle_time_ms: float) -> None:
     """
     One pass over the CAN ``bus``'s NM frames: check that a configured frame
     cyclic timing matches the group's profile, and that the frame's effective
@@ -578,7 +603,7 @@ def _warn_can_leg_timing(group, bus, cycle_time_ms) -> None:
         _warn_infeasible_cadence(group, bus, frame, frame_cycles_ms, cycle_time_ms, baud_rate)
 
 
-def _nm_frames(bus, nm_pdu):
+def _nm_frames(bus: CANBus | LINBus, nm_pdu: str) -> Iterator[BusFrame]:
     """Yield the ``bus``'s frames whose packed PDUs reference the NM PDU ``nm_pdu``."""
 
     for frame in bus.frames or []:
@@ -586,14 +611,14 @@ def _nm_frames(bus, nm_pdu):
             yield frame
 
 
-def _frame_cycles_ms(frame):
+def _frame_cycles_ms(frame: BusFrame) -> list[float]:
     """Return the frame's configured cyclic timings in ms (``cyclic.cycle`` is in seconds)."""
 
     timing = getattr(frame, "timing", None)
     return [cyclic.cycle * 1000 for cyclic in getattr(timing, "cyclic_timings", None) or []]
 
 
-def _warn_cycle_mismatch(group, bus, frame, frame_cycles_ms, cycle_time_ms) -> None:
+def _warn_cycle_mismatch(group: StateManagementGroup, bus: CANBus, frame: BusFrame, frame_cycles_ms: list[float], cycle_time_ms: float) -> None:
     """Warn for every configured frame cyclic timing that contradicts the group's ``cycle_time_ms``."""
 
     for frame_cycle_ms in frame_cycles_ms:  # (b) consistency with the referenced timing profile
@@ -607,7 +632,9 @@ def _warn_cycle_mismatch(group, bus, frame, frame_cycles_ms, cycle_time_ms) -> N
             )
 
 
-def _warn_infeasible_cadence(group, bus, frame, frame_cycles_ms, cycle_time_ms, baud_rate) -> None:
+def _warn_infeasible_cadence(
+    group: StateManagementGroup, bus: CANBus, frame: BusFrame, frame_cycles_ms: list[float], cycle_time_ms: float, baud_rate: int | None
+) -> None:
     """Warn when the frame's effective cadence undercuts its transmission time at the bus ``baud_rate``."""
 
     if not baud_rate:

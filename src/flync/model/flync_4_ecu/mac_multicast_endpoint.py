@@ -2,11 +2,12 @@
 
 from typing import Annotated, List, Literal, Optional
 
-from pydantic import AfterValidator, Field, RootModel
+from pydantic import AfterValidator, BeforeValidator, Field, RootModel
 
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.datatypes.macaddress import FLYNCMacAddress
 from flync.core.validators.address import validate_mac_multicast, validate_vlan_id
+from flync.core.validators.generic import none_to_empty_list
 
 
 class MACMulticastEndpoint(FLYNCBaseModel):
@@ -47,7 +48,7 @@ class MACMulticastEndpoint(FLYNCBaseModel):
         description="VLAN ID expected on this endpoint (``None`` for untagged).",
         default=None,
     )
-    multicast_tx: Optional[List[Annotated[FLYNCMacAddress, AfterValidator(validate_mac_multicast)]]] = Field(
+    multicast_tx: Annotated[List[Annotated[FLYNCMacAddress, AfterValidator(validate_mac_multicast)]], BeforeValidator(none_to_empty_list)] = Field(
         description="List of multicast addresses that this endpoint should \
             transmit to.",
         default=[],
@@ -71,7 +72,7 @@ class AVTPMulticastEndpoint(MACMulticastEndpoint):
     protocol: Literal["avtp"] | Literal["AVTP"] = Field()
 
 
-class MACEndpointUnion(RootModel):
+class MACEndpointUnion(RootModel[AVTPMulticastEndpoint]):
     """
     Union type for MAC multicast endpoints, discriminated by the 'ethertype'
     field.

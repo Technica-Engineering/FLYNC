@@ -43,7 +43,7 @@ class MulticastGroup(FLYNCBaseModel):
     ports: List[str] = Field()
 
     @field_serializer("address")
-    def serialize_address(self, address):
+    def serialize_address(self, address: IPvAnyAddress | FLYNCMacAddress) -> str:
         """
         Serialize the multicast address as a string.
         """
@@ -78,6 +78,6 @@ class VLANEntry(FLYNCBaseModel):
     default_priority: int = Field(..., ge=0, le=7)
     ports: List[str] = Field()
     multicast: Annotated[
-        List[MulticastGroup] | None,
+        List[MulticastGroup],
         BeforeValidator(none_to_empty_list),
     ] = Field(default=[])

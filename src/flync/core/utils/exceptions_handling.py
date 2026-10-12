@@ -1,5 +1,6 @@
 """Provides utilities for validating models and handling errors."""
 
+from pathlib import Path
 from typing import Any, List, Optional, Set, Tuple, Type, get_args, get_origin
 
 from pydantic import BaseModel, TypeAdapter, ValidationError
@@ -8,6 +9,12 @@ from ruamel.yaml.nodes import MappingNode, Node, SequenceNode
 
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.exceptions import _validation_warnings
+
+# The YAML-position helpers below take raw ruamel.yaml data (``CommentedMap``/``CommentedSeq`` with their ``.lc`` position
+# info, or composed ``Node`` trees) and probe it duck-typed inside ``try``/``except AttributeError``; ``Any`` is kept there on purpose.
+
+#: A Pydantic error ``loc``: the path of keys/indices to an element of the validated data.
+Loc = Tuple[int | str, ...]
 
 FATAL_ERROR_TYPES = {"extra_forbid", "extra_forbidden", "fatal", "missing"}
 
@@ -46,7 +53,7 @@ def resolve_alias(model: type[BaseModel], field_name: str) -> str:
     return field.alias or field_name if field else field_name
 
 
-def get_name_by_alias(model: type[BaseModel], alias: str):
+def get_name_by_alias(model: type[BaseModel], alias: str) -> str:
     """
     Return the Python field name that corresponds to the given alias.
 
@@ -74,7 +81,7 @@ def get_name_by_alias(model: type[BaseModel], alias: str):
     raise KeyError(alias)
 
 
-def _child_at(container: Any, key: Any) -> Tuple[bool, Any]:
+def _child_at(container: Any, key: int | str) -> Tuple[bool, Any]:
     """
     Return ``(True, child)`` for ``container[key]``, or ``(False, None)`` when the key/index is missing or the container is not subscriptable.
     """
@@ -87,7 +94,7 @@ def _child_at(container: Any, key: Any) -> Tuple[bool, Any]:
         return False, None
 
 
-def _node_child_at(node: Node, key: Any) -> Tuple[bool, Any]:
+def _node_child_at(node: Node, key: int | str | None) -> Tuple[bool, Any]:
     """
     Return ``(True, child)`` for ``key`` inside a composed ruamel.yaml ``node``, or ``(False, None)`` when it is absent.
     """
@@ -162,7 +169,7 @@ def _descend_union_segment(
     return found, current, current_model, False
 
 
-def safe_yaml_position(node: Any, loc: tuple, model: type[BaseModel] | None = None) -> Tuple[int | None, int | None]:
+def safe_yaml_position(node: Any, loc: Loc, model: type[BaseModel] | None = None) -> Tuple[int | None, int | None]:
     """
     Given a ruamel.yaml node and a Pydantic `loc` tuple, return (line, column).
     Falls back gracefully if key/item is missing.
@@ -193,7 +200,7 @@ def safe_yaml_position(node: Any, loc: tuple, model: type[BaseModel] | None = No
     return _extract_position(parent, last_key)
 
 
-def _extract_position(parent: Any, key: Any) -> Tuple[int | None, int | None]:
+def _extract_position(parent: Any, key: int | str | None) -> Tuple[int | None, int | None]:
     """
     Safely extract line/col from ruamel.yaml node.  Returns (line, column) or (None, None)
     """
@@ -249,7 +256,7 @@ def _mark_position(node: Node) -> Tuple[int | None, int | None]:
     return mark.line + 1, mark.column + 1
 
 
-def _parse_first_sub_error_loc(sub_errors: str) -> tuple:
+def _parse_first_sub_error_loc(sub_errors: str) -> Loc:
     """Extract the loc path from the first line of a sub_errors string.
 
     sub_errors lines have the format ``"dot.path: message"``.  The path is
@@ -270,7 +277,7 @@ def _parse_first_sub_error_loc(sub_errors: str) -> tuple:
     return tuple(parts)
 
 
-def _error_yaml_position(err: ErrorDetails, model: type[BaseModel], yaml_data: object, ctx: dict) -> Tuple[int | None, int | None]:
+def _error_yaml_position(err: ErrorDetails, model: type[BaseModel], yaml_data: object, ctx: dict[str, Any]) -> Tuple[int | None, int | None]:
     """
     Return the YAML ``(line, column)`` for ``err``.
 
@@ -296,8 +303,8 @@ def _enrich_error_ctx(
     err: ErrorDetails,
     model: Optional[type[BaseModel]],
     yaml_data: Optional[object],
-    yaml_path: Optional[str],
-) -> dict:
+    yaml_path: str | Path | None,
+) -> dict[str, Any]:
     """
     Return ``err``'s context enriched (in place) with ``yaml_path`` and the YAML ``line``/``col`` of the error, when they can be determined.
     """
@@ -355,7 +362,7 @@ def errors_to_init_errors(
     errors: List[ErrorDetails],
     model: Optional[type[BaseModel]] = None,
     yaml_data: Optional[object] = None,
-    yaml_path: Optional[str] = None,
+    yaml_path: str | Path | None = None,
 ) -> List[InitErrorDetails]:
     """
     Convert Pydantic validation errors into ``InitErrorDetails`` for re-raising.
@@ -394,7 +401,7 @@ def errors_to_init_errors(
     return enriched
 
 
-def delete_at_loc(data: Any, loc: Tuple):
+def delete_at_loc(data: Any, loc: Loc) -> None:
     """
     Helper function to remove the key/item from original object by loc(path to an element within the object).
 
@@ -403,7 +410,7 @@ def delete_at_loc(data: Any, loc: Tuple):
     data : Any
         Data to remove the item from. **Will be mutated**.
 
-    loc : Tuple
+    loc : Loc
         Path to the location of item to remove.
     """
 
@@ -427,7 +434,7 @@ def delete_at_loc(data: Any, loc: Tuple):
         cur.pop(last)
 
 
-def _get_error_signature(error_details: ErrorDetails) -> Tuple:
+def _get_error_signature(error_details: ErrorDetails) -> Tuple[Loc, str, str]:
     """
     A function to return hashable representation of ErrorDetails object or dict taken from ValidationError.errors() list to then use it for
     identification.
@@ -439,10 +446,10 @@ def _get_error_signature(error_details: ErrorDetails) -> Tuple:
 
     Returns
     -------
-    Tuple
+    Tuple[Loc, str, str]
     """
 
-    loc: Tuple[int | str, ...] = error_details.get("loc", ())
+    loc: Loc = error_details.get("loc", ())
     msg = error_details.get("msg")
     error_type = error_details.get("type")
 
@@ -465,7 +472,7 @@ def get_unique_errors(
     List[ErrorDetails]
     """
 
-    errors_seen: Set[Tuple[str, Tuple]] = set()
+    errors_seen: Set[Tuple[Loc, str, str]] = set()
     unique_errors: List[ErrorDetails] = []
 
     for error in errors:
@@ -505,7 +512,7 @@ def _wrap_native_error(err: ErrorDetails) -> ErrorDetails:
     field_name = loc[-1] if loc else "field"
     sub_errors = f"{original_type}: {original_msg}"
     original_ctx = err.get("ctx") or {}
-    ctx: dict = {"sub_errors": sub_errors}
+    ctx: dict[str, Any] = {"sub_errors": sub_errors}
     for key in ("yaml_path", "line", "col"):
         if key in original_ctx:
             ctx[key] = original_ctx[key]
@@ -519,7 +526,7 @@ def _wrap_native_error(err: ErrorDetails) -> ErrorDetails:
     }
 
 
-def _tag_warnings_with_path(warnings: list, path) -> None:
+def _tag_warnings_with_path(warnings: list[ErrorDetails], path: str | Path | None) -> None:
     """
     Stamp each warning that lacks a yaml_path with the given path.
     """
@@ -537,7 +544,7 @@ def _enrich_validation_error(
     ve: ValidationError,
     model: type,
     working: Any,
-    path,
+    path: str | Path | None,
 ) -> ValidationError:
     """
     Return ``ve`` re-raised with YAML source locations injected.
@@ -558,7 +565,7 @@ def _enrich_validation_error(
         return ve_enriched
 
 
-def _has_top_level_fatal(errs: List[ErrorDetails], removed_locs: Set[Tuple]) -> bool:
+def _has_top_level_fatal(errs: List[ErrorDetails], removed_locs: Set[Loc]) -> bool:
     """
     Return True when an unrecovered fatal error sits at depth ≤ 1.
     """
@@ -568,11 +575,11 @@ def _has_top_level_fatal(errs: List[ErrorDetails], removed_locs: Set[Tuple]) -> 
 
 def _collect_original_error(
     err: ErrorDetails,
-    remove_loc: Tuple,
+    remove_loc: Loc,
     collected_errors: List[ErrorDetails],
     working: Any,
-    removed_locs: Set[Tuple],
-    major_removed_locs: Set[Tuple],
+    removed_locs: Set[Loc],
+    major_removed_locs: Set[Loc],
 ) -> None:
     """
     Record ``err`` and excise its location from ``working``.
@@ -588,8 +595,8 @@ def _collect_original_error(
 
 def _process_error_list(
     errs: List[ErrorDetails],
-    removed_locs: Set[Tuple],
-    major_removed_locs: Set[Tuple],
+    removed_locs: Set[Loc],
+    major_removed_locs: Set[Loc],
     collected_errors: List[ErrorDetails],
     working: Any,
 ) -> bool:
@@ -633,7 +640,7 @@ def _process_error_list(
     return made_progress
 
 
-def validate_with_policy(model: Type[FLYNCBaseModel], data: Any, path) -> Tuple[Optional[FLYNCBaseModel], List[ErrorDetails]]:
+def validate_with_policy(model: Type[FLYNCBaseModel], data: Any, path: str | Path | None) -> Tuple[Optional[FLYNCBaseModel], List[ErrorDetails]]:
     """
     Helper function to perform model validation from the given data, collect errors with different severity and perform action based on severity.
 
@@ -661,8 +668,8 @@ def validate_with_policy(model: Type[FLYNCBaseModel], data: Any, path) -> Tuple[
 
     working = data
     collected_errors: List[ErrorDetails] = []
-    removed_locs: Set[Tuple] = set()
-    major_removed_locs: Set[Tuple] = set()
+    removed_locs: Set[Loc] = set()
+    major_removed_locs: Set[Loc] = set()
     warnings_token = _validation_warnings.set([])
     try:
         while True:

@@ -3,7 +3,7 @@ Defines the supported physical layer (PHY) interface
 configurations used in the FLYNC model
 """
 
-from typing import TYPE_CHECKING, Any, Literal, Optional, Self
+from typing import TYPE_CHECKING, Literal, Optional, Self
 
 from pydantic import Field, model_validator
 
@@ -111,7 +111,7 @@ class BASET1S(FLYNCBaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def drop_legacy_role(cls, data: Any) -> Any:
+    def drop_legacy_role(cls, data: object) -> object:
         """Drop a ``role`` left over from an earlier FLYNC version, with a warning."""
 
         if not isinstance(data, dict) or "role" not in data:

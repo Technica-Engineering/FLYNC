@@ -6,8 +6,10 @@ Defines the Controller, EthernetInterfaceConfig, and EthernetInterface models fo
 here, resolved by the wiring at the bottom of :mod:`flync.model.flync_4_ecu`.
 """
 
+from __future__ import annotations
+
 from functools import partial
-from typing import TYPE_CHECKING, Annotated, Any, List, Literal, Optional, Self
+from typing import TYPE_CHECKING, Annotated, Iterator, List, Literal, Optional, Self
 
 from pydantic import (
     AfterValidator,
@@ -67,7 +69,8 @@ from flync.model.flync_4_tsn import (
 if TYPE_CHECKING:
     from flync.model.flync_4_ecu.compute_node import ComputeNode
     from flync.model.flync_4_ecu.controller_topology import ControllerTopology
-    from flync.model.flync_4_ecu.switch import Switch
+    from flync.model.flync_4_ecu.port import ECUPort
+    from flync.model.flync_4_ecu.switch import Switch, SwitchPort
 
 _PTPConfigField = Annotated[
     Optional[PTPConfig],
@@ -131,15 +134,18 @@ class VirtualControllerInterface(FLYNCBaseModel):
     ] = Field(default=None)
     addresses: List[IPv6AddressEndpoint | IPv4AddressEndpoint] = Field()
     multicast: Annotated[
-        Optional[List[IPvAnyAddress | FLYNCMacAddress]],
+        List[IPvAnyAddress | FLYNCMacAddress],
         AfterValidator(validate_multicast_list),
         BeforeValidator(none_to_empty_list),
     ] = Field(default=[])
 
     @field_serializer("addresses", "multicast")
-    def serialize_addresses(self, value):
+    def serialize_addresses(
+        self, value: list[IPv6AddressEndpoint | IPv4AddressEndpoint] | list[IPvAnyAddress | FLYNCMacAddress] | None
+    ) -> list[dict[str, object] | str] | None:
         if value is not None:
             return [(v.model_dump() if isinstance(v, FLYNCBaseModel) else str(v).upper()) for v in value]
+        return None
 
 
 class EthernetInterfaceConfig(FLYNCBaseModel):
@@ -220,14 +226,14 @@ class EthernetInterfaceConfig(FLYNCBaseModel):
     _name: Optional[str] = None
 
     @property
-    def name(self):
-        """Interface name, propagated from the parent :class:`EthernetInterface` (implied from the folder name)."""
+    def name(self) -> str | None:
+        """Interface name, propagated from the parent :class:`EthernetInterface` (implied from the folder name); ``None`` until then."""
         return self._name
 
     @model_validator(mode="after")
     def validate_vlans(self) -> Self:
         """Raise if any VLAN ID is repeated across virtual interfaces."""
-        validate_vlan_ids_unique(self.virtual_interfaces, self.name)
+        validate_vlan_ids_unique(self.virtual_interfaces or [], self.name)
         return self
 
     @model_validator(mode="after")
@@ -271,14 +277,14 @@ class EthernetInterfaceConfig(FLYNCBaseModel):
                     )
         return self
 
-    def is_part_of_vlan(self, vlan):
-        for vint in self.virtual_interfaces:
+    def is_part_of_vlan(self, vlan: int | None) -> bool:
+        for vint in self.virtual_interfaces or []:
             if vint.vlanid == vlan:
                 return True
 
         return False
 
-    def get_all_ips(self):
+    def get_all_ips(self) -> list[str]:
         ips = []
         for viface in self.virtual_interfaces or []:
             for address in viface.addresses:
@@ -286,7 +292,7 @@ class EthernetInterfaceConfig(FLYNCBaseModel):
 
         return ips
 
-    def get_all_macs(self):
+    def get_all_macs(self) -> list[FLYNCMacAddress]:
         macs = []
         if self.mac_address is not None:
             macs.append(self.mac_address)
@@ -336,42 +342,42 @@ class EthernetInterface(ControllerInterface):
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
     ] = Field(default_factory=list)
-    _connected_component: List = []
+    _connected_component: list[ECUPort | SwitchPort | EthernetInterface] = []
     _type: Literal["controller_interface"] = "controller_interface"
     # A Controller for a physical interface, a ComputeNode for a virtual one. Both expose
     # ``name`` and ``ethernet_interfaces``, which is all the accessors below need.
-    _controller: Optional[Any] = None
+    _controller: Controller | ComputeNode | None = None
 
     @property
-    def type(self):
+    def type(self) -> Literal["controller_interface"]:
         return self._type
 
     @property
-    def connected_component(self):
+    def connected_component(self) -> list[ECUPort | SwitchPort | EthernetInterface]:
         return self._connected_component
 
     @property
-    def macsec_config(self):
+    def macsec_config(self) -> MACsecConfig | None:
         return self.interface_config.macsec_config
 
     @property
-    def ptp_config(self):
+    def ptp_config(self) -> PTPConfig | None:
         return self.interface_config.ptp_config
 
-    def get_controller(self):
+    def get_controller(self) -> Controller | ComputeNode:
         """Return the owner of this interface — a :class:`Controller`, or a ``ComputeNode`` for a virtual interface."""
         if not self._controller:
             raise err_fatal("Fatal Error: The interface is not a part of any controller", category=Category.STRUCTURAL, error_number="065")
         return self._controller
 
-    def get_connected_components(self):
+    def get_connected_components(self) -> list[ECUPort | SwitchPort | EthernetInterface]:
         """Return the component connected to this interface."""
         return self._connected_component
 
-    def is_part_of_vlan(self, vlan):
+    def is_part_of_vlan(self, vlan: int | None) -> bool:
         return self.interface_config.is_part_of_vlan(vlan)
 
-    def get_other_interfaces(self):
+    def get_other_interfaces(self) -> list[EthernetInterface]:
         """Return all EthernetInterfaces of the same owner — the controller, or the compute node, that declares this one."""
         return list(self.get_controller().ethernet_interfaces or [])
 
@@ -458,21 +464,21 @@ class Controller(FLYNCBaseModel):
         ),
     ] = Field(default_factory=list)
     compute_nodes: Annotated[
-        Optional[List["ComputeNode"]],
+        Optional[List[ComputeNode]],
         External(
             output_structure=OutputStrategy.FOLDER,
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
     ] = Field(default_factory=list)
     switches: Annotated[
-        Optional[List["Switch"]],
+        Optional[List[Switch]],
         External(
             output_structure=OutputStrategy.FOLDER,
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
     ] = Field(default_factory=list)
     controller_topology: Annotated[
-        Optional["ControllerTopology"],
+        Optional[ControllerTopology],
         External(
             output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT,
             naming_strategy=NamingStrategy.FIELD_NAME,
@@ -495,11 +501,17 @@ class Controller(FLYNCBaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def reject_legacy_controller_layout(cls, data):
+    def reject_legacy_controller_layout(cls, data: object) -> object:
         reject_legacy_controller(data)
         return data
 
-    def _interfaces_by_kind(self):
+    def _interfaces_by_kind(
+        self,
+    ) -> tuple[
+        tuple[str, list[EthernetInterface]],
+        tuple[str, list[CANInterface]],
+        tuple[str, list[AnyLINInterface]],
+    ]:
         return (
             ("ethernet", self.ethernet_interfaces or []),
             ("CAN", self.can_interfaces or []),
@@ -556,7 +568,7 @@ class Controller(FLYNCBaseModel):
         A name that is already unique within a single type is left to :meth:`validate_unique_interface_names`;
         this check only flags names reused by more than one interface type, which would create ambiguous references.
         """
-        name_types: dict[str, set] = {}
+        name_types: dict[str, set[str]] = {}
         for label, interfaces in self._interfaces_by_kind():
             for iface in interfaces:
                 name_types.setdefault(iface.name, set()).add(label)
@@ -575,7 +587,7 @@ class Controller(FLYNCBaseModel):
     @model_validator(mode="after")
     def validate_unique_ethernet_mac_addresses(self) -> Self:
         """Validate that Ethernet interfaces across this controller's whole subtree use distinct MAC addresses."""
-        seen: set = set()
+        seen: set[FLYNCMacAddress] = set()
         for eth in self.iter_subtree_interfaces():
             mac = eth.interface_config.mac_address if eth.interface_config is not None else None
             if mac is None:
@@ -602,7 +614,7 @@ class Controller(FLYNCBaseModel):
 
         connections = [conn_union.root for conn_union in self.controller_topology.connections]
         switches = list(self.iter_subtree_switches())
-        owners: list = [self, *self.iter_subtree_compute_nodes()]
+        owners: list[Controller | ComputeNode] = [self, *self.iter_subtree_compute_nodes()]
 
         for conn in connections:
             conn.bind(switches, owners, [])
@@ -610,19 +622,19 @@ class Controller(FLYNCBaseModel):
             conn.validate_compatibility()
         return self
 
-    def iter_subtree_compute_nodes(self):
+    def iter_subtree_compute_nodes(self) -> Iterator[ComputeNode]:
         """Yield every compute node beneath this controller, at any nesting depth."""
         from flync.model.flync_4_ecu.compute_node import iter_subtree_compute_nodes
 
         return iter_subtree_compute_nodes(self)
 
-    def iter_subtree_switches(self):
+    def iter_subtree_switches(self) -> Iterator[Switch]:
         """Yield every virtual switch beneath this controller, including those inside nested compute nodes."""
         from flync.model.flync_4_ecu.compute_node import iter_subtree_switches
 
         return iter_subtree_switches(self)
 
-    def iter_subtree_interfaces(self):
+    def iter_subtree_interfaces(self) -> Iterator[EthernetInterface]:
         """
         Yield every Ethernet interface beneath this controller, physical and virtual alike.
 
@@ -633,7 +645,7 @@ class Controller(FLYNCBaseModel):
 
         return iter_subtree_interfaces(self)
 
-    def get_all_ips(self):
+    def get_all_ips(self) -> list[str]:
         """
         Helper function.
         Return all the IPs in the Controller, including those of its compute nodes.
@@ -644,7 +656,7 @@ class Controller(FLYNCBaseModel):
             all_ips.extend(eth_iface.interface_config.get_all_ips())
         return all_ips
 
-    def get_all_macs(self):
+    def get_all_macs(self) -> list[FLYNCMacAddress]:
         """
         Helper function.
         Return all the MAC addresses in the Controller, including those of its compute nodes.
@@ -655,7 +667,7 @@ class Controller(FLYNCBaseModel):
             all_macs.extend(eth_iface.interface_config.get_all_macs())
         return all_macs
 
-    def get_consumed_service_instances(self) -> set:
+    def get_consumed_service_instances(self) -> set[tuple[int, int, int]]:
         """
         Helper function.
         Return the ``(service, major_version, instance_id)`` triples this Controller deploys as a SOME/IP consumer.
@@ -686,7 +698,7 @@ class Controller(FLYNCBaseModel):
     def find_controller_interface(self, interface_name: str) -> EthernetInterfaceConfig:
         return next(i.interface_config for i in (self.ethernet_interfaces or []) if i.name == interface_name)
 
-    def model_post_init(self, __context):
+    def model_post_init(self, __context: object) -> None:
         for interface in self.ethernet_interfaces or []:
             if interface.interface_config is not None:
                 interface._controller = self

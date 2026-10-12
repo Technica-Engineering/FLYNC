@@ -2,10 +2,15 @@
 Top-level system model aggregating ECUs, topology, metadata, and communication configuration in FLYNC.
 """
 
-from typing import Annotated, Any, Dict, List, Optional, Self, Tuple
+from __future__ import annotations
+
+from collections.abc import Iterable, Iterator, Mapping
+from ipaddress import IPv4Address, IPv6Address, ip_address
+from typing import TYPE_CHECKING, Annotated, Dict, List, Optional, Self, Tuple
 
 from pydantic import Field, model_validator
 from pydantic_core import PydanticCustomError
+from pydantic_extra_types.mac_address import MacAddress
 
 from flync.core.annotations import External, NamingStrategy, OutputStrategy
 from flync.core.base_models.base_model import FLYNCBaseModel
@@ -31,22 +36,45 @@ from flync.core.validators.interface import (
 from flync.core.validators.state_management import (
     validate_state_management,
 )
-from flync.model.flync_4_app import App
+from flync.model.flync_4_app import App, ServiceConsumerReference
+from flync.model.flync_4_bus.can_bus import CANBus
 from flync.model.flync_4_communication import FLYNCCommunicationConfig
-from flync.model.flync_4_diagnostics import DoIPDiscoveryDeployment, DoIPServerDeployment
+from flync.model.flync_4_diagnostics import DoIPDiscoveryDeployment, DoIPServerDeployment, DoIPTimingProfile, UDSServer
 from flync.model.flync_4_ecu import (
     ECU,
+    ComputeNode,
+    Controller,
     ECUPort,
+    EthernetInterface,
+    EthernetInterfaceConfig,
     MulticastGroup,
+    MulticastGroupMembership,
+    SocketTCP,
+    SocketUDP,
+    SwitchPort,
+    TCPOption,
     VirtualControllerInterface,
     VLANEntry,
 )
 from flync.model.flync_4_instrumentation import Instrumentation
 from flync.model.flync_4_instrumentation.measurement_point import bind_measurement_points
 from flync.model.flync_4_metadata import SystemMetadata
-from flync.model.flync_4_signal import ContainerPDU, J1939Frame, MultiplexedPDU, StandardPDU
+from flync.model.flync_4_signal import (
+    PDU,
+    ContainerPDU,
+    J1939Frame,
+    MultiplexedPDU,
+    SignalInstance,
+    StandardPDU,
+)
 from flync.model.flync_4_signal.forwarder import CANFrameForwarder, PDUForwarder
-from flync.model.flync_4_someip import SOMEIPServiceDeployment, SOMEIPServiceInterface, SOMEIPServiceProvider
+from flync.model.flync_4_signal.frame import CANFrameBase
+from flync.model.flync_4_someip import (
+    SDTimings,
+    SOMEIPServiceDeployment,
+    SOMEIPServiceInterface,
+    SOMEIPServiceProvider,
+)
 from flync.model.flync_4_topology import FLYNCTopology
 from flync.model.flync_4_topology.bus_topology import (
     CANBusTopology,
@@ -61,6 +89,18 @@ from flync.model.flync_4_topology.ethernet_multidrop import (
 )
 from flync.model.flync_4_topology.ethernet_topology import validate_no_multidrop_in_point_to_point, warn_unconnected_ports
 
+if TYPE_CHECKING:
+    from flync.core.utils.base_utils import NetworkComponent
+    from flync.core.utils.multicast.multicast_paths import ParentMap
+
+
+def _parse_group_address(text: str) -> IPv4Address | IPv6Address | MacAddress:
+    """Turn the address part of a multicast key (``str(group)``) back into the typed address it was built from."""
+    try:
+        return ip_address(text)
+    except ValueError:
+        return MacAddress(text)
+
 
 def _compute_j1939_pgn(frame: J1939Frame) -> int:
     """Return the 18-bit J1939 Parameter Group Number (PGN) of *frame*.
@@ -74,13 +114,13 @@ def _compute_j1939_pgn(frame: J1939Frame) -> int:
     return (frame.extended_data_page << 17) | (frame.data_page << 16) | (frame.pdu_format << 8) | ps
 
 
-def _j1939_buses(model: "FLYNCModel") -> set:
+def _j1939_buses(model: FLYNCModel) -> set[str]:
     """Return the set of CAN bus names attached through a J1939-capable ``CANInterface``.
 
     A CAN interface participates in J1939 when it declares a ``j1939_name`` or a source ``address``. Those buses
     must only carry ``J1939Frame`` frames (and, conversely, ``J1939Frame`` frames may only live on one of them).
     """
-    buses: set = set()
+    buses: set[str] = set()
     for controller in model.get_all_controllers():
         for can_iface in controller.can_interfaces or []:
             if can_iface.is_j1939():
@@ -88,19 +128,19 @@ def _j1939_buses(model: "FLYNCModel") -> set:
     return buses
 
 
-def _signal_spn_names(signals) -> List[str]:
+def _signal_spn_names(signals: Iterable[SignalInstance]) -> List[str]:
     """Return the name of each signal instance in *signals* that carries an SPN."""
-    names: list = []
+    names: list[str] = []
     for si in signals:
         if si.signal.spn is not None:
             names.append(si.signal.name)
     return names
 
 
-def _pdu_own_spn_signal_names(pdu) -> List[Tuple[str, str]]:
+def _pdu_own_spn_signal_names(pdu: PDU) -> List[Tuple[str, str]]:
     """Return ``(pdu_name, signal_name)`` for the SPN-bearing signals declared directly by *pdu*."""
     name = pdu.name
-    found: list = []
+    found: list[Tuple[str, str]] = []
     if isinstance(pdu, StandardPDU):
         found.extend((name, signal_name) for signal_name in _signal_spn_names(pdu.signals))
         for sgi in pdu.signal_groups:
@@ -112,7 +152,7 @@ def _pdu_own_spn_signal_names(pdu) -> List[Tuple[str, str]]:
     return found
 
 
-def _enqueue_pdu_children(stack: list, pdu_registry, pdu) -> None:
+def _enqueue_pdu_children(stack: list[PDU], pdu_registry: Mapping[str, PDU], pdu: PDU) -> None:
     """Push the child PDUs referenced by *pdu* (located in *pdu_registry*) onto *stack*."""
     if isinstance(pdu, MultiplexedPDU):
         refs = [inst.pdu_ref for inst in pdu.static_group or []]
@@ -127,9 +167,9 @@ def _enqueue_pdu_children(stack: list, pdu_registry, pdu) -> None:
             stack.append(child)
 
 
-def _iter_pdu_spn_signal_names(pdu, pdu_registry):
+def _iter_pdu_spn_signal_names(pdu: PDU, pdu_registry: Mapping[str, PDU]) -> Iterator[tuple[str, str]]:
     """Yield ``(pdu_name, signal_name)`` for every SPN-bearing signal instance in a PDU subtree."""
-    seen_pdus: set = set()
+    seen_pdus: set[int] = set()
     stack = [pdu]
     while stack:
         current = stack.pop()
@@ -140,7 +180,7 @@ def _iter_pdu_spn_signal_names(pdu, pdu_registry):
         _enqueue_pdu_children(stack, pdu_registry, current)
 
 
-def _check_can_frame_spn(frame, pdu_registry, checked: set) -> None:
+def _check_can_frame_spn(frame: CANFrameBase, pdu_registry: Mapping[str, PDU], checked: set[str]) -> None:
     """Raise ``err_major`` if a CAN (non-J1939) *frame* packs a PDU that carries an SPN."""
     for inst in frame.packed_pdus:
         if inst.pdu_ref not in pdu_registry or inst.pdu_ref in checked:
@@ -159,10 +199,10 @@ def _check_can_frame_spn(frame, pdu_registry, checked: set) -> None:
             )
 
 
-def _check_j1939_bus_pgn_uniqueness(bus) -> None:
+def _check_j1939_bus_pgn_uniqueness(bus: CANBus) -> None:
     """Raise ``err_major`` if *bus* carries two J1939 frames sharing the same PGN."""
-    seen: dict = {}
-    duplicate_frames: list = []
+    seen: dict[int, str] = {}
+    duplicate_frames: list[str] = []
     for frame in bus.frames or []:
         if not isinstance(frame, J1939Frame):
             continue
@@ -262,15 +302,16 @@ class FLYNCModel(FLYNCBaseModel):
     )
 
     @model_validator(mode="before")
-    def warn_experimental(cls, data):
+    @classmethod
+    def warn_experimental(cls, data: object) -> object:
         """Experimental Classes"""
-        if "apps" in data and data["apps"] is not None:
+        if isinstance(data, dict) and data.get("apps") is not None:
             warn("Apps are currently experimental! Subject to change, please use with care.", category=Category.LIFECYCLE, error_number="188")
         return data
 
     @model_validator(mode="before")
     @classmethod
-    def default_absent_topology(cls, data):
+    def default_absent_topology(cls, data: object) -> object:
         """
         Treat an absent ``topology/`` folder as the default (empty) topology for a CAN/LIN-only workspace.
 
@@ -285,7 +326,7 @@ class FLYNCModel(FLYNCBaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def skip_broken_ecus(cls, data):
+    def skip_broken_ecus(cls, data: object) -> object:
         """
         Remove None ECUs from the list before validation.
 
@@ -295,12 +336,12 @@ class FLYNCModel(FLYNCBaseModel):
         """
 
         if isinstance(data, dict):
-            ecus = data.get("ecus") or []
+            ecus = data.get("ecus")
             if isinstance(ecus, list) and any(e is None for e in ecus):
                 data["ecus"] = [e for e in ecus if e is not None]
         return data
 
-    def model_post_init(self, context):
+    def model_post_init(self, context: object) -> None:
         """
         Perform post-initialization processing after the model is created.
 
@@ -446,7 +487,7 @@ class FLYNCModel(FLYNCBaseModel):
             rx_list = []
             separ = "/VLAN"
             for ecu in self.ecus:
-                for mcast in ecu.multicast_groups or []:
+                for mcast in ecu.multicast_groups:
                     key = str(mcast.group) + separ + str(mcast.vlan)
                     if mcast.mode == "tx":
                         tx_list.append(key)
@@ -467,8 +508,8 @@ class FLYNCModel(FLYNCBaseModel):
     @model_validator(mode="after")
     def validate_multicast_paths(self) -> Self:
         try:
-            paths: dict[str, list[Any]] = {}
-            parents: dict[str, list[Any]] = {}
+            paths: dict[str, list[list[NetworkComponent]]] = {}
+            parents: dict[str, list[ParentMap]] = {}
             vlans_dict: dict[str, int | None] = {}
             separ = "/VLAN"
             for key, mcast in self._iter_tx_multicasts(separ):
@@ -478,19 +519,28 @@ class FLYNCModel(FLYNCBaseModel):
             warn(str(e), category=Category.CONSISTENCY, error_number="170")
         return self
 
-    def _iter_tx_multicasts(self, separ):
+    def _iter_tx_multicasts(self, separ: str) -> Iterator[tuple[str, MulticastGroupMembership]]:
         """Yield ``(key, mcast)`` for every ``tx`` multicast group membership across all ECUs."""
         return ((str(mcast.group) + separ + str(mcast.vlan), mcast) for ecu in self.ecus for mcast in ecu.multicast_groups if mcast.mode == "tx")
 
-    def _record_tx_multicast_path(self, key, mcast, paths, parents, vlans_dict):
+    def _record_tx_multicast_path(
+        self,
+        key: str,
+        mcast: MulticastGroupMembership,
+        paths: dict[str, list[list[NetworkComponent]]],
+        parents: dict[str, list[ParentMap]],
+        vlans_dict: dict[str, int | None],
+    ) -> None:
         """Compute one TX multicast group's reachability path and record it, warning if the sender cannot
         itself be reached back from within the components it floods."""
         vlans_dict[key] = mcast.vlan
-        path, parent = compute_path(mcast.vlan, mcast._interface)
-        if not check_obj_in_list(mcast._interface, path):
+        interface = mcast._interface
+        path, parent = compute_path(mcast.vlan, interface)
+        if not check_obj_in_list(interface, path):
+            interface_name = interface.name if interface is not None else "<unresolved interface>"
             warn(
                 "Invalid Multicast Address Configuration. There are several RX that the TX Endpoint at "
-                f"{mcast._interface.name} cannot reach. {serialize_components(path)}",
+                f"{interface_name} cannot reach. {serialize_components(path)}",
                 category=Category.CONSISTENCY,
                 error_number="169",
             )
@@ -523,7 +573,7 @@ class FLYNCModel(FLYNCBaseModel):
         raise err_major(
             f"Deployed provided service on TCP socket ({socket.name}) of ECU ({ecu.name}) has multicast "
             f"configuration for eventgroups "
-            f"({[mcast.eventgroups for mcast in provider.multicast_config]}); "
+            f"({[mcast.eventgroups for mcast in provider.multicast_config or []]}); "
             f"SOME/IP eventgroup multicast requires a UDP socket",
             category=Category.CONSISTENCY,
             error_number="218",
@@ -565,21 +615,21 @@ class FLYNCModel(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_j1939_pdu_consistency(self):
+    def validate_j1939_pdu_consistency(self) -> Self:
         """A PDU packed by a CAN (non-J1939) frame must never carry SPN (``FLYNC-GEN-MAJ-CONS-251``)."""
 
         if self.communication and self.communication.channels and self.communication.channels.can_buses:
             channels = self.communication.channels
             pdu_registry = channels._pdu_registry()
-            checked: set = set()
-            for bus in channels.can_buses:
+            checked: set[str] = set()
+            for bus in channels.can_buses or []:
                 for frame in bus.frames:
                     if not isinstance(frame, J1939Frame):
                         _check_can_frame_spn(frame, pdu_registry, checked)
         return self
 
     @model_validator(mode="after")
-    def validate_j1939_application_buses_only_j1939_frames(self):
+    def validate_j1939_application_buses_only_j1939_frames(self) -> Self:
         """A bus attached through a J1939-capable CAN interface may only carry ``J1939Frame`` frames, never CAN ones."""
 
         j1939_buses = _j1939_buses(self)
@@ -600,7 +650,7 @@ class FLYNCModel(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_j1939_frames_on_j1939_application_buses(self):
+    def validate_j1939_frames_on_j1939_application_buses(self) -> Self:
         """``J1939Frame`` frames may only be deployed on a bus attached through a J1939-capable CAN interface."""
 
         if self.communication and self.communication.channels and self.communication.channels.can_buses:
@@ -621,7 +671,7 @@ class FLYNCModel(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_j1939_sa_uniqueness(self):
+    def validate_j1939_sa_uniqueness(self) -> Self:
         """Two J1939 nodes on the same CAN bus must not claim the same source address (SA).
 
         A controller (one CAN interface) is a single J1939 node, so an ECU exposes multiple nodes by
@@ -629,7 +679,7 @@ class FLYNCModel(FLYNCBaseModel):
         hold a distinct SA on the bus it attaches to, or address claiming would collide at runtime.
         """
 
-        seen: dict = {}
+        seen: dict[tuple[str, int], str] = {}
         for controller in self.get_all_controllers():
             for iface in controller.can_interfaces or []:
                 if not iface.is_j1939() or iface.source_address is None:
@@ -650,7 +700,7 @@ class FLYNCModel(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_j1939_bus_nodes_are_j1939(self):
+    def validate_j1939_bus_nodes_are_j1939(self) -> Self:
         """Every node on a J1939 bus (one carrying ``J1939Frame`` frames) must declare ``j1939_name``.
 
         A bus is identified as a J1939 bus by carrying ``J1939Frame`` frames. Any CAN interface attached to
@@ -666,7 +716,7 @@ class FLYNCModel(FLYNCBaseModel):
         }
         if not j1939_bus_names:
             return self
-        offenders: list = []
+        offenders: list[str] = []
         for controller in self.get_all_controllers():
             for iface in controller.can_interfaces or []:
                 if iface.bus_ref not in j1939_bus_names:
@@ -685,7 +735,7 @@ class FLYNCModel(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_j1939_pgn_uniqueness(self):
+    def validate_j1939_pgn_uniqueness(self) -> Self:
         """Two ``J1939Frame`` frames on the same CAN bus must not share a Parameter Group Number (PGN).
 
         In J1939 the PGN (built from the frame's data page / extended data page / PDU Format / PDU Specific) identifies
@@ -700,7 +750,7 @@ class FLYNCModel(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_service_refs_in_apps(self):
+    def validate_service_refs_in_apps(self) -> Self:
         """Validate that applications are referencing existing services."""
         known_services = self.get_someip_services_by_identity()
         for app in self.apps or []:
@@ -731,7 +781,7 @@ class FLYNCModel(FLYNCBaseModel):
         for controller, consumed_instances, app, ref in self._iter_bound_app_consumer_refs():
             svc = services_by_identity.get((ref.service_id, ref.major_version))
             key = (ref.service_id, ref.major_version, ref.instance_id) if svc else None
-            if key not in consumed_instances:
+            if key is None or key not in consumed_instances:
                 raise err_major(
                     f"App '{app.name}' bound to controller '{controller.name}' expects to consume "
                     f"(service_id={ref.service_id:#06x}, instance_id={ref.instance_id}, major_version={ref.major_version}), "
@@ -788,34 +838,53 @@ class FLYNCModel(FLYNCBaseModel):
 
         return next((c for c in self.multidrop_connections if c.id == connection_id), None)
 
-    def check_rx_are_reached(self, separ, paths, parents, vlans_dict):
-        rx_targets = {}
+    def check_rx_are_reached(
+        self,
+        separ: str,
+        paths: dict[str, list[list[NetworkComponent]]],
+        parents: dict[str, list[ParentMap]],
+        vlans_dict: dict[str, int | None],
+    ) -> Self:
+        rx_targets: dict[str, list[EthernetInterface]] = {}
         for ecu in self.ecus:
             for mcast in ecu.multicast_groups:
-                key = str(mcast.group) + separ + str(mcast.vlan)
-                if mcast.mode != "rx":
-                    continue
-                if key not in paths:
-                    warn(
-                        f"Invalid Multicast Address Configuration. There are no TX endpoints for this address {key} ",
-                        category=Category.CONSISTENCY,
-                        error_number="173",
-                    )
-                elif not any(check_obj_in_list(mcast._interface, path) for path in paths[key]):
-                    warn(
-                        f"Invalid Multicast Address Configuration. The RX interface for address {key} "
-                        f"- {mcast._interface.name} cannot be reached by the TX ports.",
-                        category=Category.CONSISTENCY,
-                        error_number="174",
-                    )
-                else:
-                    rx_targets.setdefault(key, []).append(mcast._interface)
-
+                self.__register_rx_target(rx_targets, mcast, separ, paths)
         self.load_switch_multicast(vlans_dict, paths, parents, rx_targets)
 
         return self
 
-    def __populate_ipv6_solicited_node_multicasts_rx(self):
+    def __register_rx_target(
+        self,
+        rx_targets: dict[str, list[EthernetInterface]],
+        mcast: MulticastGroupMembership,
+        separ: str,
+        paths: dict[str, list[list[NetworkComponent]]],
+    ) -> None:
+        """Register a multicast RX interface as a reachable target, warning when it cannot be reached."""
+        if mcast.mode != "rx":
+            return
+        key = str(mcast.group) + separ + str(mcast.vlan)
+        if key not in paths:
+            warn(
+                f"Invalid Multicast Address Configuration. There are no TX endpoints for this address {key} ",
+                category=Category.CONSISTENCY,
+                error_number="173",
+            )
+            return
+        if not any(check_obj_in_list(mcast._interface, path) for path in paths[key]):
+            interface_name = mcast._interface.name if mcast._interface is not None else "<unresolved interface>"
+            warn(
+                f"Invalid Multicast Address Configuration. The RX interface for address {key} "
+                f"- {interface_name} cannot be reached by the TX ports.",
+                category=Category.CONSISTENCY,
+                error_number="174",
+            )
+            return
+        interface = mcast._interface
+        if interface is not None:
+            rx_targets.setdefault(key, []).append(interface)
+
+    def __populate_ipv6_solicited_node_multicasts_rx(self) -> Self:
         """
         Populate the solicited-node multicast group memberships for each IPv6 address configured in any ECU.
         """
@@ -826,7 +895,7 @@ class FLYNCModel(FLYNCBaseModel):
                 ecu.multicast_groups.append(update_ecu_multicast[ecu.name])
         return self
 
-    def __populate_ipv6_solicited_node_multicasts_tx(self):
+    def __populate_ipv6_solicited_node_multicasts_tx(self) -> Self:
         """
         Populate the solicited-node multicast group memberships for each IPv6 address configured in any ECU as TX if there is a RX for the
         same multicast group and VLAN.
@@ -840,12 +909,12 @@ class FLYNCModel(FLYNCBaseModel):
                 ecu.multicast_groups.append(update_ecu_multicast[ecu.name])
         return self
 
-    def append_mcast(self, vlan, comp, mcast_addr):
+    def append_mcast(self, vlan: int, comp: SwitchPort, mcast_addr: str) -> None:
         for v_entry in comp.get_switch().vlans:
             if v_entry.id == vlan:
                 self._append_mcast_to_vlan_entry(v_entry, comp, mcast_addr)
 
-    def _append_mcast_to_vlan_entry(self, v_entry, comp, mcast_addr):
+    def _append_mcast_to_vlan_entry(self, v_entry: VLANEntry, comp: SwitchPort, mcast_addr: str) -> None:
         """Add ``comp`` to every existing multicast group of ``v_entry`` whose address matches
         ``mcast_addr``, or create a new one if none matches."""
         found_mcast = False
@@ -856,22 +925,35 @@ class FLYNCModel(FLYNCBaseModel):
             if comp.name not in addr.ports:
                 addr.ports.append(comp.name)
         if not found_mcast:
-            v_entry.multicast.append(MulticastGroup(address=mcast_addr, ports=[comp.name]))
+            v_entry.multicast.append(MulticastGroup(address=_parse_group_address(mcast_addr), ports=[comp.name]))
 
-    def load_switch_multicast(self, vlans_dict, paths, parents, rx_targets):
+    def load_switch_multicast(
+        self,
+        vlans_dict: dict[str, int | None],
+        paths: dict[str, list[list[NetworkComponent]]],
+        parents: dict[str, list[ParentMap]],
+        rx_targets: dict[str, list[EthernetInterface]],
+    ) -> None:
         for key, targets in rx_targets.items():
             used_ports = self._collect_used_switch_ports(targets, paths.get(key, []), parents.get(key, []))
             if not used_ports:
                 continue
             ip = key.split("/")[0]
+            vlan = vlans_dict[key]
             for comp in used_ports.values():
-                self.append_mcast(vlans_dict[key], comp, ip)
+                if vlan is not None:
+                    self.append_mcast(vlan, comp, ip)
 
-    def _collect_used_switch_ports(self, targets, paths, parents):
+    def _collect_used_switch_ports(
+        self,
+        targets: list[EthernetInterface],
+        paths: list[list[NetworkComponent]],
+        parents: list[ParentMap],
+    ) -> dict[int, SwitchPort]:
         """Return, keyed by ``id()``, every switch port that sits on some sender's real path to one of
         ``targets`` -- ``paths``/``parents`` are the per-sender results from :func:`compute_path` for one
         multicast key."""
-        used_ports = {}
+        used_ports: dict[int, SwitchPort] = {}
         for path, parent in zip(paths, parents):
             for target in targets:
                 if not check_obj_in_list(target, path):
@@ -881,20 +963,20 @@ class FLYNCModel(FLYNCBaseModel):
                         used_ports[id(comp)] = comp
         return used_ports
 
-    def get_all_ecus(self):
+    def get_all_ecus(self) -> List[str]:
         """Return a list of all ECU names."""
         return [ecu.name for ecu in self.ecus]
 
-    def get_ecu_by_name(self, ecu_name: str):
+    def get_ecu_by_name(self, ecu_name: str) -> ECU | None:
         """Retrieve an ECU by name."""
         for ecu in self.ecus:
             if ecu.name == ecu_name:
                 return ecu
         return None
 
-    def get_all_controllers(self):
+    def get_all_controllers(self) -> List[Controller]:
         """Return a list of all controllers in all ECUs."""
-        controllers = []
+        controllers: list[Controller] = []
         for ecu in self.ecus:
             controllers.extend(ecu.controllers)
         return controllers
@@ -909,17 +991,17 @@ class FLYNCModel(FLYNCBaseModel):
     def get_all_ecu_ports_by_name(self) -> Dict[str, ECUPort]:
         return {e.name: e for e in self.get_all_ecu_ports()}
 
-    def get_interface_by_name(self, name):
+    def get_interface_by_name(self, name: str) -> EthernetInterfaceConfig | None:
         return next(
             (interface for interface in self.get_all_interfaces() if interface.name == name),
             None,
         )
 
-    def get_all_interfaces(self):
+    def get_all_interfaces(self) -> List[EthernetInterfaceConfig]:
         """Return the config of every Ethernet interface, compute node interfaces included."""
         return [eth_iface.interface_config for controller in self.get_all_controllers() for eth_iface in controller.iter_subtree_interfaces()]
 
-    def iter_app_binding_owners(self):
+    def iter_app_binding_owners(self) -> Iterator[Controller | ComputeNode]:
         """
         Yield everything that can declare ``app_bindings`` — every controller and every compute node beneath it.
 
@@ -930,25 +1012,25 @@ class FLYNCModel(FLYNCBaseModel):
             yield controller
             yield from controller.iter_subtree_compute_nodes()
 
-    def get_all_interfaces_names(self):
+    def get_all_interfaces_names(self) -> List[str]:
         """Return all the controller interface names"""
-        all_interfaces = []
+        all_interfaces: list[str] = []
         for ecu in self.get_all_ecus():
             all_interfaces.extend(self.get_interfaces_for_ecu(ecu))
         return all_interfaces
 
-    def get_interfaces_for_ecu(self, ecu_name: str):
+    def get_interfaces_for_ecu(self, ecu_name: str) -> List[str]:
         """Return a list of all interfaces for a given ECU."""
         ecu = self.get_ecu_by_name(ecu_name)
         if ecu:
-            return [eth_iface.name for controller in ecu.controllers for eth_iface in controller.ethernet_interfaces]
+            return [eth_iface.name for controller in ecu.controllers for eth_iface in controller.ethernet_interfaces or []]
         return []
 
-    def get_ethernet_topology_info(self):
+    def get_ethernet_topology_info(self) -> dict[str, object] | None:
         """Return ethernet topology details, or ``None`` if no ethernet topology is defined."""
         return self.topology.ethernet_topology.model_dump() if self.topology.ethernet_topology else None
 
-    def _bind_tcp_profiles(self, tcp_by_id):
+    def _bind_tcp_profiles(self, tcp_by_id: dict[int, TCPOption]) -> None:
         for sock in self._iter_all_sockets():
             if hasattr(sock, "bind"):
                 sock.bind(tcp_by_id)
@@ -960,7 +1042,11 @@ class FLYNCModel(FLYNCBaseModel):
             self._bind_tcp_profiles(tcp_by_id)
         return self
 
-    def _bind_someip_sockets(self, services_by_key, sd_timings_by_id):
+    def _bind_someip_sockets(
+        self,
+        services_by_key: dict[tuple[int, int], SOMEIPServiceInterface],
+        sd_timings_by_id: dict[str, SDTimings],
+    ) -> None:
         for sock in self._iter_all_sockets():
             for dep_union in sock.deployments or []:
                 dep = dep_union.root
@@ -976,7 +1062,7 @@ class FLYNCModel(FLYNCBaseModel):
             self._bind_someip_sockets(services_by_key, sd_timings_by_id)
         return self
 
-    def _bind_diagnostics_sockets(self, timings_by_id, servers_by_name):
+    def _bind_diagnostics_sockets(self, timings_by_id: dict[str, DoIPTimingProfile], servers_by_name: dict[str, UDSServer]) -> None:
         for sock in self._iter_all_sockets():
             for dep_union in sock.deployments or []:
                 dep = dep_union.root
@@ -999,7 +1085,7 @@ class FLYNCModel(FLYNCBaseModel):
         ``logical_address`` - DoIP logical addresses must be unique across the vehicle, not just per socket.
         """
 
-        seen: dict = {}
+        seen: dict[int, str] = {}
         for socket in self._iter_all_sockets():
             for dep_union in socket.deployments or []:
                 dep = dep_union.root
@@ -1056,7 +1142,7 @@ class FLYNCModel(FLYNCBaseModel):
 
         return self
 
-    def _iter_ecu_sockets(self):
+    def _iter_ecu_sockets(self) -> Iterator[tuple[ECU, SocketTCP | SocketUDP]]:
         """Yield ``(ecu, socket)`` for every :class:`Socket` across every ECU / controller / ethernet interface / VLAN container."""
         return (
             (ecu, socket)
@@ -1067,7 +1153,7 @@ class FLYNCModel(FLYNCBaseModel):
             for socket in socket_container.sockets or []
         )
 
-    def _iter_all_sockets(self):
+    def _iter_all_sockets(self) -> Iterator[SocketTCP | SocketUDP]:
         """Yield every :class:`Socket` across every controller / ethernet interface / VLAN container."""
         return (socket for _ecu, socket in self._iter_ecu_sockets())
 
@@ -1083,7 +1169,7 @@ class FLYNCModel(FLYNCBaseModel):
         """
         return {(svc.id, svc.major_version): svc for svc in self.get_all_someip_services()}
 
-    def _iter_bound_app_consumer_refs(self):
+    def _iter_bound_app_consumer_refs(self) -> Iterator[tuple[Controller | ComputeNode, set[tuple[int, int, int]], App, ServiceConsumerReference]]:
         """
         Yield ``(controller, consumed_instances, app, ref)`` for every consumer reference of every app bound to a
         controller, where ``consumed_instances`` is that controller's set of SOME/IP consumer service triples.

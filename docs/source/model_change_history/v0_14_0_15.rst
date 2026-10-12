@@ -78,3 +78,59 @@ its ASAM CMP / TECMP interface ids and taps exactly one medium:
 ``name`` and every interface id are unique across the overlay, and ``flync_model.instrumentation``
 is an ``Instrumentation`` instance carrying ``.measurement_points``. No 0.14 workspace has the
 folder, so workspaces keep their layout; adding the overlay is purely optional.
+
+Breaking — Python API
+---------------------
+
+List fields that were never ``None`` after validation are typed as plain lists
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+These fields are typed ``list[...]`` instead of ``Optional[list[...]]``. This removes ``null`` from the
+exported JSON Schema. A type checker (mypy, pyright) now rejects ``None`` passed to the constructor or
+assigned to the field; at runtime ``None`` is still accepted and becomes ``[]``.
+
+* ``TrafficClass.frame_priority_values``, ``TrafficClass.internal_priority_values``
+* ``PTPTimeTransmitterConfig.tlv``
+* ``VirtualControllerInterface.multicast``, ``VLANEntry.multicast``
+* ``PortScopedAction.ports``, ``TCAMRule.match_ports``, ``TCAMRule.action``
+
+The following fields additionally change loading behavior: a ``null`` used to be stored as ``None`` and now
+loads as ``[]``:
+
+* ``Socket.multicast_tx``, ``AVTPMulticastEndpoint.multicast_tx``
+* the runtime-only ``ECU.multicast_groups`` and ``IPv4AddressEndpoint.sockets`` /
+  ``IPv6AddressEndpoint.sockets``
+
+Value encoding bounds are always integers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``TextEntry.from_value`` / ``to_value`` and ``BitfieldState.from_value`` / ``to_value`` are typed
+``int`` instead of ``Optional[int]``; they were always filled from ``value`` or given explicitly, and
+``None`` was never a valid bound. An explicit ``value: null`` without ``from_value``/``to_value`` is now
+reported as a type error instead of an internal assertion error.
+
+``EthernetInterfaceConfig.name`` may be ``None`` (typing only)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The property was previously untyped and is now annotated ``str | None``: the name is propagated from the
+owning :class:`~flync.model.flync_4_ecu.controller.EthernetInterface` and is ``None`` before that happens.
+Runtime behavior is unchanged; type checkers now require a ``None`` check before using the name as ``str``.
+
+Deprecated — Python API
+-----------------------
+
+``ECUPort.get_internal_connected_component()`` ignores its ``ecus`` argument
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``ecus`` parameter was never used. It is still accepted for backwards compatibility but passing a
+value (other than ``None``) emits a ``DeprecationWarning``. Call ``port.get_internal_connected_component()``.
+
+Additive — Python API
+---------------------
+
+* ``ECUPort.qualified_name`` — ``"<ecu>:<port>"`` once the port is bound to its ECU, else the port name.
+* ``SOMEIPMethod.has_response`` — ``True`` for request/response methods, ``False`` for
+  fire-and-forget ones. It replaces the empty ``__init__`` overrides that kept ``SOMEIPMethod``
+  abstract, so constructing the concrete method classes is now type-checked by mypy.
+* ``InternalConnection.ecu`` now returns the owning ECU; it was always ``None`` before, so code that checks
+  ``connection.ecu is None`` now takes the other branch.

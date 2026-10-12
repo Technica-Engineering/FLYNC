@@ -1,9 +1,12 @@
 """Base Utils that can be useful throughout the whole FLYNC Library and toolchain."""
 
+from __future__ import annotations
+
 import os
+from collections.abc import Hashable, Iterable, Iterator
 from ipaddress import IPv4Address, IPv6Address, ip_address
 from pathlib import Path
-from typing import Tuple, Type, TypeVar
+from typing import TYPE_CHECKING, Tuple, Type, TypeVar
 
 import yaml
 from pydantic_extra_types.mac_address import MacAddress
@@ -12,8 +15,14 @@ from rich import print as rprint
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_fatal
 
+if TYPE_CHECKING:
+    from flync.model.flync_4_ecu import ECUPort, EthernetInterface, SwitchPort
 
-def read_yaml(path: str | os.PathLike | Path):
+    #: A component a multicast path can traverse.
+    type NetworkComponent = SwitchPort | EthernetInterface | ECUPort
+
+
+def read_yaml(path: str | os.PathLike[str] | Path) -> object:
     """
     Read a YAML file.
 
@@ -24,7 +33,7 @@ def read_yaml(path: str | os.PathLike | Path):
         err_fatal: If path is not for YAML file.
 
     Returns:
-        Any: Retrieved data from YAML.
+        object: Retrieved data from YAML (``None`` if the file could not be parsed).
     """
 
     if not isinstance(path, Path):
@@ -41,9 +50,10 @@ def read_yaml(path: str | os.PathLike | Path):
             return file
     except Exception as e:
         rprint(f"[red]{e}[/red]")
+        return None
 
 
-def get_yaml_paths(base_path: str | os.PathLike) -> list:
+def get_yaml_paths(base_path: str | os.PathLike[str]) -> list[str]:
     """
     Collect absolute paths to yaml files from a base_path.
 
@@ -55,7 +65,7 @@ def get_yaml_paths(base_path: str | os.PathLike) -> list:
     """
 
     base_path = Path(base_path)
-    path_list = []
+    path_list: list[str] = []
     if base_path.is_dir():
         for ending in ["*.yaml", "*.yml"]:
             path_list += [f.resolve().as_posix() for f in base_path.rglob(ending)]
@@ -79,8 +89,6 @@ def is_mac_address(input: str) -> Tuple[bool, str]:
     """
 
     try:
-        if not isinstance(input, str):
-            return False, f"{input!r} is not a MAC address."
         MacAddress.validate_mac_address(input.encode())
         is_mac = True
         msg = f"{input} is a MAC address."
@@ -190,7 +198,7 @@ def is_ip_multicast(
     return is_multicast, msg
 
 
-def get_duplicates_in_list(input: list) -> list:
+def get_duplicates_in_list[H: Hashable](input: Iterable[H]) -> list[H]:
     """
     Find duplicates in a list.
 
@@ -201,8 +209,8 @@ def get_duplicates_in_list(input: list) -> list:
         list: returns a list of the duplicates that were found.
     """
 
-    seen = set()
-    dupes = set()
+    seen: set[H] = set()
+    dupes: set[H] = set()
 
     for value in input:
         if value in seen:
@@ -213,26 +221,26 @@ def get_duplicates_in_list(input: list) -> list:
     return list(dupes)
 
 
-def check_obj_in_list(obj, list):
+def check_obj_in_list(obj: NetworkComponent | None, list: Iterable[NetworkComponent | None]) -> bool:
     """
     Helper function: To check if the object is in the list or not
     """
 
-    flag = False
-    for c in list:
-        if c is None:
-            continue
-        if (c.type == obj.type) and (
-            (c.type == "switch_port" and obj.name == c.name and obj.get_switch().name == c.get_switch().name)
-            or (c.type == "controller_interface" and obj.name == c.name and obj.get_controller().name == c.get_controller().name)
-            or (c.type == "ecu_port" and obj.name == c.name)
-        ):
-            flag = True
-
-    return flag
+    if obj is None:
+        return False
+    return any(_is_same_component(obj, c) for c in list if c is not None)
 
 
-def deep_iter(obj, stop_class):
+def _is_same_component(obj: NetworkComponent, c: NetworkComponent) -> bool:
+    """Return whether ``obj`` and ``c`` refer to the same network component."""
+    if obj.type == "switch_port" and c.type == "switch_port":
+        return obj.name == c.name and obj.get_switch().name == c.get_switch().name
+    if obj.type == "controller_interface" and c.type == "controller_interface":
+        return obj.name == c.name and obj.get_controller().name == c.get_controller().name
+    return obj.type == "ecu_port" and c.type == "ecu_port" and obj.name == c.name
+
+
+def deep_iter(obj: object, stop_class: type | tuple[type, ...]) -> Iterator[object]:
     """
     Helper function: To deeply iterate through an object and its children. The iteration will stop if an object of type stop_class is reached.
 
@@ -243,8 +251,8 @@ def deep_iter(obj, stop_class):
         Generator: A generator that yields objects of the specified type.
     """
 
-    seen = set()
-    stack = [obj]
+    seen: set[int] = set()
+    stack: list[object] = [obj]
     while stack:
         current = stack.pop()
         oid = id(current)
@@ -275,7 +283,7 @@ def deep_iter(obj, stop_class):
 T = TypeVar("T", bound=FLYNCBaseModel)
 
 
-def find_all(base, target_class: Type[T]) -> list[T]:
+def find_all(base: object, target_class: Type[T]) -> list[T]:
     """
     Helper to get all fields of certain type in nested data.
 

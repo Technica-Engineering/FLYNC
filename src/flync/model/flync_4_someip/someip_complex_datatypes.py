@@ -223,7 +223,8 @@ class UnionMember(Datatype):
     ] = None
 
     @field_validator("type", mode="before")
-    def _wrap_string_type(cls, v):
+    @classmethod
+    def _wrap_string_type(cls, v: object) -> object:
         if isinstance(v, str):
             s = v.strip().lower()
             return {"type": s}

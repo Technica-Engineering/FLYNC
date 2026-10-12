@@ -132,8 +132,8 @@ class CANInterface(ControllerInterface):
     def validate_forwarder_frame_uniqueness(self) -> Self:
         """Raise ``err_major`` if the same ``frame_ref`` appears twice in ``forwarder_frames``."""
 
-        seen: set = set()
-        duplicates: set = set()
+        seen: set[str] = set()
+        duplicates: set[str] = set()
         for fwd in self.forwarder_frames:
             if fwd.frame_ref in seen:
                 duplicates.add(fwd.frame_ref)

@@ -1118,3 +1118,13 @@ class Test_SignalGroupInstance:
         sgi = SignalGroupInstance(signal_group=uint8_signal_group)
         assert sgi.bit_position is None
         assert isinstance(sgi, SignalGroupInstance)
+
+
+def test_text_entry_value_null_is_a_type_error():
+    """``value: null`` leaves no bound to fill ``from_value``/``to_value`` from; that is reported, not stored as ``None``."""
+    with pytest.raises(ValidationError) as exc_info:
+        TextEntry.model_validate({"value": None, "label": "Nothing"})
+
+    errors = exc_info.value.errors()
+    assert (errors[0]["type"], errors[0]["loc"]) == ("int_type", ("from_value",))
+    assert all(err["type"] != "assertion_error" for err in errors), errors

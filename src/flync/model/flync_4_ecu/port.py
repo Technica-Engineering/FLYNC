@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Literal, Optional, Self
+import warnings
+from typing import TYPE_CHECKING, Literal, Optional, Self
 
 from pydantic import Field, model_validator
 
 if TYPE_CHECKING:
+    from flync.model.flync_4_ecu.controller import EthernetInterface
     from flync.model.flync_4_ecu.ecu import ECU
+    from flync.model.flync_4_ecu.switch import SwitchPort
 
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major
@@ -63,7 +66,7 @@ class ECUPort(FLYNCBaseModel):
     )
     mii_config: Optional[MII | RMII | SGMII | RGMII | XFI] = Field(default=None, discriminator="type")
     _ecu: ECU | None = None
-    _connected_components: List = []
+    _connected_components: list[SwitchPort | EthernetInterface | ECUPort] = []
     _type: Literal["ecu_port"] = "ecu_port"
 
     @property
@@ -71,11 +74,16 @@ class ECUPort(FLYNCBaseModel):
         return self._ecu
 
     @property
-    def type(self):
+    def qualified_name(self) -> str:
+        """``<ecu>:<port>`` for messages, or just the port name while the port is not yet bound to its ECU."""
+        return f"{self._ecu.name}:{self.name}" if self._ecu is not None else self.name
+
+    @property
+    def type(self) -> Literal["ecu_port"]:
         return self._type
 
     @property
-    def connected_components(self):
+    def connected_components(self) -> list[SwitchPort | EthernetInterface | ECUPort]:
         return self._connected_components
 
     @model_validator(mode="after")
@@ -105,10 +113,19 @@ class ECUPort(FLYNCBaseModel):
             )
         return self
 
-    def get_internal_connected_component(self, ecus):
+    def get_internal_connected_component(self, ecus: object = None) -> SwitchPort | EthernetInterface | None:
         """
         Return the component inside the ECU connected  to the ECU Port.
+
+        Args:
+            ecus: Deprecated and ignored, kept for backwards compatibility. Will be removed in a future release.
         """
+        if ecus is not None:
+            warnings.warn(
+                "The 'ecus' argument of ECUPort.get_internal_connected_component() is ignored and deprecated; omit it.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         return next(
             (c for c in self._connected_components if c.type != "ecu_port"),

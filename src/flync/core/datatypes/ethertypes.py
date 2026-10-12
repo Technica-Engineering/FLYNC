@@ -77,7 +77,7 @@ class Ethertype(Enum):
     WAKE_ON_LAN = 0x0842
 
 
-def validate_ethertype_input(value):
+def validate_ethertype_input(value: object) -> object:
     """
     Accept an :class:`Ethertype`, a member name (``"AVTP"``) or a numeric value (``0x22F0``).
     Returns the Ethertype member. Handles both single values and lists.
@@ -109,16 +109,12 @@ def validate_ethertype_input(value):
     return result
 
 
-def serialize_ethertype(value: Ethertype | list[Ethertype]):
+def serialize_ethertype(value: Ethertype | list[Ethertype]) -> str | list[str]:
     """
     Serialization for members of :class:`Ethertype` or lists of :class:`Ethertype`.
     Returns the hex value of the Ethertype.
     """
 
     if isinstance(value, list):
-        return [serialize_ethertype(v) for v in value]
-
-    if isinstance(value, Ethertype):
-        return f"0x{value.value:04X}"
-
-    return value
+        return [f"0x{v.value:04X}" for v in value]
+    return f"0x{value.value:04X}"
