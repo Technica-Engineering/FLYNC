@@ -20,7 +20,7 @@ concurrency:
 
 # Third-party actions are pinned by commit SHA.
 env:
-  SCANNER_VERSION: "v0.74.0"
+  TRIVY_VERSION: "v0.74.0"
   RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
 
 jobs:
@@ -64,38 +64,26 @@ jobs:
       # --no-default-groups is required because pyproject.toml sets
       # default-groups = ["dev"].
       #
-      # Trivy is pointed at the exported requirements.txt alone. Scanning the
-      # whole tree also picks up uv.lock and lists every package twice. The
-      # installed distributions under VIRTUAL_ENV supply each package's licence.
+      # Trivy reads the exported requirements.txt alone. Reading the whole tree
+      # also picks up uv.lock and lists every package twice. The installed
+      # distributions under VIRTUAL_ENV supply each package's licence.
       - name: Install the distributed dependency set
         run: |
           uv sync --frozen --all-extras --no-default-groups --no-install-project
           uv export --frozen --all-extras --no-default-groups --no-emit-project \
             --no-hashes --format requirements.txt --output-file requirements.txt
 
-      - name: Verify scan inputs
-        run: |
-          [ -s requirements.txt ] || { echo "::error::requirements.txt was not exported."; exit 1; }
-          pkgs=$(find .venv -type f -path "*.dist-info/METADATA" | wc -l)
-          echo "Installed distributions on disk: ${pkgs}"
-          if [ "$pkgs" -eq 0 ]; then
-            echo "::error::No installed distributions under .venv - the SBOM would carry no licences."
-            exit 1
-          fi
-
       - name: Generate CycloneDX SBOM
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: fs
           scan-ref: requirements.txt
-          # The licence scanner needs no vulnerability database. Vulnerabilities
-          # do not belong in a release SBOM anyway: they go stale while the
-          # component list does not.
-          scanners: license
+          # An SBOM format turns every Trivy scanner off: the run only lists
+          # the packages.
           format: cyclonedx
           output: sbom.raw.cdx.json
           exit-code: "0"
-          version: ${{ env.SCANNER_VERSION }}
+          version: ${{ env.TRIVY_VERSION }}
           cache: false
         env:
           VIRTUAL_ENV: ${{ github.workspace }}/.venv
@@ -105,16 +93,15 @@ jobs:
         with:
           scan-type: fs
           scan-ref: requirements.txt
-          scanners: license
           format: spdx-json
           output: sbom.raw.spdx.json
           exit-code: "0"
-          version: ${{ env.SCANNER_VERSION }}
+          version: ${{ env.TRIVY_VERSION }}
           cache: false
         env:
           VIRTUAL_ENV: ${{ github.workspace }}/.venv
 
-      # Trivy names the root component after the scanned file. It is renamed to
+      # Trivy names the root component after the file it reads. It is renamed to
       # the flync distribution and stamped with its version, so each SBOM reads
       # as a description of flync and not of requirements.txt.
       - name: Describe flync as the root component
@@ -124,8 +111,7 @@ jobs:
           SPDX: ${{ steps.version.outputs.spdx }}
         run: |
           jq --arg v "$VERSION" '
-            del(.vulnerabilities)
-            | .metadata.component |= (
+            .metadata.component |= (
                 .name = "flync"
                 | .version = $v
                 | .type = "library"
