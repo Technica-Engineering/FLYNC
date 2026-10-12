@@ -1,0 +1,212 @@
+name: SBOM
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: >
+          Existing release-* tag to generate the SBOM for. The SBOM is attached
+          to the GitHub release of that tag, which must already exist.
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sbom-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
+
+# Third-party actions are pinned by commit SHA.
+env:
+  TRIVY_VERSION: "v0.74.0"
+  RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+
+jobs:
+  generate:
+    name: Generate SBOM
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      cdx: ${{ steps.version.outputs.cdx }}
+      spdx: ${{ steps.version.outputs.spdx }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+          # The install step below builds third-party packages, which runs their
+          # code on this runner.
+          persist-credentials: false
+
+      - name: Resolve version
+        id: version
+        run: |
+          case "$RELEASE_TAG" in
+            release-*) ;;
+            *) echo "::error::${RELEASE_TAG} is not a release-* tag."; exit 1 ;;
+          esac
+          version="${RELEASE_TAG#release-}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "cdx=flync-${version}.cdx.json" >> "$GITHUB_OUTPUT"
+          echo "spdx=flync-${version}.spdx.json" >> "$GITHUB_OUTPUT"
+          echo "SBOM version: ${version}"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+
+      # The SBOM describes what consumers of the flync distribution receive: the
+      # runtime dependencies plus every extra. Nothing under [dependency-groups]
+      # is distributed.
+      # --no-default-groups is required because pyproject.toml sets
+      # default-groups = ["dev"].
+      #
+      # Trivy reads the exported requirements.txt alone. Reading the whole tree
+      # also picks up uv.lock and lists every package twice. The installed
+      # distributions under VIRTUAL_ENV supply each package's licence.
+      - name: Install the distributed dependency set
+        run: |
+          uv sync --frozen --all-extras --no-default-groups --no-install-project
+          uv export --frozen --all-extras --no-default-groups --no-emit-project \
+            --no-hashes --format requirements.txt --output-file requirements.txt
+
+      - name: Generate CycloneDX SBOM
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: requirements.txt
+          # An SBOM format turns every Trivy scanner off: the run only lists
+          # the packages.
+          format: cyclonedx
+          output: sbom.raw.cdx.json
+          exit-code: "0"
+          version: ${{ env.TRIVY_VERSION }}
+          cache: false
+        env:
+          VIRTUAL_ENV: ${{ github.workspace }}/.venv
+
+      - name: Generate SPDX SBOM
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: requirements.txt
+          format: spdx-json
+          output: sbom.raw.spdx.json
+          exit-code: "0"
+          version: ${{ env.TRIVY_VERSION }}
+          cache: false
+        env:
+          VIRTUAL_ENV: ${{ github.workspace }}/.venv
+
+      # Trivy names the root component after the file it reads. It is renamed to
+      # the flync distribution and stamped with its version, so each SBOM reads
+      # as a description of flync and not of requirements.txt.
+      - name: Describe flync as the root component
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          CDX: ${{ steps.version.outputs.cdx }}
+          SPDX: ${{ steps.version.outputs.spdx }}
+        run: |
+          jq --arg v "$VERSION" '
+            .metadata.component |= (
+                .name = "flync"
+                | .version = $v
+                | .type = "library"
+                | .licenses = [{license: {id: "Apache-2.0"}}]
+                | .purl = "pkg:pypi/flync@\($v)"
+              )
+          ' sbom.raw.cdx.json > "$CDX"
+
+          # The root package is the one the SPDX document DESCRIBES.
+          jq --arg v "$VERSION" '
+            ([.relationships[]?
+              | select(.spdxElementId == "SPDXRef-DOCUMENT" and .relationshipType == "DESCRIBES")
+              | .relatedSpdxElement] | first) as $root
+            | .name = "flync-\($v)"
+            | .packages |= map(
+                if .SPDXID == $root then
+                  .name = "flync"
+                  | .versionInfo = $v
+                  | .primaryPackagePurpose = "LIBRARY"
+                  | .licenseDeclared = "Apache-2.0"
+                  | .externalRefs = [{
+                      referenceCategory: "PACKAGE-MANAGER",
+                      referenceType: "purl",
+                      referenceLocator: "pkg:pypi/flync@\($v)"
+                    }]
+                else . end
+              )
+          ' sbom.raw.spdx.json > "$SPDX"
+
+          components=$(jq '[.components[]? | select(.type == "library")] | length' "$CDX")
+          licensed=$(jq '[.components[]? | select(.type == "library" and (.licenses // [] | length) > 0)] | length' "$CDX")
+          if [ "$components" -eq 0 ]; then
+            echo "::error::The CycloneDX SBOM lists no components."
+            exit 1
+          fi
+          if ! jq -e --arg v "$VERSION" 'any(.packages[]?; .name == "flync" and .versionInfo == $v)' "$SPDX" > /dev/null; then
+            echo "::error::The SPDX SBOM has no flync root package."
+            exit 1
+          fi
+          # Every package except the flync root and the requirements.txt entry.
+          packages=$(jq '[.packages[]? | select(.name != "flync" and .name != "requirements.txt")] | length' "$SPDX")
+          if [ "$packages" -eq 0 ]; then
+            echo "::error::The SPDX SBOM lists no packages."
+            exit 1
+          fi
+          {
+            echo "## SBOM"
+            echo
+            echo "\`${CDX}\` (CycloneDX): **${components}** components, **${licensed}** with a licence."
+            echo
+            echo "\`${SPDX}\` (SPDX): **${packages}** packages."
+            echo
+            echo "Attached to release \`${RELEASE_TAG}\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Archive artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sbom
+          path: |
+            ${{ steps.version.outputs.cdx }}
+            ${{ steps.version.outputs.spdx }}
+          if-no-files-found: error
+          retention-days: 28
+
+  # Held apart from generate because that job builds third-party packages, and
+  # this is the token that can write to the release.
+  attach-to-release:
+    name: Attach SBOM to release
+    needs: generate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - name: Download SBOM
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: sbom
+
+      # Records that this workflow produced the files from the tagged commit.
+      # Verify with: gh attestation verify <file> --repo Technica-Engineering/FLYNC
+      - name: Attest SBOM provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            ${{ needs.generate.outputs.cdx }}
+            ${{ needs.generate.outputs.spdx }}
+
+      # --clobber replaces the assets when the SBOM of a release is regenerated.
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CDX: ${{ needs.generate.outputs.cdx }}
+          SPDX: ${{ needs.generate.outputs.spdx }}
+        run: gh release upload "$RELEASE_TAG" "$CDX" "$SPDX" --clobber --repo "$GITHUB_REPOSITORY"
