@@ -158,6 +158,26 @@ class _WorkspaceBase(object):
 
         return [error for doc_errors in self.documents_diags.values() for error in doc_errors]
 
+    @staticmethod
+    def is_hidden_path(path: PathType):
+        """
+        Return whether a path is a hidden entry that is not part of the workspace.
+
+        Hidden files and folders (names starting with a dot) are tool artifacts -- ``.git``, ``.gitignore``,
+        ``.approval_tests_temp`` and the like -- and are skipped silently instead of being reported as
+        unrecognized workspace content.
+
+        Args:
+            path (PathType): The path to check.
+
+        Returns:
+            bool: ``True`` if the path's name starts with a dot.
+        """
+
+        if not isinstance(path, Path):
+            path = Path(path)
+        return path.name.startswith(".")
+
     def is_path_supported(self, path: PathType):
         """
         Return whether a path is a directory or a recognized FLYNC file.

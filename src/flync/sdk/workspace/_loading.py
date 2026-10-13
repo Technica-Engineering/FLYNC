@@ -218,6 +218,8 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
             # Sort so list indices (and therefore object ids and list order) are
             # deterministic across loads and filesystems; iterdir() order is not.
             for idx, sub_item_path in enumerate(sorted(item_dir.iterdir())):
+                if self.is_hidden_path(sub_item_path):
+                    continue
                 if not self.is_path_supported(sub_item_path):
                     logger.warning(
                         "Unrecognized file found in FLYNC workspace: %s",
@@ -344,6 +346,8 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
         if OutputStrategy.FOLDER in external.output_structure:
             item_dir = path / external_path
             for sub_item_path in sorted(item_dir.iterdir()):
+                if self.is_hidden_path(sub_item_path):
+                    continue
                 if not self.is_path_supported(sub_item_path):
                     logger.warning(
                         "Unrecognized file found in FLYNC workspace: %s",
