@@ -8,6 +8,7 @@ from typing import Optional
 
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal
+from textual.css.query import NoMatches
 from textual.widgets import Button, Footer, Header, Log, Select, Static
 
 from flync_converter import Converter
@@ -122,9 +123,16 @@ class FlyncTUI(App):
                 self._log_handler.setLevel(level)
 
     def _refresh_convert_button(self) -> None:
-        source = self.query_one("#source-panel", ConverterPanel)
-        dest = self.query_one("#dest-panel", ConverterPanel)
-        self.query_one("#btn-convert", Button).disabled = not (source.converter_type and dest.converter_type)
+        try:
+            source = self.query_one("#source-panel", ConverterPanel)
+            dest = self.query_one("#dest-panel", ConverterPanel)
+            btn = self.query_one("#btn-convert", Button)
+        except NoMatches:
+            # Panels or button are not mounted yet (e.g. a panel's Change event
+            # fired during startup before the layout finished mounting). The
+            # button stays disabled and a later selection re-triggers this.
+            return
+        btn.disabled = not (source.converter_type and dest.converter_type)
 
     # ------------------------------------------------------------------
     # Conversion

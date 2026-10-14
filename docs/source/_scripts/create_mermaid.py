@@ -1,7 +1,9 @@
 from pathlib import Path
+
 from pydantic_mermaid import MermaidGenerator
-import flync.model as base_model
 from pydantic_mermaid.models import Relations
+
+import flync.model as base_model
 
 EXPORT_DIR = Path(__file__).resolve().parent / ".." / "_static" / "mermaid"
 EXPORT_DIR.mkdir(parents=True, exist_ok=True)

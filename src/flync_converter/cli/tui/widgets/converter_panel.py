@@ -27,8 +27,9 @@ def _resolve_field_type(annotation):
     return annotation
 
 
-#: Config fields managed by the stored configuration file, not edited in the panel.
-_NON_EDITABLE_FIELDS = frozenset({"version"})
+#: Config fields managed by the stored configuration file or destination side,
+#: never edited in the panel (mirrors the GUI panel).
+_NON_EDITABLE_FIELDS = frozenset({"version", "report_enabled", "report_min_log_level", "persist_config"})
 
 
 class ConverterPanel(Vertical):
@@ -127,7 +128,8 @@ class ConverterPanel(Vertical):
         container = self.query_one("#fields", ScrollableContainer)
         await container.remove_children()
         if self._converter_type is not None:
-            await container.mount(*self._make_field_widgets(self._converter_type))
+            for widget in self._make_field_widgets(self._converter_type):
+                await container.mount(widget)
         self.post_message(ConverterPanel.Changed(self, self._converter_type))
 
     def _make_field_widgets(self, converter_type: str) -> list:  # NOSONAR
