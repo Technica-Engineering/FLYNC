@@ -1,5 +1,7 @@
 """Click group definition and top-level flags for the flync_converter CLI."""
 
+from importlib import metadata
+
 import click
 
 
@@ -24,6 +26,11 @@ def _open_gui(ctx, _param, value):
 
 
 @click.group()
+@click.version_option(
+    version=metadata.version("flync"),
+    prog_name="flync-converter",
+    help="Show the version and exit.",
+)
 @click.option(
     "-i",
     "--interactive",

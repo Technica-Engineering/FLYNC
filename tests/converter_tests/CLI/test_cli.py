@@ -14,6 +14,12 @@ def runner():
     return CliRunner()
 
 
+def test_cli_version_option(runner):
+    result = runner.invoke(cli, ["--version"])
+    assert result.exit_code == 0
+    assert result.output.startswith("flync-converter, version ")
+
+
 @pytest.fixture
 def populated_registry():
     """Patch the registry with two fake converters."""
