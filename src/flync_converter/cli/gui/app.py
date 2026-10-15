@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import logging
+import os
+import signal
 import sys
 import threading
 from typing import Optional
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QCoreApplication, Qt, QTimer, Signal
 from PySide6.QtGui import QFontDatabase
 from PySide6.QtWidgets import (
     QApplication,
@@ -33,6 +35,40 @@ from .widgets import ConverterPanel, LogWidgetHandler
 
 _LOG_LEVELS = ["DEBUG", "INFO", "WARNING", "ERROR"]
 _DEFAULT_LOG_LEVEL = "WARNING"
+
+
+#: Interval in milliseconds at which Qt hands control back to Python so Ctrl+C is handled.
+_SIGNAL_POLL_INTERVAL_MS = 100
+
+
+def _force_exit_on_sigint(_signum: int, _frame: object) -> None:
+    """Exit the GUI process immediately on Ctrl+C.
+
+    A normal shutdown would wait for a running conversion: at exit,
+    ``concurrent.futures`` joins the workspace-load pool, so the process
+    exits without running the exit handlers. The pool workers stop on the
+    same Ctrl+C through their own handler.
+    """
+    os._exit(130)
+
+
+def _install_sigint_handler(app: QCoreApplication) -> QTimer:
+    """Make Ctrl+C in the terminal close the GUI.
+
+    Python runs signal handlers only between bytecode instructions, so a timer
+    returns control from the Qt event loop to Python at a fixed interval.
+
+    Args:
+        app: The running application, parent of the timer.
+
+    Returns:
+        The started timer.
+    """
+    signal.signal(signal.SIGINT, _force_exit_on_sigint)
+    timer = QTimer(app)
+    timer.timeout.connect(lambda: None)
+    timer.start(_SIGNAL_POLL_INTERVAL_MS)
+    return timer
 
 
 class FlyncGUI(QMainWindow):
@@ -200,6 +236,7 @@ def run_gui() -> None:
     """Load plugins and launch the PySide6 GUI."""
     registry.load_plugins()
     app = QApplication.instance() or QApplication(sys.argv)
+    _install_sigint_handler(app)
     window = FlyncGUI()
     window.show()
     sys.exit(app.exec())

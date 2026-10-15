@@ -8,6 +8,7 @@ validates each load node. Depends on :mod:`._object_mapping` to register what it
 import logging
 import multiprocessing
 import os
+import signal
 import sys
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from itertools import islice
@@ -36,6 +37,20 @@ from ._object_mapping import _WorkspaceObjectMapping
 from .document import Document, parse_documents, read_file
 
 logger = logging.getLogger(__name__)
+
+
+def _force_exit_pool_worker_on_sigint(_signum: int, _frame: object) -> None:
+    """Exit a workspace-load pool worker immediately on Ctrl+C, without printing a traceback.
+
+    A terminal Ctrl+C reaches every process attached to the terminal, so the
+    workers stop together with the process that loads the workspace.
+    """
+    os._exit(130)
+
+
+def _configure_pool_worker() -> None:
+    """Install the Ctrl+C handler of a workspace-load pool worker (``ProcessPoolExecutor`` initializer)."""
+    signal.signal(signal.SIGINT, _force_exit_pool_worker_on_sigint)
 
 
 class _WorkspaceLoading(_WorkspaceObjectMapping):
@@ -73,7 +88,7 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
         # (forkserver on POSIX, spawn elsewhere); everything submitted (module-level
         # parse_document, path/str/bool args) is picklable, so this is behavior-neutral.
         mp_context = multiprocessing.get_context("forkserver" if sys.platform != "win32" else "spawn")
-        with ProcessPoolExecutor(mp_context=mp_context) as pool:
+        with ProcessPoolExecutor(mp_context=mp_context, initializer=_configure_pool_worker) as pool:
             futures = [
                 pool.submit(
                     parse_documents,

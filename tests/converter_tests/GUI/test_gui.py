@@ -413,3 +413,48 @@ def test_gui_conversion_runs_in_background(qapp_instance, fake_registry):
             mock_cls.return_value.convert.assert_called_once()
     finally:
         window.close()
+
+
+def test_force_exit_on_sigint_exits_with_130():
+    """Ctrl+C exits the GUI process with status 130."""
+    import flync_converter.cli.gui.app as gui_app
+
+    with patch("flync_converter.cli.gui.app.os._exit") as mock_exit:
+        gui_app._force_exit_on_sigint(2, None)
+
+    mock_exit.assert_called_once_with(130)
+
+
+def test_install_sigint_handler_sets_handler_and_starts_timer(qapp_instance):
+    """The SIGINT handler is installed and a timer keeps Python signal handling running."""
+    import signal
+
+    import flync_converter.cli.gui.app as gui_app
+
+    previous = signal.getsignal(signal.SIGINT)
+    try:
+        timer = gui_app._install_sigint_handler(qapp_instance)
+        assert signal.getsignal(signal.SIGINT) is gui_app._force_exit_on_sigint
+        assert timer.isActive()
+        assert timer.interval() == gui_app._SIGNAL_POLL_INTERVAL_MS
+        assert timer.parent() is qapp_instance
+    finally:
+        signal.signal(signal.SIGINT, previous)
+        timer.stop()
+        timer.deleteLater()
+
+
+def test_run_gui_installs_sigint_handler(qapp_instance):
+    """run_gui installs the Ctrl+C handler before entering the event loop."""
+    import flync_converter.cli.gui.app as gui_app
+
+    with (
+        patch.object(gui_app, "registry"),
+        patch.object(gui_app, "FlyncGUI"),
+        patch.object(gui_app, "_install_sigint_handler") as mock_install,
+        patch.object(qapp_instance, "exec", return_value=0),
+        pytest.raises(SystemExit),
+    ):
+        gui_app.run_gui()
+
+    mock_install.assert_called_once_with(qapp_instance)

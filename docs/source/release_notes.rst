@@ -136,3 +136,12 @@ The converter now shows a preview before running a conversion: the source, the d
 The scripted ``convert`` command, ``convert-interactive``, the Textual TUI and the GUI show the same preview.
 
 * ``--no-preview`` on the main command, ``convert`` or ``convert-interactive`` hides the preview.
+
+Ctrl+C closes the converter GUI
+'
+
+Ctrl+C in the terminal that started ``flync-converter-gui`` now closes the GUI immediately, also while a conversion is running.
+
+Workspace loading also stops cleanly on Ctrl+C: the worker processes that parse the workspace exit with status 130
+instead of each printing a ``KeyboardInterrupt`` traceback. This applies to every workspace load, for example
+``flync validate`` and the SDK.
