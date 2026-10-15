@@ -30,10 +30,13 @@ def load_dbc_files(root_folder, report: ConverterReport = INACTIVE_REPORT) -> Li
         expose the per-file name on the parsed database (it does expose the
         ``Baudrate`` / ``BaudrateCANFD`` attributes, which are used for the
         bus bit rates).
+
+    A file that fails cantools' strict signal-layout check (some J1939 DBCs pack
+    multiple active SPNs in overlapping bit ranges) is retried non-strictly; the
+    file is then recorded under ``report``'s ``dbc_strict_fallback`` custom group.
     """
 
     dbc_files: List[Tuple[Database, Path]] = []
-
     root = Path(root_folder)
     logger.debug("Scanning for DBC files under: %s", root_folder)
 
@@ -42,11 +45,23 @@ def load_dbc_files(root_folder, report: ConverterReport = INACTIVE_REPORT) -> Li
     else:
         candidates = sorted(root.rglob("*.dbc"))
 
+    strict_fallback_files: List[Path] = []
     for dbc_file in candidates:
         logger.debug("Loading DBC file: %s", dbc_file)
-        tmp = cast(Database, cantools.database.load_file(dbc_file))
+        try:
+            tmp = cast(Database, cantools.database.load_file(dbc_file))
+        except Exception:
+            # Some J1939 DBCs pack multiple active SPNs in overlapping bit ranges (a valid
+            # J1939 pattern), which cantools rejects in its default strict signal-layout
+            # check. Retry the same file non-strictly so the conversion can proceed.
+            logger.warning("Strict load failed for %s, retrying non-strict (J1939 overlapping signals?)", dbc_file)
+            tmp = cast(Database, cantools.database.load_file(dbc_file, strict=False))
+            strict_fallback_files.append(dbc_file)
         logger.info("Loaded %s: %d message(s), %d node(s)", dbc_file, len(tmp.messages), len(tmp.nodes))
         dbc_files.append((tmp, dbc_file))
+
+    if strict_fallback_files:
+        report.add("dbc_strict_fallback", [str(p) for p in strict_fallback_files])
 
     if not candidates:
         logger.warning("No DBC file found under: %s", root_folder)
@@ -99,3 +114,13 @@ def _nominal_baud_rate(db, config: DbcConverterConfig, bus_name: str = "", repor
 def _fd_baud_rate(db, config: DbcConverterConfig, bus_name: str = "", report: ConverterReport = INACTIVE_REPORT) -> int:
     """Return the CAN FD data-phase bit rate, honoring the ``BaudrateCANFD`` attribute."""
     return _baud_rate(db, "BaudrateCANFD", _ALLOWED_CAN_FD_DATA_RATES, config.fd_baud_rate_default, bus_name, report)
+
+
+def is_j1939_database(db: Database) -> bool:
+    """Return whether the database declares any J1939 message.
+
+    cantools sets ``Message.protocol == "j1939"`` when a message's ``VFrameFormat``
+    attribute is ``J1939PG``, the Vector/CANoe convention for marking J1939 messages
+    in a DBC. A database is considered J1939 when any of its messages carry that flag.
+    """
+    return any(getattr(message, "protocol", None) == "j1939" for message in db.messages)

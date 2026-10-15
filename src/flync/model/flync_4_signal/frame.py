@@ -262,13 +262,18 @@ class J1939Frame(Frame):
         Destination type. For PDU1 (``pdu_format`` < 240) the ``pdu_specific`` field is a destination address:
         ``"specific"`` targets a single node (DA 0-254) and ``"global"`` broadcasts to every node (DA = 255).
         For PDU2 (``pdu_format`` >= 240) the message is always a group broadcast, so this must be ``"global"``.
+    length : int, optional
+        Payload length in bytes. Defaults to 8 for an ordinary J1939 parameter group; a Transport
+        Protocol message may span the full J1939 payload (1-1785 bytes), represented here as a single PDU.
     timing : :class:`FrameTransmissionTiming`, optional
             Transmission timing for this frame.
 
     Notes
     -----
-    A J1939 message carries exactly one Parameter Group (one PGN) in its 8-byte data field, so ``packed_pdus``
+    A J1939 message carries exactly one Parameter Group (one PGN), so ``packed_pdus``
     may contain at most one entry. This is unlike classical CAN, where a single frame may pack several PDUs.
+    The ``length`` reflects the operator-level message payload: 8 for a single-frame parameter group, and up
+    to 1785 for a Transport Protocol message whose payload is shipped over multiple physical J1939 frames.
     """
 
     priority: int = Field(ge=0, le=7)
@@ -277,7 +282,7 @@ class J1939Frame(Frame):
     data_page: int = Field(ge=0, le=1)
     extended_data_page: int = Field(ge=0, le=1)
     destination_type: Literal["global", "specific"]
-    length: Literal[8] = Field(default=8)
+    length: int = Field(default=8, ge=1, le=1785)
     type: Literal["j1939"] = Field(default="j1939")
     timing: Optional[FrameTransmissionTiming] = Field(default=None)
 

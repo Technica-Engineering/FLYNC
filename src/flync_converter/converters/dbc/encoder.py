@@ -7,14 +7,18 @@ from typing import List, Literal, Optional
 
 import cantools.database
 from cantools.database.can.database import Database
+from cantools.database.can.formats.dbc.dbc_loader import ATTRIBUTE_DEFINITION_VFRAMEFORMAT
+from cantools.database.can.formats.dbc.dbc_specifics import DbcSpecifics
 from cantools.database.can.message import Message
 from cantools.database.can.node import Node
 from cantools.database.can.signal import Signal
 from cantools.database.conversion import LinearConversion
 from cantools.database.namedsignalvalue import NamedSignalValue
+from cantools.j1939 import frame_id_pack, pgn_from_frame_id
 
 from flync.model import FLYNCModel
 from flync.model.flync_4_signal import ContainerPDU, MultiplexedPDU, SignalInstance, StandardPDU
+from flync.model.flync_4_signal.frame import J1939Frame
 from flync.model.flync_4_signal.pdu import PDU
 from flync.model.flync_4_signal.value_encoding import TextTable
 
@@ -23,6 +27,27 @@ from ...base.converter_report import INACTIVE_REPORT, ConverterReport
 logger = logging.getLogger(__name__)
 
 _PDU_NOT_FOUND = "referenced PDU not found"
+
+#: J1939 source address used when a FLYNC node models no SA (address claiming
+#: assigns SA at runtime); 0xFE (254) is the J1939 NULL address.
+_DEFAULT_J1939_SA = 0xFE
+
+
+def _j1939_frame_id(frame: J1939Frame) -> int:
+    """Reconstruct the 29-bit J1939 arbitration ID from a J1939Frame's fields."""
+    return frame_id_pack(
+        frame.priority,
+        frame.extended_data_page,
+        frame.data_page,
+        frame.pdu_format,
+        frame.pdu_specific,
+        _DEFAULT_J1939_SA,
+    )
+
+
+def _pgn_from_frame(frame: J1939Frame) -> int:
+    """Return the J1939 Parameter Group Number (PGN) of ``frame``."""
+    return pgn_from_frame_id(_j1939_frame_id(frame))
 
 
 def _value_encoding_choices(signal) -> Optional[OrderedDict[int, str | NamedSignalValue]]:
@@ -248,54 +273,145 @@ def decode_pdu(  # NOSONAR
     return []
 
 
+def _index_frame_participants(index: dict, ecu_name: str, refs, key) -> None:
+    """Index ``ecu_name`` under ``index[key(ref)]`` for every member of ``refs``."""
+    for ref in refs or []:
+        index.setdefault(key(ref), []).append(ecu_name)
+
+
+def _collect_interface_frames(
+    iface,
+    ecu_name: str,
+    frame_senders: dict,
+    frame_receivers: dict,
+    j1939_senders: dict,
+    j1939_receivers: dict,
+) -> None:
+    """Index the send/receive frame and J1939 references of one CAN interface."""
+    _index_frame_participants(frame_senders, ecu_name, iface.sender_frames, lambda f: (f.bus_ref, f.frame_ref))
+    _index_frame_participants(frame_receivers, ecu_name, iface.receiver_frames, lambda f: (f.bus_ref, f.frame_ref))
+    _index_frame_participants(j1939_senders, ecu_name, iface.j1939_sender_frames, lambda f: (f.bus_ref, f.pgn))
+    _index_frame_participants(j1939_receivers, ecu_name, iface.j1939_receiver_frames, lambda f: (f.bus_ref, f.pgn))
+
+
 def _collect_frame_participants(flync_model: FLYNCModel):
-    """Return (frame_senders, frame_receivers) dicts built from all ECU CAN interfaces."""
+    """Return frame/j1939 sender and receiver dicts built from all ECU CAN interfaces.
+
+    ``frame_senders``/``frame_receivers`` are keyed by ``(bus_ref, frame_ref)`` for
+    classical CAN frames; ``j1939_senders``/``j1939_receivers`` are keyed by
+    ``(bus_ref, pgn)`` for J1939 nodes.
+    """
     frame_senders: dict[tuple, list] = {}
     frame_receivers: dict[tuple, list] = {}
+    j1939_senders: dict[tuple, list] = {}
+    j1939_receivers: dict[tuple, list] = {}
     for ecu in flync_model.ecus:
         for ctrl in ecu.controllers:
             for iface in ctrl.can_interfaces or []:
-                for f in iface.sender_frames:
-                    frame_senders.setdefault((f.bus_ref, f.frame_ref), []).append(ecu.name)
-                for f in iface.receiver_frames:
-                    frame_receivers.setdefault((f.bus_ref, f.frame_ref), []).append(ecu.name)
-    return frame_senders, frame_receivers
+                _collect_interface_frames(iface, ecu.name, frame_senders, frame_receivers, j1939_senders, j1939_receivers)
+    return frame_senders, frame_receivers, j1939_senders, j1939_receivers
 
 
 def _build_can_messages(
-    flync_model: FLYNCModel, can_bus, pdus: dict, frame_senders: dict, frame_receivers: dict, report: ConverterReport = INACTIVE_REPORT
+    flync_model: FLYNCModel,
+    can_bus,
+    pdus: dict,
+    frame_senders: dict,
+    frame_receivers: dict,
+    j1939_senders: dict,
+    j1939_receivers: dict,
+    report: ConverterReport = INACTIVE_REPORT,
 ) -> list:
     """Build a list of cantools Message objects for all frames in one CAN bus."""
     messages = []
     for frame in can_bus.frames:
-        sigs: List[Signal] = []
-        for pdu_inst in frame.packed_pdus:
-            pdu_obj = pdus.get(pdu_inst.pdu_ref, None)
-            if pdu_obj is None:
-                logger.warning("PDU '%s' packed in frame '%s' not found, skipped", pdu_inst.pdu_ref, frame.name)
-                report.skipped(f"can_buses.{can_bus.name}.frames.{frame.name}.{pdu_inst.pdu_ref}", reason=_PDU_NOT_FOUND)
-                continue
-            sigs += decode_pdu(
-                flync_model,
-                pdu_obj,
-                pdu_inst.bit_position or 0,
-                frame_receivers.get((can_bus.name, frame.can_id), None),
-                pdus,
-                report=report,
-            )
         messages.append(
-            Message(
-                frame_id=frame.can_id,
-                name=frame.name,
-                length=frame.length,
-                signals=sigs,
-                comment=frame.description,
-                senders=frame_senders.get((can_bus.name, frame.can_id), None),
-                is_extended_frame=frame.id_format == "extended_29bit",
-                is_fd=frame.type == "can_fd",
+            _build_one_message(
+                flync_model,
+                frame,
+                can_bus,
+                pdus,
+                frame_senders,
+                frame_receivers,
+                j1939_senders,
+                j1939_receivers,
+                report,
             )
         )
     return messages
+
+
+def _build_one_message(
+    flync_model: FLYNCModel,
+    frame,
+    can_bus,
+    pdus: dict,
+    frame_senders: dict,
+    frame_receivers: dict,
+    j1939_senders: dict,
+    j1939_receivers: dict,
+    report: ConverterReport,
+) -> Message:
+    """Build the cantools Message for a single frame on ``can_bus``."""
+    is_j1939 = isinstance(frame, J1939Frame)
+    if is_j1939:
+        frame_id = _j1939_frame_id(frame)
+        pgn = _pgn_from_frame(frame)
+        receivers = j1939_receivers.get((can_bus.name, pgn), None)
+        senders = j1939_senders.get((can_bus.name, pgn), None)
+    else:
+        frame_id = frame.can_id
+        receivers = frame_receivers.get((can_bus.name, frame.can_id), None)
+        senders = frame_senders.get((can_bus.name, frame.can_id), None)
+    sigs = _decode_frame_pdus(flync_model, frame, can_bus, pdus, receivers, report)
+    if is_j1939:
+        return Message(
+            frame_id=frame_id,
+            name=frame.name,
+            length=frame.length,
+            signals=sigs,
+            comment=frame.description,
+            senders=senders,
+            is_extended_frame=True,
+            protocol="j1939",
+        )
+    return Message(
+        frame_id=frame_id,
+        name=frame.name,
+        length=frame.length,
+        signals=sigs,
+        comment=frame.description,
+        senders=senders,
+        is_extended_frame=frame.id_format == "extended_29bit",
+        is_fd=frame.type == "can_fd",
+    )
+
+
+def _decode_frame_pdus(
+    flync_model: FLYNCModel,
+    frame,
+    can_bus,
+    pdus: dict,
+    receivers,
+    report: ConverterReport,
+) -> List[Signal]:
+    """Decode every packed PDU of ``frame`` into a flat DBC signal list."""
+    sigs: List[Signal] = []
+    for pdu_inst in frame.packed_pdus:
+        pdu_obj = pdus.get(pdu_inst.pdu_ref, None)
+        if pdu_obj is None:
+            logger.warning("PDU '%s' packed in frame '%s' not found, skipped", pdu_inst.pdu_ref, frame.name)
+            report.skipped(f"can_buses.{can_bus.name}.frames.{frame.name}.{pdu_inst.pdu_ref}", reason=_PDU_NOT_FOUND)
+            continue
+        sigs += decode_pdu(
+            flync_model,
+            pdu_obj,
+            pdu_inst.bit_position or 0,
+            receivers,
+            pdus,
+            report=report,
+        )
+    return sigs
 
 
 def _report_non_can_content(channels, report: ConverterReport) -> None:
@@ -336,7 +452,7 @@ def write_dbc_files(flync_model: FLYNCModel, destination_path: str, report: Conv
     channels = flync_model.communication.channels
     _report_non_can_content(channels, report)
     pdus = {pdu.name: pdu for pdu in channels.pdus or []}
-    frame_senders, frame_receivers = _collect_frame_participants(flync_model)
+    frame_senders, frame_receivers, j1939_senders, j1939_receivers = _collect_frame_participants(flync_model)
     nodes = [Node(ecu.name) for ecu in flync_model.ecus]
     can_buses = list(channels.can_buses or [])
     configured_path = Path(destination_path)
@@ -347,8 +463,15 @@ def write_dbc_files(flync_model: FLYNCModel, destination_path: str, report: Conv
 
     written: List[Path] = []
     for can_bus in can_buses:
-        messages = _build_can_messages(flync_model, can_bus, pdus, frame_senders, frame_receivers, report)
-        db = Database(messages=messages, nodes=nodes)
+        messages = _build_can_messages(flync_model, can_bus, pdus, frame_senders, frame_receivers, j1939_senders, j1939_receivers, report)
+        has_j1939 = any(isinstance(frame, J1939Frame) for frame in can_bus.frames or [])
+        dbc_specifics = None
+        if has_j1939:
+            # Emitting J1939PG requires the DBC to declare the VFrameFormat attribute
+            # definition; the writer only auto-adds it for CAN-FD buses, so declare it
+            # ourselves for J1939 buses.
+            dbc_specifics = DbcSpecifics(attribute_definitions=OrderedDict({"VFrameFormat": ATTRIBUTE_DEFINITION_VFRAMEFORMAT}))
+        db = Database(messages=messages, nodes=nodes, dbc_specifics=dbc_specifics)
         if exact_file and len(can_buses) == 1:
             output_file = configured_path
         elif exact_file:

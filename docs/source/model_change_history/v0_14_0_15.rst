@@ -58,6 +58,14 @@ previously accepted although no supported container format uses one.
 Additive — YAML schema
 ----------------------
 
+``J1939Frame.length`` widened to support Transport Protocol payloads
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``J1939Frame.length`` was previously a literal fixed at ``8`` bytes (a single-frame J1939
+parameter group). It is now an ``int`` in ``1..1785`` with a default of ``8``, so a Transport
+Protocol message whose payload is shipped over multiple physical J1939 frames can be modelled as a
+single PDU. Existing ``8``-byte frames load unchanged.
+
 New optional instrumentation overlay
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

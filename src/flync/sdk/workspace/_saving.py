@@ -8,6 +8,7 @@ routing externally annotated fields to their own files or folders.
 import logging
 from pathlib import Path
 
+import ruamel.yaml
 import yaml
 
 from flync.core.annotations import (
@@ -30,6 +31,39 @@ from ._incremental import _WorkspaceIncremental
 from .document import Document
 
 logger = logging.getLogger(__name__)
+
+# The workspace loader (document.py) parses YAML with ruamel, configured with
+# preserve_quotes=True. A plain PyYAML dump does not quote scalars that ruamel
+# would read back as a different type (e.g. numeric-looking text such as the
+# J1939 value label "0875" -> int 875). Sniff each string through the same
+# ruamel configuration used by the loader and force single quotes whenever the
+# bare scalar would not come back as a str, so saving and loading agree.
+_RUAMEL_SNIFF = ruamel.yaml.YAML(typ="safe")
+_RUAMEL_SNIFF.preserve_quotes = True
+
+
+def _needs_quoting(value: str) -> bool:
+    """Return True when the bare scalar would round-trip as a non-string."""
+    try:
+        parsed = _RUAMEL_SNIFF.load(value)
+    except Exception:
+        return True
+    return not isinstance(parsed, str)
+
+
+class _WorkspaceDumper(yaml.Dumper):
+    """PyYAML dumper that quotes strings ruamel would misread on reload."""
+
+    def represent_str(self, data):
+        """Force single quotes when the loader would not read back ``data`` as str."""
+        return self.represent_scalar(
+            "tag:yaml.org,2002:str",
+            data,
+            style="'" if _needs_quoting(data) else None,
+        )
+
+
+_WorkspaceDumper.add_representer(str, _WorkspaceDumper.represent_str)
 
 
 class _WorkspaceSaving(_WorkspaceIncremental):
@@ -290,6 +324,7 @@ class _WorkspaceSaving(_WorkspaceIncremental):
                         sort_keys=False,
                         default_flow_style=False,
                         allow_unicode=True,
+                        Dumper=_WorkspaceDumper,
                     )
 
         # Persist workspace configuration when saving entire workspace, unless suppressed.

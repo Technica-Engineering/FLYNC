@@ -14,6 +14,18 @@ Release Notes
 Release 0.15
 ------------
 
+J1939 support in the DBC converter
+''''''''''''''''''''''''''''''''''
+
+The DBC converter now detects J1939 databases and converts them in both directions.
+A DBC that fails cantools' strict signal-layout check (some J1939 files pack multiple active SPNs in
+overlapping bit ranges) is retried non-strictly and recorded under the converter's ``dbc_strict_fallback``
+report group. J1939 Transport Protocol / multiplexed messages whose layouts cannot be represented in the FLYNC
+model are skipped and reported instead of failing the conversion. Transport Protocol messages are recovered on
+decode by widening ``J1939Frame.length`` (see :ref:`chg__0_14__0_15`), and the original ``BU_:`` node names are
+preserved in both directions (J1939 broadcasts are attributed to the ``Vector__XXX`` placeholder sender, with
+every declared node kept as a receiver).
+
 Converter configuration file and conversion log
 '''''''''''''''''''''''''''''''''''''''''''''''
 

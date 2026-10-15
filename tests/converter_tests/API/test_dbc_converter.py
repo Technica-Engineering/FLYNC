@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from flync.model.flync_4_signal.frame import J1939Frame
 from flync.model.flync_4_signal.pdu import ContainerPDU, MultiplexedPDU, StandardPDU
 from flync.model.flync_4_signal.signal import SignalDataType
 from flync_converter.base import ConverterConfig
@@ -66,6 +67,27 @@ BU_: NODE3 NODE4
 
 BO_ 512 TempMsg: 8 NODE3
  SG_ Temp : 0|16@1- (0.1,0) [-40|120] "degC" NODE4
+"""
+
+_J1939_DBC = """\
+VERSION "1.0"
+
+NS_ :
+
+BS_:
+
+BU_: CABS1
+
+BO_ 2565866750 EEC1: 8 CABS1
+ SG_ EngSpeed : 24|16@1+ (0.125,0) [0|8031.875] "rpm" CABS1
+
+BO_ 2353070078 CABS: 8 CABS1
+ SG_ CabsId : 0|8@1+ (1,0) [0|255] "" CABS1
+
+BA_DEF_ BO_ "VFrameFormat" ENUM "StandardCAN","ExtendedCAN","reserved","J1939PG";
+BA_DEF_DEF_ "VFrameFormat" "J1939PG";
+BA_ "VFrameFormat" BO_ 2565866750 3;
+BA_ "VFrameFormat" BO_ 2353070078 3;
 """
 
 
@@ -362,9 +384,11 @@ class TestCollectFrameParticipants:
     def test_empty_model(self):
         model = MagicMock()
         model.ecus = []
-        senders, receivers = _collect_frame_participants(model)
+        senders, receivers, j1939_senders, j1939_receivers = _collect_frame_participants(model)
         assert senders == {}
         assert receivers == {}
+        assert j1939_senders == {}
+        assert j1939_receivers == {}
 
     def test_single_ecu(self):
         sf = MagicMock()
@@ -383,7 +407,7 @@ class TestCollectFrameParticipants:
         ecu.controllers = [ctrl]
         model = MagicMock()
         model.ecus = [ecu]
-        senders, receivers = _collect_frame_participants(model)
+        senders, receivers, _, _ = _collect_frame_participants(model)
         assert senders == {("BUS_A", 0x100): ["ECU_A"]}
         assert receivers == {("BUS_A", 0x200): ["ECU_A"]}
 
@@ -395,7 +419,7 @@ class TestCollectFrameParticipants:
         ecu.controllers = [ctrl]
         model = MagicMock()
         model.ecus = [ecu]
-        senders, receivers = _collect_frame_participants(model)
+        senders, receivers, _, _ = _collect_frame_participants(model)
         assert senders == {}
         assert receivers == {}
 
@@ -416,7 +440,7 @@ class TestCollectFrameParticipants:
 
         model = MagicMock()
         model.ecus = [_ecu("E1", 0x100), _ecu("E2", 0x100)]
-        senders, _ = _collect_frame_participants(model)
+        senders, _, _, _ = _collect_frame_participants(model)
         assert senders == {("BUS_X", 0x100): ["E1", "E2"]}
 
 
@@ -424,7 +448,7 @@ class TestBuildCanMessages:
     def test_empty_bus(self):
         bus = MagicMock()
         bus.frames = []
-        assert _build_can_messages(MagicMock(), bus, {}, {}, {}) == []
+        assert _build_can_messages(MagicMock(), bus, {}, {}, {}, {}, {}) == []
 
     def test_frame_no_pdus(self):
         frame = MagicMock()
@@ -437,7 +461,7 @@ class TestBuildCanMessages:
         frame.type = "can"
         bus = MagicMock()
         bus.frames = [frame]
-        result = _build_can_messages(MagicMock(), bus, {}, {}, {})
+        result = _build_can_messages(MagicMock(), bus, {}, {}, {}, {}, {})
         assert len(result) == 1
         assert result[0].name == "F1"
         assert result[0].frame_id == 0x100
@@ -453,7 +477,7 @@ class TestBuildCanMessages:
         frame.type = "can_fd"
         bus = MagicMock()
         bus.frames = [frame]
-        result = _build_can_messages(MagicMock(), bus, {}, {}, {})
+        result = _build_can_messages(MagicMock(), bus, {}, {}, {}, {}, {})
         assert result[0].is_extended_frame is True
         assert result[0].is_fd is True
 
@@ -472,7 +496,7 @@ class TestBuildCanMessages:
         std = StandardPDU.model_construct(name="P1", length=8, signals=[], signal_groups=[])
         bus = MagicMock()
         bus.frames = [frame]
-        result = _build_can_messages(MagicMock(), bus, {"P1": std}, {}, {})
+        result = _build_can_messages(MagicMock(), bus, {"P1": std}, {}, {}, {}, {})
         assert len(result) == 1
 
     def test_frame_with_unknown_pdu_ref(self):
@@ -489,8 +513,75 @@ class TestBuildCanMessages:
         frame.type = "can"
         bus = MagicMock()
         bus.frames = [frame]
-        result = _build_can_messages(MagicMock(), bus, {}, {}, {})
+        result = _build_can_messages(MagicMock(), bus, {}, {}, {}, {}, {})
         assert len(result) == 1
+
+
+class TestJ1939:
+    def test_decode_detects_j1939_and_builds_j1939_frames(self, tmp_path):
+        _write_dbc(tmp_path, "J1939Bus.dbc", _J1939_DBC)
+        model = decode_dbc_files(load_dbc_files(str(tmp_path)))
+
+        bus = model.communication.channels.can_buses[0]
+        assert [type(f).__name__ for f in bus.frames] == ["J1939Frame", "J1939Frame"]
+
+        eec1 = next(f for f in bus.frames if f.name == "EEC1")
+        assert isinstance(eec1, J1939Frame)
+        assert eec1.priority == 6
+        assert eec1.pdu_format == 0xF0
+        assert eec1.pdu_specific == 0x04
+        assert eec1.data_page == 0
+        assert eec1.extended_data_page == 0
+        assert eec1.destination_type == "global"
+
+        cabs = next(f for f in bus.frames if f.name == "CABS")
+        assert cabs.priority == 3
+        assert cabs.pdu_format == 0x40
+        assert cabs.pdu_specific == 255
+        assert cabs.destination_type == "global"
+
+    def test_decode_synthesizes_single_j1939_node_by_pgn(self, tmp_path):
+        _write_dbc(tmp_path, "J1939Bus.dbc", _J1939_DBC)
+        model = decode_dbc_files(load_dbc_files(str(tmp_path)))
+
+        assert sorted(e.name for e in model.ecus) == ["CABS1", "Vector__XXX"]
+        sender = next(e for e in model.ecus if e.name == "Vector__XXX")
+        iface = sender.controllers[0].can_interfaces[0]
+        assert iface.bus_ref == "J1939Bus"
+        assert iface.j1939_name is not None
+        assert iface.source_address is None
+        assert sorted(ref.pgn for ref in iface.j1939_sender_frames) == [0x4000, 0xF004]
+        receiver = next(e for e in model.ecus if e.name == "CABS1")
+        recv_iface = receiver.controllers[0].can_interfaces[0]
+        assert sorted(ref.pgn for ref in recv_iface.j1939_receiver_frames) == [0x4000, 0xF004]
+
+    def test_encode_roundtrip_preserves_j1939(self, tmp_path):
+        _write_dbc(tmp_path, "J1939Bus.dbc", _J1939_DBC)
+        model = decode_dbc_files(load_dbc_files(str(tmp_path)))
+
+        out_dir = tmp_path / "out"
+        written = write_dbc_files(model, str(out_dir))
+        assert len(written) == 1
+
+        reloaded = decode_dbc_files(load_dbc_files(str(out_dir)))
+        bus = reloaded.communication.channels.can_buses[0]
+        assert all(isinstance(f, J1939Frame) for f in bus.frames)
+        eec1 = next(f for f in bus.frames if f.name == "EEC1")
+        assert eec1.pdu_format == 0xF0 and eec1.pdu_specific == 0x04
+
+        import cantools.database
+
+        db = cantools.database.load_file(written[0])
+        assert {m.protocol for m in db.messages} == {"j1939"}
+        assert {m.name: m.frame_id for m in db.messages} == {"EEC1": 418383102, "CABS": 205586430}
+
+    def test_decode_reports_spn_not_derivable(self, tmp_path):
+        from flync_converter.base.converter_report import ConverterReport
+
+        _write_dbc(tmp_path, "J1939Bus.dbc", _J1939_DBC)
+        report = ConverterReport()
+        decode_dbc_files(load_dbc_files(str(tmp_path)), report=report)
+        assert any(s["item"].endswith(".spn") for s in report._skipped)
 
 
 class TestWriteDbcFiles:
@@ -553,6 +644,29 @@ class TestLoadDbcFiles:
             result = load_dbc_files(str(tmp_path))
         assert len(result) == 2
         assert {path.name for _, path in result} == {"a.dbc", "b.dbc"}
+
+    def test_strict_load_failure_falls_back_to_non_strict(self, tmp_path):
+        # A J1939 DBC with overlapping signals fails cantools' strict layout check but must
+        # be retried non-strictly so the conversion can proceed.
+        from flync_converter.base.converter_report import ConverterReport
+
+        file = tmp_path / "j1939.dbc"
+        file.write_text("", encoding="utf-8")
+        mock_db = MagicMock()
+        report = ConverterReport()
+        call = {"n": 0}
+
+        def _load(*args, **kwargs):
+            if not kwargs.get("strict", True):
+                return mock_db
+            call["n"] += 1
+            raise ValueError("overlapping")
+
+        with patch("cantools.database.load_file", side_effect=_load):
+            result = load_dbc_files(str(tmp_path), report)
+        assert len(result) == 1
+        assert call["n"] == 1
+        assert report._custom["dbc_strict_fallback"] == [str(file)]
 
     def test_ignores_non_dbc_files(self, tmp_path):
         (tmp_path / "file.yaml").write_text("")
@@ -760,6 +874,7 @@ class TestBuildPduForMessage:
     def test_standard_message_no_aux_pdus(self):
         msg = MagicMock()
         msg.name = "Foo"
+        msg.length = 8
         msg.is_multiplexer = False
         sig = MagicMock()
         sig.name = "A"
