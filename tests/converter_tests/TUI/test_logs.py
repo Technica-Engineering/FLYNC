@@ -67,7 +67,7 @@ class TestConversionLog:
                     pilot,
                 )
                 text = helpers.log_text(app.query_one("#run-log"))
-                assert "Starting: flync -> flync" in text
+                assert "Converting /tmp/log-src (flync) -> /tmp/log-dst (flync)" in text
 
         helpers.run(_impl())
 

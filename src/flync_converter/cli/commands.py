@@ -1,6 +1,7 @@
 """Click subcommands for the flync_converter CLI."""
 
 import logging
+from typing import cast
 
 import click
 from rich.console import Console
@@ -12,12 +13,33 @@ from flync_converter.base import ConverterConfig
 from flync_converter.registry import registry
 from flync_converter.utils import get_config_model
 
-from .dynamic import DynamicConverterCommand
+from .dynamic import DST_PREFIX, SRC_PREFIX, DynamicConverterCommand
 from .group import cli
 from .interactive import interactive_configure_converter, select_converter
+from .preview import ConversionEndpoint, config_endpoint, conversion_summary, render_preview
 
 logger = logging.getLogger(__name__)
 console = Console()
+
+_no_preview_option = click.option(
+    "--no-preview",
+    is_flag=True,
+    default=False,
+    help="Hide the conversion preview.",
+)
+
+
+def _show_preview(ctx: click.Context, no_preview: bool) -> bool:
+    """Return whether the conversion preview is shown.
+
+    Args:
+        ctx: Click context of the subcommand.
+        no_preview: The subcommand's own ``--no-preview`` flag.
+
+    Returns:
+        ``False`` when ``--no-preview`` is given on the subcommand or on the main command.
+    """
+    return not (no_preview or (ctx.obj or {}).get("no_preview", False))
 
 
 @cli.command()
@@ -47,7 +69,9 @@ def list_converters():
 
 
 @cli.command()
-def convert_interactive():
+@_no_preview_option
+@click.pass_context
+def convert_interactive(ctx, no_preview):
     """Run the interactive session to configure and execute a conversion.
 
     This command:
@@ -69,6 +93,12 @@ def convert_interactive():
     console.print("\n[bold]Step 2: Configure Destination[/bold]")
     destination_type = select_converter("destination")
     destination_config = interactive_configure_converter(destination_type, "destination")
+
+    sources = [config_endpoint(source_type, source_config, SRC_PREFIX)]
+    destinations = [config_endpoint(destination_type, destination_config, DST_PREFIX)]
+    if _show_preview(ctx, no_preview):
+        console.print(render_preview(sources, destinations), markup=False, highlight=False)
+    console.print(conversion_summary(sources, destinations), markup=False, highlight=False, style="bold")
 
     console.print("\n[bold]Step 3: Starting Conversion[/bold]")
     try:
@@ -115,8 +145,9 @@ def convert_interactive():
     type=click.Path(exists=True, dir_okay=False),
     help="Destination converter configuration YAML, used instead of the one stored in the destination workspace.",
 )
+@_no_preview_option
 @click.pass_context
-def convert(ctx, source, output, source_format, output_format, source_config_file, destination_config_file, **kwargs):
+def convert(ctx, source, output, source_format, output_format, source_config_file, destination_config_file, no_preview, **kwargs):
     """Quick command to convert a single source to a destination.
 
     Any config fields for the selected converter formats are exposed as
@@ -132,12 +163,11 @@ def convert(ctx, source, output, source_format, output_format, source_config_fil
             ``--src-<field>`` options override the values in it.
         destination_config_file: Optional destination configuration YAML (``--dst-config``).
             ``--dst-<field>`` options override the values in it.
+        no_preview: Hide the conversion preview (``--no-preview``).
     """
     if source_format == output_format:
         click.echo("Source and output formats are the same. No conversion needed.")
         return
-
-    click.echo(f"Converting from {source} to {output} with source format {source_format} and output format {output_format}!")
 
     src_fields = {
         k[len(DynamicConverterCommand._SRC_PREFIX) :]: v
@@ -149,6 +179,13 @@ def convert(ctx, source, output, source_format, output_format, source_config_fil
         for k, v in ctx.params.items()
         if k.startswith(DynamicConverterCommand._DST_PREFIX) and v is not None
     }
+
+    dynamic_command = cast(DynamicConverterCommand, ctx.command)
+    sources = [_cli_endpoint(ctx, dynamic_command, SRC_PREFIX, source_format, source, source_config_file, src_fields)]
+    destinations = [_cli_endpoint(ctx, dynamic_command, DST_PREFIX, output_format, output, destination_config_file, dst_fields)]
+    if _show_preview(ctx, no_preview):
+        click.echo(render_preview(sources, destinations))
+    click.echo(conversion_summary(sources, destinations))
 
     source_config = _cli_config(source_format, source, source_config_file, src_fields)
     destination_config = _cli_config(output_format, output, destination_config_file, dst_fields)
@@ -163,6 +200,35 @@ def convert(ctx, source, output, source_format, output_format, source_config_fil
         source_config=source_config,
         destination_config=destination_config,
     )
+
+
+def _cli_endpoint(
+    ctx: click.Context,
+    command: DynamicConverterCommand,
+    prefix: str,
+    converter_type: str,
+    path: str,
+    config_file: str | None,
+    fields: dict,
+) -> ConversionEndpoint:
+    """Describe one side of a ``convert`` invocation as a conversion endpoint.
+
+    Args:
+        ctx: Parsed Click context of ``convert``.
+        command: The ``convert`` command.
+        prefix: Option prefix of the side (``src_`` or ``dst_``).
+        converter_type: Converter key of the side.
+        path: Source or destination path.
+        config_file: The ``--src-config`` / ``--dst-config`` file, if any.
+        fields: The per-field options given on the command line.
+
+    Returns:
+        The endpoint, with the options exactly as given on the command line.
+    """
+    arguments = command.build_config_arguments(ctx, prefix)
+    if config_file is not None:
+        arguments = [f"--{prefix.rstrip('_')}-config", config_file, *arguments]
+    return ConversionEndpoint(converter_type, path, fields, arguments)
 
 
 def _cli_config(converter_type: str, path: str, config_file: str | None, fields: dict) -> ConverterConfig | str:

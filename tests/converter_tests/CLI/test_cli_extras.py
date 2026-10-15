@@ -414,7 +414,7 @@ class TestTuiGuiCommands:
         runner = CliRunner()
         with patch("flync_converter.cli._optional.load_run_tui", return_value=run_tui):
             result = runner.invoke(tui, [])
-        run_tui.assert_called_once()
+        run_tui.assert_called_once_with()
         assert result.exit_code == 0
 
     def test_gui_command_calls_run_gui(self):

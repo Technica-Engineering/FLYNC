@@ -84,6 +84,46 @@ Quick, non-interactive conversion from a source path to a destination path.
 
 When ``--source-format`` is omitted, the registry attempts to auto-detect the format from the source path. If source and output formats are identical, no conversion is performed.
 
+Conversion preview
+^^^^^^^^^^^^^^^^^^
+
+Before running, the CLI prints a preview: each source and destination with the converter options that differ from their defaults, and the command line that runs the same conversion.
+
+.. code-block:: text
+
+   Conversion preview
+   ------------------
+   - Source            : flync -> workspace/
+   - Destination       : yaml -> out/
+   - Destination option: persist_config = False
+   - Command           : flync-converter convert -s workspace/ -sf flync -o out/ -of yaml --dst-persist-config False
+   Converting workspace/ (flync) -> out/ (yaml)
+
+The scripted ``convert`` command, ``convert-interactive``, the Textual TUI and the GUI all print the same preview.
+The command line is quoted for the shell of the running platform (POSIX quoting, or Windows quoting on Windows).
+Option values that cannot be given on the command line, such as lists, are listed in the preview but left out of the command.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Flag
+     - Where
+     - Effect
+   * - ``--no-preview``
+     - Main command, ``convert`` or ``convert-interactive``
+     - Hide the conversion preview. The ``Converting ...`` line is still printed. The Textual TUI (command palette) and the GUI (checkbox) have their own preview toggle.
+
+Examples:
+
+.. code-block:: bash
+
+   # Show the preview, then convert
+   flync-converter convert -s workspace/ -o out/ -sf flync -of yaml
+
+   # Hide the preview for a fully automated run
+   flync-converter convert --no-preview -s workspace/ -o out/ -sf flync -of yaml
+   flync-converter --no-preview convert -s workspace/ -o out/ -sf flync -of yaml
+
 Converter config options (``--src-*`` / ``--dst-*``)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

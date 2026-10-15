@@ -4,15 +4,18 @@ from __future__ import annotations
 
 import logging
 import threading
+from collections.abc import Iterable
 from typing import Optional
 
-from textual.app import App, ComposeResult
+from textual.app import App, ComposeResult, SystemCommand
 from textual.containers import Horizontal
 from textual.css.query import NoMatches
 from textual.widgets import Button, Footer, Header, Log, Select, Static
 
 from flync_converter import Converter
 from flync_converter.base import ConverterConfig
+from flync_converter.cli.dynamic import DST_PREFIX, SRC_PREFIX
+from flync_converter.cli.preview import config_endpoint, conversion_summary, render_preview
 from flync_converter.registry import registry
 
 from .widgets import ConverterPanel, LogWidgetHandler
@@ -63,6 +66,7 @@ class FlyncTUI(App):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
+        self._no_preview = False
         self._log_handler: Optional[LogWidgetHandler] = None
 
     _LOG_LEVELS = [
@@ -134,6 +138,21 @@ class FlyncTUI(App):
             return
         btn.disabled = not (source.converter_type and dest.converter_type)
 
+    def get_system_commands(self, screen) -> Iterable[SystemCommand]:
+        """Expose the preview toggle in the Textual command palette (Ctrl+P)."""
+        yield from super().get_system_commands(screen)
+        if self._no_preview:  # preview currently hidden
+            title = "Preview conversion: Enable"
+            help_text = "Start showing the conversion preview before converting"
+        else:  # preview currently shown
+            title = "Preview conversion: Disable"
+            help_text = "Stop showing the conversion preview before converting"
+        yield SystemCommand(title, help_text, self.action_toggle_preview)
+
+    def action_toggle_preview(self) -> None:
+        """Flip whether the conversion preview is shown before converting."""
+        self._no_preview = not self._no_preview
+
     # ------------------------------------------------------------------
     # Conversion
     # ------------------------------------------------------------------
@@ -178,7 +197,11 @@ class FlyncTUI(App):
         btn = self.query_one("#btn-convert", Button)
         btn.disabled = True
         log.clear()
-        log.write_line(f"Starting: {source_type} -> {dest_type}")
+        sources = [config_endpoint(source_type, source_cfg, SRC_PREFIX)]
+        destinations = [config_endpoint(dest_type, dest_cfg, DST_PREFIX)]
+        if not self._no_preview:
+            log.write_lines(render_preview(sources, destinations).splitlines())
+        log.write_line(conversion_summary(sources, destinations))
 
         def _worker() -> None:
             """Run the conversion in a background thread and report result to the log widget."""

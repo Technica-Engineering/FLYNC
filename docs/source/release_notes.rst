@@ -128,3 +128,11 @@ out of the typing work:
 The Python API changes (list fields that are no longer ``Optional``, the deprecated ``ecus`` argument of
 ``ECUPort.get_internal_connected_component()``)
 are listed in the :ref:`model change history <chg__0_14__0_15>`.
+
+CLI conversion preview
+''''''''''''''''''''''
+
+The converter now shows a preview before running a conversion: the source, the destination, the converter options that differ from their defaults, and the command line that runs the same conversion.
+The scripted ``convert`` command, ``convert-interactive``, the Textual TUI and the GUI show the same preview.
+
+* ``--no-preview`` on the main command, ``convert`` or ``convert-interactive`` hides the preview.

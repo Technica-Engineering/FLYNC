@@ -8,8 +8,10 @@ import threading
 from typing import Optional
 
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QFontDatabase
 from PySide6.QtWidgets import (
     QApplication,
+    QCheckBox,
     QComboBox,
     QHBoxLayout,
     QLabel,
@@ -23,6 +25,8 @@ from PySide6.QtWidgets import (
 
 from flync_converter import Converter
 from flync_converter.base import ConverterConfig
+from flync_converter.cli.dynamic import DST_PREFIX, SRC_PREFIX
+from flync_converter.cli.preview import config_endpoint, conversion_summary, render_preview
 from flync_converter.registry import registry
 
 from .widgets import ConverterPanel, LogWidgetHandler
@@ -72,6 +76,7 @@ class FlyncGUI(QMainWindow):
         # Log output
         self._log_view = QPlainTextEdit()
         self._log_view.setReadOnly(True)
+        self._log_view.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
         self._log_view.setMaximumHeight(130)
         self._log_view.setPlaceholderText("Conversion log output will appear here…")
         root.addWidget(self._log_view)
@@ -86,6 +91,9 @@ class FlyncGUI(QMainWindow):
         self._log_level_combo.setFixedWidth(100)
         self._log_level_combo.currentTextChanged.connect(self._on_log_level_changed)
         btn_row.addWidget(self._log_level_combo)
+        self._preview_check = QCheckBox("Show conversion preview")
+        self._preview_check.setChecked(True)
+        btn_row.addWidget(self._preview_check)
         btn_row.addStretch()
         self._convert_btn = QPushButton("Convert")
         self._convert_btn.setEnabled(False)
@@ -162,7 +170,11 @@ class FlyncGUI(QMainWindow):
     ) -> None:
         self._convert_btn.setEnabled(False)
         self._log_view.clear()
-        self._log_signal.emit(f"Starting: {source_type} -> {dest_type}")
+        sources = [config_endpoint(source_type, source_cfg, SRC_PREFIX)]
+        destinations = [config_endpoint(dest_type, dest_cfg, DST_PREFIX)]
+        if self._preview_check.isChecked():
+            self._log_signal.emit(render_preview(sources, destinations))
+        self._log_signal.emit(conversion_summary(sources, destinations))
 
         def _worker() -> None:
             """Run the conversion in a background thread and emit signals to update the UI."""

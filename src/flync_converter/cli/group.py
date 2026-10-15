@@ -48,5 +48,13 @@ def _open_gui(ctx, _param, value):
     callback=_open_gui,
     help="Launch the PySide6 desktop GUI (requires flync[gui]).",
 )
-def cli():
+@click.option(
+    "--no-preview",
+    is_flag=True,
+    default=False,
+    help="Hide the conversion preview of convert and convert-interactive.",
+)
+@click.pass_context
+def cli(ctx, no_preview):
     """flync_converter CLI tool."""
+    ctx.ensure_object(dict)["no_preview"] = no_preview
