@@ -1,15 +1,17 @@
 """Configuration object passed to FLYNC converters.
 
-A destination workspace can store a converter's configuration on disk, one file
-per converter, inside the same ``.flync`` directory that holds the workspace
-configuration::
+Every folder a conversion reads from or writes to is an endpoint. An endpoint
+keeps what belongs to its converter in one folder per converter, inside the
+same ``.flync`` directory that holds the workspace configuration::
 
-    <destination>/.flync/converters/<converter_name>.yaml
+    <endpoint>/.flync/converters/<converter_name>/config.yaml   the stored configuration
+    <endpoint>/.flync/converters/<converter_name>/sideload/     extra data read and written with the folder
 
-The file is written after every conversion (unless ``persist_config`` is
-``False``) and by :meth:`ConverterConfig.to_yaml_file`, and is read back by
-:meth:`ConverterConfig.from_workspace` as the base that explicitly supplied
-values override.
+``config.yaml`` is written for every output of a conversion (unless
+``persist_config`` is ``False``) and by :meth:`ConverterConfig.to_yaml_file`,
+and is read back by :meth:`ConverterConfig.from_workspace` as the base that
+explicitly supplied values override. One file serves the converter in both
+directions.
 """
 
 import logging
@@ -25,19 +27,18 @@ from flync.sdk.context.workspace_config import CONFIG_DIRNAME, _get_current_flyn
 logger = logging.getLogger(__name__)
 
 #: Sub-directory of :data:`~flync.sdk.context.workspace_config.CONFIG_DIRNAME`
-#: holding one configuration file per converter.
+#: holding one folder per converter.
 CONVERTERS_DIRNAME = "converters"
 
-#: Extension of a persisted converter configuration file.
-CONFIG_SUFFIX = ".yaml"
+#: Name of the persisted configuration file inside a converter's folder.
+CONFIG_FILENAME = "config.yaml"
 
 #: Fields that are never read from, nor written to, a converter configuration
 #: file. ``config_path`` is the location the file belongs to, usually an
 #: absolute path on one machine, so it is always supplied by the caller.
 NON_PERSISTED_FIELDS = frozenset({"config_path"})
 
-#: Fields that only apply to the destination side of a conversion. Front ends
-#: do not offer them for the source converter.
+#: Fields the single-pair front ends offer for the destination converter only.
 DESTINATION_ONLY_FIELDS = frozenset({"report_enabled", "report_min_log_level", "persist_config"})
 
 
@@ -67,17 +68,30 @@ def parse_log_level(value: str | int) -> int:
         raise ValueError(f"Unknown log level {value!r}; expected one of {', '.join(logging.getLevelNamesMapping())} or a number") from None
 
 
-def converter_config_file(workspace_path: str | Path, converter_name: str) -> Path:
-    """Return the configuration file path of a converter inside a workspace.
+def converter_dir(workspace_path: str | Path, converter_name: str) -> Path:
+    """Return the folder holding what belongs to a converter inside an endpoint.
 
     Args:
-        workspace_path: Root of the workspace the converter writes into.
+        workspace_path: Root of the folder the converter reads from or writes into.
         converter_name: Registered name of the converter.
 
     Returns:
-        ``<workspace_path>/.flync/converters/<converter_name>.yaml``.
+        ``<workspace_path>/.flync/converters/<converter_name>``.
     """
-    return Path(workspace_path) / CONFIG_DIRNAME / CONVERTERS_DIRNAME / f"{converter_name}{CONFIG_SUFFIX}"
+    return Path(workspace_path) / CONFIG_DIRNAME / CONVERTERS_DIRNAME / converter_name
+
+
+def converter_config_file(workspace_path: str | Path, converter_name: str) -> Path:
+    """Return the configuration file path of a converter inside an endpoint.
+
+    Args:
+        workspace_path: Root of the folder the converter reads from or writes into.
+        converter_name: Registered name of the converter.
+
+    Returns:
+        ``<workspace_path>/.flync/converters/<converter_name>/config.yaml``.
+    """
+    return converter_dir(workspace_path, converter_name) / CONFIG_FILENAME
 
 
 class ConverterConfig(BaseModel):
@@ -85,16 +99,18 @@ class ConverterConfig(BaseModel):
 
     Converter-specific configuration classes subclass this model and add their
     own fields. Every field except those in :data:`NON_PERSISTED_FIELDS` can be
-    stored in the destination workspace (see :func:`converter_config_file`).
+    stored in the endpoint (see :func:`converter_config_file`).
 
     Attributes:
         config_path (str): Location the converter reads from or writes to.
-        report_enabled (bool): When ``True`` (the default), the conversion log is written to
-        ``<destination>/.flync/reports/<converter_name>/logs.txt``.
+        report_enabled (bool): When ``True`` (the default), the converter's part of the conversion
+        report is written to ``<report_dir>/<converter_name>/``.
         report_min_log_level (str): Lowest severity captured in the conversion log, as a level name
         (``"DEBUG"``, ``"INFO"``, ...) or number. Stored as the canonical name. Defaults to ``"INFO"``.
-        persist_config (bool): When ``True`` (the default), every conversion writes this configuration
-        to the destination workspace. :meth:`to_yaml_file` writes regardless of this setting.
+        report_dir (str | None): Folder the reports of this endpoint are written to. A relative path
+        is resolved against the endpoint folder. Defaults to ``<config_path>/.flync/reports``.
+        persist_config (bool): When ``True`` (the default), a conversion writing to this location
+        stores this configuration there. :meth:`to_yaml_file` writes regardless of this setting.
         version (BaseVersion): FLYNC release that last wrote this configuration. Moved forward (never
         backwards) when a newer FLYNC rewrites the file.
     """
@@ -104,6 +120,7 @@ class ConverterConfig(BaseModel):
     config_path: str
     report_enabled: bool = True
     report_min_log_level: str = "INFO"
+    report_dir: str | None = None
     persist_config: bool = True
     version: BaseVersion = Field(default_factory=_get_current_flync_version)
 
@@ -161,7 +178,7 @@ class ConverterConfig(BaseModel):
         defaults. :attr:`config_path` is set to ``workspace_path`` in both cases.
 
         Args:
-            workspace_path: Root of the workspace the converter writes into.
+            workspace_path: Root of the folder the converter reads from or writes into.
             converter_name: Registered name of the converter.
 
         Returns:

@@ -54,6 +54,14 @@ def _converters(source_loggers=(SRC_LOGGER,), destination_loggers=(DST_LOGGER,))
     return _Converter("json", source_loggers), _Converter("flync", destination_loggers)
 
 
+def _report(root, source, destination, enabled=True, min_level=logging.INFO, **kwargs):
+    """Report of a conversion whose converters without a configuration both live in ``root``."""
+    for converter in (source, destination):
+        if converter.config is None:
+            converter.config = ConverterConfig(config_path=str(root), report_enabled=enabled, report_min_log_level=min_level)
+    return ConversionReport([source], [destination], **kwargs)
+
+
 def _read(path):
     return path.read_text(encoding="utf-8")
 
@@ -78,21 +86,21 @@ def test_report_dir_accepts_string_destination():
 
 
 def test_shared_log_is_at_reports_root(tmp_path, loggers):
-    with ConversionReport(tmp_path, *_converters()) as report:
+    with _report(tmp_path, *_converters()) as report:
         logging.getLogger(DST_LOGGER).info("hello report")
 
-    assert report.path == reports_root(tmp_path) / LOG_FILENAME
-    assert "hello report" in _read(report.path)
+    assert (reports_root(tmp_path) / LOG_FILENAME) == reports_root(tmp_path) / LOG_FILENAME
+    assert "hello report" in _read((reports_root(tmp_path) / LOG_FILENAME))
 
 
 def test_shared_log_captures_every_converter_and_the_driver(tmp_path, loggers):
     source, destination = _converters(source_loggers=(LIBRARY_LOGGER,))
-    with ConversionReport(tmp_path, source, destination) as report:
+    with _report(tmp_path, source, destination) as report:
         logging.getLogger(MAIN_LOGGER).info("driver record")
         logging.getLogger(f"{LIBRARY_LOGGER}.loader").info("source library record")
         logging.getLogger(DST_LOGGER).info("destination record")
 
-    content = _read(report.path)
+    content = _read((reports_root(tmp_path) / LOG_FILENAME))
     assert "driver record" in content
     assert "source library record" in content
     assert "destination record" in content
@@ -101,30 +109,30 @@ def test_shared_log_captures_every_converter_and_the_driver(tmp_path, loggers):
 def test_disabled_report_does_nothing(tmp_path, loggers):
     source, destination = _converters()
     handlers = list(loggers[MAIN_LOGGER].handlers)
-    with ConversionReport(tmp_path, source, destination, enabled=False):
+    with _report(tmp_path, source, destination, enabled=False):
         assert loggers[MAIN_LOGGER].handlers == handlers
         assert destination.report_dir is None
     assert not reports_root(tmp_path).exists()
 
 
 def test_report_replaces_previous_files(tmp_path, loggers):
-    with ConversionReport(tmp_path, *_converters()):
+    with _report(tmp_path, *_converters()):
         logging.getLogger(DST_LOGGER).info("first run")
-    with ConversionReport(tmp_path, *_converters()) as report:
+    with _report(tmp_path, *_converters()) as report:
         logging.getLogger(DST_LOGGER).info("second run")
 
-    for path in (report.path, report_dir(tmp_path, "flync") / LOG_FILENAME):
+    for path in ((reports_root(tmp_path) / LOG_FILENAME), report_dir(tmp_path, "flync") / LOG_FILENAME):
         content = _read(path)
         assert "second run" in content
         assert "first run" not in content
 
 
 def test_report_honours_min_level(tmp_path, loggers):
-    with ConversionReport(tmp_path, *_converters(), min_level=logging.ERROR) as report:
+    with _report(tmp_path, *_converters(), min_level=logging.ERROR) as report:
         logging.getLogger(DST_LOGGER).info("info record")
         logging.getLogger(DST_LOGGER).error("error record")
 
-    for path in (report.path, report_dir(tmp_path, "flync") / LOG_FILENAME):
+    for path in ((reports_root(tmp_path) / LOG_FILENAME), report_dir(tmp_path, "flync") / LOG_FILENAME):
         content = _read(path)
         assert "error record" in content
         assert "info record" not in content
@@ -135,7 +143,7 @@ def test_report_restores_logger_levels_and_handlers(tmp_path, loggers):
     loggers[LIBRARY_LOGGER].setLevel(logging.WARNING)
     before = {name: list(log.handlers) for name, log in loggers.items()}
 
-    with ConversionReport(tmp_path, *_converters(source_loggers=(LIBRARY_LOGGER,)), min_level=logging.DEBUG):
+    with _report(tmp_path, *_converters(source_loggers=(LIBRARY_LOGGER,)), min_level=logging.DEBUG):
         assert loggers[MAIN_LOGGER].level == logging.DEBUG
         assert loggers[LIBRARY_LOGGER].level == logging.DEBUG
 
@@ -146,24 +154,24 @@ def test_report_restores_logger_levels_and_handlers(tmp_path, loggers):
 
 def test_report_keeps_a_more_permissive_level(tmp_path, loggers):
     loggers[MAIN_LOGGER].setLevel(logging.DEBUG)
-    with ConversionReport(tmp_path, *_converters(), min_level=logging.ERROR):
+    with _report(tmp_path, *_converters(), min_level=logging.ERROR):
         assert loggers[MAIN_LOGGER].level == logging.DEBUG
 
 
 def test_report_leaves_root_logger_untouched(tmp_path, loggers):
     root = logging.getLogger()
     level, handlers = root.level, list(root.handlers)
-    with ConversionReport(tmp_path, *_converters(), min_level=logging.DEBUG):
+    with _report(tmp_path, *_converters(), min_level=logging.DEBUG):
         assert root.level == level
         assert root.handlers == handlers
 
 
 def test_report_ignores_undeclared_loggers(tmp_path, loggers):
-    with ConversionReport(tmp_path, *_converters()) as report:
+    with _report(tmp_path, *_converters()) as report:
         logging.getLogger("some.other.library").warning("foreign record")
         logging.getLogger(DST_LOGGER).warning("converter record")
 
-    content = _read(report.path)
+    content = _read((reports_root(tmp_path) / LOG_FILENAME))
     assert "converter record" in content
     assert "foreign record" not in content
 
@@ -174,7 +182,7 @@ def test_report_ignores_undeclared_loggers(tmp_path, loggers):
 
 def test_each_converter_gets_its_folder_as_report_dir(tmp_path, loggers):
     source, destination = _converters()
-    with ConversionReport(tmp_path, source, destination):
+    with _report(tmp_path, source, destination):
         assert source.report_dir == report_dir(tmp_path, "json")
         assert destination.report_dir == report_dir(tmp_path, "flync")
         assert source.report_dir.is_dir()
@@ -185,7 +193,7 @@ def test_each_converter_gets_its_folder_as_report_dir(tmp_path, loggers):
 
 
 def test_converter_log_holds_only_its_own_records(tmp_path, loggers):
-    with ConversionReport(tmp_path, *_converters()) as report:
+    with _report(tmp_path, *_converters()):
         logging.getLogger(MAIN_LOGGER).info("driver record")
         logging.getLogger(SRC_LOGGER).info("source record")
         logging.getLogger(DST_LOGGER).info("destination record")
@@ -202,7 +210,7 @@ def test_converter_log_holds_only_its_own_records(tmp_path, loggers):
 
 def test_converter_folder_records_the_config_it_ran_with(tmp_path, loggers):
     destination = _Converter("flync", config=ConverterConfig(config_path=str(tmp_path), report_min_log_level="DEBUG"))
-    with ConversionReport(tmp_path, _Converter("json"), destination):
+    with _report(tmp_path, _Converter("json"), destination):
         pass
 
     record = yaml.safe_load(_read(report_dir(tmp_path, "flync") / "config.yaml"))
@@ -211,13 +219,21 @@ def test_converter_folder_records_the_config_it_ran_with(tmp_path, loggers):
     assert record["report_min_log_level"] == "DEBUG"
     assert record["report_enabled"] is True
     assert "version" in record
-    # A converter without a configuration object gets no record.
-    assert not (report_dir(tmp_path, "json") / "config.yaml").exists()
+
+
+def test_converter_without_a_configuration_gets_no_report(tmp_path, loggers):
+    source = _Converter("json", (SRC_LOGGER,))
+    destination = _Converter("flync", config=ConverterConfig(config_path=str(tmp_path)))
+    with ConversionReport([source], [destination]):
+        assert source.report_dir is None
+        assert source.report is INACTIVE_REPORT
+
+    assert not report_dir(tmp_path, "json").exists()
 
 
 def test_converter_without_loggers_gets_a_folder_but_no_log(tmp_path, loggers):
     source, destination = _converters(source_loggers=())
-    with ConversionReport(tmp_path, source, destination):
+    with _report(tmp_path, source, destination):
         pass
 
     assert report_dir(tmp_path, "json").is_dir()
@@ -226,11 +242,11 @@ def test_converter_without_loggers_gets_a_folder_but_no_log(tmp_path, loggers):
 
 def test_nested_logger_records_are_written_once(tmp_path, loggers):
     nested = (LIBRARY_LOGGER, f"{LIBRARY_LOGGER}.loader", "flync_converter.converters")
-    with ConversionReport(tmp_path, *_converters(destination_loggers=nested)) as report:
+    with _report(tmp_path, *_converters(destination_loggers=nested)) as report:
         logging.getLogger(f"{LIBRARY_LOGGER}.loader").warning("library record")
         logging.getLogger(DST_LOGGER).warning("converter record")
 
-    for path in (report.path, report_dir(tmp_path, "flync") / LOG_FILENAME):
+    for path in ((reports_root(tmp_path) / LOG_FILENAME), report_dir(tmp_path, "flync") / LOG_FILENAME):
         content = _read(path)
         assert content.count("library record") == 1
         assert content.count("converter record") == 1
@@ -238,10 +254,10 @@ def test_nested_logger_records_are_written_once(tmp_path, loggers):
 
 def test_logger_listed_by_both_converters_reaches_both_folders(tmp_path, loggers):
     shared = (LIBRARY_LOGGER,)
-    with ConversionReport(tmp_path, *_converters(source_loggers=shared, destination_loggers=shared)) as report:
+    with _report(tmp_path, *_converters(source_loggers=shared, destination_loggers=shared)) as report:
         logging.getLogger(LIBRARY_LOGGER).warning("library record")
 
-    assert _read(report.path).count("library record") == 1
+    assert _read((reports_root(tmp_path) / LOG_FILENAME)).count("library record") == 1
     assert "library record" in _read(report_dir(tmp_path, "json") / LOG_FILENAME)
     assert "library record" in _read(report_dir(tmp_path, "flync") / LOG_FILENAME)
 
@@ -251,12 +267,12 @@ def test_logger_listed_by_both_converters_reaches_both_folders(tmp_path, loggers
 
 
 def test_report_records_the_exception_in_the_shared_log(tmp_path, loggers):
-    report = ConversionReport(tmp_path, *_converters())
+    report = _report(tmp_path, *_converters())
     boom = RuntimeError("boom")
     with pytest.raises(RuntimeError), report:
         raise boom
 
-    content = _read(report.path)
+    content = _read((reports_root(tmp_path) / LOG_FILENAME))
     assert "[ERROR] flync_converter: Conversion failed: boom" in content
     assert "Traceback (most recent call last)" in content
     assert "Conversion failed" not in _read(report_dir(tmp_path, "flync") / LOG_FILENAME)
@@ -265,7 +281,7 @@ def test_report_records_the_exception_in_the_shared_log(tmp_path, loggers):
 def test_report_cleans_up_when_conversion_raises(tmp_path, loggers):
     source, destination = _converters()
     handlers = list(loggers[MAIN_LOGGER].handlers)
-    report = ConversionReport(tmp_path, source, destination)
+    report = _report(tmp_path, source, destination)
     boom = RuntimeError("boom")
     with pytest.raises(RuntimeError), report:
         raise boom
@@ -279,7 +295,7 @@ def test_report_exception_does_not_reach_other_handlers(tmp_path, loggers):
     other.emit = seen.append  # type: ignore[method-assign]
     loggers[MAIN_LOGGER].addHandler(other)
 
-    report = ConversionReport(tmp_path, *_converters())
+    report = _report(tmp_path, *_converters())
     boom = RuntimeError("boom")
     with pytest.raises(RuntimeError), report:
         raise boom
@@ -288,21 +304,21 @@ def test_report_exception_does_not_reach_other_handlers(tmp_path, loggers):
 
 
 def test_report_without_exception_has_no_failure_line(tmp_path, loggers):
-    with ConversionReport(tmp_path, *_converters()) as report:
+    with _report(tmp_path, *_converters()) as report:
         logging.getLogger(DST_LOGGER).info("all good")
 
-    assert "Conversion failed" not in _read(report.path)
+    assert "Conversion failed" not in _read((reports_root(tmp_path) / LOG_FILENAME))
 
 
 # endregion
 # region Converter.convert
 
 
-def _fake_registry(encode=None, source_report_loggers=(SRC_LOGGER,), reporters=(YamlReporter(),)):
+def _fake_registry(encode=None, source_report_loggers=(SRC_LOGGER,), reporters=(YamlReporter(),), decode_logger=SRC_LOGGER):
     src_conv = MagicMock()
     src_conv.name = "json"
     src_conv.report_loggers = source_report_loggers
-    src_conv.decode.side_effect = lambda: logging.getLogger(SRC_LOGGER).info("decoded") or MagicMock(name="decoded_model")
+    src_conv.decode.side_effect = lambda: logging.getLogger(decode_logger).info("decoded") or MagicMock(name="decoded_model")
     dst_conv = MagicMock()
     dst_conv.name = "flync"
     dst_conv.report_loggers = (DST_LOGGER,)
@@ -319,9 +335,17 @@ def _log_encoded(model):
     logging.getLogger(DST_LOGGER).info("encoded %s", model)
 
 
-def _run(tmp_path, encode=_log_encoded, destination_config=None, source_report_loggers=(SRC_LOGGER,), reporters=(YamlReporter(),)):
-    fake_reg, dst_conv = _fake_registry(encode, source_report_loggers, reporters)
-    with patch("flync_converter.registry", fake_reg):
+def _run(
+    tmp_path,
+    encode=_log_encoded,
+    destination_config=None,
+    source_report_loggers=(SRC_LOGGER,),
+    reporters=(YamlReporter(),),
+    decode_logger=SRC_LOGGER,
+):
+    fake_reg, dst_conv = _fake_registry(encode, source_report_loggers, reporters, decode_logger)
+    (tmp_path / "src").mkdir(exist_ok=True)
+    with patch("flync_converter.registry", fake_reg), patch("flync_converter.copy", side_effect=lambda converter: converter):
         Converter.convert(
             str(tmp_path / "src"),
             str(tmp_path / "dst"),
@@ -340,15 +364,17 @@ def test_convert_writes_shared_and_converter_logs(tmp_path, loggers):
     shared = _read(reports_root(tmp_path / "dst") / LOG_FILENAME)
     assert "decoded" in shared
     assert "encoded" in shared
-    assert "decoded" in _read(report_dir(tmp_path / "dst", "json") / LOG_FILENAME)
+    # Each converter's log is in its own endpoint, and holds only what it logged itself.
+    assert "decoded" in _read(report_dir(tmp_path / "src", "json") / LOG_FILENAME)
     assert "encoded" in _read(report_dir(tmp_path / "dst", "flync") / LOG_FILENAME)
+    assert "encoded" not in _read(report_dir(tmp_path / "src", "json") / LOG_FILENAME)
     assert loggers[MAIN_LOGGER].handlers == handlers
 
 
 def test_convert_records_both_configs(tmp_path, loggers):
     _run(tmp_path, destination_config=ConverterConfig(config_path=str(tmp_path / "dst"), report_min_log_level="DEBUG"))
 
-    source_record = yaml.safe_load(_read(report_dir(tmp_path / "dst", "json") / "config.yaml"))
+    source_record = yaml.safe_load(_read(report_dir(tmp_path / "src", "json") / "config.yaml"))
     destination_record = yaml.safe_load(_read(report_dir(tmp_path / "dst", "flync") / "config.yaml"))
     assert source_record["config_path"] == str(tmp_path / "src")
     assert destination_record["config_path"] == str(tmp_path / "dst")
@@ -360,7 +386,7 @@ def test_convert_gives_converters_their_report_dir(tmp_path, loggers):
         (dst_conv.report_dir / "summary.txt").write_text("custom", encoding="utf-8")
 
     fake_reg, dst_conv = _fake_registry(encode=write_own_report)
-    with patch("flync_converter.registry", fake_reg):
+    with patch("flync_converter.registry", fake_reg), patch("flync_converter.copy", side_effect=lambda converter: converter):
         Converter.convert(str(tmp_path / "src"), str(tmp_path / "dst"), source_type="json", destination_type="flync")
 
     assert _read(report_dir(tmp_path / "dst", "flync") / "summary.txt") == "custom"
@@ -380,14 +406,10 @@ def test_convert_records_failure_in_shared_log(tmp_path, loggers):
 
 
 def test_convert_captures_source_converter_library_loggers(tmp_path, loggers):
-    _run(
-        tmp_path,
-        encode=lambda model: logging.getLogger(f"{LIBRARY_LOGGER}.loader").info("logged by the source library"),
-        source_report_loggers=(LIBRARY_LOGGER,),
-    )
+    _run(tmp_path, source_report_loggers=(LIBRARY_LOGGER,), decode_logger=f"{LIBRARY_LOGGER}.loader")
 
-    assert "logged by the source library" in _read(reports_root(tmp_path / "dst") / LOG_FILENAME)
-    assert "logged by the source library" in _read(report_dir(tmp_path / "dst", "json") / LOG_FILENAME)
+    assert "some_library.loader: decoded" in _read(reports_root(tmp_path / "dst") / LOG_FILENAME)
+    assert "some_library.loader: decoded" in _read(report_dir(tmp_path / "src", "json") / LOG_FILENAME)
 
 
 def test_convert_respects_report_disabled(tmp_path, loggers):
@@ -556,7 +578,7 @@ def test_base_converter_defaults():
 
 def test_converters_get_an_active_report_during_the_conversion(tmp_path, loggers):
     source, destination = _converters()
-    with ConversionReport(tmp_path, source, destination):
+    with _report(tmp_path, source, destination):
         assert source.report.active
         assert destination.report.active
         assert source.report is not destination.report
@@ -568,7 +590,7 @@ def test_converters_get_an_active_report_during_the_conversion(tmp_path, loggers
 def test_each_converter_report_goes_to_its_folder(tmp_path, loggers):
     source, destination = _converters()
     destination.reporters = (JsonReporter(),)
-    with ConversionReport(tmp_path, source, destination):
+    with _report(tmp_path, source, destination):
         source.report.unsupported("BO_ 512", "multiplexed message without selector")
         destination.report.add("written", 3)
 
@@ -579,7 +601,7 @@ def test_each_converter_report_goes_to_its_folder(tmp_path, loggers):
 
 
 def test_converter_that_reports_nothing_gets_no_report_file(tmp_path, loggers):
-    with ConversionReport(tmp_path, *_converters()):
+    with _report(tmp_path, *_converters()):
         pass
 
     assert not (report_dir(tmp_path, "json") / "report.yaml").exists()
@@ -587,7 +609,7 @@ def test_converter_that_reports_nothing_gets_no_report_file(tmp_path, loggers):
 
 def test_disabled_report_keeps_converters_inactive(tmp_path, loggers):
     source, destination = _converters()
-    with ConversionReport(tmp_path, source, destination, enabled=False):
+    with _report(tmp_path, source, destination, enabled=False):
         destination.report.add("written", 3)
         assert destination.report is INACTIVE_REPORT
 
@@ -597,19 +619,20 @@ def test_disabled_report_keeps_converters_inactive(tmp_path, loggers):
 def test_shared_report_records_a_successful_conversion(tmp_path, loggers):
     source = _Converter("json", config=ConverterConfig(config_path="in"))
     destination = _Converter("flync")
-    with ConversionReport(tmp_path, source, destination):
+    with _report(tmp_path, source, destination):
         pass
 
     shared = yaml.safe_load((reports_root(tmp_path) / "report.yaml").read_text(encoding="utf-8"))
     assert shared == {
-        "source": {"converter": "json", "path": "in"},
-        "destination": {"converter": "flync", "path": str(tmp_path)},
+        # The source folder does not exist, so the source has no report folder.
+        "inputs": [{"converter": "json", "path": "in"}],
+        "outputs": [{"converter": "flync", "path": str(tmp_path), "report": str(report_dir(tmp_path, "flync"))}],
         "status": "succeeded",
     }
 
 
 def test_shared_report_records_a_failure(tmp_path, loggers):
-    report = ConversionReport(tmp_path, *_converters())
+    report = _report(tmp_path, *_converters())
     boom = RuntimeError("boom")
     with pytest.raises(RuntimeError), report:
         raise boom
@@ -620,7 +643,7 @@ def test_shared_report_records_a_failure(tmp_path, loggers):
 
 
 def test_shared_report_is_written_by_the_given_reporters(tmp_path, loggers):
-    with ConversionReport(tmp_path, *_converters(), reporters=(JsonReporter(),)):
+    with _report(tmp_path, *_converters(), reporters=(JsonReporter(),)):
         pass
 
     root = reports_root(tmp_path)
@@ -630,7 +653,7 @@ def test_shared_report_is_written_by_the_given_reporters(tmp_path, loggers):
 
 def test_convert_passes_the_shared_reporters(tmp_path, loggers):
     fake_reg, _ = _fake_registry(reporters=())
-    with patch("flync_converter.registry", fake_reg):
+    with patch("flync_converter.registry", fake_reg), patch("flync_converter.copy", side_effect=lambda converter: converter):
         Converter.convert(
             str(tmp_path / "src"),
             str(tmp_path / "dst"),
@@ -646,7 +669,7 @@ def test_convert_passes_the_shared_reporters(tmp_path, loggers):
 
 
 def test_shared_report_records_the_model_counts(tmp_path, loggers, flync_object):
-    with ConversionReport(tmp_path, *_converters()) as report:
+    with _report(tmp_path, *_converters()) as report:
         report.record_model(flync_object)
 
     shared = yaml.safe_load((reports_root(tmp_path) / "report.yaml").read_text(encoding="utf-8"))
@@ -676,10 +699,10 @@ def test_reporter_failure_reaches_the_shared_log(tmp_path, loggers):
 
     source, destination = _converters()
     destination.reporters = (BrokenReporter(),)
-    with ConversionReport(tmp_path, source, destination) as report:
+    with _report(tmp_path, source, destination) as report:
         destination.report.add("written", 3)
 
-    assert "BrokenReporter failed" in (report.path).read_text(encoding="utf-8")
+    assert "BrokenReporter failed" in ((reports_root(tmp_path) / LOG_FILENAME)).read_text(encoding="utf-8")
 
 
 # endregion
@@ -709,7 +732,11 @@ class _ReportingConverter(BaseConverter):
 
 
 def _convert_with(tmp_path, source, destination):
-    with patch("flync_converter.registry", {source.name: source, destination.name: destination}):
+    with (
+        patch("flync_converter.registry", {source.name: source, destination.name: destination}),
+        patch("flync_converter.copy", side_effect=lambda converter: converter),
+    ):
+        (tmp_path / "src").mkdir(exist_ok=True)
         Converter.convert(str(tmp_path / "src"), str(tmp_path / "dst"), source_type=source.name, destination_type=destination.name)
 
 
@@ -717,7 +744,7 @@ def test_convert_writes_both_converter_reports_and_the_shared_report(tmp_path, l
     _convert_with(tmp_path, _ReportingConverter("src"), _ReportingConverter("dst"))
 
     reports = reports_root(tmp_path / "dst")
-    source_report = yaml.safe_load((reports / "src" / "report.yaml").read_text(encoding="utf-8"))
+    source_report = yaml.safe_load((report_dir(tmp_path / "src", "src") / "report.yaml").read_text(encoding="utf-8"))
     destination_report = yaml.safe_load((reports / "dst" / "report.yaml").read_text(encoding="utf-8"))
     shared = yaml.safe_load((reports / "report.yaml").read_text(encoding="utf-8"))
     assert source_report == {"unsupported": [{"item": "BO_ 512", "reason": "multiplexed message without selector"}]}

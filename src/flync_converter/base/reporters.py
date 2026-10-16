@@ -2,11 +2,11 @@
 
 A reporter serializes report data into one file of a report folder: a
 converter's report (see :class:`~flync_converter.base.ConverterReport`) into
-the converter's folder, and the shared report of a conversion into the reports
-folder::
+the converter's folder, and the report of a conversion into the reports folder
+of every output::
 
-    <destination>/.flync/reports/<reporter.filename>
-    <destination>/.flync/reports/<converter_name>/<reporter.filename>
+    <reports>/<reporter.filename>
+    <reports>/<converter_name>/<reporter.filename>
 
 Converters list the reporters they use in
 :attr:`~flync_converter.base.BaseConverter.reporters`; the reporters of the

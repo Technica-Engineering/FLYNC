@@ -39,10 +39,10 @@ class BaseConverter(ABC):
             converter: its own logger(s) and those of the libraries it
             delegates to. For every conversion the converter takes part in, as
             source or destination, they are written to
-            ``<destination>/.flync/reports/<name>/logs.txt`` and to the shared
-            ``reports/logs.txt``, and their level is adjusted for the duration
+            ``<reports>/<name>/logs.txt`` and to the conversion's
+            ``logs.txt``, and their level is adjusted for the duration
             of the conversion. Empty by default: the converter's records then
-            reach the shared log only.
+            reach the conversion log only.
         reporters (tuple[BaseReporter, ...]): Reporters writing the converter's
             :attr:`report` into its report folder, one file each. Defaults to
             :data:`DEFAULT_REPORTERS` (``report.yaml``).
@@ -52,7 +52,7 @@ class BaseConverter(ABC):
             ``self.report.add(...)``); outside a conversion, and when
             reporting is disabled, it records nothing.
         report_dir (Optional[Path]): The converter's report folder,
-            ``<destination>/.flync/reports/<name>``, set for the duration of a
+            ``<reports>/<name>`` (see ``ConverterConfig.report_dir``), set for the duration of a
             conversion so the converter can write its own report files there.
             ``None`` outside a conversion and when reporting is disabled.
     """

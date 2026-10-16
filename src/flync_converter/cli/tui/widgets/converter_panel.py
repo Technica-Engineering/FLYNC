@@ -29,7 +29,7 @@ def _resolve_field_type(annotation):
 
 #: Config fields managed by the stored configuration file or destination side,
 #: never edited in the panel (mirrors the GUI panel).
-_NON_EDITABLE_FIELDS = frozenset({"version", "report_enabled", "report_min_log_level", "persist_config"})
+_NON_EDITABLE_FIELDS = frozenset({"version", "report_enabled", "report_min_log_level", "report_dir", "persist_config"})
 
 
 class ConverterPanel(Vertical):

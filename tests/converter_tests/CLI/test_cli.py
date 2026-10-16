@@ -99,9 +99,9 @@ def test_convert_calls_convert_func(runner, populated_registry):
 
 def test_convert_interactive_success(runner, populated_registry):
     """Simulate selecting json->yaml with minimal config input."""
-    # input sequence: source format (1=json), config_path, dest format (2=yaml), config_path,
-    # then the defaults for report_enabled, report_min_log_level and persist_config
-    user_input = "1\n/src\n2\n/dst\n\n\n\n"
+    # input sequence: source format (1=json), config_path, the default report_dir, dest format (2=yaml),
+    # config_path, then the defaults for report_enabled, report_min_log_level, report_dir and persist_config
+    user_input = "1\n/src\n\n2\n/dst\n\n\n\n\n"
     with patch("flync_converter.cli.commands.Converter") as mock_converter_cls:
         mock_converter_cls.return_value.convert.return_value = None
         result = runner.invoke(cli, ["convert-interactive"], input=user_input)
@@ -111,7 +111,7 @@ def test_convert_interactive_success(runner, populated_registry):
 
 def test_convert_interactive_conversion_error(runner, populated_registry):
     """Ensure conversion errors are reported gracefully."""
-    user_input = "1\n/src\n2\n/dst\n\n\n\n"
+    user_input = "1\n/src\n\n2\n/dst\n\n\n\n\n"
     with patch("flync_converter.cli.commands.Converter") as mock_converter_cls:
         mock_converter_cls.return_value.convert.side_effect = RuntimeError("boom")
         result = runner.invoke(cli, ["convert-interactive"], input=user_input)

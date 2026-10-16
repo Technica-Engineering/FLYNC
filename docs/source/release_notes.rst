@@ -26,19 +26,34 @@ decode by widening ``J1939Frame.length`` (see :ref:`chg__0_14__0_15`), and the o
 preserved in both directions (J1939 broadcasts are attributed to the ``Vector__XXX`` placeholder sender, with
 every declared node kept as a receiver).
 
+Conversions with several sources and outputs
+''''''''''''''''''''''''''''''''''''''''''''
+
+``convert_many(sources, outputs)`` decodes every source into a FLYNC model, merges the models into one and writes
+the merged model to every output. Objects are merged by ``name`` (or by ``id`` where names are not unique) at every
+depth, so an ECU described by two sources becomes one ECU. A value two sources disagree on is a conflict, decided by
+``on_conflict``: ``first`` (default) and ``last`` keep one value and log a warning, ``error`` raises
+``ModelMergeConflictError``. The call returns a ``ConversionResult`` with the merged model, the outputs written
+and the conflicts. When an output fails the remaining ones are still written and ``ConversionOutputError`` is
+raised at the end, unless ``fail_fast`` is set. A conversion can be stored as a YAML manifest and run with
+``convert_request("conversion.yaml")``. ``convert()`` and ``Converter.convert()`` keep their signature.
+
 Converter configuration file and conversion log
 '''''''''''''''''''''''''''''''''''''''''''''''
 
-Every conversion writes a report into ``<destination>/.flync/reports/``: a shared ``logs.txt`` for the whole
-conversion, and one folder per converter (source and destination) holding the configuration it ran with
-(``config.yaml``), its own ``logs.txt`` and any files it writes to its ``report_dir``. Converters list the loggers that belong to them in
+Every conversion writes a report into the ``.flync/reports/`` folder of the folders it works with. Each source
+and each output holds one folder for its converter, with the configuration it ran with (``config.yaml``), its own
+``logs.txt`` and any files it writes to its ``report_dir``; every output also holds a ``logs.txt`` for the whole
+conversion. ``report_enabled``, ``report_min_log_level`` and ``report_dir`` are set per source and output in its
+converter configuration, and a reports folder that cannot be written is skipped with a warning. Converters list the loggers that belong to them in
 ``report_loggers``; the shared log captures the ``flync_converter`` logger and every listed logger, and no other
 logger is captured or has its level changed. A failed conversion ends the shared log with the exception and its
 traceback. The FLYNC converter lists ``flync.sdk`` and logs the workspace diagnostics, one line per finding with
 its error id, after loading or writing a workspace.
 
-The report also holds structured data. ``reports/report.yaml`` records the converters, the outcome (with the
-error when the conversion failed) and the counts of the decoded model, written by the reporters passed to
+The report also holds structured data. ``reports/report.yaml`` in every output records the ``inputs`` and
+``outputs`` with their report folders, the merge conflicts, the counts of the merged model and the outcome (with
+the error when the conversion failed), written by the reporters passed to
 ``convert(..., reporters=...)``. Each converter, source or destination,
 records what it ``skipped``, what its format leaves ``unsupported`` and any ``custom`` data through
 ``self.report``; that is written into its folder by the reporters it lists in ``reporters``: ``report.yaml`` by
@@ -46,7 +61,7 @@ default, ``report.json`` with ``JsonReporter``, or a format added by subclassing
 converters report the files they read or write; the FLYNC converter its workspace diagnostics; the DBC converter the
 model and DBC content it cannot convert, which it also logs, together with the ``cantools`` records.
 
-Converter configurations are stored per workspace in ``<workspace>/.flync/converters/<converter_name>.yaml``.
+Converter configurations are stored per folder in ``<folder>/.flync/converters/<converter_name>/config.yaml``.
 Both the source and the destination configuration are resolved from the field defaults, then a configuration
 file, then the values set by the caller. The file is the one passed with ``--src-config`` / ``--dst-config``,
 otherwise the one stored in that side's workspace. In Python, ``source_config`` / ``destination_config`` accept

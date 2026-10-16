@@ -71,7 +71,7 @@ def test_loader_records_nothing_without_a_report(tmp_path, load, extension):
 def test_encode_reports_the_output_file(tmp_path, flync_object, converter_type, filename):
     destination = converter_type(ConverterConfig(config_path=str(tmp_path)))
     source = YamlConverter()
-    with ConversionReport(tmp_path, source, destination):
+    with ConversionReport([source], [destination]):
         destination.encode(flync_object)
 
     written = yaml.safe_load((reports_root(tmp_path) / destination.name / "report.yaml").read_text(encoding="utf-8"))
@@ -204,10 +204,10 @@ def test_dbc_converter_writes_its_report(tmp_path):
     source = DbcConverter(DbcConverterConfig(config_path=str(source_path)))
     destination = YamlConverter(ConverterConfig(config_path=str(tmp_path / "out")))
 
-    with ConversionReport(tmp_path / "out", source, destination):
+    with ConversionReport([source], [destination]):
         source.decode()
 
-    folder = reports_root(tmp_path / "out") / "dbc"
+    folder = reports_root(source_path) / "dbc"
     written = yaml.safe_load((folder / "report.yaml").read_text(encoding="utf-8"))
     assert [entry["item"] for entry in written["skipped"]] == ["Bus.Baudrate", "Bus.Msg.Mode.value_table", "nodes.IDLE"]
     assert "Value table entries for signal 'Mode'" in (folder / "logs.txt").read_text(encoding="utf-8")

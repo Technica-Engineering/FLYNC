@@ -60,7 +60,7 @@ def test_unknown_field_is_rejected():
 
 
 def test_converter_config_file(tmp_path):
-    assert converter_config_file(tmp_path, "flync") == tmp_path / ".flync" / "converters" / "flync.yaml"
+    assert converter_config_file(tmp_path, "flync") == tmp_path / ".flync" / "converters" / "flync" / "config.yaml"
 
 
 def test_from_workspace_without_file_returns_defaults(tmp_path):

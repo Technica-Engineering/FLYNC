@@ -32,7 +32,11 @@ def _fake_registry(source_name="dbc", destination_name="yaml"):
 def _convert(tmp_path, config_model=DbcConverterConfig, **kwargs):
     """Run a dbc -> yaml conversion with fake converters and return them."""
     fake_reg, src_conv, dst_conv = _fake_registry()
-    with patch("flync_converter.registry", fake_reg), patch("flync_converter.get_config_model", return_value=config_model):
+    with (
+        patch("flync_converter.registry", fake_reg),
+        patch("flync_converter.get_config_model", return_value=config_model),
+        patch("flync_converter.copy", side_effect=lambda converter: converter),
+    ):
         Converter.convert(str(tmp_path / "src"), str(tmp_path / "dst"), source_type="dbc", destination_type="yaml", **kwargs)
     return src_conv, dst_conv
 
@@ -96,7 +100,11 @@ def test_source_that_is_a_file_has_no_stored_config(tmp_path):
     source_file.write_text("", encoding="utf-8")
     fake_reg, src_conv, _ = _fake_registry()
 
-    with patch("flync_converter.registry", fake_reg), patch("flync_converter.get_config_model", return_value=DbcConverterConfig):
+    with (
+        patch("flync_converter.registry", fake_reg),
+        patch("flync_converter.get_config_model", return_value=DbcConverterConfig),
+        patch("flync_converter.copy", side_effect=lambda converter: converter),
+    ):
         Converter.convert(str(source_file), str(tmp_path / "dst"), source_type="dbc", destination_type="yaml")
 
     assert src_conv.config.config_path == str(source_file)
@@ -184,7 +192,11 @@ def test_stored_source_config_reaches_the_dbc_decoder(tmp_path):
     fake_reg = MagicMock()
     fake_reg.__getitem__.side_effect = fake.__getitem__
 
-    with patch("flync_converter.registry", fake_reg), patch("flync_converter.get_config_model", return_value=DbcConverterConfig):
+    with (
+        patch("flync_converter.registry", fake_reg),
+        patch("flync_converter.get_config_model", return_value=DbcConverterConfig),
+        patch("flync_converter.copy", side_effect=lambda converter: converter),
+    ):
         Converter.convert(str(source), str(tmp_path / "dst"), source_type="dbc", destination_type="yaml")
 
     model = dst_conv.encode.call_args.args[0]
