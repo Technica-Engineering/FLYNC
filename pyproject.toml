@@ -177,7 +177,6 @@ warn_unreachable = true
 # Type-check model construction: `ECU(nmae=...)` and a mistyped `Field(default=...)` become errors.
 init_typed = true
 warn_required_dynamic_aliases = true
-warn_untyped_fields = true
 
 [build-system]
 requires = ["hatchling>=1.27", "uv-dynamic-versioning>=0.7"]

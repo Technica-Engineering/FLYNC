@@ -8,6 +8,7 @@ from collections.abc import Callable, Hashable, Iterable
 from typing import Optional
 
 from pydantic import TypeAdapter, ValidationError, ValidationInfo
+from typing_extensions import TypeForm
 
 import flync.core.utils.base_utils as utils
 from flync.core.utils.exceptions import (
@@ -34,7 +35,7 @@ def _resolve_location(info: ValidationInfo) -> str:
     return _LOCATION_SYSTEM
 
 
-def validate_or_remove(label: str, field_type: object, severity: str = "minor") -> Callable[[object, ValidationInfo], object]:
+def validate_or_remove(label: str, field_type: TypeForm[object], severity: str = "minor") -> Callable[[object, ValidationInfo], object]:
     """
     Factory that returns a BeforeValidator for sub-model fields.
 
@@ -52,7 +53,7 @@ def validate_or_remove(label: str, field_type: object, severity: str = "minor") 
     ----------
     label : str
         Human-readable field label used in the error message.
-    field_type : object
+    field_type : TypeForm
         Pydantic-compatible type to validate the data against.
     severity : str, optional
         Error severity — ``"minor"`` (default) or ``"major"``.
@@ -129,7 +130,7 @@ def _record_list_item_warning(label: str, location: str, field_name: str, idx: i
     )
 
 
-def validate_list_items_and_remove(label: str, item_type: object, severity: str = "minor") -> Callable[[object, ValidationInfo], object]:
+def validate_list_items_and_remove(label: str, item_type: TypeForm[object], severity: str = "minor") -> Callable[[object, ValidationInfo], object]:
     """
     Validate each item in a list individually, removing only invalid entries.
 
@@ -143,7 +144,7 @@ def validate_list_items_and_remove(label: str, item_type: object, severity: str 
     ----------
     label : str
         Human-readable field label used in error messages.
-    item_type : object
+    item_type : TypeForm
         Pydantic-compatible type for each individual list item.
     severity : str, optional
         Error severity for removed items — ``"minor"`` (default) or

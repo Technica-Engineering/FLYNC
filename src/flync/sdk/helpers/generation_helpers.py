@@ -489,7 +489,7 @@ class FLYNCFactory(ModelFactory[FLYNCBaseModel]):
                 valid, value = True, Factory.get_factory(arg_type).build()
             else:
                 valid, value = True, []
-        elif origin_type and safe_issubclass(origin_type, FLYNCBaseModel):
+        elif isinstance(origin_type, type) and issubclass(origin_type, FLYNCBaseModel):
             valid, value = True, Factory.get_factory(origin_type).build()
         elif field_name == "name":
             name = Factory.build_name(model=model)

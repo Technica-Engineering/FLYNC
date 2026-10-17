@@ -14,7 +14,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from itertools import islice
 from pathlib import Path
 from types import UnionType
-from typing import Annotated, Optional, Union, get_args, get_origin
+from typing import Annotated, Optional, Union, cast, get_args, get_origin
 
 from pydantic.fields import FieldInfo
 from pydantic_core import ValidationError
@@ -733,7 +733,7 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
                     base_type_args = get_args(attribute_type)
             new_paths = self.update_objects_path(current_object_paths, field_name)
             self.__handle_generic_types(
-                attribute_type,
+                cast(type, attribute_type),
                 base_type,
                 base_type_args,
                 external,
