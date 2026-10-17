@@ -23,5 +23,7 @@ def test_internal_component_none_argument_does_not_warn():
 
 
 def test_internal_component_ecus_argument_is_deprecated():
+    port = _port()
     with pytest.warns(DeprecationWarning, match="ecus"):
-        assert _port().get_internal_connected_component([]) is None
+        result = port.get_internal_connected_component([])
+    assert result is None

@@ -567,7 +567,8 @@ class TestJ1939:
         bus = reloaded.communication.channels.can_buses[0]
         assert all(isinstance(f, J1939Frame) for f in bus.frames)
         eec1 = next(f for f in bus.frames if f.name == "EEC1")
-        assert eec1.pdu_format == 0xF0 and eec1.pdu_specific == 0x04
+        assert eec1.pdu_format == 0xF0
+        assert eec1.pdu_specific == 0x04
 
         import cantools.database
 
