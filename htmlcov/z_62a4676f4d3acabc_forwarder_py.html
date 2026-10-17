@@ -64,8 +64,8 @@
             <a id="indexLink" class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
             <a id="nextFileLink" class="nav" href="z_62a4676f4d3acabc_frame_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
-            <a class="nav" href="https://coverage.readthedocs.io/en/7.16.1">coverage.py v7.16.1</a>,
-            created at 2026-10-10 15:09 +0000
+            <a class="nav" href="https://coverage.readthedocs.io/en/7.16.2">coverage.py v7.16.2</a>,
+            created at 2026-10-17 16:00 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -134,7 +134,7 @@
     <p class="run"><span class="n"><a id="t52" href="#t52">52</a></span><span class="t">    <span class="nam">extract_pdu_ref</span><span class="op">:</span> <span class="nam">Optional</span><span class="op">[</span><span class="nam">str</span><span class="op">]</span> <span class="op">=</span> <span class="nam">Field</span><span class="op">(</span><span class="nam">default</span><span class="op">=</span><span class="key">None</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t53" href="#t53">53</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t54" href="#t54">54</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t55" href="#t55">55</a></span><span class="t"><span class="key">class</span> <span class="nam">ForwarderEgress</span><span class="op">(</span><span class="nam">RootModel</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t55" href="#t55">55</a></span><span class="t"><span class="key">class</span> <span class="nam">ForwarderEgress</span><span class="op">(</span><span class="nam">RootModel</span><span class="op">[</span><span class="nam">CANFrameEgress</span> <span class="op">|</span> <span class="nam">EthSocketEgress</span><span class="op">]</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t56" href="#t56">56</a></span><span class="t">    <span class="str">&quot;&quot;&quot;Discriminated-union wrapper over a single forwarder egress (``CANFrameEgress`` or ``EthSocketEgress``).&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t57" href="#t57">57</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t58" href="#t58">58</a></span><span class="t">    <span class="nam">root</span><span class="op">:</span> <span class="nam">CANFrameEgress</span> <span class="op">|</span> <span class="nam">EthSocketEgress</span> <span class="op">=</span> <span class="nam">Field</span><span class="op">(</span><span class="nam">discriminator</span><span class="op">=</span><span class="str">&quot;egress_type&quot;</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
@@ -193,10 +193,10 @@
     <p class="run"><span class="n"><a id="t111" href="#t111">111</a></span><span class="t"><span class="key">def</span> <span class="nam">_check_egress_uniqueness</span><span class="op">(</span><span class="nam">egresses</span><span class="op">:</span> <span class="nam">List</span><span class="op">[</span><span class="nam">ForwarderEgress</span><span class="op">]</span><span class="op">,</span> <span class="nam">owner</span><span class="op">:</span> <span class="nam">str</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t112" href="#t112">112</a></span><span class="t">    <span class="str">&quot;&quot;&quot;Raise ``err_major`` if two egresses point at the exact same target carrier.&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t113" href="#t113">113</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t114" href="#t114">114</a></span><span class="t">    <span class="nam">seen</span><span class="op">:</span> <span class="nam">set</span> <span class="op">=</span> <span class="nam">set</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t114" href="#t114">114</a></span><span class="t">    <span class="nam">seen</span><span class="op">:</span> <span class="nam">set</span><span class="op">[</span><span class="nam">tuple</span><span class="op">[</span><span class="nam">str</span> <span class="op">|</span> <span class="nam">int</span><span class="op">,</span> <span class="op">...</span><span class="op">]</span><span class="op">]</span> <span class="op">=</span> <span class="nam">set</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t115" href="#t115">115</a></span><span class="t">    <span class="key">for</span> <span class="nam">idx</span><span class="op">,</span> <span class="nam">egress_root</span> <span class="key">in</span> <span class="nam">enumerate</span><span class="op">(</span><span class="nam">egresses</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t116" href="#t116">116</a></span><span class="t">        <span class="nam">egress</span> <span class="op">=</span> <span class="nam">egress_root</span><span class="op">.</span><span class="nam">root</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t117" href="#t117">117</a></span><span class="t">        <span class="nam">key</span><span class="op">:</span> <span class="nam">tuple</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t117" href="#t117">117</a></span><span class="t">        <span class="nam">key</span><span class="op">:</span> <span class="nam">tuple</span><span class="op">[</span><span class="nam">str</span> <span class="op">|</span> <span class="nam">int</span><span class="op">,</span> <span class="op">...</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t118" href="#t118">118</a></span><span class="t">        <span class="key">if</span> <span class="nam">isinstance</span><span class="op">(</span><span class="nam">egress</span><span class="op">,</span> <span class="nam">CANFrameEgress</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t119" href="#t119">119</a></span><span class="t">            <span class="nam">key</span> <span class="op">=</span> <span class="op">(</span><span class="str">&quot;can_frame&quot;</span><span class="op">,</span> <span class="nam">egress</span><span class="op">.</span><span class="nam">bus_ref</span><span class="op">,</span> <span class="nam">egress</span><span class="op">.</span><span class="nam">frame_ref</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t120" href="#t120">120</a></span><span class="t">        <span class="key">else</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
@@ -219,8 +219,8 @@
             <a class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
             <a class="nav" href="z_62a4676f4d3acabc_frame_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
-            <a class="nav" href="https://coverage.readthedocs.io/en/7.16.1">coverage.py v7.16.1</a>,
-            created at 2026-10-10 15:09 +0000
+            <a class="nav" href="https://coverage.readthedocs.io/en/7.16.2">coverage.py v7.16.2</a>,
+            created at 2026-10-17 16:00 +0000
         </p>
     </div>
 </footer>
