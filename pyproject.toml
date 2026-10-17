@@ -82,6 +82,10 @@ static-analysis = [
     "flake8-html>=0.4.3,<0.5.0",
     "isort>=9.0.1,<9.1.0",
     "mypy>=2.0.0,<3.0.0",
+    # mypy --install-types shells out to `python -m pip`, which a uv-managed venv lacks
+    "pip>=25.0",
+    "types-pygments>=2.19.0,<3.0.0",
+    "types-pywin32>=310.0.0",
     "types-pyyaml>=6.0.12.20250915,<7.0.0",
 ]
 docs = [
