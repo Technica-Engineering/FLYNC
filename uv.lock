@@ -777,7 +777,7 @@ docs = [
     { name = "sphinx-autodoc-typehints" },
     { name = "sphinx-copybutton", specifier = "==0.5.2" },
     { name = "sphinx-design", specifier = ">=0.7.0,<0.8.0" },
-    { name = "sphinx-needs", specifier = "==8.5.0" },
+    { name = "sphinx-needs", specifier = "==9.0.0" },
     { name = "sphinxcontrib-mermaid", specifier = ">=2.0.0,<3.0.0" },
     { name = "sphinxcontrib-plantuml", specifier = "==0.31" },
 ]
@@ -2141,9 +2141,10 @@ wheels = [
 
 [[package]]
 name = "sphinx-needs"
-version = "8.5.0"
+version = "9.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
+    { name = "docutils" },
     { name = "jsonschema-rs" },
     { name = "minijinja" },
     { name = "requests" },
@@ -2152,10 +2153,11 @@ dependencies = [
     { name = "sphinx-data-viewer" },
     { name = "sphinxcontrib-jquery" },
     { name = "typing-extensions" },
+    { name = "ub-project" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a8/c2/9db8259372467a85da7d07aa9f642d292f56feadebb37caab73683bbcfed/sphinx_needs-8.5.0.tar.gz", hash = "sha256:42d327baaf39f5041f692cb85609ef7023c0a73b688cde5803db444e577bb63d", size = 28245371, upload-time = "2026-09-03T11:42:25.929Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d7/03/f5a61ed3c35f767df20392ec60d6435c9fd5f2cb6c22e8343e9d81ea333f/sphinx_needs-9.0.0.tar.gz", hash = "sha256:5f48748438648775443d08f7f989b860d7ba8cf6a6d93eebd1098cfba4e8aa31", size = 5776211, upload-time = "2026-10-14T07:24:09.451Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/02/96/e0a0b6fdf37460b7aaf8fb887922138aa23bbef7635ddaf09fb64823927a/sphinx_needs-8.5.0-py3-none-any.whl", hash = "sha256:aa7548d1ec33cd66cd0223cf8d5c0a934dc4c67d67ad471b5351b817d5f02750", size = 2767023, upload-time = "2026-09-03T11:42:23.717Z" },
+    { url = "https://files.pythonhosted.org/packages/fd/fb/dfcd6f3cce8fedefa59c37382531ef5d65b693d5cf626faada71bc21de32/sphinx_needs-9.0.0-py3-none-any.whl", hash = "sha256:4747ff220d064ed70cb2fc635bd2dc604d532f73b079af74cd55fe3161196ac8", size = 777944, upload-time = "2026-10-14T07:24:07.745Z" },
 ]
 
 [[package]]
@@ -2367,6 +2369,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/92/ff/5a28bdfd8c3ebec42564ac7d0e54ca3db65044a9314a97f9564fa7a1e926/tzdata-2026.3.tar.gz", hash = "sha256:4a1518b8993086a7982523e071643f3c0e5f213e75b21318e78bcabfff9d1415", size = 198674, upload-time = "2026-07-10T08:50:37.887Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e5/6d/b53b99a9f2766d095985947a5782f1702cabb129a34f7a802d7197af832f/tzdata-2026.3-py2.py3-none-any.whl", hash = "sha256:dc096730c87af6cab1b171c9d532be840741ff5d459015e7f6947bd7d7e54931", size = 348168, upload-time = "2026-07-10T08:50:36.46Z" },
+]
+
+[[package]]
+name = "ub-project"
+version = "1.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d2/ce/efa8791a9a5878b26d6508fcf78bb55ab4d10fabe5643fe08a03e2479e18/ub_project-1.1.0.tar.gz", hash = "sha256:97774c8ee68e3fe4650b18e2a6b54e4e4b1469c91bde3432ac474394ecca4b67", size = 13975, upload-time = "2026-09-30T15:48:33.367Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/de/38/b3c9c3ccf3561daca19878392793f3263914bd4852ddbc49f5f3bfeaeac0/ub_project-1.1.0-py3-none-any.whl", hash = "sha256:eff02771b7f79b7109f26e17accc8b924a027c5d9ad0b799ec74720eaa20970e", size = 15070, upload-time = "2026-09-30T15:48:32.439Z" },
 ]
 
 [[package]]
