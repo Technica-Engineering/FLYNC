@@ -1,5 +1,5 @@
 .base:
-  image: python:3.12
+  image: python:3.14
   tags:
     - docker-linux
   before_script:
