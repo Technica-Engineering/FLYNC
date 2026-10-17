@@ -18,9 +18,9 @@ import logging
 from pathlib import Path
 from typing import Any, Self
 
-import yaml
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from flync.core.utils import yaml_io
 from flync.model.flync_4_metadata.metadata import BaseVersion
 from flync.sdk.context.workspace_config import CONFIG_DIRNAME, _get_current_flync_version
 
@@ -158,7 +158,7 @@ class ConverterConfig(BaseModel):
             raise FileNotFoundError(f"Configuration file not found: {file_path}")
 
         with open(file_path, "r", encoding="utf-8") as f:
-            data = yaml.safe_load(f) or {}
+            data = yaml_io.safe_load(f) or {}
 
         if not isinstance(data, dict):
             raise ValueError(f"YAML file must contain a mapping, got {type(data).__name__}")
@@ -221,7 +221,7 @@ class ConverterConfig(BaseModel):
         }
 
         with open(file_path, "w", encoding="utf-8") as f:
-            yaml.dump(data, f, default_flow_style=False, sort_keys=False)
+            yaml_io.safe_dump(data, f)
 
     @classmethod
     def create_from_config(cls, existing_config: "ConverterConfig", **configs: Any) -> Self:

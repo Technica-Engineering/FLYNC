@@ -5,10 +5,10 @@ import logging
 from unittest.mock import patch
 
 import pytest
-import yaml
 from cantools.database.errors import UnsupportedDatabaseFormatError
 from pydantic import ValidationError
 
+from flync.core.utils import yaml_io
 from flync_converter import (
     ConversionOutput,
     ConversionOutputError,
@@ -59,7 +59,7 @@ def buses(tmp_path):
 
 
 def _yaml(path):
-    return yaml.safe_load(path.read_text(encoding="utf-8"))
+    return yaml_io.safe_load(path.read_text(encoding="utf-8"))
 
 
 # region request validation

@@ -65,7 +65,7 @@ class Document(object):
         """
         Parse the YAML text into an abstract syntax tree.
 
-        Sets :attr:`ast` via ``yaml.load`` and :attr:`compose_ast` via ``yaml.compose``, both derived from :attr:`text`.
+        Sets :attr:`ast` via ruamel's ``load`` and :attr:`compose_ast` via ``compose``, both derived from :attr:`text`.
 
         Returns: None
         """

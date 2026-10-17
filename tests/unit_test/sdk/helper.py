@@ -3,11 +3,11 @@ from collections.abc import Mapping
 from pathlib import Path
 from types import MappingProxyType
 
-import yaml
 from pydantic import BaseModel, TypeAdapter
 from pydantic._internal._model_construction import ModelMetaclass
 from ruamel.yaml.nodes import MappingNode, ScalarNode, SequenceNode
 
+from flync.core.utils import yaml_io
 from flync.model import FLYNCModel
 from flync.sdk.context.workspace_config import CONFIG_DIRNAME, WorkspaceConfiguration
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
@@ -43,7 +43,7 @@ def load_yaml_folder(folder_path: Path, sep="."):
             continue
 
         with open(yaml_file, "r") as f:
-            data = yaml.safe_load(f)
+            data = yaml_io.safe_load(f)
 
         if data is None:
             continue

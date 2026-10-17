@@ -136,19 +136,19 @@ def test_update_document_cleans_duplicated_object_ids(workspace):
     ``_purge_object_subtree`` purges ``self.objects`` but leaves stale
     entries in ``_duplicated_objects_ids``.
     """
-    import yaml
+    from flync.core.utils import yaml_io
 
     ws, root, _ = workspace
     rel = "ecus/zonal_platform1/switches/z1_switch1/switch.flync.yaml"
     file = root / rel
 
     with open(file, "r") as f:
-        data = yaml.safe_load(f)
+        data = yaml_io.safe_load(f)
     assert "vlans" in data
     del data["vlans"]
 
     with open(file, "w") as f:
-        yaml.safe_dump(data, f, sort_keys=False)
+        yaml_io.safe_dump(data, f)
 
     vlans_obj_id = "ecus.zonal_platform1.switches.z1_switch1.switch_config.vlans"
     ids = [vlans_obj_id, f"{vlans_obj_id}.VLAN10", f"{vlans_obj_id}.VLAN20"]

@@ -438,13 +438,13 @@ def _enrich_missing_field_hint(
 
 def _load_yaml_cached(abs_path: Path, cache: dict[str, Any]) -> Any:
     """Load and cache the YAML contents of abs_path, returning None on failure."""
-    import yaml
+    from flync.core.utils import yaml_io
 
     cache_key = str(abs_path)
     if cache_key not in cache:
         try:
             with open(abs_path, encoding="utf-8") as fh:
-                cache[cache_key] = yaml.safe_load(fh)
+                cache[cache_key] = yaml_io.safe_load(fh)
         except Exception:
             cache[cache_key] = None
     return cache[cache_key]

@@ -23,13 +23,13 @@ from types import SimpleNamespace
 from typing import Annotated, List, Optional
 
 import pytest
-import yaml
 from pydantic import BaseModel
 
 import flync.sdk.helpers.debug_layers.layer1_structure as layer1_mod
 import flync.sdk.helpers.debug_layers.layer2_yaml as layer2_mod
 import flync.sdk.helpers.debug_layers.layer3_4_5_workspace as layer345_mod
 from flync.core.annotations.external import External, NamingStrategy, OutputStrategy
+from flync.core.utils import yaml_io
 from flync.sdk.helpers import debug as debug_mod
 from flync.sdk.helpers.debug_layers.layer1_structure import StructureIssue, check_structure
 from flync.sdk.helpers.debug_layers.layer2_yaml import YAMLIssue, check_yaml_syntax
@@ -57,12 +57,12 @@ _HPC_SWITCH = "ecus/high_performance_compute/switches/hpc_switch1/switch.flync.y
 
 def _load(path: Path) -> dict:
     with open(path, encoding="utf-8") as f:
-        return yaml.safe_load(f)
+        return yaml_io.safe_load(f)
 
 
 def _dump(path: Path, data: dict) -> None:
     with open(path, "w", encoding="utf-8") as f:
-        yaml.safe_dump(data, f, default_flow_style=False, allow_unicode=True)
+        yaml_io.safe_dump(data, f)
 
 
 def _run(workspace: Path):
@@ -539,16 +539,6 @@ def test_yaml_syntax_scenarios(tmp_path):
     nested_issues = check_yaml_syntax(nested_root)
     assert len(nested_issues) == 1
     assert "bad.flync.yaml" in nested_issues[0].path
-
-    # Directly exercise the PyYAML fallback path used when ruamel.yaml is unavailable.
-    fallback_valid: list = []
-    layer2_mod._check_with_pyyaml(valid_dir, fallback_valid)
-    assert fallback_valid == []
-
-    fallback_invalid: list = []
-    layer2_mod._check_with_pyyaml(invalid_dir, fallback_invalid)
-    assert len(fallback_invalid) == 1
-    assert fallback_invalid[0].path == "bad.flync.yaml"
 
     # YAMLIssue dataclass defaults.
     issue = YAMLIssue(message="m", path="p")

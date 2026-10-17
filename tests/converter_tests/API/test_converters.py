@@ -1,8 +1,8 @@
 import json
 
 import pytest
-import yaml
 
+from flync.core.utils import yaml_io
 from flync.model import FLYNCModel  # type: ignore[import-untyped]
 from flync_converter import ConverterConfig, FLYNCConverter, JsonConverter, YamlConverter
 
@@ -59,7 +59,7 @@ def test_yaml_encode(flync_object, tmp_path):
     assert yaml_files, "encode produced no YAML files"
     for f in yaml_files:
         assert f.stat().st_size > 0, f"{f.name} is empty"
-        data = yaml.safe_load(f.read_text(encoding="utf-8"))
+        data = yaml_io.safe_load(f.read_text(encoding="utf-8"))
         assert isinstance(data, dict), f"{f.name} is not a YAML mapping"
 
 

@@ -5,9 +5,9 @@ from os import sep
 from pathlib import Path
 
 import pytest
-import yaml
 from approvaltests import verify
 
+from flync.core.utils import yaml_io
 from flync.model import FLYNCModel
 from flync.model.flync_4_ecu.controller import Controller
 from flync.model.flync_4_ecu.ecu import ECU
@@ -155,7 +155,7 @@ def test_flync_extension(get_flync_example_path, tmp_path):
     extra_data = {"extra_name": "value"}
 
     with open(output_extra_path / extra_file, "w") as f:
-        yaml.dump(extra_data, f, default_flow_style=False)
+        yaml_io.safe_dump(extra_data, f)
 
     output = validate_external_node(ExtendedFLYNC, output_extra_path)
     assert (output.state == WorkspaceState.VALID) or (output.state == WorkspaceState.WARNING)

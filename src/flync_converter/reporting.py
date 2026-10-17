@@ -45,8 +45,7 @@ from pathlib import Path
 from types import TracebackType
 from typing import Any, Self
 
-import yaml
-
+from flync.core.utils import yaml_io
 from flync.model import FLYNCModel
 from flync.sdk.context.workspace_config import CONFIG_DIRNAME
 
@@ -144,7 +143,7 @@ def _write_config_record(path: Path, config: ConverterConfig) -> None:
         config: The resolved configuration.
     """
     with open(path, "w", encoding="utf-8") as f:
-        yaml.safe_dump(config.model_dump(mode="json"), f, sort_keys=False)
+        yaml_io.safe_dump(config.model_dump(mode="json"), f)
 
 
 def model_counts(model: FLYNCModel) -> dict[str, int]:

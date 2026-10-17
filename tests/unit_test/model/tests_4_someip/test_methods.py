@@ -1,7 +1,7 @@
-import pydantic_yaml
 import pytest
 from pydantic import ValidationError
 
+from flync.core.utils import yaml_io
 from flync.model.flync_4_someip import (
     ArrayType,
     Int8,
@@ -87,8 +87,8 @@ class TestFireForgetMethod:
             id=0x123,
             input_parameters=input_params,
         )
-        yaml_representation = pydantic_yaml.to_yaml_str(f)
-        from_yaml = pydantic_yaml.parse_yaml_raw_as(SOMEIPFireAndForgetMethod, yaml_representation)
+        yaml_representation = yaml_io.safe_dump(f.model_dump(mode="json"))
+        from_yaml = SOMEIPFireAndForgetMethod.model_validate(yaml_io.safe_load(yaml_representation))
         assert from_yaml.model_dump() == f.model_dump()
 
     def test_fire_forget_missing_type_raises(self, input_params):
@@ -197,9 +197,9 @@ class TestRequestAndResponseMethod:
             input_parameters=input_params,
             output_parameters=output_params,
         )
-        yaml_representation = pydantic_yaml.to_yaml_str(f)
+        yaml_representation = yaml_io.safe_dump(f.model_dump(mode="json"))
 
-        from_yaml = pydantic_yaml.parse_yaml_raw_as(SOMEIPRequestResponseMethod, yaml_representation)
+        from_yaml = SOMEIPRequestResponseMethod.model_validate(yaml_io.safe_load(yaml_representation))
         assert from_yaml.model_dump() == f.model_dump()
 
     def test_request_response_method_no_output_params_raises(self, input_params, output_params):

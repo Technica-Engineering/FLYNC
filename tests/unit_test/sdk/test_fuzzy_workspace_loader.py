@@ -7,7 +7,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-import yaml
+
+from flync.core.utils import yaml_io
 
 ITERATIONS = 10
 current_dir = Path(__file__).resolve().parent
@@ -64,13 +65,13 @@ def __fuzz_remove_key(obj: dict, probability=0.2):
 
 def __fuzz_yaml_file(path: Path) -> None:
     with path.open("r", encoding="utf-8") as f:
-        data = yaml.safe_load(f)
+        data = yaml_io.safe_load(f)
 
     fuzzed = __fuzz_yaml(data)
     fuzzed = __fuzz_keys(fuzzed)
 
     with path.open("w", encoding="utf-8") as f:
-        yaml.safe_dump(fuzzed, f, sort_keys=False)
+        yaml_io.safe_dump(fuzzed, f)
 
 
 def __pick_yaml_files(root: Path, max_files: int) -> list[Path]:

@@ -20,7 +20,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import IO, Any, ClassVar
 
-import yaml
+from flync.core.utils import yaml_io
 
 
 def _plain(data: Mapping[str, Any]) -> Any:
@@ -73,7 +73,7 @@ class YamlReporter(BaseReporter):
 
     def dump(self, data: Any, stream: IO[str]) -> None:
         """Serialize the report data as YAML, keeping the recording order."""
-        yaml.safe_dump(data, stream, sort_keys=False, allow_unicode=True)
+        yaml_io.safe_dump(data, stream)
 
 
 class JsonReporter(BaseReporter):

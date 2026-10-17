@@ -11,10 +11,10 @@ from enum import IntFlag
 from pathlib import Path
 from typing import Any, Self, Type
 
-import yaml
 from packaging.version import Version
 from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
 
+from flync.core.utils import yaml_io
 from flync.model import FLYNCBaseModel, FLYNCModel
 from flync.model.flync_4_metadata.metadata import BaseVersion
 
@@ -214,7 +214,7 @@ class WorkspaceConfiguration(BaseModel):
             raise FileNotFoundError(f"Configuration file not found: {file_path}")
 
         with open(file_path, "r") as f:
-            data = yaml.safe_load(f) or {}
+            data = yaml_io.safe_load(f) or {}
 
         if not isinstance(data, dict):
             raise ValueError(f"YAML file must contain a mapping, got {type(data).__name__}")
@@ -318,7 +318,7 @@ class WorkspaceConfiguration(BaseModel):
 
         # Write YAML
         with open(file_path, "w") as f:
-            yaml.dump(data, f, default_flow_style=False, sort_keys=False)
+            yaml_io.safe_dump(data, f)
 
     @classmethod
     def create_from_config(cls, existing_config: Self, **configs) -> Self:

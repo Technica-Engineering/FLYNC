@@ -207,12 +207,12 @@ def test_generate_node_set_attribue(get_flync_example_path, tmp_path):
     hc_dir = workspace_path / "ecus/zonal_platform1/switches/z1_switch1/switch_host_controller"
     shutil.rmtree(hc_dir)
 
-    import yaml
+    from flync.core.utils import yaml_io
 
     topo_file = workspace_path / "ecus/zonal_platform1/topology.flync.yaml"
-    topo = yaml.safe_load(topo_file.read_text())
+    topo = yaml_io.safe_load(topo_file.read_text())
     topo["connections"] = [c for c in topo["connections"] if c.get("id") != "conn4"]
-    topo_file.write_text(yaml.safe_dump(topo, sort_keys=False))
+    topo_file.write_text(yaml_io.safe_dump(topo))
 
     config = WorkspaceConfiguration(map_objects=True)
     ws = FLYNCWorkspace.load_workspace("test_set_attr", workspace_path, config)

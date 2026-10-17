@@ -3,9 +3,9 @@
 import logging
 
 import pytest
-import yaml
 from pydantic import ValidationError
 
+from flync.core.utils import yaml_io
 from flync_converter.base.converter_config import ConverterConfig, converter_config_file, parse_log_level
 from flync_converter.converters.dbc.dbc_config import DbcConverterConfig
 
@@ -83,7 +83,7 @@ def test_file_contains_only_non_defaults_and_version(tmp_path):
     path = converter_config_file(tmp_path, "flync")
     ConverterConfig(config_path=str(tmp_path), report_min_log_level="DEBUG").to_yaml_file(path)
 
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    data = yaml_io.safe_load(path.read_text(encoding="utf-8"))
 
     assert set(data) == {"report_min_log_level", "version"}
     assert data["report_min_log_level"] == "DEBUG"

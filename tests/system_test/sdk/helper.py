@@ -3,8 +3,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Iterator
 
-import yaml
-
+from flync.core.utils import yaml_io
 from flync.sdk.context.diagnostics_result import WorkspaceState
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 
@@ -29,10 +28,10 @@ def patch_yaml(yaml_file) -> Iterator[Any]:
         ...     entry_named(switch["vlans"], "VLAN40")["ports"].remove("hpc_s1_p3")
     """
     with open(yaml_file, "r", encoding="utf-8") as file:
-        data = yaml.safe_load(file)
+        data = yaml_io.safe_load(file)
     yield data
     with open(yaml_file, "w", encoding="utf-8") as file:
-        yaml.safe_dump(data, file, sort_keys=False, default_flow_style=False)
+        yaml_io.safe_dump(data, file)
 
 
 def entry_named(entries: list, name: str) -> Any:

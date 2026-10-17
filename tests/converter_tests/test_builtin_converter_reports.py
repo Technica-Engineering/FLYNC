@@ -4,9 +4,9 @@ import json
 from types import SimpleNamespace
 
 import pytest
-import yaml
 from cantools.database.can.signal import Signal
 
+from flync.core.utils import yaml_io
 from flync.model.flync_4_signal.signal import SignalDataType
 from flync_converter.base import ConverterConfig, ConverterReport
 from flync_converter.converters.dbc import DbcConverter, DbcConverterConfig, decode_dbc_files, load_dbc_files, write_dbc_files
@@ -27,7 +27,7 @@ def _write(path, text):
 
 @pytest.mark.parametrize(
     "load, extension, dump",
-    [(load_yaml_files, "yaml", yaml.safe_dump), (load_json_files, "json", json.dumps)],
+    [(load_yaml_files, "yaml", yaml_io.safe_dump), (load_json_files, "json", json.dumps)],
 )
 def test_loader_reports_input_files_and_overridden_keys(tmp_path, load, extension, dump):
     first = tmp_path / f"a.{extension}"
@@ -74,7 +74,7 @@ def test_encode_reports_the_output_file(tmp_path, flync_object, converter_type, 
     with ConversionReport([source], [destination]):
         destination.encode(flync_object)
 
-    written = yaml.safe_load((reports_root(tmp_path) / destination.name / "report.yaml").read_text(encoding="utf-8"))
+    written = yaml_io.safe_load((reports_root(tmp_path) / destination.name / "report.yaml").read_text(encoding="utf-8"))
     assert written == {"custom": {"output_file": str(tmp_path / filename)}}
 
 
@@ -208,7 +208,7 @@ def test_dbc_converter_writes_its_report(tmp_path):
         source.decode()
 
     folder = reports_root(source_path) / "dbc"
-    written = yaml.safe_load((folder / "report.yaml").read_text(encoding="utf-8"))
+    written = yaml_io.safe_load((folder / "report.yaml").read_text(encoding="utf-8"))
     assert [entry["item"] for entry in written["skipped"]] == ["Bus.Baudrate", "Bus.Msg.Mode.value_table", "nodes.IDLE"]
     assert "Value table entries for signal 'Mode'" in (folder / "logs.txt").read_text(encoding="utf-8")
 

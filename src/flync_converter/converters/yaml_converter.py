@@ -3,8 +3,7 @@
 import logging
 from pathlib import Path
 
-import yaml
-
+from flync.core.utils import yaml_io
 from flync.model import FLYNCModel
 
 from ..base.base_converter import BaseConverter
@@ -53,7 +52,7 @@ def load_yaml_files(root_folder, report: ConverterReport = INACTIVE_REPORT):
     for yaml_file in candidates:
         logger.debug("Loading YAML file: %s", yaml_file)
         with yaml_file.open("r", encoding="utf-8") as f:
-            data = yaml.safe_load(f)
+            data = yaml_io.safe_load(f)
             if isinstance(data, dict):
                 logger.debug("Merging %d keys from %s", len(data), yaml_file.name)
                 merge_tracking_overrides(combined, data, yaml_file, origins, report)
@@ -96,7 +95,7 @@ class YamlConverter(BaseConverter):
         logger.debug("Encoding FLYNCModel to YAML at: %s", output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, "w", encoding="utf-8") as output:
-            yaml.safe_dump(pydantic_dump(source), output, indent=2, sort_keys=False)
+            yaml_io.safe_dump(pydantic_dump(source), output)
         self.report.add("output_file", output_path)
         logger.info("YAML encode complete: %s", output_path)
 

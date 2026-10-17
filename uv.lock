@@ -637,12 +637,12 @@ dependencies = [
     { name = "cantools" },
     { name = "click" },
     { name = "filelock" },
+    { name = "packaging" },
     { name = "platformdirs" },
     { name = "pluggy" },
     { name = "polyfactory" },
     { name = "pydantic" },
     { name = "pydantic-extra-types" },
-    { name = "pyyaml" },
     { name = "rich" },
     { name = "ruamel-yaml" },
     { name = "semver" },
@@ -678,7 +678,6 @@ dev = [
     { name = "mypy" },
     { name = "pip" },
     { name = "pre-commit" },
-    { name = "pydantic-yaml" },
     { name = "pytest" },
     { name = "pytest-benchmark" },
     { name = "pytest-cov" },
@@ -687,7 +686,6 @@ dev = [
     { name = "python-dotenv" },
     { name = "types-pygments" },
     { name = "types-pywin32" },
-    { name = "types-pyyaml" },
 ]
 docs = [
     { name = "furo" },
@@ -716,16 +714,12 @@ static-analysis = [
     { name = "pip" },
     { name = "types-pygments" },
     { name = "types-pywin32" },
-    { name = "types-pyyaml" },
 ]
 test = [
     { name = "approvaltests" },
-    { name = "black" },
     { name = "coverage" },
     { name = "iniconfig" },
     { name = "junitparser" },
-    { name = "mypy" },
-    { name = "pydantic-yaml" },
     { name = "pytest" },
     { name = "pytest-benchmark" },
     { name = "pytest-cov" },
@@ -739,6 +733,7 @@ requires-dist = [
     { name = "cantools", specifier = ">=45.0.0,<45.1.0" },
     { name = "click", specifier = "==8.5.0" },
     { name = "filelock", specifier = ">=4,<4.2" },
+    { name = "packaging", specifier = ">=24.0" },
     { name = "platformdirs", specifier = ">=4.9.4,<5.0.0" },
     { name = "pluggy", specifier = ">=1.6.0,<2.0.0" },
     { name = "polyfactory", specifier = "==3.3.0" },
@@ -746,7 +741,6 @@ requires-dist = [
     { name = "pydantic-extra-types", specifier = ">=2.11.0,!=2.11.2,<3.0.0" },
     { name = "pyside6", marker = "extra == 'all'", specifier = ">=6.6.0" },
     { name = "pyside6", marker = "extra == 'gui'", specifier = ">=6.6.0" },
-    { name = "pyyaml", specifier = "==6.0.3" },
     { name = "rich" },
     { name = "ruamel-yaml", specifier = ">=0.19,<0.20" },
     { name = "semver", specifier = ">=3.0,<4.0" },
@@ -771,7 +765,6 @@ dev = [
     { name = "mypy", specifier = ">=2.0.0,<3.0.0" },
     { name = "pip", specifier = ">=26.2.2" },
     { name = "pre-commit", specifier = ">=4.4.0,<5.0.0" },
-    { name = "pydantic-yaml", specifier = "==1.7.0" },
     { name = "pytest" },
     { name = "pytest-benchmark", specifier = ">=5.2.3,<6.0.0" },
     { name = "pytest-cov" },
@@ -780,7 +773,6 @@ dev = [
     { name = "python-dotenv" },
     { name = "types-pygments", specifier = ">=2.19.0,<3.0.0" },
     { name = "types-pywin32", specifier = ">=310.0.0" },
-    { name = "types-pyyaml", specifier = ">=6.0.12.20250915,<7.0.0" },
 ]
 docs = [
     { name = "furo", specifier = ">=2024.0.0" },
@@ -807,16 +799,12 @@ static-analysis = [
     { name = "pip", specifier = ">=26.2.2" },
     { name = "types-pygments", specifier = ">=2.19.0,<3.0.0" },
     { name = "types-pywin32", specifier = ">=310.0.0" },
-    { name = "types-pyyaml", specifier = ">=6.0.12.20250915,<7.0.0" },
 ]
 test = [
     { name = "approvaltests", specifier = ">=19.0.0,<20.0.0" },
-    { name = "black", specifier = ">=26.1.0,<27.0.0" },
     { name = "coverage" },
     { name = "iniconfig" },
     { name = "junitparser", specifier = ">=5.0.1,<6.0.0" },
-    { name = "mypy", specifier = ">=2.0.0,<3.0.0" },
-    { name = "pydantic-yaml", specifier = "==1.7.0" },
     { name = "pytest" },
     { name = "pytest-benchmark", specifier = ">=5.2.3,<6.0.0" },
     { name = "pytest-cov" },
@@ -1619,20 +1607,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pydantic-yaml"
-version = "1.7.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pydantic" },
-    { name = "ruamel-yaml" },
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/c1/c9/1952345a95c9699783ea138a0cc47a151189adbbc2be5106fdab3788eaab/pydantic_yaml-1.7.0.tar.gz", hash = "sha256:b7c9420647537166c58ff9b150176a434fbdbae843d076e37011dd7e3e2e0044", size = 96334, upload-time = "2026-06-21T14:11:04.492Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/53/a5/198079eb0445eeaa28c732e2b87df7e2bf3452a8823a8774398b4104b674/pydantic_yaml-1.7.0-py3-none-any.whl", hash = "sha256:794867172285e444653605c16adfc4b874938ce60132eff24cda4e3c590f75f3", size = 25106, upload-time = "2026-06-21T14:11:03.192Z" },
-]
-
-[[package]]
 name = "pyflakes"
 version = "3.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2376,15 +2350,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/03/56/602c6f487a6d572356166d83c201a572aac03b209b165d13be54e891a8a6/types_pywin32-312.0.0.20261006.tar.gz", hash = "sha256:f7e4360ed0421021c3f98f47031bb37d92a93797d2561efc906c6fecc5418060", size = 357616, upload-time = "2026-10-06T08:15:00.329Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a1/49/793ff1f063bfc549d5ce01aedb284945484b18a5bd41ae39ae29fbb446df/types_pywin32-312.0.0.20261006-py3-none-any.whl", hash = "sha256:d96f96c2d6dd61a3bee72a212d855fd6b56ed0e8fc27660a3d6b5ebe36c49ebb", size = 419371, upload-time = "2026-10-06T08:14:58.947Z" },
-]
-
-[[package]]
-name = "types-pyyaml"
-version = "6.0.12.20260724"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/3f/6f/a28f44bcd56bebed42b028a2894c79853e2f5e6b5279e633cb3f287a05e7/types_pyyaml-6.0.12.20260724.tar.gz", hash = "sha256:3c1ce1bb73cd5ec02e90390c2b1f00e810d241d8825fd73ff359696839271b6b", size = 17893, upload-time = "2026-07-24T04:58:43.453Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/8b/42/0337fefc615e20ee55d1c8f71b774a9b2b734a04669139c20753b27a2a3a/types_pyyaml-6.0.12.20260724-py3-none-any.whl", hash = "sha256:d57db930a4b2efbc57cf430ec8882765d246929432fa253092f383902329a453", size = 20312, upload-time = "2026-07-24T04:58:42.486Z" },
 ]
 
 [[package]]

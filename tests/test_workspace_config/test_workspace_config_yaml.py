@@ -17,9 +17,9 @@ import tempfile
 from pathlib import Path
 
 import pytest
-import yaml
 from pydantic import ValidationError
 
+from flync.core.utils import yaml_io
 from flync.model.flync_4_metadata.metadata import BaseVersion
 from flync.model.flync_model import FLYNCModel
 from flync.sdk.context.workspace_config import (
@@ -69,7 +69,7 @@ class TestWorkspaceConfigYamlLoading:
             config_path = Path(tmpdir) / "invalid.yaml"
             config_path.write_text("invalid: yaml: content: :[")
 
-            with pytest.raises(yaml.YAMLError):  # YAML parsing error
+            with pytest.raises(yaml_io.YAMLError):  # YAML parsing error
                 WorkspaceConfiguration.from_yaml_file(config_path)
 
     def test_unknown_key_is_rejected(self):
@@ -463,14 +463,14 @@ class TestPersistConfigSuppression:
             config_file = Path(tmpdir) / CONFIG_RELPATH
             WorkspaceConfiguration().to_yaml_file(config_file)
 
-            assert "persist_config" not in yaml.safe_load(config_file.read_text())
+            assert "persist_config" not in yaml_io.safe_load(config_file.read_text())
 
     def test_flag_roundtrips_through_yaml(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             config_file = Path(tmpdir) / CONFIG_RELPATH
             WorkspaceConfiguration(persist_config=False).to_yaml_file(config_file)
 
-            assert yaml.safe_load(config_file.read_text())["persist_config"] is False
+            assert yaml_io.safe_load(config_file.read_text())["persist_config"] is False
             assert WorkspaceConfiguration.from_yaml_file(config_file).persist_config is False
 
     def test_hand_disabled_file_is_not_rewritten(self, example_workspace_path, tmp_path, monkeypatch):

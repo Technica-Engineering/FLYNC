@@ -20,9 +20,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Self
 
-import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from flync.core.utils import yaml_io
 from flync.model import FLYNCModel
 
 from .base import ConverterConfig
@@ -143,7 +143,7 @@ class ConversionRequest(BaseModel):
         """
         manifest = Path(path)
         with open(manifest, "r", encoding="utf-8") as f:
-            data = yaml.safe_load(f) or {}
+            data = yaml_io.safe_load(f) or {}
         if not isinstance(data, dict):
             raise ValueError(f"{manifest}: a conversion manifest must contain a mapping, got {type(data).__name__}")
 

@@ -6,8 +6,8 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-import yaml
 
+from flync.core.utils import yaml_io
 from flync.model import FLYNCModel
 from flync_converter import Converter, ConverterConfig
 from flync_converter.base import BaseConverter, BaseReporter, ConverterReport, JsonReporter, YamlReporter
@@ -213,7 +213,7 @@ def test_converter_folder_records_the_config_it_ran_with(tmp_path, loggers):
     with _report(tmp_path, _Converter("json"), destination):
         pass
 
-    record = yaml.safe_load(_read(report_dir(tmp_path, "flync") / "config.yaml"))
+    record = yaml_io.safe_load(_read(report_dir(tmp_path, "flync") / "config.yaml"))
     # Every value, defaults and config_path included.
     assert record["config_path"] == str(tmp_path)
     assert record["report_min_log_level"] == "DEBUG"
@@ -374,8 +374,8 @@ def test_convert_writes_shared_and_converter_logs(tmp_path, loggers):
 def test_convert_records_both_configs(tmp_path, loggers):
     _run(tmp_path, destination_config=ConverterConfig(config_path=str(tmp_path / "dst"), report_min_log_level="DEBUG"))
 
-    source_record = yaml.safe_load(_read(report_dir(tmp_path / "src", "json") / "config.yaml"))
-    destination_record = yaml.safe_load(_read(report_dir(tmp_path / "dst", "flync") / "config.yaml"))
+    source_record = yaml_io.safe_load(_read(report_dir(tmp_path / "src", "json") / "config.yaml"))
+    destination_record = yaml_io.safe_load(_read(report_dir(tmp_path / "dst", "flync") / "config.yaml"))
     assert source_record["config_path"] == str(tmp_path / "src")
     assert destination_record["config_path"] == str(tmp_path / "dst")
     assert destination_record["report_min_log_level"] == "DEBUG"
@@ -468,7 +468,7 @@ def test_yaml_reporter_writes_report_yaml(tmp_path):
     path = YamlReporter().write({"custom": {"ecus": 2, "apps": 1}}, tmp_path)
 
     assert path == tmp_path / "report.yaml"
-    assert yaml.safe_load(path.read_text(encoding="utf-8")) == {"custom": {"ecus": 2, "apps": 1}}
+    assert yaml_io.safe_load(path.read_text(encoding="utf-8")) == {"custom": {"ecus": 2, "apps": 1}}
 
 
 def test_json_reporter_writes_report_json(tmp_path):
@@ -482,7 +482,7 @@ def test_json_reporter_writes_report_json(tmp_path):
 def test_reporters_write_unserialisable_values_as_strings(tmp_path, reporter):
     path = reporter.write({"custom": {"output": tmp_path / "model.yaml", "level": logging.INFO}}, tmp_path)
 
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    data = yaml_io.safe_load(path.read_text(encoding="utf-8"))
     assert data == {"custom": {"output": str(tmp_path / "model.yaml"), "level": logging.INFO}}
 
 
@@ -540,7 +540,7 @@ def test_converter_report_writes_with_each_reporter(tmp_path):
     written = report.write([YamlReporter(), JsonReporter()], tmp_path / "dbc")
 
     assert {path.name for path in written} == {"report.yaml", "report.json"}
-    assert yaml.safe_load((tmp_path / "dbc" / "report.yaml").read_text(encoding="utf-8")) == {
+    assert yaml_io.safe_load((tmp_path / "dbc" / "report.yaml").read_text(encoding="utf-8")) == {
         "skipped": [{"item": "ecus.body_ecu", "reason": "no CAN interface"}]
     }
 
@@ -594,7 +594,7 @@ def test_each_converter_report_goes_to_its_folder(tmp_path, loggers):
         source.report.unsupported("BO_ 512", "multiplexed message without selector")
         destination.report.add("written", 3)
 
-    assert yaml.safe_load((report_dir(tmp_path, "json") / "report.yaml").read_text(encoding="utf-8")) == {
+    assert yaml_io.safe_load((report_dir(tmp_path, "json") / "report.yaml").read_text(encoding="utf-8")) == {
         "unsupported": [{"item": "BO_ 512", "reason": "multiplexed message without selector"}]
     }
     assert json.loads((report_dir(tmp_path, "flync") / "report.json").read_text(encoding="utf-8")) == {"custom": {"written": 3}}
@@ -622,7 +622,7 @@ def test_shared_report_records_a_successful_conversion(tmp_path, loggers):
     with _report(tmp_path, source, destination):
         pass
 
-    shared = yaml.safe_load((reports_root(tmp_path) / "report.yaml").read_text(encoding="utf-8"))
+    shared = yaml_io.safe_load((reports_root(tmp_path) / "report.yaml").read_text(encoding="utf-8"))
     assert shared == {
         # The source folder does not exist, so the source has no report folder.
         "inputs": [{"converter": "json", "path": "in"}],
@@ -637,7 +637,7 @@ def test_shared_report_records_a_failure(tmp_path, loggers):
     with pytest.raises(RuntimeError), report:
         raise boom
 
-    shared = yaml.safe_load((reports_root(tmp_path) / "report.yaml").read_text(encoding="utf-8"))
+    shared = yaml_io.safe_load((reports_root(tmp_path) / "report.yaml").read_text(encoding="utf-8"))
     assert shared["status"] == "failed"
     assert shared["error"] == "RuntimeError: boom"
 
@@ -672,7 +672,7 @@ def test_shared_report_records_the_model_counts(tmp_path, loggers, flync_object)
     with _report(tmp_path, *_converters()) as report:
         report.record_model(flync_object)
 
-    shared = yaml.safe_load((reports_root(tmp_path) / "report.yaml").read_text(encoding="utf-8"))
+    shared = yaml_io.safe_load((reports_root(tmp_path) / "report.yaml").read_text(encoding="utf-8"))
     assert shared["model"] == model_counts(flync_object)
 
 
@@ -744,9 +744,9 @@ def test_convert_writes_both_converter_reports_and_the_shared_report(tmp_path, l
     _convert_with(tmp_path, _ReportingConverter("src"), _ReportingConverter("dst"))
 
     reports = reports_root(tmp_path / "dst")
-    source_report = yaml.safe_load((report_dir(tmp_path / "src", "src") / "report.yaml").read_text(encoding="utf-8"))
-    destination_report = yaml.safe_load((reports / "dst" / "report.yaml").read_text(encoding="utf-8"))
-    shared = yaml.safe_load((reports / "report.yaml").read_text(encoding="utf-8"))
+    source_report = yaml_io.safe_load((report_dir(tmp_path / "src", "src") / "report.yaml").read_text(encoding="utf-8"))
+    destination_report = yaml_io.safe_load((reports / "dst" / "report.yaml").read_text(encoding="utf-8"))
+    shared = yaml_io.safe_load((reports / "report.yaml").read_text(encoding="utf-8"))
     assert source_report == {"unsupported": [{"item": "BO_ 512", "reason": "multiplexed message without selector"}]}
     # The destination recorded a Path; it is written in its string form.
     assert destination_report == {
@@ -763,7 +763,7 @@ def test_failing_conversion_keeps_its_own_exception_and_report(tmp_path, loggers
         _convert_with(tmp_path, source, destination)
 
     reports = reports_root(tmp_path / "dst")
-    assert yaml.safe_load((reports / "report.yaml").read_text(encoding="utf-8"))["status"] == "failed"
+    assert yaml_io.safe_load((reports / "report.yaml").read_text(encoding="utf-8"))["status"] == "failed"
     assert (reports / "dst" / "report.yaml").exists()
 
 

@@ -8,11 +8,11 @@ from ipaddress import IPv4Address, IPv6Address, ip_address
 from pathlib import Path
 from typing import TYPE_CHECKING, Tuple, Type, TypeVar
 
-import yaml
 from pydantic_extra_types.mac_address import MacAddress
 from rich import print as rprint
 
 from flync.core.base_models import FLYNCBaseModel
+from flync.core.utils import yaml_io
 from flync.core.utils.exceptions import Category, err_fatal
 
 if TYPE_CHECKING:
@@ -45,7 +45,7 @@ def read_yaml(path: str | os.PathLike[str] | Path) -> object:
         raise err_fatal("Not a YAML file!", category=Category.FORMAT, error_number="001")
     try:
         with open(path, "r", encoding="utf-8") as yml:
-            file = yaml.safe_load(yml)
+            file = yaml_io.safe_load(yml)
             rprint(f"[green]File Loaded: {path}[/green]")
             return file
     except Exception as e:

@@ -30,15 +30,11 @@ def check_yaml_syntax(dir_path: Path) -> list[YAMLIssue]:
     """
     issues: list[YAMLIssue] = []
 
-    try:
-        from ruamel.yaml import YAML
-        from ruamel.yaml.parser import ParserError
-        from ruamel.yaml.scanner import ScannerError
+    from ruamel.yaml import YAML
+    from ruamel.yaml.parser import ParserError
+    from ruamel.yaml.scanner import ScannerError
 
-        _check_with_ruamel(dir_path, issues, YAML, scanner_error=ScannerError, parser_error=ParserError)
-    except ImportError:
-        # Fallback: plain PyYAML (also a project dependency)
-        _check_with_pyyaml(dir_path, issues)
+    _check_with_ruamel(dir_path, issues, YAML, scanner_error=ScannerError, parser_error=ParserError)
 
     return issues
 
@@ -73,26 +69,5 @@ def _check_with_ruamel(
                 YAMLIssue(
                     message=str(exc),
                     path=str(yaml_file.relative_to(dir_path)),
-                )
-            )
-
-
-def _check_with_pyyaml(dir_path: Path, issues: list[YAMLIssue]) -> None:
-    """Parse every .flync.yaml file under dir_path with PyYAML, collecting syntax issues."""
-    import yaml
-    from yaml import YAMLError
-
-    for yaml_file in sorted(dir_path.rglob(f"*{FLYNC_EXT}")):
-        try:
-            with open(yaml_file, encoding="utf-8") as fh:
-                yaml.safe_load(fh)
-        except YAMLError as exc:
-            mark = getattr(exc, "problem_mark", None)
-            issues.append(
-                YAMLIssue(
-                    message=str(exc),
-                    path=str(yaml_file.relative_to(dir_path)),
-                    line=mark.line + 1 if mark else None,
-                    col=mark.column + 1 if mark else None,
                 )
             )

@@ -3,9 +3,9 @@
 from pathlib import Path
 
 import pytest
-import yaml
 from pydantic import ValidationError
 
+from flync.core.utils import yaml_io
 from flync.model.flync_4_bus.can_bus import CANBus
 from flync.model.flync_4_nm import (
     GroupTiming,
@@ -20,7 +20,7 @@ FIXTURES = Path(__file__).parent / "fixtures"
 
 def _load_fixture(name):
     with open(FIXTURES / name) as f:
-        return yaml.safe_load(f)
+        return yaml_io.safe_load(f)
 
 
 def _make_timing(

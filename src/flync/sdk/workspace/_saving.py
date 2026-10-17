@@ -9,7 +9,6 @@ import logging
 from pathlib import Path
 
 import ruamel.yaml
-import yaml
 
 from flync.core.annotations import (
     External,
@@ -33,7 +32,7 @@ from .document import Document
 logger = logging.getLogger(__name__)
 
 # The workspace loader (document.py) parses YAML with ruamel, configured with
-# preserve_quotes=True. A plain PyYAML dump does not quote scalars that ruamel
+# preserve_quotes=True. A plain dump does not quote scalars that ruamel
 # would read back as a different type (e.g. numeric-looking text such as the
 # J1939 value label "0875" -> int 875). Sniff each string through the same
 # ruamel configuration used by the loader and force single quotes whenever the
@@ -51,19 +50,18 @@ def _needs_quoting(value: str) -> bool:
     return not isinstance(parsed, str)
 
 
-class _WorkspaceDumper(yaml.Dumper):
-    """PyYAML dumper that quotes strings ruamel would misread on reload."""
-
-    def represent_str(self, data):
-        """Force single quotes when the loader would not read back ``data`` as str."""
-        return self.represent_scalar(
-            "tag:yaml.org,2002:str",
-            data,
-            style="'" if _needs_quoting(data) else None,
-        )
+def _represent_str(representer, data: str):
+    """Force single quotes when the loader would not read back ``data`` as str."""
+    return representer.represent_scalar("tag:yaml.org,2002:str", data, style="'" if _needs_quoting(data) else None)
 
 
-_WorkspaceDumper.add_representer(str, _WorkspaceDumper.represent_str)
+def _workspace_yaml() -> ruamel.yaml.YAML:
+    """Build a block-style dumper that quotes strings ruamel would misread on reload."""
+    dumper = ruamel.yaml.YAML(typ="safe", pure=True)
+    dumper.default_flow_style = False
+    dumper.allow_unicode = True
+    dumper.representer.add_representer(str, _represent_str)
+    return dumper
 
 
 class _WorkspaceSaving(_WorkspaceIncremental):
@@ -318,14 +316,7 @@ class _WorkspaceSaving(_WorkspaceIncremental):
                 path_from_uri.write_text(doc.text, encoding="utf-8")
             elif isinstance(doc.text, dict) or isinstance(doc.text, list):
                 with open(path_from_uri, "w", encoding="utf-8") as f:
-                    yaml.dump(
-                        doc.text,
-                        f,
-                        sort_keys=False,
-                        default_flow_style=False,
-                        allow_unicode=True,
-                        Dumper=_WorkspaceDumper,
-                    )
+                    _workspace_yaml().dump(doc.text, f)
 
         # Persist workspace configuration when saving entire workspace, unless suppressed.
         should_persist = self.configuration.persist_config if persist_config is None else persist_config
