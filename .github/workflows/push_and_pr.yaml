@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Run black
-        uses: psf/black@4f1883b1f15305a0e83a7c87991f46292bf09f85 # 26.10.0
+        uses: psf/black@258e7dbf348bc23cb70b8cdf693481c04634ebcc # 26.10.1
         with:
           options: "--check --verbose --line-length 149 --diff"
           src: "./src ./scripts"
