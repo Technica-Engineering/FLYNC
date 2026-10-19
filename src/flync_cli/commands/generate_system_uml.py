@@ -55,8 +55,8 @@ def add_iface_info_nodes(interfaces, all_nodes):
         iface_name = iface.name
         viface_list = []
 
-        vifaces = iface.virtual_interfaces
-        mac_address = iface.mac_address
+        vifaces = iface.interface_config.virtual_interfaces
+        mac_address = iface.interface_config.mac_address
 
         for viface in vifaces:
             viface_info = {
