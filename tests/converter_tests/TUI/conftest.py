@@ -7,6 +7,7 @@ test file can drive the real ``FlyncTUI`` app with ``app.run_test()``.
 """
 
 import asyncio
+import threading
 from contextlib import contextmanager
 
 import pytest
@@ -28,8 +29,17 @@ class Helpers:
 
     @staticmethod
     def run(coro):
-        """Run an async Textual test coroutine with ``asyncio.run``."""
-        return asyncio.run(coro)
+        """Run an async Textual test coroutine with ``asyncio.run``.
+
+        Conversion threads started by the app can outlive the test body; they are joined
+        before returning so none of them touches a closed event loop afterwards.
+        """
+        threads_before = set(threading.enumerate())
+        try:
+            return asyncio.run(coro)
+        finally:
+            for thread in set(threading.enumerate()) - threads_before:
+                thread.join(timeout=5)
 
     @staticmethod
     def make_converter_class(name, config_model):

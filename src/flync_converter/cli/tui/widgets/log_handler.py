@@ -24,6 +24,9 @@ class LogWidgetHandler(logging.Handler):
         try:
             line = self.format(record)
             app = self._log_widget.app
+            if not app.is_running:
+                # App already shut down (loop closed): there is no widget left to write to.
+                return
             try:
                 # works when called from a background thread
                 app.call_from_thread(self._log_widget.write_line, line)

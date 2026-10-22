@@ -214,13 +214,27 @@ class FlyncTUI(App):
                     source_config=source_cfg,
                     destination_config=dest_cfg,
                 )
-                self.app.call_from_thread(log.write_line, "Conversion completed successfully.")
+                self._post_from_worker(log.write_line, "Conversion completed successfully.")
             except Exception as exc:
-                self.app.call_from_thread(log.write_line, f"Conversion failed: {exc}")
+                self._post_from_worker(log.write_line, f"Conversion failed: {exc}")
             finally:
-                self.app.call_from_thread(self._refresh_convert_button)
+                self._post_from_worker(self._refresh_convert_button)
 
         threading.Thread(target=_worker, daemon=True).start()
+
+    def _post_from_worker(self, callback, *args) -> None:
+        """Run ``callback`` on the app's event loop from a worker thread, unless the app is already gone.
+
+        The conversion thread can outlive the app (the user quits mid-conversion); calling
+        ``call_from_thread`` then raises ``RuntimeError: Event loop is closed``, and there is
+        nothing left to update, so the call is dropped.
+        """
+        if not self.is_running:
+            return
+        try:
+            self.call_from_thread(callback, *args)
+        except RuntimeError:
+            pass
 
 
 def run_tui() -> None:
