@@ -74,7 +74,7 @@ class AVTPMulticastEndpoint(MACMulticastEndpoint):
 
 class MACEndpointUnion(RootModel[AVTPMulticastEndpoint]):
     """
-    Union type for MAC multicast endpoints, discriminated by the 'ethertype'
+    Union type for MAC multicast endpoints, discriminated by the 'protocol'
     field.
 
     Possible types
