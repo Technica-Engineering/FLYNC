@@ -29,7 +29,6 @@ dependencies = [
     "polyfactory==3.3.0",
     "filelock>=4,<4.2",
     "pluggy>=1.6.0,<2.0.0",
-    "certifi>=2026.10.19",
 ]
 
 [project.optional-dependencies]
@@ -109,7 +108,10 @@ deploy = [
 
 [tool.uv]
 default-groups = ["dev"]
-constraint-dependencies = ["urllib3>=2.8.0"]
+constraint-dependencies = [
+    "urllib3>=2.8.0",
+    "certifi>=2026.10.19",
+]
 
 [tool.uv.sources]
 pydantic-2-mermaid = { git = "https://github.com/LarsVoelker/pydantic-2-mermaid.git", rev = "f704b8a2eb3d483ec23ab6b3a7e248511bd23321" }

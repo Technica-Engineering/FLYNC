@@ -3,7 +3,10 @@ revision = 5
 requires-python = ">=3.12, <3.15"
 
 [manifest]
-constraints = [{ name = "urllib3", specifier = ">=2.8.0" }]
+constraints = [
+    { name = "certifi", specifier = ">=2026.10.19" },
+    { name = "urllib3", specifier = ">=2.8.0" },
+]
 
 [[package]]
 name = "accessible-pygments"
@@ -632,7 +635,6 @@ name = "flync"
 source = { editable = "." }
 dependencies = [
     { name = "cantools" },
-    { name = "certifi" },
     { name = "click" },
     { name = "filelock" },
     { name = "platformdirs" },
@@ -735,7 +737,6 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "cantools", specifier = ">=45.0.0,<45.1.0" },
-    { name = "certifi", specifier = ">=2026.10.19" },
     { name = "click", specifier = "==8.5.0" },
     { name = "filelock", specifier = ">=4,<4.2" },
     { name = "platformdirs", specifier = ">=4.9.4,<5.0.0" },
