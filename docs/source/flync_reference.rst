@@ -148,6 +148,8 @@ ECUs - Controllers
 Each controller of an ECU is represented as a **directory**.
 
 Ethernet interfaces are grouped in the sub-directory ``ethernet_interfaces/``, where each interface is its own named directory.
+The ``ethernet_interfaces/`` directory is only required when the controller uses Ethernet communication.
+A controller must declare **at least one interface of any type**: Ethernet, CAN (``can_interfaces/``) or LIN (``lin_interfaces/``).
 One interface directory consists of:
 - an interface configuration
 - optionally a ``sockets/`` directory for socket deployments.
@@ -164,7 +166,7 @@ One interface directory consists of:
        |   │   |
        │   │   ├── 📄❗ controller_metadata.flync.yaml
        |   │   |
-       │   │   └── 📂❗ ethernet_interfaces
+       │   │   └── 📂 ethernet_interfaces
        |   │       |
        │   │       ├── 📂 interface_1_name
        │   │       │   ├── 📄❗ interface_config.flync.yaml
