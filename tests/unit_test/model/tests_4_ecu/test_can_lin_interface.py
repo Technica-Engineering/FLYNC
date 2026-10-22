@@ -13,11 +13,12 @@ from flync.model.flync_4_ecu.lin_interface import (
 from tests.error_assertions import assert_single_error
 
 
-def _can_forwarder(frame_ref="0x100", bus_ref="DiagCAN", egress_frame=0x200):
+def _can_forwarder(frame_ref=0x100, bus_ref="DiagCAN", egress_frame=0x200):
     """Build a CANFrameForwarder payload (validated from a dict) with a single CAN-frame egress."""
     return {
         "frame_ref": frame_ref,
-        "egresses": [{"egress_type": "can_frame", "bus_ref": bus_ref, "frame_ref": egress_frame}],
+        "id_format": "standard_11bit",
+        "egresses": [{"egress_type": "can_frame", "bus_ref": bus_ref, "frame_ref": egress_frame, "id_format": "standard_11bit"}],
     }
 
 
@@ -31,8 +32,8 @@ def test_positive_can_interface_minimal():
 
 
 def test_positive_can_frame_ref_fields():
-    ref = CANFrameRef(bus_ref="DiagCAN", frame_ref=0x123)
-    assert ref.bus_ref == "DiagCAN"
+    ref = CANFrameRef(frame_ref=0x123, id_format="standard_11bit")
+    assert ref.id_format == "standard_11bit"
     assert ref.frame_ref == 0x123
     assert isinstance(ref, CANFrameRef)
 
@@ -41,8 +42,8 @@ def test_positive_can_interface_with_sender_and_receiver_frames():
     iface = CANInterface(
         name="pt_can_iface",
         bus_ref="PowertrainCAN",
-        sender_frames=[CANFrameRef(bus_ref="PowertrainCAN", frame_ref=0x100)],
-        receiver_frames=[CANFrameRef(bus_ref="PowertrainCAN", frame_ref=0x200)],
+        sender_frames=[CANFrameRef(frame_ref=0x100, id_format="standard_11bit")],
+        receiver_frames=[CANFrameRef(frame_ref=0x200, id_format="standard_11bit")],
     )
     assert len(iface.sender_frames) == 1
     assert len(iface.receiver_frames) == 1
@@ -53,7 +54,7 @@ def test_positive_can_interface_unique_forwarder_frames():
     iface = CANInterface(
         name="fwd_can_iface",
         bus_ref="DiagCAN",
-        forwarder_frames=[_can_forwarder(frame_ref="0x100"), _can_forwarder(frame_ref="0x101")],
+        forwarder_frames=[_can_forwarder(frame_ref=0x100), _can_forwarder(frame_ref=0x101)],
     )
     assert len(iface.forwarder_frames) == 2
     assert isinstance(iface, CANInterface)
@@ -72,8 +73,8 @@ def test_negative_can_interface_missing_bus_ref():
 
 
 def test_negative_can_interface_duplicate_forwarder_frame_ref():
-    forwarder_1 = _can_forwarder(frame_ref="0x100")
-    forwarder_2 = _can_forwarder(frame_ref="0x100")
+    forwarder_1 = _can_forwarder(frame_ref=0x100)
+    forwarder_2 = _can_forwarder(frame_ref=0x100)
     with pytest.raises(ValidationError) as exc_info:
         CANInterface(
             name="dup_fwd_iface",

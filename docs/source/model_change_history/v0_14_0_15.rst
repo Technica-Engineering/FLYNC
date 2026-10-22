@@ -33,6 +33,45 @@ Affected are the required ``name``, ``id``, ``label``, ``group``, ``service``, `
 Optional fields are unaffected: leaving one out, or setting it to ``null`` where the model
 allows that, behaves exactly as before.
 
+CAN frame references drop ``bus_ref`` and gain ``id_format``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``CANFrameRef`` (``sender_frames`` / ``receiver_frames`` of a CAN interface) no longer carries a ``bus_ref``;
+the bus is the ``bus_ref`` of the owning CAN interface. The new required ``id_format`` (``standard_11bit`` or
+``extended_29bit``) is combined with ``frame_ref`` to locate the frame, since a standard and an extended frame
+may share one numeric CAN ID.
+
+.. code-block:: yaml
+
+   # before
+   sender_frames:
+     - bus_ref: ChassisCAN
+       frame_ref: 0x123
+
+   # after
+   sender_frames:
+     - frame_ref: 0x123
+       id_format: standard_11bit
+
+J1939 frame references drop ``bus_ref``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``J1939FrameRef`` (``j1939_sender_frames`` / ``j1939_receiver_frames`` of a CAN interface) no longer carries a
+``bus_ref``, for the same reason as ``CANFrameRef``: the bus is the ``bus_ref`` of the owning CAN interface.
+The class also moved from ``flync.model.flync_4_ecu.can_interface`` to
+``flync.model.flync_4_signal.j1939_frame_ref`` (it stays importable from the old module).
+
+.. code-block:: yaml
+
+   # before
+   j1939_sender_frames:
+     - bus_ref: J1939BusCAN
+       pgn: 61441
+
+   # after
+   j1939_sender_frames:
+     - pgn: 61441
+
 Negative values are rejected on quantities that cannot be negative
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

@@ -26,6 +26,7 @@ if TYPE_CHECKING:
 CANAnyFrame = Union[CANFrame, CANFDFrame]
 AnyFrame = Union[CANFrame, CANFDFrame, LINFrame]
 AnyFrameRef = Union[CANFrameRef, LINFrameRef]
+FrameKey = Union[int, Tuple[str, int]]
 AnyBusInterface = Union[CANInterface, LINMasterInterface, LINSlaveInterface]
 
 
@@ -67,15 +68,23 @@ def _channels(model: FLYNCModel) -> FLYNCChannelConfig | None:
     return getattr(model.communication, "channels", None) if model.communication else None
 
 
-def _build_can_frames_by_bus(model: FLYNCModel) -> Dict[str, Dict[int, CANAnyFrame]]:
-    """Return ``{bus_name: {can_id: frame}}`` for every CAN / CAN FD bus under ``communication.channels``."""
+def _frame_key(ref: AnyFrameRef) -> FrameKey:
+    """Return the key locating *ref*'s frame on its interface's bus: ``(id_format, can_id)`` for CAN, the LIN id for LIN."""
 
-    out: Dict[str, Dict[int, CANAnyFrame]] = {}
+    if isinstance(ref, CANFrameRef):
+        return (ref.id_format, ref.frame_ref)
+    return ref.frame_ref
+
+
+def _build_can_frames_by_bus(model: FLYNCModel) -> Dict[str, Dict[FrameKey, CANAnyFrame]]:
+    """Return ``{bus_name: {(id_format, can_id): frame}}`` for every CAN / CAN FD bus under ``communication.channels``."""
+
+    out: Dict[str, Dict[FrameKey, CANAnyFrame]] = {}
     channels = _channels(model)
     if channels is None or channels.can_buses is None:
         return out
     for bus in channels.can_buses:
-        out[bus.name] = {frame.can_id: frame for frame in bus.frames or [] if not isinstance(frame, J1939Frame)}
+        out[bus.name] = {(frame.id_format, frame.can_id): frame for frame in bus.frames or [] if not isinstance(frame, J1939Frame)}
     return out
 
 
@@ -148,7 +157,7 @@ def _bus_kind_label(kind: str) -> str:
     return "communication.channels.can_buses" if kind == "can" else "communication.channels.lin_buses"
 
 
-def _validate_interface(iface: AnyBusInterface, kind: str, frames_by_bus: Dict[str, Dict[int, AnyFrame]]) -> None:
+def _validate_interface(iface: AnyBusInterface, kind: str, frames_by_bus: Dict[str, Dict[FrameKey, AnyFrame]]) -> None:
     """Resolve one interface's own ``bus_ref`` plus every sender / receiver frame reference it declares.
 
     *frames_by_bus* is the catalog of the interface's own bus kind, so an unresolvable name is reported against
@@ -168,24 +177,15 @@ def _validate_interface(iface: AnyBusInterface, kind: str, frames_by_bus: Dict[s
             error_number="215",
         )
 
+    bus_frames = frames_by_bus[iface.bus_ref]
     for field_name, ref in _iter_frame_refs(iface):
-        if ref.bus_ref not in frames_by_bus:
-            raise err_major(
-                "{owner}: {field}: bus_ref '{bus}' does not name any bus declared under {catalog}.",
-                owner=owner,
-                field=field_name,
-                bus=ref.bus_ref,
-                catalog=catalog,
-                category=Category.REFERENCE,
-                error_number="216",
-            )
-        if ref.frame_ref not in frames_by_bus[ref.bus_ref]:
+        if _frame_key(ref) not in bus_frames:
             raise err_major(
                 "{owner}: {field}: frame_ref id={ref} does not name any frame declared on bus '{bus}' under {catalog}.",
                 owner=owner,
                 field=field_name,
                 ref=ref.frame_ref,
-                bus=ref.bus_ref,
+                bus=iface.bus_ref,
                 catalog=catalog,
                 category=Category.REFERENCE,
                 error_number="217",
@@ -196,31 +196,33 @@ def _validate_j1939_interface(iface: CANInterface, j1939_frames_by_bus: Dict[str
     """Resolve a J1939 interface's own ``bus_ref`` plus every J1939 sender / receiver PGN reference.
 
     ``J1939Frame`` objects are addressed by PGN (they carry no CAN ID), so the catalog here is keyed by PGN.
-    The ``bus_ref`` is checked against the declared CAN buses; a J1939 bus must exist for the node to attach to.
+    A :class:`~flync.model.flync_4_signal.j1939_frame_ref.J1939FrameRef` carries only the PGN; the bus is the
+    interface's own ``bus_ref``, which is checked against the declared J1939 buses - a J1939 bus must exist for
+    the node to attach to.
     """
 
     owner = f"CANInterface(name={iface.name})"
     catalog = "communication.channels.can_buses"
 
+    if iface.bus_ref not in j1939_frames_by_bus:
+        raise err_major(
+            "{owner}: bus_ref '{bus}' does not name any J1939 bus declared under {catalog}.",
+            owner=owner,
+            bus=iface.bus_ref,
+            catalog=catalog,
+            category=Category.REFERENCE,
+            error_number="374",
+        )
+    bus_pgns = j1939_frames_by_bus[iface.bus_ref]
     for field_name in ("j1939_sender_frames", "j1939_receiver_frames"):
         for ref in getattr(iface, field_name) or []:
-            if ref.bus_ref not in j1939_frames_by_bus:
-                raise err_major(
-                    "{owner}: {field}: bus_ref '{bus}' does not name any bus declared under {catalog}.",
-                    owner=owner,
-                    field=field_name,
-                    bus=ref.bus_ref,
-                    catalog=catalog,
-                    category=Category.REFERENCE,
-                    error_number="374",
-                )
-            if ref.pgn not in j1939_frames_by_bus[ref.bus_ref]:
+            if ref.pgn not in bus_pgns:
                 raise err_major(
                     "{owner}: {field}: pgn {pgn} does not name any J1939 frame declared on bus '{bus}' under {catalog}.",
                     owner=owner,
                     field=field_name,
                     pgn=ref.pgn,
-                    bus=ref.bus_ref,
+                    bus=iface.bus_ref,
                     catalog=catalog,
                     category=Category.REFERENCE,
                     error_number="372",
@@ -234,9 +236,10 @@ def validate_interface_frame_refs(model: FLYNCModel) -> None:
     interface's own bus kind. Both aspects are load-bearing:
 
     *Scoped by bus*, because a CAN id is only unique within a bus: id ``0x100`` on ``CAN1`` and on ``CAN2`` are
-    two different frames, which is why :class:`~flync.model.flync_4_ecu.can_interface.CANFrameRef` carries a
-    ``bus_ref`` next to the ``frame_ref``. Asking only whether an id exists *somewhere* would accept an interface
-    on ``CAN1`` declaring a frame that only exists on ``CAN2``.
+    two different frames. The bus is the interface's own ``bus_ref``; a
+    :class:`~flync.model.flync_4_ecu.can_interface.CANFrameRef` carries the ``frame_ref`` plus its ``id_format``
+    (a standard and an extended frame may share a numeric id). Asking only whether an id exists *somewhere*
+    would accept an interface on ``CAN1`` declaring a frame that only exists on ``CAN2``.
 
     *Scoped by bus kind*, because ``bus_ref`` is a plain string and ``frame_ref`` a plain int - the type system
     stops a ``LINFrameRef`` from landing in a ``CANInterface``, but nothing stops a CAN interface from naming a
@@ -255,7 +258,7 @@ def validate_interface_frame_refs(model: FLYNCModel) -> None:
     j1939_frames_by_bus = _build_j1939_frames_by_bus(model)
 
     for controller, iface, kind in _iter_bus_interfaces(model):
-        frames_by_bus: Dict[str, Dict[int, AnyFrame]] = can_frames_by_bus if kind == "can" else lin_frames_by_bus  # type: ignore[assignment]
+        frames_by_bus: Dict[str, Dict[FrameKey, AnyFrame]] = can_frames_by_bus if kind == "can" else lin_frames_by_bus  # type: ignore[assignment]
         if not frames_by_bus:
             continue
         try:

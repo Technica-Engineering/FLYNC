@@ -15,6 +15,7 @@ from flync.model.flync_4_nm import (
     StateMembershipRef,
 )
 from flync.model.flync_4_nm.state_management import EffectiveMember
+from flync.model.flync_4_signal.can_frame_ref import CANFrameRef
 from flync.model.flync_4_signal.pdu import (
     ContainedPDURef,
     ContainerPDU,
@@ -114,7 +115,7 @@ def _controller(name="ctrl", memberships=(), sockets=(), can_interfaces=()):
 
 def _can_iface(bus_ref, sender_ids=(), receiver_ids=()):
     def refs(ids):
-        return [SimpleNamespace(bus_ref=bus_ref, frame_ref=frame_id) for frame_id in ids]
+        return [CANFrameRef(frame_ref=frame_id, id_format="standard_11bit") for frame_id in ids]
 
     return SimpleNamespace(bus_ref=bus_ref, sender_frames=refs(sender_ids), receiver_frames=refs(receiver_ids))
 
@@ -154,6 +155,7 @@ def _can_frame(can_id=NM_FRAME_ID, pdu_refs=(NM_PDU,), length=8, cyclic_s=None):
     return SimpleNamespace(
         name=f"frame_{can_id:#x}",
         can_id=can_id,
+        id_format="standard_11bit",
         length=length,
         timing=timing,
         packed_pdus=[SimpleNamespace(pdu_ref=ref) for ref in pdu_refs],
@@ -400,7 +402,7 @@ def _lin_master(bus_ref, sender_ids=()):
     return SimpleNamespace(
         bus_ref=bus_ref,
         node_type="master",
-        sender_frames=[SimpleNamespace(bus_ref=bus_ref, frame_ref=frame_id) for frame_id in sender_ids],
+        sender_frames=[SimpleNamespace(frame_ref=frame_id) for frame_id in sender_ids],
     )
 
 

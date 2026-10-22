@@ -95,7 +95,7 @@ def test_can_interface_pointing_at_lin_bus_rejected():
 def test_can_interface_dangling_frame_ref_rejected():
     """A CAN sender frame id that is not declared on the referenced bus is rejected."""
     channels = FLYNCChannelConfig(can_buses=[_make_can_bus("CAN0")])
-    can_interface = CANInterface(name="CAN_IF_1", bus_ref="CAN0", sender_frames=[CANFrameRef(bus_ref="CAN0", frame_ref=0x999)])
+    can_interface = CANInterface(name="CAN_IF_1", bus_ref="CAN0", sender_frames=[CANFrameRef(frame_ref=0x999, id_format="standard_11bit")])
 
     with pytest.raises(ValidationError) as exc_info:
         _make_model(channels, can_interfaces=[can_interface])
@@ -122,7 +122,7 @@ def test_lin_interface_dangling_frame_ref_rejected():
 def test_bus_interface_refs_accepted_when_declared():
     """The positive counterpart: interfaces whose bus and frame ids are declared are accepted."""
     channels = FLYNCChannelConfig(can_buses=[_make_can_bus("CAN0")], lin_buses=[_make_lin_bus("LIN0")])
-    can_interface = CANInterface(name="CAN_IF_1", bus_ref="CAN0", sender_frames=[CANFrameRef(bus_ref="CAN0", frame_ref=CAN_ID)])
+    can_interface = CANInterface(name="CAN_IF_1", bus_ref="CAN0", sender_frames=[CANFrameRef(frame_ref=CAN_ID, id_format="standard_11bit")])
     lin_interface = LINMasterInterface(
         name="LIN_IF_1",
         bus_ref="LIN0",

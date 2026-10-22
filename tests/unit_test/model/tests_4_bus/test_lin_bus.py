@@ -237,3 +237,16 @@ def test_negative_lin_bus_schedule_references_unknown_frame_with_existing():
             schedule_tables=[table],
         )
     assert_single_error(exc_info, "FLYNC-BUS-MAJ-REF-056", "references unknown frame")
+
+
+def test_negative_lin_bus_duplicate_lin_id():
+    frames = [_make_lin_frame("frm_A", lin_id=0x05), _make_lin_frame("frm_B", lin_id=0x05)]
+    with pytest.raises(ValidationError) as exc_info:
+        LINBus(
+            name="bus",
+            lin_protocol_version="2.1",
+            lin_language_version="2.1",
+            baud_rate=19200,
+            frames=frames,
+        )
+    assert_single_error(exc_info, "FLYNC-BUS-MAJ-UNIQ-408", "duplicate LIN identifier")

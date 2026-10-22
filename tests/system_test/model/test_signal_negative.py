@@ -136,7 +136,9 @@ def test_invalid_lin_frame_in_can_interface():
     lin_bus = LINBus(name="LIN0", lin_protocol_version="2.0", lin_language_version="2.0", baud_rate=19200, frames=[lin_frame])
 
     # The LIN frame id is declared on LIN0 only - asking for it on the CAN bus cannot resolve.
-    can_interface = CANInterface(name="CAN0_IF", bus_ref="CAN0", receiver_frames=[CANFrameRef(bus_ref="CAN0", frame_ref=lin_frame.lin_id)])
+    can_interface = CANInterface(
+        name="CAN0_IF", bus_ref="CAN0", receiver_frames=[CANFrameRef(frame_ref=lin_frame.lin_id, id_format="standard_11bit")]
+    )
     controller = Controller(
         name="EngineController",
         controller_metadata=EmbeddedMetadata(
@@ -174,7 +176,7 @@ def test_invalid_can_frame_in_lin_interface():
     pdu = StandardPDU(name="PDU_EngineStatus", length=4, signals=[speed_instance])
     pdu_inst = PDUInstance(pdu_ref=pdu.name)
     can_frame = CANFrame(name="CAN_EngineFrame", length=8, can_id=0x100, id_format="standard_11bit", packed_pdus=[pdu_inst])
-    can_frame_ref = CANFrameRef(bus_ref="LIN0", frame_ref=can_frame.can_id)  # invalid: a CAN ref on a LIN interface
+    can_frame_ref = CANFrameRef(frame_ref=can_frame.can_id, id_format="standard_11bit")  # invalid: a CAN ref on a LIN interface
 
     # The rejection happens when the LIN interface itself is built, so that is the call under test.
     with pytest.raises(ValidationError) as exc_info:

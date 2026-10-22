@@ -231,7 +231,7 @@ def test_positive_j1939_sender_receiver_frame_refs_resolve():
         bus_ref="J1939BusCAN",
         j1939_name=1,
         source_address=0,
-        j1939_sender_frames=[J1939FrameRef(bus_ref="J1939BusCAN", pgn=0xF001)],
+        j1939_sender_frames=[J1939FrameRef(pgn=0xF001)],
     )
     model = _wrap(pdus=[pdu], buses=[bus], can_interfaces=[iface])
     assert model is not None
@@ -248,7 +248,7 @@ def test_negative_j1939_unresolved_pgn_rejected():
         bus_ref="J1939BusCAN",
         j1939_name=1,
         source_address=0,
-        j1939_sender_frames=[J1939FrameRef(bus_ref="J1939BusCAN", pgn=0x1234)],
+        j1939_sender_frames=[J1939FrameRef(pgn=0x1234)],
     )
     with pytest.raises(ValidationError) as exc_info:
         _wrap(pdus=[pdu], buses=[bus], can_interfaces=[iface])

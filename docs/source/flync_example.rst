@@ -266,7 +266,7 @@ Find this example on github: `ecu_variant_9 <https://github.com/Technica-Enginee
 
 .. note:: A single controller can host a CAN interface alongside its Ethernet interface. The Ethernet interface has its own ECU port and external PHY; the CAN interface instead joins a bus via ``bus_ref`` and lists the frames it exchanges through ``sender_frames`` / ``receiver_frames``.
 
-.. note:: Several CAN frames share the single ``BodyCAN`` bus. The frames are defined once on the bus under ``communication/channels/can/``, and the CAN interface references them by their ``frame_ref`` (the CAN identifier).
+.. note:: Several CAN frames share the single ``BodyCAN`` bus. The frames are defined once on the bus under ``communication/channels/can/``, and the CAN interface references them by their ``frame_ref`` (the CAN identifier) together with ``id_format``.
 
 --------------
 
@@ -867,7 +867,7 @@ Each frame references its payload PDU by name via ``packed_pdus`` and may carry 
               - cycle: 0.5
             event_timings: []
 
-Which frames a controller sends and receives is declared on its **CAN interface**, one file per bus, where frames are referenced by ``bus_ref`` and their numeric ``frame_ref`` (the CAN ID). On ``DiagCAN``, ``high_performance_compute`` sends the diagnostic-response and Network-Management frames and receives the diagnostic request:
+Which frames a controller sends and receives is declared on its **CAN interface**, one file per bus, where frames are referenced by their numeric ``frame_ref`` (the CAN ID) and ``id_format``, on the bus named by the interface's own ``bus_ref``. On ``DiagCAN``, ``high_performance_compute`` sends the diagnostic-response and Network-Management frames and receives the diagnostic request:
 
 .. dropdown:: 📄 ``ecus/high_performance_compute/controllers/hpc_controller1/can_interfaces/diag_can_interface.flync.yaml``
 
@@ -875,13 +875,13 @@ Which frames a controller sends and receives is declared on its **CAN interface*
 
       bus_ref: DiagCAN
       sender_frames:
-        - bus_ref: DiagCAN
-          frame_ref: 2024  # Frame_EngineDiagResponse (0x7E8)
-        - bus_ref: DiagCAN
-          frame_ref: 1280  # Frame_NmMessage (0x500)
+        - frame_ref: 2024  # Frame_EngineDiagResponse (0x7E8)
+          id_format: standard_11bit
+        - frame_ref: 1280  # Frame_NmMessage (0x500)
+          id_format: standard_11bit
       receiver_frames:
-        - bus_ref: DiagCAN
-          frame_ref: 2015  # Frame_LightDiagRequest (0x7DF)
+        - frame_ref: 2015  # Frame_LightDiagRequest (0x7DF)
+          id_format: standard_11bit
 
 .. note:: The ``communication/channels/can/`` directory is optional and may be omitted when no CAN buses are defined.
 

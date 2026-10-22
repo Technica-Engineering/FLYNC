@@ -6,6 +6,7 @@ from pydantic import Field, RootModel, model_validator
 
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major
+from flync.model.flync_4_signal.can_frame_ref import CANFrameRef
 
 
 class CANFrameEgress(FLYNCBaseModel):
@@ -20,7 +21,10 @@ class CANFrameEgress(FLYNCBaseModel):
         Reference to the target CAN bus.
 
     frame_ref : int
-        Reference to the target CAN frame.
+        CAN ID of the target CAN frame.
+
+    id_format : Literal["standard_11bit", "extended_29bit"]
+        Identifier format of the target CAN frame; together with ``frame_ref`` it locates the frame on ``bus_ref``.
 
     extract_pdu_ref : str, optional
         Optional reference to a PDU to extract from the forwarded data.
@@ -29,6 +33,7 @@ class CANFrameEgress(FLYNCBaseModel):
     egress_type: Literal["can_frame"] = Field(default="can_frame")
     bus_ref: str = Field(min_length=1)
     frame_ref: int = Field()
+    id_format: Literal["standard_11bit", "extended_29bit"] = Field()
     extract_pdu_ref: Optional[str] = Field(default=None)
 
 
@@ -85,26 +90,29 @@ class PDUForwarder(FLYNCBaseModel):
         return self
 
 
-class CANFrameForwarder(FLYNCBaseModel):
+class CANFrameForwarder(CANFrameRef):
     """CAN-interface forwarder that consumes an ingress frame and re-emits it on one or more egresses.
 
     Parameters
     ----------
-    frame_ref : str
-        Reference to the CAN frame being forwarded.
+    frame_ref : int
+        CAN ID of the CAN frame being forwarded (inherited from :class:`~flync.model.flync_4_signal.can_frame_ref.CANFrameRef`).
+
+    id_format : Literal["standard_11bit", "extended_29bit"]
+        Identifier format of the forwarded frame (inherited from ``CANFrameRef``); together with ``frame_ref`` it locates
+        the frame on the owning interface's bus.
 
     egresses : List[:class:`ForwarderEgress`]
         List of egress targets where the forwarded frame is re-emitted. Must contain at least one egress.
     """
 
-    frame_ref: str = Field(min_length=1)
     egresses: List[ForwarderEgress] = Field(min_length=1)
 
     @model_validator(mode="after")
     def validate_can_frame_forwarder_egress_uniqueness(self) -> Self:
         """Ensure every egress in ``egresses`` points at a distinct target carrier."""
 
-        _check_egress_uniqueness(self.egresses, owner=f"CANFrameForwarder(frame_ref={self.frame_ref})")
+        _check_egress_uniqueness(self.egresses, owner=f"CANFrameForwarder(frame_ref={self.frame_ref}, id_format={self.id_format})")
         return self
 
 
@@ -116,7 +124,7 @@ def _check_egress_uniqueness(egresses: List[ForwarderEgress], owner: str) -> Non
         egress = egress_root.root
         key: tuple[str | int, ...]
         if isinstance(egress, CANFrameEgress):
-            key = ("can_frame", egress.bus_ref, egress.frame_ref)
+            key = ("can_frame", egress.bus_ref, egress.id_format, egress.frame_ref)
         else:
             key = ("eth_socket", egress.socket_ref)
         if key in seen:

@@ -74,9 +74,17 @@ def test_duplicate_forwarder_rejected():
     Rejects duplicate CANFrameForwarder definitions for the same frame_ref on a single CAN interface.
     """
     sample_frame = CANFrame(name="EngineStatus", length=8, can_id=0x100, id_format="standard_11bit", is_remote_frame=False)
-    forwarder1 = CANFrameForwarder(frame_ref=sample_frame.name, egresses=[CANFrameEgress(frame_ref=sample_frame.can_id, bus_ref="CAN1")])
-    forwarder2 = CANFrameForwarder(frame_ref=sample_frame.name, egresses=[CANFrameEgress(frame_ref=sample_frame.can_id, bus_ref="CAN1")])
-    sender_frame = CANFrameRef(bus_ref="CAN1", frame_ref=sample_frame.can_id)
+    forwarder1 = CANFrameForwarder(
+        frame_ref=sample_frame.can_id,
+        id_format="standard_11bit",
+        egresses=[CANFrameEgress(id_format="standard_11bit", frame_ref=sample_frame.can_id, bus_ref="CAN1")],
+    )
+    forwarder2 = CANFrameForwarder(
+        frame_ref=sample_frame.can_id,
+        id_format="standard_11bit",
+        egresses=[CANFrameEgress(id_format="standard_11bit", frame_ref=sample_frame.can_id, bus_ref="CAN1")],
+    )
+    sender_frame = CANFrameRef(frame_ref=sample_frame.can_id, id_format="standard_11bit")
 
     with pytest.raises(ValidationError) as exc_info:
         CANInterface(
@@ -95,7 +103,9 @@ def test_forwarder_missing_frame():
     """
     can_bus = CANBus(name="CAN_BUS_1", baud_rate=10000, frames=[])
 
-    forwarder = CANFrameForwarder(frame_ref="NonExistentFrame", egresses=[CANFrameEgress(frame_ref=0x999, bus_ref="CAN_BUS_1")])
+    forwarder = CANFrameForwarder(
+        frame_ref=0x7FF, id_format="standard_11bit", egresses=[CANFrameEgress(id_format="standard_11bit", frame_ref=0x999, bus_ref="CAN_BUS_1")]
+    )
 
     can_interface = CANInterface(name="IF1", bus_ref="CAN_BUS_1", sender_frames=[], receiver_frames=[], forwarder_frames=[forwarder])
     controller = Controller(
@@ -127,10 +137,16 @@ def test_forwarder_invalid_interface_routing():
     engine_status = CANFrame(name="EngineStatus", length=8, can_id=0x100, id_format="standard_11bit", is_remote_frame=False)
     can_bus = CANBus(name="CAN1", baud_rate=10000, frames=[engine_status])
     forwarder = CANFrameForwarder(
-        frame_ref="EngineStatus", egresses=[ForwarderEgress(root=CANFrameEgress(egress_type="can_frame", bus_ref="CAN1", frame_ref=0x100))]
+        frame_ref=0x100,
+        id_format="standard_11bit",
+        egresses=[ForwarderEgress(root=CANFrameEgress(id_format="standard_11bit", egress_type="can_frame", bus_ref="CAN1", frame_ref=0x100))],
     )
     can_interface = CANInterface(
-        name="IF1", bus_ref="CAN1", receiver_frames=[], forwarder_frames=[forwarder], sender_frames=[CANFrameRef(bus_ref="CAN1", frame_ref=0x100)]
+        name="IF1",
+        bus_ref="CAN1",
+        receiver_frames=[],
+        forwarder_frames=[forwarder],
+        sender_frames=[CANFrameRef(frame_ref=0x100, id_format="standard_11bit")],
     )
     controller = Controller(
         name="CTRL1",
@@ -160,10 +176,16 @@ def test_forwarder_invalid_target_bus():
     can_bus_1 = CANBus(name="CAN1", baud_rate=10000, frames=[engine_status])
     can_bus_2 = CANBus(name="CAN2", baud_rate=10000, frames=[engine_status_mirror])
     forwarder = CANFrameForwarder(
-        frame_ref="EngineStatus", egresses=[ForwarderEgress(root=CANFrameEgress(egress_type="can_frame", bus_ref="CAN2", frame_ref=0x100))]
+        frame_ref=0x100,
+        id_format="standard_11bit",
+        egresses=[ForwarderEgress(root=CANFrameEgress(id_format="standard_11bit", egress_type="can_frame", bus_ref="CAN2", frame_ref=0x100))],
     )
     can_interface = CANInterface(
-        name="IF1", bus_ref="CAN1", receiver_frames=[], forwarder_frames=[forwarder], sender_frames=[CANFrameRef(bus_ref="CAN1", frame_ref=0x100)]
+        name="IF1",
+        bus_ref="CAN1",
+        receiver_frames=[],
+        forwarder_frames=[forwarder],
+        sender_frames=[CANFrameRef(frame_ref=0x100, id_format="standard_11bit")],
     )
     controller = Controller(
         name="CTRL1",
@@ -193,10 +215,16 @@ def test_forwarding_invalid_sender():
     can_bus_1 = CANBus(name="CAN1", baud_rate=10000, frames=[engine_status])
     can_bus_2 = CANBus(name="CAN2", baud_rate=10000, frames=[engine_status_mirror])
     forwarder = CANFrameForwarder(
-        frame_ref="EngineStatus", egresses=[ForwarderEgress(root=CANFrameEgress(egress_type="can_frame", bus_ref="CAN2", frame_ref=0x100))]
+        frame_ref=0x100,
+        id_format="standard_11bit",
+        egresses=[ForwarderEgress(root=CANFrameEgress(id_format="standard_11bit", egress_type="can_frame", bus_ref="CAN2", frame_ref=0x100))],
     )
     can_interface_1 = CANInterface(
-        name="IF1", bus_ref="CAN1", receiver_frames=[], forwarder_frames=[forwarder], sender_frames=[CANFrameRef(bus_ref="CAN1", frame_ref=0x100)]
+        name="IF1",
+        bus_ref="CAN1",
+        receiver_frames=[],
+        forwarder_frames=[forwarder],
+        sender_frames=[CANFrameRef(frame_ref=0x100, id_format="standard_11bit")],
     )
     can_interface_2 = CANInterface(name="IF2", bus_ref="CAN2", receiver_frames=[], sender_frames=[], forwarder_frames=[])
     controller = Controller(
@@ -227,13 +255,19 @@ def test_forwarding_locality_violation():
     can_bus_1 = CANBus(name="CAN1", baud_rate=10000, frames=[engine_status])
     can_bus_2 = CANBus(name="CAN2", baud_rate=10000, frames=[engine_status_mirror])
     forwarder = CANFrameForwarder(
-        frame_ref="EngineStatus", egresses=[ForwarderEgress(root=CANFrameEgress(egress_type="can_frame", bus_ref="CAN2", frame_ref=0x100))]
+        frame_ref=0x100,
+        id_format="standard_11bit",
+        egresses=[ForwarderEgress(root=CANFrameEgress(id_format="standard_11bit", egress_type="can_frame", bus_ref="CAN2", frame_ref=0x100))],
     )
     can_interface_1 = CANInterface(
-        name="IF1", bus_ref="CAN1", receiver_frames=[], forwarder_frames=[forwarder], sender_frames=[CANFrameRef(bus_ref="CAN1", frame_ref=0x100)]
+        name="IF1",
+        bus_ref="CAN1",
+        receiver_frames=[],
+        forwarder_frames=[forwarder],
+        sender_frames=[CANFrameRef(frame_ref=0x100, id_format="standard_11bit")],
     )
     can_interface_2 = CANInterface(
-        name="IF2", bus_ref="CAN2", receiver_frames=[CANFrameRef(bus_ref="CAN2", frame_ref=0x100)], sender_frames=[], forwarder_frames=[]
+        name="IF2", bus_ref="CAN2", receiver_frames=[CANFrameRef(frame_ref=0x100, id_format="standard_11bit")], sender_frames=[], forwarder_frames=[]
     )
     controller = Controller(
         name="CTRL1",
@@ -261,14 +295,15 @@ def test_forwarding_can_to_ethernet_without_pdu():
     engine_status = CANFrame(name="EngineStatus", length=8, can_id=0x100, id_format="standard_11bit")
     can_bus = CANBus(name="CAN1_BUS", baud_rate=10000, frames=[engine_status])
     forwarder = CANFrameForwarder(
-        frame_ref="EngineStatus",
+        frame_ref=0x100,
+        id_format="standard_11bit",
         egresses=[ForwarderEgress(root=EthSocketEgress(egress_type="eth_socket", socket_ref="ETH_SOCKET_1"))],
     )
     can_interface = CANInterface(
         name="CAN_IF_1",
         bus_ref="CAN1_BUS",
         receiver_frames=[],
-        sender_frames=[CANFrameRef(bus_ref="CAN1_BUS", frame_ref=0x100)],
+        sender_frames=[CANFrameRef(frame_ref=0x100, id_format="standard_11bit")],
         forwarder_frames=[forwarder],
     )
     controller = Controller(
@@ -309,7 +344,8 @@ def test_invalid_extract_pdu_ref_on_standard_pdu():
     can_bus = CANBus(name="CAN1_BUS", baud_rate=10000, frames=[engine_status_frame])
 
     forwarder = CANFrameForwarder(
-        frame_ref="EngineStatus",
+        frame_ref=0x100,
+        id_format="standard_11bit",
         egresses=[ForwarderEgress(root=EthSocketEgress(egress_type="eth_socket", socket_ref="ETH_SOCKET_1", extract_pdu_ref="EngineStatusPDU"))],
     )
 
@@ -317,7 +353,7 @@ def test_invalid_extract_pdu_ref_on_standard_pdu():
         name="CAN_IF_1",
         bus_ref="CAN1_BUS",
         receiver_frames=[],
-        sender_frames=[CANFrameRef(bus_ref="CAN1_BUS", frame_ref=0x100)],
+        sender_frames=[CANFrameRef(frame_ref=0x100, id_format="standard_11bit")],
         forwarder_frames=[forwarder],
     )
 
@@ -385,14 +421,16 @@ def test_forwarding_can_to_ethernet_missing_pdu_deployment():
     can_bus = CANBus(name="CAN1_BUS", baud_rate=10000, frames=[engine_status_frame])
 
     forwarder = CANFrameForwarder(
-        frame_ref="EngineStatus", egresses=[ForwarderEgress(root=EthSocketEgress(egress_type="eth_socket", socket_ref="ETH_SOCKET_1"))]
+        frame_ref=0x100,
+        id_format="standard_11bit",
+        egresses=[ForwarderEgress(root=EthSocketEgress(egress_type="eth_socket", socket_ref="ETH_SOCKET_1"))],
     )
 
     can_interface = CANInterface(
         name="CAN_IF_1",
         bus_ref="CAN1_BUS",
         receiver_frames=[],
-        sender_frames=[CANFrameRef(bus_ref="CAN1_BUS", frame_ref=0x100)],
+        sender_frames=[CANFrameRef(frame_ref=0x100, id_format="standard_11bit")],
         forwarder_frames=[forwarder],
     )
 
@@ -439,7 +477,8 @@ def test_forwarding_can_to_ethernet_with_extract_pdu_ref_not_containerPDU():
     can_bus = CANBus(name="CAN1_BUS", baud_rate=10000, frames=[can_frame])
 
     forwarder = CANFrameForwarder(
-        frame_ref="EngineStatusFrame",
+        frame_ref=0x100,
+        id_format="standard_11bit",
         egresses=[ForwarderEgress(root=EthSocketEgress(egress_type="eth_socket", socket_ref="ETH_SOCKET_1", extract_pdu_ref="EngineStatusPDU"))],
     )
 
@@ -447,7 +486,7 @@ def test_forwarding_can_to_ethernet_with_extract_pdu_ref_not_containerPDU():
         name="CAN_IF_1",
         bus_ref="CAN1_BUS",
         receiver_frames=[],
-        sender_frames=[CANFrameRef(bus_ref="CAN1_BUS", frame_ref=0x100)],
+        sender_frames=[CANFrameRef(frame_ref=0x100, id_format="standard_11bit")],
         forwarder_frames=[forwarder],
     )
 

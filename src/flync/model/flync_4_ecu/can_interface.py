@@ -5,47 +5,11 @@ from typing import Annotated, List, Optional, Self
 from pydantic import Field, model_validator
 
 from flync.core.annotations import Implied, ImpliedStrategy
-from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major
 from flync.model.flync_4_ecu.controller_interface import ControllerInterface
+from flync.model.flync_4_signal.can_frame_ref import CANFrameRef
 from flync.model.flync_4_signal.forwarder import CANFrameForwarder
-
-
-class CANFrameRef(FLYNCBaseModel):
-    """
-    Reference to a CAN frame by bus and CAN ID.
-
-    Parameters
-    ----------
-    bus_ref : str
-        Name of the :class:`~flync.model.flync_4_bus.can_bus.CANBus` that owns the frame.
-    frame_ref : int
-        CAN ID of the :class:`~flync.model.flync_4_signal.frame.CANFrame` or
-        :class:`~flync.model.flync_4_signal.frame.CANFDFrame` on the referenced bus.
-    """
-
-    bus_ref: str = Field(min_length=1)
-    frame_ref: int = Field()
-
-
-class J1939FrameRef(FLYNCBaseModel):
-    """
-    Reference to a J1939 frame by bus and PGN.
-
-    ``J1939Frame`` objects carry no CAN ID; their identity on a bus is the Parameter Group Number (``pgn``),
-    which the model enforces as unique per bus (``FLYNC-GEN-MAJ-UNIQ-346``).
-
-    Parameters
-    ----------
-    bus_ref : str
-        Name of the :class:`~flync.model.flync_4_bus.can_bus.CANBus` that owns the frame.
-    pgn : int
-        18-bit J1939 Parameter Group Number of the :class:`~flync.model.flync_4_signal.frame.J1939Frame`
-        on the referenced bus.
-    """
-
-    bus_ref: str = Field()
-    pgn: int = Field(ge=0, le=0x3FFFF)
+from flync.model.flync_4_signal.j1939_frame_ref import J1939FrameRef
 
 
 class CANInterface(ControllerInterface):
@@ -59,18 +23,18 @@ class CANInterface(ControllerInterface):
 
     bus_ref : str
         Name of the :class:`~flync.model.flync_4_bus.can_bus.CANBus` this interface connects to.
-    sender_frames : list of :class:`CANFrameRef`
+    sender_frames : list of :class:`~flync.model.flync_4_signal.can_frame_ref.CANFrameRef`
         Frames transmitted by this controller on the bus.
-    receiver_frames : list of :class:`CANFrameRef`
+    receiver_frames : list of :class:`~flync.model.flync_4_signal.can_frame_ref.CANFrameRef`
         Frames received by this controller from the bus.
     forwarder_frames : list of \
 :class:`~flync.model.flync_4_signal.frame.CANFrameForwarder`
         Frames received by this controller and re-emitted on one or more
         egresses.
-    j1939_sender_frames : list of :class:`J1939FrameRef`, optional
+    j1939_sender_frames : list of :class:`~flync.model.flync_4_signal.j1939_frame_ref.J1939FrameRef`, optional
         J1939 frames (by PGN) transmitted by this node on the bus. Declaring any J1939 reference marks
         this interface as a J1939 node, so together with ``j1939_name``.
-    j1939_receiver_frames : list of :class:`J1939FrameRef`, optional
+    j1939_receiver_frames : list of :class:`~flync.model.flync_4_signal.j1939_frame_ref.J1939FrameRef`, optional
         J1939 frames (by PGN) received by this node from the bus.
     j1939_name : int, optional
         64-bit J1939 NAME of the node this interface exposes; a node may be modeled by its NAME alone.
@@ -130,19 +94,20 @@ class CANInterface(ControllerInterface):
 
     @model_validator(mode="after")
     def validate_forwarder_frame_uniqueness(self) -> Self:
-        """Raise ``err_major`` if the same ``frame_ref`` appears twice in ``forwarder_frames``."""
+        """Raise ``err_major`` if the same ``(id_format, frame_ref)`` appears twice in ``forwarder_frames``."""
 
-        seen: set[str] = set()
-        duplicates: set[str] = set()
+        seen: set[tuple[str, int]] = set()
+        duplicates: set[tuple[str, int]] = set()
         for fwd in self.forwarder_frames:
-            if fwd.frame_ref in seen:
-                duplicates.add(fwd.frame_ref)
-            seen.add(fwd.frame_ref)
+            key = (fwd.id_format, fwd.frame_ref)
+            if key in seen:
+                duplicates.add(key)
+            seen.add(key)
         if duplicates:
             raise err_major(
                 "CANInterface(bus_ref={bus}): duplicate frame_ref(s) in forwarder_frames: {dups}",
                 bus=self.bus_ref,
-                dups=sorted(duplicates),
+                dups=[f"{fmt}:{fid}" for fmt, fid in sorted(duplicates)],
                 category=Category.UNIQUENESS,
                 error_number="058",
             )

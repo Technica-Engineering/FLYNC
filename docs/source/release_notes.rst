@@ -101,11 +101,13 @@ Each controller that participates in J1939 exposes one such interface.
   Parameter Group, identified by its PGN (priority, PDU format, PDU specific, data and extended data pages),
   and always has an 8-byte data field.
 * A node lists the J1939 frames it sends / receives by PGN via ``j1939_sender_frames`` and
-  ``j1939_receiver_frames``, referencing a frame by ``(bus_ref, pgn)``.
+  ``j1939_receiver_frames``. A
+  :class:`~flync.model.flync_4_signal.j1939_frame_ref.J1939FrameRef` carries only the ``pgn``; the bus is the
+  ``bus_ref`` of the owning :class:`~flync.model.flync_4_ecu.can_interface.CANInterface`.
 * ``j1939_name`` is the mandatory identity of a J1939 node; ``source_address`` is optional and claimed
   at runtime. Declaring an SA without a NAME (or frame references without a NAME) is rejected.
 * A bus reached by a J1939 node may only carry ``J1939Frame`` frames, and every referenced PGN must resolve
-  to a frame declared on the referenced bus. J1939 frames cannot be addressed over classical CAN IDs.
+  to a frame declared on the interface's bus. J1939 frames cannot be addressed over classical CAN IDs.
 
 JSON Schema export
 ''''''''''''''''''

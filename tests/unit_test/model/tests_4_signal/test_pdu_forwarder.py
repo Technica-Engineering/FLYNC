@@ -14,7 +14,7 @@ from tests.error_assertions import assert_single_error
 
 
 def _can_egress(bus_ref: str, frame_ref: int, extract_pdu_ref: str | None = None) -> ForwarderEgress:
-    return ForwarderEgress(root=CANFrameEgress(bus_ref=bus_ref, frame_ref=frame_ref, extract_pdu_ref=extract_pdu_ref))
+    return ForwarderEgress(root=CANFrameEgress(id_format="standard_11bit", bus_ref=bus_ref, frame_ref=frame_ref, extract_pdu_ref=extract_pdu_ref))
 
 
 def _eth_socket_egress(socket_ref: str, extract_pdu_ref: str | None = None) -> ForwarderEgress:
@@ -32,11 +32,11 @@ def test_positive_pdu_forwarder_fields_exact():
 
 
 def test_positive_can_frame_forwarder_fields_exact():
-    assert list(CANFrameForwarder.model_fields) == ["frame_ref", "egresses"]
+    assert list(CANFrameForwarder.model_fields) == ["frame_ref", "id_format", "egresses"]
 
 
 def test_positive_can_frame_sink_fields_exact():
-    assert list(CANFrameEgress.model_fields) == ["egress_type", "bus_ref", "frame_ref", "extract_pdu_ref"]
+    assert list(CANFrameEgress.model_fields) == ["egress_type", "bus_ref", "frame_ref", "id_format", "extract_pdu_ref"]
 
 
 def test_positive_eth_eth_socket_egress_fields_exact():
@@ -106,7 +106,7 @@ def test_positive_deployment_union_existing_variants_unaffected():
 
 
 def test_positive_forwarder_egress_dispatches_both_kinds():
-    can = ForwarderEgress.model_validate({"egress_type": "can_frame", "bus_ref": "DiagCAN", "frame_ref": 0x100})
+    can = ForwarderEgress.model_validate({"egress_type": "can_frame", "bus_ref": "DiagCAN", "frame_ref": 0x100, "id_format": "standard_11bit"})
     eth = ForwarderEgress.model_validate({"egress_type": "eth_socket", "socket_ref": "sock_a"})
     assert isinstance(can.root, CANFrameEgress)
     assert isinstance(eth.root, EthSocketEgress)
@@ -125,7 +125,7 @@ def test_positive_forwarder_egress_dispatches_both_kinds():
         ),
         pytest.param(
             CANFrameEgress,
-            {"bus_ref": "B", "frame_ref": 1, "unknown_field": 1},
+            {"bus_ref": "B", "frame_ref": 1, "id_format": "standard_11bit", "unknown_field": 1},
             id="can frame sink",
         ),
         pytest.param(
@@ -179,7 +179,7 @@ def test_negative_pdu_forwarder_duplicate_egresses(egresses, message_fragment):
     ],
 )
 def test_negative_can_frame_forwarder_duplicate_egresses(egresses, message_fragment):
-    _assert_duplicate_egress(lambda: CANFrameForwarder(frame_ref="Frame_X", egresses=egresses), message_fragment)
+    _assert_duplicate_egress(lambda: CANFrameForwarder(frame_ref=0x100, id_format="standard_11bit", egresses=egresses), message_fragment)
 
 
 # negative — empty sinks
@@ -193,7 +193,7 @@ def test_negative_pdu_forwarder_empty_sinks():
 
 def test_negative_can_frame_forwarder_empty_sinks():
     with pytest.raises(ValidationError) as exc_info:
-        CANFrameForwarder(frame_ref="Frame_X", egresses=[])
+        CANFrameForwarder(frame_ref=0x100, id_format="standard_11bit", egresses=[])
     assert_single_error(exc_info, None, "at least 1 item")
 
 
@@ -205,7 +205,7 @@ def test_negative_can_frame_forwarder_empty_sinks():
     [
         pytest.param({"egress_type": "bogus", "socket_ref": "s"}, "does not match any of the expected tags", id="invalid egress type"),
         pytest.param({"egress_type": "eth_socket"}, "Field required", id="eth socket missing socket_ref"),
-        pytest.param({"egress_type": "can_frame", "frame_ref": 1}, "Field required", id="can egress missing bus_ref"),
+        pytest.param({"egress_type": "can_frame", "frame_ref": 1, "id_format": "standard_11bit"}, "Field required", id="can egress missing bus_ref"),
     ],
 )
 def test_negative_invalid_egress_member(payload, message_fragment):
@@ -218,8 +218,8 @@ def test_negative_invalid_egress_member(payload, message_fragment):
 
 
 def test_negative_can_interface_duplicate_forwarder_frames():
-    fwd_a = CANFrameForwarder(frame_ref="Frame_X", egresses=[_can_egress(bus_ref="DiagCAN", frame_ref=0x101)])
-    fwd_b = CANFrameForwarder(frame_ref="Frame_X", egresses=[_can_egress(bus_ref="DiagCAN", frame_ref=0x102)])
+    fwd_a = CANFrameForwarder(frame_ref=0x100, id_format="standard_11bit", egresses=[_can_egress(bus_ref="DiagCAN", frame_ref=0x101)])
+    fwd_b = CANFrameForwarder(frame_ref=0x100, id_format="standard_11bit", egresses=[_can_egress(bus_ref="DiagCAN", frame_ref=0x102)])
     with pytest.raises(ValidationError) as exc_info:
         CANInterface(name="CAN1", bus_ref="PowertrainCAN", forwarder_frames=[fwd_a, fwd_b])
     assert_single_error(exc_info, "FLYNC-ECU-MAJ-UNIQ-058", "duplicate frame_ref(s) in forwarder_frames")
@@ -247,15 +247,15 @@ def test_negative_socket_duplicate_pdu_forwarder_for_same_pdu():
 def test_positive_can_interface_receiver_and_forwarder_coexist():
     """A frame can legitimately appear in receiver_frames AND forwarder_frames (dual-consume)."""
 
-    fwd = CANFrameForwarder(frame_ref="Frame_X", egresses=[_can_egress(bus_ref="DiagCAN", frame_ref=0x101)])
+    fwd = CANFrameForwarder(frame_ref=0x100, id_format="standard_11bit", egresses=[_can_egress(bus_ref="DiagCAN", frame_ref=0x101)])
     iface = CANInterface(
         name="CAN1",
         bus_ref="PowertrainCAN",
-        receiver_frames=[CANFrameRef(bus_ref="PowertrainCAN", frame_ref=0x101)],
+        receiver_frames=[CANFrameRef(frame_ref=0x101, id_format="standard_11bit")],
         forwarder_frames=[fwd],
     )
     assert iface.receiver_frames[0].frame_ref == 0x101
-    assert iface.forwarder_frames[0].frame_ref == "Frame_X"
+    assert iface.forwarder_frames[0].frame_ref == 0x100
     assert isinstance(iface, CANInterface)
 
 

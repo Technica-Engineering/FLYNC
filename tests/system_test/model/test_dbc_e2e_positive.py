@@ -89,8 +89,8 @@ def _build_model() -> FLYNCModel:
         name="CAN_IF_1",
         bus_ref="CAN1_BUS",
         sender_frames=[
-            CANFrameRef(bus_ref="CAN1_BUS", frame_ref=0x100),
-            CANFrameRef(bus_ref="CAN1_BUS", frame_ref=0x101),
+            CANFrameRef(frame_ref=0x100, id_format="standard_11bit"),
+            CANFrameRef(frame_ref=0x101, id_format="standard_11bit"),
         ],
         receiver_frames=[],
         forwarder_frames=[],

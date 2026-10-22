@@ -23,6 +23,7 @@ from flync.core.validators.forwarder import (
     _build_pdu_catalog,
     _iter_sockets_on_controller,
 )
+from flync.core.validators.interface import FrameKey, _frame_key
 from flync.model.flync_4_nm.state_management import (
     _iter_buses,
     collect_effective_members,
@@ -57,7 +58,7 @@ class _ValidationContext(NamedTuple):
     timing_profiles: Set[str]
     lin_bus_names: Set[str]
     pdu_catalog: Dict[str, PDU]
-    frame_by_bus_id: Dict[tuple[str, int], BusFrame]
+    frame_by_bus_id: Dict[tuple[str, FrameKey], BusFrame]
     buses_by_name: Dict[str, CANBus | LINBus]
     ecus_by_name: Dict[str, ECU]
     sent_frame_ids_by_bus: Dict[str, Set[int]]
@@ -322,16 +323,18 @@ def _index_bus_interface(
         sent_frame_ids_by_bus.setdefault(bus_ref, set()).add(ref.frame_ref)
 
 
-def _build_frame_catalog_by_bus_id(model: FLYNCModel) -> Dict[tuple[str, int], BusFrame]:
+def _build_frame_catalog_by_bus_id(model: FLYNCModel) -> Dict[tuple[str, FrameKey], BusFrame]:
     """
-    Return a ``(bus_name, frame_id)``-keyed dict of every CAN and LIN frame.
+    Return a ``(bus_name, frame_key)``-keyed dict of every CAN and LIN frame.
 
-    Extends the CAN catalog from the forwarder validators with LIN frames
-    (keyed by ``lin_id``) so LIN masters resolve their sender/receiver frames
-    the same way CAN interfaces do.
+    CAN frames are keyed by ``(id_format, can_id)``, LIN frames by ``lin_id``, matching
+    :func:`~flync.core.validators.interface._frame_key`, so LIN masters resolve their
+    sender/receiver frames the same way CAN interfaces do.
     """
 
-    catalog: Dict[tuple[str, int], BusFrame] = dict(_build_can_frame_catalog_by_bus_id(model))
+    catalog: Dict[tuple[str, FrameKey], BusFrame] = {}
+    for (bus_name, _, _), can_frame in _build_can_frame_catalog_by_bus_id(model).items():
+        catalog[(bus_name, (can_frame.id_format, can_frame.can_id))] = can_frame
     channels = getattr(model.communication, "channels", None) if model.communication else None
     for bus in channels.lin_buses or [] if channels else []:
         for frame in bus.frames or []:
@@ -339,7 +342,9 @@ def _build_frame_catalog_by_bus_id(model: FLYNCModel) -> Dict[tuple[str, int], B
     return catalog
 
 
-def _pdu_paths_by_ecu(ecu: ECU, pdu_catalog: Mapping[str, PDU], frame_by_bus_id: Mapping[tuple[str, int], BusFrame]) -> tuple[Set[str], Set[str]]:
+def _pdu_paths_by_ecu(
+    ecu: ECU, pdu_catalog: Mapping[str, PDU], frame_by_bus_id: Mapping[tuple[str, FrameKey], BusFrame]
+) -> tuple[Set[str], Set[str]]:
     """
     Return ``(tx, rx)`` — the names of every PDU the ECU sends respectively
     receives on any path.
@@ -372,14 +377,14 @@ def _collect_socket_pdus(controller: Controller, tx: Set[str], rx: Set[str], pdu
                 _add_pdu_with_contained(rx, dep.pdu_ref, pdu_catalog)
 
 
-def _collect_frame_pdus(controller: Controller, tx: Set[str], rx: Set[str], frame_by_bus_id: Mapping[tuple[str, int], BusFrame]) -> None:
+def _collect_frame_pdus(controller: Controller, tx: Set[str], rx: Set[str], frame_by_bus_id: Mapping[tuple[str, FrameKey], BusFrame]) -> None:
     """Add the CAN/LIN sender/receiver-frame PDUs of a controller to ``tx`` / ``rx``."""
 
     for iface in chain(controller.can_interfaces or [], controller.lin_interfaces or []):
         for frame_ref in getattr(iface, "sender_frames", None) or []:
-            _add_frame_pdus(tx, frame_ref, frame_by_bus_id)
+            _add_frame_pdus(tx, iface.bus_ref, frame_ref, frame_by_bus_id)
         for frame_ref in getattr(iface, "receiver_frames", None) or []:
-            _add_frame_pdus(rx, frame_ref, frame_by_bus_id)
+            _add_frame_pdus(rx, iface.bus_ref, frame_ref, frame_by_bus_id)
 
 
 def _add_pdu_with_contained(target: Set[str], pdu_ref: str, pdu_catalog: Mapping[str, PDU]) -> None:
@@ -391,10 +396,12 @@ def _add_pdu_with_contained(target: Set[str], pdu_ref: str, pdu_catalog: Mapping
         target.update(contained.pdu_ref for contained in carrier.contained_pdus)
 
 
-def _add_frame_pdus(target: Set[str], frame_ref: CANFrameRef | LINFrameRef, frame_by_bus_id: Mapping[tuple[str, int], BusFrame]) -> None:
-    """Add every PDU packed in the referenced CAN or LIN frame."""
+def _add_frame_pdus(
+    target: Set[str], bus_ref: str, frame_ref: CANFrameRef | LINFrameRef, frame_by_bus_id: Mapping[tuple[str, FrameKey], BusFrame]
+) -> None:
+    """Add every PDU packed in the referenced CAN or LIN frame on the owning interface's bus *bus_ref*."""
 
-    frame = frame_by_bus_id.get((frame_ref.bus_ref, frame_ref.frame_ref))
+    frame = frame_by_bus_id.get((bus_ref, _frame_key(frame_ref)))
     if frame is not None:
         target.update(inst.pdu_ref for inst in frame.packed_pdus or [])
 

@@ -1,5 +1,6 @@
 """Defines the LIN bus model for FLYNC including its schedule tables."""
 
+from collections import Counter
 from typing import Annotated, List, Literal, Optional, Self
 
 from pydantic import BeforeValidator, Field, model_validator
@@ -129,6 +130,20 @@ class LINBus(FLYNCBaseModel):
         default_factory=list,
         description="Assignments of this bus to a state management group; the whole bus participates as one unit.",
     )
+
+    @model_validator(mode="after")
+    def validate_unique_lin_ids(self) -> Self:
+        """Ensure no two frames on the bus share the same ``lin_id``."""
+        duplicates = sorted(f"{lid:#x}" for lid, c in Counter(f.lin_id for f in self.frames).items() if c > 1)
+        if duplicates:
+            raise err_major(
+                "LINBus '{name}' has duplicate LIN identifier(s): {duplicates}",
+                name=self.name,
+                duplicates=duplicates,
+                category=Category.UNIQUENESS,
+                error_number="408",
+            )
+        return self
 
     @model_validator(mode="after")
     def validate_schedule_frame_references(self) -> Self:

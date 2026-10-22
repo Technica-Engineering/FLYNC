@@ -288,16 +288,16 @@ def _collect_interface_frames(
     j1939_receivers: dict,
 ) -> None:
     """Index the send/receive frame and J1939 references of one CAN interface."""
-    _index_frame_participants(frame_senders, ecu_name, iface.sender_frames, lambda f: (f.bus_ref, f.frame_ref))
-    _index_frame_participants(frame_receivers, ecu_name, iface.receiver_frames, lambda f: (f.bus_ref, f.frame_ref))
-    _index_frame_participants(j1939_senders, ecu_name, iface.j1939_sender_frames, lambda f: (f.bus_ref, f.pgn))
-    _index_frame_participants(j1939_receivers, ecu_name, iface.j1939_receiver_frames, lambda f: (f.bus_ref, f.pgn))
+    _index_frame_participants(frame_senders, ecu_name, iface.sender_frames, lambda f: (iface.bus_ref, f.id_format, f.frame_ref))
+    _index_frame_participants(frame_receivers, ecu_name, iface.receiver_frames, lambda f: (iface.bus_ref, f.id_format, f.frame_ref))
+    _index_frame_participants(j1939_senders, ecu_name, iface.j1939_sender_frames, lambda f: (iface.bus_ref, f.pgn))
+    _index_frame_participants(j1939_receivers, ecu_name, iface.j1939_receiver_frames, lambda f: (iface.bus_ref, f.pgn))
 
 
 def _collect_frame_participants(flync_model: FLYNCModel):
     """Return frame/j1939 sender and receiver dicts built from all ECU CAN interfaces.
 
-    ``frame_senders``/``frame_receivers`` are keyed by ``(bus_ref, frame_ref)`` for
+    ``frame_senders``/``frame_receivers`` are keyed by ``(bus_ref, id_format, frame_ref)`` for
     classical CAN frames; ``j1939_senders``/``j1939_receivers`` are keyed by
     ``(bus_ref, pgn)`` for J1939 nodes.
     """
@@ -361,8 +361,8 @@ def _build_one_message(
         senders = j1939_senders.get((can_bus.name, pgn), None)
     else:
         frame_id = frame.can_id
-        receivers = frame_receivers.get((can_bus.name, frame.can_id), None)
-        senders = frame_senders.get((can_bus.name, frame.can_id), None)
+        receivers = frame_receivers.get((can_bus.name, frame.id_format, frame.can_id), None)
+        senders = frame_senders.get((can_bus.name, frame.id_format, frame.can_id), None)
     sigs = _decode_frame_pdus(flync_model, frame, can_bus, pdus, receivers, report)
     if is_j1939:
         return Message(

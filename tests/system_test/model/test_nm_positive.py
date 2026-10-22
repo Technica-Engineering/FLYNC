@@ -648,8 +648,8 @@ def _make_active_ecu(
     can_iface = CANInterface(
         name="can0",
         bus_ref=CAN_BUS_NAME,
-        sender_frames=([CANFrameRef(bus_ref=CAN_BUS_NAME, frame_ref=NM_CAN_ID)] if is_sender else []),
-        receiver_frames=([] if is_sender else [CANFrameRef(bus_ref=CAN_BUS_NAME, frame_ref=NM_CAN_ID)]),
+        sender_frames=([CANFrameRef(frame_ref=NM_CAN_ID, id_format="standard_11bit")] if is_sender else []),
+        receiver_frames=([] if is_sender else [CANFrameRef(frame_ref=NM_CAN_ID, id_format="standard_11bit")]),
     )
     ctrl = Controller(
         name=f"{name}_ctrl",
@@ -1453,7 +1453,7 @@ def test_Simple_CAN_ECU_NM_Timeout_active_phase(tmpdir):
     sender_iface = flync_model.ecus[0].controllers[0].can_interfaces[0]
     assert len(sender_iface.sender_frames) == 1, "Sender must declare exactly one NM frame"
     assert sender_iface.sender_frames[0].frame_ref == NM_CAN_ID
-    assert sender_iface.sender_frames[0].bus_ref == CAN_BUS_NAME
+    assert sender_iface.bus_ref == CAN_BUS_NAME
 
     receiver_iface = flync_model.ecus[1].controllers[0].can_interfaces[0]
     assert len(receiver_iface.receiver_frames) == 1

@@ -377,15 +377,16 @@ def _flync_version() -> str:
 def _register_frame_participants(
     message: Message,
     bus_name: str,
-    frame_senders: Dict[Tuple[str, int], set],
-    frame_receivers: Dict[Tuple[str, int], set],
+    frame_senders: Dict[Tuple[str, str, int], set],
+    frame_receivers: Dict[Tuple[str, str, int], set],
 ) -> None:
     """Record which nodes send/receive a message's frame."""
+    id_format = "extended_29bit" if message.is_extended_frame else "standard_11bit"
     for sender in message.senders or []:
-        frame_senders[(bus_name, message.frame_id)].add(sender)
+        frame_senders[(bus_name, id_format, message.frame_id)].add(sender)
     for sig in message.signals or []:
         for receiver in sig.receivers or []:
-            frame_receivers[(bus_name, message.frame_id)].add(receiver)
+            frame_receivers[(bus_name, id_format, message.frame_id)].add(receiver)
 
 
 def _build_and_validate_message(
@@ -424,8 +425,8 @@ def _decode_one_database(
     report: ConverterReport,
     pdus: List[StandardPDU | MultiplexedPDU],
     buses: List[CANBus],
-    frame_senders: Dict[Tuple[str, int], set],
-    frame_receivers: Dict[Tuple[str, int], set],
+    frame_senders: Dict[Tuple[str, str, int], set],
+    frame_receivers: Dict[Tuple[str, str, int], set],
     declared_nodes: set,
     j1939_nodes: List[Tuple[str, int]],
 ) -> bool:
@@ -502,8 +503,8 @@ def decode_dbc_files(dbc_files, config: Optional[DbcConverterConfig] = None, rep
 
     pdus: List[StandardPDU | MultiplexedPDU] = []
     buses: List[CANBus] = []
-    frame_senders: Dict[Tuple[str, int], set] = defaultdict(set)
-    frame_receivers: Dict[Tuple[str, int], set] = defaultdict(set)
+    frame_senders: Dict[Tuple[str, str, int], set] = defaultdict(set)
+    frame_receivers: Dict[Tuple[str, str, int], set] = defaultdict(set)
     declared_nodes: set = set()
     j1939_nodes: List[Tuple[str, int]] = []
     any_j1939 = False
@@ -547,8 +548,8 @@ def decode_dbc_files(dbc_files, config: Optional[DbcConverterConfig] = None, rep
 
 
 def _to_flync_ecus(
-    frame_senders: Dict[Tuple[str, int], set],
-    frame_receivers: Dict[Tuple[str, int], set],
+    frame_senders: Dict[Tuple[str, str, int], set],
+    frame_receivers: Dict[Tuple[str, str, int], set],
     declared_nodes: Optional[set] = None,
     report: ConverterReport = INACTIVE_REPORT,
 ) -> List[ECU]:
@@ -559,12 +560,12 @@ def _to_flync_ecus(
     participates in a message is still retained and not silently dropped.
     """
     membership: Dict[str, Dict[str, Dict[str, set]]] = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))
-    for (bus, fid), nodes in frame_senders.items():
+    for (bus, id_format, fid), nodes in frame_senders.items():
         for node in nodes:
-            membership[node][bus]["send"].add(fid)
-    for (bus, fid), nodes in frame_receivers.items():
+            membership[node][bus]["send"].add((id_format, fid))
+    for (bus, id_format, fid), nodes in frame_receivers.items():
         for node in nodes:
-            membership[node][bus]["recv"].add(fid)
+            membership[node][bus]["recv"].add((id_format, fid))
 
     node_names = set(membership)
     if declared_nodes:
@@ -580,8 +581,8 @@ def _to_flync_ecus(
                 CANInterface(
                     name=bus,
                     bus_ref=bus,
-                    sender_frames=[CANFrameRef(bus_ref=bus, frame_ref=fid) for fid in sorted(roles.get("send", set()))],
-                    receiver_frames=[CANFrameRef(bus_ref=bus, frame_ref=fid) for fid in sorted(roles.get("recv", set()))],
+                    sender_frames=[CANFrameRef(frame_ref=fid, id_format=fmt) for fmt, fid in sorted(roles.get("send", set()))],
+                    receiver_frames=[CANFrameRef(frame_ref=fid, id_format=fmt) for fmt, fid in sorted(roles.get("recv", set()))],
                 )
             )
         if not can_interfaces:
@@ -655,7 +656,7 @@ def _to_j1939_ecus(bus_pgns: List[Tuple[str, int]], declared_nodes: Optional[set
             name=bus_name,
             bus_ref=bus_name,
             j1939_name=_j1939_name(node_name),
-            j1939_sender_frames=[J1939FrameRef(bus_ref=bus_name, pgn=pgn) for pgn in sorted(by_bus[bus_name])],
+            j1939_sender_frames=[J1939FrameRef(pgn=pgn) for pgn in sorted(by_bus[bus_name])],
         )
         ecus.append(_j1939_ecu(node_name, version, interface))
         sender_names.add(node_name)
@@ -669,7 +670,7 @@ def _to_j1939_ecus(bus_pgns: List[Tuple[str, int]], declared_nodes: Optional[set
                     name=bus_name,
                     bus_ref=bus_name,
                     j1939_name=_j1939_name(node),
-                    j1939_receiver_frames=[J1939FrameRef(bus_ref=bus_name, pgn=pgn) for pgn in sorted(pgns)],
+                    j1939_receiver_frames=[J1939FrameRef(pgn=pgn) for pgn in sorted(pgns)],
                 )
                 for bus_name, pgns in by_bus.items()
             ]
