@@ -188,7 +188,7 @@
 | src/flync\_converter/cli/interactive.py                         |       72 |        0 |    100% |           |
 | src/flync\_converter/cli/preview.py                             |       60 |        0 |    100% |           |
 | src/flync\_converter/cli/tui/\_\_init\_\_.py                    |        2 |        0 |    100% |           |
-| src/flync\_converter/cli/tui/app.py                             |      114 |        5 |     96% |134-138, 163, 228-229 |
+| src/flync\_converter/cli/tui/app.py                             |      114 |        3 |     97% |163, 228-229 |
 | src/flync\_converter/cli/tui/utils.py                           |        2 |        0 |    100% |           |
 | src/flync\_converter/cli/tui/widgets/\_\_init\_\_.py            |        3 |        0 |    100% |           |
 | src/flync\_converter/cli/tui/widgets/converter\_panel.py        |      103 |        6 |     94% |25-26, 88, 153-156 |
@@ -211,7 +211,7 @@
 | src/flync\_converter/registry.py                                |       32 |        5 |     84% | 30, 56-59 |
 | src/flync\_converter/reporting.py                               |      177 |        5 |     97% |303, 358-360, 362 |
 | src/flync\_converter/utils.py                                   |       75 |        4 |     95% |63-64, 93-94 |
-| **TOTAL**                                                       | **14287** |  **607** | **96%** |           |
+| **TOTAL**                                                       | **14287** |  **605** | **96%** |           |
 
 
 ## Setup coverage badge
