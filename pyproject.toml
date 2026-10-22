@@ -73,7 +73,7 @@ qt = [
     "pytest-qt>=4.0,<5.0",
 ]
 static-analysis = [
-    "black>=26.1.0,<27.0.0",
+    "black>=26.10.1,<27.0.0",
     "colorama>=0.4.6,<0.5.0",
     "flake8>=7.3.0,<8.0.0",
     "flake8-html>=0.4.3,<0.5.0",
@@ -107,6 +107,7 @@ default-groups = ["dev"]
 constraint-dependencies = [
     "urllib3>=2.8.0",
     "certifi>=2026.10.19",
+    "virtualenv>=21.14.9",
 ]
 
 [tool.uv.sources]
