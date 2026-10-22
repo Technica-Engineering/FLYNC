@@ -72,19 +72,19 @@ wheels = [
 
 [[package]]
 name = "approval-utilities"
-version = "19.1.1"
+version = "20.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e1/9c/4dcc7cd6c1fa317551b277e3a1be8a4d25c8f6d34bbaa51096f1211670f9/approval_utilities-19.1.1.tar.gz", hash = "sha256:33bd42b568bddae052f97e4d2b2061835b2ddba2262b857dedd895bde975f450", size = 37282, upload-time = "2026-08-02T19:04:41.783Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/86/93/0f860efdae750b5e92b9a8c6e190841d2a77c82a54228caadce73b524d22/approval_utilities-20.0.0.tar.gz", hash = "sha256:b24059fca98d45b23155ffc9aabaf25ada694c0f20d30103bbbaaa87e1871114", size = 38552, upload-time = "2026-10-18T18:41:13.158Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b6/b0/82d773072afb0c609eccf46094bbad8273ca2aba9cac5944d97b66fd5ddc/approval_utilities-19.1.1-py3-none-any.whl", hash = "sha256:1c4e3dbf62d94da0bfc4da1199474744f7389b191d69b3d7c2a3eae524b0f97c", size = 19814, upload-time = "2026-08-02T19:04:40.621Z" },
+    { url = "https://files.pythonhosted.org/packages/f1/02/6f2cd7114bf390b1d79839bbb2e72129976684ac4e2df9ecb58a2f039b4b/approval_utilities-20.0.0-py3-none-any.whl", hash = "sha256:818451b9f71697440a74b3718ab6ee6e33dffb2a2604b7813d63ff3031252698", size = 19814, upload-time = "2026-10-18T18:41:12.103Z" },
 ]
 
 [[package]]
 name = "approvaltests"
-version = "19.1.1"
+version = "20.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "allpairspy" },
@@ -98,9 +98,9 @@ dependencies = [
     { name = "testfixtures" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3a/a1/40de2221002e3b600ded229e2850ad4204036ffc98e585f0ba19de373f9e/approvaltests-19.1.1.tar.gz", hash = "sha256:0b049a815e5c8462a8dfde2b781bb5956c822e980b8ddd8c270a657a4d78dda3", size = 66644, upload-time = "2026-08-02T19:04:47.884Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/62/68/8a3f437a3f95ba412cd90aae4e584bd0ab1a02c95f1f4f08e43311e2a331/approvaltests-20.0.0.tar.gz", hash = "sha256:da2122c3113f8c894b18a5affe3fd8c85b0965eb982f8d932e0228531c640341", size = 67407, upload-time = "2026-10-18T18:41:19.052Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6d/f0/acac29783503bae6204032d6f36a973db44fd92208db956ae549e4cca851/approvaltests-19.1.1-py3-none-any.whl", hash = "sha256:b31c288107038742580105dbe0445524a86ae09add10271ba2342aef3a939045", size = 68678, upload-time = "2026-08-02T19:04:46.43Z" },
+    { url = "https://files.pythonhosted.org/packages/87/68/791129b41f290748e700a8ef09f92c6dffe9320475a32676344a1479a3a0/approvaltests-20.0.0-py3-none-any.whl", hash = "sha256:ace1908d74ad590c2885fff6cedb4e09dee90e9973edb2a4dcf642a468c071af", size = 68175, upload-time = "2026-10-18T18:41:17.763Z" },
 ]
 
 [[package]]
@@ -754,7 +754,7 @@ provides-extras = ["all", "gui", "tui"]
 [package.metadata.requires-dev]
 deploy = [{ name = "twine", specifier = ">=7.0.0,<8.0.0" }]
 dev = [
-    { name = "approvaltests", specifier = ">=19.0.0,<20.0.0" },
+    { name = "approvaltests", specifier = ">=20.0.0,<20.1.0" },
     { name = "black", specifier = ">=26.10.1,<27.0.0" },
     { name = "colorama", specifier = ">=0.4.6,<0.5.0" },
     { name = "coverage" },
@@ -802,7 +802,7 @@ static-analysis = [
     { name = "types-pywin32", specifier = ">=310.0.0" },
 ]
 test = [
-    { name = "approvaltests", specifier = ">=19.0.0,<20.0.0" },
+    { name = "approvaltests", specifier = ">=20.0.0,<20.1.0" },
     { name = "coverage" },
     { name = "iniconfig" },
     { name = "junitparser", specifier = ">=5.0.1,<6.0.0" },
