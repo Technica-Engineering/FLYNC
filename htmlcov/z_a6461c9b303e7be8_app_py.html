@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Coverage for src/flync_converter/cli/tui/app.py: 96%</title>
+    <title>Coverage for src/flync_converter/cli/tui/app.py: 97%</title>
     <link rel="icon" sizes="32x32" href="favicon_32_cb_c827f16f.png">
     <link rel="stylesheet" href="style_cb_4667309f.css" type="text/css">
     <script src="coverage_html_cb_15cffcd0.js" defer></script>
@@ -12,7 +12,7 @@
     <div class="content">
         <h1>
             <span class="text">Coverage for </span><b>src<span class="sep">/</span>flync_converter<span class="sep">/</span>cli<span class="sep">/</span>tui<span class="sep">/</span>app.py</b>:
-            <span class="pc_cov">96%</span>
+            <span class="pc_cov">97%</span>
         </h1>
         <aside id="help_panel_wrapper">
             <input id="help_panel_state" type="checkbox">
@@ -55,8 +55,8 @@
         </aside>
         <h2>
             <span class="text">114 statements &nbsp;</span>
-            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">109<span class="text"> run</span></button>
-            <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">5<span class="text"> missing</span></button>
+            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">111<span class="text"> run</span></button>
+            <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">3<span class="text"> missing</span></button>
             <button type="button" class="exc show_exc button_toggle_exc" value="exc" data-shortcut="x" title="Toggle lines excluded">0<span class="text"> excluded</span></button>
         </h2>
         <p class="text">
@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_a6461c9b303e7be8_utils_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.16.2">coverage.py v7.16.2</a>,
-            created at 2026-10-17 20:24 +0000
+            created at 2026-10-22 15:56 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -213,11 +213,11 @@
     <p class="run"><span class="n"><a id="t131" href="#t131">131</a></span><span class="t">            <span class="nam">source</span> <span class="op">=</span> <span class="nam">self</span><span class="op">.</span><span class="nam">query_one</span><span class="op">(</span><span class="str">&quot;#source-panel&quot;</span><span class="op">,</span> <span class="nam">ConverterPanel</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t132" href="#t132">132</a></span><span class="t">            <span class="nam">dest</span> <span class="op">=</span> <span class="nam">self</span><span class="op">.</span><span class="nam">query_one</span><span class="op">(</span><span class="str">&quot;#dest-panel&quot;</span><span class="op">,</span> <span class="nam">ConverterPanel</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t133" href="#t133">133</a></span><span class="t">            <span class="nam">btn</span> <span class="op">=</span> <span class="nam">self</span><span class="op">.</span><span class="nam">query_one</span><span class="op">(</span><span class="str">&quot;#btn-convert&quot;</span><span class="op">,</span> <span class="nam">Button</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t134" href="#t134">134</a></span><span class="t">        <span class="key">except</span> <span class="nam">NoMatches</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t134" href="#t134">134</a></span><span class="t">        <span class="key">except</span> <span class="nam">NoMatches</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t135" href="#t135">135</a></span><span class="t">            <span class="com"># Panels or button are not mounted yet (e.g. a panel&#x27;s Change event</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t136" href="#t136">136</a></span><span class="t">            <span class="com"># fired during startup before the layout finished mounting). The</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t137" href="#t137">137</a></span><span class="t">            <span class="com"># button stays disabled and a later selection re-triggers this.</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t138" href="#t138">138</a></span><span class="t">            <span class="key">return</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t138" href="#t138">138</a></span><span class="t">            <span class="key">return</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t139" href="#t139">139</a></span><span class="t">        <span class="nam">btn</span><span class="op">.</span><span class="nam">disabled</span> <span class="op">=</span> <span class="key">not</span> <span class="op">(</span><span class="nam">source</span><span class="op">.</span><span class="nam">converter_type</span> <span class="key">and</span> <span class="nam">dest</span><span class="op">.</span><span class="nam">converter_type</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t140" href="#t140">140</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t141" href="#t141">141</a></span><span class="t">    <span class="key">def</span> <span class="nam">get_system_commands</span><span class="op">(</span><span class="nam">self</span><span class="op">,</span> <span class="nam">screen</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="nam">Iterable</span><span class="op">[</span><span class="nam">SystemCommand</span><span class="op">]</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
@@ -318,7 +318,7 @@
             <a class="nav" href="z_a6461c9b303e7be8_utils_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.16.2">coverage.py v7.16.2</a>,
-            created at 2026-10-17 20:24 +0000
+            created at 2026-10-22 15:56 +0000
         </p>
     </div>
 </footer>
