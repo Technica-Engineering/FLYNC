@@ -27,7 +27,7 @@ dependencies = [
     "packaging>=24.0",
     "platformdirs (>=4.9.4,<5.0.0)",
     "polyfactory==3.3.0",
-    "filelock>=4,<4.2",
+    "filelock>=4,<4.3",
     "pluggy>=1.6.0,<2.0.0",
 ]
 
