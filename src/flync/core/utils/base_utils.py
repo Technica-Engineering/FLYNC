@@ -16,10 +16,9 @@ from flync.core.utils import yaml_io
 from flync.core.utils.exceptions import Category, err_fatal
 
 if TYPE_CHECKING:
-    from flync.model.flync_4_ecu import ECUPort, EthernetInterface, SwitchPort
+    from flync.model.flync_4_ecu import ECUPort, EthernetInterface, PortExtender, SwitchPort
 
-    #: A component a multicast path can traverse.
-    type NetworkComponent = SwitchPort | EthernetInterface | ECUPort
+    type NetworkComponent = SwitchPort | EthernetInterface | ECUPort | PortExtender
 
 
 def read_yaml(path: str | os.PathLike[str] | Path) -> object:

@@ -289,6 +289,20 @@ Find this example on github: `ecu_variant_10 <https://github.com/Technica-Engine
 --------------
 
 
+Variant 11: Switch ECU with a port extender, multiple (virtual) interfaces
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Find this example on github: `ecu_variant_11 <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_11_switch_ecu_with_port_extender>`_.
+
+.. image:: ./_static/images/ecu_variants/ecu_variant_11_switch_ecu_with_port_extender.svg
+   :align: center
+   :width: 900px
+
+.. note:: The extender hangs off the uplink port ``switch1_uplink``. Its four ports are ports of ``ecu1_switch1``, each wired to an ECU port.
+
+--------------
+
+
 Internal Topology (Configuration and Types)
 """"""""""""""""""""""""""""""""""""""""""""""
 

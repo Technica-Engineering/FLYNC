@@ -18,7 +18,7 @@ from flync.model.flync_4_ecu import (
     VirtualControllerInterface,
     VLANEntry,
 )
-from flync.model.flync_4_ecu.phy import MII
+from flync.model.flync_4_ecu.mii import MII
 from flync.model.flync_4_security.macsec import (
     IntegrityWithConfidentiality,
     IntegrityWithoutConfidentiality,

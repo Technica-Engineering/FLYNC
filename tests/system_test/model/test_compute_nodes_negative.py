@@ -11,7 +11,8 @@ from pydantic import ValidationError
 from flync.model.flync_4_ecu import ECU, EthernetInterface, EthernetInterfaceConfig
 from flync.model.flync_4_ecu.controller_topology import ControllerTopology
 from flync.model.flync_4_ecu.internal_topology import ECUPortToControllerInterface, InternalTopology, SwitchPortToControllerInterface
-from flync.model.flync_4_ecu.phy import BASET1, RGMII
+from flync.model.flync_4_ecu.mii import RGMII
+from flync.model.flync_4_ecu.phy import BASET1
 from flync.model.flync_4_ecu.port import ECUPort
 from tests.error_assertions import assert_single_error
 from tests.model_builders import (

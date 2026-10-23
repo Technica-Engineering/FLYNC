@@ -244,6 +244,46 @@ Switch Config
 .. autoclass:: flync.model.flync_4_ecu.switch.SwitchPort()
 .. autoclass:: flync.model.flync_4_ecu.switch.VLANEntry()
 
+.. _port_extender:
+
+Port Extender
+=============
+
+.. admonition:: Expand for Schematic
+   :collapsible: closed
+
+   .. mermaid:: ../../_static/mermaid/port_extender.mmd
+
+.. note::
+
+   A port extender is a chip that adds ports to its controlling switch and makes no forwarding decisions. Its ports are ordinary
+   entries of ``ports`` in 📄 ``switch.flync.yaml``; the extender, declared under ``port_extenders`` in the same file, lists them by name.
+
+.. admonition:: Expand for a YAML example - 📄 ``switch.flync.yaml``
+   :collapsible: closed
+
+   .. code-block:: yaml
+
+      port_extenders:
+        - name: z2_pe1
+          uplink:
+            type: tagged
+            switch_port: z2_s1_p3
+            tag: {format: proprietary}
+            mii_config: {type: xfi, mode: phy}
+          ports: [z2_pe1_p1, z2_pe1_p2]
+
+.. hint::
+
+   The uplink is an ordinary xMII link: ``mode: mac`` on the switch's uplink port, ``mode: phy`` on the extender. A ``tagged`` uplink
+   uses a single-port xMII, a ``channelized`` one a multi-port :class:`~flync.model.flync_4_ecu.mii.USXGMII` or
+   :class:`~flync.model.flync_4_ecu.mii.USGMII` lane.
+
+.. autoclass:: flync.model.flync_4_ecu.port_extender.PortExtender()
+.. autoclass:: flync.model.flync_4_ecu.port_extender.TaggedUplink()
+.. autoclass:: flync.model.flync_4_ecu.port_extender.ChannelizedUplink()
+.. autoclass:: flync.model.flync_4_ecu.port_extender.PortExtenderTag()
+
 TCAM
 =====
 
@@ -290,11 +330,29 @@ Media-Dependent Interfaces
 Media-Independent Interfaces
 ============================
 
-.. autoclass:: flync.model.flync_4_ecu.phy.MII()
-.. autoclass:: flync.model.flync_4_ecu.phy.RMII()
-.. autoclass:: flync.model.flync_4_ecu.phy.SGMII()
-.. autoclass:: flync.model.flync_4_ecu.phy.RGMII()
-.. autoclass:: flync.model.flync_4_ecu.phy.XFI()
+.. note::
+   The MII types live in :mod:`flync.model.flync_4_ecu.mii`. An MII is also used without a PHY (switch-to-switch,
+   switch-to-SoC, switch-to-port-extender).
+
+.. autoclass:: flync.model.flync_4_ecu.mii.MII()
+.. autoclass:: flync.model.flync_4_ecu.mii.RMII()
+.. autoclass:: flync.model.flync_4_ecu.mii.SGMII()
+.. autoclass:: flync.model.flync_4_ecu.mii.RGMII()
+.. autoclass:: flync.model.flync_4_ecu.mii.XFI()
+
+Multi-port MII (USXGMII / USGMII)
+===================================
+
+.. hint::
+   One serial MII link can carry several logical ports, for example the uplink of a port extender. The port that holds the
+   ``mii_config`` occupies one channel itself (``mii_subport_id``, default 0). The other ports set ``mii_subport_of`` (the port carrying
+   the link) and ``mii_subport_id`` instead of their own ``mii_config``. Each listed channel is occupied by exactly one port. The
+   single-port variants are the one-channel case of the same model.
+
+.. autoclass:: flync.model.flync_4_ecu.mii.USXGMII()
+.. autoclass:: flync.model.flync_4_ecu.mii.USXGMIIChannel()
+.. autoclass:: flync.model.flync_4_ecu.mii.USGMII()
+.. autoclass:: flync.model.flync_4_ecu.mii.USGMIIChannel()
 
 .. _internal_topology:
 

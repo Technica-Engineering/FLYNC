@@ -184,3 +184,17 @@ Ctrl+C in the terminal that started ``flync-converter-gui`` now closes the GUI i
 Workspace loading also stops cleanly on Ctrl+C: the worker processes that parse the workspace exit with status 130
 instead of each printing a ``KeyboardInterrupt`` traceback. This applies to every workspace load, for example
 ``flync validate`` and the SDK.
+
+xMII rework: USXGMII, USGMII, multi-port links
+''''''''''''''''''''''''''''''''''''''''''''''
+
+The xMII model moved from ``phy.py`` to :mod:`flync.model.flync_4_ecu.mii` and gained :class:`~flync.model.flync_4_ecu.mii.USXGMII` and
+:class:`~flync.model.flync_4_ecu.mii.USGMII`. One xMII link can now carry several logical ports through a ``channels`` list; the other ports
+on the link reference it with the new ``mii_subport_of`` and ``mii_subport_id`` fields. See :ref:`chg__0_14__0_15`.
+
+Port extenders
+''''''''''''''
+
+A switch can now control port extenders, chips that add ports to it, through ``port_extenders`` in ``switch.flync.yaml``. The extender's
+ports stay ordinary switch ports, and it joins the switch through a ``tagged`` or ``channelized`` uplink. See :ref:`port_extender` and
+:ref:`chg__0_14__0_15`.

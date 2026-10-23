@@ -3,3 +3,11 @@ connections:
     id: conn1
     ecu_port: zgw_p1
     controller_interface: zgw_c1_iface1
+  - type: ecu_port_to_controller_interface
+    id: conn2
+    ecu_port: zgw_p2
+    controller_interface: zgw_c1_iface2
+  - type: ecu_port_to_controller_interface
+    id: conn3
+    ecu_port: zgw_p3
+    controller_interface: zgw_c1_iface3

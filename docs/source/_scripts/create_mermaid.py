@@ -42,6 +42,7 @@ targets = {
     "socket.mmd": base_model.flync_4_ecu.sockets,
     "mac_multicast_endpoint.mmd": base_model.flync_4_ecu.mac_multicast_endpoint,
     "switch.mmd": base_model.flync_4_ecu.switch,
+    "port_extender.mmd": base_model.flync_4_ecu.port_extender,
     "ecu_topology.mmd": base_model.flync_4_ecu.internal_topology,
     "communication_configs.mmd": base_model.flync_4_communication.flync_communication,
     "metadata.mmd": base_model.flync_4_metadata.metadata,

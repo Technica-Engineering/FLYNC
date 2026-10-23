@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Collection
 from typing import (
     TYPE_CHECKING,
     Annotated,
@@ -32,10 +33,14 @@ from flync.core.annotations import (
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.datatypes import Bitmask
 from flync.core.datatypes.macaddress import FLYNCMacAddress
-from flync.core.utils.exceptions import Category, err_minor, warn
+from flync.core.utils.exceptions import Category, err_major, err_minor, warn
 from flync.core.validators import traffic_classes as traffic_class_validators
 from flync.core.validators.address import validate_vlan_id
-from flync.core.validators.connection_compatibility import validate_cbs_idleslopes_fit_portspeed
+from flync.core.validators.connection_compatibility import (
+    validate_cbs_idleslopes_fit_portspeed,
+    validate_compulsory_mii_config_compatibility,
+    validate_mii_subports,
+)
 from flync.core.validators.generic import (
     none_to_empty_list,
     validate_elements_in,
@@ -43,16 +48,9 @@ from flync.core.validators.generic import (
     validate_or_remove,
 )
 from flync.model.flync_4_ecu.controller import Controller
-from flync.model.flync_4_ecu.phy import (
-    BASET,
-    BASET1,
-    BASET1S,
-    MII,
-    RGMII,
-    RMII,
-    SGMII,
-    XFI,
-)
+from flync.model.flync_4_ecu.mii import MII, RGMII, RMII, SGMII, USGMII, USXGMII, XFI, XMIIConfig, xmii_channel_capacity
+from flync.model.flync_4_ecu.phy import BASET, BASET1, BASET1S
+from flync.model.flync_4_ecu.port_extender import PortExtender
 from flync.model.flync_4_ecu.vlan_entry import VLANEntry
 from flync.model.flync_4_metadata import EmbeddedMetadata
 from flync.model.flync_4_security import MACsecConfig
@@ -66,6 +64,24 @@ from flync.model.flync_4_tsn import (
 if TYPE_CHECKING:
     from flync.model.flync_4_ecu.controller import EthernetInterface
     from flync.model.flync_4_ecu.port import ECUPort
+
+
+def _channel_signature(mii_config: XMIIConfig) -> list[tuple[int, int]]:
+    """The ``(subport_id, speed)`` pairs of a multi-port xMII; empty for a single-port xMII."""
+    channels = mii_config.channels if isinstance(mii_config, (USXGMII, USGMII)) else []
+    return sorted((channel.subport_id, channel.speed) for channel in channels)
+
+
+def _validate_uplink_not_listed(uplinks: frozenset[str], listed_ports: Collection[str] | None, where: str) -> None:
+    """Raise err_minor if an uplink port is named in ``listed_ports``."""
+    for name in sorted(uplinks.intersection(listed_ports or [])):
+        raise err_minor(
+            "Uplink port '{port}' is listed in {where}, but it is a lane to an extender, not a forwarding endpoint.",
+            port=name,
+            where=where,
+            category=Category.CONSISTENCY,
+            error_number="401",
+        )
 
 
 class SwitchPort(FLYNCBaseModel):
@@ -85,9 +101,22 @@ class SwitchPort(FLYNCBaseModel):
         VLAN ID to be added to an untagged frame ingressing on the port (>= 0 and <= 4095).
         Use ``None`` for an untagged port (no default VLAN).
 
-    mii_config : :class:`~flync.model.flync_4_ecu.phy.MII` or :class:`~flync.model.flync_4_ecu.phy.RMII` or \
-    :class:`~flync.model.flync_4_ecu.phy.SGMII` or :class:`~flync.model.flync_4_ecu.phy.RGMII`, optional
-        Media-independent interface configuration (e.g., MII or RMII).
+    mii_config : :class:`~flync.model.flync_4_ecu.mii.MII` or :class:`~flync.model.flync_4_ecu.mii.RMII` or \
+    :class:`~flync.model.flync_4_ecu.mii.SGMII` or :class:`~flync.model.flync_4_ecu.mii.RGMII` or \
+    :class:`~flync.model.flync_4_ecu.mii.XFI` or :class:`~flync.model.flync_4_ecu.mii.USXGMII` or \
+    :class:`~flync.model.flync_4_ecu.mii.USGMII`, optional
+        Media-independent interface configuration. ``None`` when this port is instead a channel of a
+        sibling port's multi-port link; see ``mii_subport_of``.
+
+    mii_subport_of : str, optional
+        Name of a sibling :class:`SwitchPort` on this switch that carries a multi-port
+        :class:`~flync.model.flync_4_ecu.mii.USXGMII`/:class:`~flync.model.flync_4_ecu.mii.USGMII` link, of which
+        this port is one channel. Mutually exclusive with ``mii_config``. The port carrying the link occupies a channel too.
+
+    mii_subport_id : int, optional
+        Which channel this port occupies, matching a ``channels[*].subport_id`` of the link. With ``mii_subport_of`` it names
+        the channel of that sibling's link; on the port that carries the link itself it names that port's own channel and
+        defaults to 0.
 
     ptp_config : :class:`~flync.model.flync_4_tsn.PTPConfig`, optional
         Precision Time Protocol configuration.
@@ -106,8 +135,11 @@ class SwitchPort(FLYNCBaseModel):
     _type :
         The type of the object generated. Set to controller_interface.
 
-    _mdi_config : :class:`~flync.model.flync_4_ecu.phy.BaseT1` or :class:`~flync.model.flync_4_ecu.phy.BaseT1S` or \
-    :class:`~flync.model.flync_4_ecu.phy.BaseT`
+    _port_extender : :class:`~flync.model.flync_4_ecu.port_extender.PortExtender`
+        The extender this port sits on, ``None`` for a native port. Managed internally.
+
+    _mdi_config : :class:`~flync.model.flync_4_ecu.phy.BASET1` or :class:`~flync.model.flync_4_ecu.phy.BASET1S` or \
+    :class:`~flync.model.flync_4_ecu.phy.BASET`
 
     _connected_component:
         The switch port, controller interface or ecu port connected to the switch port.
@@ -118,7 +150,9 @@ class SwitchPort(FLYNCBaseModel):
     name: str = Field(min_length=1)
     silicon_port_no: int = Field(ge=0)
     default_vlan_id: int = Field(..., ge=0, le=4095)
-    mii_config: Optional[MII | RMII | SGMII | RGMII | XFI] = Field(default=None, discriminator="type")
+    mii_config: Optional[MII | RMII | SGMII | RGMII | XFI | USXGMII | USGMII] = Field(default=None, discriminator="type")
+    mii_subport_of: Optional[str] = Field(default=None)
+    mii_subport_id: Optional[int] = Field(default=None, ge=0)
     ptp_config: Annotated[
         Optional[PTPConfig],
         BeforeValidator(validate_or_remove("PTP config", PTPConfig)),
@@ -139,20 +173,26 @@ class SwitchPort(FLYNCBaseModel):
         BeforeValidator(validate_or_remove("MACsec config", MACsecConfig)),
     ] = Field(default=None)
     _mdi_config: BASET1 | BASET1S | BASET | None = None
-    _connected_component: ECUPort | EthernetInterface | SwitchPort | None = None
+    _connected_component: ECUPort | EthernetInterface | SwitchPort | PortExtender | None = None
     _type: Literal["switch_port"] = "switch_port"
     _switch: Optional[Switch] = None
+    _port_extender: Optional[PortExtender] = None
 
     @property
     def mdi_config(self) -> BASET1 | BASET1S | BASET | None:
         return self._mdi_config
 
     @property
+    def port_extender(self) -> Optional[PortExtender]:
+        """The extender this port sits on, or ``None``."""
+        return self._port_extender
+
+    @property
     def type(self) -> Literal["switch_port"]:
         return self._type
 
     @property
-    def connected_component(self) -> ECUPort | EthernetInterface | SwitchPort | None:
+    def connected_component(self) -> ECUPort | EthernetInterface | SwitchPort | PortExtender | None:
         return self._connected_component
 
     @property
@@ -507,7 +547,7 @@ class SwitchConfig(FLYNCBaseModel):
         Metadata associated with the switch.
 
     ports : list of :class:`SwitchPort`
-        List of switch ports.
+        List of switch ports, including those that sit on port extenders.
 
     vlans : list of :class:`~flync.model.flync_4_ecu.vlan_entry.VLANEntry`
         List of VLAN entries configured on the switch.
@@ -518,6 +558,9 @@ class SwitchConfig(FLYNCBaseModel):
         Aging time, in seconds, for dynamically learned address entries in the switch's Filtering Database (FDB).
         A learned MAC address is removed if no matching frame is seen within this interval.
         Must be a positive value.
+
+    port_extenders : list of :class:`~flync.model.flync_4_ecu.port_extender.PortExtender`, optional
+        Port extenders controlled by this switch. Each lists the names of its ports from ``ports``.
     """
 
     meta: EmbeddedMetadata = Field()
@@ -528,6 +571,10 @@ class SwitchConfig(FLYNCBaseModel):
     ports: List[SwitchPort] = Field()
     vlans: List[VLANEntry] = Field()
     dynamic_address_aging_time: Optional[StrictInt] = Field(default=None, gt=0)
+    port_extenders: Annotated[
+        Optional[List[PortExtender]],
+        BeforeValidator(none_to_empty_list),
+    ] = Field(default_factory=list)
 
 
 class Switch(FLYNCBaseModel):
@@ -545,7 +592,6 @@ class Switch(FLYNCBaseModel):
     host_controller : :class:`~flync.model.flync_4_ecu.controller.Controller`, optional
         The host controller managing the switch, stored in the
         ``switch_host_controller/`` sub-folder.
-
     """
 
     name: Annotated[
@@ -589,6 +635,11 @@ class Switch(FLYNCBaseModel):
         """Proxy to the underlying switch config VLANs."""
         return self.switch_config.vlans
 
+    @property
+    def port_extenders(self) -> List[PortExtender]:
+        """Proxy to the underlying switch config port extenders."""
+        return self.switch_config.port_extenders or []
+
     @model_validator(mode="after")
     def validate_unique_port_number(self) -> Self:
         """
@@ -614,6 +665,234 @@ class Switch(FLYNCBaseModel):
             [p.name for p in self.ports],
             "Switch Ports (name)",
         )
+        return self
+
+    @property
+    def extender_uplink_ports(self) -> frozenset[str]:
+        """Names of the switch ports that terminate an extender uplink."""
+        return frozenset(extender.uplink.switch_port_name for extender in self.port_extenders or [])
+
+    @model_validator(mode="after")
+    def validate_unique_extender_names(self) -> Self:
+        """
+        Validate that extender names are unique within this switch.
+
+        Raises:
+            err_major: Two extenders share a name.
+        """
+
+        validate_list_items_unique([extender.name for extender in self.port_extenders], "Port Extenders (name)")
+        return self
+
+    @model_validator(mode="after")
+    def validate_extender_ports(self) -> Self:
+        """
+        Validate that every listed extender port is a port of this switch and is listed once.
+
+        Raises:
+            err_major: An extender lists an unknown port.
+
+            err_major: A port is listed twice.
+        """
+
+        names = {port.name for port in self.ports}
+        for extender in self.port_extenders:
+            for name in extender.ports:
+                if name not in names:
+                    raise err_major(
+                        "Port extender '{extender}' lists port '{port}', which is not a port of this switch.",
+                        extender=extender.name,
+                        port=name,
+                        category=Category.REFERENCE,
+                        error_number="391",
+                    )
+        validate_list_items_unique([name for extender in self.port_extenders for name in extender.ports], "Port Extenders (ports)")
+        return self
+
+    @model_validator(mode="after")
+    def validate_extender_uplinks(self) -> Self:
+        """
+        Validate the uplink port of every extender.
+
+        Raises:
+            err_major: Two extenders share an uplink port.
+
+            err_major: The uplink port is not a port of this switch.
+
+            err_major: The uplink port sits on another extender (cascading is not supported).
+        """
+
+        validate_list_items_unique([extender.uplink.switch_port_name for extender in self.port_extenders], "Port Extenders (uplink switch_port)")
+        names = {port.name for port in self.ports}
+        for extender in self.port_extenders:
+            name = extender.uplink.switch_port_name
+            if name not in names:
+                raise err_major(
+                    "Uplink port '{port}' of extender '{extender}' is not a port of this switch.",
+                    port=name,
+                    extender=extender.name,
+                    category=Category.REFERENCE,
+                    error_number="392",
+                )
+            parent = next((other for other in self.port_extenders if name in other.ports), None)
+            if parent is not None:
+                raise err_major(
+                    "Uplink port '{port}' of extender '{extender}' is itself a port of extender '{parent}'. Cascading extenders are not supported.",
+                    port=name,
+                    extender=extender.name,
+                    parent=parent.name,
+                    category=Category.COMPATIBILITY,
+                    error_number="393",
+                )
+        return self
+
+    @model_validator(mode="after")
+    def validate_extender_port_channels(self) -> Self:
+        """
+        Validate how an extender port reaches the uplink.
+
+        On a channelized uplink a port needs ``mii_subport_of`` (the uplink port) and ``mii_subport_id``. On a tagged uplink it sets neither
+        nor ``mii_config``.
+
+        Raises:
+            err_major: A channelized extender port lacks ``mii_subport_of`` or ``mii_subport_id``.
+
+            err_major: A tagged extender port sets ``mii_config``, ``mii_subport_of`` or ``mii_subport_id``.
+        """
+
+        by_name = {port.name: port for port in self.ports}
+        for extender in self.port_extenders:
+            uplink = extender.uplink
+            for port in (by_name[name] for name in extender.ports):
+                if uplink.type == "channelized":
+                    if port.mii_subport_of != uplink.switch_port_name or port.mii_subport_id is None:
+                        raise err_major(
+                            "Switch port '{port}' sits on extender '{extender}', whose uplink is channelized: it needs mii_subport_of "
+                            "'{uplink}' and a mii_subport_id (its channel on the lane).",
+                            port=port.name,
+                            extender=extender.name,
+                            uplink=uplink.switch_port_name,
+                            category=Category.CONSISTENCY,
+                            error_number="394",
+                        )
+                elif port.mii_config is not None or port.mii_subport_of is not None or port.mii_subport_id is not None:
+                    raise err_major(
+                        "Switch port '{port}' sits on extender '{extender}', whose uplink is tagged: it cannot set mii_config, mii_subport_of or "
+                        "mii_subport_id. The tag, not a channel, tells its frames apart.",
+                        port=port.name,
+                        extender=extender.name,
+                        category=Category.CONSISTENCY,
+                        error_number="395",
+                    )
+        return self
+
+    @model_validator(mode="after")
+    def validate_extender_uplink_links(self) -> Self:
+        """
+        Validate both ends of every uplink against the uplink type.
+
+        The ends are checked like any xMII link (opposite modes, same type and speed). A channelized uplink also needs a multi-port lane
+        with matching channels, and a tagged uplink a single-port xMII.
+
+        Raises:
+            err_major: The ends differ in mode, speed or type, or one has no xMII.
+
+            err_major: A channelized uplink does not use a multi-port lane.
+
+            err_major: A tagged uplink uses a multi-port lane.
+
+            err_major: The lane channels differ between the two ends.
+        """
+
+        by_name = {port.name: port for port in self.ports}
+        for extender in self.port_extenders or []:
+            uplink_port = by_name[extender.uplink.switch_port_name]
+            validate_compulsory_mii_config_compatibility(uplink_port, extender, extender.name)
+            lane = uplink_port.mii_config
+            if lane is None:  # the compulsory check above raised already
+                continue
+            multi_port = xmii_channel_capacity(lane) > 1
+            if extender.uplink.type == "channelized":
+                if not multi_port:
+                    raise err_major(
+                        "Extender '{extender}' has a channelized uplink, which needs a multi-port USXGMII or USGMII lane, "
+                        "but '{lane}' carries one port.",
+                        extender=extender.name,
+                        lane=lane.type,
+                        category=Category.COMPATIBILITY,
+                        error_number="396",
+                    )
+                if _channel_signature(lane) != _channel_signature(extender.uplink.mii_config):
+                    raise err_major(
+                        "The lane of uplink '{port}' differs between the switch and extender '{extender}': channels {switch_channels} against "
+                        "{extender_channels}.",
+                        port=uplink_port.name,
+                        extender=extender.name,
+                        switch_channels=_channel_signature(lane),
+                        extender_channels=_channel_signature(extender.uplink.mii_config),
+                        category=Category.COMPATIBILITY,
+                        error_number="398",
+                    )
+            elif multi_port:
+                raise err_major(
+                    "Extender '{extender}' has a tagged uplink, which needs a single-port xMII, but '{lane}' is a multi-port lane. "
+                    "Use a channelized uplink for it.",
+                    extender=extender.name,
+                    lane=lane.type,
+                    category=Category.COMPATIBILITY,
+                    error_number="397",
+                )
+        return self
+
+    @model_validator(mode="after")
+    def warn_extender_without_ports(self) -> Self:
+        """Warn about an extender without ports."""
+
+        for extender in self.port_extenders:
+            if not extender.ports:
+                warn(
+                    f"Port extender '{extender.name}' has no ports.",
+                    category=Category.STRUCTURAL,
+                    error_number="403",
+                )
+        return self
+
+    @model_validator(mode="after")
+    def validate_uplink_port_usage(self) -> Self:
+        """
+        Raise err_minor on forwarding or TSN configuration on an uplink port.
+
+        The uplink port is a lane to the extender, not a forwarding endpoint.
+        """
+
+        uplinks = self.extender_uplink_ports
+        for vlan in self.vlans or []:
+            _validate_uplink_not_listed(uplinks, vlan.ports, f"VLAN '{vlan.name}'")
+            for group in vlan.multicast or []:
+                _validate_uplink_not_listed(uplinks, group.ports, f"multicast group {group.address} of VLAN '{vlan.name}'")
+        for rule in self.tcam_rules or []:
+            _validate_uplink_not_listed(uplinks, rule.match_ports, f"TCAM rule '{rule.name}' (match_ports)")
+            for action in rule.action or []:
+                _validate_uplink_not_listed(uplinks, action.ports, f"TCAM rule '{rule.name}' (action '{action.type}')")
+        for port in self.ports:
+            if port.name not in uplinks:
+                continue
+            configured = [field for field in ("ptp_config", "ingress_streams", "traffic_classes", "macsec_config") if getattr(port, field)]
+            if configured:
+                raise err_minor(
+                    "Uplink port '{port}' carries {configured}, but it is a lane to an extender, not a forwarding endpoint.",
+                    port=port.name,
+                    configured=", ".join(configured),
+                    category=Category.CONSISTENCY,
+                    error_number="402",
+                )
+        return self
+
+    @model_validator(mode="after")
+    def validate_mii_subports(self) -> Self:
+        """Validate mii_subport_of/mii_subport_id references between this switch's ports."""
+        lanes = frozenset(extender.uplink.switch_port_name for extender in self.port_extenders or [] if extender.uplink.type == "channelized")
+        validate_mii_subports(self.ports, "Switch Ports", lanes)
         return self
 
     def _has_stream_with_ipv(self, ipv: int) -> bool:
@@ -763,9 +1042,33 @@ class Switch(FLYNCBaseModel):
     def find_switch_port(self, port_name: str) -> SwitchPort:
         return next(p for p in self.ports if p.name == port_name)
 
+    def find_port_extender(self, extender_name: str) -> Optional[PortExtender]:
+        """Return the port extender with the given name, or ``None``."""
+        return next((extender for extender in self.port_extenders or [] if extender.name == extender_name), None)
+
+    def _bind_port_extenders(self) -> None:
+        """
+        Bind each extender to this switch, its ports and its uplink port.
+
+        The connected component of an uplink port is the extender. Unresolved references stay ``None``.
+        """
+
+        by_name = {port.name: port for port in self.ports}
+        for extender in self.port_extenders:
+            extender._switch = self
+            for name in extender.ports:
+                if name in by_name:
+                    by_name[name]._port_extender = extender
+            uplink = extender.uplink
+            uplink._switch_port = by_name.get(uplink.switch_port_name)
+            if uplink._switch_port is not None:
+                uplink._switch_port._connected_component = extender
+
     def model_post_init(self, __context: object) -> None:
         for port in self.ports:
             port._switch = self
+
+        self._bind_port_extenders()
 
         self._fill_empty_tcam_port_lists()
         super().model_post_init(__context)
@@ -783,7 +1086,9 @@ class Switch(FLYNCBaseModel):
         if not self.tcam_rules:
             return
 
-        all_port_names = [port.name for port in self.ports]
+        # "All ports" leaves out extender uplinks: they are lanes.
+        uplinks = self.extender_uplink_ports
+        all_port_names = [port.name for port in self.ports if port.name not in uplinks]
 
         for rule in self.tcam_rules:
             if not rule.match_ports:

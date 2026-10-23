@@ -20,9 +20,11 @@ from .mac_multicast_endpoint import (
     MACMulticastEndpoint,
     MACMulticastEndpoints,
 )
+from .mii import MII, RGMII, RMII, SGMII, USGMII, USXGMII, XFI
 from .multicast_groups import MulticastGroupMembership
-from .phy import BASET, BASET1, BASET1S, MII, RGMII, RMII, SGMII, XFI
+from .phy import BASET, BASET1, BASET1S
 from .port import ECUPort
+from .port_extender import ChannelizedUplink, PortExtender, PortExtenderTag, TaggedUplink
 from .router import RouteEntry
 from .socket_container import SocketContainer
 from .sockets import (
@@ -59,6 +61,7 @@ __all__ = [
     "BASET",
     "BASET1",
     "BASET1S",
+    "ChannelizedUplink",
     "ComputeNode",
     "Controller",
     "ControllerConnectionUnion",
@@ -77,6 +80,8 @@ __all__ = [
     "MII",
     "MulticastGroup",
     "MulticastGroupMembership",
+    "PortExtender",
+    "PortExtenderTag",
     "RGMII",
     "RMII",
     "RouteEntry",
@@ -88,10 +93,13 @@ __all__ = [
     "Switch",
     "SwitchConfig",
     "SwitchPort",
+    "TaggedUplink",
     "TCAMRule",
     "TCPOption",
     "TrafficClass",
     "UDPOption",
+    "USGMII",
+    "USXGMII",
     "VirtualControllerInterface",
     "VLANEntry",
     "XFI",

@@ -2,7 +2,8 @@ import pytest
 from pydantic import ValidationError
 
 from flync.core.utils.exceptions_handling import validate_with_policy
-from flync.model.flync_4_ecu.phy import BASET1, BASET1S, MII, SGMII
+from flync.model.flync_4_ecu.mii import MII, SGMII
+from flync.model.flync_4_ecu.phy import BASET1, BASET1S
 from flync.model.flync_4_ecu.port import ECUPort
 from tests.error_assertions import assert_single_error, assert_single_warning
 

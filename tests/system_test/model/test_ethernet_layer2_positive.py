@@ -10,14 +10,8 @@ from flync.model.flync_4_ecu.controller import (
 )
 from flync.model.flync_4_ecu.ecu import ECU
 from flync.model.flync_4_ecu.internal_topology import ECUPortToSwitchPort, InternalTopology
-from flync.model.flync_4_ecu.phy import (
-    BASET,
-    BASET1,
-    BASET1S,
-    RGMII,
-    RMII,
-    SGMII,
-)
+from flync.model.flync_4_ecu.mii import RGMII, RMII, SGMII
+from flync.model.flync_4_ecu.phy import BASET, BASET1, BASET1S
 from flync.model.flync_4_ecu.port import ECUPort
 from flync.model.flync_4_ecu.switch import Switch, SwitchConfig, SwitchPort
 from flync.model.flync_4_ecu.vlan_entry import VLANEntry

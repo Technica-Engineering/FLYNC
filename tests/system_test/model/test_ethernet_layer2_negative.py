@@ -16,7 +16,8 @@ from flync.model.flync_4_ecu.internal_topology import (
     InternalTopology,
     SwitchPortToControllerInterface,
 )
-from flync.model.flync_4_ecu.phy import BASET1, RGMII
+from flync.model.flync_4_ecu.mii import RGMII
+from flync.model.flync_4_ecu.phy import BASET1
 from flync.model.flync_4_ecu.port import ECUPort
 from flync.model.flync_4_ecu.sockets import IPv4AddressEndpoint
 from flync.model.flync_4_ecu.switch import Switch, SwitchConfig, SwitchPort

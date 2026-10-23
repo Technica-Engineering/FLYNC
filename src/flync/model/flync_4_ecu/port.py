@@ -14,18 +14,17 @@ if TYPE_CHECKING:
 
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major
-from flync.model.flync_4_ecu.phy import (
-    BASET,
-    BASET1,
-    BASET1S,
+from flync.model.flync_4_ecu.mii import (
     MII,
     RGMII,
     RMII,
     SGMII,
+    USGMII,
+    USXGMII,
     XFI,
+    mii_carries_mdi_speed,
 )
-
-MULTI_SPEED_MIIS = (MII, RMII, SGMII, RGMII)
+from flync.model.flync_4_ecu.phy import BASET, BASET1, BASET1S
 
 
 class ECUPort(FLYNCBaseModel):
@@ -41,11 +40,24 @@ class ECUPort(FLYNCBaseModel):
 
     mdi_config : :class:`~flync.model.flync_4_ecu.phy.BASET1` or :class:`~flync.model.flync_4_ecu.phy.BASET1S` or \
     :class:`~flync.model.flync_4_ecu.phy.BASET`
-        Media-dependent interface configuration, such as BASE-T1, BASE-T1S, or BASE-T.
+        Media-dependent interface configuration, such as BASE-T1, BASE-T1S or BASE-T.
 
-    mii_config : :class:`~flync.model.flync_4_ecu.phy.MII` or :class:`~flync.model.flync_4_ecu.phy.RMII` or \
-    :class:`~flync.model.flync_4_ecu.phy.SGMII` or :class:`~flync.model.flync_4_ecu.phy.RGMII`, optional
-        Media-independent interface configuration, such as MII or RMII.
+    mii_config : :class:`~flync.model.flync_4_ecu.mii.MII` or :class:`~flync.model.flync_4_ecu.mii.RMII` or \
+    :class:`~flync.model.flync_4_ecu.mii.SGMII` or :class:`~flync.model.flync_4_ecu.mii.RGMII` or \
+    :class:`~flync.model.flync_4_ecu.mii.XFI` or :class:`~flync.model.flync_4_ecu.mii.USXGMII` or \
+    :class:`~flync.model.flync_4_ecu.mii.USGMII`, optional
+        Media-independent interface configuration. ``None`` when this port is instead a channel of a
+        sibling port's multi-port link; see ``mii_subport_of``.
+
+    mii_subport_of : str, optional
+        Name of a sibling :class:`ECUPort` on this ECU that carries a multi-port
+        :class:`~flync.model.flync_4_ecu.mii.USXGMII`/:class:`~flync.model.flync_4_ecu.mii.USGMII` link, of which
+        this port is one channel. Mutually exclusive with ``mii_config``. The port carrying the link occupies a channel too.
+
+    mii_subport_id : int, optional
+        Which channel this port occupies, matching a ``channels[*].subport_id`` of the link. With ``mii_subport_of`` it names
+        the channel of that sibling's link; on the port that carries the link itself it names that port's own channel and
+        defaults to 0.
 
     Private Attributes
     ------------------
@@ -64,7 +76,9 @@ class ECUPort(FLYNCBaseModel):
         discriminator="mode",
         description="how to use this",
     )
-    mii_config: Optional[MII | RMII | SGMII | RGMII | XFI] = Field(default=None, discriminator="type")
+    mii_config: Optional[MII | RMII | SGMII | RGMII | XFI | USXGMII | USGMII] = Field(default=None, discriminator="type")
+    mii_subport_of: Optional[str] = Field(default=None)
+    mii_subport_id: Optional[int] = Field(default=None, ge=0)
     _ecu: ECU | None = None
     _connected_components: list[SwitchPort | EthernetInterface | ECUPort] = []
     _type: Literal["ecu_port"] = "ecu_port"
@@ -93,19 +107,15 @@ class ECUPort(FLYNCBaseModel):
 
         MII, RMII, SGMII and RGMII each cover a range of link speeds, by scaling their clock (MII, RGMII) or by
         replicating symbols at a fixed rate (RMII, SGMII), so their ``speed`` is a ceiling the MDI may sit below.
-        XFI runs at 10G only, so there the two speeds have to be equal.
+        XFI runs at 10G only, so there the two speeds have to be equal. USXGMII/USGMII only have a single
+        ``speed`` when they carry one channel; a multi-port link has no single speed to compare against the
+        MDI, so the check is skipped.
         """
 
-        if self.mii_config is None:
+        if self.mii_config is None or self.mii_config.speed is None:
             return self
 
-        mii_speed = self.mii_config.speed
-        if mii_speed is None or not isinstance(self.mii_config, MULTI_SPEED_MIIS):
-            speed_is_compatible = self.mdi_config.speed == mii_speed
-        else:
-            speed_is_compatible = self.mdi_config.speed <= mii_speed
-
-        if not speed_is_compatible:
+        if not mii_carries_mdi_speed(self.mii_config, self.mdi_config.speed):
             raise err_major(
                 f"MII and MDI config should have a compatible speed in ECU Ports. Port {self.name}",
                 category=Category.CONSISTENCY,

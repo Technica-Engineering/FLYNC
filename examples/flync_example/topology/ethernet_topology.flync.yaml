@@ -15,6 +15,14 @@ connections:
     id: conn4
     ecu1_port: hpc1_p5
     ecu2_port: zgw_p1
+  - type: ecu_port_to_ecu_port
+    id: conn5
+    ecu1_port: z2_p2
+    ecu2_port: zgw_p2
+  - type: ecu_port_to_ecu_port
+    id: conn6
+    ecu1_port: z2_p3
+    ecu2_port: zgw_p3
   - type: ethernet_multidrop
     id: RearLampSegment
     plca:

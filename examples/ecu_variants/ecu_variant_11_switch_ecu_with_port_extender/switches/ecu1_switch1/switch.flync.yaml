@@ -1,0 +1,55 @@
+meta:
+  author: Dev
+  compatible_flync_version:
+    version_schema: semver
+    version: 0.15.0
+  target_system: flync_os
+ports:
+  - name: switch1_port0
+    silicon_port_no: 0
+    default_vlan_id: 10
+    mii_config:
+      type: rgmii
+      speed: 1000
+      mode: mac
+  - name: switch1_uplink
+    silicon_port_no: 1
+    default_vlan_id: 1
+    mii_config:
+      type: xfi
+      speed: 10000
+      mode: mac
+  - name: switch1_ext_port1
+    silicon_port_no: 2
+    default_vlan_id: 10
+  - name: switch1_ext_port2
+    silicon_port_no: 3
+    default_vlan_id: 10
+  - name: switch1_ext_port3
+    silicon_port_no: 4
+    default_vlan_id: 10
+  - name: switch1_ext_port4
+    silicon_port_no: 5
+    default_vlan_id: 10
+vlans:
+  - name: VLAN10
+    id: 10
+    default_priority: 0
+    ports:
+      - switch1_port0
+      - switch1_ext_port1
+      - switch1_ext_port2
+      - switch1_ext_port3
+      - switch1_ext_port4
+port_extenders:
+  - name: ecu1_extender1
+    uplink:
+      type: tagged
+      switch_port: switch1_uplink
+      tag:
+        format: proprietary
+      mii_config:
+        type: xfi
+        speed: 10000
+        mode: phy
+    ports: [switch1_ext_port1, switch1_ext_port2, switch1_ext_port3, switch1_ext_port4]

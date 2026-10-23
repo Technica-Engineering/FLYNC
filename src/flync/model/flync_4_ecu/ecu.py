@@ -15,6 +15,7 @@ from flync.core.base_models import FLYNCBaseModel
 from flync.core.datatypes.macaddress import FLYNCMacAddress
 from flync.core.utils.base_utils import find_all
 from flync.core.utils.exceptions import Category, err_major, err_minor, warn
+from flync.core.validators.connection_compatibility import validate_mii_subports
 from flync.core.validators.generic import none_to_empty_list, validate_or_remove
 from flync.model.flync_4_ecu.controller import (
     Controller,
@@ -224,19 +225,23 @@ class ECU(FLYNCBaseModel):
     def __validate_switch_port_connections(self, connections: List[InternalConnection]) -> None:
         """Validate that switch ports are not self-connected and not connected to more than one component."""
         seen_switch_ports: set[int] = set()
+        uplinks = {(switch.name, name) for switch in self.switches or [] for name in switch.extender_uplink_ports}
         for conn in connections:
             if not isinstance(conn, SwitchPortToXConnection):
                 continue
             switch_ports = conn.get_switch_port_refs()
-            if len(switch_ports) == 2 and switch_ports[0] is switch_ports[1]:
-                sp = switch_ports[0]
-                raise err_major(
-                    f"switch port '{sp.name}' on switch '{sp.get_switch().name}' is connected to itself. "
-                    f"A component cannot be connected to itself.",
-                    category=Category.COMPATIBILITY,
-                    error_number="209",
-                )
+            self.__validate_not_self_connected(switch_ports)
             for switch_port in switch_ports:
+                if (switch_port.get_switch().name, switch_port.name) in uplinks:
+                    raise err_major(
+                        "switch port '{port}' on switch '{switch}' is the uplink of a port extender and cannot also be wired in the internal "
+                        "topology (connection '{connection}'). The uplink is declared by the extender.",
+                        port=switch_port.name,
+                        switch=switch_port.get_switch().name,
+                        connection=conn.id,
+                        category=Category.COMPATIBILITY,
+                        error_number="399",
+                    )
                 if id(switch_port) in seen_switch_ports:
                     raise err_major(
                         f"switch port '{switch_port.name}' on switch '{switch_port.get_switch().name}' is connected to more than one component. "
@@ -245,6 +250,19 @@ class ECU(FLYNCBaseModel):
                         error_number="210",
                     )
                 seen_switch_ports.add(id(switch_port))
+
+    @staticmethod
+    def __validate_not_self_connected(switch_ports: list[SwitchPort]) -> None:
+        """Raise if both ends of a connection are the same switch port."""
+        if len(switch_ports) == 2 and switch_ports[0] is switch_ports[1]:
+            sp = switch_ports[0]
+            raise err_major(
+                "switch port '{port}' on switch '{switch}' is connected to itself. A component cannot be connected to itself.",
+                port=sp.name,
+                switch=sp.get_switch().name,
+                category=Category.COMPATIBILITY,
+                error_number="209",
+            )
 
     def __validate_single_physical_connection_per_interface(self, connections: List[InternalConnection]) -> None:
         """Raise if the same physical controller interface is connected to more than one switch port."""
@@ -263,6 +281,12 @@ class ECU(FLYNCBaseModel):
             seen[key] = conn.id
 
     @model_validator(mode="after")
+    def validate_mii_subports(self) -> Self:
+        """Validate mii_subport_of/mii_subport_id references between this ECU's ports."""
+        validate_mii_subports(self.ports or [], "ECU Ports")
+        return self
+
+    @model_validator(mode="after")
     def validate_no_unconnected_components(self) -> Self:
         if self._connectivity_check_done:
             return self
@@ -272,6 +296,9 @@ class ECU(FLYNCBaseModel):
         self.__warn_unconnected_switch_ports()
         self.__warn_unconnected_controller_interfaces()
         self.__warn_unconnected_host_controller_interfaces()
+        for switch in self.switches or []:
+            for extender in switch.port_extenders or []:
+                extender.validate_not_oversubscribed()
 
         return self
 

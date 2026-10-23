@@ -33,8 +33,7 @@ ALLOWED_DIFFERING = {
     # eth_ecu_c1_iface1 was restructured in the experimental example: the
     # interface-level virtual_interfaces were moved onto hypervisor compute_nodes.
     # This should go away as soon as compute node is integrated
-    "ecus/eth_ecu/controllers/eth_ecu_controller1/ethernet_interfaces/"
-    "eth_ecu_c1_iface1/interface_config.flync.yaml",
+    "ecus/eth_ecu/controllers/eth_ecu_controller1/ethernet_interfaces/eth_ecu_c1_iface1/interface_config.flync.yaml",
 }
 
 

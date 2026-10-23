@@ -2,6 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from flync.model.flync_4_ecu import Controller, Switch, SwitchPort
+from flync.model.flync_4_ecu.mii import MII
 from tests.error_assertions import assert_single_error
 
 
@@ -388,3 +389,92 @@ def test_switch_vlan_references_nonexistent_port(
         "not yet defined",
         "VLAN references a switch port that does not exist on the switch",
     )
+
+
+def _uplink_port(usxgmii_type="usxgmii_10g_qxgmii", channel_speeds=(1000, 1000)):
+    return SwitchPort(
+        name="uplink",
+        silicon_port_no=0,
+        default_vlan_id=1,
+        mii_config={
+            "type": usxgmii_type,
+            "mode": "mac",
+            "channels": [{"subport_id": idx, "speed": speed} for idx, speed in enumerate(channel_speeds)],
+        },
+    )
+
+
+def test_positive_mii_subports(embedded_metadata_entry):
+    """The port carrying the link occupies channel 0 (the default); the subport takes channel 1."""
+
+    uplink = _uplink_port()
+    p1 = SwitchPort(name="p1", silicon_port_no=2, default_vlan_id=1, mii_subport_of="uplink", mii_subport_id=1)
+
+    switch = Switch.model_validate(
+        {
+            "name": "switch_example",
+            "switch_config": _switch_config(embedded_metadata_entry, [uplink, p1], []),
+        }
+    )
+
+    assert switch.ports[1].mii_subport_id == 1
+
+
+def test_mii_subport_of_unknown_port_is_rejected(embedded_metadata_entry):
+    uplink = _uplink_port()
+    p0 = SwitchPort(name="p0", silicon_port_no=1, default_vlan_id=1, mii_subport_of="does_not_exist", mii_subport_id=0)
+
+    switch_config = _switch_config(embedded_metadata_entry, [uplink, p0], [])
+
+    with pytest.raises(ValidationError) as exc_info:
+        Switch.model_validate({"name": "switch_example", "switch_config": switch_config})
+
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-REF-384", "not another port")
+
+
+def test_mii_subport_of_non_multi_port_sibling_is_rejected(embedded_metadata_entry):
+    """A sibling with a plain single-port MII (not USXGMII/USGMII) cannot carry a channel."""
+
+    uplink = SwitchPort(name="uplink", silicon_port_no=0, default_vlan_id=1, mii_config=MII(mode="mac"))
+    p0 = SwitchPort(name="p0", silicon_port_no=1, default_vlan_id=1, mii_subport_of="uplink", mii_subport_id=0)
+
+    switch_config = _switch_config(embedded_metadata_entry, [uplink, p0], [])
+
+    with pytest.raises(ValidationError) as exc_info:
+        Switch.model_validate({"name": "switch_example", "switch_config": switch_config})
+
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-COMP-385", "does not carry a multi-port")
+
+
+def test_mii_subport_of_and_mii_config_together_is_rejected(embedded_metadata_entry):
+    uplink = _uplink_port()
+    p0 = SwitchPort(
+        name="p0",
+        silicon_port_no=1,
+        default_vlan_id=1,
+        mii_config=MII(mode="mac"),
+        mii_subport_of="uplink",
+        mii_subport_id=0,
+    )
+
+    switch_config = _switch_config(embedded_metadata_entry, [uplink, p0], [])
+
+    with pytest.raises(ValidationError) as exc_info:
+        Switch.model_validate({"name": "switch_example", "switch_config": switch_config})
+
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-CONS-383", "sets both mii_config and mii_subport_of")
+
+
+def test_duplicate_mii_subport_claim_is_rejected(embedded_metadata_entry):
+    """Two ports cannot both claim the same channel of the same uplink."""
+
+    uplink = _uplink_port()
+    p0 = SwitchPort(name="p0", silicon_port_no=1, default_vlan_id=1, mii_subport_of="uplink", mii_subport_id=0)
+    p1 = SwitchPort(name="p1", silicon_port_no=2, default_vlan_id=1, mii_subport_of="uplink", mii_subport_id=0)
+
+    switch_config = _switch_config(embedded_metadata_entry, [uplink, p0, p1], [])
+
+    with pytest.raises(ValidationError) as exc_info:
+        Switch.model_validate({"name": "switch_example", "switch_config": switch_config})
+
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-UNIQ-009", "mii_subport_of/mii_subport_id")

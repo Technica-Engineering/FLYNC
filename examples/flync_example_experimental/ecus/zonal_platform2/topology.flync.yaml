@@ -19,3 +19,11 @@ connections:
     id: conn5
     switch_port: z2_s1_cpu_port
     host_controller_interface: z2_switch1_host_iface1
+  - type: ecu_port_to_switch_port
+    id: conn6
+    ecu_port: z2_p2
+    switch_port: z2_pe1_p1
+  - type: ecu_port_to_switch_port
+    id: conn7
+    ecu_port: z2_p3
+    switch_port: z2_pe1_p2

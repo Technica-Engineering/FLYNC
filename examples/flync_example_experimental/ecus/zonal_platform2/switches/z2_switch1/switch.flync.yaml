@@ -144,6 +144,22 @@ ports:
       delay_protect: false
       participant_activation: always
 
+- name: z2_s1_p3
+  silicon_port_no: 4
+  default_vlan_id: 1
+  mii_config:
+    type: xfi
+    speed: 10000
+    mode: mac
+
+- name: z2_pe1_p1
+  silicon_port_no: 5
+  default_vlan_id: 20
+
+- name: z2_pe1_p2
+  silicon_port_no: 6
+  default_vlan_id: 20
+
 - name: z2_s1_cpu_port
   silicon_port_no: 3
   default_vlan_id: 20
@@ -227,6 +243,8 @@ vlans:
   ports:
     - z2_s1_p0
     - z2_s1_p1
+    - z2_pe1_p1
+    - z2_pe1_p2
     - z2_s1_cpu_port
 
 - name: VLAN40
@@ -237,3 +255,16 @@ vlans:
     - z2_s1_p2
     - z2_s1_p1
     - z2_s1_cpu_port
+
+port_extenders:
+  - name: z2_pe1
+    uplink:
+      type: tagged
+      switch_port: z2_s1_p3
+      tag:
+        format: proprietary
+      mii_config:
+        type: xfi
+        speed: 10000
+        mode: phy
+    ports: [z2_pe1_p1, z2_pe1_p2]

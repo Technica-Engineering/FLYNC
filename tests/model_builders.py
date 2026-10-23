@@ -30,6 +30,7 @@ from flync.model.flync_4_ecu.controller_topology import ControllerTopology
 from flync.model.flync_4_ecu.internal_topology import ECUPortToControllerInterface, ECUPortToSwitchPort, InternalTopology
 from flync.model.flync_4_ecu.phy import BASET1, BASET1S
 from flync.model.flync_4_ecu.port import ECUPort
+from flync.model.flync_4_ecu.port_extender import PortExtender
 from flync.model.flync_4_ecu.socket_container import SocketContainer
 from flync.model.flync_4_ecu.sockets import IPv4AddressEndpoint
 from flync.model.flync_4_ecu.switch import Switch, SwitchConfig, SwitchPort, VLANEntry
@@ -196,6 +197,12 @@ def make_switch_port(*, name: str = "SP0", silicon_port_no: int = 0, default_vla
     return SwitchPort(name=name, silicon_port_no=silicon_port_no, default_vlan_id=default_vlan_id)
 
 
+def make_port_extender(*, name: str = "PE0", uplink: Optional[dict] = None, ports: Optional[list[str]] = None) -> PortExtender:
+    """Return a port extender listing the switch ports ``ports``; by default a tagged XFI uplink on the switch port ``UP0`` and no ports."""
+    uplink = uplink or {"type": "tagged", "switch_port": "UP0", "tag": {"format": "proprietary"}, "mii_config": {"type": "xfi", "mode": "phy"}}
+    return PortExtender(name=name, uplink=uplink, ports=ports or [])
+
+
 def make_vlan_entry(*, name: str = "vlan10", vlan_id: int = 10, ports: tuple[str, ...] = ("SP0",)) -> VLANEntry:
     """Return a VLAN entry naming the switch ports that belong to it."""
     return VLANEntry(name=name, id=vlan_id, default_priority=0, ports=list(ports))
@@ -207,11 +214,12 @@ def make_switch(
     ports: Optional[list] = None,
     vlans: Optional[list] = None,
     host_controller: Optional[Controller] = None,
+    port_extenders: Optional[list] = None,
 ) -> Switch:
     """Return a switch with one port on one VLAN by default."""
     ports = ports if ports is not None else [make_switch_port()]
     vlans = vlans if vlans is not None else [make_vlan_entry(ports=tuple(p.name for p in ports))]
-    config = SwitchConfig(meta=make_controller_metadata(), ports=ports, vlans=vlans)
+    config = SwitchConfig(meta=make_controller_metadata(), ports=ports, vlans=vlans, port_extenders=port_extenders)
     return Switch(name=name, switch_config=config, host_controller=host_controller)
 
 

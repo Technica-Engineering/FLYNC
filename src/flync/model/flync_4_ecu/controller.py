@@ -49,7 +49,7 @@ from flync.model.flync_4_app.app_bindings import AppBindings
 from flync.model.flync_4_ecu.can_interface import CANInterface
 from flync.model.flync_4_ecu.controller_interface import ControllerInterface
 from flync.model.flync_4_ecu.lin_interface import AnyLINInterface
-from flync.model.flync_4_ecu.phy import MII, RGMII, RMII, SGMII, XFI
+from flync.model.flync_4_ecu.mii import MII, RGMII, RMII, SGMII, USGMII, USXGMII, XFI
 from flync.model.flync_4_ecu.router import RouteEntry, gateway_in_subnet
 from flync.model.flync_4_ecu.socket_container import SocketContainer
 from flync.model.flync_4_ecu.sockets import (
@@ -169,8 +169,10 @@ class EthernetInterfaceConfig(FLYNCBaseModel):
     mac_address : :class:`MacAddress`, optional
         MAC address of the interface in standard notation.
 
-    mii_config : :class:`~flync.model.flync_4_ecu.phy.MII` or :class:`~flync.model.flync_4_ecu.phy.RMII` or \
-    :class:`~flync.model.flync_4_ecu.phy.SGMII` or :class:`~flync.model.flync_4_ecu.phy.RGMII`, optional
+    mii_config : :class:`~flync.model.flync_4_ecu.mii.MII` or :class:`~flync.model.flync_4_ecu.mii.RMII` or \
+    :class:`~flync.model.flync_4_ecu.mii.SGMII` or :class:`~flync.model.flync_4_ecu.mii.RGMII` or \
+    :class:`~flync.model.flync_4_ecu.mii.XFI` or :class:`~flync.model.flync_4_ecu.mii.USXGMII` or \
+    :class:`~flync.model.flync_4_ecu.mii.USGMII`, optional
         Media-independent interface configuration. Physical interfaces only.
 
     virtual_interfaces : list of :class:`VirtualControllerInterface`, optional
@@ -202,7 +204,7 @@ class EthernetInterfaceConfig(FLYNCBaseModel):
     """
 
     mac_address: Optional[FLYNCMacAddress] = Field(default=None)
-    mii_config: Optional[MII | RMII | SGMII | RGMII | XFI] = Field(default=None, discriminator="type")
+    mii_config: Optional[MII | RMII | SGMII | RGMII | XFI | USXGMII | USGMII] = Field(default=None, discriminator="type")
     virtual_interfaces: Annotated[
         Optional[List[VirtualControllerInterface]],
         BeforeValidator(

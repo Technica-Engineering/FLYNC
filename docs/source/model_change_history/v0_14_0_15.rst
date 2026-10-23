@@ -7,7 +7,8 @@ No structural change: no field was renamed, moved, added or removed, and every 0
 keeps its layout. What changed is that a set of constraints the model always intended is now
 declared on the fields themselves — which makes them visible in the JSON Schema exported from
 :class:`~flync.model.flync_model.FLYNCModel`, and makes a few previously-tolerated values fail
-validation.
+validation. The xMII model was moved to its own module and extended, and a switch can now control
+port extenders.
 
 Breaking — YAML schema
 ----------------------
@@ -148,3 +149,23 @@ Additive — Python API
   abstract, so constructing the concrete method classes is now type-checked by mypy.
 * ``InternalConnection.ecu`` now returns the owning ECU; it was always ``None`` before, so code that checks
   ``connection.ecu is None`` now takes the other branch.
+
+New xMII types: USXGMII, USGMII
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``mii_config`` on :class:`~flync.model.flync_4_ecu.port.ECUPort`, :class:`~flync.model.flync_4_ecu.switch.SwitchPort` and
+:class:`~flync.model.flync_4_ecu.controller.EthernetInterfaceConfig` now also accepts
+:class:`~flync.model.flync_4_ecu.mii.USXGMII` and :class:`~flync.model.flync_4_ecu.mii.USGMII`.
+
+``MII``, ``RMII``, ``SGMII``, ``RGMII`` and ``XFI`` keep their shape.
+
+Port extenders
+~~~~~~~~~~~~~~
+
+A switch can now control **port extenders**, chips that add ports to it. :class:`~flync.model.flync_4_ecu.switch.SwitchConfig` gained
+``port_extenders`` (default: empty list), a list of :class:`~flync.model.flync_4_ecu.port_extender.PortExtender` with a ``name``, an
+``uplink`` and ``ports``. The extender's ports stay ordinary :class:`~flync.model.flync_4_ecu.switch.SwitchPort` entries in ``ports``, and
+the ``uplink`` is either ``tagged`` (one single-port xMII link, port tag per frame) or ``channelized`` (a multi-port USXGMII / USGMII
+lane, one channel per port).
+
+New validation: ``FLYNC-ECU-...-391`` to ``-403``, see :doc:`../error_catalog`.

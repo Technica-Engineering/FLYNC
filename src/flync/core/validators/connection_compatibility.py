@@ -10,12 +10,18 @@ from typing import TYPE_CHECKING, Protocol
 
 from flync.core.utils.exceptions import Category, err_major, err_minor
 from flync.core.validators.generic import validate_list_items_unique
+from flync.model.flync_4_ecu.mii import USGMII, USXGMII, XMIIConfig, mii_carries_mdi_speed
 
 if TYPE_CHECKING:
     from flync.model.flync_4_ecu.controller import VirtualControllerInterface
-    from flync.model.flync_4_ecu.phy import MII, RGMII, RMII, SGMII, XFI
+    from flync.model.flync_4_ecu.phy import BASET, BASET1, BASET1S
+    from flync.model.flync_4_ecu.port import ECUPort
+    from flync.model.flync_4_ecu.switch import SwitchPort
     from flync.model.flync_4_security import MACsecConfig
     from flync.model.flync_4_tsn import HTBInstance, PTPConfig, Stream, TrafficClass
+
+    type MIIPort = ECUPort | SwitchPort
+    type MDIConfig = BASET1 | BASET1S | BASET
 
 
 # The compatibility checks only read a few attributes of the components they compare (an ECU port, a switch port, an interface
@@ -31,7 +37,7 @@ class HasMIIConfig(Named, Protocol):
     """A component that may carry an MII configuration."""
 
     @property
-    def mii_config(self) -> MII | RMII | SGMII | RGMII | XFI | None: ...
+    def mii_config(self) -> XMIIConfig | None: ...
 
 
 class HasMACsecConfig(Named, Protocol):
@@ -183,8 +189,8 @@ def validate_optional_mii_config_compatibility(comp1: HasMIIConfig | None, comp2
 def _check_mii_pair_compatibility(
     comp1: Named,
     comp2: Named,
-    mii_comp1: MII | RMII | SGMII | RGMII | XFI,
-    mii_comp2: MII | RMII | SGMII | RGMII | XFI,
+    mii_comp1: XMIIConfig,
+    mii_comp2: XMIIConfig,
     id: str,
 ) -> None:
     """
@@ -215,7 +221,7 @@ def _check_mii_pair_compatibility(
             category=Category.COMPATIBILITY,
             error_number="013",
         )
-    if mii_comp1.speed != mii_comp2.speed:
+    if mii_comp1.speed is not None and mii_comp2.speed is not None and mii_comp1.speed != mii_comp2.speed:
         raise err_major(
             f"Incompatible MII Speed: {comp1.name} ({mii_comp1.speed}) ↔ {comp2.name}({mii_comp2.speed})",
             category=Category.COMPATIBILITY,
@@ -451,3 +457,280 @@ def validate_gptp_domains(comp1: Named | None, comp2: Named | None, ptp1: PTPCon
                 category=Category.COMPATIBILITY,
                 error_number="024",
             )
+
+
+def validate_mii_subports(ports: Sequence[MIIPort], label: str, uplink_ports: frozenset[str] = frozenset()) -> None:
+    """
+    Validate ``mii_subport_of``/``mii_subport_id`` references between ports sharing a multi-port xMII link
+    (see :class:`~flync.model.flync_4_ecu.mii.USXGMII`/:class:`~flync.model.flync_4_ecu.mii.USGMII`).
+
+    Args:
+        ports (list): Ports to check, each exposing ``name``, ``mii_config``, ``mii_subport_of``, ``mii_subport_id``.
+
+        label (str): Human-readable label for the owning port list (used in error messages).
+
+        uplink_ports (frozenset[str]): Names of ports that terminate the channelized uplink of a port extender. Such a port is a
+            pure lane: it carries the multi-port link but occupies none of its channels, which the extender ports claim instead.
+
+    Raises:
+        err_major: A port sets both ``mii_config`` and ``mii_subport_of``.
+
+        err_major: ``mii_subport_of`` does not name another port in ``ports``.
+
+        err_major: The referenced port's ``mii_config`` is not a multi-port USXGMII/USGMII link.
+
+        err_major: ``mii_subport_id`` is not one of the referenced link's channel ``subport_id`` values.
+
+        err_major: A port carrying a multi-port link has a ``mii_subport_id`` (default 0) that is not one of its own channels.
+
+        err_major: Two ports claim the same channel of the same link. The port carrying the link claims the channel
+            named by its own ``mii_subport_id`` (default 0); subports claim the others.
+
+        err_major: A listed channel is claimed by no port.
+
+        err_major: A port's ``mdi_config`` speed (the carrying port's included) is one its channel cannot carry (the rule of
+            :meth:`~flync.model.flync_4_ecu.port.ECUPort.verify_mdi_and_mii_config_speeds_are_compatible`, applied per channel).
+            Skipped for a port that has no ``mdi_config`` of its own yet, such as a switch port.
+    """
+
+    by_name = {port.name: port for port in ports}
+    claimed: list[tuple[str, int]] = []
+    subports: list[tuple[MIIPort, MIIPort]] = []
+
+    for port in ports:
+        if port.mii_subport_of is None:
+            continue
+        sibling = _resolve_subport_link(port, port.mii_subport_of, by_name, label)
+        claimed.append((port.mii_subport_of, port.mii_subport_id or 0))
+        subports.append((port, sibling))
+
+    # The port carrying a link occupies one of its channels too: the one named by its own mii_subport_id, default 0.
+    for port in ports:
+        if not isinstance(port.mii_config, (USXGMII, USGMII)) or port.name in uplink_ports:
+            continue
+        own_channel = _own_channel(port, port.mii_config, label)
+        claimed.append((port.name, own_channel))
+        subports.append((port, port))
+
+    validate_list_items_unique(claimed, f"{label} mii_subport_of/mii_subport_id")
+
+    claimed_set = set(claimed)
+    for port in ports:
+        if isinstance(port.mii_config, (USXGMII, USGMII)):
+            _validate_channels_claimed(port, port.mii_config, claimed_set, label)
+
+    for port, link in subports:
+        mdi_config = getattr(port, "mdi_config", None)
+        if mdi_config is not None:
+            validate_mdi_speed_fits_channel(label, port, link, mdi_config)
+
+
+def _resolve_subport_link(port: MIIPort, subport_of: str, by_name: dict[str, MIIPort], label: str) -> MIIPort:
+    """
+    Resolve and validate the multi-port link a subport refers to via ``mii_subport_of``.
+
+    Args:
+        port (object): The port that sets ``mii_subport_of``.
+
+        subport_of (str): The value of that ``mii_subport_of``.
+
+        by_name (dict): Ports of the owning list, keyed by name.
+
+        label (str): Human-readable label for the owning port list (used in error messages).
+
+    Returns:
+        object: The port carrying the referenced multi-port link.
+
+    Raises:
+        err_major: ``port`` also sets ``mii_config``, the reference is not another port, the referenced port carries no
+            multi-port link, or ``mii_subport_id`` is not one of the link's channels.
+    """
+
+    if port.mii_config is not None:
+        raise err_major(
+            "{label} '{port}' sets both mii_config and mii_subport_of; a channel of a shared multi-port link does not have its own mii_config.",
+            label=label,
+            port=port.name,
+            category=Category.CONSISTENCY,
+            error_number="383",
+        )
+
+    sibling = by_name.get(subport_of)
+    if sibling is None or sibling.name == port.name:
+        raise err_major(
+            "{label} '{port}' has mii_subport_of '{subport_of}', which is not another port in {label}.",
+            label=label,
+            port=port.name,
+            subport_of=port.mii_subport_of,
+            category=Category.REFERENCE,
+            error_number="384",
+        )
+
+    if not isinstance(sibling.mii_config, (USXGMII, USGMII)):
+        raise err_major(
+            "{label} '{port}' has mii_subport_of '{sibling}', which does not carry a multi-port USXGMII/USGMII link.",
+            label=label,
+            port=port.name,
+            sibling=sibling.name,
+            category=Category.COMPATIBILITY,
+            error_number="385",
+        )
+
+    channel_subport_ids = {channel.subport_id for channel in sibling.mii_config.channels}
+    if port.mii_subport_id not in channel_subport_ids:
+        raise err_major(
+            "{label} '{port}' has mii_subport_id {subport_id}, which is not a channel of '{sibling}' (channels: {channels}).",
+            label=label,
+            port=port.name,
+            subport_id=port.mii_subport_id,
+            sibling=sibling.name,
+            channels=sorted(channel_subport_ids),
+            category=Category.REFERENCE,
+            error_number="386",
+        )
+    return sibling
+
+
+def _own_channel(port: MIIPort, lane: USXGMII | USGMII, label: str) -> int:
+    """
+    Return the channel a port carrying a multi-port link occupies, checking that it exists.
+
+    Args:
+        port (object): Port whose ``mii_config`` is a multi-port link.
+
+        lane (object): That multi-port link.
+
+        label (str): Human-readable label for the owning port list (used in error messages).
+
+    Returns:
+        int: The ``mii_subport_id`` of the port (default 0).
+
+    Raises:
+        err_major: The channel is not one of the link's own channels.
+    """
+
+    own_channel = port.mii_subport_id or 0
+    own_channel_ids = sorted(channel.subport_id for channel in lane.channels)
+    if own_channel not in own_channel_ids:
+        raise err_major(
+            "{label} '{port}' carries a multi-port link and occupies channel {channel} (mii_subport_id, default 0), "
+            "which is not one of its channels ({channels}).",
+            label=label,
+            port=port.name,
+            channel=own_channel,
+            channels=own_channel_ids,
+            category=Category.REFERENCE,
+            error_number="389",
+        )
+    return own_channel
+
+
+def _validate_channels_claimed(port: MIIPort, lane: USXGMII | USGMII, claimed_set: set[tuple[str, int]], label: str) -> None:
+    """
+    Check that every channel of a port's multi-port link is claimed by some port.
+
+    Args:
+        port (object): Port whose ``mii_config`` is a multi-port link.
+
+        lane (object): That multi-port link.
+
+        claimed_set (set): ``(port name, channel id)`` pairs claimed across the port list.
+
+        label (str): Human-readable label for the owning port list (used in error messages).
+
+    Raises:
+        err_major: A channel of the link is claimed by no port.
+    """
+
+    unclaimed = sorted(c.subport_id for c in lane.channels if (port.name, c.subport_id) not in claimed_set)
+    if unclaimed:
+        raise err_major(
+            "{label} '{port}' carries a multi-port link whose channel(s) {unclaimed} are not claimed by any port. "
+            "Every channel needs exactly one port with a matching mii_subport_of/mii_subport_id.",
+            label=label,
+            port=port.name,
+            unclaimed=unclaimed,
+            category=Category.CONSISTENCY,
+            error_number="387",
+        )
+
+
+def validate_mdi_speed_fits_channel(label: str, port: MIIPort, link: MIIPort, mdi_config: MDIConfig) -> None:
+    """
+    Check that the channel a port occupies on a multi-port xMII link can carry the port's MDI speed.
+
+    This is the rule of :meth:`~flync.model.flync_4_ecu.port.ECUPort.verify_mdi_and_mii_config_speeds_are_compatible`, applied to
+    one channel of the link.
+
+    Args:
+        label (str): Human-readable label for the owning port list (used in error messages).
+
+        port (object): The port whose channel is checked; its ``mii_subport_id`` (default 0) picks the channel.
+
+        link (object): The port whose ``mii_config`` is the multi-port link (``port`` itself when it carries the link).
+
+        mdi_config (object): MDI configuration whose ``speed`` is compared against the channel.
+
+    Raises:
+        err_major: The channel's speed is lower than the MDI speed.
+    """
+
+    lane = link.mii_config
+    if not isinstance(lane, (USXGMII, USGMII)):
+        return
+    channel = next(c for c in lane.channels if c.subport_id == (port.mii_subport_id or 0))
+    if not mii_carries_mdi_speed(lane, mdi_config.speed, channel.speed):
+        raise err_major(
+            "{label} '{port}' has an MDI speed of {mdi_speed} Mbps, which channel {subport_id} of '{link}' ({channel_speed} Mbps) cannot carry.",
+            label=label,
+            port=port.name,
+            mdi_speed=mdi_config.speed,
+            subport_id=channel.subport_id,
+            link=link.name,
+            channel_speed=channel.speed,
+            category=Category.CONSISTENCY,
+            error_number="388",
+        )
+
+
+def validate_switch_port_mdi_speed(switch_port: SwitchPort) -> None:
+    """
+    Check a switch port's MDI speed against the xMII it sits on, once the MDI config has been copied in.
+
+    ``SwitchPort.mdi_config`` is only set when the internal topology binds a connection, so
+    :func:`validate_mii_subports` cannot see it; this runs after that step. It covers a port that carries a multi-port link
+    (its own channel), a subport (the channel it claims on the sibling's link) and a port with a plain single-port xMII.
+
+    Args:
+        switch_port (object): The switch port, already holding its ``mdi_config``. Nothing is checked while that is ``None``.
+
+    Raises:
+        err_major: The xMII, or the channel the port occupies, cannot carry the MDI speed.
+    """
+
+    mdi_config = switch_port.mdi_config
+    if mdi_config is None:
+        return
+
+    label = "Switch Ports"
+    link = None
+    if isinstance(switch_port.mii_config, (USXGMII, USGMII)):
+        link = switch_port
+    elif switch_port.mii_subport_of is not None:
+        link = next((p for p in switch_port.get_switch().ports if p.name == switch_port.mii_subport_of), None)
+
+    if link is not None and isinstance(link.mii_config, (USXGMII, USGMII)):
+        validate_mdi_speed_fits_channel(label, switch_port, link, mdi_config)
+        return
+
+    mii_config = switch_port.mii_config
+    if mii_config is not None and mii_config.speed is not None and not mii_carries_mdi_speed(mii_config, mdi_config.speed):
+        raise err_major(
+            "{label} '{port}' has an MDI speed of {mdi_speed} Mbps, which its MII config ({mii_speed} Mbps) cannot carry.",
+            label=label,
+            port=switch_port.name,
+            mdi_speed=mdi_config.speed,
+            mii_speed=mii_config.speed,
+            category=Category.CONSISTENCY,
+            error_number="390",
+        )

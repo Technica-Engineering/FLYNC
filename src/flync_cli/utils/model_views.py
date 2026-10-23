@@ -160,9 +160,11 @@ def _collect_controller_vlan_members(ecu, grouped: dict) -> None:
 def _collect_switch_vlan_members(ecu, grouped: dict) -> None:
     """Collect VLAN members from switch ports for *ecu*."""
     for switch in ecu.get_all_switches():
+        extender_of = {port.name: port.port_extender.name for port in switch.ports if port.port_extender is not None}
         for vlan in switch.vlans or []:
             for port_name in vlan.ports:
-                grouped[vlan.id].append(VlanMember(ecu, port_name, "Switch Port", []))
+                kind = f"Switch Port (extender {extender_of[port_name]})" if port_name in extender_of else "Switch Port"
+                grouped[vlan.id].append(VlanMember(ecu, port_name, kind, []))
 
 
 def vlan_members(model, ecu_name: Optional[str] = None) -> dict:

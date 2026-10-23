@@ -12,6 +12,7 @@ Supports the ECU variants under ``examples/ecu_variants/``:
     7. switch_ecu_ext_PHY
     8. switch_ecu_with_host_ext_PHY
     9. single_controller_eth_iface_can_iface (rendered like 1/2; the CAN interface is not drawn)
+    11. switch_ecu_with_port_extender
 
 Variant 10 (``ecu_variant_10``) has a hand-maintained static diagram instead — see
 ``STATIC_DIAGRAM_ECUS`` below.
@@ -55,6 +56,7 @@ PORT_FILL, PORT_STROKE = "#d5e8d4", "#82b366"
 SWITCH_FILL, SWITCH_STROKE = "#fff2cc", "#d6b656"
 SWITCH_PORT_FILL, SWITCH_PORT_STROKE = "#ffe6cc", "#d79b00"
 SILICON_FILL, SILICON_STROKE = "#f5f5f5", "#666666"
+EXTENDER_FILL, EXTENDER_STROKE = "#e8f0e0", "#7a9a5a"
 BRIDGE_FILL, BRIDGE_STROKE = "#fff2cc", "#d6b656"
 COMPUTE_NODE_FILL, COMPUTE_NODE_STROKE = "#d5e8ff", "#4a78b0"
 
@@ -211,6 +213,8 @@ def detect_pattern(ecu: ECU) -> str:
             return "single_viface" if len(iface.virtual_interfaces) == 1 else "multi_viface"
         return "multi_physical_iface"
     sw = ecu.switches[0]
+    if sw.port_extenders:
+        return "switch_with_extender"
     return "switch_with_host" if sw.host_controller is not None else "switch"
 
 
@@ -616,6 +620,152 @@ def render_switch(ecu: ECU, *, with_host: bool = False) -> str:
     return svg.render()
 
 
+def _uplink_label(uplink) -> list[str]:
+    """Two label lines for an extender uplink: its type and tag or lane, and the xMII with the roles of both ends."""
+    mii = uplink.mii_config
+    if uplink.type == "tagged":
+        return [f"uplink: tagged ({uplink.tag.format} tag)", f"{mii.type}: switch mac, extender phy"]
+    return [f"uplink: channelized ({len(mii.channels)} channels)", f"{mii.type}: switch mac, extender phy"]
+
+
+def render_switch_with_extender(ecu: ECU) -> str:
+    """
+    Variant 11: ECU with one switch that controls one port extender.
+    """
+    ctrl = ecu.controllers[0]
+    iface = ctrl.ethernet_interfaces[0].interface_config
+    switch = ecu.switches[0]
+    if len(switch.port_extenders) != 1:
+        raise ValueError("Only switches with exactly one port extender are supported.")
+    extender = switch.port_extenders[0]
+    ext_ports = sorted(extender.get_ports(), key=lambda p: p.silicon_port_no)
+    uplink_port = extender.uplink.switch_port
+    native = sorted((p for p in switch.ports if p.port_extender is None and p is not uplink_port), key=lambda p: p.silicon_port_no)
+    top_port, bottom_native = native[0], native[1:]
+    n_vifaces = len(iface.virtual_interfaces)
+    max_vlans = max((sum(1 for v in switch.vlans if p.name in v.ports) for p in ext_ports), default=0)
+
+    sp_w, sp_h = 96, 22
+    silicon_w, silicon_h = 130, 64
+    pitch = 200
+    n_cols = len(bottom_native) + len(ext_ports)
+    width = max(720, n_cols * pitch + 120, n_vifaces * 230 + 100)
+
+    ecu_x, ecu_y, ecu_w = 15, 30, width - 30
+    ctrl_x, ctrl_y, ctrl_w, ctrl_h = ecu_x + 25, ecu_y + 35, ecu_w - 50, 170
+    if_x, if_y, if_w, if_h = ctrl_x + 20, ctrl_y + 35, ctrl_w - 40, ctrl_h - 55
+    sw_x, sw_y, sw_w = ecu_x + 25, ctrl_y + ctrl_h + 60, ecu_w - 50
+    silicon_y = sw_y + 50 + sp_h + 40
+    bp_y = silicon_y + silicon_h + 60
+    sw_h = (bp_y + sp_h + 20) - sw_y
+
+    ext_y = sw_y + sw_h + 50
+    ext_ports_y = ext_y + 44 + max_vlans * 26
+    ext_h = (ext_ports_y - ext_y) + 24 + 50 + 40
+    ext_w = len(ext_ports) * pitch
+    ecu_h = (ext_y + ext_h) - ecu_y + 20
+    height = ecu_y + ecu_h + 100
+
+    svg = SVG(width, height)
+    svg.rect(ecu_x, ecu_y, ecu_w, ecu_h, fill=ECU_FILL, stroke=ECU_STROKE, sw=1.5, rx=6)
+    svg.text(ecu_x + ecu_w / 2, ecu_y + 18, ecu.name, size=14, anchor="middle", bold=True)
+    svg.rect(ctrl_x, ctrl_y, ctrl_w, ctrl_h, fill=CTRL_FILL, stroke=CTRL_STROKE, sw=1.2, rx=5)
+    svg.text(ctrl_x + ctrl_w / 2, ctrl_y + 18, ctrl.name, size=13, anchor="middle", bold=True)
+    svg.rect(if_x, if_y, if_w, if_h, fill=IFACE_FILL, stroke=IFACE_STROKE, sw=1, rx=4)
+    svg.text(if_x + if_w / 2, if_y + 14, iface.name, size=11, anchor="middle", bold=True)
+    per_w = max(180, (if_w - 40) // max(1, n_vifaces) - 10)
+    start_x = if_x + (if_w - (n_vifaces * per_w + (n_vifaces - 1) * 10)) / 2
+    for i, v in enumerate(iface.virtual_interfaces):
+        svg.viface(start_x + i * (per_w + 10), if_y + 25, per_w, v.name, v.addresses, v.vlanid, with_oval=True)
+
+    # Columns of the bottom row: native ports first, then the extender block, whose centre the uplink port sits above.
+    row_start = sw_x + (sw_w - n_cols * pitch) / 2 + pitch / 2
+    native_xs = [row_start + i * pitch for i in range(len(bottom_native))]
+    ext_xs = [row_start + (len(bottom_native) + i) * pitch for i in range(len(ext_ports))]
+    uplink_cx = sum(ext_xs) / len(ext_xs) if ext_xs else sw_x + sw_w / 2
+    bottom_xs = [*native_xs, uplink_cx]
+    silicon_cx = sum(bottom_xs) / len(bottom_xs)
+    silicon_x = silicon_cx - silicon_w / 2
+
+    svg.rect(sw_x, sw_y, sw_w, sw_h, fill=SWITCH_FILL, stroke=SWITCH_STROKE, sw=1.2, rx=4)
+    svg.text(sw_x + 80, sw_y + 18, switch.name, size=13, anchor="middle", bold=True)
+    iface_cx = if_x + if_w / 2
+    tp_y = sw_y + 50
+    svg.rect(iface_cx - sp_w / 2, tp_y, sp_w, sp_h, fill=SWITCH_PORT_FILL, stroke=SWITCH_PORT_STROKE, sw=1, rx=2)
+    svg.text(iface_cx, tp_y + sp_h / 2 + 4, top_port.name, size=10, anchor="middle", bold=True)
+    svg.line(iface_cx, tp_y + sp_h, iface_cx, silicon_y)
+    _vlans_block(svg, switch, top_port, cx=iface_cx + 110, cy_center=tp_y + sp_h / 2)
+    svg.rect(silicon_x, silicon_y, silicon_w, silicon_h, fill="#ffffff", stroke="#000000", sw=1, rx=4)
+    svg.text(silicon_cx, silicon_y + silicon_h / 2 - 2, "switch", size=11, anchor="middle")
+    svg.text(silicon_cx, silicon_y + silicon_h / 2 + 14, "silicon", size=11, anchor="middle")
+    svg.text(silicon_cx, silicon_y - 4, "silicon_port0", size=9, anchor="middle")
+
+    for i, (bp, bx) in enumerate(zip([*bottom_native, uplink_port], bottom_xs)):
+        left = bx < silicon_cx
+        svg.rect(bx - sp_w / 2, bp_y, sp_w, sp_h, fill=SWITCH_PORT_FILL, stroke=SWITCH_PORT_STROKE, sw=1, rx=2)
+        svg.text(bx, bp_y + sp_h / 2 + 4, bp.name, size=10, anchor="middle", bold=True)
+        svg.line(bx, bp_y, bx, silicon_y + silicon_h)
+        svg.line(bx, silicon_y + silicon_h, silicon_x if left else silicon_x + silicon_w, silicon_y + silicon_h)
+        label_y = (silicon_y + silicon_h + bp_y) / 2 + 3
+        svg.text(bx + (-6 if left else 6), label_y, f"silicon_port{i + 1}", size=9, anchor="end" if left else "start")
+
+    # The extender block, hung off the uplink port.
+    ext_x = uplink_cx - ext_w / 2
+    svg.rect(ext_x, ext_y, ext_w, ext_h, fill=EXTENDER_FILL, stroke=EXTENDER_STROKE, sw=1.2, rx=4)
+    svg.text(ext_x + 10, ext_y + 16, f"port extender {extender.name}", size=13, anchor="start", bold=True)
+    svg.line(uplink_cx, bp_y + sp_h, uplink_cx, ext_y)
+    for k, line in enumerate(_uplink_label(extender.uplink)):
+        svg.text(uplink_cx + 10, bp_y + sp_h + 18 + k * 14, line, size=10)
+
+    port_y = ecu_y + ecu_h + 40
+    for ep, px in zip(ext_ports, ext_xs):
+        svg.rect(px - sp_w / 2 - 12, ext_ports_y, sp_w + 24, 24, fill=SWITCH_PORT_FILL, stroke=SWITCH_PORT_STROKE, sw=1, rx=2)
+        svg.text(px, ext_ports_y + 11, ep.name, size=10, anchor="middle", bold=True)
+        svg.text(px, ext_ports_y + 21, f"extender port {ep.silicon_port_no}", size=8, anchor="middle")
+        for j, vid in enumerate(v.id for v in switch.vlans if ep.name in v.ports):
+            svg.vlan_oval(px, ext_y + 40 + j * 26, vid)
+        ecu_port = _port_for_switch_port(ecu, ep.name)
+        if ecu_port is not None:
+            _draw_extender_phy_chain(
+                svg,
+                line_x=px,
+                top_y=ext_ports_y + 24,
+                extender_bottom=ext_y + ext_h,
+                port_y=port_y,
+                mdi_config=ecu_port.mdi_config,
+                port_name=ecu_port.name,
+            )
+
+    svg.line(iface_cx, if_y + if_h, iface_cx, tp_y, dashed=True)
+    svg.options(iface_cx + 12, (if_y + if_h + tp_y) / 2 + 4, mii_opts(iface.mii_config.type if iface.mii_config else None))
+    return svg.render()
+
+
+def _draw_extender_phy_chain(svg, *, line_x, top_y, extender_bottom, port_y, mdi_config, port_name):
+    """
+    Render the integrated PHY of one extender port, inside the extender block, and its line to the ECU port.
+
+    The extender columns are narrow, so only the active role and speed are written next to the line, not the full option lists of
+    :func:`_draw_int_phy_chain`.
+    """
+    phy_w, phy_h = 110, 28
+    phy_y = extender_bottom - phy_h - 12
+    svg.line(line_x, top_y, line_x, phy_y, dashed=True)
+    svg.rect(line_x - phy_w / 2, phy_y, phy_w, phy_h, fill=PHY_FILL, stroke=PHY_STROKE, sw=1, rx=3)
+    svg.text(line_x, phy_y + phy_h / 2 + 4, "Integrated PHY", size=12, anchor="middle", bold=True)
+
+    svg.line(line_x, phy_y + phy_h, line_x, port_y, dashed=True)
+    mid_y = (phy_y + phy_h + port_y) / 2
+    role = getattr(mdi_config, "role", None)
+    svg.text(line_x + 10, mid_y, f"{mdi_config.mode}, {mdi_config.speed} Mb/s", size=10, anchor="start", bold=True)
+    if role:
+        svg.text(line_x + 10, mid_y + 13, role, size=10, anchor="start")
+
+    port_w, port_h = 110, 28
+    svg.rect(line_x - port_w / 2, port_y, port_w, port_h, fill=PORT_FILL, stroke=PORT_STROKE, sw=1, rx=3)
+    svg.text(line_x, port_y + port_h / 2 + 4, port_name, size=12, anchor="middle", bold=True)
+
+
 CN_BOX_PAD = 16
 CN_BOX_GAP = 16
 CN_BOX_HEADER_H = 22
@@ -736,6 +886,7 @@ _PATTERN_RENDERERS = {
     "multi_physical_iface": render_multi_physical_iface,
     "switch": lambda ecu: render_switch(ecu, with_host=False),
     "switch_with_host": lambda ecu: render_switch(ecu, with_host=True),
+    "switch_with_extender": render_switch_with_extender,
     "compute_nodes": render_compute_nodes,
 }
 
