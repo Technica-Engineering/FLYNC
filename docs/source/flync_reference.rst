@@ -139,12 +139,6 @@ All components inside the ECU are described in an internal topology where the st
 ECUs - Controllers
 ==================
 
-.. version-changed:: 0.11.0
-
-   The Structure of the Controller configuration was significantly updated with Version 0.11.0!
-   Make sure to upgrade your config to the new structure described in this section.
-
-
 Each controller of an ECU is represented as a **directory**.
 
 Ethernet interfaces are grouped in the sub-directory ``ethernet_interfaces/``, where each interface is its own named directory.

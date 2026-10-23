@@ -22,34 +22,26 @@ help:
 .PHONY: help Makefile
 
 generations:
-# create mermaid schematics
 	uv run python3 ./source/_scripts/create_mermaid.py
 	uv run python3 ./source/_scripts/generate_ecu_diagram.py $(EXAMPLE_SOURCE)/ecu_variants -o $(EXAMPLE_DST)/images/ecu_variants
 	uv run python3 ./source/_scripts/generate_multidrop_segment_diagram.py $(EXAMPLE_SOURCE)/$(EXAMPLE_NAME)
-# create cli docu
 	uv run typer flync_cli.main utils docs --name flync --title Usage --output $(SOURCEDIR)/flync_cli/usage.md
-# generate error catalog
 	uv run python3 ../src/flync_cli/main.py errors generate-catalog
 
 clear:
-# remove mermaid files
+	echo "removing temporary files"
 	rm -r $(EXAMPLE_DST)/mermaid
-# remove ecu_variant diagrams
 	rm -r $(EXAMPLE_DST)/images/ecu_variants
-# remove flync_example
 	rm -r $(EXAMPLE_DST)$(EXAMPLE_NAME)
 	rm -r $(EXAMPLE_DST)$(EXAMPLE_NAME2)
-# remove generated cli usage page
 	rm $(SOURCEDIR)/flync_cli/usage.md
 
+clean:
+	rm -rf $(BUILDDIR)
 
-
-html: generations
-# copy flync_example for yaml references during runtime of docs build
+html_gen: generations
 	cp -a $(EXAMPLE_SOURCE)$(EXAMPLE_NAME) $(EXAMPLE_DST)
 	cp -a $(EXAMPLE_SOURCE)$(EXAMPLE_NAME2) $(EXAMPLE_DST)
-# build html docs
 	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-	@echo "---- Clearing generated files... ----"
-	make clear
+html: html_gen clear
