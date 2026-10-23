@@ -99,14 +99,16 @@ class TestMigrationRegistry:
         ],
     )
     def test_empty_unique_id_rejected(self, bad_cls):
+        registry = MigrationRegistry.new()
         with pytest.raises(ValueError, match="unique_id"):
-            MigrationRegistry.new().register(bad_cls)
+            registry.register(bad_cls)
 
     def test_duplicate_unique_id_rejected(self):
         registry = MigrationRegistry.new()
         registry.register(RenameFooToBarMigration())
+        duplicate = RenameFooToBarMigration()
         with pytest.raises(ValueError, match="Duplicate migration unique_id"):
-            registry.register(RenameFooToBarMigration())
+            registry.register(duplicate)
 
     def test_duplicate_target_version_rejected(self):
         registry = MigrationRegistry.new()
@@ -119,8 +121,9 @@ class TestMigrationRegistry:
                 pass
 
         registry.register(RenameFooToBarMigration())
+        other = Other()
         with pytest.raises(ValueError, match="share target_version"):
-            registry.register(Other())
+            registry.register(other)
 
     @pytest.mark.parametrize("target_version", ["", "not-a-version"])
     def test_invalid_target_version_rejected(self, target_version):
@@ -131,8 +134,9 @@ class TestMigrationRegistry:
                 pass
 
         BadTarget.target_version = target_version
+        registry = MigrationRegistry.new()
         with pytest.raises(ValueError, match="not a PEP 440 version"):
-            MigrationRegistry.new().register(BadTarget)
+            registry.register(BadTarget)
 
     def test_decorator_registers_into_default_registry(self, global_registry):
         @migration
@@ -223,8 +227,11 @@ class TestApply:
 
         registry = MigrationRegistry.new()
         registry.register(BrokenGuard)
+        engine = MigrationEngine(registry=registry)
+        documents = {"a.flync.yaml": {}}
+        recorded, current = V("0.9.0"), V("0.12.0")
         with pytest.raises(KeyError, match="guard"):
-            MigrationEngine(registry=registry).apply({"a.flync.yaml": {}}, V("0.9.0"), V("0.12.0"))
+            engine.apply(documents, recorded, current)
 
     def test_untouched_uris_not_reported_as_changed(self, two_migrations):
         documents = {"root.flync.yaml": {"name": "x", "bar": 1}}
@@ -316,14 +323,16 @@ class TestMigrator:
         assert Migrator().check(tmp_path).state is State.NO_VERSION
 
     def test_run_raises_on_no_version(self, tmp_path, two_migrations):
+        migrator = Migrator(registry=two_migrations)
         with pytest.raises(RuntimeError, match="no recorded FLYNC version"):
-            Migrator(registry=two_migrations).run(tmp_path)
+            migrator.run(tmp_path)
 
     def test_run_raises_on_unsupported_old(self, tmp_path, two_migrations):
         config = WorkspaceConfiguration(version=V("0.1.0"))
         workspace = FakeWorkspace(configuration=config, workspace_root=Path(tmp_path))
+        migrator = Migrator(registry=two_migrations)
         with pytest.raises(RuntimeError, match="lowest supported"):
-            Migrator(registry=two_migrations).run(workspace.workspace_root, workspace_config=config)
+            migrator.run(workspace.workspace_root, workspace_config=config)
 
     def test_apply_in_place_writes_docs_history_and_stamps(self, tmp_path, two_migrations, monkeypatch):
         workspace = _fake_workspace(
@@ -340,7 +349,8 @@ class TestMigrator:
         assert (Path(tmp_path) / "root.flync.yaml").exists()
         assert not (Path(tmp_path) / "other.flync.yaml").exists()
         content = (Path(tmp_path) / "root.flync.yaml").read_text(encoding="utf-8")
-        assert "bar: 1" in content and "foo" not in content.split("bar", 1)[0]
+        assert "bar: 1" in content
+        assert "foo" not in content.split("bar", 1)[0]
         # History recorded, config save requested.
         assert load_history(tmp_path).applied_ids() == ["test_rename_foo", "test_wrap_baz"]
         assert workspace.saved is True
@@ -473,7 +483,8 @@ class TestApplyMigrationPolicy:
         with caplog.at_level(logging.ERROR):
             apply_migration_policy(workspace, registry=registry)
 
-        assert "Automatic migration of workspace fake" in caplog.text and "boom" in caplog.text
+        assert "Automatic migration of workspace fake" in caplog.text
+        assert "boom" in caplog.text
         assert workspace.documents["root.flync.yaml"].ast == {"foo": 1}
         assert workspace.configuration.version == V("0.9.0")
         assert workspace.saved is False
