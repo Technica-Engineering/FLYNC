@@ -165,7 +165,7 @@ out of the typing work:
   by the regular field validation.
 
 The Python API changes (list fields that are no longer ``Optional``, the deprecated ``ecus`` argument of
-``ECUPort.get_internal_connected_component()``)
+``ECUPort.get_internal_connected_component()``, the removed ``FLYNCWorkspace.get_semantic_object_from_model()``)
 are listed in the :ref:`model change history <chg__0_14__0_15>`.
 
 CLI conversion preview

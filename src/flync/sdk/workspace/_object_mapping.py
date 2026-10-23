@@ -13,7 +13,6 @@ from typing import TYPE_CHECKING, Optional, cast
 from pydantic import RootModel, ValidationError
 from pydantic.fields import FieldInfo
 from ruamel.yaml.nodes import MappingNode, Node, SequenceNode
-from typing_extensions import deprecated
 
 from flync.core.annotations.reference import Reference, resolve_reference
 from flync.core.base_models.base_model import FLYNCBaseModel
@@ -349,8 +348,8 @@ class _WorkspaceObjectMapping(_WorkspaceBase):
         def_obj = resolve_reference(sematic_obj.model, field_name)
         if not isinstance(def_obj, FLYNCBaseModel):
             return None
-        so = self.get_semantic_object_from_model(def_obj)
-        return so.id if so else None
+        objects = self.get_semantic_objects_from_model(def_obj)
+        return objects[0].id if objects else None
 
     def get_references_of(self, object_id: ObjectId) -> list[ObjectId]:
         """
@@ -460,25 +459,6 @@ class _WorkspaceObjectMapping(_WorkspaceBase):
         """
 
         return [self.get_object(oid) for oid in self._model_to_object_ids.get(id(model), [])]
-
-    @deprecated("Use get_semantic_objects_from_model() instead, which returns all matches")
-    def get_semantic_object_from_model(self, model: FLYNCBaseModel) -> SemanticObject | None:
-        """
-        Find and return the first semantic object that corresponds to a validated Flync object.
-
-        This method maintains backward compatibility by returning only the first result.
-
-        Args:
-            model (FLYNCBaseModel):
-                Validated Flync model.
-
-        Returns:
-            SemanticObject | None:
-                First semantic object that corresponds to Flync object, or None if not found.
-        """
-
-        results = self.get_semantic_objects_from_model(model)
-        return results[0] if results else None
 
     def get_source(self, id: ObjectId) -> SourceRef:
         """

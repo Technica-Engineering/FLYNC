@@ -124,6 +124,12 @@ The property was previously untyped and is now annotated ``str | None``: the nam
 owning :class:`~flync.model.flync_4_ecu.controller.EthernetInterface` and is ``None`` before that happens.
 Runtime behavior is unchanged; type checkers now require a ``None`` check before using the name as ``str``.
 
+``FLYNCWorkspace.get_semantic_object_from_model()`` removed
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The deprecated single-result lookup is gone. Use ``get_semantic_objects_from_model()``, which returns every
+semantic object registered for the model; ``objects[0] if objects else None`` gives the former result.
+
 Deprecated — Python API
 -----------------------
 
