@@ -159,7 +159,8 @@ class MulticastMixin:
         if interface is not None:
             rx_targets.setdefault(key, []).append(interface)
 
-    def append_mcast(self: FLYNCModelProtocol, vlan: int, comp: SwitchPort, mcast_addr: str) -> None:
+    @staticmethod
+    def append_mcast(vlan: int, comp: SwitchPort, mcast_addr: str) -> None:
         """Add switch port ``comp`` to the multicast group ``mcast_addr`` of the VLAN entry ``vlan`` on its switch."""
         for v_entry in comp.get_switch().vlans:
             if v_entry.id == vlan:
