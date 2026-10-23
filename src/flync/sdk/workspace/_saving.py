@@ -18,7 +18,7 @@ from flync.core.annotations import (
     OutputStrategy,
 )
 from flync.core.base_models.base_model import FLYNCBaseModel
-from flync.sdk.context.workspace_config import CONFIG_RELPATH
+from flync.sdk.context.workspace_config import CONFIG_RELPATH, WorkspaceConfiguration
 from flync.sdk.utils.field_utils import (
     get_metadata,
     get_name,
@@ -53,6 +53,15 @@ def _needs_quoting(value: str) -> bool:
 def _represent_str(representer, data: str):
     """Force single quotes when the loader would not read back ``data`` as str."""
     return representer.represent_scalar("tag:yaml.org,2002:str", data, style="'" if _needs_quoting(data) else None)
+
+
+def _migration_pending(configuration: WorkspaceConfiguration) -> bool:
+    """Whether the recorded version still needs a schema migration, or is too old to have one."""
+    from flync.core.version_migrators.engine import MigrationEngine, WorkspaceMigrationState
+    from flync.sdk.context.workspace_config import _get_current_flync_version
+
+    state = MigrationEngine().evaluate(configuration.version, _get_current_flync_version()).state
+    return state in (WorkspaceMigrationState.PENDING_MIGRATION, WorkspaceMigrationState.UNSUPPORTED_OLD)
 
 
 def _workspace_yaml() -> ruamel.yaml.YAML:
@@ -92,6 +101,10 @@ class _WorkspaceSaving(_WorkspaceIncremental):
         implicit write that :meth:`generate_configs` performs, so asking for the file
         directly always produces it.
 
+        The version stamp is not advanced while the workspace still has pending schema
+        migrations (or is too old to migrate): saving does not migrate the documents, so a newer
+        stamp would mark old-format data as current and the migrations would never run.
+
         Example:
             >>> workspace = FLYNCWorkspace.load_workspace("myproject", "/path/to/project")
             >>> # ... modify workspace.configuration if needed ...
@@ -100,7 +113,7 @@ class _WorkspaceSaving(_WorkspaceIncremental):
         if not self.workspace_root:
             raise ValueError("Unable to save workspace configuration: workspace root is not defined.")
         config_path = self.workspace_root / CONFIG_RELPATH
-        self.configuration.to_yaml_file(config_path)
+        self.configuration.to_yaml_file(config_path, advance_version=not _migration_pending(self.configuration))
 
     def __save_content_to_file(self, file_path: Path, content):
         """

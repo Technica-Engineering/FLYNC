@@ -2,6 +2,7 @@
 
 import sys
 import time
+from pathlib import Path
 
 import typer
 from typing_extensions import Annotated
@@ -49,6 +50,8 @@ def _run_validate(path, node: str, config_name: str, verbose: bool) -> Diagnosti
         console.print(f">>> Validation Result for {config_name}: [bold red] INVALID [/bold red] ")
         sys.exit(1)
 
+    _print_migration_hint(resolved_path)
+
     if not result.passed:
         color = "bold red"
     elif result.state is WorkspaceState.WARNING:
@@ -82,3 +85,24 @@ def validate(
 ) -> DiagnosticsResult:
     """Validate a FLYNC model at the given path, exiting non-zero unless it passed."""
     return _run_validate(path, node, config_name, verbose)
+
+
+def _print_migration_hint(resolved_path: Path) -> None:
+    """
+    Suggest ``flync migrate`` when a workspace was created by an older FLYNC release.
+
+    This is advisory only - it never changes the validation result or exit code.
+    """
+    try:
+        from flync.core.version_migrators.engine import Migrator, WorkspaceMigrationState
+
+        status = Migrator().plan(resolved_path)
+    except Exception:  # pragma: no cover - a broken config must not break `validate`
+        return
+
+    if status.state is WorkspaceMigrationState.PENDING_MIGRATION:
+        assert status.recorded is not None and status.current is not None
+        console.print(
+            f"[bold yellow]→ Workspace was created with FLYNC {status.recorded.version} "
+            f"(installed: {status.current.version}). Run `flync migrate {resolved_path}` to update it.[/bold yellow]"
+        )

@@ -14,6 +14,18 @@ Release Notes
 Release 0.15
 ------------
 
+Workspace schema migrations
+'''''''''''''''''''''''''''
+
+A workspace recorded by an older FLYNC can be brought up to the installed release with ``flync migrate <path>``.
+The command compares the ``version`` stamp in ``.flync/config.yaml`` with the installed release and applies the
+registered migrations in order, rewriting only the documents that change and recording each migration in
+``.flync/migrations/history.yaml``. ``--dry-run`` shows the plan and ``--init`` records the installed version
+without changing data. The new ``migration_mode`` setting in ``.flync/config.yaml`` controls what happens on load:
+``propose`` (default) logs a warning, ``auto`` migrates before the model is loaded and ``off`` skips the check.
+Saving a workspace no longer advances its version stamp while migrations are pending. A configuration that sets
+``migration_mode`` cannot be read by FLYNC 0.14 and older. See :ref:`migrations_reference`.
+
 J1939 support in the DBC converter
 ''''''''''''''''''''''''''''''''''
 

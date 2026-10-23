@@ -37,6 +37,7 @@ Documentation can be found in `docs` and should be updated by every significant 
 
 * Update Release Notes in `docs/source/release_notes.rst` for significant changes
 * Update the Model Change History in `docs/source/model_change_history.rst` for model changes
+* Add a schema migration for every breaking change to the workspace format (see [Schema Migrations](#schema-migrations))
 * Model development conventions live in `docs/source/development/` (Model Development Guide) — when a significant change adds or alters a modelling pattern, update the guide and its examples
 
 ### Entry Points
@@ -159,6 +160,42 @@ the keeper is picked by file order instead, which may renumber the older error.
 | `src/flync_cli/utils/errors.py` | AST-based static scanner (`scan_error_calls`), catalog renderer, drift validator |
 | `src/flync_cli/utils/error_renumber.py` | Duplicate-number fixer: git base-branch lookup, renumber plan, id propagation, `sync_catalog` |
 | `docs/source/error_catalog.rst` | Generated Sphinx-Needs catalog (do not edit by hand) |
+
+## Schema Migrations
+
+Every breaking change to the workspace format ships with a migration, so workspaces recorded by an older FLYNC can be brought forward with `flync migrate`. Migrations transform the raw parsed YAML (plain dicts keyed by workspace-relative URI) before Pydantic validation runs. Full reference: `docs/source/flync_reference/sdk_core/migrations.rst`.
+
+### What counts as breaking
+
+A change is breaking when a workspace that loaded cleanly on the previous release fails to load, loses data, or loads with a different meaning. Typical cases: renaming, moving or removing a field; changing a field's type or shape (scalar to list, dict to list, unit change); adding a required field without a default; moving data to another file or changing the file/folder layout; changing a discriminator value or enum literal. A new optional field with a default is not breaking.
+
+### Adding a migration
+
+1. Create `src/flync/core/version_migrators/migrations/v<from>_to_<to>_<slug>.py` (e.g. `v0_14_to_0_15_pdu_ref.py`) with a `FLYNCMigration` subclass decorated with `@migration`, and import it in `migrations/__init__.py` (the import is what registers it). The commented template at the bottom of that `__init__.py` is the starting point.
+2. Set the class attributes:
+   - `unique_id`: stable snake_case id. It is written to every migrated workspace's `.flync/migrations/history.yaml`, so it never changes once released.
+   - `target_version`: the PEP 440 release that ships the change (the upcoming release, e.g. `"0.15.0"`). Only one migration per `target_version` is allowed; if the release already has one, extend that class.
+   - `description`: one line, shown by `flync migrate --dry-run`.
+   - `error_ids`: the `FLYNC-...` ids the old shape raises on the new release.
+3. Implement `apply(documents)`, mutating `documents` in place:
+   - Idempotent: running it on already-migrated documents changes nothing. An interrupted run re-applies the whole chain.
+   - Defensive about input: skip documents that are not dicts and keys that are absent, since any workspace older than `target_version` can reach it.
+   - Data only: never import model classes, never touch the filesystem. The engine writes changed documents, the history and the stamp.
+4. Optionally implement `should_apply(documents)` as a cheap check that the old shape is present. It must not raise; an exception aborts the migration run.
+5. Test it in `tests/unit_test/core/` with an isolated registry (`MigrationRegistry.new()`), never the global one: old-shape documents in, `MigrationEngine.apply` out, assert the new shape, then apply again and assert nothing changed. Where practical, also load the migrated documents into the model and assert no errors.
+6. Document it: add the change to `docs/source/model_change_history.rst` naming the migration's `unique_id`, and to `docs/source/release_notes.rst`.
+
+`LOWEST_SUPPORTED_VERSION` in `version_migrators/_base.py` only ever increases, and only when a release drops the migration path from older workspaces. Never edit `.flync/migrations/history.yaml` in a workspace by hand.
+
+### Key Files
+
+| File | Role |
+|---|---|
+| `src/flync/core/version_migrators/_base.py` | `FLYNCMigration` contract, `MigrationRegistry`, `@migration` decorator, `LOWEST_SUPPORTED_VERSION` |
+| `src/flync/core/version_migrators/engine.py` | `MigrationEngine` (version classification, chain, transform), `Migrator` (check/run/stamp), load-time `apply_migration_policy` |
+| `src/flync/core/version_migrators/history.py` | `.flync/migrations/history.yaml` manifest |
+| `src/flync/core/version_migrators/migrations/` | Concrete migrations, registered on import |
+| `src/flync_cli/commands/migrate.py` | `flync migrate <path>` (`--dry-run`, `--init`) |
 
 ## Commands
 

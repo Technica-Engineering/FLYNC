@@ -9,7 +9,7 @@ import importlib.metadata
 import logging
 from enum import IntFlag
 from pathlib import Path
-from typing import Any, Self, Type
+from typing import Any, Literal, Self, Type
 
 from packaging.version import Version
 from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
@@ -129,6 +129,10 @@ class WorkspaceConfiguration(BaseModel):
         version (BaseVersion): FLYNC release that last wrote this configuration. Auto-detects the current version by default.
         Always serialized, and moved forward (never backwards) when a newer FLYNC rewrites the file.
         Tracking only: it is recorded to support future migrations and is not enforced on load.
+        migration_mode (Literal["off", "propose", "auto"]): How the SDK reacts when a workspace's recorded version
+        is older than the installed FLYNC release. ``"off"`` never checks versions, ``"propose"`` (default) only warns
+        and suggests ``flync migrate``, ``"auto"`` applies pending migrations before the model is loaded. Autopilot is
+        opt-in because it rewrites the user's workspace files.
     """
 
     model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True, extra="forbid")
@@ -141,6 +145,7 @@ class WorkspaceConfiguration(BaseModel):
     list_objects_mode: ListObjectsMode = ListObjectsMode.INDEX | ListObjectsMode.NAME
     persist_config: bool = True
     version: BaseVersion = Field(default_factory=_get_current_flync_version)
+    migration_mode: Literal["off", "propose", "auto"] = "propose"
 
     @field_validator("root_model", mode="before")
     @classmethod
@@ -246,7 +251,7 @@ class WorkspaceConfiguration(BaseModel):
             return cls.from_yaml_file(config_path)
         return cls()
 
-    def _version_to_persist(self) -> BaseVersion:
+    def _version_to_persist(self, advance_version: bool = True) -> BaseVersion:
         """
         Return the version stamp to write to disk.
 
@@ -258,15 +263,19 @@ class WorkspaceConfiguration(BaseModel):
         produced must not claim the workspace downgraded. Versions recorded under a different
         ``version_schema`` are not comparable, so those are left untouched.
 
+        Args:
+            advance_version: ``False`` keeps the carried version, for a workspace whose documents
+                are still in an older schema.
+
         Returns:
             BaseVersion: The version to serialize.
         """
         current = _get_current_flync_version()
-        if self.version.version_schema != current.version_schema:
+        if not advance_version or self.version.version_schema != current.version_schema:
             return self.version
         return current if current.version > self.version.version else self.version
 
-    def to_yaml_file(self, path: str | Path) -> None:
+    def to_yaml_file(self, path: str | Path, *, advance_version: bool = True) -> None:
         """
         Save WorkspaceConfiguration to a YAML file.
 
@@ -276,6 +285,9 @@ class WorkspaceConfiguration(BaseModel):
 
         Args:
             path: Path to write YAML file (e.g., .flync/config.yaml).
+
+            advance_version: When ``False``, the carried ``version`` is written as is instead of
+                being moved forward to the running release.
 
         Example:
             >>> config = WorkspaceConfiguration(map_objects=True)
@@ -310,7 +322,7 @@ class WorkspaceConfiguration(BaseModel):
 
         # Always serialize version (even if default), so the file records which FLYNC
         # release last wrote it and a later release can migrate it.
-        version = self._version_to_persist()
+        version = self._version_to_persist(advance_version)
         data["version"] = {
             "version_schema": version.version_schema,
             "version": str(version.version),

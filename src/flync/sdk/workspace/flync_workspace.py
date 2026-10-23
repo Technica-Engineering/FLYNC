@@ -161,6 +161,12 @@ class FLYNCWorkspace(_WorkspaceSaving):
             configuration=resolved_config,
         )
         output._open_documents()
+        if resolved_config.migration_mode != "off":
+            # Warn about (or, in "auto" mode, perform) schema migrations on the freshly opened
+            # documents, before the model is assembled so an "auto" migration is what gets loaded.
+            from flync.core.version_migrators.engine import apply_migration_policy
+
+            apply_migration_policy(output)
         model = output._load_from_path(output.workspace_root)  # type: ignore[arg-type]
 
         if not isinstance(model, FLYNCBaseModel):

@@ -7,6 +7,7 @@ This page is a full reference of the SDK for developers and contributors to FLYN
    :maxdepth: 2
 
    workspace_configuration
+   migrations
 
 .. _flync_workspace:
 

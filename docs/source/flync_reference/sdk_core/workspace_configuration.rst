@@ -28,8 +28,9 @@ part of the file. See :ref:`workspace_configuration_root_model`.
 
 	``version`` records the FLYNC release that last wrote the file, so future releases can migrate older
 	configuration files. When a newer FLYNC rewrites a workspace the stamp moves forward, because the file
-	is then in that newer release's format; it is never moved backwards. It is **not** checked when a
-	configuration is loaded; no compatibility is enforced today.
+	is then in that newer release's format; it is never moved backwards. On load, the stamped version is
+	compared against the installed FLYNC release and, depending on ``migration_mode``, the workspace is
+	warned about or automatically brought up to date (see :ref:`migrations_reference`).
 
 Configuration File Format
 =========================
@@ -209,6 +210,15 @@ Configuration Fields
   FLYNC release that last wrote this configuration. Auto-detects the installed version, falling back to ``0.0.0`` when the distribution metadata is
   unavailable. On save the stamp is advanced to the running release if that is newer than the recorded one, and left alone otherwise (including when
   the recorded version uses a different ``version_schema``, which makes the two incomparable). Default: current FLYNC version (PEP 440 format)
+
+**migration_mode** (Literal "off" | "propose" | "auto")
+  How the SDK treats workspaces whose recorded ``version`` predates the installed FLYNC release:
+
+  - ``"off"`` — never checks versions on load.
+  - ``"propose"`` (default) — checks and logs a warning suggesting ``flync migrate``, but never rewrites data.
+  - ``"auto"`` — applies pending migrations in memory before the model is loaded, rewriting the affected files.
+
+  Default: ``"propose"``
 
 Error Handling
 ==============

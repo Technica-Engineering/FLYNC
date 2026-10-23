@@ -20,3 +20,5 @@
 | `flync_4_tsn` | **TSN** | Time-Sensitive Networking: QoS shaping (CBS, ATS, HTB), traffic classes, PTP time sync |
 
 When you add or change a model, update the Model Change History in `docs/source/model_change_history.rst`.
+
+When the change is breaking (an existing workspace no longer loads, or loads differently), add a schema migration under `src/flync/core/version_migrators/migrations/`. The checklist is in the Schema Migrations section of the root `AGENTS.md`.
