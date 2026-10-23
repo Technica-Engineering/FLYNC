@@ -85,10 +85,13 @@ def test_eventgroup_declared_element_ok(metadata_entry):
 
 def test_duplicate_identifier_raises(metadata_entry):
     events = [_event("e1", 1), _event("e2", 1)]
+    eg = SOMEIPEventgroup(name="eg", id=1, events=events)
     with pytest.raises(ValidationError) as exc_info:
-        _service(metadata_entry, events=events)
+        _service(metadata_entry, events=events, eventgroups=[eg])
     assert_single_error(exc_info, "FLYNC-SOM-MIN-UNIQ-137", "Entities share same identifier: 1")
 
 
 def test_unique_identifiers_ok(metadata_entry):
-    _service(metadata_entry, events=[_event("a", 1), _event("b", 2)])
+    events = [_event("a", 1), _event("b", 2)]
+    eg = SOMEIPEventgroup(name="eg", id=1, events=events)
+    _service(metadata_entry, events=events, eventgroups=[eg])
