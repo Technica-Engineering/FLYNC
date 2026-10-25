@@ -3,12 +3,10 @@
 0.14.x → 0.15.x
 ===============
 
-No structural change: no field was renamed, moved, added or removed, and every 0.14 workspace
-keeps its layout. What changed is that a set of constraints the model always intended is now
-declared on the fields themselves — which makes them visible in the JSON Schema exported from
-:class:`~flync.model.flync_model.FLYNCModel`, and makes a few previously-tolerated values fail
-validation. The xMII model was moved to its own module and extended, and a switch can now control
-port extenders.
+No field was renamed, moved or removed, and every 0.14 workspace keeps its layout. Constraints the
+model always intended are now declared on the fields themselves, so they appear in the JSON Schema
+exported from :class:`~flync.model.flync_model.FLYNCModel` and a few previously tolerated values now fail
+validation. The xMII model moved to its own module and was extended, and a switch can control port extenders.
 
 Breaking — YAML schema
 ----------------------
@@ -16,13 +14,11 @@ Breaking — YAML schema
 Empty identifiers and references are rejected
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Required identifier and reference strings now declare ``min_length=1``. An empty value was
-previously accepted and only surfaced further along as a confusing reference error (an empty
-``pdu_ref`` reported as ``unknown PDU ''``), or silently produced an unnamed object.
-
-Affected are the required ``name``, ``id``, ``label``, ``group``, ``service``, ``profile_id``,
-``ecu_name``, ``controller_name``, ``interface_name``, ``bus_name`` and ``*_ref``
-(``pdu_ref``, ``bus_ref``, ``socket_ref``, ``frame_ref``) fields across every domain.
+Required identifier and reference strings declare ``min_length=1``. An empty value used to surface late as a
+confusing reference error (e.g. ``unknown PDU ''``) or silently produce an unnamed object. Affected are the
+required ``name``, ``id``, ``label``, ``group``, ``service``, ``profile_id``, ``ecu_name``, ``controller_name``,
+``interface_name``, ``bus_name`` and ``*_ref`` (``pdu_ref``, ``bus_ref``, ``socket_ref``, ``frame_ref``) fields.
+Optional fields are unaffected.
 
 .. code-block:: yaml
 
@@ -30,16 +26,13 @@ Affected are the required ``name``, ``id``, ``label``, ``group``, ``service``, `
    - name: ""
      pdu_ref: ""
 
-Optional fields are unaffected: leaving one out, or setting it to ``null`` where the model
-allows that, behaves exactly as before.
-
 CAN frame references drop ``bus_ref`` and gain ``id_format``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``CANFrameRef`` (``sender_frames`` / ``receiver_frames`` of a CAN interface) no longer carries a ``bus_ref``;
-the bus is the ``bus_ref`` of the owning CAN interface. The new required ``id_format`` (``standard_11bit`` or
+``CANFrameRef`` (``sender_frames`` / ``receiver_frames``) no longer has a ``bus_ref``; the bus is the
+``bus_ref`` of the owning CAN interface. The new required ``id_format`` (``standard_11bit`` or
 ``extended_29bit``) is combined with ``frame_ref`` to locate the frame, since a standard and an extended frame
-may share one numeric CAN ID.
+may share one numeric ID.
 
 .. code-block:: yaml
 
@@ -56,10 +49,9 @@ may share one numeric CAN ID.
 J1939 frame references drop ``bus_ref``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``J1939FrameRef`` (``j1939_sender_frames`` / ``j1939_receiver_frames`` of a CAN interface) no longer carries a
-``bus_ref``, for the same reason as ``CANFrameRef``: the bus is the ``bus_ref`` of the owning CAN interface.
-The class also moved from ``flync.model.flync_4_ecu.can_interface`` to
-``flync.model.flync_4_signal.j1939_frame_ref`` (it stays importable from the old module).
+``J1939FrameRef`` (``j1939_sender_frames`` / ``j1939_receiver_frames``) no longer has a ``bus_ref``, for the
+same reason. The class moved to ``flync.model.flync_4_signal.j1939_frame_ref`` and stays importable from
+``flync.model.flync_4_ecu.can_interface``.
 
 .. code-block:: yaml
 
@@ -72,139 +64,118 @@ The class also moved from ``flync.model.flync_4_ecu.can_interface`` to
    j1939_sender_frames:
      - pgn: 61441
 
-Negative values are rejected on quantities that cannot be negative
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Negative values are rejected where they make no sense
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``ge=0`` was added to:
 
-* MACsec MKA timers — ``hello_time``, ``bounded_hello_time``, ``life_time``,
-  ``sak_retire_time`` (matching ``sak_rekey_time``, which already declared it),
-* PTP time-receiver timeouts — ``sync_timeout``, ``sync_followup_timeout``,
-* HTB shaping — ``classid``, ``rate``, ``ceil``, ``priority``, and ``HTBFilter.filter_priority``,
+* MACsec MKA timers: ``hello_time``, ``bounded_hello_time``, ``life_time``, ``sak_retire_time``,
+* PTP time-receiver timeouts: ``sync_timeout``, ``sync_followup_timeout``,
+* HTB shaping: ``classid``, ``rate``, ``ceil``, ``priority`` and ``HTBFilter.filter_priority``.
 
-Container PDU header field widths are capped at 32 bits
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Container PDU header widths are capped at 32 bits
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``ContainerPDUHeader.id_length_bits`` and ``ContainerPDUHeader.length_field_bits`` now
-declare ``le=32`` in addition to the existing ``multiple_of=8``. Widths above 32 bits were
-previously accepted although no supported container format uses one.
-
-.. code-block:: yaml
-
-   header:
-     id_length_bits: 40     # no longer valid, must be 0, 8, 16, 24 or 32
-     length_field_bits: 64  # no longer valid, must be 0, 8, 16, 24 or 32
+``ContainerPDUHeader.id_length_bits`` and ``length_field_bits`` now also declare ``le=32`` (besides
+``multiple_of=8``), so only 0, 8, 16, 24 or 32 are valid. No supported container format uses more.
 
 Additive — YAML schema
 ----------------------
 
-``J1939Frame.length`` widened to support Transport Protocol payloads
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+``J1939Frame.length`` supports Transport Protocol payloads
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``J1939Frame.length`` was previously a literal fixed at ``8`` bytes (a single-frame J1939
-parameter group). It is now an ``int`` in ``1..1785`` with a default of ``8``, so a Transport
-Protocol message whose payload is shipped over multiple physical J1939 frames can be modelled as a
-single PDU. Existing ``8``-byte frames load unchanged.
+``length`` was fixed at ``8`` bytes; it is now an ``int`` in ``1..1785`` (default ``8``), so a Transport
+Protocol message spanning several physical frames can be modelled as one PDU. Existing frames load unchanged.
 
-New optional instrumentation overlay
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Optional instrumentation overlay
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The optional ``instrumentation/`` folder (:ref:`flync_4_instrumentation <instrumentation>`) wraps the
-measurement points under an ``Instrumentation`` container on the root model:
-``flync_model.instrumentation`` is ``None`` without the folder, otherwise an
-``Instrumentation`` whose ``measurement_points`` load from
-``instrumentation/measurement_points.flync.yaml``. Each measurement point is identified by
-its ASAM CMP / TECMP interface ids and taps exactly one medium:
+The optional ``instrumentation/`` folder (:ref:`flync_4_instrumentation <instrumentation>`) adds an
+``Instrumentation`` container: ``flync_model.instrumentation`` is ``None`` without the folder, otherwise its
+``measurement_points`` load from ``instrumentation/measurement_points.flync.yaml``. Each measurement point is
+identified by its ASAM CMP / TECMP interface ids and taps exactly one medium:
 
-* ``type: ethernet_ports`` — one or two ECU ports of a point-to-point Ethernet link, one
-  ``interface_id`` per port (two ports must be the two ends of the same connection),
-* ``type: ethernet_bus`` — one interface id for an ``ethernet_multidrop`` segment, by connection id,
-* ``type: can_bus`` — one interface id plus the ``payload_types`` captured on the bus
-  (``can_fd`` is required exactly on ``fd_enabled`` buses),
-* ``type: lin_bus`` — one interface id for a LIN bus.
+* ``type: ethernet_ports``: one or two ports of a point-to-point link, one ``interface_id`` per port (two ports
+  must be the two ends of the same connection),
+* ``type: ethernet_bus``: one interface id for an ``ethernet_multidrop`` segment, by connection id,
+* ``type: can_bus``: one interface id plus the captured ``payload_types`` (``can_fd`` is required exactly on
+  ``fd_enabled`` buses),
+* ``type: lin_bus``: one interface id for a LIN bus.
 
-``name`` and every interface id are unique across the overlay, and ``flync_model.instrumentation``
-is an ``Instrumentation`` instance carrying ``.measurement_points``. No 0.14 workspace has the
-folder, so workspaces keep their layout; adding the overlay is purely optional.
+``name`` and every interface id are unique across the overlay.
+
+New xMII types: USXGMII, USGMII
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``mii_config`` on :class:`~flync.model.flync_4_ecu.port.ECUPort`, :class:`~flync.model.flync_4_ecu.switch.SwitchPort`
+and :class:`~flync.model.flync_4_ecu.controller.EthernetInterfaceConfig` also accepts
+:class:`~flync.model.flync_4_ecu.mii.USXGMII` and :class:`~flync.model.flync_4_ecu.mii.USGMII`.
+``MII``, ``RMII``, ``SGMII``, ``RGMII`` and ``XFI`` keep their shape.
+
+Port extenders
+~~~~~~~~~~~~~~
+
+:class:`~flync.model.flync_4_ecu.switch.SwitchConfig` gained ``port_extenders`` (default: empty list), a list of
+:class:`~flync.model.flync_4_ecu.port_extender.PortExtender` with ``name``, ``uplink`` and ``ports``. The
+extender's ports stay ordinary :class:`~flync.model.flync_4_ecu.switch.SwitchPort` entries in ``ports``. The
+``uplink`` is either ``tagged`` (one single-port xMII link, port tag per frame) or ``channelized`` (a multi-port
+USXGMII / USGMII lane, one channel per port).
+
+New validation: ``FLYNC-ECU-...-391`` to ``-403``, see :doc:`../error_catalog`.
 
 Breaking — Python API
 ---------------------
 
-List fields that were never ``None`` after validation are typed as plain lists
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+List fields are typed as plain lists
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-These fields are typed ``list[...]`` instead of ``Optional[list[...]]``. This removes ``null`` from the
-exported JSON Schema. A type checker (mypy, pyright) now rejects ``None`` passed to the constructor or
-assigned to the field; at runtime ``None`` is still accepted and becomes ``[]``.
+These fields are ``list[...]`` instead of ``Optional[list[...]]``, which removes ``null`` from the JSON Schema.
+Type checkers now reject ``None`` for them; at runtime ``None`` is still accepted and becomes ``[]``.
 
 * ``TrafficClass.frame_priority_values``, ``TrafficClass.internal_priority_values``
 * ``PTPTimeTransmitterConfig.tlv``
 * ``VirtualControllerInterface.multicast``, ``VLANEntry.multicast``
 * ``PortScopedAction.ports``, ``TCAMRule.match_ports``, ``TCAMRule.action``
 
-The following fields additionally change loading behavior: a ``null`` used to be stored as ``None`` and now
-loads as ``[]``:
+For the following, a ``null`` used to load as ``None`` and now loads as ``[]``:
 
 * ``Socket.multicast_tx``, ``AVTPMulticastEndpoint.multicast_tx``
-* the runtime-only ``ECU.multicast_groups`` and ``IPv4AddressEndpoint.sockets`` /
-  ``IPv6AddressEndpoint.sockets``
+* the runtime-only ``ECU.multicast_groups`` and ``IPv4AddressEndpoint.sockets`` / ``IPv6AddressEndpoint.sockets``
 
 Value encoding bounds are always integers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``TextEntry.from_value`` / ``to_value`` and ``BitfieldState.from_value`` / ``to_value`` are typed
-``int`` instead of ``Optional[int]``; they were always filled from ``value`` or given explicitly, and
-``None`` was never a valid bound. An explicit ``value: null`` without ``from_value``/``to_value`` is now
-reported as a type error instead of an internal assertion error.
+``TextEntry`` and ``BitfieldState`` ``from_value`` / ``to_value`` are ``int`` instead of ``Optional[int]``;
+``None`` was never a valid bound. An explicit ``value: null`` without ``from_value`` / ``to_value`` is now a
+type error instead of an internal assertion error.
 
-``EthernetInterfaceConfig.name`` may be ``None`` (typing only)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+``EthernetInterfaceConfig.name`` is typed ``str | None``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The property was previously untyped and is now annotated ``str | None``: the name is propagated from the
-owning :class:`~flync.model.flync_4_ecu.controller.EthernetInterface` and is ``None`` before that happens.
-Runtime behavior is unchanged; type checkers now require a ``None`` check before using the name as ``str``.
+The name is propagated from the owning :class:`~flync.model.flync_4_ecu.controller.EthernetInterface` and is
+``None`` until then. Runtime behavior is unchanged; type checkers now require a ``None`` check.
 
 ``FLYNCWorkspace.get_semantic_object_from_model()`` removed
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The deprecated single-result lookup is gone. Use ``get_semantic_objects_from_model()``, which returns every
-semantic object registered for the model; ``objects[0] if objects else None`` gives the former result.
+Use ``get_semantic_objects_from_model()``; ``objects[0] if objects else None`` gives the former result.
+
+``InternalConnection.ecu`` returns the owning ECU
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It was always ``None`` before, so code checking ``connection.ecu is None`` now takes the other branch.
 
 Deprecated — Python API
 -----------------------
 
-``ECUPort.get_internal_connected_component()`` ignores its ``ecus`` argument
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The ``ecus`` parameter was never used. It is still accepted for backwards compatibility but passing a
-value (other than ``None``) emits a ``DeprecationWarning``. Call ``port.get_internal_connected_component()``.
+``ECUPort.get_internal_connected_component()`` ignores its ``ecus`` argument. It is still accepted, but any
+value other than ``None`` emits a ``DeprecationWarning``. Call it without arguments.
 
 Additive — Python API
 ---------------------
 
-* ``ECUPort.qualified_name`` — ``"<ecu>:<port>"`` once the port is bound to its ECU, else the port name.
-* ``SOMEIPMethod.has_response`` — ``True`` for request/response methods, ``False`` for
-  fire-and-forget ones. It replaces the empty ``__init__`` overrides that kept ``SOMEIPMethod``
-  abstract, so constructing the concrete method classes is now type-checked by mypy.
-* ``InternalConnection.ecu`` now returns the owning ECU; it was always ``None`` before, so code that checks
-  ``connection.ecu is None`` now takes the other branch.
-
-New xMII types: USXGMII, USGMII
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-``mii_config`` on :class:`~flync.model.flync_4_ecu.port.ECUPort`, :class:`~flync.model.flync_4_ecu.switch.SwitchPort` and
-:class:`~flync.model.flync_4_ecu.controller.EthernetInterfaceConfig` now also accepts
-:class:`~flync.model.flync_4_ecu.mii.USXGMII` and :class:`~flync.model.flync_4_ecu.mii.USGMII`.
-
-``MII``, ``RMII``, ``SGMII``, ``RGMII`` and ``XFI`` keep their shape.
-
-Port extenders
-~~~~~~~~~~~~~~
-
-A switch can now control **port extenders**, chips that add ports to it. :class:`~flync.model.flync_4_ecu.switch.SwitchConfig` gained
-``port_extenders`` (default: empty list), a list of :class:`~flync.model.flync_4_ecu.port_extender.PortExtender` with a ``name``, an
-``uplink`` and ``ports``. The extender's ports stay ordinary :class:`~flync.model.flync_4_ecu.switch.SwitchPort` entries in ``ports``, and
-the ``uplink`` is either ``tagged`` (one single-port xMII link, port tag per frame) or ``channelized`` (a multi-port USXGMII / USGMII
-lane, one channel per port).
-
-New validation: ``FLYNC-ECU-...-391`` to ``-403``, see :doc:`../error_catalog`.
+* ``ECUPort.qualified_name``: ``"<ecu>:<port>"`` once the port is bound to its ECU, else the port name.
+* ``SOMEIPMethod.has_response``: ``True`` for request/response methods, ``False`` for fire-and-forget ones. It
+  replaces the empty ``__init__`` overrides that kept ``SOMEIPMethod`` abstract, so constructing the concrete
+  method classes is now type-checked.
