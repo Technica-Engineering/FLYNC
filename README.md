@@ -152,7 +152,7 @@
 | src/flync/sdk/helpers/validation\_helpers.py                    |       60 |       11 |     82% |   147-167 |
 | src/flync/sdk/utils/\_\_init\_\_.py                             |        1 |        0 |    100% |           |
 | src/flync/sdk/utils/field\_utils.py                             |       15 |        0 |    100% |           |
-| src/flync/sdk/utils/model\_dependencies.py                      |      293 |       22 |     92% |73, 97-99, 157, 232, 381, 439, 463, 553-557, 579, 638, 655, 673, 722-726, 762-763 |
+| src/flync/sdk/utils/model\_dependencies.py                      |      294 |       22 |     93% |74, 98-100, 158, 233, 382, 440, 464, 554-558, 580, 639, 656, 679, 728-732, 768-769 |
 | src/flync/sdk/utils/model\_dumper.py                            |       31 |        2 |     94% |     50-51 |
 | src/flync/sdk/utils/model\_schema.py                            |      116 |        2 |     98% |   64, 266 |
 | src/flync/sdk/utils/sdk\_types.py                               |        3 |        0 |    100% |           |
@@ -230,7 +230,7 @@
 | src/flync\_converter/registry.py                                |       32 |        5 |     84% | 30, 56-59 |
 | src/flync\_converter/reporting.py                               |      177 |        5 |     97% |303, 358-360, 362 |
 | src/flync\_converter/utils.py                                   |       75 |        4 |     95% |63-64, 93-94 |
-| **TOTAL**                                                       | **15172** |  **637** | **96%** |           |
+| **TOTAL**                                                       | **15173** |  **637** | **96%** |           |
 
 
 ## Setup coverage badge
