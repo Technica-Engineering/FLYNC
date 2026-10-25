@@ -7,6 +7,7 @@ Provides functions and classes to build, traverse, and query the dependency grap
 import hashlib
 import importlib
 import json
+import os
 import shelve
 import time
 import types
@@ -656,9 +657,14 @@ def delete_unwanted_cache_files(cache_location: str, cache_file_name: str, force
 
 
 def cleanup_old_caches(force: bool = False):
-    """Resets the cache of the library if the current version is different or if forced."""
+    """
+    Resets the cache of the library if the current version is different or if forced.
+
+    The cache lives in the platform's user cache directory unless the ``FLYNC_CACHE_DIR``
+    environment variable names another directory (e.g. in sandboxes or containers).
+    """
     global _cache_cleaned, _cache_name
-    shelv_location = platformdirs.user_cache_dir("FLYNC")
+    shelv_location = os.environ.get("FLYNC_CACHE_DIR") or platformdirs.user_cache_dir("FLYNC")
     if not _cache_name:
         # only keep official version cache
         makedirs(shelv_location, exist_ok=True)
