@@ -31,6 +31,7 @@ The guide classifies every change into one of three buckets:
    :hidden:
    :caption: this toctree is needed for the sidepanel structure.
 
+   model_change_history/v0_15_0_16
    model_change_history/v0_14_0_15
    model_change_history/v0_13_0_14
    model_change_history/v0_12_0_13
@@ -43,6 +44,7 @@ The guide classifies every change into one of three buckets:
 Model Change Overview
 =====================
 
+* :doc:`0.15 -> 0.16 <model_change_history/v0_15_0_16>`
 * :doc:`0.14 -> 0.15 <model_change_history/v0_14_0_15>`
 * :doc:`0.13 -> 0.14 <model_change_history/v0_13_0_14>`
 * :doc:`0.12 -> 0.13 <model_change_history/v0_12_0_13>`

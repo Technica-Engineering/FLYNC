@@ -136,10 +136,11 @@ source = "uv-dynamic-versioning"
 
 [tool.uv-dynamic-versioning]
 vcs = "git"
-style = "semver"
-pattern = '(?P<base>\d+\.\d+\.\d+)'
+style = "pep440"
+pattern = '(?P<base>\d+\.\d+\.\d+)(-(?P<stage>[a-z]+)(?P<revision>\d+)?)?'
 pattern-prefix = "release-"
-fallback-version = "0.0.0"
+bump = true
+fallback-version = "0.0.0.dev0"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/flync", "src/flync_cli", "src/flync_converter"]

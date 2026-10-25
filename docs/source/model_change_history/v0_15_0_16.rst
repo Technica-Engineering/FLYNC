@@ -1,0 +1,23 @@
+.. _chg__0_15__0_16:
+
+0.15.x → 0.16.x
+===============
+
+No model change has been recorded for 0.16 yet. Add each change under the matching section below as it lands, and
+name the migration's ``unique_id`` wherever a breaking schema change ships one (see :ref:`migrations_reference`).
+Remove the sections that stay empty before the release.
+
+Breaking — YAML schema
+----------------------
+
+Additive — YAML schema
+----------------------
+
+Breaking — Python API
+---------------------
+
+Deprecated — Python API
+-----------------------
+
+Additive — Python API
+---------------------

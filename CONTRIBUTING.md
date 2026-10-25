@@ -59,6 +59,12 @@ Follow these steps to contribute to the FLYNC project:
     the tag `uv-dynamic-versioning` derives the package version from. After the release the branch stays
     open for bugfixes; CI pipelines run on `main` and on all `release-*` branches.
 
+    Release tags live on the release branch and are not reachable from `main`, so `main` needs its own
+    version anchor: **when you cut `release-<major>.<minor>`, also tag the branch-off commit on `main`** as
+    `release-<major>.<minor+1>.0-dev0` (e.g., `release-0.16.0-dev0` when cutting `release-0.15`) and push the
+    tag. `main` then builds as `0.16.0.devN+g<hash>`. Do not rely on merging a release branch back into
+    `main` to carry the version.
+
     To create a branch use this command:
      ```bash
      git checkout -b <type>/<description>
