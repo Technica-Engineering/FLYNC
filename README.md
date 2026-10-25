@@ -139,7 +139,7 @@
 | src/flync/sdk/context/\_\_init\_\_.py                           |        0 |        0 |    100% |           |
 | src/flync/sdk/context/diagnostics\_result.py                    |       29 |        2 |     93% |     91-92 |
 | src/flync/sdk/context/node\_info.py                             |        9 |        1 |     89% |        41 |
-| src/flync/sdk/context/workspace\_config.py                      |      119 |       17 |     86% |69-74, 155, 168, 176-184, 219, 225, 229, 300, 321 |
+| src/flync/sdk/context/workspace\_config.py                      |      119 |       19 |     84% |69-74, 77-82, 155, 168, 176-184, 219, 225, 229, 300, 321 |
 | src/flync/sdk/helpers/\_\_init\_\_.py                           |        0 |        0 |    100% |           |
 | src/flync/sdk/helpers/debug.py                                  |      115 |        3 |     97% |74-75, 222 |
 | src/flync/sdk/helpers/debug\_layers/\_\_init\_\_.py             |        2 |        0 |    100% |           |
@@ -162,7 +162,7 @@
 | src/flync/sdk/workspace/\_loading.py                            |      280 |       21 |     92% |70, 274, 362-380, 398, 444, 613, 652, 691, 719, 780-781, 793 |
 | src/flync/sdk/workspace/\_object\_mapping.py                    |      238 |       21 |     91% |121-122, 421, 495-504, 541, 548, 568-570, 605, 608, 617, 633, 661 |
 | src/flync/sdk/workspace/\_saving.py                             |      126 |       12 |     90% |114, 135, 209, 214, 222, 273-278, 322, 329 |
-| src/flync/sdk/workspace/document.py                             |       65 |        2 |     97% |   174-175 |
+| src/flync/sdk/workspace/document.py                             |       65 |        4 |     94% |108-109, 174-175 |
 | src/flync/sdk/workspace/flync\_workspace.py                     |       50 |        3 |     94% |59, 62, 120 |
 | src/flync/sdk/workspace/ids.py                                  |        3 |        0 |    100% |           |
 | src/flync/sdk/workspace/objects.py                              |       95 |        3 |     97% |   166-169 |
@@ -218,7 +218,7 @@
 | src/flync\_converter/converters/dbc/\_\_init\_\_.py             |       10 |        0 |    100% |           |
 | src/flync\_converter/converters/dbc/converter.py                |       33 |        0 |    100% |           |
 | src/flync\_converter/converters/dbc/dbc\_config.py              |        6 |        0 |    100% |           |
-| src/flync\_converter/converters/dbc/decoder.py                  |      277 |       12 |     96% |71, 142, 188, 218, 268-269, 373-374, 450-456 |
+| src/flync\_converter/converters/dbc/decoder.py                  |      277 |       11 |     96% |71, 142, 188, 218, 268-269, 372, 450-456 |
 | src/flync\_converter/converters/dbc/encoder.py                  |      211 |        7 |     97% |88, 196-197, 221-222, 476, 478 |
 | src/flync\_converter/converters/dbc/loading.py                  |       59 |        0 |    100% |           |
 | src/flync\_converter/converters/flync\_converter.py             |       51 |        0 |    100% |           |
@@ -230,7 +230,7 @@
 | src/flync\_converter/registry.py                                |       32 |        5 |     84% | 30, 56-59 |
 | src/flync\_converter/reporting.py                               |      177 |        5 |     97% |303, 358-360, 362 |
 | src/flync\_converter/utils.py                                   |       75 |        4 |     95% |63-64, 93-94 |
-| **TOTAL**                                                       | **15172** |  **634** | **96%** |           |
+| **TOTAL**                                                       | **15172** |  **637** | **96%** |           |
 
 
 ## Setup coverage badge
