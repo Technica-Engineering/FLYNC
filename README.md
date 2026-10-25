@@ -162,7 +162,7 @@
 | src/flync/sdk/workspace/\_loading.py                            |      280 |       21 |     92% |70, 274, 362-380, 398, 444, 613, 652, 691, 719, 780-781, 793 |
 | src/flync/sdk/workspace/\_object\_mapping.py                    |      238 |       21 |     91% |121-122, 421, 495-504, 541, 548, 568-570, 605, 608, 617, 633, 661 |
 | src/flync/sdk/workspace/\_saving.py                             |      126 |       12 |     90% |114, 135, 209, 214, 222, 273-278, 322, 329 |
-| src/flync/sdk/workspace/document.py                             |       65 |        4 |     94% |108-109, 174-175 |
+| src/flync/sdk/workspace/document.py                             |       65 |        2 |     97% |   174-175 |
 | src/flync/sdk/workspace/flync\_workspace.py                     |       50 |        3 |     94% |59, 62, 120 |
 | src/flync/sdk/workspace/ids.py                                  |        3 |        0 |    100% |           |
 | src/flync/sdk/workspace/objects.py                              |       95 |        3 |     97% |   166-169 |
@@ -230,7 +230,7 @@
 | src/flync\_converter/registry.py                                |       32 |        5 |     84% | 30, 56-59 |
 | src/flync\_converter/reporting.py                               |      177 |        5 |     97% |303, 358-360, 362 |
 | src/flync\_converter/utils.py                                   |       75 |        4 |     95% |63-64, 93-94 |
-| **TOTAL**                                                       | **15172** |  **636** | **96%** |           |
+| **TOTAL**                                                       | **15172** |  **634** | **96%** |           |
 
 
 ## Setup coverage badge
