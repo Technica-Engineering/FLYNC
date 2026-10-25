@@ -13,6 +13,11 @@ Release Notes
 Release 0.16
 ------------
 
+Improve FLYNC_4_App
+'''''''''''''''''''
+
+Adding support for CAN and J1939 references. Also adding IPC.
+
 Package versioning
 ''''''''''''''''''
 

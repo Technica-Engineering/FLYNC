@@ -88,6 +88,35 @@ Additive — YAML schema
 ``length`` was fixed at ``8`` bytes; it is now an ``int`` in ``1..1785`` (default ``8``), so a Transport
 Protocol message spanning several physical frames can be modelled as one PDU. Existing frames load unchanged.
 
+Apps reference CAN / J1939 frames and PDUs, and ECUs declare IPC channels
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+An experimental :class:`~flync.model.flync_4_app.App` gains the optional lists ``can_frame_refs``,
+``j1939_frame_refs``, ``can_pdu_refs``, ``j1939_pdu_refs`` and ``ipc_refs``. Frame and PDU references name the
+``bus_ref`` (an app has no interface of its own) and a ``direction`` (``sender`` or ``receiver``); frames are located by
+``frame_ref`` + ``id_format`` (CAN) or ``pgn`` (J1939). An :class:`~flync.model.flync_4_ecu.ecu.ECU` gains the optional
+``ipc_channels`` file declaring :class:`~flync.model.flync_4_app.IPCChannel` entries (``name``, ``transport`` and
+optional ``max_payload_size`` / ``queue_depth``); an app joins a channel of its ECU with ``ipc_refs``
+(``channel_ref`` + ``role``). All fields default to empty, so no migration is needed.
+
+.. code-block:: yaml
+
+   # apps/application1.flync.yaml
+   can_frame_refs:
+     - bus_ref: DiagCAN
+       frame_ref: 0x7DF
+       id_format: standard_11bit
+       direction: receiver
+   ipc_refs:
+     - channel_ref: telemetry_shm
+       role: producer
+
+   # ecus/<ecu>/ipc_channels.flync.yaml
+   ipc_channels:
+     - name: telemetry_shm
+       transport: shared_memory
+       max_payload_size: 4096
+
 Optional instrumentation overlay
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

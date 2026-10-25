@@ -6,3 +6,6 @@ service_provider_refs:
   - service_id: 0x0101
     instance_id: 1
     major_version: 1
+ipc_refs:
+  - channel_ref: telemetry_shm
+    role: bidirectional
