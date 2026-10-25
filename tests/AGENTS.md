@@ -11,6 +11,8 @@ uv run pytest -k "test_unique"                        # keyword filter
 uv run pytest --no-header -v --tb=short               # verbose, short tracebacks
 ```
 
+The dependency-graph cache defaults to the platform user cache dir (`~/Library/Caches/FLYNC` on macOS). Set `FLYNC_CACHE_DIR` to put it elsewhere — required where that location is not writable (e.g. sandboxes): `FLYNC_CACHE_DIR=$TMPDIR/flync-cache .venv/bin/python -m pytest ...`.
+
 Pytest config lives **only** in `pyproject.toml` under `[tool.pytest.ini_options]` — `addopts` (`-n auto --cov=flync --cov=flync_cli --cov=flync_converter --cov-report=term --cov-report=xml --junitxml=report.xml`), `testpaths = ["tests"]`, the 5-minute per-test `timeout`, and the `markers` list (`performance`, `critical_api`, `no_xdist`). Do **not** add a `pytest.ini` / `tox.ini` / `setup.cfg` `[pytest]` section: any of those takes precedence over `pyproject.toml` and silently disables all of the above (pytest prints `WARNING: ignoring pytest config in pyproject.toml!`).
 
 **Benchmarks need `-n 0`.** pytest-benchmark disables itself whenever xdist distributes, so the

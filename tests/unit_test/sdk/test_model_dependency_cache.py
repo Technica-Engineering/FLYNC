@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 from pydantic import BaseModel, Field
 
+from flync.sdk.utils import model_dependencies
 from flync.sdk.utils.model_dependencies import (
     _hash_model_structure,
     get_model_dependency_graph,
@@ -184,3 +185,28 @@ class TestCacheInvalidationWithExtendedModels:
         assert hash_dynamic is not None
         # They have different structures (DynamicModel has test_field)
         assert hash_standard != hash_dynamic
+
+
+class TestCacheLocationOverride:
+    """Test that ``FLYNC_CACHE_DIR`` redirects the dependency-graph cache."""
+
+    def test_env_var_overrides_user_cache_dir(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(model_dependencies, "_cache_name", "")
+        monkeypatch.setattr(model_dependencies, "_cache_cleaned", False)
+        target = tmp_path / "flync-cache"
+        monkeypatch.setenv("FLYNC_CACHE_DIR", str(target))
+
+        location, cache_name = model_dependencies.cleanup_old_caches()
+
+        assert location == str(target)
+        assert target.is_dir()
+        assert cache_name.startswith("dependency_graph_cache_")
+
+    def test_falls_back_to_platform_dir(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(model_dependencies, "_cache_name", "cached")
+        monkeypatch.delenv("FLYNC_CACHE_DIR", raising=False)
+        monkeypatch.setattr(model_dependencies.platformdirs, "user_cache_dir", lambda _: str(tmp_path))
+
+        location, _ = model_dependencies.cleanup_old_caches()
+
+        assert location == str(tmp_path)
