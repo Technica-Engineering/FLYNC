@@ -46,6 +46,7 @@ UNRESOLVED_PDU_ERROR_ID = "FLYNC-GEN-MAJ-REF-410"
 UNRESOLVED_IPC_CHANNEL_ERROR_ID = "FLYNC-GEN-MAJ-REF-413"
 DUPLICATE_IPC_CHANNEL_ERROR_ID = "FLYNC-ECU-MAJ-UNIQ-415"
 MISSING_INTERFACE_WARNING_ID = "FLYNC-GEN-WARN-CONS-411"
+SENDS_AND_RECEIVES_ERROR_ID = "FLYNC-CMN-MIN-CONS-418"
 UNPAIRED_IPC_WARNING_ID = "FLYNC-GEN-WARN-CONS-414"
 
 
@@ -230,6 +231,31 @@ def test_app_duplicate_refs_warn():
     ref = AppCANFrameRef(bus_ref=CAN_BUS, frame_ref=CAN_ID, id_format="standard_11bit", direction="sender")
     app = App(name=APP_NAME, can_frame_refs=[ref, ref])
     assert len(app.can_frame_refs) == 2
+
+
+def test_app_sender_and_receiver_of_same_frame_on_same_bus_rejected():
+    """A frame that is both sent and received on one bus is invalid; a gateway must use different buses."""
+    refs = [
+        AppCANFrameRef(bus_ref=CAN_BUS, frame_ref=CAN_ID, id_format="standard_11bit", direction=direction) for direction in ("receiver", "sender")
+    ]
+    with pytest.raises(ValidationError) as exc_info:
+        App(name=APP_NAME, can_frame_refs=refs)
+    assert_single_error(exc_info, SENDS_AND_RECEIVES_ERROR_ID, "both sends and receives CAN frame")
+
+
+def test_app_sender_and_receiver_of_same_frame_on_different_buses_accepted():
+    """Gateway case: the same frame ID received on one bus and sent on another is fine."""
+    refs = [
+        AppCANFrameRef(bus_ref=bus, frame_ref=CAN_ID, id_format="standard_11bit", direction=direction)
+        for bus, direction in (("CAN_A", "receiver"), ("CAN_B", "sender"))
+    ]
+    assert len(App(name=APP_NAME, can_frame_refs=refs).can_frame_refs) == 2
+
+
+def test_app_overlapping_ipc_roles_still_validate():
+    """Listing a channel as producer and bidirectional is redundant, not invalid."""
+    refs = [IPCChannelReference(channel_ref="ch", role=role) for role in ("producer", "bidirectional")]
+    assert len(App(name=APP_NAME, ipc_refs=refs).ipc_refs) == 2
 
 
 @pytest.mark.parametrize(

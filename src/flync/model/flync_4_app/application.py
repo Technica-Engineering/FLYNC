@@ -1,6 +1,6 @@
 """Defines the Application model for FLYNC including its service, CAN / J1939 frame and PDU, and IPC references."""
 
-from typing import Annotated, List, Literal, Optional, Self, Sequence
+from typing import Annotated, List, Literal, Optional, Self
 
 from pydantic import Field, model_validator
 
@@ -9,10 +9,19 @@ from flync.core.annotations import (
     ImpliedStrategy,
 )
 from flync.core.base_models import FLYNCBaseModel
-from flync.core.utils.exceptions import Category, warn
+from flync.core.utils.exceptions import Category, err_minor, warn
 
 from .ipc import IPCChannelReference
 from .signal_refs import AppCANFrameRef, AppCANPDURef, AppJ1939FrameRef, AppJ1939PDURef
+
+#: Per reference list: a label for messages and the fields that identify the target, i.e. everything but direction / role.
+_REF_TARGETS: dict[str, tuple[str, tuple[str, ...]]] = {
+    "can_frame_refs": ("CAN frame", ("bus_ref", "frame_ref", "id_format")),
+    "j1939_frame_refs": ("J1939 PGN", ("bus_ref", "pgn")),
+    "can_pdu_refs": ("CAN PDU", ("bus_ref", "pdu_ref")),
+    "j1939_pdu_refs": ("J1939 PDU", ("bus_ref", "pdu_ref")),
+    "ipc_refs": ("IPC channel", ("channel_ref",)),
+}
 
 
 class ServiceConsumerReference(FLYNCBaseModel):
@@ -124,24 +133,51 @@ class App(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def warn_duplicate_signal_refs(self) -> Self:
-        """Warn when the same frame, PDU or IPC channel is referenced twice in the same list."""
-        ref_lists: dict[str, Sequence[FLYNCBaseModel]] = {
-            "can_frame_refs": self.can_frame_refs,
-            "j1939_frame_refs": self.j1939_frame_refs,
-            "can_pdu_refs": self.can_pdu_refs,
-            "j1939_pdu_refs": self.j1939_pdu_refs,
-            "ipc_refs": self.ipc_refs,
-        }
-        for field_name, refs in ref_lists.items():
-            seen: set[str] = set()
-            for ref in refs:
-                key = ref.model_dump_json()
-                if key in seen:
+    def check_duplicate_refs(self) -> Self:
+        """
+        Check every reference list for entries that point at the same target.
+
+        The target is the reference without its direction or role, so entries differing only in those are caught too.
+        An exact duplicate only warns. A frame or PDU that is both sent and received on the same bus is an error, since a
+        gateway has to use different buses. Overlapping IPC roles on one channel only warn.
+        """
+        for field_name, (label, target_fields) in _REF_TARGETS.items():
+            seen: dict[tuple[object, ...], FLYNCBaseModel] = {}
+            for ref in getattr(self, field_name) or []:
+                target = tuple(getattr(ref, f) for f in target_fields)
+                previous = seen.setdefault(target, ref)
+                if previous is ref:
+                    continue
+                name = "/".join(f"{v:#x}" if isinstance(v, int) else str(v) for v in target)
+                if previous == ref:
                     warn(
-                        f"App '{self.name}' lists the same reference twice in {field_name}: {key}.",
+                        f"App '{self.name}' lists the same {label} twice in {field_name}: {name}.",
                         category=Category.UNIQUENESS,
                         error_number="412",
                     )
-                seen.add(key)
+                elif field_name == "ipc_refs":
+                    warn(
+                        f"App '{self.name}' lists IPC channel '{name}' with overlapping roles "
+                        f"'{previous.role}' and '{ref.role}'.",  # type: ignore[attr-defined]
+                        category=Category.CONSISTENCY,
+                        error_number="419",
+                    )
+                else:
+                    raise err_minor(
+                        f"App '{self.name}' both sends and receives {label} {name} in {field_name}; a gateway must use different buses.",
+                        category=Category.CONSISTENCY,
+                        error_number="418",
+                    )
+        for field_name in ("service_consumer_refs", "service_provider_refs"):
+            seen_services: set[tuple[int, int, int]] = set()
+            for ref in getattr(self, field_name) or []:
+                key = (ref.service_id, ref.instance_id, ref.major_version)
+                if key in seen_services:
+                    warn(
+                        f"App '{self.name}' lists the same service instance twice in {field_name} "
+                        f"(service_id={ref.service_id:#06x}, instance_id={ref.instance_id}, major_version={ref.major_version}).",
+                        category=Category.UNIQUENESS,
+                        error_number="420",
+                    )
+                seen_services.add(key)
         return self
