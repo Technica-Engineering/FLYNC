@@ -13,6 +13,12 @@ Release Notes
 Release 0.15
 ------------
 
+SOME/IP eventgroup serialization
+''''''''''''''''''''''''''''''''
+
+Saving a workspace now writes the members of a SOME/IP eventgroup as the names of the service's events and fields, instead of
+a full copy of each event and field.
+
 YAML parsing on PyYAML
 ''''''''''''''''''''''
 

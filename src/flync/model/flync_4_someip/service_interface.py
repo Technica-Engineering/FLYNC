@@ -386,6 +386,7 @@ class SOMEIPEventgroup(FLYNCBaseModel):
 
     events: list[:class:`~SOMEIPEvent` | :class:`~SOMEIPField`]
         The events and fields this eventgroup contains.
+        Serialized as the names of the service's events and fields.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -393,6 +394,11 @@ class SOMEIPEventgroup(FLYNCBaseModel):
     description: Optional[str] = Field(default="")
     id: Annotated[int, Field(gt=0, le=0xFFFF, strict=True)] = Field(description="identifies the eventgroup")
     events: List[SOMEIPEvent | SOMEIPField] = Field(description="the events this eventgroup contains")
+
+    @field_serializer("events")
+    def _serialize_events_as_names(self, events: List[SOMEIPEvent | SOMEIPField]) -> List[str]:
+        """Write members by name; the owning service resolves the names back to its events and fields on load."""
+        return [e.name for e in events]
 
     @property
     def fields(self) -> List[SOMEIPField]:
