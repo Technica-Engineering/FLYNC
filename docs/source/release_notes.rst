@@ -13,6 +13,12 @@ Release Notes
 Release 0.15
 ------------
 
+Improve FLYNC_4_App
+'''''''''''''''''''
+
+Adding support for CAN and J1939 references. Also adding IPC with referencing support.
+
+
 Workspace schema migrations
 '''''''''''''''''''''''''''
 

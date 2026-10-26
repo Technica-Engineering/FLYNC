@@ -16,7 +16,8 @@ from flync.core.datatypes.macaddress import FLYNCMacAddress
 from flync.core.utils.base_utils import find_all
 from flync.core.utils.exceptions import Category, err_major, err_minor, warn
 from flync.core.validators.connection_compatibility import validate_mii_subports
-from flync.core.validators.generic import none_to_empty_list, validate_or_remove
+from flync.core.validators.generic import none_to_empty_list, validate_list_items_unique, validate_or_remove
+from flync.model.flync_4_app.ipc import IPCChannel
 from flync.model.flync_4_ecu.controller import (
     Controller,
     EthernetInterface,
@@ -88,6 +89,10 @@ class ECU(FLYNCBaseModel):
     :class:`~flync.model.flync_4_nm.StateMembershipRef`, optional
         Assignments of this ECU to state management groups (whole-ECU granularity).
         Stored in ``state_memberships.flync.yaml`` inside the ECU folder.
+
+    ipc_channels : list of :class:`~flync.model.flync_4_app.ipc.IPCChannel`, optional
+        ECU-internal IPC channels between the applications bound to this ECU. Stored in
+        ``ipc_channels.flync.yaml`` inside the ECU folder.
     """
 
     name: Annotated[
@@ -143,6 +148,11 @@ class ECU(FLYNCBaseModel):
         default=[],
         description="Assignments of this ECU to state management groups (whole-ECU granularity).",
     )
+    ipc_channels: Annotated[
+        Optional[List[IPCChannel]],
+        External(output_structure=OutputStrategy.SINGLE_FILE),
+        BeforeValidator(none_to_empty_list),
+    ] = Field(default_factory=list, description="ECU-internal IPC channels between the applications of this ECU.")
     _state_effective_members: List[EffectiveMember] = []
 
     _connectivity_check_done: bool = False
@@ -188,6 +198,12 @@ class ECU(FLYNCBaseModel):
                     "ECU has invalid components. Check controller and switch errors for details.", category=Category.STRUCTURAL, error_number="068"
                 )
         return data
+
+    @model_validator(mode="after")
+    def validate_unique_ipc_channel_names(self) -> Self:
+        """IPC channel names must be unique within the ECU."""
+        validate_list_items_unique([channel.name for channel in self.ipc_channels or []], f"IPC channel names of ECU '{self.name}'")
+        return self
 
     @model_validator(mode="after")
     def validate_ethernet_hw_requires_ports_and_topology(self) -> Self:

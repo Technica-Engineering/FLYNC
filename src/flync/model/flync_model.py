@@ -26,6 +26,11 @@ from flync.core.validators.state_management import (
     validate_state_management,
 )
 from flync.model._model_parts import AccessorMixin, BindingMixin, MulticastMixin
+from flync.model._model_parts._app_refs import (
+    validate_app_ipc_refs,
+    validate_app_signal_refs,
+    warn_app_signal_refs_without_interface,
+)
 from flync.model._model_parts._j1939 import (
     check_can_frame_spn,
     check_j1939_bus_pgn_uniqueness,
@@ -576,6 +581,24 @@ class FLYNCModel(FLYNCBaseModel, AccessorMixin, BindingMixin, MulticastMixin):
                     category=Category.CONSISTENCY,
                     error_number="245",
                 )
+        return self
+
+    @model_validator(mode="after")
+    def validate_app_signal_refs_resolve(self) -> Self:
+        """Validate that CAN / J1939 frame and PDU references of apps resolve on the referenced CAN bus."""
+        validate_app_signal_refs(self)
+        return self
+
+    @model_validator(mode="after")
+    def validate_app_signal_refs_match_interfaces(self) -> Self:
+        """Warn when a controller binding an app has no CAN interface declaring the app's frames."""
+        warn_app_signal_refs_without_interface(self)
+        return self
+
+    @model_validator(mode="after")
+    def validate_app_ipc_channel_refs(self) -> Self:
+        """Validate that the IPC references of apps resolve to IPC channels of the ECU hosting them."""
+        validate_app_ipc_refs(self)
         return self
 
     @model_validator(mode="after")

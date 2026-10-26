@@ -44,6 +44,7 @@ class FLYNCModelProtocol(Protocol):
     """The slice of the :class:`FLYNCModel` surface the mixins rely on."""
 
     ecus: List[ECU]
+    apps: Optional[List[App]]
     topology: FLYNCTopology
     communication: Optional[FLYNCCommunicationConfig]
 

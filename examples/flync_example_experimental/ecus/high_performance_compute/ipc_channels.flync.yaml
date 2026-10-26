@@ -1,0 +1,4 @@
+ipc_channels:
+  - name: telemetry_shm
+    transport: shared_memory
+    max_payload_size: 4096
