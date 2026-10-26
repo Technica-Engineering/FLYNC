@@ -13,6 +13,10 @@ Breaking — YAML schema
 Additive — YAML schema
 ----------------------
 
+* **SOME/IP eventgroup members are written by name.** ``SOMEIPEventgroup.events`` serializes to the list of event and field
+  names (``events: [TestEventUINT8, TestFieldUINT8]``). Loading still accepts full inline definitions and YAML aliases, so
+  existing files need no change; saving them rewrites the members as names.
+
 Breaking — Python API
 ---------------------
 

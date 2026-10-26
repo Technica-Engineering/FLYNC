@@ -25,6 +25,13 @@ YAML parsing on PyYAML
 All access goes through ``flync.core.utils.yaml_io``, which keeps the YAML 1.2 core schema (``yes``/``no`` stay strings, ``0875`` is a
 number, MAC-like values stay strings) and still rejects duplicate mapping keys.
 
+SOME/IP eventgroup serialization
+''''''''''''''''''''''''''''''''
+
+Saving a workspace now writes the members of a SOME/IP eventgroup as the names of the service's events and fields, instead of
+a full copy of each event and field. Reloading a saved service no longer fails with ``FLYNC-SOM-MIN-REF-136`` after an event
+or field is edited in the service's ``events`` or ``fields`` list.
+
 Package versioning
 ''''''''''''''''''
 

@@ -95,3 +95,15 @@ def test_unique_identifiers_ok(metadata_entry):
     events = [_event("a", 1), _event("b", 2)]
     eg = SOMEIPEventgroup(name="eg", id=1, events=events)
     _service(metadata_entry, events=events, eventgroups=[eg])
+
+
+def test_eventgroup_dumps_member_names(metadata_entry):
+    event = _event("ev", 1)
+    field = SOMEIPField(name="fd", parameters=[SOMEIPParameter(name="p", datatype=UInt8())], notifier_id=2)
+    eg = SOMEIPEventgroup(name="eg", id=1, events=[event, field])
+    service = _service(metadata_entry, events=[event], fields=[field], eventgroups=[eg])
+
+    dumped = service.model_dump(mode="json")
+
+    assert dumped["eventgroups"][0]["events"] == ["ev", "fd"]
+    assert SOMEIPServiceInterface.model_validate(dumped) == service
