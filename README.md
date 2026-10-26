@@ -48,14 +48,17 @@
 | src/flync/model/\_\_init\_\_.py                                 |        4 |        0 |    100% |           |
 | src/flync/model/\_model\_parts/\_\_init\_\_.py                  |        5 |        0 |    100% |           |
 | src/flync/model/\_model\_parts/\_accessors.py                   |       86 |        3 |     97% |85, 92, 106 |
+| src/flync/model/\_model\_parts/\_app\_refs.py                   |      113 |        0 |    100% |           |
 | src/flync/model/\_model\_parts/\_binding.py                     |       34 |        0 |    100% |           |
 | src/flync/model/\_model\_parts/\_j1939.py                       |       79 |        4 |     95% |70, 74, 84, 100 |
 | src/flync/model/\_model\_parts/\_multicast.py                   |      106 |        8 |     92% |82-87, 107-108 |
-| src/flync/model/\_model\_parts/\_protocol.py                    |       16 |        0 |    100% |           |
+| src/flync/model/\_model\_parts/\_protocol.py                    |       17 |        0 |    100% |           |
 | src/flync/model/\_model\_parts/\_types.py                       |        7 |        0 |    100% |           |
-| src/flync/model/flync\_4\_app/\_\_init\_\_.py                   |        3 |        0 |    100% |           |
+| src/flync/model/flync\_4\_app/\_\_init\_\_.py                   |        5 |        0 |    100% |           |
 | src/flync/model/flync\_4\_app/app\_bindings.py                  |       20 |        0 |    100% |           |
-| src/flync/model/flync\_4\_app/application.py                    |       26 |        0 |    100% |           |
+| src/flync/model/flync\_4\_app/application.py                    |       57 |        2 |     96% |  153, 176 |
+| src/flync/model/flync\_4\_app/ipc.py                            |       12 |        0 |    100% |           |
+| src/flync/model/flync\_4\_app/signal\_refs.py                   |       20 |        0 |    100% |           |
 | src/flync/model/flync\_4\_bus/\_\_init\_\_.py                   |        4 |        0 |    100% |           |
 | src/flync/model/flync\_4\_bus/can\_bus.py                       |       50 |        1 |     98% |       131 |
 | src/flync/model/flync\_4\_bus/lin\_bus.py                       |       42 |        0 |    100% |           |
@@ -84,7 +87,7 @@
 | src/flync/model/flync\_4\_ecu/controller.py                     |      225 |        6 |     97% |148, 253, 273, 275, 372, 701 |
 | src/flync/model/flync\_4\_ecu/controller\_interface.py          |        4 |        0 |    100% |           |
 | src/flync/model/flync\_4\_ecu/controller\_topology.py           |       17 |        0 |    100% |           |
-| src/flync/model/flync\_4\_ecu/ecu.py                            |      319 |        5 |     98% |364, 406, 571, 634-635 |
+| src/flync/model/flync\_4\_ecu/ecu.py                            |      325 |        5 |     98% |380, 422, 587, 650-651 |
 | src/flync/model/flync\_4\_ecu/internal\_topology.py             |      210 |        3 |     99% |   487-489 |
 | src/flync/model/flync\_4\_ecu/lin\_interface.py                 |       29 |        0 |    100% |           |
 | src/flync/model/flync\_4\_ecu/mac\_multicast\_endpoint.py       |       20 |        0 |    100% |           |
@@ -134,7 +137,7 @@
 | src/flync/model/flync\_4\_tsn/\_\_init\_\_.py                   |        4 |        0 |    100% |           |
 | src/flync/model/flync\_4\_tsn/qos.py                            |      232 |        3 |     99% |373, 381, 388 |
 | src/flync/model/flync\_4\_tsn/timesync.py                       |       23 |        0 |    100% |           |
-| src/flync/model/flync\_model.py                                 |      329 |        9 |     97% |264, 272, 294-295, 319-320, 333-334, 646 |
+| src/flync/model/flync\_model.py                                 |      342 |        9 |     97% |269, 277, 299-300, 324-325, 338-339, 669 |
 | src/flync/sdk/\_\_init\_\_.py                                   |        0 |        0 |    100% |           |
 | src/flync/sdk/context/\_\_init\_\_.py                           |        0 |        0 |    100% |           |
 | src/flync/sdk/context/diagnostics\_result.py                    |       29 |        2 |     93% |     91-92 |
@@ -230,7 +233,7 @@
 | src/flync\_converter/registry.py                                |       32 |        5 |     84% | 30, 56-59 |
 | src/flync\_converter/reporting.py                               |      177 |        5 |     97% |303, 358-360, 362 |
 | src/flync\_converter/utils.py                                   |       75 |        4 |     95% |63-64, 93-94 |
-| **TOTAL**                                                       | **15173** |  **637** | **96%** |           |
+| **TOTAL**                                                       | **15371** |  **639** | **96%** |           |
 
 
 ## Setup coverage badge
