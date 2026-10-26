@@ -16,7 +16,7 @@ from flync.core.datatypes.macaddress import FLYNCMacAddress
 from flync.core.utils.base_utils import find_all
 from flync.core.utils.exceptions import Category, err_major, err_minor, warn
 from flync.core.validators.connection_compatibility import validate_mii_subports
-from flync.core.validators.generic import none_to_empty_list, validate_or_remove
+from flync.core.validators.generic import none_to_empty_list, validate_list_items_unique, validate_or_remove
 from flync.model.flync_4_app.ipc import IPCChannel
 from flync.model.flync_4_ecu.controller import (
     Controller,
@@ -202,16 +202,7 @@ class ECU(FLYNCBaseModel):
     @model_validator(mode="after")
     def validate_unique_ipc_channel_names(self) -> Self:
         """IPC channel names must be unique within the ECU."""
-        names = [channel.name for channel in self.ipc_channels or []]
-        duplicates = sorted({name for name in names if names.count(name) > 1})
-        if duplicates:
-            raise err_major(
-                "ECU '{ecu}': duplicate IPC channel name(s): {duplicates}",
-                ecu=self.name,
-                duplicates=duplicates,
-                category=Category.UNIQUENESS,
-                error_number="415",
-            )
+        validate_list_items_unique([channel.name for channel in self.ipc_channels or []], f"IPC channel names of ECU '{self.name}'")
         return self
 
     @model_validator(mode="after")

@@ -44,7 +44,7 @@ UNRESOLVED_FRAME_ERROR_ID = "FLYNC-GEN-MAJ-REF-416"
 UNRESOLVED_PGN_ERROR_ID = "FLYNC-GEN-MAJ-REF-417"
 UNRESOLVED_PDU_ERROR_ID = "FLYNC-GEN-MAJ-REF-410"
 UNRESOLVED_IPC_CHANNEL_ERROR_ID = "FLYNC-GEN-MAJ-REF-413"
-DUPLICATE_IPC_CHANNEL_ERROR_ID = "FLYNC-ECU-MAJ-UNIQ-415"
+DUPLICATE_IPC_CHANNEL_ERROR_ID = "FLYNC-CMN-MAJ-UNIQ-009"
 MISSING_INTERFACE_WARNING_ID = "FLYNC-GEN-WARN-CONS-411"
 SENDS_AND_RECEIVES_ERROR_ID = "FLYNC-CMN-MIN-CONS-418"
 UNPAIRED_IPC_WARNING_ID = "FLYNC-GEN-WARN-CONS-414"
@@ -223,7 +223,7 @@ def test_duplicate_ipc_channel_names_rejected():
     channels = [IPCChannel(name="ch", transport="pipe"), IPCChannel(name="ch", transport="unix_socket")]
     with pytest.raises(ValidationError) as exc_info:
         _model(app, ipc_channels=channels)
-    assert_single_error(exc_info, DUPLICATE_IPC_CHANNEL_ERROR_ID, "ch")
+    assert_single_error(exc_info, DUPLICATE_IPC_CHANNEL_ERROR_ID, "IPC channel names")
 
 
 def test_app_duplicate_refs_warn():
