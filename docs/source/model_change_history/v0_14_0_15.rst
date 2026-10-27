@@ -89,6 +89,13 @@ SOME/IP eventgroup members are written by name
 (``events: [TestEventUINT8, TestFieldUINT8]``). Loading still accepts full inline definitions and YAML
 aliases, so existing files need no change; saving them rewrites the members as names.
 
+SOME/IP eventgroup members can be referenced by identifier
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``events: [0x8001, TestFieldUINT8]`` mixes an identifier and a name. Loading still accepts full inline
+definitions and YAML aliases, so existing files need no change; saving them rewrites the members as
+references. Referencing a name shared by several events/fields raises ``FLYNC-SOM-MIN-REF-421``.
+
 ``J1939Frame.length`` supports Transport Protocol payloads
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

@@ -16,8 +16,11 @@ Release 0.15
 SOME/IP eventgroup serialization
 ''''''''''''''''''''''''''''''''
 
-Saving a workspace now writes the members of a SOME/IP eventgroup as the names of the service's events and fields, instead of
-a full copy of each event and field.
+Saving a workspace now writes the members of a SOME/IP eventgroup as references to the service's events and fields, instead of
+a full copy of each event and field. An eventgroup member can be referenced by name or by identifier
+(event ``id``, field ``notifier_id``). A name shared by several events/fields of the service is rejected with
+``FLYNC-SOM-MIN-REF-421``; such members are referenced by identifier, and saving writes them that way.
+
 
 YAML parsing on PyYAML
 ''''''''''''''''''''''
