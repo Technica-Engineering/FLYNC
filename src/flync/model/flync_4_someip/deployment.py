@@ -166,7 +166,7 @@ class SOMEIPServiceDeployment(abc.ABC, FLYNCBaseModel):
         svc = services_by_key.get((self.service, self.major_version))
         if svc is None:
             raise err_major(
-                f"No service found for id={self.service:#06x}, major_version={self.major_version}",
+                "No service found for id={service:#06x}, major_version={major_version}",
                 service=self.service,
                 major_version=self.major_version,
                 category=Category.REFERENCE,
@@ -176,7 +176,7 @@ class SOMEIPServiceDeployment(abc.ABC, FLYNCBaseModel):
         sd = sd_timings_by_id.get(self.someip_sd_timings_profile)
         if sd is None:
             raise err_major(
-                f"No SD timings profile '{self.someip_sd_timings_profile}'",
+                "No SD timings profile '{profile}'",
                 profile=self.someip_sd_timings_profile,
                 category=Category.REFERENCE,
                 error_number="342",
@@ -223,7 +223,7 @@ class SOMEIPServiceConsumer(SOMEIPServiceDeployment):
             missing = consumed - provided
             if missing:
                 raise err_major(
-                    f"Did not find eventgroups with names {missing}",
+                    "Did not find eventgroups with names {missing}",
                     missing=sorted(missing),
                     category=Category.REFERENCE,
                     error_number="343",
