@@ -2,7 +2,7 @@
 
 import abc
 import warnings
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Iterator
 from typing import (
     Annotated,
@@ -19,6 +19,7 @@ from pydantic import (
     ConfigDict,
     Field,
     IPvAnyAddress,
+    SerializerFunctionWrapHandler,
     field_serializer,
     model_validator,
 )
@@ -386,7 +387,8 @@ class SOMEIPEventgroup(FLYNCBaseModel):
 
     events: list[:class:`~SOMEIPEvent` | :class:`~SOMEIPField`]
         The events and fields this eventgroup contains.
-        Serialized as the names of the service's events and fields.
+        Referenced in YAML by the name or the identifier (event ``id``, field ``notifier_id``) of the service's events and fields.
+        Serialized by name, or by identifier when the name is shared by several events/fields of the service.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -601,31 +603,65 @@ class SOMEIPServiceInterface(FLYNCBaseModel):
     @model_validator(mode="before")
     @classmethod
     def resolve_eventgroup_event_refs(cls, data: object) -> object:
-        """Resolve event/field name strings in eventgroups before child validation."""
+        """Resolve event/field references (names or identifiers) in eventgroups before child validation."""
         if not isinstance(data, dict):
             return data
-        by_name = cls._collect_events_and_fields_by_name(data.get("events"), data.get("fields"))
+        by_name, by_id = cls._index_events_and_fields(data.get("events"), data.get("fields"))
         eventgroups = data.get("eventgroups")
         for eg in eventgroups if isinstance(eventgroups, list) else []:
             if isinstance(eg, dict):
-                cls._resolve_eventgroup_refs(eg, by_name)
+                cls._resolve_eventgroup_refs(eg, by_name, by_id)
         return data
 
     @staticmethod
-    def _collect_events_and_fields_by_name(events: object, fields: object) -> dict[str, object]:
-        """Index event/field dicts by their ``name`` so eventgroup refs can be resolved."""
-        by_name: dict[str, object] = {}
-        for e in (events if isinstance(events, list) else []) + (fields if isinstance(fields, list) else []):
-            # An entry without a usable name is left to the regular field validation to report.
-            if isinstance(e, dict) and isinstance(e.get("name"), str):
-                by_name[e["name"]] = e
-        return by_name
+    def _index_events_and_fields(events: object, fields: object) -> tuple[dict[str, list[object]], dict[int, object]]:
+        """Index event/field entries by ``name`` and by identifier (event ``id``, field ``notifier_id``)."""
+        by_name: dict[str, list[object]] = {}
+        by_id: dict[int, object] = {}
+        for kind, entries in (("id", events), ("notifier_id", fields)):
+            for e in entries if isinstance(entries, list) else []:
+                # Entries are raw dicts when loaded from YAML and model instances when built in Python.
+                name = e.get("name") if isinstance(e, dict) else getattr(e, "name", None)
+                identifier = e.get(kind) if isinstance(e, dict) else getattr(e, kind, None)
+                # An entry without a usable name or identifier is left to the regular field validation to report.
+                if isinstance(name, str):
+                    by_name.setdefault(name, []).append(e)
+                if isinstance(identifier, int) and not isinstance(identifier, bool):
+                    by_id[identifier] = e
+        return by_name, by_id
 
     @staticmethod
-    def _resolve_eventgroup_refs(eg: dict[str, object], by_name: dict[str, object]) -> None:
-        """Replace event name strings in an eventgroup with their validated events."""
+    def _resolve_eventgroup_refs(eg: dict[str, object], by_name: dict[str, list[object]], by_id: dict[int, object]) -> None:
+        """Replace event names and identifiers in an eventgroup with the matching events and fields of the service."""
         raw_events = eg.get("events")
-        eg["events"] = [by_name.get(e, e) if isinstance(e, str) else e for e in (raw_events if isinstance(raw_events, list) else [])]
+        resolved: list[object] = []
+        for ref in raw_events if isinstance(raw_events, list) else []:
+            if isinstance(ref, str):
+                matches = by_name.get(ref, [])
+                if len(matches) > 1:
+                    raise err_minor(
+                        'Eventgroup "{eventgroup}" references "{name}", which names more than one event/field; reference it by identifier',
+                        category=Category.REFERENCE,
+                        error_number="421",
+                        eventgroup=eg.get("name"),
+                        name=ref,
+                    )
+                resolved.append(matches[0] if matches else ref)
+            elif isinstance(ref, int) and not isinstance(ref, bool):
+                resolved.append(by_id.get(ref, ref))
+            else:
+                resolved.append(ref)
+        eg["events"] = resolved
+
+    @field_serializer("eventgroups", mode="wrap")
+    def _serialize_eventgroup_refs(self, eventgroups: Optional[List[SOMEIPEventgroup]], handler: SerializerFunctionWrapHandler) -> object:
+        """Write eventgroup members by name, falling back to the identifier for a name shared by several events/fields."""
+        dumped = handler(eventgroups)
+        name_counts = Counter(e.name for e in (self.events or []) + (self.fields or []))
+        for eg, eg_dump in zip(eventgroups or [], dumped or []):
+            if isinstance(eg_dump, dict) and "events" in eg_dump:
+                eg_dump["events"] = [e.name if name_counts[e.name] < 2 else e.id for e in eg.events]
+        return dumped
 
     @model_validator(mode="after")
     def validate_for_notifiers_without_eventgroup(self) -> Self:

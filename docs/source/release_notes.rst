@@ -28,9 +28,13 @@ number, MAC-like values stay strings) and still rejects duplicate mapping keys.
 SOME/IP eventgroup serialization
 ''''''''''''''''''''''''''''''''
 
-Saving a workspace now writes the members of a SOME/IP eventgroup as the names of the service's events and fields, instead of
+Saving a workspace now writes the members of a SOME/IP eventgroup as references to the service's events and fields, instead of
 a full copy of each event and field. Reloading a saved service no longer fails with ``FLYNC-SOM-MIN-REF-136`` after an event
 or field is edited in the service's ``events`` or ``fields`` list.
+
+An eventgroup member can be referenced by name or by identifier (event ``id``, field ``notifier_id``). A name shared by several
+events/fields of the service is rejected with ``FLYNC-SOM-MIN-REF-421``; such members are referenced by identifier, and saving
+writes them that way.
 
 Package versioning
 ''''''''''''''''''

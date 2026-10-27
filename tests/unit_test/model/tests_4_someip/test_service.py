@@ -107,3 +107,36 @@ def test_eventgroup_dumps_member_names(metadata_entry):
 
     assert dumped["eventgroups"][0]["events"] == ["ev", "fd"]
     assert SOMEIPServiceInterface.model_validate(dumped) == service
+
+
+def test_eventgroup_resolves_member_identifiers(metadata_entry):
+    event = _event("ev", 1)
+    field = SOMEIPField(name="fd", parameters=[SOMEIPParameter(name="p", datatype=UInt8())], notifier_id=2)
+    dumped = _service(metadata_entry, events=[event], fields=[field]).model_dump(mode="json")
+    dumped["eventgroups"] = [{"name": "eg", "id": 1, "events": [2, "ev"]}]
+
+    service = SOMEIPServiceInterface.model_validate(dumped)
+
+    assert service.eventgroups[0].events == [field, event]
+
+
+def test_eventgroup_dumps_identifier_for_shared_name(metadata_entry):
+    event = _event("dup", 1)
+    field = SOMEIPField(name="dup", parameters=[SOMEIPParameter(name="p", datatype=UInt8())], notifier_id=2)
+    eg = SOMEIPEventgroup(name="eg", id=1, events=[event, field])
+    service = _service(metadata_entry, events=[event], fields=[field], eventgroups=[eg])
+
+    dumped = service.model_dump(mode="json")
+
+    assert dumped["eventgroups"][0]["events"] == [1, 2]
+    assert SOMEIPServiceInterface.model_validate(dumped) == service
+
+
+def test_eventgroup_shared_name_reference_raises(metadata_entry):
+    events = [_event("dup", 1), _event("dup", 2)]
+    dumped = _service(metadata_entry, events=events).model_dump(mode="json")
+    dumped["eventgroups"] = [{"name": "eg", "id": 1, "events": ["dup"]}]
+
+    with pytest.raises(ValidationError) as exc_info:
+        SOMEIPServiceInterface.model_validate(dumped)
+    assert_single_error(exc_info, "FLYNC-SOM-MIN-REF-421", '"dup"')
