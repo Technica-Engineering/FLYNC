@@ -151,7 +151,28 @@ def _migrate_can_frame_forwarders(documents: Documents) -> None:
                 _set_after(forwarder, "frame_ref", "id_format", id_format)
 
 
-_STEPS: tuple[Callable[[Documents], None], ...] = (_migrate_can_frame_refs, _migrate_j1939_frame_refs, _migrate_can_frame_forwarders)
+def _migrate_can_frame_egresses(documents: Documents) -> None:
+    """
+    ``CANFrameEgress`` gains the required ``id_format``.
+
+    Egresses sit in CAN frame forwarders and in socket PDU forwarders, so every document is searched.
+    0.14 resolved the target frame by ``(bus_ref, frame_ref)``, the last one winning.
+    """
+    frames_by_bus = _can_frames_by_bus(documents)
+    for uri, content in documents.items():
+        for egress in _walk(content):
+            frame_ref = egress.get("frame_ref")
+            if egress.get("egress_type") == "can_frame" and "id_format" not in egress and _is_can_id(frame_ref):
+                id_format = _resolve_id_format(frames_by_bus, egress.get("bus_ref"), frame_ref, f"{uri}: can_frame egress")
+                _set_after(egress, "frame_ref", "id_format", id_format)
+
+
+_STEPS: tuple[Callable[[Documents], None], ...] = (
+    _migrate_can_frame_refs,
+    _migrate_j1939_frame_refs,
+    _migrate_can_frame_forwarders,
+    _migrate_can_frame_egresses,
+)
 
 
 @migration
@@ -162,7 +183,7 @@ class Migration0_15(FLYNCMigration):
     target_version = "0.15.0"
     description = (
         "CAN frame references drop bus_ref and gain id_format; J1939 frame references drop bus_ref; "
-        "CAN frame forwarders reference their frame by CAN id and id_format."
+        "CAN frame forwarders reference their frame by CAN id and id_format; CAN frame egresses gain id_format."
     )
 
     def apply(self, documents: Documents) -> None:

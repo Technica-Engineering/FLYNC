@@ -77,6 +77,24 @@ integer CAN ID of the ingress frame instead of the frame's name, and ``id_format
 **Migrated** by ``v0_14_to_0_15``: the name is replaced with the frame's ``can_id`` and ``id_format``, looked up
 across all CAN buses as 0.14 did. A name that matches no frame is left unchanged and a warning is logged.
 
+CAN frame egresses gain ``id_format``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``CANFrameEgress`` (``egress_type: can_frame`` in the ``egresses`` of a CAN frame forwarder or a socket
+``pdu_forwarder``) requires ``id_format`` next to ``bus_ref`` and ``frame_ref``.
+
+.. code-block:: yaml
+
+   # after
+   egresses:
+     - egress_type: can_frame
+       bus_ref: PowertrainCAN
+       frame_ref: 0x301
+       id_format: standard_11bit
+
+**Migrated** by ``v0_14_to_0_15``: ``id_format`` is copied from the target frame on ``bus_ref``, with the same
+rules and fallback as for CAN frame references.
+
 J1939 frame references drop ``bus_ref``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
