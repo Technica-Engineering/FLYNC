@@ -103,6 +103,40 @@ def test_j1939_frame_refs_drop_bus_ref(ref):
     CANInterface.model_validate({"name": "body_can_interface", **migrated})
 
 
+ETH_EGRESS = {"egress_type": "eth_socket", "socket_ref": "s1"}
+
+
+@pytest.mark.parametrize(
+    "frame_ref, expected",
+    [
+        pytest.param("F_standard_11bit_101", {"frame_ref": 0x101, "id_format": "standard_11bit"}, id="name-on-own-bus"),
+        pytest.param("F_extended_29bit_202", {"frame_ref": 0x202, "id_format": "extended_29bit"}, id="name-on-other-bus"),
+        pytest.param(0x101, {"frame_ref": 0x101, "id_format": "standard_11bit"}, id="id-without-format"),
+        pytest.param("Frame_Unknown", {"frame_ref": "Frame_Unknown"}, id="unknown-name-unchanged"),
+    ],
+)
+def test_can_frame_forwarders_reference_frame_by_id(frame_ref, expected):
+    documents = {
+        BUS_URI: can_bus("BodyCAN", (0x101, "standard_11bit")),
+        "communication/channels/can/other_can.flync.yaml": can_bus("OtherCAN", (0x202, "extended_29bit")),
+        IFACE_URI: {"bus_ref": "BodyCAN", "forwarder_frames": [{"frame_ref": frame_ref, "egresses": [ETH_EGRESS]}]},
+    }
+
+    forwarder = migrate(documents)[IFACE_URI]["forwarder_frames"][0]
+
+    assert forwarder == {**expected, "egresses": [ETH_EGRESS]}
+    assert list(forwarder) == [*expected, "egresses"]
+
+
+def test_migrated_can_frame_forwarder_loads():
+    documents = {
+        BUS_URI: can_bus("BodyCAN", (0x101, "standard_11bit")),
+        IFACE_URI: {"bus_ref": "BodyCAN", "forwarder_frames": [{"frame_ref": "F_standard_11bit_101", "egresses": [ETH_EGRESS]}]},
+    }
+
+    CANInterface.model_validate({"name": "body_can_interface", **migrate(documents)[IFACE_URI]})
+
+
 def test_lin_frame_refs_untouched():
     lin_uri = "ecus/ecu1/controllers/c1/lin_interfaces/body_lin_interface.flync.yaml"
     documents = {lin_uri: {"bus_ref": "BodyLIN", "sender_frames": [{"bus_ref": "BodyLIN", "frame_ref": 0x10}]}}
