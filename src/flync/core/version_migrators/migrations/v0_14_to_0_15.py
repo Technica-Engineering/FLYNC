@@ -10,7 +10,7 @@ See ``docs/source/model_change_history/v0_14_0_15.rst``.
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Iterator
+from typing import Any, Callable, Iterator, TypeGuard
 
 from flync.core.version_migrators._base import Documents, FLYNCMigration, migration
 
@@ -40,7 +40,7 @@ def _dicts(value: Any) -> list[Node]:
     return [item for item in value if isinstance(item, dict)] if isinstance(value, list) else []
 
 
-def _is_can_id(value: Any) -> bool:
+def _is_can_id(value: Any) -> TypeGuard[int]:
     return isinstance(value, int) and not isinstance(value, bool)
 
 
@@ -118,7 +118,40 @@ def _migrate_j1939_frame_refs(documents: Documents) -> None:
                 ref.pop("bus_ref", None)
 
 
-_STEPS: tuple[Callable[[Documents], None], ...] = (_migrate_can_frame_refs, _migrate_j1939_frame_refs)
+def _set_after(mapping: Node, anchor: str, key: str, value: Any) -> None:
+    """Set ``mapping[key]`` and move it right after ``anchor``, keeping the document's key order readable."""
+    mapping[key] = value
+    items = list(mapping.items())
+    items.insert([k for k, _ in items].index(anchor) + 1, items.pop())
+    mapping.clear()
+    mapping.update(items)
+
+
+def _migrate_can_frame_forwarders(documents: Documents) -> None:
+    """
+    ``CANFrameForwarder.frame_ref`` names the ingress frame by CAN ID plus ``id_format`` instead of by frame name.
+
+    0.14 resolved the name across the frames of every CAN bus, the last one winning.
+    """
+    frames_by_bus = _can_frames_by_bus(documents)
+    frames_by_name = {frame["name"]: frame for frames in frames_by_bus.values() for frame in frames if isinstance(frame.get("name"), str)}
+    for uri, interface in _can_interfaces(documents):
+        for forwarder in _dicts(interface.get("forwarder_frames")):
+            frame_ref = forwarder.get("frame_ref")
+            if isinstance(frame_ref, str):
+                frame = frames_by_name.get(frame_ref)
+                if frame is None:
+                    logger.warning("%s: forwarder_frames: frame_ref %r names no CAN frame; left unchanged.", uri, frame_ref)
+                    continue
+                forwarder["frame_ref"] = frame["can_id"]
+                if frame.get("id_format") in (_STANDARD, _EXTENDED):
+                    _set_after(forwarder, "frame_ref", "id_format", frame["id_format"])
+            elif "id_format" not in forwarder and _is_can_id(frame_ref):
+                id_format = _resolve_id_format(frames_by_bus, interface.get("bus_ref"), frame_ref, f"{uri}: forwarder_frames")
+                _set_after(forwarder, "frame_ref", "id_format", id_format)
+
+
+_STEPS: tuple[Callable[[Documents], None], ...] = (_migrate_can_frame_refs, _migrate_j1939_frame_refs, _migrate_can_frame_forwarders)
 
 
 @migration
@@ -127,7 +160,10 @@ class Migration0_15(FLYNCMigration):
 
     unique_id = "v0_14_to_0_15"
     target_version = "0.15.0"
-    description = "CAN frame references drop bus_ref and gain id_format; J1939 frame references drop bus_ref."
+    description = (
+        "CAN frame references drop bus_ref and gain id_format; J1939 frame references drop bus_ref; "
+        "CAN frame forwarders reference their frame by CAN id and id_format."
+    )
 
     def apply(self, documents: Documents) -> None:
         for step in _STEPS:
