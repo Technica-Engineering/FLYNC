@@ -436,7 +436,7 @@ class TestApplyMigrationPolicy:
     def test_up_to_date_no_warning(self, tmp_path, caplog):
         workspace = _fake_workspace(tmp_path, migration_mode="propose", recorded="0.12.0")
         with caplog.at_level(logging.WARNING):
-            apply_migration_policy(workspace)
+            apply_migration_policy(workspace, registry=MigrationRegistry.new())
         assert not caplog.text
 
     def test_unsupported_old_warns(self, tmp_path, caplog):
@@ -499,6 +499,8 @@ class TestSaveWorkspaceConfig:
     @pytest.fixture(autouse=True)
     def _pending_global_migration(self, monkeypatch, global_registry):
         monkeypatch.setattr("flync.sdk.context.workspace_config._get_current_flync_version", lambda: V(CURRENT_VERSION))
+        # Only WrapBazMigration is pending, whatever migrations FLYNC itself ships.
+        global_registry.clear()
         global_registry.register(WrapBazMigration)
 
     def _saved_version(self, tmp_path, recorded: str) -> str:

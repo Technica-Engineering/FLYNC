@@ -8,6 +8,10 @@ model always intended are now declared on the fields themselves, so they appear 
 exported from :class:`~flync.model.flync_model.FLYNCModel` and a few previously tolerated values now fail
 validation. The xMII model moved to its own module and was extended, and a switch can control port extenders.
 
+``flync migrate <path>`` updates a 0.14 workspace with the migration ``v0_14_to_0_15`` (see
+:ref:`migrations_reference`). Each change it handles says so below; the others carry data that cannot be derived
+and must be fixed by hand.
+
 Breaking — YAML schema
 ----------------------
 
@@ -45,6 +49,11 @@ may share one numeric ID.
    sender_frames:
      - frame_ref: 0x123
        id_format: standard_11bit
+
+**Migrated** by ``v0_14_to_0_15``: ``bus_ref`` is removed and ``id_format`` is copied from the referenced frame on
+that bus (the last one, as 0.14 resolved it, if a standard and an extended frame share the ID). A reference to a
+frame the bus does not declare was already invalid; it gets ``standard_11bit`` for IDs up to ``0x7FF``, else
+``extended_29bit``, and a warning is logged.
 
 J1939 frame references drop ``bus_ref``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
