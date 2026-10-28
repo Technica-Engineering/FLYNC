@@ -137,6 +137,44 @@ def test_migrated_can_frame_forwarder_loads():
     CANInterface.model_validate({"name": "body_can_interface", **migrate(documents)[IFACE_URI]})
 
 
+def can_egress(bus_ref: str, frame_ref: int, **extra) -> dict:
+    return {"egress_type": "can_frame", "bus_ref": bus_ref, "frame_ref": frame_ref, **extra}
+
+
+@pytest.mark.parametrize(
+    "egress, expected",
+    [
+        pytest.param(can_egress("OtherCAN", 0x202), can_egress("OtherCAN", 0x202, id_format="extended_29bit"), id="resolved-on-egress-bus"),
+        pytest.param(
+            can_egress("OtherCAN", 0x202, extract_pdu_ref="PDU_A"),
+            can_egress("OtherCAN", 0x202, id_format="extended_29bit", extract_pdu_ref="PDU_A"),
+            id="keeps-extract-pdu-ref-last",
+        ),
+        pytest.param(can_egress("OtherCAN", 0x7FF), can_egress("OtherCAN", 0x7FF, id_format="standard_11bit"), id="dangling-by-range"),
+        pytest.param(
+            can_egress("OtherCAN", 0x202, id_format="standard_11bit"),
+            can_egress("OtherCAN", 0x202, id_format="standard_11bit"),
+            id="already-migrated",
+        ),
+    ],
+)
+def test_can_frame_egresses_gain_id_format(egress, expected):
+    socket_uri = "ecus/ecu1/controllers/c1/ethernet_interfaces/i1/sockets/socket_pdu.flync.yaml"
+    documents = {
+        BUS_URI: can_bus("BodyCAN", (0x101, "standard_11bit")),
+        "communication/channels/can/other_can.flync.yaml": can_bus("OtherCAN", (0x202, "extended_29bit")),
+        IFACE_URI: {"bus_ref": "BodyCAN", "forwarder_frames": [{"frame_ref": 0x101, "id_format": "standard_11bit", "egresses": [dict(egress)]}]},
+        socket_uri: {"deployments": [{"deployment_type": "pdu_forwarder", "pdu_ref": "PDU_A", "egresses": [dict(egress)]}]},
+    }
+
+    migrated = migrate(documents)
+
+    for egresses in (migrated[IFACE_URI]["forwarder_frames"][0]["egresses"], migrated[socket_uri]["deployments"][0]["egresses"]):
+        assert egresses == [expected]
+        assert list(egresses[0]) == list(expected)
+    CANInterface.model_validate({"name": "body_can_interface", **migrated[IFACE_URI]})
+
+
 def test_lin_frame_refs_untouched():
     lin_uri = "ecus/ecu1/controllers/c1/lin_interfaces/body_lin_interface.flync.yaml"
     documents = {lin_uri: {"bus_ref": "BodyLIN", "sender_frames": [{"bus_ref": "BodyLIN", "frame_ref": 0x10}]}}
