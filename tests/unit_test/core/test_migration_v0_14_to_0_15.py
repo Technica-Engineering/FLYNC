@@ -87,6 +87,22 @@ def test_can_frame_refs_of_inline_interface():
     assert migrated["can_interfaces"][0]["sender_frames"] == [{"frame_ref": 0x510, "id_format": "standard_11bit"}]
 
 
+@pytest.mark.parametrize(
+    "ref",
+    [
+        pytest.param({"bus_ref": "J1939BusCAN", "pgn": 61441}, id="with-bus-ref"),
+        pytest.param({"pgn": 61441}, id="already-migrated"),
+    ],
+)
+def test_j1939_frame_refs_drop_bus_ref(ref):
+    interface = {"bus_ref": "J1939BusCAN", "j1939_name": 1, "j1939_sender_frames": [dict(ref)], "j1939_receiver_frames": [dict(ref)]}
+
+    migrated = migrate({IFACE_URI: interface})[IFACE_URI]
+
+    assert migrated["j1939_sender_frames"] == migrated["j1939_receiver_frames"] == [{"pgn": 61441}]
+    CANInterface.model_validate({"name": "body_can_interface", **migrated})
+
+
 def test_lin_frame_refs_untouched():
     lin_uri = "ecus/ecu1/controllers/c1/lin_interfaces/body_lin_interface.flync.yaml"
     documents = {lin_uri: {"bus_ref": "BodyLIN", "sender_frames": [{"bus_ref": "BodyLIN", "frame_ref": 0x10}]}}
