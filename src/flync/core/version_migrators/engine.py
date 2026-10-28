@@ -349,18 +349,13 @@ class Migrator:
         from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 
         # The workspace's own configuration is what gets written back when the stamp is advanced,
-        # so it has to survive this load. Deriving the load-time override from it (rather than
-        # constructing a fresh one) keeps every user setting intact; a default config here would
-        # silently replace them and persist ``migration_mode: off``, opting the workspace out of
-        # all future migration checks.
+        # so it keeps every user setting.
         persisted_config = workspace_config if workspace_config is not None else WorkspaceConfiguration.from_workspace(workspace_path)
-        workspace = FLYNCWorkspace.safe_load_workspace(
-            "migration_workspace",
-            workspace_path,
-            # "off" only for this load, so the load-time policy does not recurse into this run.
-            workspace_config=WorkspaceConfiguration.create_from_config(persisted_config, migration_mode="off"),
-        )
-        workspace.configuration = persisted_config
+        workspace = FLYNCWorkspace(name="migration_workspace", workspace_path=workspace_path, configuration=persisted_config)
+        # Only open the documents, like the load-time "auto" policy does. Assembling the model would
+        # validate the old schema against the new one and prune every rejected item from the parsed
+        # documents, which the migrations would then see and write back without it.
+        workspace._open_documents()
         return self.apply_in_place(workspace, status)
 
     def apply_in_place(self, workspace: FLYNCWorkspace, status: MigrationStatus | None = None) -> ApplicationResult:

@@ -382,24 +382,24 @@ class TestMigrator:
         assert original.read_text(encoding="utf-8") == "old: 1\n"
         assert not list(Path(tmp_path).glob(".*.tmp"))
 
-    def test_run_orchestrates_load_then_apply(self, tmp_path, two_migrations, monkeypatch):
-        # A stamped old config makes `run` reach the apply stage, which loads the workspace (mocked
-        # to a fake with documents) and delegates to apply_in_place.
+    def test_run_migrates_the_documents_as_written(self, tmp_path, two_migrations, monkeypatch):
+        # Assembling the model would validate (and prune) the old-schema documents before the
+        # migrations see them, so `run` must only open them.
         config_file = Path(tmp_path) / ".flync" / "config.yaml"
         config_file.parent.mkdir(parents=True)
         config_file.write_text("version:\n  version_schema: pep440\n  version: '0.9.0'\n", encoding="utf-8")
+        (Path(tmp_path) / "root.flync.yaml").write_text("foo: 1\nbaz: 2\n", encoding="utf-8")
 
-        workspace = _fake_workspace(tmp_path, recorded="0.9.0", documents={"root.flync.yaml": {"foo": 1}})
-        monkeypatch.setattr(
-            "flync.sdk.workspace.flync_workspace.FLYNCWorkspace.safe_load_workspace",
-            classmethod(lambda *args, **kwargs: workspace),
-        )
+        def fail_model_load(*args, **kwargs):
+            raise AssertionError("Migrator.run must not assemble the model")
+
+        monkeypatch.setattr("flync.sdk.workspace.flync_workspace.FLYNCWorkspace._load_from_path", fail_model_load)
 
         result = Migrator(registry=two_migrations).run(tmp_path)
 
         assert result.applied == ["test_rename_foo", "test_wrap_baz"]
         assert load_history(tmp_path).applied_ids() == ["test_rename_foo", "test_wrap_baz"]
-        assert (Path(tmp_path) / "root.flync.yaml").exists()
+        assert (Path(tmp_path) / "root.flync.yaml").read_text(encoding="utf-8") == "baz:\n- 2\nbar: 1\n"
 
     def test_stamp_writes_config_with_current_version(self, tmp_path, monkeypatch):
         saved = {}
