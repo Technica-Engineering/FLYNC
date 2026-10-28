@@ -9,6 +9,7 @@ from flync.core.version_migrators.engine import MigrationEngine
 from flync.core.version_migrators.migrations.v0_14_to_0_15 import Migration0_15
 from flync.model.flync_4_ecu.can_interface import CANInterface
 from flync.model.flync_4_metadata.metadata import BaseVersion
+from flync.model.flync_4_someip.someip_simple_datatypes import Bitfield, Enum
 
 V = lambda v: BaseVersion(version_schema="pep440", version=v)  # noqa: E731
 
@@ -180,3 +181,22 @@ def test_lin_frame_refs_untouched():
     documents = {lin_uri: {"bus_ref": "BodyLIN", "sender_frames": [{"bus_ref": "BodyLIN", "frame_ref": 0x10}]}}
 
     assert migrate(documents) == documents
+
+
+def test_datatype_entries_drop_undeclared_keys():
+    service_uri = "communication/someip/services/svc.flync.yaml"
+    enum = {"type": "enum", "name": "E", "entries": [{"value": 0, "name": "zero", "description": "", "comment": "x"}]}
+    bitfield = {
+        "type": "bitfield",
+        "name": "B",
+        "length": 8,
+        "fields": [{"name": "f", "bitposition": 0, "unit": "-", "values": [{"value": 1, "name": "on", "note": "y"}]}],
+    }
+    documents = {service_uri: {"parameters": [{"name": "p1", "datatype": enum}, {"name": "p2", "datatype": bitfield}]}}
+
+    parameters = migrate(documents)[service_uri]["parameters"]
+
+    assert parameters[0]["datatype"]["entries"] == [{"value": 0, "name": "zero", "description": ""}]
+    assert parameters[1]["datatype"]["fields"] == [{"name": "f", "bitposition": 0, "values": [{"value": 1, "name": "on"}]}]
+    Enum.model_validate(parameters[0]["datatype"])
+    Bitfield.model_validate(parameters[1]["datatype"])

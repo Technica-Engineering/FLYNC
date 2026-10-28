@@ -131,6 +131,15 @@ Container PDU header widths are capped at 32 bits
 ``ContainerPDUHeader.id_length_bits`` and ``length_field_bits`` now also declare ``le=32`` (besides
 ``multiple_of=8``), so only 0, 8, 16, 24 or 32 are valid. No supported container format uses more.
 
+Enum entries and bitfield fields reject undeclared keys
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``EnumEntry``, ``BitfieldEntry`` and ``BitfieldEntryValue`` now forbid keys they do not declare, like every other
+model class. 0.14 silently ignored them.
+
+**Migrated** by ``v0_14_to_0_15``: such keys are removed from ``entries`` of an ``enum`` and from ``fields`` (and
+their ``values``) of a ``bitfield``, and a warning names each one. The loaded model is the same as on 0.14.
+
 Additive — YAML schema
 ----------------------
 

@@ -167,11 +167,42 @@ def _migrate_can_frame_egresses(documents: Documents) -> None:
                 _set_after(egress, "frame_ref", "id_format", id_format)
 
 
+_ENUM_ENTRY_KEYS = frozenset({"value", "name", "description"})
+_BITFIELD_ENTRY_KEYS = frozenset({"name", "bitposition", "description", "values"})
+_BITFIELD_VALUE_KEYS = frozenset({"value", "name", "description"})
+
+
+def _drop_unknown_keys(items: Any, allowed: frozenset[str], where: str) -> None:
+    for item in _dicts(items):
+        unknown = [key for key in item if key not in allowed]
+        for key in unknown:
+            del item[key]
+        if unknown:
+            logger.warning("%s: removed %s, which 0.14 ignored and 0.15 rejects.", where, ", ".join(map(repr, unknown)))
+
+
+def _migrate_datatype_entries(documents: Documents) -> None:
+    """
+    Enum entries and bitfield fields / values lose the keys their model does not declare.
+
+    0.14 silently ignored such keys there; 0.15 rejects them like everywhere else in the model.
+    """
+    for uri, content in documents.items():
+        for datatype in _walk(content):
+            if datatype.get("type") == "enum":
+                _drop_unknown_keys(datatype.get("entries"), _ENUM_ENTRY_KEYS, f"{uri}: enum entry")
+            elif datatype.get("type") == "bitfield":
+                _drop_unknown_keys(datatype.get("fields"), _BITFIELD_ENTRY_KEYS, f"{uri}: bitfield field")
+                for field in _dicts(datatype.get("fields")):
+                    _drop_unknown_keys(field.get("values"), _BITFIELD_VALUE_KEYS, f"{uri}: bitfield value")
+
+
 _STEPS: tuple[Callable[[Documents], None], ...] = (
     _migrate_can_frame_refs,
     _migrate_j1939_frame_refs,
     _migrate_can_frame_forwarders,
     _migrate_can_frame_egresses,
+    _migrate_datatype_entries,
 )
 
 
@@ -183,7 +214,8 @@ class Migration0_15(FLYNCMigration):
     target_version = "0.15.0"
     description = (
         "CAN frame references drop bus_ref and gain id_format; J1939 frame references drop bus_ref; "
-        "CAN frame forwarders reference their frame by CAN id and id_format; CAN frame egresses gain id_format."
+        "CAN frame forwarders reference their frame by CAN id and id_format; CAN frame egresses gain id_format; "
+        "enum entries and bitfield fields drop undeclared keys."
     )
 
     def apply(self, documents: Documents) -> None:
