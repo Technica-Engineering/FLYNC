@@ -73,6 +73,9 @@ same reason. The class moved to ``flync.model.flync_4_signal.j1939_frame_ref`` a
    j1939_sender_frames:
      - pgn: 61441
 
+**Migrated** by ``v0_14_to_0_15``: ``bus_ref`` is removed. J1939 was introduced during 0.15 development, so this
+only affects workspaces written by a pre-release build.
+
 Negative values are rejected where they make no sense
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

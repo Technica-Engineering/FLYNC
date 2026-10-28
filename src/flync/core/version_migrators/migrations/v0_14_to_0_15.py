@@ -110,7 +110,15 @@ def _migrate_can_frame_refs(documents: Documents) -> None:
                     ref["id_format"] = _resolve_id_format(frames_by_bus, bus, ref["frame_ref"], f"{uri}: {field}")
 
 
-_STEPS: tuple[Callable[[Documents], None], ...] = (_migrate_can_frame_refs,)
+def _migrate_j1939_frame_refs(documents: Documents) -> None:
+    """``J1939FrameRef`` drops ``bus_ref``; the bus is now the ``bus_ref`` of the owning interface."""
+    for _, interface in _can_interfaces(documents):
+        for field in ("j1939_sender_frames", "j1939_receiver_frames"):
+            for ref in _dicts(interface.get(field)):
+                ref.pop("bus_ref", None)
+
+
+_STEPS: tuple[Callable[[Documents], None], ...] = (_migrate_can_frame_refs, _migrate_j1939_frame_refs)
 
 
 @migration
@@ -119,7 +127,7 @@ class Migration0_15(FLYNCMigration):
 
     unique_id = "v0_14_to_0_15"
     target_version = "0.15.0"
-    description = "CAN frame references drop bus_ref and gain id_format."
+    description = "CAN frame references drop bus_ref and gain id_format; J1939 frame references drop bus_ref."
 
     def apply(self, documents: Documents) -> None:
         for step in _STEPS:
