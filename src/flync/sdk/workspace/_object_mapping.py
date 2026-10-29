@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Optional, cast
 
 from pydantic import RootModel, ValidationError
 from pydantic.fields import FieldInfo
-from ruamel.yaml.nodes import MappingNode, Node, SequenceNode
+from yaml.nodes import MappingNode, Node, SequenceNode
 
 from flync.core.annotations.reference import Reference, resolve_reference
 from flync.core.base_models.base_model import FLYNCBaseModel
@@ -53,7 +53,7 @@ class _WorkspaceObjectMapping(_WorkspaceBase):
             path_id (str): document id of the document containing this node.
             model (FLYNCBaseModel): The validated model value at this node.
             current_object_paths (str | list[str]): Dot-path context(s) for the current model value.
-            node (Node | None): The ruamel.yaml AST node corresponding to ``model``. Defaults to the document's root compose AST.
+            node (Node | None): The YAML AST node corresponding to ``model``. Defaults to the document's root compose AST.
             parent_name (str | None): The field name on the parent that points to this node, used for sequence items.
         """
 

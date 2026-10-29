@@ -34,18 +34,6 @@ def test_document_parse_and_update(needs_compose, sample_yaml_text, tmp_path):
     assert doc.ast["baz"] == [1, 3]
 
 
-def test_parse_reuses_yaml_instance(sample_yaml_text):
-    doc = Document(uri=Path("config.yaml"), text=sample_yaml_text, needs_compose=False)
-
-    doc.parse()
-    yaml_instance_first = Document._get_safe_yaml()
-
-    doc.parse()
-    yaml_instance_second = Document._get_safe_yaml()
-
-    assert yaml_instance_first is yaml_instance_second
-
-
 def test_normalize_uri_absolute_and_relative(tmp_path):
     ws_root = tmp_path
     abs_file = ws_root / "subdir" / "file.yaml"
@@ -102,6 +90,6 @@ def test_parse_documents_compose_ast_preserves_structure(tmp_path):
     _, ast, compose_ast = results[0]
     assert ast == {"items": ["a", "b"]}
     assert compose_ast is not None
-    # Verify compose_ast is a ruamel.yaml node tree
+    # Verify compose_ast is a YAML node tree
     assert hasattr(compose_ast, "start_mark")
     assert compose_ast.start_mark.line == 0

@@ -243,7 +243,7 @@ Retrieve the source location
 .. note::
 
    :class:`~flync.sdk.workspace.source.Position` values are **1-based** for
-   objects loaded from a YAML file (ruamel.yaml marks are shifted by +1).
+   objects loaded from a YAML file (PyYAML marks are shifted by +1).
    Objects that have no YAML source (implied or externally loaded without a
    resolved file) carry ``Position(line=0, character=0)`` as a sentinel.
 

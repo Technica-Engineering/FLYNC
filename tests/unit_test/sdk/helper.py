@@ -5,7 +5,7 @@ from types import MappingProxyType
 
 from pydantic import BaseModel, TypeAdapter
 from pydantic._internal._model_construction import ModelMetaclass
-from ruamel.yaml.nodes import MappingNode, ScalarNode, SequenceNode
+from yaml.nodes import MappingNode, ScalarNode, SequenceNode
 
 from flync.core.utils import yaml_io
 from flync.model import FLYNCModel

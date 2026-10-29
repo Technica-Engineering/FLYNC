@@ -1,5 +1,4 @@
-from ruamel.yaml import YAML
-
+from flync.core.utils import yaml_io
 from flync.core.utils.exceptions_handling import locate_errors, safe_yaml_position
 
 SOURCE = """\
@@ -13,7 +12,7 @@ ports:
 
 
 def _compose(text: str = SOURCE):
-    return YAML(typ="rt").compose(text)
+    return yaml_io.compose(text)
 
 
 def _error(loc, **ctx):

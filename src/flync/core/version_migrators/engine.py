@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import copy
 import datetime
-import io
 import logging
 import os
 import tempfile
@@ -35,7 +34,6 @@ from flync.core.utils import yaml_io
 from flync.model.flync_4_metadata.metadata import BaseVersion
 from flync.sdk.context.workspace_config import CONFIG_RELPATH, WorkspaceConfiguration, _get_current_flync_version
 from flync.sdk.utils.sdk_types import PathType
-from flync.sdk.workspace._saving import _workspace_yaml
 
 from . import migrations as _builtin_migrations  # noqa: F401  (import registers built-in migrations into the global registry)
 from ._base import LOWEST_SUPPORTED_VERSION, Documents, FLYNCMigration, MigrationRegistry, migration_registry
@@ -45,11 +43,6 @@ if TYPE_CHECKING:  # pragma: no cover - import-time only for type checking
     from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 
 logger = logging.getLogger(__name__)
-
-# The SDK's document dumper, but keeping each mapping in the order the document had it so a
-# migration's diff only shows what the migration changed.
-_YAML = _workspace_yaml()
-_YAML.representer.sort_base_mapping_type_on_output = False
 
 
 class WorkspaceMigrationState(StrEnum):
@@ -234,9 +227,7 @@ def _deep_equal(left: Any, right: Any) -> bool:
 def _to_yaml_text(value: Any) -> str:
     """Serialize a parsed-YAML value with the SDK's document dumper, keeping mapping order."""
     if isinstance(value, (dict, list)):
-        buffer = io.StringIO()
-        _YAML.dump(value, buffer)
-        return buffer.getvalue()
+        return yaml_io.safe_dump(value) or ""
     return "" if value is None else str(value)
 
 

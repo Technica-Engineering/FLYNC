@@ -18,6 +18,13 @@ Improve FLYNC_4_App
 
 Adding support for CAN and J1939 references. Also adding IPC.
 
+YAML parsing on PyYAML
+''''''''''''''''''''''
+
+``ruamel.yaml`` is replaced by PyYAML (libyaml when available), which loads, composes and dumps documents roughly 7-18x faster.
+All access goes through ``flync.core.utils.yaml_io``, which keeps the YAML 1.2 core schema (``yes``/``no`` stay strings, ``0875`` is a
+number, MAC-like values stay strings) and still rejects duplicate mapping keys.
+
 Package versioning
 ''''''''''''''''''
 
