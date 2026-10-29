@@ -24,6 +24,7 @@ from flync.sdk.context.diagnostics_result import (
 from flync.sdk.workspace.flync_workspace import (
     FLYNCWorkspace,
     WorkspaceConfiguration,
+    _resolve_workspace_config,
 )
 from flync.sdk.workspace.ids import ObjectId
 
@@ -67,7 +68,8 @@ def validate_external_node(
         node (str | type[FLYNCBaseModel]): The model class to validate, or its string name.
         node_path (Path | str): Path to the directory containing the node's FLYNC configuration files.
         workspace_config (WorkspaceConfiguration | None): Optional workspace configuration. \
-            Uses defaults if ``None``. The ``root_model`` field is always overwritten with ``node``.
+            If ``None``, the ``.flync/config.yaml`` of ``node_path`` is used, else the defaults. \
+            The ``root_model`` field is always overwritten with ``node``.
 
     Returns:
         DiagnosticsResult: Validation outcome with state, per-document errors, the loaded model, and the workspace instance.
@@ -80,6 +82,9 @@ def validate_external_node(
     ws = None
     node_path = Path(node_path)
     try:
+        if workspace_config is None and node_path.is_dir():
+            # A workspace folder is validated with its own configuration, as when it is loaded.
+            workspace_config = _resolve_workspace_config(node_path, None)
         if workspace_config:
             workspace_config = WorkspaceConfiguration.create_from_config(workspace_config, root_model=node)
         else:
