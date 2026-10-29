@@ -618,17 +618,22 @@ class SOMEIPServiceInterface(FLYNCBaseModel):
         """Index event/field entries by ``name`` and by identifier (event ``id``, field ``notifier_id``)."""
         by_name: dict[str, list[object]] = {}
         by_id: dict[int, object] = {}
-        for kind, entries in (("id", events), ("notifier_id", fields)):
-            for e in entries if isinstance(entries, list) else []:
-                # Entries are raw dicts when loaded from YAML and model instances when built in Python.
-                name = e.get("name") if isinstance(e, dict) else getattr(e, "name", None)
-                identifier = e.get(kind) if isinstance(e, dict) else getattr(e, kind, None)
-                # An entry without a usable name or identifier is left to the regular field validation to report.
-                if isinstance(name, str):
-                    by_name.setdefault(name, []).append(e)
-                if isinstance(identifier, int) and not isinstance(identifier, bool):
-                    by_id[identifier] = e
+        tagged = [("id", e) for e in (events if isinstance(events, list) else [])]
+        tagged += [("notifier_id", f) for f in (fields if isinstance(fields, list) else [])]
+        for kind, e in tagged:
+            name = SOMEIPServiceInterface._entry_attr(e, "name")
+            identifier = SOMEIPServiceInterface._entry_attr(e, kind)
+            # An entry without a usable name or identifier is left to the regular field validation to report.
+            if isinstance(name, str):
+                by_name.setdefault(name, []).append(e)
+            if isinstance(identifier, int) and not isinstance(identifier, bool):
+                by_id[identifier] = e
         return by_name, by_id
+
+    @staticmethod
+    def _entry_attr(entry: object, attr: str) -> object:
+        """Read ``attr`` from an entry, which is a raw dict when loaded from YAML and a model instance when built in Python."""
+        return entry.get(attr) if isinstance(entry, dict) else getattr(entry, attr, None)
 
     @staticmethod
     def _resolve_eventgroup_refs(eg: dict[str, object], by_name: dict[str, list[object]], by_id: dict[int, object]) -> None:
