@@ -1120,6 +1120,13 @@ class Test_SignalGroupInstance:
         assert isinstance(sgi, SignalGroupInstance)
 
 
+def test_text_entry_value_null_next_to_a_range_is_absent():
+    """``value: null`` beside ``from_value``/``to_value`` is the same as leaving ``value`` out."""
+    entry = TextEntry.model_validate({"value": None, "from_value": 2, "to_value": 5, "label": "Range"})
+
+    assert (entry.from_value, entry.to_value) == (2, 5)
+
+
 def test_text_entry_value_null_is_a_type_error():
     """``value: null`` leaves no bound to fill ``from_value``/``to_value`` from; that is reported, not stored as ``None``."""
     with pytest.raises(ValidationError) as exc_info:

@@ -16,6 +16,10 @@ from flync.model.flync_4_ecu.internal_topology import (
 from flync.model.flync_4_ecu.lin_interface import LINMasterInterface, LINSlaveInterface
 from flync.model.flync_4_ecu.switch import Switch
 from flync.model.flync_4_signal.frame import CANFDFrame, CANFrame
+from flync.model.flync_4_signal.pdu import StandardPDU
+from flync.model.flync_4_signal.signal import BitmaskFlags, TextTable
+from flync.model.flync_4_someip.service_interface import SOMEIPEvent
+from flync.model.flync_4_someip.someip_simple_datatypes import Boolean, Float32, UInt8
 from flync.sdk.context.workspace_config import ListObjectsMode, WorkspaceConfiguration
 from flync.sdk.helpers import generation_helpers as generation_helpers_util
 from flync.sdk.helpers.generation_helpers import (
@@ -407,6 +411,46 @@ def test_factory_build_canbus_discriminated_frames():
     assert bus.frames[0].can_id == 0x100
     assert bus.frames[1].name == "fd1"
     assert bus.frames[1].can_id == 0x200
+
+
+def test_factory_build_pdu_signals_with_value_encodings():
+    """
+    Signals carrying a value encoding are kept. ``value_encoding`` is an
+    ``Optional[Annotated[Union[...], Field(discriminator="type")]]``, so the variant is chosen by
+    the ``type`` override, and a range entry is built although the factory fills ``value`` with None.
+    """
+    states = {"type": "text_table", "entries": [{"from_value": 0, "to_value": 1, "label": "Off"}]}
+    flags = {"type": "bitmask_flags", "flags": [{"mask": 1, "label": "Fault"}]}
+    pdu = Factory.get_factory(StandardPDU).build(
+        name="P",
+        length=1,
+        signals=[
+            {"bit_position": 0, "signal": {"name": "State", "bit_length": 4, "data_type": "uint8", "value_encoding": states}},
+            {"bit_position": 4, "signal": {"name": "Faults", "bit_length": 4, "data_type": "uint8", "value_encoding": flags}},
+        ],
+        signal_groups=[],
+    )
+
+    assert [type(s.signal.value_encoding) for s in pdu.signals] == [TextTable, BitmaskFlags]
+    assert pdu.signal_groups == []
+
+
+def test_factory_build_someip_event_parameters():
+    """
+    Event parameters are kept. ``datatype`` is a union of discriminated unions with no discriminator on the
+    outer layer, so the variant is chosen by the ``type`` override of each parameter.
+    """
+    event = Factory.get_factory(SOMEIPEvent).build(
+        name="StateOfCharge",
+        id=0x8001,
+        parameters=[
+            {"name": "soc", "datatype": {"type": "uint8"}},
+            {"name": "voltage", "datatype": {"type": "float32"}},
+            {"name": "charging", "datatype": {"type": "boolean"}},
+        ],
+    )
+
+    assert [type(p.datatype) for p in event.parameters] == [UInt8, Float32, Boolean]
 
 
 def test_factory_list_element_annotation_helpers():
