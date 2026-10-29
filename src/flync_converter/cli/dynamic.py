@@ -1,7 +1,9 @@
-"""Dynamic Click command: injects converter config options at parse time."""
+"""Dynamic Click commands: inject converter config options at parse time."""
 
+import copy
 import enum
-from typing import Any
+import logging
+from typing import Any, Self
 
 import click
 
@@ -9,6 +11,8 @@ from flync_converter.base.converter_config import DESTINATION_ONLY_FIELDS
 from flync_converter.utils import get_config_model
 
 from .types import _annotation_to_click_type
+
+logger = logging.getLogger(__name__)
 
 #: Config fields never exposed as options: ``config_path`` comes from
 #: ``--source`` / ``--output`` and ``version`` is managed by the stored file.
@@ -19,6 +23,10 @@ SRC_PREFIX = "src_"
 
 #: Parameter prefix of the destination converter options.
 DST_PREFIX = "dst_"
+
+#: Prefix of the config options of ``convert source`` and ``convert destination``,
+#: whose subcommand already names the side.
+NO_PREFIX = ""
 
 
 def is_config_option(name: str, prefix: str) -> bool:
@@ -41,14 +49,15 @@ def config_option_flag(prefix: str, name: str) -> str:
     """Return the command-line flag of a config field, e.g. ``--dst-output-type``.
 
     Args:
-        prefix: Prefix for option names ('src_' or 'dst_').
+        prefix: Prefix for option names ('src_', 'dst_' or ``NO_PREFIX``).
         name: Config field name.
 
     Returns:
-        The option flag.
+        The option flag, ``--output-type`` without a prefix.
     """
+    flag = name.replace("_", "-")
     side = prefix.rstrip("_")
-    return f"--{side.replace('_', '-')}-{name.replace('_', '-')}"
+    return f"--{side.replace('_', '-')}-{flag}" if side else f"--{flag}"
 
 
 def serialize_option_value(value: Any) -> str:
@@ -164,32 +173,43 @@ class DynamicConverterCommand(click.Command):
             type=_annotation_to_click_type(fld.annotation),
             default=None,
             required=False,
-            help=f"{'[required] ' if required else ''}{name} for {converter_type} ({side} config)",
+            help=f"{'[required] ' if required else ''}{name} for {converter_type}" + (f" ({side} config)" if side else ""),
             show_default=str(default) if default is not None else False,
         )
+
+    def _config_options(self, prefix: str) -> list[click.Option]:
+        """Return the injected config options of one side.
+
+        Args:
+            prefix: Parameter prefix (``src_`` or ``dst_``).
+
+        Returns:
+            The options whose name starts with ``prefix``.
+        """
+        return [p for p in self.params if isinstance(p, click.Option) and p.name is not None and p.name.startswith(prefix)]
 
     def build_config_arguments(self, ctx, prefix: str) -> list[str]:
         """Build converter CLI arguments from the options injected into this command.
 
         Reading the actual Click options keeps preview generation aligned with
-        dynamically generated converter parameters, including converter-specific
-        option names, defaults, types, and ordering.
+        dynamically generated converter parameters, including defaults, types,
+        and ordering. The arguments use the unprefixed flags of the ``source``
+        and ``destination`` subcommands, which the preview's command line uses.
 
         Args:
             ctx: Parsed Click context for the conversion command.
-            prefix: Parameter prefix (``src_`` or ``dst_``).
+            prefix: Parameter prefix (``src_``, ``dst_`` or ``NO_PREFIX``).
 
         Returns:
-            A flat list of command-line arguments accepted by this command.
+            A flat list of command-line arguments, e.g. ``["--output-type", "CLASSIC"]``.
         """
         arguments: list[str] = []
-        for parameter in self.params:
-            if not isinstance(parameter, click.Option) or not parameter.name.startswith(prefix):
-                continue
+        for parameter in self._config_options(prefix):
+            assert parameter.name is not None
             value = ctx.params.get(parameter.name)
             if value is None:
                 continue
-            option = parameter.opts[0]
+            option = config_option_flag(NO_PREFIX, parameter.name[len(prefix) :])
             if parameter.multiple:
                 for item in value:
                     arguments.extend([option, serialize_option_value(item)])
@@ -213,3 +233,96 @@ class DynamicConverterCommand(click.Command):
             self._inject_config_params(source_format, self._SRC_PREFIX)
         self._inject_config_params(output_format, self._DST_PREFIX)
         return super().parse_args(ctx, args)
+
+
+class EndpointCommand(DynamicConverterCommand):
+    """The ``convert source`` / ``convert destination`` subcommand.
+
+    The converter format is pre-scanned from ``-f`` / ``--format`` and its config
+    fields are injected as plain ``--<field>`` options, since the subcommand
+    already names the side. A chained group reuses one command object for every
+    occurrence of a subcommand, so :class:`ConvertGroup` hands out a
+    :meth:`fresh` copy per occurrence and the options of one occurrence never
+    leak into the next.
+
+    Args:
+        side_prefix: ``SRC_PREFIX`` or ``DST_PREFIX``, deciding which fields are offered.
+    """
+
+    def __init__(self, *args: Any, side_prefix: str, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.side_prefix = side_prefix
+        self._declared_params = list(self.params)
+        self._injected: list[click.Option] = []
+
+    def fresh(self) -> Self:
+        """Return a copy holding only the declared parameters, for one occurrence."""
+        command = copy.copy(self)
+        command.params = list(self._declared_params)
+        command._injected = []
+        return command
+
+    def _is_offered(self, name: str, prefix: str) -> bool:
+        """Return whether a config field becomes an option of this subcommand.
+
+        Fields whose flag would shadow a declared option (``--path``,
+        ``--format``, ``--config``, ``--help``) are skipped with a warning.
+
+        Args:
+            name: Config field name.
+            prefix: Unused; the subcommand's options are unprefixed.
+
+        Returns:
+            ``False`` for fields rejected by :func:`is_config_option` for this
+            side, and for fields whose flag is already taken.
+        """
+        if not is_config_option(name, self.side_prefix):
+            return False
+        flag = config_option_flag(NO_PREFIX, name)
+        taken = {"--help", *(opt for p in self.params for opt in getattr(p, "opts", []))}
+        if flag in taken or any(p.name == name for p in self.params):
+            logger.warning("Config field %r shadows the %s option of 'convert %s' and is not offered", name, flag, self.name)
+            return False
+        return True
+
+    def _config_options(self, prefix: str) -> list[click.Option]:
+        """Return the options injected for the selected format."""
+        return list(self._injected)
+
+    def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
+        """Inject the config options of the ``-f`` format, then parse normally.
+
+        Args:
+            ctx: Click context.
+            args: Remaining raw arguments, including those of later subcommands.
+
+        Returns:
+            The arguments left for the following subcommands.
+        """
+        converter_type = self._prescan_value(args, "-f", "--format")
+        if converter_type:
+            declared = len(self.params)
+            self._inject_config_params(converter_type, NO_PREFIX)
+            self._injected = [p for p in self.params[declared:] if isinstance(p, click.Option)]
+        return click.Command.parse_args(self, ctx, args)
+
+
+class ConvertGroup(DynamicConverterCommand, click.Group):
+    """The ``convert`` group: chained ``source`` / ``destination`` subcommands.
+
+    Its own options are the deprecated flat one-to-one form, whose ``--src-*``
+    and ``--dst-*`` options are injected as by :class:`DynamicConverterCommand`.
+    """
+
+    def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
+        """Return a fresh copy of an endpoint subcommand for each occurrence.
+
+        Args:
+            ctx: Click context.
+            cmd_name: Subcommand name.
+
+        Returns:
+            The subcommand, or ``None`` when there is none of that name.
+        """
+        command = super().get_command(ctx, cmd_name)
+        return command.fresh() if isinstance(command, EndpointCommand) else command

@@ -21,7 +21,7 @@ from typing import Any, Sequence
 
 from flync_converter.base import ConverterConfig
 
-from .dynamic import config_option_flag, is_config_option, serialize_option_value
+from .dynamic import NO_PREFIX, config_option_flag, is_config_option, serialize_option_value
 
 _CONVERTER_CMD = "flync-converter"
 
@@ -40,8 +40,8 @@ class ConversionEndpoint:
         converter_type: Converter key/name as registered.
         path: Source or destination path.
         options: Converter options that differ from the defaults, shown in the preview.
-        arguments: Command-line arguments that set those options, e.g.
-            ``["--dst-output-type", "CLASSIC"]``.
+        arguments: Arguments of the endpoint's ``source`` / ``destination``
+            subcommand that set those options, e.g. ``["--output-type", "CLASSIC"]``.
     """
 
     converter_type: str
@@ -61,7 +61,7 @@ def config_endpoint(converter_type: str, config: ConverterConfig, prefix: str) -
     Args:
         converter_type: Converter key/name as registered.
         config: The converter configuration.
-        prefix: Option prefix of the side the converter is on (``src_`` or ``dst_``).
+        prefix: Side the converter is on (``src_`` or ``dst_``), deciding which fields are offered.
 
     Returns:
         The endpoint.
@@ -76,7 +76,7 @@ def config_endpoint(converter_type: str, config: ConverterConfig, prefix: str) -
             continue
         options[name] = value
         if isinstance(value, _CLI_SCALARS):
-            arguments += [config_option_flag(prefix, name), serialize_option_value(value)]
+            arguments += [config_option_flag(NO_PREFIX, name), serialize_option_value(value)]
     return ConversionEndpoint(converter_type, str(config.config_path), options, arguments)
 
 
@@ -103,6 +103,8 @@ def build_command_line(
 ) -> str:
     """Return the ``flync-converter convert`` command line that runs a conversion.
 
+    Every endpoint becomes one ``source`` or ``destination`` subcommand.
+
     Args:
         sources: Source endpoints.
         destinations: Destination endpoints.
@@ -112,12 +114,9 @@ def build_command_line(
         The quoted command line.
     """
     parts = [_CONVERTER_CMD, "convert"]
-    for source in sources:
-        parts += ["-s", source.path, "-sf", source.converter_type]
-    for destination in destinations:
-        parts += ["-o", destination.path, "-of", destination.converter_type]
-    for endpoint in [*sources, *destinations]:
-        parts += endpoint.arguments
+    for role, endpoints in (("source", sources), ("destination", destinations)):
+        for endpoint in endpoints:
+            parts += [role, "-p", endpoint.path, "-f", endpoint.converter_type, *endpoint.arguments]
     return join_command(parts, posix)
 
 
