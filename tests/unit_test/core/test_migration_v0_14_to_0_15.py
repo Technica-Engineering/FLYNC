@@ -6,7 +6,7 @@ import pytest
 
 from flync.core.version_migrators._base import MigrationRegistry, migration_registry
 from flync.core.version_migrators.engine import MigrationEngine
-from flync.core.version_migrators.migrations.v0_14_to_0_15 import Migration0_15
+from flync.core.version_migrators.migrations.v0_14_to_0_15 import Migration015
 from flync.model.flync_4_ecu.can_interface import CANInterface
 from flync.model.flync_4_metadata.metadata import BaseVersion
 from flync.model.flync_4_someip.someip_simple_datatypes import Bitfield, Enum
@@ -29,11 +29,12 @@ def can_bus(name: str, *frames: tuple[int, str]) -> dict:
 def migrate(documents: dict, recorded: str = "0.14.0") -> dict:
     """Migrate ``documents``, asserting a second run changes nothing."""
     registry = MigrationRegistry.new()
-    registry.register(Migration0_15())
+    registry.register(Migration015())
     engine = MigrationEngine(registry=registry)
     _, working, _ = engine.apply(documents, V(recorded), V("0.15.0"))
     _, again, changed = engine.apply(copy.deepcopy(working), V(recorded), V("0.15.0"))
-    assert again == working and not changed
+    assert again == working
+    assert not changed
     return working
 
 
