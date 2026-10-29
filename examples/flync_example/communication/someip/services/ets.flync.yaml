@@ -9,8 +9,7 @@ id: 0x0101
 major_version: 1
 minor_version: 1
 fields:
-- &field_0x8005
-  name: InterfaceVersion
+- name: InterfaceVersion
   someip_timing: field_default
   parameters:
   - name: MajorVersion
@@ -21,8 +20,7 @@ fields:
       type: uint32
   notifier_id: 0x8005
   getter_id: 0x25
-- &field_0x8006
-  name: TestFieldUINT8
+- name: TestFieldUINT8
   notifier_id: 0x8006
   setter_id: 0x26
   getter_id: 0x27
@@ -30,8 +28,7 @@ fields:
   - name: uint8_value
     datatype:
       type: uint8
-- &field_0x8007
-  name: TestFieldUINT8Array
+- name: TestFieldUINT8Array
   notifier_id: 0x8007
   setter_id: 0x28
   getter_id: 0x29
@@ -46,8 +43,7 @@ fields:
         upper_limit: 5
       element_type:
         type: uint8
-- &field_0x8008
-  name: TestFieldUINT8Reliable
+- name: TestFieldUINT8Reliable
   notifier_id: 0x8008
   setter_id: 0x2A
   getter_id: 0x2B
@@ -57,8 +53,7 @@ fields:
     datatype:
       type: uint8
 events:
-- &event_0x8001
-  name: TestEventUINT8
+- name: TestEventUINT8
   id: 0x8001
   e2e:
     profile: AUTOSAR_Profile_4
@@ -68,8 +63,7 @@ events:
   - name: uint8_value
     datatype:
       type: uint8
-- &event_0x8002
-  name: TestEventUINT8Array
+- name: TestEventUINT8Array
   id: 0x8002
   e2e:
     profile: AUTOSAR_Profile_4
@@ -85,8 +79,7 @@ events:
         upper_limit: 5
       element_type:
         type: uint8
-- &event_0x8004
-  name: TestEventUINT8E2E
+- name: TestEventUINT8E2E
   id: 0x8004
   e2e:
     profile: AUTOSAR_Profile_7
@@ -107,8 +100,7 @@ events:
   - name: uint8_value
     datatype:
       type: uint8
-- &event_0x8003
-  name: TestEventUINT8Reliable
+- name: TestEventUINT8Reliable
   id: 0x8003
   reliable: true
   e2e:
@@ -118,8 +110,7 @@ events:
   - name: uint8_value
     datatype:
       type: uint8
-- &event_0x800b
-  name: TestEventUINT8Multicast
+- name: TestEventUINT8Multicast
   id: 0x800b
   parameters:
   - name: uint8_value
@@ -129,29 +120,29 @@ eventgroups:
 - name: eg2_all
   id: 2
   events:
-  - *event_0x8001
-  - *event_0x8002
-  - *event_0x8003
-  - *event_0x8004
-  - *field_0x8005
-  - *field_0x8006
-  - *field_0x8007
-  - *field_0x8008
-  - *event_0x800b
+  - TestEventUINT8
+  - TestEventUINT8Array
+  - TestEventUINT8Reliable
+  - TestEventUINT8E2E
+  - InterfaceVersion
+  - TestFieldUINT8
+  - TestFieldUINT8Array
+  - TestFieldUINT8Reliable
+  - TestEventUINT8Multicast
 - name: eg5_events_and_fields_unreliable
   id: 5
   events:
-  - *event_0x8001
-  - *event_0x8002
-  - *event_0x8004
-  - *event_0x800b
-  - *field_0x8005
-  - *field_0x8006
-  - *field_0x8007
+  - TestEventUINT8
+  - TestEventUINT8Array
+  - TestEventUINT8E2E
+  - TestEventUINT8Multicast
+  - InterfaceVersion
+  - TestFieldUINT8
+  - TestFieldUINT8Array
 - name: eg6_events_multicast
   id: 6
   events:
-  - *event_0x800b
+  - TestEventUINT8Multicast
 methods:
 - name: checkByteOrder
   type: request_response
