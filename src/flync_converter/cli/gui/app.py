@@ -9,6 +9,7 @@ import sys
 import threading
 from typing import Optional
 
+from pydantic import ValidationError
 from PySide6.QtCore import QCoreApplication, Qt, QTimer, Signal
 from PySide6.QtGui import QFontDatabase
 from PySide6.QtWidgets import (
@@ -28,10 +29,11 @@ from PySide6.QtWidgets import (
 from flync_converter import Converter
 from flync_converter.base import ConverterConfig
 from flync_converter.cli.dynamic import DST_PREFIX, SRC_PREFIX
-from flync_converter.cli.preview import config_endpoint, conversion_summary, render_preview
+from flync_converter.cli.preview import ConversionEndpoint, config_endpoint, conversion_summary, render_preview
+from flync_converter.conversion_request import ConversionOutput, ConversionRequest, ConversionSource
 from flync_converter.registry import registry
 
-from .widgets import ConverterPanel, LogWidgetHandler
+from .widgets import ConverterPanelList, LogWidgetHandler
 
 _LOG_LEVELS = ["DEBUG", "INFO", "WARNING", "ERROR"]
 _DEFAULT_LOG_LEVEL = "WARNING"
@@ -99,12 +101,12 @@ class FlyncGUI(QMainWindow):
 
         # Split panels (resizable)
         splitter = QSplitter(Qt.Orientation.Horizontal)
-        self._source_panel = ConverterPanel("Source", default="flync")
-        self._dest_panel = ConverterPanel("Destination", default="flync")
-        self._source_panel.changed.connect(self._refresh_convert_button)
-        self._dest_panel.changed.connect(self._refresh_convert_button)
-        splitter.addWidget(self._source_panel)
-        splitter.addWidget(self._dest_panel)
+        self._source_panels = ConverterPanelList("Source", default="flync")
+        self._dest_panels = ConverterPanelList("Destination", default="flync")
+        self._source_panels.changed.connect(self._refresh_convert_button)
+        self._dest_panels.changed.connect(self._refresh_convert_button)
+        splitter.addWidget(self._source_panels)
+        splitter.addWidget(self._dest_panels)
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 1)
         root.addWidget(splitter, stretch=1)
@@ -164,7 +166,8 @@ class FlyncGUI(QMainWindow):
     # ------------------------------------------------------------------
 
     def _refresh_convert_button(self, *_) -> None:
-        self._convert_btn.setEnabled(bool(self._source_panel.converter_type and self._dest_panel.converter_type))
+        panels = [*self._source_panels.panels, *self._dest_panels.panels]
+        self._convert_btn.setEnabled(bool(panels) and all(panel.converter_type for panel in panels))
 
     def _on_log_level_changed(self, level: str) -> None:
         logging.getLogger().setLevel(level)
@@ -172,26 +175,51 @@ class FlyncGUI(QMainWindow):
             self._log_handler.setLevel(level)
 
     def _on_convert_clicked(self) -> None:
-        try:
-            source_cfg = self._source_panel.read_config()
-            self._source_panel.clear_error()
-        except Exception as exc:
-            self._source_panel.show_error(str(exc))
+        configured_sources = self._read_panels(self._source_panels)
+        if configured_sources is None:
+            return
+        configured_destinations = self._read_panels(self._dest_panels)
+        if configured_destinations is None:
             return
 
         try:
-            dest_cfg = self._dest_panel.read_config()
-            self._dest_panel.clear_error()
-        except Exception as exc:
-            self._dest_panel.show_error(str(exc))
+            request = ConversionRequest(
+                sources=[
+                    ConversionSource(path=config.config_path, converter_type=converter_type, config=config)
+                    for converter_type, config in configured_sources
+                ],
+                outputs=[
+                    ConversionOutput(path=config.config_path, converter_type=converter_type, config=config)
+                    for converter_type, config in configured_destinations
+                ],
+            )
+        except ValidationError as exc:
+            for panel in [*self._source_panels.panels, *self._dest_panels.panels]:
+                panel.show_error(str(exc))
             return
-
         self._run_conversion(
-            self._source_panel.converter_type,  # type: ignore[arg-type]
-            source_cfg,
-            self._dest_panel.converter_type,  # type: ignore[arg-type]
-            dest_cfg,
+            request,
+            [config_endpoint(converter_type, config, SRC_PREFIX) for converter_type, config in configured_sources],
+            [config_endpoint(converter_type, config, DST_PREFIX) for converter_type, config in configured_destinations],
         )
+
+    @staticmethod
+    def _read_panels(panel_list: ConverterPanelList) -> list[tuple[str, ConverterConfig]] | None:
+        """Validate every panel and return its converter type and configuration."""
+        configured: list[tuple[str, ConverterConfig]] = []
+        for panel in panel_list.panels:
+            converter_type = panel.converter_type
+            if converter_type is None:
+                panel.show_error("Select a format for every endpoint before converting.")
+                return None
+            try:
+                config = panel.read_config()
+                panel.clear_error()
+            except Exception as exc:
+                panel.show_error(str(exc))
+                return None
+            configured.append((converter_type, config))
+        return configured
 
     # ------------------------------------------------------------------
     # Conversion
@@ -199,15 +227,19 @@ class FlyncGUI(QMainWindow):
 
     def _run_conversion(
         self,
-        source_type: str,
-        source_cfg: ConverterConfig,
-        dest_type: str,
-        dest_cfg: ConverterConfig,
+        request: ConversionRequest,
+        sources: list[ConversionEndpoint],
+        destinations: list[ConversionEndpoint],
     ) -> None:
+        """Print the preview of ``request`` and run it in a background thread.
+
+        Args:
+            request: The conversion to run.
+            sources: The source endpoints of the preview, in merge order.
+            destinations: The destination endpoints of the preview.
+        """
         self._convert_btn.setEnabled(False)
         self._log_view.clear()
-        sources = [config_endpoint(source_type, source_cfg, SRC_PREFIX)]
-        destinations = [config_endpoint(dest_type, dest_cfg, DST_PREFIX)]
         if self._preview_check.isChecked():
             self._log_signal.emit(render_preview(sources, destinations))
         self._log_signal.emit(conversion_summary(sources, destinations))
@@ -215,14 +247,7 @@ class FlyncGUI(QMainWindow):
         def _worker() -> None:
             """Run the conversion in a background thread and emit signals to update the UI."""
             try:
-                Converter().convert(
-                    source=source_cfg.config_path,
-                    destination=dest_cfg.config_path,
-                    source_type=source_type,
-                    destination_type=dest_type,
-                    source_config=source_cfg,
-                    destination_config=dest_cfg,
-                )
+                Converter.convert_request(request)
                 self._log_signal.emit("Conversion completed successfully.")
             except Exception as exc:
                 self._log_signal.emit(f"Conversion failed: {exc}")
