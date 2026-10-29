@@ -4,7 +4,7 @@ Defines the supported xMII configurations used in the FLYNC model.
 "xMII" is the umbrella term for every interface in the MII role: the MAC-facing link
 between a MAC and its PHY, or, PHY-less, between two MAC-side devices
 (switch-to-switch, switch-to-SoC, switch-to-port-extender). It covers parallel
-interfaces (MII, RMII, RGMII) and serial ones (SGMII, USGMII, USXGMII, XFI).
+interfaces (MII, RMII, RGMII) and serial ones (SGMII, QSGMII, USGMII, USXGMII, XFI).
 """
 
 from typing import Literal, NamedTuple, Optional, Self
@@ -30,12 +30,19 @@ class MII(FLYNCBaseModel):
         Defaults to 100 Mbps. The clock scales with the link rate (25/2.5 MHz), so a port may pair this with a slower MDI.
 
     mode : Literal["mac", "phy"]
-        Operating mode, either MAC or PHY.
+        Operating mode, either MAC or PHY. ``"phy"`` is the reverse-MII setup, where the port takes the PHY role and
+        drives both clocks (TX_CLK and RX_CLK).
+
+    lite : bool, optional
+        Indicates whether this is MII-Lite: MII without the TX_ER, RX_ER, CRS and COL signals (12 signals instead of 16).
+        Without CRS and COL the link cannot run half duplex, so it carries full duplex only.
+        Defaults to ``False``.
     """
 
     type: Literal["mii"] = Field(default="mii")
     speed: Optional[Literal[10, 100]] = Field(default=100)
     mode: Literal["mac", "phy"] = Field()
+    lite: bool = Field(default=False)
 
 
 class RMII(FLYNCBaseModel):
@@ -152,6 +159,8 @@ _USXGMII_VARIANTS: dict[str, _Variant] = {
 }
 
 _USGMII_SPEEDS = frozenset({10, 100, 1000})
+
+_QSGMII_PORTS = 4
 
 _USGMII_VARIANTS: dict[str, _Variant] = {
     "q_usgmii": _Variant(ports=4, per_port_max=1000, pch_capable=True),
@@ -421,9 +430,97 @@ class USGMII(FLYNCBaseModel):
         return self
 
 
-MULTI_SPEED_MIIS = (MII, RMII, SGMII, RGMII, USXGMII, USGMII)
+class QSGMIIChannel(FLYNCBaseModel):
+    """
+    Represents one logical channel carried by a :class:`QSGMII` link.
 
-XMIIConfig = MII | RMII | SGMII | RGMII | XFI | USXGMII | USGMII
+    Parameters
+    ----------
+    subport_id : int, optional
+        Position of this channel on the link (0..3). On a multi-port PHY this equals the PHY's network port number.
+        Defaults to 0.
+
+    speed : int
+        Highest speed this channel carries, in megabits per second. The port may pair this with a slower MDI.
+    """
+
+    subport_id: int = Field(default=0, ge=0)
+    speed: int = Field(gt=0)
+
+
+class QSGMII(FLYNCBaseModel):
+    """
+    Represents a QSGMII (Quad Serial Gigabit Media Independent Interface) configuration, which multiplexes four
+    10/100/1000 Mbps channels over a single serial link. Unlike :class:`USGMII` it has no Packet Control Header.
+
+    Parameters
+    ----------
+    type : Literal["qsgmii"]
+        Interface type discriminator.
+
+    mode : Literal["mac", "phy"]
+        Operating mode, either MAC or PHY.
+
+    channels : list of :class:`QSGMIIChannel`
+        The channels that have a port attached, at least one and at most four. List only slots with a port attached.
+        Every listed channel is occupied by exactly one port: the port carrying the link (the one holding this
+        ``mii_config``) takes the channel named by its ``mii_subport_id`` (default 0), and each ``mii_subport_of`` port
+        takes another. The exception is the uplink port of a channelized port extender, which is a pure lane and
+        occupies none.
+    """
+
+    type: Literal["qsgmii"] = Field(default="qsgmii")
+    mode: Literal["mac", "phy"] = Field()
+    channels: list[QSGMIIChannel] = Field(min_length=1)
+
+    @property
+    def speed(self) -> Optional[int]:
+        """The link's network speed, when it carries exactly one channel; ``None`` for a multi-port link."""
+
+        return self.channels[0].speed if len(self.channels) == 1 else None
+
+    @model_validator(mode="after")
+    def validate_channels(self) -> Self:
+        """Validate channel count, subport_id range/uniqueness, and per-channel speed."""
+
+        if len(self.channels) > _QSGMII_PORTS:
+            raise err_major(
+                "QSGMII supports at most {max_channels} channel(s), got {channels}.",
+                max_channels=_QSGMII_PORTS,
+                channels=len(self.channels),
+                category=Category.VALUE_RANGE,
+                error_number="428",
+            )
+
+        validate_list_items_unique([channel.subport_id for channel in self.channels], "QSGMII channel subport_id")
+
+        for channel in self.channels:
+            if channel.subport_id >= _QSGMII_PORTS:
+                raise err_major(
+                    "QSGMII channel subport_id {subport_id} is out of range; valid range is 0..{max_subport_id}.",
+                    subport_id=channel.subport_id,
+                    max_subport_id=_QSGMII_PORTS - 1,
+                    category=Category.VALUE_RANGE,
+                    error_number="429",
+                )
+            if channel.speed not in _USGMII_SPEEDS:
+                raise err_major(
+                    "QSGMII does not support speed {speed} Mbps on channel {subport_id}. Valid speeds are {valid_speeds}.",
+                    speed=channel.speed,
+                    subport_id=channel.subport_id,
+                    valid_speeds=sorted(_USGMII_SPEEDS),
+                    category=Category.VALUE_RANGE,
+                    error_number="430",
+                )
+        return self
+
+
+MULTI_SPEED_MIIS = (MII, RMII, SGMII, RGMII, USXGMII, USGMII, QSGMII)
+
+MULTI_PORT_MIIS = (USXGMII, USGMII, QSGMII)
+"""The xMIIs that carry several channels (ports) over one link."""
+
+XMIIConfig = MII | RMII | SGMII | RGMII | XFI | USXGMII | USGMII | QSGMII
 """Every xMII configuration a port, interface or extender uplink can carry."""
 
 
@@ -431,7 +528,7 @@ def xmii_channel_capacity(mii_config: XMIIConfig) -> int:
     """
     Tell how many channels (ports) an xMII can carry.
 
-    A USXGMII or USGMII variant carries as many channels as its variant has ports; every other xMII is single-port.
+    A USXGMII or USGMII variant carries as many channels as its variant has ports, QSGMII carries 4; every other xMII is single-port.
 
     Args:
         mii_config: The xMII configuration to inspect.
@@ -440,11 +537,14 @@ def xmii_channel_capacity(mii_config: XMIIConfig) -> int:
         int: The number of channels, 1 for a single-port interface.
     """
 
+    channels = 1
     if isinstance(mii_config, USXGMII):
-        return _USXGMII_VARIANTS[mii_config.type].ports
-    if isinstance(mii_config, USGMII):
-        return _USGMII_VARIANTS[mii_config.type].ports
-    return 1
+        channels = _USXGMII_VARIANTS[mii_config.type].ports
+    elif isinstance(mii_config, USGMII):
+        channels = _USGMII_VARIANTS[mii_config.type].ports
+    elif isinstance(mii_config, QSGMII):
+        channels = _QSGMII_PORTS
+    return channels
 
 
 def mii_carries_mdi_speed(mii_config: XMIIConfig, mdi_speed: int, mii_speed: Optional[int] = None) -> bool:

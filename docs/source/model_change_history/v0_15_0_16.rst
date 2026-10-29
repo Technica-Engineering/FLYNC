@@ -38,6 +38,22 @@ Breaking — YAML schema
 Additive — YAML schema
 ----------------------
 
+New field: ``lite`` on MII
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:class:`~flync.model.flync_4_ecu.mii.MII` gained ``lite`` (default ``false``) for MII-Lite, which drops TX_ER, RX_ER, CRS and COL
+and so carries full duplex only. New validation: ``FLYNC-CMN-WARN-COMP-431`` and ``FLYNC-CMN-MAJ-CONS-432``, see :doc:`../error_catalog`.
+
+New xMII type: QSGMII
+~~~~~~~~~~~~~~~~~~~~~
+
+``mii_config`` on :class:`~flync.model.flync_4_ecu.port.ECUPort`, :class:`~flync.model.flync_4_ecu.switch.SwitchPort`
+and :class:`~flync.model.flync_4_ecu.controller.EthernetInterfaceConfig` also accepts
+:class:`~flync.model.flync_4_ecu.mii.QSGMII` (``type: qsgmii``), four 10/100/1000 Mbps channels over one serial link, without
+a Packet Control Header. It is also accepted as a port extender uplink, including a channelized one.
+
+New validation: ``FLYNC-ECU-MAJ-VAL-428`` to ``FLYNC-ECU-MAJ-VAL-430``, see :doc:`../error_catalog`.
+
 Breaking — Python API
 ---------------------
 

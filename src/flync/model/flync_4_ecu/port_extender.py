@@ -19,6 +19,8 @@ from flync.core.validators.connection_compatibility import validate_compulsory_m
 from flync.core.validators.generic import validate_list_items_unique
 from flync.model.flync_4_ecu.mii import (
     MII,
+    MULTI_PORT_MIIS,
+    QSGMII,
     RGMII,
     RMII,
     SGMII,
@@ -87,13 +89,13 @@ class TaggedUplink(ExtenderUplink):
     mii_config : :class:`~flync.model.flync_4_ecu.mii.MII` or :class:`~flync.model.flync_4_ecu.mii.RMII` or \
     :class:`~flync.model.flync_4_ecu.mii.SGMII` or :class:`~flync.model.flync_4_ecu.mii.RGMII` or \
     :class:`~flync.model.flync_4_ecu.mii.XFI` or :class:`~flync.model.flync_4_ecu.mii.USXGMII` or \
-    :class:`~flync.model.flync_4_ecu.mii.USGMII`
+    :class:`~flync.model.flync_4_ecu.mii.USGMII` or :class:`~flync.model.flync_4_ecu.mii.QSGMII`
         The extender's end of the link. The switch's uplink port declares the other end with the opposite ``mode``.
     """
 
     type: Literal["tagged"] = Field(default="tagged")
     tag: PortExtenderTag = Field()
-    mii_config: MII | RMII | SGMII | RGMII | XFI | USXGMII | USGMII = Field(discriminator="type")
+    mii_config: MII | RMII | SGMII | RGMII | XFI | USXGMII | USGMII | QSGMII = Field(discriminator="type")
 
 
 class ChannelizedUplink(ExtenderUplink):
@@ -107,12 +109,13 @@ class ChannelizedUplink(ExtenderUplink):
     type : Literal["channelized"]
         Uplink type.
 
-    mii_config : :class:`~flync.model.flync_4_ecu.mii.USXGMII` or :class:`~flync.model.flync_4_ecu.mii.USGMII`
+    mii_config : :class:`~flync.model.flync_4_ecu.mii.USXGMII` or :class:`~flync.model.flync_4_ecu.mii.USGMII` or \
+    :class:`~flync.model.flync_4_ecu.mii.QSGMII`
         The extender's end of the lane. The switch's uplink port declares the other end with the opposite ``mode``.
     """
 
     type: Literal["channelized"] = Field(default="channelized")
-    mii_config: USXGMII | USGMII = Field(discriminator="type")
+    mii_config: USXGMII | USGMII | QSGMII = Field(discriminator="type")
 
 
 class PortExtender(FLYNCBaseModel):
@@ -158,7 +161,7 @@ class PortExtender(FLYNCBaseModel):
         return self._switch
 
     @property
-    def mii_config(self) -> MII | RMII | SGMII | RGMII | XFI | USXGMII | USGMII:
+    def mii_config(self) -> MII | RMII | SGMII | RGMII | XFI | USXGMII | USGMII | QSGMII:
         """The extender's end of the uplink xMII."""
         return self.uplink.mii_config
 
@@ -360,7 +363,7 @@ def validate_extender_uplink_links(switch: Switch) -> None:
         if extender.uplink.type == "channelized":
             if not multi_port:
                 raise err_major(
-                    "Extender '{extender}' has a channelized uplink, which needs a multi-port USXGMII or USGMII lane, "
+                    "Extender '{extender}' has a channelized uplink, which needs a multi-port USXGMII, USGMII or QSGMII lane, "
                     "but '{lane}' carries one port.",
                     extender=extender.name,
                     lane=lane.type,
@@ -433,7 +436,7 @@ def validate_uplink_port_usage(switch: Switch) -> None:
 
 def _channel_signature(mii_config: XMIIConfig) -> list[tuple[int, int]]:
     """The ``(subport_id, speed)`` pairs of a multi-port xMII; empty for a single-port xMII."""
-    channels = mii_config.channels if isinstance(mii_config, (USXGMII, USGMII)) else []
+    channels = mii_config.channels if isinstance(mii_config, MULTI_PORT_MIIS) else []
     return sorted((channel.subport_id, channel.speed) for channel in channels)
 
 

@@ -16,6 +16,7 @@ from flync.core.validators.connection_compatibility import (
     validate_gptp,
     validate_htb,
     validate_macsec,
+    validate_mii_lite_duplex,
     validate_optional_mii_config_compatibility,
     validate_switch_port_mdi_speed,
 )
@@ -298,6 +299,7 @@ class ECUPortToSwitchPort(ECUPortToXConnection, SwitchPortToXConnection):
     def validate_compatibility(self) -> None:
         validate_optional_mii_config_compatibility(self.ecu_port, self.switch_port, self.id)
         validate_switch_port_mdi_speed(self.switch_port)
+        validate_mii_lite_duplex("Switch Ports", self.switch_port, self.switch_port.mdi_config)
         if self.ecu_port.mdi_config and self.switch_port.traffic_classes:
             validate_cbs_idleslopes_fit_portspeed(
                 self.switch_port.traffic_classes,
@@ -345,6 +347,7 @@ class ECUPortToControllerInterface(ECUPortToXConnection, ControllerInterfaceToXC
 
     def validate_compatibility(self) -> None:
         validate_optional_mii_config_compatibility(self.ecu_port, self.iface.interface_config, self.id)
+        validate_mii_lite_duplex("Controller Interfaces", self.iface.interface_config, self.ecu_port.mdi_config)
         validate_htb(self.iface.interface_config, self.ecu_port.mdi_config.speed if self.ecu_port.mdi_config else None)
 
 
