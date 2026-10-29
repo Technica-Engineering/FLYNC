@@ -315,12 +315,15 @@ The GUI is a `PySide6 <https://doc.qt.io/qtforpython/>`_ desktop application wit
    # or
    flync-converter-gui
 
-The GUI mirrors the TUI feature-for-feature:
+The GUI provides a native multi-endpoint conversion workflow:
 
+- **Multiple sources and destinations** - use **Add Source** and **Add Destination** to configure one-to-one, one-to-N, N-to-one, or N-to-N conversions.
+- **Endpoint management** - remove any endpoint while at least one endpoint of the same role remains; remaining panels are renumbered automatically.
+- **Independent configuration** - every source and destination keeps its own format, path, and converter-specific values.
 - **Resizable split panels** - drag the divider to adjust the source/destination ratio.
 - **Dynamic config fields** - text inputs for scalar fields, dropdowns for enum fields. Required fields are marked ``*`` in red.
 - **Real-time log output** - Python log records from the library appear in the log panel. The log level selector controls verbosity.
-- **Threaded conversion** - the Convert button is disabled during conversion; output streams live into the log panel. Errors are displayed inline on the relevant panel.
+- **Threaded conversion** - the complete request runs in the background; output streams live into the log panel. Configuration and request errors are shown inline on the affected endpoints.
 
 ----
 

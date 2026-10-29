@@ -73,7 +73,11 @@ Desktop GUI
    # or
    flync-converter-gui
 
-Opens the PySide6 desktop application with the same split-panel layout as the TUI but as a native window.
+Opens the PySide6 desktop application. Use **Add Source** and **Add Destination**
+to configure multiple endpoints. Each endpoint keeps an independent format, path,
+and converter configuration. Any endpoint can be removed while at least one Source
+and one Destination remain. The GUI merges all Source models and writes the merged
+model to every configured Destination.
 
 Python API
 ----------

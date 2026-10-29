@@ -17,13 +17,15 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 PySide6 = pytest.importorskip("PySide6", reason="PySide6 not installed")
 
-from PySide6.QtWidgets import QApplication, QComboBox  # noqa: E402
+from PySide6.QtWidgets import QApplication, QComboBox, QPushButton  # noqa: E402
 
 from flync_converter.base import ConverterConfig  # noqa: E402
 from flync_converter.base.base_converter import BaseConverter  # noqa: E402
 from flync_converter.cli.gui.app import FlyncGUI  # noqa: E402
 from flync_converter.cli.gui.widgets.converter_panel import ConverterPanel  # noqa: E402
+from flync_converter.cli.gui.widgets.converter_panel_list import ConverterPanelList  # noqa: E402
 from flync_converter.cli.gui.widgets.log_handler import LogWidgetHandler  # noqa: E402
+from flync_converter.conversion_request import ConversionOutput, ConversionRequest, ConversionSource  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Session-scoped QApplication (pytest-qt provides qapp, but we also need it
@@ -349,12 +351,34 @@ def test_gui_convert_button_enabled_when_both_panels_selected(qapp_instance, fak
         window = FlyncGUI()
 
     try:
-        window._source_panel._converter_type = "json"
-        window._dest_panel._converter_type = "yaml"
+        window._source_panels.panels[0]._converter_type = "json"
+        window._dest_panels.panels[0]._converter_type = "yaml"
         window._refresh_convert_button()
         assert window._convert_btn.isEnabled()
     finally:
         window.close()
+
+
+def test_gui_convert_button_follows_the_format_selection(qapp_instance, fake_registry):
+    """Choosing and clearing a format in the dropdown enables and disables Convert."""
+    with patch(_APP_REGISTRY, fake_registry), patch(_PANEL_REGISTRY, fake_registry), patch(_UTILS_REGISTRY, fake_registry):
+        window = FlyncGUI()
+        try:
+            source, destination = window._source_panels.panels[0], window._dest_panels.panels[0]
+            source._format_combo.setCurrentIndex(source._format_combo.findData("json"))
+            destination._format_combo.setCurrentIndex(destination._format_combo.findData("yaml"))
+            assert window._convert_btn.isEnabled()
+
+            window._dest_panels.add_panel()
+            assert not window._convert_btn.isEnabled()
+
+            window._dest_panels.remove_panel(window._dest_panels.panels[1])
+            assert window._convert_btn.isEnabled()
+
+            source._format_combo.setCurrentIndex(0)
+            assert not window._convert_btn.isEnabled()
+        finally:
+            window.close()
 
 
 def test_gui_source_error_shown_on_bad_source_config(qapp_instance, fake_registry):
@@ -365,7 +389,7 @@ def test_gui_source_error_shown_on_bad_source_config(qapp_instance, fake_registr
     try:
         # Neither panel has a selection — source read_config raises first.
         window._on_convert_clicked()
-        assert not window._source_panel._error_label.isHidden()
+        assert not window._source_panels.panels[0]._error_label.isHidden()
     finally:
         window.close()
 
@@ -377,20 +401,20 @@ def test_gui_dest_error_shown_on_bad_dest_config(qapp_instance, fake_registry):
 
     try:
         # Source is valid, dest has no selection.
-        window._source_panel._converter_type = "json"
+        window._source_panels.panels[0]._converter_type = "json"
         with patch.object(
-            window._source_panel,
+            window._source_panels.panels[0],
             "read_config",
             return_value=ConverterConfig(config_path="/tmp"),
         ):
             window._on_convert_clicked()
-        assert not window._dest_panel._error_label.isHidden()
+        assert not window._dest_panels.panels[0]._error_label.isHidden()
     finally:
         window.close()
 
 
 def test_gui_conversion_runs_in_background(qapp_instance, fake_registry):
-    """A successful conversion emits the done signal and re-enables the button."""
+    """The conversion runs off the main thread with the complete request."""
     import threading
     import time
 
@@ -398,19 +422,107 @@ def test_gui_conversion_runs_in_background(qapp_instance, fake_registry):
         window = FlyncGUI()
 
     try:
-        source_cfg = ConverterConfig(config_path="/tmp")
-        dest_cfg = ConverterConfig(config_path="/tmp")
+        source_cfg = ConverterConfig(config_path="/tmp/source")
+        dest_cfg = ConverterConfig(config_path="/tmp/destination")
+        request = ConversionRequest(
+            sources=[ConversionSource(path=source_cfg.config_path, converter_type="json", config=source_cfg)],
+            outputs=[ConversionOutput(path=dest_cfg.config_path, converter_type="yaml", config=dest_cfg)],
+        )
 
-        with patch("flync_converter.cli.gui.app.Converter") as mock_cls:
-            mock_cls.return_value.convert.return_value = None
-            window._run_conversion("json", source_cfg, "yaml", dest_cfg)
+        with patch("flync_converter.cli.gui.app.Converter.convert_request") as convert_request:
+            window._run_conversion(request, [], [])
 
             # Wait for the background thread to finish (max 2 s).
             deadline = time.monotonic() + 2.0
             while threading.active_count() > 1 and time.monotonic() < deadline:
                 time.sleep(0.05)
 
-            mock_cls.return_value.convert.assert_called_once()
+            convert_request.assert_called_once_with(request)
+    finally:
+        window.close()
+
+
+def test_panel_list_add_remove_and_renumber(qapp_instance, fake_registry):
+    """Any endpoint can be removed while one endpoint of the same role remains."""
+    with patch(_PANEL_REGISTRY, fake_registry), patch(_UTILS_REGISTRY, fake_registry):
+        panel_list = ConverterPanelList("Source", default="json")
+    try:
+        first = panel_list.panels[0]
+        first_frame = panel_list._entries[0][0]
+        initial_size_hint = first_frame.sizeHint()
+        second = panel_list.add_panel()
+        assert first_frame.sizeHint() == initial_size_hint
+        third = panel_list.add_panel()
+        assert first_frame.sizeHint() == initial_size_hint
+        assert [panel._title for panel in panel_list.panels] == ["Source 1", "Source 2", "Source 3"]
+        remove_button = panel_list._entries[0][2]
+        browse_button = next(button for button in first.findChildren(QPushButton) if button.text() == "Browse...")
+        assert remove_button.width() == browse_button.width()
+        assert panel_list._panels_layout.indexOf(panel_list._add_button) == len(panel_list.panels)
+
+        assert panel_list.remove_panel(first)
+        assert panel_list.panels == [second, third]
+        assert [panel._title for panel in panel_list.panels] == ["Source 1", "Source 2"]
+
+        assert panel_list.remove_panel(second)
+        assert panel_list.panels == [third]
+        assert not panel_list.remove_panel(third)
+    finally:
+        panel_list.close()
+
+
+def test_gui_builds_many_to_many_request(qapp_instance, fake_registry):
+    """All configured panels are preserved in order in one ConversionRequest."""
+    with patch(_APP_REGISTRY, fake_registry), patch(_PANEL_REGISTRY, fake_registry), patch(_UTILS_REGISTRY, fake_registry):
+        window = FlyncGUI()
+    try:
+        source_two = window._source_panels.add_panel()
+        destination_two = window._dest_panels.add_panel()
+        source_configs = [
+            ConverterConfig(config_path="/tmp/source-1"),
+            ConverterConfig(config_path="/tmp/source-2"),
+        ]
+        destination_configs = [
+            ConverterConfig(config_path="/tmp/output-1"),
+            ConverterConfig(config_path="/tmp/output-2"),
+        ]
+        for panel, config, converter_type in zip(window._source_panels.panels, source_configs, ["json", "yaml"]):
+            panel._converter_type = converter_type
+            panel.read_config = MagicMock(return_value=config)
+        for panel, config, converter_type in zip(window._dest_panels.panels, destination_configs, ["yaml", "json"]):
+            panel._converter_type = converter_type
+            panel.read_config = MagicMock(return_value=config)
+
+        with patch.object(window, "_run_conversion") as run_conversion:
+            window._on_convert_clicked()
+
+        request = run_conversion.call_args.args[0]
+        assert [str(source.path) for source in request.sources] == ["/tmp/source-1", "/tmp/source-2"]
+        assert [source.converter_type for source in request.sources] == ["json", "yaml"]
+        assert [str(output.path) for output in request.outputs] == ["/tmp/output-1", "/tmp/output-2"]
+        assert [output.converter_type for output in request.outputs] == ["yaml", "json"]
+        assert source_two in window._source_panels.panels
+        assert destination_two in window._dest_panels.panels
+    finally:
+        window.close()
+
+
+def test_gui_source_destination_overlap_shows_error(qapp_instance, fake_registry):
+    """A request whose source and destination paths overlap surfaces an inline error."""
+    with patch(_APP_REGISTRY, fake_registry), patch(_PANEL_REGISTRY, fake_registry), patch(_UTILS_REGISTRY, fake_registry):
+        window = FlyncGUI()
+    try:
+        shared = "/tmp/shared/path"
+        for panel in [*window._source_panels.panels, *window._dest_panels.panels]:
+            panel._converter_type = "json"
+            panel.read_config = MagicMock(return_value=ConverterConfig(config_path=shared))
+
+        with patch.object(window, "_run_conversion") as run_conversion:
+            window._on_convert_clicked()
+
+        run_conversion.assert_not_called()
+        assert all(not panel._error_label.isHidden() for panel in window._source_panels.panels)
+        assert all(not panel._error_label.isHidden() for panel in window._dest_panels.panels)
     finally:
         window.close()
 
@@ -458,3 +570,24 @@ def test_run_gui_installs_sigint_handler(qapp_instance):
         gui_app.run_gui()
 
     mock_install.assert_called_once_with(qapp_instance)
+
+
+def test_panel_collapse_hides_the_form_and_keeps_values(qapp_instance, fake_registry):
+    """A collapsed panel shows a summary of its endpoint and keeps its field values."""
+    with patch(_PANEL_REGISTRY, fake_registry), patch(_UTILS_REGISTRY, fake_registry):
+        panel = ConverterPanel("Source", default="json")
+        panel._field_widgets["config_path"].setText("/tmp/in")
+
+        panel._collapse_button.click()
+
+        assert panel.is_collapsed
+        assert panel._body.isHidden()
+        assert panel._summary_label.text() == "json · /tmp/in"
+        panel.show_error("bad")
+        assert not panel._error_label.isHidden()
+
+        panel._collapse_button.click()
+
+        assert not panel.is_collapsed
+        assert panel._summary_label.isHidden()
+        assert str(panel.read_config().config_path) == "/tmp/in"

@@ -11,12 +11,12 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
-    QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QPushButton,
-    QScrollArea,
+    QSizePolicy,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -34,6 +34,9 @@ def _resolve_field_type(annotation):
         return args[0] if args else annotation
     return annotation
 
+
+#: Shared width of Browse and endpoint Remove actions.
+ENDPOINT_ACTION_WIDTH = 98
 
 #: Config fields managed by the stored configuration file or elsewhere, not edited in the panel.
 _NON_EDITABLE_FIELDS = frozenset({"version", "report_enabled", "report_min_log_level", "report_dir", "persist_config"})
@@ -54,6 +57,7 @@ class ConverterPanel(QWidget):
         """
         super().__init__(parent)
         self._title = title
+        self._role = title
         self._default = default
         self._converter_type: Optional[str] = None
         self._field_widgets: dict[str, QWidget] = {}
@@ -64,18 +68,74 @@ class ConverterPanel(QWidget):
             if idx >= 0:
                 self._format_combo.setCurrentIndex(idx)
 
+    def set_title(self, title: str) -> None:
+        """Update the visible endpoint title without rebuilding its fields."""
+        self._title = title
+        self._title_label.setText(title)
+
+    @property
+    def is_collapsed(self) -> bool:
+        """Whether the format selector and the config form are hidden."""
+        return self._body.isHidden()
+
+    def set_collapsed(self, collapsed: bool) -> None:
+        """Hide or show the format selector and the config form.
+
+        A collapsed panel keeps its title row, with a summary of its format and
+        path, and its error label. The field values are kept.
+        """
+        self._collapse_button.setArrowType(Qt.ArrowType.RightArrow if collapsed else Qt.ArrowType.DownArrow)
+        self._collapse_button.setToolTip("Expand" if collapsed else "Collapse")
+        summary = self.summary()
+        self._summary_label.setText(summary)
+        self._summary_label.setToolTip(summary)
+        self._summary_label.setVisible(collapsed)
+        self._body.setVisible(not collapsed)
+
+    def summary(self) -> str:
+        """Return the format and path of the endpoint, as shown when it is collapsed."""
+        if self._converter_type is None:
+            return "no format selected"
+        path_widget = self._field_widgets.get("config_path")
+        path = path_widget.text().strip() if isinstance(path_widget, QLineEdit) else ""
+        return f"{self._converter_type} · {path or 'no path'}"
+
+    def set_title_action(self, action: QWidget) -> None:
+        """Place an endpoint action on the same row as the panel title."""
+        action.setFixedWidth(ENDPOINT_ACTION_WIDTH)
+        self._title_row.addWidget(action)
+
     def _setup_ui(self) -> None:
         """Set up the panel UI with format selector and config form."""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(4)
 
-        title_label = QLabel(self._title)
-        font = title_label.font()
+        self._title_label = QLabel(self._title)
+        font = self._title_label.font()
         font.setBold(True)
         font.setPointSize(font.pointSize() + 1)
-        title_label.setFont(font)
-        layout.addWidget(title_label)
+        self._title_label.setFont(font)
+        self._title_row = QHBoxLayout()
+        self._title_row.setContentsMargins(0, 0, 0, 0)
+        self._title_row.setSpacing(4)
+        self._collapse_button = QToolButton()
+        self._collapse_button.setAutoRaise(True)
+        self._collapse_button.clicked.connect(lambda _checked=False: self.set_collapsed(not self.is_collapsed))
+        self._title_row.addWidget(self._collapse_button)
+        self._title_row.addWidget(self._title_label)
+        self._summary_label = QLabel("")
+        self._summary_label.setStyleSheet("color: #888888;")
+        self._summary_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self._title_row.addWidget(self._summary_label, stretch=1)
+        layout.addLayout(self._title_row)
+
+        self._body = QWidget()
+        self._body.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
+        body_layout = QVBoxLayout(self._body)
+        body_layout.setContentsMargins(0, 0, 0, 0)
+        body_layout.setSpacing(4)
+        layout.addWidget(self._body)
 
         self._format_combo = QComboBox()
         self._format_combo.addItem(f"Select {self._title.lower()}…", None)
@@ -86,24 +146,26 @@ class ConverterPanel(QWidget):
             self._format_combo.sizePolicy().horizontalPolicy(),
             self._format_combo.sizePolicy().verticalPolicy(),
         )
-        layout.addWidget(self._format_combo)
+        body_layout.addWidget(self._format_combo)
 
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        # The endpoint collection already owns the scroll area. Keeping another
+        # expanding scroll area here made a single panel consume all available
+        # vertical space and then shrink when a second endpoint was added.
         self._fields_container = QWidget()
+        self._fields_container.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         self._fields_layout = QVBoxLayout(self._fields_container)
         self._fields_layout.setContentsMargins(0, 0, 0, 0)
         self._fields_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self._fields_layout.setSpacing(4)
-        scroll.setWidget(self._fields_container)
-        layout.addWidget(scroll, stretch=1)
+        body_layout.addWidget(self._fields_container)
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
 
         self._error_label = QLabel("")
         self._error_label.setStyleSheet("color: #cc3333;")
         self._error_label.setWordWrap(True)
         self._error_label.hide()
         layout.addWidget(self._error_label)
+        self.set_collapsed(False)
 
     @property
     def converter_type(self) -> Optional[str]:
@@ -175,6 +237,7 @@ class ConverterPanel(QWidget):
         row.addWidget(line_edit, stretch=1)
 
         browse = QPushButton("Browse...")
+        browse.setFixedWidth(ENDPOINT_ACTION_WIDTH)
         browse.clicked.connect(lambda _checked=False, le=line_edit: self._browse_path(le))
         row.addWidget(browse)
 
@@ -189,7 +252,7 @@ class ConverterPanel(QWidget):
 
     @property
     def _is_source(self) -> bool:
-        return self._title.casefold() == "source"
+        return self._role.casefold() == "source"
 
     @staticmethod
     def _initial_directory(line_edit: QLineEdit) -> str:
