@@ -9,7 +9,7 @@ class Position:
     """
     Represents a position in a text document.
 
-    For objects backed by a YAML file both ``line`` and ``character`` are **1-based**, derived from ruamel.yaml ``start_mark`` / ``end_mark`` by
+    For objects backed by a YAML file both ``line`` and ``character`` are **1-based**, derived from PyYAML ``start_mark`` / ``end_mark`` by
     adding 1 to the 0-based mark offsets.
 
     For objects that have no YAML source (e.g. implied or externally loaded objects without a resolved file) both fields are **0**, acting as a

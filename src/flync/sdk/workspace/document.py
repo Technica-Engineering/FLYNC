@@ -3,29 +3,8 @@
 from pathlib import Path
 from typing import Any
 
-from ruamel.yaml import YAML
-
+from flync.core.utils import yaml_io
 from flync.sdk.utils.sdk_types import PathType
-
-_yaml_cache: dict[str, YAML] = {}
-
-
-def _get_yaml(typ: str):
-    """
-    Create a YAML parser instance appropriate for parsing.
-
-    Args:
-        typ (str): type of loader.
-
-    Returns:
-        YAML: Configured ruamel.yaml parser with preserved quotes.
-    """
-    yaml = _yaml_cache.get(typ)
-    if yaml is None:
-        yaml = YAML(typ=typ)
-        yaml.preserve_quotes = True
-        _yaml_cache[typ] = yaml
-    return yaml
 
 
 class Document(object):
@@ -39,11 +18,9 @@ class Document(object):
 
         ast (Any | None): The parsed abstract syntax tree, or None if not parsed.
 
-        compose_ast (Any | None): The composed ruamel.yaml AST used for source-position tracking, or None if not parsed.
+        compose_ast (Any | None): The composed YAML node tree used for source-position tracking, or None if not parsed.
         needs_compose (bool): Whether to produce a composed AST.
     """
-
-    _yaml_safe = _get_yaml("safe")
 
     def __init__(self, uri: PathType, text: str, needs_compose: bool):
         """
@@ -65,7 +42,7 @@ class Document(object):
         """
         Parse the YAML text into an abstract syntax tree.
 
-        Sets :attr:`ast` via ruamel's ``load`` and :attr:`compose_ast` via ``compose``, both derived from :attr:`text`.
+        Sets :attr:`ast` via ``yaml_io.safe_load`` and :attr:`compose_ast` via ``compose``, both derived from :attr:`text`.
 
         Returns: None
         """
@@ -100,24 +77,14 @@ class Document(object):
         Return the composed YAML node tree of the document, composing it from :attr:`text` when it was not produced at parse time.
 
         Returns:
-            The composed ruamel.yaml node, or None when the text cannot be composed.
+            The composed YAML node, or None when the text cannot be composed.
         """
         if self.compose_ast is None and self.text:
             try:
-                self.compose_ast = _get_yaml("rt").compose(self.text)
+                self.compose_ast = yaml_io.compose(self.text)
             except Exception:
                 return None
         return self.compose_ast
-
-    @classmethod
-    def _get_safe_yaml(cls):
-        """
-        Return a safe YAML parser instance.
-
-        Returns:
-            YAML: A ruamel.yaml parser configured for safe loading.
-        """
-        return cls._yaml_safe
 
     @classmethod
     def _parse_text(cls, text: str, needs_compose: bool):
@@ -133,10 +100,8 @@ class Document(object):
         """
         compose_ast = None
         if needs_compose:
-            # ruamel.yaml YAML instances are not thread-safe: they store
-            # per-parse composer state on the instance itself.
-            compose_ast = _get_yaml("rt").compose(text)
-        ast = cls._get_safe_yaml().load(text)
+            compose_ast = yaml_io.compose(text)
+        ast = yaml_io.safe_load(text)
         return ast, compose_ast
 
     @classmethod

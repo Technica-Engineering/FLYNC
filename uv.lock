@@ -644,8 +644,8 @@ dependencies = [
     { name = "polyfactory" },
     { name = "pydantic" },
     { name = "pydantic-extra-types" },
+    { name = "pyyaml" },
     { name = "rich" },
-    { name = "ruamel-yaml" },
     { name = "semver" },
     { name = "typer" },
 ]
@@ -687,6 +687,7 @@ dev = [
     { name = "python-dotenv" },
     { name = "types-pygments" },
     { name = "types-pywin32" },
+    { name = "types-pyyaml" },
 ]
 docs = [
     { name = "furo" },
@@ -715,6 +716,7 @@ static-analysis = [
     { name = "pip" },
     { name = "types-pygments" },
     { name = "types-pywin32" },
+    { name = "types-pyyaml" },
 ]
 test = [
     { name = "approvaltests" },
@@ -742,8 +744,8 @@ requires-dist = [
     { name = "pydantic-extra-types", specifier = ">=2.11.0,!=2.11.2,<3.0.0" },
     { name = "pyside6", marker = "extra == 'all'", specifier = ">=6.6.0" },
     { name = "pyside6", marker = "extra == 'gui'", specifier = ">=6.6.0" },
+    { name = "pyyaml", specifier = "==6.0.3" },
     { name = "rich" },
-    { name = "ruamel-yaml", specifier = ">=0.19,<0.20" },
     { name = "semver", specifier = ">=3.0,<4.0" },
     { name = "textual", marker = "extra == 'all'", specifier = ">=0.80.0" },
     { name = "textual", marker = "extra == 'tui'", specifier = ">=0.80.0" },
@@ -774,6 +776,7 @@ dev = [
     { name = "python-dotenv" },
     { name = "types-pygments", specifier = ">=2.19.0,<3.0.0" },
     { name = "types-pywin32", specifier = ">=310.0.0" },
+    { name = "types-pyyaml", specifier = ">=6.0.12.20250915,<7.0.0" },
 ]
 docs = [
     { name = "furo", specifier = ">=2024.0.0" },
@@ -800,6 +803,7 @@ static-analysis = [
     { name = "pip", specifier = ">=26.2.2" },
     { name = "types-pygments", specifier = ">=2.19.0,<3.0.0" },
     { name = "types-pywin32", specifier = ">=310.0.0" },
+    { name = "types-pyyaml", specifier = ">=6.0.12.20250915,<7.0.0" },
 ]
 test = [
     { name = "approvaltests", specifier = ">=20.0.0,<20.1.0" },
@@ -1968,15 +1972,6 @@ wheels = [
 ]
 
 [[package]]
-name = "ruamel-yaml"
-version = "0.19.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/c7/3b/ebda527b56beb90cb7652cb1c7e4f91f48649fbcd8d2eb2fb6e77cd3329b/ruamel_yaml-0.19.1.tar.gz", hash = "sha256:53eb66cd27849eff968ebf8f0bf61f46cdac2da1d1f3576dd4ccee9b25c31993", size = 142709, upload-time = "2026-01-02T16:50:31.84Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/b8/0c/51f6841f1d84f404f92463fc2b1ba0da357ca1e3db6b7fbda26956c3b82a/ruamel_yaml-0.19.1-py3-none-any.whl", hash = "sha256:27592957fedf6e0b62f281e96effd28043345e0e66001f97683aa9a40c667c93", size = 118102, upload-time = "2026-01-02T16:50:29.201Z" },
-]
-
-[[package]]
 name = "secretstorage"
 version = "3.5.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2352,6 +2347,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/03/56/602c6f487a6d572356166d83c201a572aac03b209b165d13be54e891a8a6/types_pywin32-312.0.0.20261006.tar.gz", hash = "sha256:f7e4360ed0421021c3f98f47031bb37d92a93797d2561efc906c6fecc5418060", size = 357616, upload-time = "2026-10-06T08:15:00.329Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a1/49/793ff1f063bfc549d5ce01aedb284945484b18a5bd41ae39ae29fbb446df/types_pywin32-312.0.0.20261006-py3-none-any.whl", hash = "sha256:d96f96c2d6dd61a3bee72a212d855fd6b56ed0e8fc27660a3d6b5ebe36c49ebb", size = 419371, upload-time = "2026-10-06T08:14:58.947Z" },
+]
+
+[[package]]
+name = "types-pyyaml"
+version = "6.0.12.20260906"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/90/6e/abec85b9013db5b934b0280a6dd104904d84f7bcbaab2e2f3def87ac7463/types_pyyaml-6.0.12.20260906.tar.gz", hash = "sha256:f59c1cc05010b833d2d72287bbaa72610106b28d42d89a907313117faba85212", size = 18649, upload-time = "2026-09-06T06:35:35.362Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/15/c0/fc0644b7ddcfb969e95845837143cb5173ddd6e06ee4ba5fc493cd9329b7/types_pyyaml-6.0.12.20260906-py3-none-any.whl", hash = "sha256:bca893ff0d51df5c9053137d5d0e6ccd36e939a196356f1d5c16372422f5137b", size = 21282, upload-time = "2026-09-06T06:35:34.372Z" },
 ]
 
 [[package]]

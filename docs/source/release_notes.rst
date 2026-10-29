@@ -13,11 +13,15 @@ Release Notes
 Release 0.15
 ------------
 
+YAML parsing on PyYAML
+''''''''''''''''''''''
+
+``ruamel.yaml`` is replaced by PyYAML (libyaml when available), which loads, composes and dumps documents roughly 7-18x faster.
+
 Improve FLYNC_4_App
 '''''''''''''''''''
 
 Adding support for CAN and J1939 references. Also adding IPC with referencing support.
-
 
 Workspace schema migrations
 '''''''''''''''''''''''''''

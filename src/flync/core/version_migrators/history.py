@@ -18,12 +18,10 @@ import os
 import tempfile
 from pathlib import Path
 
-import ruamel.yaml
 from pydantic import BaseModel, Field
 
+from flync.core.utils import yaml_io
 from flync.sdk.context.workspace_config import CONFIG_DIRNAME
-
-_YAML = ruamel.yaml.YAML(typ="safe")
 
 #: Directory name (under ``.flync/``) holding migration bookkeeping.
 MIGRATIONS_DIRNAME = "migrations"
@@ -96,7 +94,7 @@ def load_history(workspace_root: Path) -> MigrationHistory:
     path = history_path(workspace_root)
     if not path.exists():
         return MigrationHistory()
-    data = _YAML.load(path.read_text(encoding="utf-8")) or {}
+    data = yaml_io.safe_load(path.read_text(encoding="utf-8")) or {}
     return MigrationHistory(**data)
 
 
@@ -117,7 +115,7 @@ def save_history(workspace_root: Path, history: MigrationHistory) -> None:
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(HISTORY_DISCLAIMER)
-            _YAML.dump(history.model_dump(), f)
+            yaml_io.safe_dump(history.model_dump(), f)
         os.replace(tmp, path)
     except BaseException:
         if os.path.exists(tmp):

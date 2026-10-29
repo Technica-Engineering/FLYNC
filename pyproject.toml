@@ -20,7 +20,7 @@ dependencies = [
     "rich",
     "typer",
     "pydantic==2.14.1",
-    "ruamel.yaml>=0.19,<0.20",
+    "pyyaml==6.0.3",
     "pydantic-extra-types>=2.11.0,!=2.11.2,<3.0.0",
     "cantools>=45.1.0,<45.2.0",
     "semver>=3.0,<4.0",
@@ -77,6 +77,7 @@ static-analysis = [
     "colorama>=0.4.6,<0.5.0",
     "flake8>=7.3.0,<8.0.0",
     "flake8-html>=0.4.3,<0.5.0",
+    "types-pyyaml>=6.0.12.20250915,<7.0.0",
     "isort>=9.0.1,<9.1.0",
     "mypy>=2.0.0,<3.0.0",
     # mypy --install-types shells out to `python -m pip`, which a uv-managed venv lacks

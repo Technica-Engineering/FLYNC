@@ -8,8 +8,6 @@ routing externally annotated fields to their own files or folders.
 import logging
 from pathlib import Path
 
-import ruamel.yaml
-
 from flync.core.annotations import (
     External,
     Implied,
@@ -18,6 +16,7 @@ from flync.core.annotations import (
     OutputStrategy,
 )
 from flync.core.base_models.base_model import FLYNCBaseModel
+from flync.core.utils import yaml_io
 from flync.sdk.context.workspace_config import CONFIG_RELPATH, WorkspaceConfiguration
 from flync.sdk.utils.field_utils import (
     get_metadata,
@@ -31,29 +30,6 @@ from .document import Document
 
 logger = logging.getLogger(__name__)
 
-# The workspace loader (document.py) parses YAML with ruamel, configured with
-# preserve_quotes=True. A plain dump does not quote scalars that ruamel
-# would read back as a different type (e.g. numeric-looking text such as the
-# J1939 value label "0875" -> int 875). Sniff each string through the same
-# ruamel configuration used by the loader and force single quotes whenever the
-# bare scalar would not come back as a str, so saving and loading agree.
-_RUAMEL_SNIFF = ruamel.yaml.YAML(typ="safe")
-_RUAMEL_SNIFF.preserve_quotes = True
-
-
-def _needs_quoting(value: str) -> bool:
-    """Return True when the bare scalar would round-trip as a non-string."""
-    try:
-        parsed = _RUAMEL_SNIFF.load(value)
-    except Exception:
-        return True
-    return not isinstance(parsed, str)
-
-
-def _represent_str(representer, data: str):
-    """Force single quotes when the loader would not read back ``data`` as str."""
-    return representer.represent_scalar("tag:yaml.org,2002:str", data, style="'" if _needs_quoting(data) else None)
-
 
 def _migration_pending(configuration: WorkspaceConfiguration) -> bool:
     """Whether the recorded version still needs a schema migration, or is too old to have one."""
@@ -62,15 +38,6 @@ def _migration_pending(configuration: WorkspaceConfiguration) -> bool:
 
     state = MigrationEngine().evaluate(configuration.version, _get_current_flync_version()).state
     return state in (WorkspaceMigrationState.PENDING_MIGRATION, WorkspaceMigrationState.UNSUPPORTED_OLD)
-
-
-def _workspace_yaml() -> ruamel.yaml.YAML:
-    """Build a block-style dumper that quotes strings ruamel would misread on reload."""
-    dumper = ruamel.yaml.YAML(typ="safe", pure=True)
-    dumper.default_flow_style = False
-    dumper.allow_unicode = True
-    dumper.representer.add_representer(str, _represent_str)
-    return dumper
 
 
 class _WorkspaceSaving(_WorkspaceIncremental):
@@ -329,7 +296,7 @@ class _WorkspaceSaving(_WorkspaceIncremental):
                 path_from_uri.write_text(doc.text, encoding="utf-8")
             elif isinstance(doc.text, dict) or isinstance(doc.text, list):
                 with open(path_from_uri, "w", encoding="utf-8") as f:
-                    _workspace_yaml().dump(doc.text, f)
+                    yaml_io.safe_dump(doc.text, f)
 
         # Persist workspace configuration when saving entire workspace, unless suppressed.
         should_persist = self.configuration.persist_config if persist_config is None else persist_config

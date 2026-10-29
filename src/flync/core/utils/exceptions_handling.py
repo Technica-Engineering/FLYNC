@@ -5,13 +5,13 @@ from typing import Any, List, Optional, Set, Tuple, Type, get_args, get_origin
 
 from pydantic import BaseModel, TypeAdapter, ValidationError
 from pydantic_core import ErrorDetails, InitErrorDetails, PydanticCustomError
-from ruamel.yaml.nodes import MappingNode, Node, SequenceNode
+from yaml.nodes import MappingNode, Node, SequenceNode
 
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.exceptions import _validation_warnings
 
-# The YAML-position helpers below take raw ruamel.yaml data (``CommentedMap``/``CommentedSeq`` with their ``.lc`` position
-# info, or composed ``Node`` trees) and probe it duck-typed inside ``try``/``except AttributeError``; ``Any`` is kept there on purpose.
+# The YAML-position helpers below take either composed ``Node`` trees (which carry positions) or plain parsed data (which does not),
+# so ``Any`` is kept there on purpose.
 
 #: A Pydantic error ``loc``: the path of keys/indices to an element of the validated data.
 Loc = Tuple[int | str, ...]
@@ -96,7 +96,7 @@ def _child_at(container: Any, key: int | str) -> Tuple[bool, Any]:
 
 def _node_child_at(node: Node, key: int | str | None) -> Tuple[bool, Any]:
     """
-    Return ``(True, child)`` for ``key`` inside a composed ruamel.yaml ``node``, or ``(False, None)`` when it is absent.
+    Return ``(True, child)`` for ``key`` inside a composed YAML ``node``, or ``(False, None)`` when it is absent.
     """
 
     if isinstance(node, MappingNode) and not isinstance(key, int):
@@ -171,7 +171,7 @@ def _descend_union_segment(
 
 def safe_yaml_position(node: Any, loc: Loc, model: type[BaseModel] | None = None) -> Tuple[int | None, int | None]:
     """
-    Given a ruamel.yaml node and a Pydantic `loc` tuple, return (line, column).
+    Given a YAML node and a Pydantic `loc` tuple, return (line, column).
     Falls back gracefully if key/item is missing.
     """
 
@@ -202,27 +202,14 @@ def safe_yaml_position(node: Any, loc: Loc, model: type[BaseModel] | None = None
 
 def _extract_position(parent: Any, key: int | str | None) -> Tuple[int | None, int | None]:
     """
-    Safely extract line/col from ruamel.yaml node.  Returns (line, column) or (None, None)
+    Extract line/col from a composed YAML node.  Returns (line, column) or (None, None)
     """
 
     if isinstance(parent, Node):
         found, child = _node_child_at(parent, key)
         return _mark_position(child if found else parent)
 
-    try:
-        line = parent.lc.line
-        col = parent.lc.col
-        if isinstance(key, int):
-            line, col = getattr(parent.lc, "item", lambda k: None)(key)  # type: ignore[misc]
-        else:
-            line, col = getattr(parent.lc, "value", lambda k: None)(key)  # type: ignore[misc]
-    except AttributeError:
-        return None, None
-
-    return (
-        line + 1 if line is not None else None,
-        col + 1 if col is not None else None,
-    )
+    return None, None
 
 
 def _fallback_position(node: Any) -> Tuple[int | None, int | None]:
@@ -233,21 +220,12 @@ def _fallback_position(node: Any) -> Tuple[int | None, int | None]:
     if isinstance(node, Node):
         return _mark_position(node)
 
-    try:
-        line = getattr(node.lc, "line", None)
-        col = getattr(node.lc, "col", None)
-    except AttributeError:
-        return None, None
-
-    return (
-        line + 1 if line is not None else None,
-        col + 1 if col is not None else None,
-    )
+    return None, None
 
 
 def _mark_position(node: Node) -> Tuple[int | None, int | None]:
     """
-    Return the 1-based ``(line, column)`` where a composed ruamel.yaml ``node`` starts.
+    Return the 1-based ``(line, column)`` where a composed YAML ``node`` starts.
     """
 
     mark = getattr(node, "start_mark", None)
@@ -329,7 +307,7 @@ def locate_errors(errors: List[ErrorDetails], model: Optional[type[BaseModel]], 
     Stamp the YAML ``line``/``col`` onto errors that do not carry a position yet, in place.
 
     Workspace documents are validated from plain (safe-loaded) data that has no source marks, so positions are resolved afterwards against the
-    document's composed ruamel.yaml node tree. Errors whose location cannot be found in ``yaml_node`` are left unchanged.
+    document's composed YAML node tree. Errors whose location cannot be found in ``yaml_node`` are left unchanged.
 
     Parameters
     ----------
@@ -337,7 +315,7 @@ def locate_errors(errors: List[ErrorDetails], model: Optional[type[BaseModel]], 
         Errors recorded for the document.
     model : type[BaseModel], optional
         The model the document was validated against, used to resolve field aliases.
-    yaml_node : ruamel.yaml.nodes.Node, optional
+    yaml_node : YAML.nodes.Node, optional
         The composed YAML tree of the document.
     """
 
@@ -377,7 +355,7 @@ def errors_to_init_errors(
     model : type[BaseModel], optional
         The Pydantic model class used to resolve field aliases for YAML position look-ups.
     yaml_data : object, optional
-        The parsed ruamel.yaml AST of the document, used together with ``model`` to locate the error position within the file.
+        The parsed YAML AST of the document, used together with ``model`` to locate the error position within the file.
     yaml_path : str, optional
         The workspace-relative file path to embed in each error's context as ``yaml_path``.
 
