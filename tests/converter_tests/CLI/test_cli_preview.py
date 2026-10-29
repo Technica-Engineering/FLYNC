@@ -69,17 +69,19 @@ _CONVERT_ARGS = ("-s", "input/path", "-o", "output/path", "-sf", "json", "-of", 
 
 
 def test_build_command_line_single_endpoints():
-    sources = [ConversionEndpoint("flync", "workspace/", {"indent": 2}, ["--src-indent", "2"])]
-    destinations = [ConversionEndpoint("yaml", "out/", {"output_type": "CLASSIC"}, ["--dst-output-type", "CLASSIC"])]
+    sources = [ConversionEndpoint("flync", "workspace/", {"indent": 2}, ["--indent", "2"])]
+    destinations = [ConversionEndpoint("yaml", "out/", {"output_type": "CLASSIC"}, ["--output-type", "CLASSIC"])]
     assert build_command_line(sources, destinations, posix=True) == (
-        "flync-converter convert -s workspace/ -sf flync -o out/ -of yaml --src-indent 2 --dst-output-type CLASSIC"
+        "flync-converter convert source -p workspace/ -f flync --indent 2 destination -p out/ -f yaml --output-type CLASSIC"
     )
 
 
 def test_build_command_line_multiple_endpoints():
     sources = [ConversionEndpoint("flync", "a/"), ConversionEndpoint("dbc", "b.dbc")]
     destinations = [ConversionEndpoint("yaml", "out/")]
-    assert build_command_line(sources, destinations, posix=True) == ("flync-converter convert -s a/ -sf flync -s b.dbc -sf dbc -o out/ -of yaml")
+    assert build_command_line(sources, destinations, posix=True) == (
+        "flync-converter convert source -p a/ -f flync source -p b.dbc -f dbc destination -p out/ -f yaml"
+    )
 
 
 def test_join_command_posix_quoting():
@@ -105,12 +107,12 @@ def test_config_endpoint_keeps_only_offered_non_default_fields():
     assert config_endpoint("flync", config, SRC_PREFIX).arguments == []
     destination = config_endpoint("flync", config, DST_PREFIX)
     assert destination.options == {"persist_config": False}
-    assert destination.arguments == ["--dst-persist-config", "False"]
+    assert destination.arguments == ["--persist-config", "False"]
 
 
 def test_config_endpoint_serializes_enum_by_name():
     endpoint = config_endpoint("yaml", _SampleConfig(config_path="out", output_type=_OutputType.COMPACT, indent=4), DST_PREFIX)
-    assert endpoint.arguments == ["--dst-output-type", "COMPACT", "--dst-indent", "4"]
+    assert endpoint.arguments == ["--output-type", "COMPACT", "--indent", "4"]
 
 
 def test_config_endpoint_shows_but_does_not_pass_non_scalar_values():
@@ -124,8 +126,8 @@ def test_config_endpoint_shows_but_does_not_pass_non_scalar_values():
 
 
 def test_render_preview_lists_options_under_their_endpoint():
-    sources = [ConversionEndpoint("flync", "workspace/", {"indent": 2}, ["--src-indent", "2"])]
-    destinations = [ConversionEndpoint("yaml", "out/", {"output_type": _OutputType.CLASSIC}, ["--dst-output-type", "CLASSIC"])]
+    sources = [ConversionEndpoint("flync", "workspace/", {"indent": 2}, ["--indent", "2"])]
+    destinations = [ConversionEndpoint("yaml", "out/", {"output_type": _OutputType.CLASSIC}, ["--output-type", "CLASSIC"])]
     assert render_preview(sources, destinations, posix=True).splitlines() == [
         "Conversion preview",
         "------------------",
@@ -133,7 +135,7 @@ def test_render_preview_lists_options_under_their_endpoint():
         "- Source option     : indent = 2",
         "- Destination       : yaml -> out/",
         "- Destination option: output_type = CLASSIC",
-        "- Command           : flync-converter convert -s workspace/ -sf flync -o out/ -of yaml --src-indent 2 --dst-output-type CLASSIC",
+        "- Command           : flync-converter convert source -p workspace/ -f flync --indent 2 destination -p out/ -f yaml --output-type CLASSIC",
     ]
 
 
@@ -158,7 +160,7 @@ def test_convert_shows_preview(runner, populated_registry):
     assert result.exit_code == 0
     assert "Conversion preview" in result.output
     assert "- Source            : json -> input/path" in result.output
-    assert "flync-converter convert -s input/path -sf json -o output/path -of yaml" in result.output
+    assert "flync-converter convert source -p input/path -f json destination -p output/path -f yaml" in result.output
     assert "Converting input/path (json) -> output/path (yaml)" in result.output
 
 
@@ -166,7 +168,7 @@ def test_convert_preview_includes_given_options(runner, populated_registry):
     result = _convert(runner, "convert", *_CONVERT_ARGS, "--dst-persist-config", "false")
     assert result.exit_code == 0
     assert "- Destination option: persist_config = False" in result.output
-    assert "--dst-persist-config False" in result.output
+    assert "destination -p output/path -f yaml --persist-config False" in result.output
 
 
 def test_convert_preview_includes_config_files(runner, populated_registry, tmp_path):
@@ -174,7 +176,7 @@ def test_convert_preview_includes_config_files(runner, populated_registry, tmp_p
     config_file.write_text("{}\n")
     result = _convert(runner, "convert", *_CONVERT_ARGS, "--dst-config", str(config_file))
     assert result.exit_code == 0
-    assert join_command(["--dst-config", str(config_file)]) in result.output
+    assert join_command(["destination", "-p", "output/path", "-f", "yaml", "--config", str(config_file)]) in result.output
 
 
 @pytest.mark.parametrize(

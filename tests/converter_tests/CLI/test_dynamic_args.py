@@ -35,7 +35,7 @@ def test_build_config_arguments_single_value():
     ctx = click.Context(command)
     ctx.params = {"dst_name": "x"}
     assert command.build_config_arguments(ctx, command._DST_PREFIX) == [
-        "--dst-name",
+        "--name",
         "x",
     ]
 
@@ -45,9 +45,9 @@ def test_build_config_arguments_multiple_option():
     ctx = click.Context(command)
     ctx.params = {"dst_tags": ["a", "b"]}
     assert command.build_config_arguments(ctx, command._DST_PREFIX) == [
-        "--dst-tags",
+        "--tags",
         "a",
-        "--dst-tags",
+        "--tags",
         "b",
     ]
 

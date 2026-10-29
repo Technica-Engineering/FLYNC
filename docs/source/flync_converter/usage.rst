@@ -290,11 +290,11 @@ Every conversion resolves the source and the destination configuration in
 three layers, each overriding the one before:
 
 1. The field defaults of the converter's configuration class.
-2. A configuration file: the one given with ``--src-config`` /
-   ``--dst-config``, otherwise the file stored in that side's workspace, when
-   it exists.
-3. The values set on the command line with ``--src-<field>`` /
-   ``--dst-<field>``. Options left unset do not override the file.
+2. A configuration file: the one given with ``--config`` on the endpoint's
+   ``source`` / ``destination`` subcommand, otherwise the file stored in that
+   endpoint's workspace, when it exists.
+3. The values set on the command line with ``--<field>`` options of that
+   subcommand. Options left unset do not override the file.
 
 In Python, ``source_config`` / ``destination_config``, and the ``config`` of a
 ``ConversionSource`` or ``ConversionOutput``, take either the path of a
@@ -316,7 +316,7 @@ rate, without any option:
 
 .. code-block:: bash
 
-   flync-converter convert -s my_workspace -o path/to/output -sf dbc -of yaml
+   flync-converter convert source -p my_workspace -f dbc destination -p path/to/output -f yaml
 
 To use the same settings across several workspaces, keep them in one file and
 pass it explicitly. It replaces the stored file for that conversion, and
@@ -324,8 +324,9 @@ options given on the command line still override it:
 
 .. code-block:: bash
 
-   flync-converter convert -s my_workspace -o path/to/output -sf dbc -of yaml \
-       --src-config shared/dbc.yaml --src-baud-rate-default 500000
+   flync-converter convert \
+       source -p my_workspace -f dbc --config shared/dbc.yaml --baud-rate-default 500000 \
+       destination -p path/to/output -f yaml
 
 After the destination configuration is resolved, it is written back to the
 destination's stored file, so the next conversion into the same destination
@@ -412,8 +413,8 @@ On the command line:
 
 .. code-block:: bash
 
-   flync-converter convert -s path/to/source -o path/to/output -sf yaml -of flync \
-       --dst-report-min-log-level DEBUG
+   flync-converter convert source -p path/to/source -f yaml \
+       destination -p path/to/output -f flync --report-min-log-level DEBUG
 
 In Python:
 

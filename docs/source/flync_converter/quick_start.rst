@@ -14,24 +14,24 @@ The CLI is the recommended way to use ``flync_converter``. It provides a streaml
 CLI - Single Conversion
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-The source and destination are always **folders**, not individual files. By default, the source format is FLYNC and the destination format is FLYNC.
+The source and destination are always **folders**, not individual files. Each one is a subcommand with its path (``-p``) and format (``-f``).
 
 .. code-block:: bash
 
-   # default: convert from FLYNC workspace to FLYNC workspace
-   flync-converter convert -s ./flync_source -o ./flync_output
+   # convert from FLYNC workspace to FLYNC workspace
+   flync-converter convert source -p ./flync_source -f flync destination -p ./flync_output -f flync
 
    # convert FLYNC to DBC
-   flync-converter convert -s ./flync_source -o ./dbc_output -of dbc
+   flync-converter convert source -p ./flync_source -f flync destination -p ./dbc_output -f dbc
 
-   # convert YAML to FLYNC (optional source format, defaults to FLYNC)
-   flync-converter convert -s ./yaml_source -o ./flync_output -sf yaml
+   # convert YAML to FLYNC
+   flync-converter convert source -p ./yaml_source -f yaml destination -p ./flync_output -f flync
 
-Additional converter options can be passed using ``--src-<field>`` / ``--dst-<field>`` flags
+Additional converter options are passed as ``--<field>`` options of the subcommand they apply to. List them with:
 
 .. code-block:: bash
 
-   flync-converter convert -sf yaml -of flync --help
+   flync-converter convert source -f yaml --help
 
 CLI - Interactive TUI
 ^^^^^^^^^^^^^^^^^^^^^
@@ -118,3 +118,18 @@ Next Steps
 - :doc:`usage` - deeper usage patterns
 - :doc:`cli` - all commands and options
 - :doc:`plugin_guide/introduction` - add your own formats
+
+Multiple sources and outputs
+----------------------------
+
+Repeat ``source`` and ``destination`` on the same ``convert`` command. The
+sources are merged in order and the result is written to every destination.
+Sources must come before destinations::
+
+   flync-converter convert \
+     source -p ./source_a -f flync \
+     source -p ./source_b -f yaml \
+     destination -p ./merged_json -f json \
+     destination -p ./merged_yaml -f yaml
+
+See :doc:`cli` for the conflict policy and the deprecated flat ``-s/-o`` form.
