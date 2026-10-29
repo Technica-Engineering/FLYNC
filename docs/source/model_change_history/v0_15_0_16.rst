@@ -13,13 +13,6 @@ Breaking — YAML schema
 Additive — YAML schema
 ----------------------
 
-* **SOME/IP eventgroup members are written as references.** ``SOMEIPEventgroup.events`` serializes to the list of event and
-  field names (``events: [TestEventUINT8, TestFieldUINT8]``). A member whose name is shared by several events/fields of the
-  service is written as its identifier (event ``id``, field ``notifier_id``).
-* **SOME/IP eventgroup members can be referenced by identifier.** ``events: [0x8001, TestFieldUINT8]`` mixes an identifier
-  and a name. Loading still accepts full inline definitions and YAML aliases, so existing files need no change; saving them
-  rewrites the members as references. Referencing a name shared by several events/fields raises ``FLYNC-SOM-MIN-REF-421``.
-
 Breaking — Python API
 ---------------------
 
