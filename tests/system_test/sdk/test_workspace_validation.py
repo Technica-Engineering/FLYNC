@@ -9,9 +9,31 @@ from pathlib import Path
 import pytest
 
 from flync.sdk.context.diagnostics_result import WorkspaceState
+from flync.sdk.context.workspace_config import CONFIG_RELPATH, WorkspaceConfiguration
 from flync.sdk.helpers.validation_helpers import validate_workspace
 
 from .helper import absolute_path, assert_valid_result, update_yaml_content
+
+
+def test_validate_workspace_with_its_own_configuration(tmp_path):
+    """
+    A workspace is validated with its own ``.flync/config.yaml``, as when it is loaded.
+
+    The copy keeps its files under an extension only its configuration allows, so validating it with the
+    default configuration would find no FLYNC file.
+
+    Args:
+        tmp_path: A pytest fixture that provides an empty temporary directory.
+    """
+    root = Path(tmp_path) / "copy"
+    shutil.copytree(absolute_path, root)
+    for path in list(root.rglob("*.flync.yaml")):
+        path.rename(path.with_name(path.name.removesuffix(".flync.yaml") + ".net.yaml"))
+    WorkspaceConfiguration(flync_file_extension=".net.yaml", allowed_extensions={".net.yaml"}).to_yaml_file(root / CONFIG_RELPATH)
+
+    result = validate_workspace(root)
+
+    assert_valid_result(result)
 
 
 def test_validate_fully_valid_workspace(tmp_path):
