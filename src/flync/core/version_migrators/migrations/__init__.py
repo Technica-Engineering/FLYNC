@@ -22,9 +22,9 @@ from flync.core.version_migrators._base import (  # noqa: F401  (re-export base 
 )
 
 # Import every concrete migration module below so the decorator registers them.
-from .v0_14_to_0_15 import Migration0_15
+from .v0_14_to_0_15 import Migration015
 
-__all__ = ["migration", "MigrationRegistry", "FLYNCMigration", "migration_registry", "Migration0_15"]
+__all__ = ["migration", "MigrationRegistry", "FLYNCMigration", "migration_registry", "Migration015"]
 
 
 # ---------------------------------------------------------------------------

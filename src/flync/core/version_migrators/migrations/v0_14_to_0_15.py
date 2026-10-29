@@ -2,7 +2,7 @@
 Migration of a FLYNC 0.14 workspace to the 0.15 schema.
 
 The registry allows one migration per release, so every breaking 0.15 change is a step of
-:class:`Migration0_15`. Each step is idempotent on its own and resolves references with the lookup
+:class:`Migration015`. Each step is idempotent on its own and resolves references with the lookup
 rules 0.14 itself used, so a reference that loaded on 0.14 keeps pointing at the same frame.
 See ``docs/source/model_change_history/v0_14_0_15.rst``.
 """
@@ -127,6 +127,22 @@ def _set_after(mapping: Node, anchor: str, key: str, value: Any) -> None:
     mapping.update(items)
 
 
+def _migrate_forwarder_frame_ref(forwarder: Node, uri: str, bus: Any, frames_by_name: dict[str, Node], frames_by_bus: dict[Any, list[Node]]) -> None:
+    """Rewrite one forwarder's ``frame_ref`` to CAN ID plus ``id_format``."""
+    frame_ref = forwarder.get("frame_ref")
+    if isinstance(frame_ref, str):
+        frame = frames_by_name.get(frame_ref)
+        if frame is None:
+            logger.warning("%s: forwarder_frames: frame_ref %r names no CAN frame; left unchanged.", uri, frame_ref)
+            return
+        forwarder["frame_ref"] = frame["can_id"]
+        if frame.get("id_format") in (_STANDARD, _EXTENDED):
+            _set_after(forwarder, "frame_ref", "id_format", frame["id_format"])
+    elif "id_format" not in forwarder and _is_can_id(frame_ref):
+        id_format = _resolve_id_format(frames_by_bus, bus, frame_ref, f"{uri}: forwarder_frames")
+        _set_after(forwarder, "frame_ref", "id_format", id_format)
+
+
 def _migrate_can_frame_forwarders(documents: Documents) -> None:
     """
     ``CANFrameForwarder.frame_ref`` names the ingress frame by CAN ID plus ``id_format`` instead of by frame name.
@@ -137,18 +153,7 @@ def _migrate_can_frame_forwarders(documents: Documents) -> None:
     frames_by_name = {frame["name"]: frame for frames in frames_by_bus.values() for frame in frames if isinstance(frame.get("name"), str)}
     for uri, interface in _can_interfaces(documents):
         for forwarder in _dicts(interface.get("forwarder_frames")):
-            frame_ref = forwarder.get("frame_ref")
-            if isinstance(frame_ref, str):
-                frame = frames_by_name.get(frame_ref)
-                if frame is None:
-                    logger.warning("%s: forwarder_frames: frame_ref %r names no CAN frame; left unchanged.", uri, frame_ref)
-                    continue
-                forwarder["frame_ref"] = frame["can_id"]
-                if frame.get("id_format") in (_STANDARD, _EXTENDED):
-                    _set_after(forwarder, "frame_ref", "id_format", frame["id_format"])
-            elif "id_format" not in forwarder and _is_can_id(frame_ref):
-                id_format = _resolve_id_format(frames_by_bus, interface.get("bus_ref"), frame_ref, f"{uri}: forwarder_frames")
-                _set_after(forwarder, "frame_ref", "id_format", id_format)
+            _migrate_forwarder_frame_ref(forwarder, uri, interface.get("bus_ref"), frames_by_name, frames_by_bus)
 
 
 def _migrate_can_frame_egresses(documents: Documents) -> None:
@@ -207,7 +212,7 @@ _STEPS: tuple[Callable[[Documents], None], ...] = (
 
 
 @migration
-class Migration0_15(FLYNCMigration):
+class Migration015(FLYNCMigration):
     """Brings a 0.14 workspace to the 0.15 schema, one step per breaking change."""
 
     unique_id = "v0_14_to_0_15"
