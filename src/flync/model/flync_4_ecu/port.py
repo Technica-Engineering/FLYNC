@@ -14,8 +14,10 @@ if TYPE_CHECKING:
 
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major
+from flync.core.validators.connection_compatibility import validate_mii_lite_duplex
 from flync.model.flync_4_ecu.mii import (
     MII,
+    QSGMII,
     RGMII,
     RMII,
     SGMII,
@@ -45,13 +47,14 @@ class ECUPort(FLYNCBaseModel):
     mii_config : :class:`~flync.model.flync_4_ecu.mii.MII` or :class:`~flync.model.flync_4_ecu.mii.RMII` or \
     :class:`~flync.model.flync_4_ecu.mii.SGMII` or :class:`~flync.model.flync_4_ecu.mii.RGMII` or \
     :class:`~flync.model.flync_4_ecu.mii.XFI` or :class:`~flync.model.flync_4_ecu.mii.USXGMII` or \
-    :class:`~flync.model.flync_4_ecu.mii.USGMII`, optional
+    :class:`~flync.model.flync_4_ecu.mii.USGMII` or :class:`~flync.model.flync_4_ecu.mii.QSGMII`, optional
         Media-independent interface configuration. ``None`` when this port is instead a channel of a
         sibling port's multi-port link; see ``mii_subport_of``.
 
     mii_subport_of : str, optional
         Name of a sibling :class:`ECUPort` on this ECU that carries a multi-port
-        :class:`~flync.model.flync_4_ecu.mii.USXGMII`/:class:`~flync.model.flync_4_ecu.mii.USGMII` link, of which
+        :class:`~flync.model.flync_4_ecu.mii.USXGMII`/:class:`~flync.model.flync_4_ecu.mii.USGMII`/
+        :class:`~flync.model.flync_4_ecu.mii.QSGMII` link, of which
         this port is one channel. Mutually exclusive with ``mii_config``. The port carrying the link occupies a channel too.
 
     mii_subport_id : int, optional
@@ -76,7 +79,7 @@ class ECUPort(FLYNCBaseModel):
         discriminator="mode",
         description="how to use this",
     )
-    mii_config: Optional[MII | RMII | SGMII | RGMII | XFI | USXGMII | USGMII] = Field(default=None, discriminator="type")
+    mii_config: Optional[MII | RMII | SGMII | RGMII | XFI | USXGMII | USGMII | QSGMII] = Field(default=None, discriminator="type")
     mii_subport_of: Optional[str] = Field(default=None)
     mii_subport_id: Optional[int] = Field(default=None, ge=0)
     _ecu: ECU | None = None
@@ -107,7 +110,7 @@ class ECUPort(FLYNCBaseModel):
 
         MII, RMII, SGMII and RGMII each cover a range of link speeds, by scaling their clock (MII, RGMII) or by
         replicating symbols at a fixed rate (RMII, SGMII), so their ``speed`` is a ceiling the MDI may sit below.
-        XFI runs at 10G only, so there the two speeds have to be equal. USXGMII/USGMII only have a single
+        XFI runs at 10G only, so there the two speeds have to be equal. USXGMII/USGMII/QSGMII only have a single
         ``speed`` when they carry one channel; a multi-port link has no single speed to compare against the
         MDI, so the check is skipped.
         """
@@ -121,6 +124,13 @@ class ECUPort(FLYNCBaseModel):
                 category=Category.CONSISTENCY,
                 error_number="081",
             )
+        return self
+
+    @model_validator(mode="after")
+    def verify_mii_lite_mdi_is_full_duplex(self) -> Self:
+        """Ensure an MII-Lite port does not carry a half-duplex MDI (see :func:`validate_mii_lite_duplex`)."""
+
+        validate_mii_lite_duplex("ECU Ports", self, self.mdi_config)
         return self
 
     def get_internal_connected_component(self, ecus: object = None) -> SwitchPort | EthernetInterface | None:

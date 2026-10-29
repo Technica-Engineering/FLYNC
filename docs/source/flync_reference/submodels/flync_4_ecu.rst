@@ -335,8 +335,8 @@ Media-Independent Interfaces
 .. autoclass:: flync.model.flync_4_ecu.mii.RGMII()
 .. autoclass:: flync.model.flync_4_ecu.mii.XFI()
 
-Multi-port MII (USXGMII / USGMII)
-===================================
+Multi-port MII (USXGMII / USGMII / QSGMII)
+===========================================
 
 .. hint::
    One serial MII link can carry several logical ports, for example the uplink of a port extender. The port that holds the
@@ -348,6 +348,8 @@ Multi-port MII (USXGMII / USGMII)
 .. autoclass:: flync.model.flync_4_ecu.mii.USXGMIIChannel()
 .. autoclass:: flync.model.flync_4_ecu.mii.USGMII()
 .. autoclass:: flync.model.flync_4_ecu.mii.USGMIIChannel()
+.. autoclass:: flync.model.flync_4_ecu.mii.QSGMII()
+.. autoclass:: flync.model.flync_4_ecu.mii.QSGMIIChannel()
 
 .. _internal_topology:
 

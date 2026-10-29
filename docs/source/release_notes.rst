@@ -52,3 +52,15 @@ Validation uses the workspace's configuration
 ``validate_workspace`` and ``flync validate`` read the ``.flync/config.yaml`` of a workspace folder when no
 configuration is passed, as loading the workspace does. A workspace whose configuration changes how it is read,
 such as its file extensions, was reported ``EMPTY`` or broken before.
+
+
+MII-Lite
+''''''''
+
+:class:`~flync.model.flync_4_ecu.mii.MII` has a new ``lite`` flag (default ``false``) for MII without the TX_ER, RX_ER, CRS and COL
+signals. It carries full duplex only.
+
+New xMII type: QSGMII
+'''''''''''''''''''''
+
+:class:`~flync.model.flync_4_ecu.mii.QSGMII` is a new ``mii_config`` type: four 10/100/1000 Mbps channels over one serial link.
