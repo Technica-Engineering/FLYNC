@@ -58,6 +58,25 @@ def _implicit_resolvers() -> dict[str, list[tuple[str, re.Pattern[str]]]]:
 
 _IMPLICIT_RESOLVERS = _implicit_resolvers()
 
+# Plain scalars that YAML 1.1 readers and ruamel.yaml type as numbers or booleans although the core schema keeps them strings:
+# binary and underscore-grouped numbers, floats without a leading digit and the YAML 1.1 booleans. Only the dumper knows them,
+# so such strings are written quoted and every reader gets them back as ``str``.
+_QUOTED_ON_DUMP = (
+    ("-+0123456789", _INT_TAG, re.compile(r"^[-+]?(?:0b[01_]+|0o[0-7_]+|0x[\da-fA-F_]+|\d[\d_]*)$", re.ASCII)),
+    ("-+.0123456789", _FLOAT_TAG, re.compile(r"^[-+]?(?:\d[\d_]*)?\.[\d_]*(?:[eE][-+]?\d+)?$", re.ASCII)),
+    ("yYnNoO", _BOOL_TAG, re.compile(r"^(?:y|Y|yes|Yes|YES|n|N|no|No|NO|on|On|ON|off|Off|OFF)$")),
+)
+
+
+def _dumper_resolvers() -> dict[str, list[tuple[str, re.Pattern[str]]]]:
+    """The loader's resolvers plus :data:`_QUOTED_ON_DUMP`."""
+    resolvers = {first: list(entries) for first, entries in _IMPLICIT_RESOLVERS.items()}
+    for first, tag, regexp in _QUOTED_ON_DUMP:
+        for char in first:
+            resolvers.setdefault(char, []).append((tag, regexp))
+    return resolvers
+
+
 _BaseLoader: type = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
 _BaseDumper: type = getattr(yaml, "CSafeDumper", yaml.SafeDumper)
 
@@ -98,9 +117,9 @@ _Loader.add_constructor(_INT_TAG, _construct_int)
 
 
 class _Dumper(_BaseDumper):
-    """Safe dumper sharing the loader's resolvers, so strings the loader would not read back as ``str`` get quoted."""
+    """Safe dumper that quotes every string the loader, a YAML 1.1 reader or ruamel.yaml would not read back as ``str``."""
 
-    yaml_implicit_resolvers = _IMPLICIT_RESOLVERS
+    yaml_implicit_resolvers = _dumper_resolvers()
 
 
 def safe_load(stream: str | IO[str]) -> Any:
