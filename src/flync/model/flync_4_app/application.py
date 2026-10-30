@@ -142,42 +142,53 @@ class App(FLYNCBaseModel):
         gateway has to use different buses. Overlapping IPC roles on one channel only warn.
         """
         for field_name, (label, target_fields) in _REF_TARGETS.items():
-            seen: dict[tuple[object, ...], FLYNCBaseModel] = {}
-            for ref in getattr(self, field_name) or []:
-                target = tuple(getattr(ref, f) for f in target_fields)
-                previous = seen.setdefault(target, ref)
-                if previous is ref:
-                    continue
-                name = "/".join(f"{v:#x}" if isinstance(v, int) else str(v) for v in target)
-                if previous == ref:
-                    warn(
-                        f"App '{self.name}' lists the same {label} twice in {field_name}: {name}.",
-                        category=Category.UNIQUENESS,
-                        error_number="412",
-                    )
-                elif field_name == "ipc_refs":
-                    warn(
-                        f"App '{self.name}' lists IPC channel '{name}' with overlapping roles "
-                        f"'{previous.role}' and '{ref.role}'.",  # type: ignore[attr-defined]
-                        category=Category.CONSISTENCY,
-                        error_number="419",
-                    )
-                else:
-                    raise err_minor(
-                        f"App '{self.name}' both sends and receives {label} {name} in {field_name}; a gateway must use different buses.",
-                        category=Category.CONSISTENCY,
-                        error_number="418",
-                    )
+            self._check_target_refs(field_name, label, target_fields)
         for field_name in ("service_consumer_refs", "service_provider_refs"):
-            seen_services: set[tuple[int, int, int]] = set()
-            for ref in getattr(self, field_name) or []:
-                key = (ref.service_id, ref.instance_id, ref.major_version)
-                if key in seen_services:
-                    warn(
-                        f"App '{self.name}' lists the same service instance twice in {field_name} "
-                        f"(service_id={ref.service_id:#06x}, instance_id={ref.instance_id}, major_version={ref.major_version}).",
-                        category=Category.UNIQUENESS,
-                        error_number="420",
-                    )
-                seen_services.add(key)
+            self._check_service_refs(field_name)
         return self
+
+    def _check_target_refs(self, field_name: str, label: str, target_fields: tuple[str, ...]) -> None:
+        """Report every entry of one reference list that points at a target an earlier entry already named."""
+        seen: dict[tuple[object, ...], FLYNCBaseModel] = {}
+        for ref in getattr(self, field_name) or []:
+            target = tuple(getattr(ref, f) for f in target_fields)
+            previous = seen.setdefault(target, ref)
+            if previous is not ref:
+                name = "/".join(f"{v:#x}" if isinstance(v, int) else str(v) for v in target)
+                self._report_conflicting_ref(field_name, label, name, previous, ref)
+
+    def _report_conflicting_ref(self, field_name: str, label: str, name: str, previous: FLYNCBaseModel, ref: FLYNCBaseModel) -> None:
+        """Warn about an exact duplicate or an IPC role overlap, and raise for a frame or PDU both sent and received."""
+        if previous == ref:
+            warn(
+                f"App '{self.name}' lists the same {label} twice in {field_name}: {name}.",
+                category=Category.UNIQUENESS,
+                error_number="412",
+            )
+        elif field_name == "ipc_refs":
+            warn(
+                f"App '{self.name}' lists IPC channel '{name}' with overlapping roles "
+                f"'{previous.role}' and '{ref.role}'.",  # type: ignore[attr-defined]
+                category=Category.CONSISTENCY,
+                error_number="419",
+            )
+        else:
+            raise err_minor(
+                f"App '{self.name}' both sends and receives {label} {name} in {field_name}; a gateway must use different buses.",
+                category=Category.CONSISTENCY,
+                error_number="418",
+            )
+
+    def _check_service_refs(self, field_name: str) -> None:
+        """Warn about every service instance listed more than once in one reference list."""
+        seen: set[tuple[int, int, int]] = set()
+        for ref in getattr(self, field_name) or []:
+            key = (ref.service_id, ref.instance_id, ref.major_version)
+            if key in seen:
+                warn(
+                    f"App '{self.name}' lists the same service instance twice in {field_name} "
+                    f"(service_id={ref.service_id:#06x}, instance_id={ref.instance_id}, major_version={ref.major_version}).",
+                    category=Category.UNIQUENESS,
+                    error_number="420",
+                )
+            seen.add(key)
