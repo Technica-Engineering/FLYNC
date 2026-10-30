@@ -61,17 +61,6 @@ class Document(object):
         self.text = text
         self.parse()
 
-    def assign_ast(self, ast, compose_ast):
-        """
-        Assign parsed YAML structures to the Document instance.
-
-        Args:
-            ast: Parsed YAML object tree.
-            compose_ast: Composed YAML node tree (optional, used for object maps).
-        """
-        self.ast = ast
-        self.compose_ast = compose_ast
-
     def source_nodes(self):
         """
         Return the composed YAML node tree of the document, composing it from :attr:`text` when it was not produced at parse time.
@@ -138,36 +127,3 @@ def read_file(path: PathType) -> str:
             return direct_data.read()
     except (OSError, UnicodeDecodeError):
         return ""
-
-
-def parse_documents(paths, ws_root, needs_compose):
-    """
-    Parse multiple YAML documents from given paths.
-
-    The raw text is read inside each worker and NOT returned through IPC
-    to avoid pickle overhead. The main process re-reads the file from the
-    OS page cache for Document construction.
-
-    Args:
-        paths (list[PathType]): List of file paths to parse.
-        ws_root (Path): Workspace root for URI normalization.
-        needs_compose (bool): Whether to produce composed ASTs.
-
-    Returns:
-        list[tuple[str, Any, Any | None]]: Each tuple contains
-            (normalized_uri, ast, compose_ast).
-    """
-
-    results = []
-
-    for path in paths:
-        text = read_file(path)
-        ast, compose_ast = Document._parse_text(text, needs_compose)
-        results.append(
-            (
-                Document.normalize_uri(path, ws_root),
-                ast,
-                compose_ast,
-            )
-        )
-    return results

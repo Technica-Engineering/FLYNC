@@ -6,12 +6,6 @@ validates each load node. Depends on :mod:`._object_mapping` to register what it
 """
 
 import logging
-import multiprocessing
-import os
-import signal
-import sys
-from concurrent.futures import ProcessPoolExecutor, as_completed
-from itertools import islice
 from pathlib import Path
 from types import UnionType
 from typing import Annotated, Optional, Union, cast, get_args, get_origin
@@ -34,23 +28,9 @@ from flync.sdk.utils.sdk_types import PathType
 
 from ._base import LoadNode, ParentLink
 from ._object_mapping import _WorkspaceObjectMapping
-from .document import Document, parse_documents, read_file
+from .document import Document, read_file
 
 logger = logging.getLogger(__name__)
-
-
-def _force_exit_pool_worker_on_sigint(_signum: int, _frame: object) -> None:
-    """Exit a workspace-load pool worker immediately on Ctrl+C, without printing a traceback.
-
-    A terminal Ctrl+C reaches every process attached to the terminal, so the
-    workers stop together with the process that loads the workspace.
-    """
-    os._exit(130)
-
-
-def _configure_pool_worker() -> None:
-    """Install the Ctrl+C handler of a workspace-load pool worker (``ProcessPoolExecutor`` initializer)."""
-    signal.signal(signal.SIGINT, _force_exit_pool_worker_on_sigint)
 
 
 class _WorkspaceLoading(_WorkspaceObjectMapping):
@@ -58,53 +38,18 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
 
     def _open_documents(self):
         """
-        Open all documents in the workspace matching the configured file extension.
-        File I/O and YAML parsing happen inside the ProcessPool workers; the raw text
-        is NOT returned through IPC to reduce pickle overhead — it is re-read from the
-        OS page cache in the main process for Document construction.
+        Open and parse every document in the workspace matching the configured file extension.
+
+        Documents are read and parsed in this process, in sorted path order.
 
         Returns:
             None
         """
         if self.workspace_root is None:
             return
-        files = [p for p in self.workspace_root.rglob(f"*{self.configuration.flync_file_extension}") if p.is_file()]
-        if len(files) == 0:
-            return
-
-        def batched(iterable, size):
-            """Yield successive batches of given size from an iterable."""
-            i = iter(iterable)
-            while batch := list(islice(i, size)):
-                yield batch
-
-        workers = os.cpu_count() or 1
-        batch_size = max(32, len(files) // (workers * 4))
-        batches = list(batched(files, batch_size))
-
-        # A forking ProcessPoolExecutor is unsafe here: load_workspace is driven from
-        # asyncio.to_thread(...), so the default POSIX "fork" start method forks from a
-        # multi-threaded process and can deadlock the child. Use a non-fork context
-        # (forkserver on POSIX, spawn elsewhere); everything submitted (module-level
-        # parse_document, path/str/bool args) is picklable, so this is behavior-neutral.
-        mp_context = multiprocessing.get_context("forkserver" if sys.platform != "win32" else "spawn")
-        with ProcessPoolExecutor(mp_context=mp_context, initializer=_configure_pool_worker) as pool:
-            futures = [
-                pool.submit(
-                    parse_documents,
-                    batch,
-                    self.workspace_root,
-                    self.configuration.map_objects,
-                )
-                for batch in batches
-            ]
-
-            for future in as_completed(futures):
-                for uri, ast, compose_ast in future.result():
-                    text = read_file(self.workspace_root / uri)
-                    doc = Document(uri, text, self.configuration.map_objects)
-                    doc.assign_ast(ast, compose_ast)
-                    self.documents[doc.uri] = doc
+        for path in sorted(self.workspace_root.rglob(f"*{self.configuration.flync_file_extension}")):
+            if path.is_file():
+                self._open_document(path)
 
     def _open_document(self, uri: PathType):
         """
