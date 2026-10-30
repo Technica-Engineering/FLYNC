@@ -57,7 +57,7 @@
 | src/flync/model/\_model\_parts/\_types.py                         |        7 |        0 |    100% |           |
 | src/flync/model/flync\_4\_app/\_\_init\_\_.py                     |        5 |        0 |    100% |           |
 | src/flync/model/flync\_4\_app/app\_bindings.py                    |       20 |        0 |    100% |           |
-| src/flync/model/flync\_4\_app/application.py                      |       57 |        2 |     96% |  153, 176 |
+| src/flync/model/flync\_4\_app/application.py                      |       62 |        2 |     97% |  163, 188 |
 | src/flync/model/flync\_4\_app/ipc.py                              |       12 |        0 |    100% |           |
 | src/flync/model/flync\_4\_app/signal\_refs.py                     |       20 |        0 |    100% |           |
 | src/flync/model/flync\_4\_bus/\_\_init\_\_.py                     |        4 |        0 |    100% |           |
@@ -234,7 +234,7 @@
 | src/flync\_converter/registry.py                                  |       32 |        5 |     84% | 30, 56-59 |
 | src/flync\_converter/reporting.py                                 |      177 |        5 |     97% |303, 358-360, 362 |
 | src/flync\_converter/utils.py                                     |       75 |        4 |     95% |63-64, 93-94 |
-| **TOTAL**                                                         | **15527** |  **632** | **96%** |           |
+| **TOTAL**                                                         | **15532** |  **632** | **96%** |           |
 
 
 ## Setup coverage badge
