@@ -3,7 +3,10 @@
 from unittest.mock import MagicMock, patch
 
 from flync_converter.base import ConverterConfig
+from flync_converter.cli.dynamic import DST_PREFIX, SRC_PREFIX
+from flync_converter.cli.preview import config_endpoint
 from flync_converter.cli.tui.app import FlyncTUI
+from flync_converter.conversion_request import ConversionOutput, ConversionRequest, ConversionSource
 
 
 def _make_app():
@@ -49,8 +52,17 @@ def _patch_app_queries(app, log, btn):
     app.query_one = fake_query_one
 
 
-def _cfg():
-    return ConverterConfig(config_path="/tmp")
+def _cfg(path="/tmp/source"):
+    return ConverterConfig(config_path=path)
+
+
+def _request():
+    source, output = _cfg("/tmp/source"), _cfg("/tmp/output")
+    request = ConversionRequest(
+        sources=[ConversionSource(path=source.config_path, converter_type="json", config=source)],
+        outputs=[ConversionOutput(path=output.config_path, converter_type="yaml", config=output)],
+    )
+    return request, [config_endpoint("json", source, SRC_PREFIX)], [config_endpoint("yaml", output, DST_PREFIX)]
 
 
 def test_tui_run_conversion_writes_preview_when_enabled():
@@ -63,7 +75,7 @@ def test_tui_run_conversion_writes_preview_when_enabled():
         patch("flync_converter.cli.tui.app.Converter"),
         patch("flync_converter.cli.tui.app.threading.Thread.start") as mock_start,
     ):
-        app._run_conversion("json", _cfg(), "yaml", _cfg())
+        app._run_conversion(*_request())
 
     assert btn.disabled is True
     mock_start.assert_called_once()
@@ -85,7 +97,7 @@ def test_tui_run_conversion_skips_preview_when_disabled():
         patch("flync_converter.cli.tui.app.Converter"),
         patch("flync_converter.cli.tui.app.threading.Thread.start") as mock_start,
     ):
-        app._run_conversion("json", _cfg(), "yaml", _cfg())
+        app._run_conversion(*_request())
 
     mock_start.assert_called_once()
     log.clear.assert_called_once()

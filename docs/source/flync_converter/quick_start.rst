@@ -47,7 +47,12 @@ CLI - Interactive TUI
    flync-converter tui
    flync-converter-interactive
 
-The TUI opens a split-panel screen: source on the left, destination on the right. Pick a format from each dropdown, fill in the config fields, and click **Convert**. Output streams live in a log panel at the bottom.
+The TUI opens Source and Destination columns. Use **Add Source** and
+**Add Destination** to configure multiple endpoints. Each endpoint keeps an independent
+format, path, and converter configuration, and can be collapsed to its title row. Any
+endpoint can be removed while at least one Source and one Destination remain. The TUI
+merges all Source models and writes the merged model to every configured Destination.
+Output streams live in the log panel at the bottom.
 
 List available converters
 ^^^^^^^^^^^^^^^^^^^^^^^^^

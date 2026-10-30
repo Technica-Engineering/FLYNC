@@ -10,16 +10,11 @@ from flync_converter.cli.tui.widgets.converter_panel import ConverterPanel
 
 def _make_converter_class(calls, *, sleep=0.0, error=None):
     class Fake:
-        def convert(
-            self,
-            source=None,
-            destination=None,
-            source_type=None,
-            destination_type=None,
-            source_config=None,
-            destination_config=None,
-        ):
-            calls.append((source_type, destination_type, source, destination))
+        @staticmethod
+        def convert_request(request):
+            source = request.sources[0]
+            destination = request.outputs[0]
+            calls.append((source.converter_type, destination.converter_type, source.path, destination.path, request))
             if sleep:
                 time.sleep(sleep)
             if error:
@@ -36,10 +31,10 @@ def _install(monkeypatch, calls, *, sleep=0.0, error=None):
 
 
 def _fill(app, src_cfg="/tmp/cfg-src", dst_cfg="/tmp/cfg-dst"):
-    src = app.query_one("#source-panel", ConverterPanel)
-    dst = app.query_one("#dest-panel", ConverterPanel)
-    src.query_one("#field-source-panel-config_path").value = src_cfg
-    dst.query_one("#field-dest-panel-config_path").value = dst_cfg
+    src = app.query_one("#source-panel-1", ConverterPanel)
+    dst = app.query_one("#destination-panel-1", ConverterPanel)
+    src.query_one("#field-source-panel-1-config_path").value = src_cfg
+    dst.query_one("#field-destination-panel-1-config_path").value = dst_cfg
 
 
 # ---------------------------------------------------------------------------
@@ -108,7 +103,7 @@ class TestStateAfterConversion:
                     lambda: "Conversion completed successfully." in helpers.log_text(app.query_one("#run-log")),
                     pilot,
                 )
-                src = app.query_one("#source-panel", ConverterPanel)
+                src = app.query_one("#source-panel-1", ConverterPanel)
                 assert src.read_config().config_path == "/tmp/keep-me"
 
         helpers.run(_impl())
@@ -215,10 +210,10 @@ class TestModifyDuringConversion:
                 await pilot.pause()
                 _fill(app, src_cfg="/tmp/orig")
                 await pilot.pause()
-                src = app.query_one("#source-panel", ConverterPanel)
+                src = app.query_one("#source-panel-1", ConverterPanel)
                 await pilot.click("#btn-convert")
                 await pilot.pause()
-                src.query_one("#field-source-panel-config_path").value = "/tmp/changed"
+                src.query_one("#field-source-panel-1-config_path").value = "/tmp/changed"
                 await pilot.pause()
                 await helpers.wait_until(lambda: len(calls) == 1, pilot)
                 assert src.read_config().config_path == "/tmp/changed"
@@ -295,8 +290,8 @@ class TestRegression:
             app = FlyncTUI()
             async with app.run_test() as pilot:
                 await pilot.pause()
-                src = app.query_one("#source-panel", ConverterPanel)
-                dst = app.query_one("#dest-panel", ConverterPanel)
+                src = app.query_one("#source-panel-1", ConverterPanel)
+                dst = app.query_one("#destination-panel-1", ConverterPanel)
                 await helpers.select_format(src, "json", pilot)
                 await helpers.select_format(dst, "yaml", pilot)
                 _fill(app)
@@ -338,9 +333,11 @@ class TestRegression:
                 _fill(app)
                 await pilot.pause()
                 btn = app.query_one("#btn-convert", Button)
-                await pilot.click("#btn-convert")
-                await helpers.wait_until(lambda: btn.disabled is False, pilot)
-                assert "Conversion failed: boom" in helpers.log_text(app.query_one("#run-log"))
+                btn.press()
+                log = app.query_one("#run-log")
+                await helpers.wait_until(lambda: "Conversion failed: boom" in helpers.log_text(log) and not btn.disabled, pilot)
+                assert "Conversion failed: boom" in helpers.log_text(log)
+                assert btn.disabled is False
 
         helpers.run(_impl())
 
@@ -357,8 +354,8 @@ class TestE2EPositive:
             async with app.run_test() as pilot:
                 await pilot.pause()
                 # 1. Startup: layout present, default formats flync/flync.
-                src = app.query_one("#source-panel", ConverterPanel)
-                dst = app.query_one("#dest-panel", ConverterPanel)
+                src = app.query_one("#source-panel-1", ConverterPanel)
+                dst = app.query_one("#destination-panel-1", ConverterPanel)
                 assert src.converter_type == "flync"
                 assert dst.converter_type == "flync"
                 # 2. Selecting other formats.
@@ -395,10 +392,44 @@ class TestE2ENegative:
                 # Leaves the fields empty (config_path required).
                 await pilot.click("#btn-convert")
                 await pilot.pause()
-                src = app.query_one("#source-panel", ConverterPanel)
+                src = app.query_one("#source-panel-1", ConverterPanel)
                 err = src.query_one("#error")
                 assert "config_path" in str(err.render())
                 assert calls == []
                 assert app.is_running
 
         helpers.run(_impl())
+
+
+def test_many_to_many_request_preserves_endpoint_order(helpers, monkeypatch):
+    """Every configured endpoint is passed once and in visible order."""
+    from unittest.mock import patch
+
+    from flync_converter.cli.tui.widgets import ConverterPanelList
+
+    captured = []
+    monkeypatch.setattr("flync_converter.cli.tui.app.Converter.convert_request", lambda request: captured.append(request))
+
+    async def _impl():
+        app = FlyncTUI()
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            sources = app.query_one("#source-panels", ConverterPanelList)
+            destinations = app.query_one("#destination-panels", ConverterPanelList)
+            await sources.add_panel()
+            await destinations.add_panel()
+            await pilot.pause()
+
+            for index, panel in enumerate(sources.panels, start=1):
+                panel.query_one(f"#field-{panel.id}-config_path").value = f"/tmp/source-{index}"
+            for index, panel in enumerate(destinations.panels, start=1):
+                panel.query_one(f"#field-{panel.id}-config_path").value = f"/tmp/output-{index}"
+
+            with patch.object(app, "_no_preview", True):
+                await pilot.click("#btn-convert")
+            assert await helpers.wait_until(lambda: len(captured) == 1, pilot)
+            request = captured[0]
+            assert [str(item.path) for item in request.sources] == ["/tmp/source-1", "/tmp/source-2"]
+            assert [str(item.path) for item in request.outputs] == ["/tmp/output-1", "/tmp/output-2"]
+
+    helpers.run(_impl())

@@ -256,30 +256,36 @@ Interactive TUI (``tui`` / ``flync-converter-interactive``)
 
 **Requires the** ``tui`` **extra** (``pip install "flync[tui]"``).
 
-The TUI is built with `Textual <https://textual.textualize.io/>`_ and presents a single split-panel screen:
+The TUI is built with `Textual <https://textual.textualize.io/>`_ and presents Source endpoints on the left and Destination endpoints on the right. Each endpoint has its own format and converter configuration:
 
 .. code-block:: text
 
-   ┌─ Source ────────────────────┬─ Destination ────────────────┐
-   │ Format: [ flync          ▼] │ Format: [ flync           ▼] │
-   │                             │                              │
-   │ * config_path               │ * config_path                │
-   │ [________________________]  │ [________________________]   │
-   │                             │                              │
-   │ output_type                 │ output_type                  │
-   │ [ CLASSIC               ▼]  │ [ CLASSIC               ▼]  │
-   └─────────────────────────────┴──────────────────────────────┘
-   ┌─ Output ────────────────────────────────────────────────────┐
-   │ INFO flync_converter: Starting conversion                   │
-   │ Conversion completed successfully.                          │
-   └─────────────────────────────────────────────────────────── ┘
-   [ WARNING ▼]                                      [ Convert ]
+   ┌───────────────────────────────┐ ┌───────────────────────────────┐
+   │ ▼ Source 1             Remove │ │ ▼ Destination 1               │
+   │ [ flync                   ▼ ] │ │ [ json                    ▼ ] │
+   │ * config_path                 │ │ * config_path                 │
+   │ [ /models/base              ] │ │ [ /out/system.json          ] │
+   └───────────────────────────────┘ └───────────────────────────────┘
+   ┌───────────────────────────────┐
+   │ ▶ Source 2  dbc · /ca… Remove │
+   └───────────────────────────────┘
+   [ Add Source                    ] [ Add Destination               ]
 
-- **Source panel (left)** - defaults to ``flync``; pick any registered format from the dropdown. Config fields appear immediately below. Required fields are marked with a red ``*``; optional fields show their default value.
-- **Destination panel (right)** - same layout, also defaults to ``flync``.
-- **Log panel** - displays Python log output from the library in real time. Level is controlled by the selector bottom-left.
+   ┌─ Output ────────────────────────────────────────────────────────┐
+   │ INFO flync_converter: Starting conversion                       │
+   │ Conversion completed successfully.                              │
+   └─────────────────────────────────────────────────────────────────┘
+   [ WARNING ▼]                                            [ Convert ]
+
+- **Sources (left)** - starts with one ``flync`` Source. **Add Source** creates another independent endpoint directly above the button.
+- **Destinations (right)** - starts with one ``flync`` Destination. **Add Destination** creates another independent endpoint.
+- **Endpoint management** - **Remove** deletes an endpoint while at least one endpoint of the same role remains. Titles are renumbered automatically.
+- **Collapse** - the arrow before the title (or ``Enter`` on it) hides the format selector and config fields and shows the format and path in the title row. Values are kept, and errors stay visible.
+- **Scrolling** - each column scrolls on its own; the Add buttons stay at the bottom.
+- **Browse** - the button next to ``config_path`` opens a file and folder picker. Folder converters such as ``flync`` pick a folder, Sources list only files with the converter's extensions, and a Destination file name without an extension gets the converter's default one. The path stays editable in the picker and in the panel.
+- **Log panel** - displays Python log output from the library in real time. Level is controlled by the selector bottom-left. On short terminals the log shrinks to as little as three rows.
 - **Log level selector** - choose DEBUG / INFO / WARNING / ERROR to filter what appears in the log panel. Defaults to WARNING.
-- **Convert button** - enabled only when both formats are selected. Validates both panels inline, then runs the conversion in a background thread with live output in the log panel.
+- **Convert button** - enabled only when every configured endpoint has a format selected. Validates all endpoints inline, then runs the conversion in a background thread with live output in the log panel.
 - Config fields are generated automatically from each converter's Pydantic model. If a plugin defines extra fields such as ``output_structure``, ``encoding``, or ``indent``, they appear without any TUI changes. **Enum fields render as a dropdown** rather than a text box.
 
 **Keyboard shortcut:**
