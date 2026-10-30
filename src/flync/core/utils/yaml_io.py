@@ -62,8 +62,8 @@ _IMPLICIT_RESOLVERS = _implicit_resolvers()
 # binary and underscore-grouped numbers, floats without a leading digit and the YAML 1.1 booleans. Only the dumper knows them,
 # so such strings are written quoted and every reader gets them back as ``str``.
 _QUOTED_ON_DUMP = (
-    ("-+0123456789", _INT_TAG, re.compile(r"^[-+]?(?:0b[01_]+|0o[0-7_]+|0x[0-9a-fA-F_]+|[0-9][0-9_]*)$", re.ASCII)),
-    ("-+.0123456789", _FLOAT_TAG, re.compile(r"^[-+]?(?:[0-9][0-9_]*)?\.[0-9_]*(?:[eE][-+]?[0-9]+)?$", re.ASCII)),
+    ("-+0123456789", _INT_TAG, re.compile(r"^[-+]?(?:0b[01_]+|0o[0-7_]+|0x[\da-fA-F_]+|\d[\d_]*)$", re.ASCII)),
+    ("-+.0123456789", _FLOAT_TAG, re.compile(r"^[-+]?(?:\d[\d_]*)?\.[\d_]*(?:[eE][-+]?\d+)?$", re.ASCII)),
     ("yYnNoO", _BOOL_TAG, re.compile(r"^(?:y|Y|yes|Yes|YES|n|N|no|No|NO|on|On|ON|off|Off|OFF)$")),
 )
 
