@@ -83,9 +83,8 @@ class TestBackgroundExecution:
                 btn = app.query_one("#btn-convert", Button)
                 assert not btn.disabled
                 await pilot.click("#btn-convert")
-                await pilot.pause()
-                assert btn.disabled is True
-                await helpers.wait_until(lambda: btn.disabled is False, pilot)
+                assert await helpers.wait_until(lambda: btn.disabled is True, pilot)
+                assert await helpers.wait_until(lambda: btn.disabled is False, pilot)
                 assert len(calls) == 1
 
         helpers.run(_impl())
@@ -283,9 +282,8 @@ class TestRegression:
                 await pilot.pause()
                 btn = app.query_one("#btn-convert", Button)
                 await pilot.click("#btn-convert")
-                await pilot.pause()
-                assert btn.disabled is True
-                await helpers.wait_until(lambda: btn.disabled is False, pilot)
+                assert await helpers.wait_until(lambda: btn.disabled is True, pilot)
+                assert await helpers.wait_until(lambda: btn.disabled is False, pilot)
 
         helpers.run(_impl())
 
