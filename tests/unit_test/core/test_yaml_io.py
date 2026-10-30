@@ -1,7 +1,9 @@
 import io
 
 import pytest
+import yaml
 
+from flync.core.datatypes.bitmask import Bitmask
 from flync.core.utils import yaml_io
 
 
@@ -39,3 +41,24 @@ def test_compose_carries_positions():
     node = yaml_io.compose("a:\n  b: 1\n")
     inner = node.value[0][1]
     assert (inner.start_mark.line, inner.start_mark.column) == (1, 2)
+
+
+@pytest.mark.parametrize("value", ["0b0101", "1_000", "0x_1F", "0o_17", "1_000.5", "-.5", "+.5", "yes", "No", "on", "OFF", "y", "N"])
+def test_dump_quotes_strings_other_readers_would_type(value):
+    text = yaml_io.safe_dump({"k": value})
+    assert text == f"k: '{value}'\n"
+    assert yaml_io.safe_load(text) == {"k": value}
+    assert yaml.safe_load(text) == {"k": value}
+
+
+@pytest.mark.parametrize("value", ["hello", "1.2.3", "ab:cd", "0b", "yesterday", "0x1G"])
+def test_dump_leaves_unambiguous_strings_plain(value):
+    assert yaml_io.safe_dump({"k": value}) == f"k: {value}\n"
+
+
+def test_binary_bitmask_survives_a_dump():
+    mask = Bitmask.model_validate({"data": "0b0000100000000000", "mask": "0b0000111111111111"})
+    text = yaml_io.safe_dump(mask.model_dump())
+    assert yaml.safe_load(text) == mask.model_dump()
+    reloaded = Bitmask.model_validate(yaml_io.safe_load(text))
+    assert reloaded.model_dump() == mask.model_dump()
