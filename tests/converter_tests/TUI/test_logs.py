@@ -11,7 +11,8 @@ from flync_converter.cli.tui.app import FlyncTUI
 
 def _logging_converter_class(records, func, *, sleep=0.0):
     class Fake:
-        def convert(self, *a, **k):
+        @staticmethod
+        def convert_request(request):
             func()
             if sleep:
                 time.sleep(sleep)
@@ -29,12 +30,12 @@ def _install(monkeypatch, records, func, *, sleep=0.0):
 def _set_paths(app):
     from flync_converter.cli.tui.widgets.converter_panel import ConverterPanel
 
-    src = app.query_one("#source-panel", ConverterPanel)
-    dst = app.query_one("#dest-panel", ConverterPanel)
+    src = app.query_one("#source-panel-1", ConverterPanel)
+    dst = app.query_one("#destination-panel-1", ConverterPanel)
     # call set_config_path through a throwaway helpers instance is avoided;
     # set the Input directly instead.
-    src.query_one("#field-source-panel-config_path").value = "/tmp/log-src"
-    dst.query_one("#field-dest-panel-config_path").value = "/tmp/log-dst"
+    src.query_one("#field-source-panel-1-config_path").value = "/tmp/log-src"
+    dst.query_one("#field-destination-panel-1-config_path").value = "/tmp/log-dst"
 
 
 async def _select_level(app, pilot, helpers, level):

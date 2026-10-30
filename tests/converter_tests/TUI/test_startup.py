@@ -44,7 +44,7 @@ def _field_stats(panel):
     container = panel.query_one("#fields")
     inputs = 0
     selects = 0
-    for child in container.children:
+    for child in container.query("Input, Select"):
         if isinstance(child, Input):
             inputs += 1
         elif isinstance(child, Select):
@@ -54,7 +54,7 @@ def _field_stats(panel):
 
 def _field_names(panel):
     container = panel.query_one("#fields")
-    return [getattr(c, "id", None) for c in container.children if isinstance(c, (Input, Select))]
+    return [getattr(c, "id", None) for c in container.query("Input, Select")]
 
 
 # ---------------------------------------------------------------------------
@@ -77,8 +77,8 @@ class TestStartupLayout:
                 await pilot.pause()
                 for selector in (
                     "#panels",
-                    "#source-panel",
-                    "#dest-panel",
+                    "#source-panel-1",
+                    "#destination-panel-1",
                     "#run-log",
                     "#btn-row",
                     "#log-level-select",
@@ -98,7 +98,7 @@ class TestDefaultFormats:
             app = FlyncTUI()
             async with app.run_test() as pilot:
                 await pilot.pause()
-                source = app.query_one("#source-panel", ConverterPanel)
+                source = app.query_one("#source-panel-1", ConverterPanel)
                 assert source.converter_type == "flync"
 
         helpers.run(_impl())
@@ -108,7 +108,7 @@ class TestDefaultFormats:
             app = FlyncTUI()
             async with app.run_test() as pilot:
                 await pilot.pause()
-                dest = app.query_one("#dest-panel", ConverterPanel)
+                dest = app.query_one("#destination-panel-1", ConverterPanel)
                 assert dest.converter_type == "flync"
 
         helpers.run(_impl())
@@ -123,7 +123,7 @@ class TestFormatSelection:
             app = FlyncTUI()
             async with app.run_test() as pilot:
                 await pilot.pause()
-                source = app.query_one("#source-panel", ConverterPanel)
+                source = app.query_one("#source-panel-1", ConverterPanel)
                 await helpers.select_format(source, "dbc", pilot)
                 assert source.converter_type == "dbc"
 
@@ -134,7 +134,7 @@ class TestFormatSelection:
             app = FlyncTUI()
             async with app.run_test() as pilot:
                 await pilot.pause()
-                dest = app.query_one("#dest-panel", ConverterPanel)
+                dest = app.query_one("#destination-panel-1", ConverterPanel)
                 await helpers.select_format(dest, "yaml", pilot)
                 assert dest.converter_type == "yaml"
 
@@ -154,12 +154,12 @@ class TestDynamicFields:
             app = FlyncTUI()
             async with app.run_test() as pilot:
                 await pilot.pause()
-                source = app.query_one("#source-panel", ConverterPanel)
+                source = app.query_one("#source-panel-1", ConverterPanel)
                 flync_fields = _field_names(source)
                 await helpers.select_format(source, "dbc", pilot)
                 dbc_fields = _field_names(source)
                 assert flync_fields != dbc_fields
-                assert "field-source-panel-baud_rate_default" in dbc_fields
+                assert "field-source-panel-1-baud_rate_default" in dbc_fields
 
         helpers.run(_impl())
 
@@ -168,8 +168,8 @@ class TestDynamicFields:
             app = FlyncTUI()
             async with app.run_test() as pilot:
                 await pilot.pause()
-                source = app.query_one("#source-panel", ConverterPanel)
-                inp = source.query_one("#field-source-panel-config_path", Input)
+                source = app.query_one("#source-panel-1", ConverterPanel)
+                inp = source.query_one("#field-source-panel-1-config_path", Input)
                 assert inp.placeholder == "required"
 
         helpers.run(_impl())
@@ -179,9 +179,9 @@ class TestDynamicFields:
             app = FlyncTUI()
             async with app.run_test() as pilot:
                 await pilot.pause()
-                source = app.query_one("#source-panel", ConverterPanel)
+                source = app.query_one("#source-panel-1", ConverterPanel)
                 await helpers.select_format(source, "dbc", pilot)
-                baud = source.query_one("#field-source-panel-baud_rate_default", Input)
+                baud = source.query_one("#field-source-panel-1-baud_rate_default", Input)
                 assert baud.value == "500000"
 
         helpers.run(_impl())
@@ -193,7 +193,7 @@ class TestDynamicFields:
                 app = FlyncTUI()
                 async with app.run_test() as pilot:
                     await pilot.pause()
-                    source = app.query_one("#source-panel", ConverterPanel)
+                    source = app.query_one("#source-panel-1", ConverterPanel)
                     await helpers.select_format(source, name, pilot)
                     inputs, selects = _field_stats(source)
                     assert selects >= 1
@@ -205,7 +205,7 @@ class TestDynamicFields:
             app = FlyncTUI()
             async with app.run_test() as pilot:
                 await pilot.pause()
-                source = app.query_one("#source-panel", ConverterPanel)
+                source = app.query_one("#source-panel-1", ConverterPanel)
                 helpers.set_config_path(source, "/tmp/custom")
                 cfg = source.read_config()
                 assert cfg.config_path == "/tmp/custom"
@@ -219,10 +219,10 @@ class TestDynamicFields:
                 app = FlyncTUI()
                 async with app.run_test() as pilot:
                     await pilot.pause()
-                    source = app.query_one("#source-panel", ConverterPanel)
+                    source = app.query_one("#source-panel-1", ConverterPanel)
                     await helpers.select_format(source, name, pilot)
                     helpers.set_config_path(source, "/tmp/x")
-                    enum_sel = source.query_one("#field-source-panel-level", Select)
+                    enum_sel = source.query_one("#field-source-panel-1-level", Select)
                     enum_sel.value = Color.GREEN.value
                     cfg = source.read_config()
                     assert cfg.level == Color.GREEN
@@ -240,7 +240,7 @@ class TestExtraDynamicFields:
                 app = FlyncTUI()
                 async with app.run_test() as pilot:
                     await pilot.pause()
-                    source = app.query_one("#source-panel", ConverterPanel)
+                    source = app.query_one("#source-panel-1", ConverterPanel)
                     await helpers.select_format(source, name, pilot)
                     inputs, selects = _field_stats(source)
                     # config_path + output_structure + encoding + indent + retries + flag + name
@@ -261,7 +261,7 @@ class TestDRequiredOnly:
                 app = FlyncTUI()
                 async with app.run_test() as pilot:
                     await pilot.pause()
-                    source = app.query_one("#source-panel", ConverterPanel)
+                    source = app.query_one("#source-panel-1", ConverterPanel)
                     await helpers.select_format(source, name, pilot)
                     inputs, selects = _field_stats(source)
                     assert inputs == 1
@@ -286,7 +286,7 @@ class TestDFieldKinds:
                 app = FlyncTUI()
                 async with app.run_test() as pilot:
                     await pilot.pause()
-                    source = app.query_one("#source-panel", ConverterPanel)
+                    source = app.query_one("#source-panel-1", ConverterPanel)
                     await helpers.select_format(source, name, pilot)
                     inputs, selects = _field_stats(source)
                     assert inputs > 1
@@ -300,16 +300,16 @@ class TestDFieldKinds:
                 app = FlyncTUI()
                 async with app.run_test() as pilot:
                     await pilot.pause()
-                    source = app.query_one("#source-panel", ConverterPanel)
+                    source = app.query_one("#source-panel-1", ConverterPanel)
                     await helpers.select_format(source, name, pilot)
                     # str
-                    assert isinstance(source.query_one("#field-source-panel-name", Input), Input)
+                    assert isinstance(source.query_one("#field-source-panel-1-name", Input), Input)
                     # int (default 2)
-                    assert source.query_one("#field-source-panel-indent", Input).value == "2"
+                    assert source.query_one("#field-source-panel-1-indent", Input).value == "2"
                     # bool (default False)
-                    assert source.query_one("#field-source-panel-flag", Input).value == "False"
+                    assert source.query_one("#field-source-panel-1-flag", Input).value == "False"
                     # enum -> Select
-                    assert isinstance(source.query_one("#field-source-panel-level", Select), Select)
+                    assert isinstance(source.query_one("#field-source-panel-1-level", Select), Select)
 
             helpers.run(_impl())
 
@@ -320,10 +320,10 @@ class TestDFieldKinds:
                 app = FlyncTUI()
                 async with app.run_test() as pilot:
                     await pilot.pause()
-                    source = app.query_one("#source-panel", ConverterPanel)
+                    source = app.query_one("#source-panel-1", ConverterPanel)
                     await helpers.select_format(source, name, pilot)
-                    assert isinstance(source.query_one("#field-source-panel-level", Select), Select)
-                    assert isinstance(source.query_one("#field-source-panel-mode", Select), Select)
+                    assert isinstance(source.query_one("#field-source-panel-1-level", Select), Select)
+                    assert isinstance(source.query_one("#field-source-panel-1-mode", Select), Select)
 
             helpers.run(_impl())
 
@@ -334,7 +334,7 @@ class TestDFieldKinds:
                 app = FlyncTUI()
                 async with app.run_test() as pilot:
                     await pilot.pause()
-                    source = app.query_one("#source-panel", ConverterPanel)
+                    source = app.query_one("#source-panel-1", ConverterPanel)
                     await helpers.select_format(source, name, pilot)
                     inputs, selects = _field_stats(source)
                     assert inputs == 1
@@ -355,11 +355,11 @@ class TestD9D10D11NamedFields:
                 app = FlyncTUI()
                 async with app.run_test() as pilot:
                     await pilot.pause()
-                    source = app.query_one("#source-panel", ConverterPanel)
+                    source = app.query_one("#source-panel-1", ConverterPanel)
                     await helpers.select_format(source, name, pilot)
-                    assert source.query_one("#field-source-panel-output_structure", Input).value == "flat"
-                    assert source.query_one("#field-source-panel-encoding", Input).value == "utf-8"
-                    assert source.query_one("#field-source-panel-indent", Input).value == "2"
+                    assert source.query_one("#field-source-panel-1-output_structure", Input).value == "flat"
+                    assert source.query_one("#field-source-panel-1-encoding", Input).value == "utf-8"
+                    assert source.query_one("#field-source-panel-1-indent", Input).value == "2"
 
             helpers.run(_impl())
 
@@ -373,7 +373,7 @@ class TestDFormatSwitching:
             app = FlyncTUI()
             async with app.run_test() as pilot:
                 await pilot.pause()
-                source = app.query_one("#source-panel", ConverterPanel)
+                source = app.query_one("#source-panel-1", ConverterPanel)
                 a = _field_names(source)  # flync
                 await helpers.select_format(source, "dbc", pilot)
                 b = _field_names(source)
@@ -386,7 +386,7 @@ class TestDFormatSwitching:
             app = FlyncTUI()
             async with app.run_test() as pilot:
                 await pilot.pause()
-                source = app.query_one("#source-panel", ConverterPanel)
+                source = app.query_one("#source-panel-1", ConverterPanel)
                 fields_a = _field_names(source)  # flync
                 await helpers.select_format(source, "dbc", pilot)
                 await helpers.select_format(source, "flync", pilot)
@@ -416,7 +416,7 @@ class TestPluginMisconfigured:
                 app = FlyncTUI()
                 async with app.run_test() as pilot:
                     await pilot.pause()
-                    source = app.query_one("#source-panel", ConverterPanel)
+                    source = app.query_one("#source-panel-1", ConverterPanel)
                     await helpers.select_format(source, name, pilot)
                     inputs, selects = _field_stats(source)
                     assert inputs >= 1  # config_path still rendered, no crash
@@ -434,7 +434,7 @@ class TestPluginNoConfig:
                 app = FlyncTUI()
                 async with app.run_test() as pilot:
                     await pilot.pause()
-                    source = app.query_one("#source-panel", ConverterPanel)
+                    source = app.query_one("#source-panel-1", ConverterPanel)
                     await helpers.select_format(source, name, pilot)
                     inputs, selects = _field_stats(source)
                     assert inputs >= 1
