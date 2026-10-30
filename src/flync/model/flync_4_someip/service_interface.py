@@ -540,16 +540,16 @@ class SOMEIPServiceInterface(FLYNCBaseModel):
 
     id : int
         Unique identifier for the service.
-        Must be greater than 0 and lower or equal than 0xFFFF.
+        Must be greater than 0 and lower than or equal 0xFFFF.
 
     major_version : int
         The major version of this service interface.
-        Must be greater than 0 and lower or equal than 0xFF.
+        Must be greater than or equal 0 and lower than or equal 0xFF.
         Defaults to 0.
 
     minor_version : int
         The minor version of this service interface.
-        Must be greater than 0 and lower or equal than 0xFFFFFFFF.
+        Must be greater than or equal 0 and lower than or equal 0xFFFFFFFF.
         Defaults to 0.
 
     fields : List[ :class:`~SOMEIPField`], optional
