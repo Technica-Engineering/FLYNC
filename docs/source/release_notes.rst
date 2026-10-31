@@ -12,4 +12,3 @@ Release Notes
 
 Release 0.16
 ------------
-
