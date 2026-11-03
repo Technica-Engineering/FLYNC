@@ -68,16 +68,24 @@ class WorkspaceIssue(object):
 
 def run_workspace_validation(
     dir_path: Path,
+    root_model: Optional[type] = None,
 ) -> tuple[Any, list[WorkspaceIssue]]:
     """
-    Load the full workspace and return (DiagnosticsResult, [WorkspaceIssue]).
+    Load the workspace rooted at root_model and return (DiagnosticsResult, [WorkspaceIssue]).
+
+    ``root_model`` defaults to ``FLYNCModel`` (a full workspace); pass a node type to validate
+    only that partial model at ``dir_path``.
 
     Issues are classified into layers 3 / 4 / 5 by error type.
     Layer 3 errors are enriched with typo hints where possible.
     """
-    from flync.sdk.helpers.validation_helpers import validate_workspace
+    from flync.model.flync_model import FLYNCModel
+    from flync.sdk.helpers.validation_helpers import validate_external_node
 
-    result = validate_workspace(dir_path)
+    if root_model is None:
+        root_model = FLYNCModel
+
+    result = validate_external_node(root_model, dir_path)
     issues: list[WorkspaceIssue] = []
 
     for doc_uri, doc_errors in result.errors.items():
@@ -86,7 +94,7 @@ def run_workspace_validation(
             issues.extend(_classify_error(err, rel_doc, dir_path))
 
     # Enrich layer-3 errors with "did you mean" hints
-    _enrich_typo_hints(issues, dir_path)
+    _enrich_typo_hints(issues, dir_path, root_model)
     return result, issues
 
 
@@ -390,6 +398,7 @@ def _extract_list_type_errors(
 def _enrich_typo_hints(
     issues: list[WorkspaceIssue],
     dir_path: Path,
+    root_model: Optional[type] = None,
 ) -> None:
     """
     Add "did you mean X?" hints to Layer 3 errors caused by renamed fields.
@@ -411,7 +420,7 @@ def _enrich_typo_hints(
         if issue.err_type == "missing":
             _enrich_missing_field_hint(issue, dir_path, yaml_cache)
         elif issue.err_type in ("extra_forbid", "extra_forbidden"):
-            _enrich_extra_field_hint(issue, model_cache)
+            _enrich_extra_field_hint(issue, model_cache, root_model)
 
 
 def _enrich_missing_field_hint(
@@ -450,12 +459,12 @@ def _load_yaml_cached(abs_path: Path, cache: dict[str, Any]) -> Any:
     return cache[cache_key]
 
 
-def _enrich_extra_field_hint(issue: WorkspaceIssue, model_cache: dict[str, list[type]]) -> None:
+def _enrich_extra_field_hint(issue: WorkspaceIssue, model_cache: dict[str, list[type]], root_model: Optional[type] = None) -> None:
     """Set issue.hint by finding a real model field name similar to the rejected key."""
     if "models" not in model_cache:
         from flync.model.flync_model import FLYNCModel
 
-        model_cache["models"] = _collect_models(FLYNCModel)
+        model_cache["models"] = _collect_models(root_model or FLYNCModel)
 
     extra_key = str(issue.loc_tuple[-1])
     suggestion = _find_typo_in_model(model_cache["models"], issue.loc_tuple, extra_key)
