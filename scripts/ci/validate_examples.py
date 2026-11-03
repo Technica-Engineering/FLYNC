@@ -1,8 +1,8 @@
 """
 Example validation gate for the FLYNC SDK.
 
-Runs ``flync validate`` over every example under ``examples/`` and exits non-zero if any of them failed. Warnings are reported but do not
-fail the run.
+Runs ``flync validate --verbose`` over every example under ``examples/`` and exits non-zero if any of them failed. Warnings are reported but
+do not fail the run.
 
 Paths git ignores are skipped: developers keep local work under ``examples/`` that CI never sees, and validating it would make the gate
 fail on one machine and pass on another.
@@ -75,9 +75,14 @@ def _discover(root, depth=0):
 
 
 def _validate(path, kind, name):
-    """Run ``flync validate`` on one example and return its exit code. Output goes straight to the console."""
+    """Run ``flync validate --verbose`` on one example and return its exit code. Output goes straight to the console.
 
-    argv = [str(CLI), "validate", str(path), "--config", name]
+    ``--verbose`` runs the layered checks, so a failure names the layer it came from (folder structure, YAML
+    syntax, schema, field values, system-wide) instead of only a summary table. An ECU example is checked
+    against the ``ECU`` node as its root model, and the layers honour that.
+    """
+
+    argv = [str(CLI), "validate", str(path), "--config", name, "--verbose"]
     if kind == "ecu":
         argv += ["--node", "ECU"]
 

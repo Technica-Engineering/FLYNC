@@ -18,8 +18,10 @@ from rich import box
 from rich.console import Console
 from rich.panel import Panel
 
+from flync.model import FLYNCBaseModel
 from flync.model.flync_model import FLYNCModel
 from flync.sdk.context.diagnostics_result import DiagnosticsResult
+from flync.sdk.helpers.nodes_helpers import type_from_input
 
 _console = Console(force_terminal=True)
 
@@ -82,33 +84,54 @@ def _warn(message: str, path: str = "", hint: str = "", line: int | None = None,
 # ---------------------------------------------------------------------------
 
 
-def run_debug(dir_path: Path) -> DiagnosticsResult | None:
+def run_debug(dir_path: Path, node: str | type[FLYNCBaseModel] = "") -> DiagnosticsResult | None:
     """Run all five debug layers against dir_path, print results, and return the workspace result.
 
-    Returns ``None`` when the path does not exist or the run stopped before the workspace could be loaded
-    (layer 1 or layer 2 errors), since no :class:`DiagnosticsResult` exists yet in that case.
+    ``node`` names the root model the layers validate against - a node type name (or the class itself) to debug
+    a partial model rooted at ``dir_path``, or empty to debug a full workspace rooted at ``FLYNCModel``.
+
+    Returns ``None`` when the path does not exist, the node name is unknown, or the run stopped before the
+    workspace could be loaded (layer 1 or layer 2 errors), since no :class:`DiagnosticsResult` exists yet in
+    that case.
     """
     if not dir_path.exists():
         _console.print(f"[bold red]Path does not exist:[/bold red] {dir_path}")
         return None
 
+    root_model = _resolve_root_model(node)
+    if root_model is None:
+        return None
+
+    title = "FLYNC Model Debug" if root_model is FLYNCModel else f"FLYNC Node Debug  ({root_model.__name__})"
     _console.print(
         Panel(
-            f"[bold]FLYNC Model Debug[/bold]\n[dim]{dir_path}[/dim]",
+            f"[bold]{title}[/bold]\n[dim]{dir_path}[/dim]",
             box=box.ROUNDED,
             expand=False,
         )
     )
 
-    return _run_layers(dir_path)
+    return _run_layers(dir_path, root_model)
 
 
-def _run_pre_workspace_layers(check_structure, check_yaml_syntax, dir_path: Path) -> list | None:
+def _resolve_root_model(node: str | type[FLYNCBaseModel]) -> type[FLYNCBaseModel] | None:
+    """Resolve node to the model class the layers run against, or ``None`` when the name is unknown."""
+    if not node:
+        return FLYNCModel
+
+    try:
+        return type_from_input(node)
+    except KeyError:
+        _console.print(f"[bold red]Unknown node type:[/bold red] {node}")
+        return None
+
+
+def _run_pre_workspace_layers(check_structure, check_yaml_syntax, dir_path: Path, root_model: type[FLYNCBaseModel]) -> list | None:
     """Run layers 1-2 (structure & YAML syntax), stopping at the first hard-error layer.
 
     Returns the layer 1 warnings, or ``None`` if the run should stop before loading the workspace.
     """
-    l1_errors, l1_warnings = _report_layer1(check_structure, dir_path)
+    l1_errors, l1_warnings = _report_layer1(check_structure, dir_path, root_model)
     if l1_errors:
         _console.print("\n[bold red]Stopped at Layer 1.[/bold red]  Fix the structure issues above before proceeding.")
         _print_summary(l1_errors=len(l1_errors), l1_warnings=len(l1_warnings))
@@ -123,18 +146,18 @@ def _run_pre_workspace_layers(check_structure, check_yaml_syntax, dir_path: Path
     return l1_warnings
 
 
-def _run_layers(dir_path: Path) -> DiagnosticsResult | None:
+def _run_layers(dir_path: Path, root_model: type[FLYNCBaseModel] = FLYNCModel) -> DiagnosticsResult | None:
     """Run layers 1-5 in order, stopping and printing a summary at the first hard-error layer."""
     from .layer1_structure import check_structure
     from .layer2_yaml import check_yaml_syntax
     from .layer3_4_5_workspace import run_workspace_validation
 
-    l1_warnings = _run_pre_workspace_layers(check_structure, check_yaml_syntax, dir_path)
+    l1_warnings = _run_pre_workspace_layers(check_structure, check_yaml_syntax, dir_path, root_model)
     if l1_warnings is None:
         return None
 
     _console.print("\n[dim]Loading workspace...[/dim]")
-    ws_result, ws_issues = run_workspace_validation(dir_path)
+    ws_result, ws_issues = run_workspace_validation(dir_path, root_model)
     l3 = [i for i in ws_issues if i.layer == 3]
     l4 = [i for i in ws_issues if i.layer == 4]
     l5 = [i for i in ws_issues if i.layer == 5]
@@ -164,13 +187,15 @@ def _run_layers(dir_path: Path) -> DiagnosticsResult | None:
 # ---------------------------------------------------------------------------
 
 
-def _report_layer1(check_structure, dir_path: Path) -> tuple[list, list]:
+def _report_layer1(check_structure, dir_path: Path, root_model: type[FLYNCBaseModel] = FLYNCModel) -> tuple[list, list]:
     """Run Layer 1 (folder & file structure) and print its findings.
 
     Returns (errors, warnings) so the caller can decide whether to stop.
     """
     _section("Layer 1 - Folder & File Structure")
-    structure_issues = check_structure(FLYNCModel, dir_path, dir_path)
+    # Names are always matched against the full model, so an entry that belongs elsewhere in the
+    # workspace is reported as misplaced even when only a partial node is being checked.
+    structure_issues = check_structure(root_model, dir_path, dir_path, FLYNCModel)
     l1_errors = [i for i in structure_issues if i.severity == "error"]
     l1_warnings = [i for i in structure_issues if i.severity == "warning"]
 
@@ -249,7 +274,9 @@ def _print_summary(
 
     _console.print()
     if total_errors == 0 and total_warnings == 0:
-        _console.print("[bold green]✓ Model is valid[/bold green]")
+        # ASCII only: this goes to the console of whoever runs the CLI, and a cp1252 Windows console
+        # raises UnicodeEncodeError on anything outside it, taking the whole command down with it.
+        _console.print("[bold green]Model is valid[/bold green]")
         return
 
     parts: list[str] = []

@@ -9,7 +9,8 @@ Validation in CI
    flync validate /path/to/workspace || exit 1
 
 Use ``--verbose`` locally to debug a workspace in detail when a workspace fails and you need to see exactly in which
-layer the problem occurred (folder structure, YAML syntax, schema, field values, system-wide) .
+layer the problem occurred (folder structure, YAML syntax, schema, field values, system-wide) . Add ``--node`` to run
+the same layers against a single node directory instead of the whole workspace.
 
 
 Workspace paths

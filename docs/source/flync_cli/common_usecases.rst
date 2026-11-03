@@ -59,6 +59,13 @@ system-wide) and see exactly where a workspace breaks:
 
    flync validate examples/flync_example --verbose
 
+Combine it with ``--node`` to run the same layered checks against a partial model - the node type
+becomes the root model, so only the files below that directory are checked:
+
+.. code-block:: bash
+
+   flync validate --verbose --node ECU examples/flync_example/ecus/eth_ecu
+
 Inspect ECUs in a workspace
 ----------------------------
 

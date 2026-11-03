@@ -133,13 +133,19 @@ def check_structure(
     model_cls: type[BaseModel],
     dir_path: Path,
     root_path: Path,
+    known_names_root: Optional[type[BaseModel]] = None,
 ) -> list[StructureIssue]:
     """
     Validate the filesystem tree rooted at dir_path against the External
     annotations of model_cls.  Returns a list of StructureIssue objects.
+
+    ``known_names_root`` is the model the "this name belongs elsewhere" map is built from, and
+    defaults to ``model_cls``.  When only a partial model is checked (``model_cls`` is a node type)
+    pass the full ``FLYNCModel`` here, so an entry that belongs somewhere else in the workspace is
+    still reported as misplaced instead of merely unrecognized.
     """
     issues: list[StructureIssue] = []
-    known_names = _build_known_filenames(model_cls)
+    known_names = _build_known_filenames(known_names_root or model_cls)
     _check_dir(model_cls, dir_path, root_path, known_names, issues)
     return issues
 
