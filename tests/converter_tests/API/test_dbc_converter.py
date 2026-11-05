@@ -542,20 +542,21 @@ class TestJ1939:
         assert cabs.pdu_specific == 255
         assert cabs.destination_type == "global"
 
-    def test_decode_synthesizes_single_j1939_node_by_pgn(self, tmp_path):
+    def test_decode_synthesizes_single_j1939_node_by_frame_name(self, tmp_path):
         _write_dbc(tmp_path, "J1939Bus.dbc", _J1939_DBC)
         model = decode_dbc_files(load_dbc_files(str(tmp_path)))
 
+        expected_frame_refs = sorted(f.name for f in model.communication.channels.can_buses[0].frames)
         assert sorted(e.name for e in model.ecus) == ["CABS1", "Vector__XXX"]
         sender = next(e for e in model.ecus if e.name == "Vector__XXX")
         iface = sender.controllers[0].can_interfaces[0]
         assert iface.bus_ref == "J1939Bus"
         assert iface.j1939_name is not None
         assert iface.source_address is None
-        assert sorted(ref.pgn for ref in iface.j1939_sender_frames) == [0x4000, 0xF004]
+        assert sorted(ref.frame_ref for ref in iface.j1939_sender_frames) == expected_frame_refs
         receiver = next(e for e in model.ecus if e.name == "CABS1")
         recv_iface = receiver.controllers[0].can_interfaces[0]
-        assert sorted(ref.pgn for ref in recv_iface.j1939_receiver_frames) == [0x4000, 0xF004]
+        assert sorted(ref.frame_ref for ref in recv_iface.j1939_receiver_frames) == expected_frame_refs
 
     def test_encode_roundtrip_preserves_j1939(self, tmp_path):
         _write_dbc(tmp_path, "J1939Bus.dbc", _J1939_DBC)

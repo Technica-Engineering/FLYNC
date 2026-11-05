@@ -2,7 +2,7 @@
 
 * SPN is only allowed on J1939 PDUs (``FLYNC-GEN-MAJ-CONS-367``): a PDU packed by a CAN frame must never carry SPN.
 * A bus carrying J1939 frames must be attached to a J1939-capable CANInterface (``FLYNC-GEN-MAJ-CONS-368``).
-* A J1939 bus may only carry J1939 frames (``FLYNC-GEN-MAJ-CONS-369``).
+* A J1939 bus may also carry plain CAN frames alongside its J1939 frames.
 
 A plain (SPN-free) PDU may be shared between a J1939 frame and a CAN frame; only SPN-bearing PDUs are restricted to J1939.
 """
@@ -40,13 +40,13 @@ def _make_pdu(name: str, spn: int | None) -> StandardPDU:
     return StandardPDU(name=name, length=1, signals=[si])
 
 
-def _make_j1939_frame(name: str, pdu_name: str) -> J1939Frame:
+def _make_j1939_frame(name: str, pdu_name: str, pdu_specific: int = 0x01) -> J1939Frame:
     return J1939Frame(
         name=name,
         length=8,
         priority=6,
         pdu_format=0xF0,
-        pdu_specific=0x01,
+        pdu_specific=pdu_specific,
         data_page=0,
         extended_data_page=0,
         destination_type="global",
@@ -151,8 +151,8 @@ def test_negative_j1939_frame_on_non_j1939_bus_rejected():
     assert_single_error(exc_info, "FLYNC-GEN-MAJ-CONS-368", "not attached through any J1939-capable CAN interface, but it carries J1939 frame")
 
 
-def test_negative_can_frame_on_j1939_referenced_bus_rejected():
-    """A regular CAN frame on a J1939 bus is rejected: FLYNC-GEN-MAJ-CONS-369."""
+def test_positive_j1939_bus_may_carry_can_frames():
+    """A J1939 bus (one carrying J1939 frames) may also carry plain CAN frames alongside them."""
     pdu = _make_pdu("PDU_Plain", spn=None)
     j1939_pdu = _make_pdu("PDU_EBC1", spn=521)
     bus = CANBus(
@@ -163,10 +163,8 @@ def test_negative_can_frame_on_j1939_referenced_bus_rejected():
             CANFrame(name="Frame_Plain", length=8, can_id=0x200, id_format="standard_11bit", packed_pdus=[PDUInstance(pdu_ref=pdu.name)]),
         ],
     )
-    can_interfaces = [_j1939_iface("J1939BusCAN")]
-    with pytest.raises(ValidationError) as exc_info:
-        _wrap(pdus=[pdu, j1939_pdu], buses=[bus], can_interfaces=can_interfaces)
-    assert_single_error(exc_info, "FLYNC-GEN-MAJ-CONS-369", "attached through a J1939-capable CAN interface but carries non-J1939 frame(s)")
+    model = _wrap(pdus=[pdu, j1939_pdu], buses=[bus], can_interfaces=[_j1939_iface("J1939BusCAN")])
+    assert model is not None
 
 
 def test_negative_j1939_interface_unresolved_bus_ref_rejected():
@@ -197,18 +195,24 @@ def test_negative_j1939_interface_unresolved_bus_ref_rejected():
     )
 
 
-def test_negative_j1939_duplicate_pgn_rejected():
-    """Two J1939 frames on the same bus with the same PGN are rejected: FLYNC-GEN-MAJ-UNIQ-346."""
-    pdu = _make_pdu("PDU_EBC1", spn=521)
+def test_positive_j1939_frames_same_pgn_same_bus_different_names_allowed():
+    """Two J1939 frames sharing a PGN on the same bus are allowed as long as their names differ.
+
+    J1939 messages are referenced by frame name, so several messages that share a Parameter Group Number
+    (e.g. different source addresses, or a different destination for PDU1) can coexist on one bus.
+    """
+    pdu_a = _make_pdu("PDU_A", spn=521)
+    pdu_b = _make_pdu("PDU_B", spn=522)
     bus = CANBus(
         name="J1939BusCAN",
         baud_rate=250000,
-        frames=[_make_j1939_frame("Frame_A", pdu.name), _make_j1939_frame("Frame_B", pdu.name)],
+        frames=[
+            _make_j1939_frame("Frame_A", pdu_a.name),
+            _make_j1939_frame("Frame_B", pdu_b.name),
+        ],
     )
-    can_interfaces = [_j1939_iface("J1939BusCAN")]
-    with pytest.raises(ValidationError) as exc_info:
-        _wrap(pdus=[pdu], buses=[bus], can_interfaces=can_interfaces)
-    assert_single_error(exc_info, "FLYNC-GEN-MAJ-UNIQ-346", "duplicated PGN")
+    model = _wrap(pdus=[pdu_a, pdu_b], buses=[bus], can_interfaces=[_j1939_iface("J1939BusCAN")])
+    assert model is not None
 
 
 def test_positive_j1939_frames_same_pgn_different_buses_allowed():
@@ -221,7 +225,7 @@ def test_positive_j1939_frames_same_pgn_different_buses_allowed():
 
 
 def test_positive_j1939_sender_receiver_frame_refs_resolve():
-    """A J1939 interface referencing a frame PGN that exists on its bus is accepted."""
+    """A J1939 interface referencing a frame name that exists on its bus is accepted."""
     from flync.model.flync_4_ecu.can_interface import J1939FrameRef
 
     pdu = _make_pdu("PDU_EBC1", spn=521)
@@ -231,14 +235,50 @@ def test_positive_j1939_sender_receiver_frame_refs_resolve():
         bus_ref="J1939BusCAN",
         j1939_name=1,
         source_address=0,
-        j1939_sender_frames=[J1939FrameRef(pgn=0xF001)],
+        j1939_sender_frames=[J1939FrameRef(frame_ref="Frame_EBC1")],
     )
     model = _wrap(pdus=[pdu], buses=[bus], can_interfaces=[iface])
     assert model is not None
 
 
-def test_negative_j1939_unresolved_pgn_rejected():
-    """A J1939 sender frame referencing a PGN that names no frame on the bus is rejected: FLYNC-CMN-MAJ-REF-372."""
+def test_positive_j1939_sender_frame_ref_by_can_id_resolves():
+    """A J1939 interface referencing a frame by its full on-bus CAN id (frame base OR node SA) is accepted."""
+    from flync.model.flync_4_ecu.can_interface import J1939FrameRef
+
+    pdu = _make_pdu("PDU_EBC1", spn=521)
+    bus = CANBus(name="J1939BusCAN", baud_rate=250000, frames=[_make_j1939_frame("Frame_EBC1", pdu.name)])
+    # priority=6, PF=0xF0, PS=0x01 -> base can_id 0x18F00100; node SA=0x20 -> on-bus id 0x18F00120
+    iface = CANInterface(
+        name="J1939Node",
+        bus_ref="J1939BusCAN",
+        j1939_name=1,
+        source_address=0x20,
+        j1939_sender_frames=[J1939FrameRef(can_id=0x18F00120)],
+    )
+    model = _wrap(pdus=[pdu], buses=[bus], can_interfaces=[iface])
+    assert model is not None
+
+
+def test_negative_j1939_unresolved_can_id_ref_rejected():
+    """A J1939 sender frame referencing an on-bus CAN id that matches no frame on the bus is rejected: FLYNC-CMN-MAJ-REF-424."""
+    from flync.model.flync_4_ecu.can_interface import J1939FrameRef
+
+    pdu = _make_pdu("PDU_EBC1", spn=521)
+    bus = CANBus(name="J1939BusCAN", baud_rate=250000, frames=[_make_j1939_frame("Frame_EBC1", pdu.name)])
+    iface = CANInterface(
+        name="J1939Node",
+        bus_ref="J1939BusCAN",
+        j1939_name=1,
+        source_address=0x20,
+        j1939_sender_frames=[J1939FrameRef(can_id=0x18F00200)],
+    )
+    with pytest.raises(ValidationError) as exc_info:
+        _wrap(pdus=[pdu], buses=[bus], can_interfaces=[iface])
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-REF-424", "does not resolve to any J1939 frame")
+
+
+def test_negative_j1939_unresolved_frame_ref_rejected():
+    """A J1939 sender frame referencing a name that matches no frame on the bus is rejected: FLYNC-CMN-MAJ-REF-424."""
     from flync.model.flync_4_ecu.can_interface import J1939FrameRef
 
     pdu = _make_pdu("PDU_EBC1", spn=521)
@@ -248,11 +288,11 @@ def test_negative_j1939_unresolved_pgn_rejected():
         bus_ref="J1939BusCAN",
         j1939_name=1,
         source_address=0,
-        j1939_sender_frames=[J1939FrameRef(pgn=0x1234)],
+        j1939_sender_frames=[J1939FrameRef(frame_ref="GhostFrame")],
     )
     with pytest.raises(ValidationError) as exc_info:
         _wrap(pdus=[pdu], buses=[bus], can_interfaces=[iface])
-    assert_single_error(exc_info, "FLYNC-CMN-MAJ-REF-372", "pgn 4660 does not name any J1939 frame")
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-REF-424", "frame reference GhostFrame does not resolve to any J1939 frame")
 
 
 def test_negative_j1939_duplicate_sa_same_bus_rejected():
@@ -273,19 +313,6 @@ def test_positive_j1939_same_sa_different_buses_allowed():
     assert model is not None
 
 
-def test_negative_plain_can_node_on_j1939_bus_rejected():
-    """A plain CAN interface attached to a J1939 bus (one carrying J1939 frames) is rejected: FLYNC-GEN-MAJ-CONS-361."""
-    pdu = _make_pdu("PDU_EBC1", spn=521)
-    bus = CANBus(name="J1939BusCAN", baud_rate=250000, frames=[_make_j1939_frame("Frame_EBC1", pdu.name)])
-    can_interfaces = [
-        _j1939_iface("J1939BusCAN"),
-        CANInterface(name="Plain_Node", bus_ref="J1939BusCAN"),
-    ]
-    with pytest.raises(ValidationError) as exc_info:
-        _wrap(pdus=[pdu], buses=[bus], can_interfaces=can_interfaces)
-    assert_single_error(exc_info, "FLYNC-GEN-MAJ-CONS-361", "node(s) Plain_Node attached to them are missing j1939_name")
-
-
 def test_positive_j1939_bus_all_nodes_identify_node():
     """A J1939 bus whose every node carries j1939_name and source_address is accepted."""
     pdu = _make_pdu("PDU_EBC1", spn=521)
@@ -298,4 +325,258 @@ def test_positive_j1939_bus_all_nodes_identify_node():
             CANInterface(name="NodeB", bus_ref="J1939BusCAN", j1939_name=2, source_address=33),
         ],
     )
+    assert model is not None
+
+
+def test_positive_j1939_effective_can_id_distinct_per_node():
+    """The same frame sent by two nodes with different SAs yields distinct on-bus ids, so it is accepted."""
+    from flync.model.flync_4_ecu.can_interface import J1939FrameRef
+
+    pdu = _make_pdu("PDU_EBC1", spn=521)
+    bus = CANBus(name="J1939BusCAN", baud_rate=250000, frames=[_make_j1939_frame("Frame_EBC1", pdu.name)])
+    # base can_id 0x18F00100; NodeA SA=0x10 -> 0x18F00110, NodeB SA=0x20 -> 0x18F00120 (distinct)
+    sender = J1939FrameRef(frame_ref="Frame_EBC1")
+    model = _wrap(
+        pdus=[pdu],
+        buses=[bus],
+        can_interfaces=[
+            CANInterface(name="NodeA", bus_ref="J1939BusCAN", j1939_name=1, source_address=0x10, j1939_sender_frames=[sender]),
+            CANInterface(name="NodeB", bus_ref="J1939BusCAN", j1939_name=2, source_address=0x20, j1939_sender_frames=[sender]),
+        ],
+    )
+    assert model is not None
+
+
+def test_positive_j1939_same_node_distinct_frames_distinct_ids_allowed():
+    """One node sending two frames whose base ids differ keeps distinct on-bus ids after OR-ing its SA."""
+    from flync.model.flync_4_ecu.can_interface import J1939FrameRef
+
+    pdu_a = _make_pdu("PDU_A", spn=521)
+    pdu_b = _make_pdu("PDU_B", spn=522)
+    bus = CANBus(
+        name="J1939BusCAN",
+        baud_rate=250000,
+        frames=[_make_j1939_frame("Frame_A", pdu_a.name, pdu_specific=0x10), _make_j1939_frame("Frame_B", pdu_b.name, pdu_specific=0x11)],
+    )
+    iface = CANInterface(
+        name="NodeA",
+        bus_ref="J1939BusCAN",
+        j1939_name=1,
+        source_address=0x20,
+        j1939_sender_frames=[
+            J1939FrameRef(frame_ref="Frame_A"),
+            J1939FrameRef(frame_ref="Frame_B"),
+        ],
+    )
+    model = _wrap(pdus=[pdu_a, pdu_b], buses=[bus], can_interfaces=[iface])
+    assert model is not None
+
+
+def test_negative_j1939_duplicate_effective_can_id_same_bus_rejected():
+    """Two frames on a shared bus collapsing to the same on-bus id after OR-ing the node SA are rejected.
+
+    A node with SA=0x20 sends two frames whose derived base ids are both 0x18F00100; once OR'd with the node's
+    SA each becomes 0x18F00120, so two messages would claim the same wire identifier. The bus-level 054 rule
+    cannot see the SA (it compares the bare frames, which are distinct); this duplicate is caught here at the
+    reference level instead: FLYNC-CMN-MAJ-UNIQ-427.
+    """
+    from flync.model.flync_4_ecu.can_interface import J1939FrameRef
+
+    pdu_a = _make_pdu("PDU_A", spn=521)
+    pdu_b = _make_pdu("PDU_B", spn=522)
+    bus = CANBus(
+        name="J1939BusCAN",
+        baud_rate=250000,
+        frames=[_make_j1939_frame("Frame_A", pdu_a.name), _make_j1939_frame("Frame_B", pdu_b.name)],
+    )
+    iface = CANInterface(
+        name="NodeA",
+        bus_ref="J1939BusCAN",
+        j1939_name=1,
+        source_address=0x20,
+        j1939_sender_frames=[
+            J1939FrameRef(frame_ref="Frame_A"),
+            J1939FrameRef(frame_ref="Frame_B"),
+        ],
+    )
+    with pytest.raises(ValidationError) as exc_info:
+        _wrap(pdus=[pdu_a, pdu_b], buses=[bus], can_interfaces=[iface])
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-UNIQ-427", "yields CAN identifier 0x18f00120 on bus 'J1939BusCAN', already used by")
+
+
+def test_positive_j1939_emitter_and_receiver_same_frame_allowed():
+    """An emitter and its receivers referencing the same frame share its on-bus id legitimately (no 378)."""
+    from flync.model.flync_4_ecu.can_interface import J1939FrameRef
+
+    pdu = _make_pdu("PDU_EBC1", spn=521)
+    bus = CANBus(name="J1939BusCAN", baud_rate=250000, frames=[_make_j1939_frame("Frame_EBC1", pdu.name)])
+    sender = CANInterface(
+        name="J1939Sender",
+        bus_ref="J1939BusCAN",
+        j1939_name=1,
+        source_address=0x20,
+        j1939_sender_frames=[J1939FrameRef(frame_ref="Frame_EBC1")],
+    )
+    receiver = CANInterface(
+        name="J1939Receiver",
+        bus_ref="J1939BusCAN",
+        j1939_name=2,
+        j1939_receiver_frames=[J1939FrameRef(frame_ref="Frame_EBC1")],
+    )
+    model = _wrap(pdus=[pdu], buses=[bus], can_interfaces=[sender, receiver])
+    assert model is not None
+
+
+def test_positive_j1939_multi_emitter_distinct_sas_allowed():
+    """Two nodes emitting the same PGN base with distinct SAs keep distinct on-bus ids (gateway/multi-node)."""
+    from flync.model.flync_4_ecu.can_interface import J1939FrameRef
+
+    pdu = _make_pdu("PDU_EBC1", spn=521)
+    bus = CANBus(name="J1939BusCAN", baud_rate=250000, frames=[_make_j1939_frame("Frame_EBC1", pdu.name)])
+    node_a = CANInterface(
+        name="NodeA",
+        bus_ref="J1939BusCAN",
+        j1939_name=1,
+        source_address=0x20,
+        j1939_sender_frames=[J1939FrameRef(frame_ref="Frame_EBC1")],
+    )
+    node_b = CANInterface(
+        name="NodeB",
+        bus_ref="J1939BusCAN",
+        j1939_name=2,
+        source_address=0x21,
+        j1939_sender_frames=[J1939FrameRef(frame_ref="Frame_EBC1")],
+    )
+    model = _wrap(pdus=[pdu], buses=[bus], can_interfaces=[node_a, node_b])
+    assert model is not None
+
+
+def test_positive_j1939_receiver_frame_by_name_with_can_id_allowed():
+    """A receiver frame reference by name, optionally with the emitter's on-bus CAN id, is accepted."""
+    from flync.model.flync_4_ecu.can_interface import J1939FrameRef
+
+    pdu = _make_pdu("PDU_EBC1", spn=521)
+    bus = CANBus(name="J1939BusCAN", baud_rate=250000, frames=[_make_j1939_frame("Frame_EBC1", pdu.name)])
+    iface = CANInterface(
+        name="J1939Receiver",
+        bus_ref="J1939BusCAN",
+        j1939_name=1,
+        j1939_receiver_frames=[J1939FrameRef(frame_ref="Frame_EBC1", can_id=0x18F00120)],
+    )
+    model = _wrap(pdus=[pdu], buses=[bus], can_interfaces=[iface])
+    assert model is not None
+
+
+def test_positive_j1939_receiver_frame_by_name_without_can_id_allowed():
+    """A receiver frame referenced by name alone (no can_id) is now accepted: rule 379 is removed."""
+    from flync.model.flync_4_ecu.can_interface import J1939FrameRef
+
+    pdu = _make_pdu("PDU_EBC1", spn=521)
+    bus = CANBus(name="J1939BusCAN", baud_rate=250000, frames=[_make_j1939_frame("Frame_EBC1", pdu.name)])
+    iface = CANInterface(
+        name="J1939Receiver",
+        bus_ref="J1939BusCAN",
+        j1939_name=1,
+        j1939_receiver_frames=[J1939FrameRef(frame_ref="Frame_EBC1")],
+    )
+    model = _wrap(pdus=[pdu], buses=[bus], can_interfaces=[iface])
+    assert model is not None
+
+
+def test_positive_j1939_receiver_frame_ref_by_can_id():
+    """A receiver frame referenced by its full on-bus CAN id resolves against the frame found by stripping the SA.
+
+    The receiver is declared by an interface that itself declares no ``source_address``; the on-bus id
+    0x18F00120 (frame base 0x18F00100 with emitter SA 0x20) resolves by stripping the SA: FLYNC-CMN-MAJ-REF-424
+    is not raised.
+    """
+    from flync.model.flync_4_ecu.can_interface import J1939FrameRef
+
+    pdu = _make_pdu("PDU_EBC1", spn=521)
+    bus = CANBus(name="J1939BusCAN", baud_rate=250000, frames=[_make_j1939_frame("Frame_EBC1", pdu.name)])
+    iface = CANInterface(
+        name="J1939Receiver",
+        bus_ref="J1939BusCAN",
+        j1939_name=1,
+        j1939_receiver_frames=[J1939FrameRef(can_id=0x18F00120)],
+    )
+    model = _wrap(pdus=[pdu], buses=[bus], can_interfaces=[iface])
+    assert model is not None
+
+
+def test_negative_j1939_can_id_only_ambiguous_rejected():
+    """A can_id-only reference matching several frames on the bus is ambiguous: FLYNC-CMN-MAJ-CONS-425."""
+    from flync.model.flync_4_ecu.can_interface import J1939FrameRef
+
+    pdu = _make_pdu("PDU_EBC1", spn=521)
+    bus = CANBus(
+        name="J1939BusCAN",
+        baud_rate=250000,
+        frames=[
+            _make_j1939_frame("Frame_EBC1", pdu.name, pdu_specific=0x01),
+            _make_j1939_frame("Frame_EBC1_alt", pdu.name, pdu_specific=0x01),  # same base 0x18F00100
+        ],
+    )
+    iface = CANInterface(
+        name="J1939Sender",
+        bus_ref="J1939BusCAN",
+        j1939_name=1,
+        source_address=0x20,
+        j1939_sender_frames=[J1939FrameRef(can_id=0x18F00120)],  # base matches both
+    )
+    with pytest.raises(ValidationError) as exc_info:
+        _wrap(pdus=[pdu], buses=[bus], can_interfaces=[iface])
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-CONS-425", "ambiguous")
+
+
+def test_negative_j1939_frame_ref_name_can_id_mismatch_rejected():
+    """A reference with both name and can_id must resolve to the same frame; a mismatch is a consistency error (381)."""
+    from flync.model.flync_4_ecu.can_interface import J1939FrameRef
+
+    pdu = _make_pdu("PDU_EBC1", spn=521)
+    bus = CANBus(
+        name="J1939BusCAN",
+        baud_rate=250000,
+        frames=[
+            _make_j1939_frame("Frame_EBC1", pdu.name, pdu_specific=0x01),
+            _make_j1939_frame("Frame_EBC2", pdu.name, pdu_specific=0x02),
+        ],
+    )
+    iface = CANInterface(
+        name="J1939Sender",
+        bus_ref="J1939BusCAN",
+        j1939_name=1,
+        source_address=0x20,
+        j1939_sender_frames=[J1939FrameRef(frame_ref="Frame_EBC1", can_id=0x18F00220)],  # resolves to Frame_EBC2
+    )
+    with pytest.raises(ValidationError) as exc_info:
+        _wrap(pdus=[pdu], buses=[bus], can_interfaces=[iface])
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-CONS-423", "do not agree")
+
+
+def test_positive_j1939_frame_ref_name_can_id_agrees_shared_base_allowed():
+    """Two frames may share the same derived CAN id (same PGN/priority, only name differs); the named frame
+    is matched against its own derived id, so a ref naming one of them alongside its on-bus id is accepted."""
+    from flync.model.flync_4_ecu.can_interface import J1939FrameRef
+
+    pdu = _make_pdu("PDU_EBC1", spn=521)
+    bus = CANBus(
+        name="J1939BusCAN",
+        baud_rate=250000,
+        frames=[
+            _make_j1939_frame("EBC1_ECUx0B_oCAN1_J1939_SCM", pdu.name, pdu_specific=0x01),
+            _make_j1939_frame("EBC1_SCM_oCAN1_J1939_SCM", pdu.name, pdu_specific=0x01),
+        ],
+    )
+    iface = CANInterface(
+        name="SCMNET1",
+        bus_ref="J1939BusCAN",
+        j1939_name=1,
+        source_address=0x5B,
+        j1939_sender_frames=[
+            # can_id = 0x18F0015B (base 0x18F00100, SA 0x5B); both frames share base 0x18F00100
+            J1939FrameRef(frame_ref="EBC1_SCM_oCAN1_J1939_SCM", can_id=0x18F0015B)
+        ],
+    )
+    model = _wrap(pdus=[pdu], buses=[bus], can_interfaces=[iface])
     assert model is not None

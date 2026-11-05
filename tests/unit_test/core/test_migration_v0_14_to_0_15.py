@@ -101,8 +101,8 @@ def test_j1939_frame_refs_drop_bus_ref(ref):
 
     migrated = migrate({IFACE_URI: interface})[IFACE_URI]
 
+    # 0.15 references a J1939 frame by ``pgn``; ``v0_15_to_0_16`` turns it into a name.
     assert migrated["j1939_sender_frames"] == migrated["j1939_receiver_frames"] == [{"pgn": 61441}]
-    CANInterface.model_validate({"name": "body_can_interface", **migrated})
 
 
 ETH_EGRESS = {"egress_type": "eth_socket", "socket_ref": "s1"}

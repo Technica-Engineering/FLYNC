@@ -144,10 +144,18 @@ def _warn_uncovered_can_frames(app: App, owner: Controller, interfaces: dict[str
             _warn_missing_interface(app, owner, f"CAN frame {can_ref.frame_ref:#x}", can_ref.bus_ref)
 
 
-def _warn_uncovered_j1939_frames(app: App, owner: Controller, interfaces: dict[str, list[CANInterface]]) -> None:
+def _warn_uncovered_j1939_frames(app: App, owner: Controller, interfaces: dict[str, list[CANInterface]], buses: dict[str, CANBus]) -> None:
+    """Warn for every J1939 frame reference of *app* that no interface of *owner* covers in its direction."""
     for j1939_ref in app.j1939_frame_refs:
         attr = "j1939_sender_frames" if j1939_ref.direction == "sender" else "j1939_receiver_frames"
-        covered = any(f.pgn == j1939_ref.pgn for iface in interfaces.get(j1939_ref.bus_ref, []) for f in getattr(iface, attr))
+        bus = buses.get(j1939_ref.bus_ref)
+        frames = [f for f in (bus.frames if bus else []) if isinstance(f, J1939Frame) and compute_j1939_pgn(f) == j1939_ref.pgn]
+        covered = any(
+            ref.frame_ref == frame.name or (ref.can_id is not None and ref.can_id & ~0xFF == frame.can_id)
+            for iface in interfaces.get(j1939_ref.bus_ref, [])
+            for ref in getattr(iface, attr)
+            for frame in frames
+        )
         if not covered:
             _warn_missing_interface(app, owner, f"J1939 PGN {j1939_ref.pgn:#x}", j1939_ref.bus_ref)
 
@@ -161,12 +169,14 @@ def _warn_uncovered_pdus(app: App, owner: Controller, interfaces: dict[str, list
 
 def warn_app_signal_refs_without_interface(model: FLYNCModelProtocol) -> None:
     """Warn when a controller binding an app has no CAN interface covering the app's frame references."""
+    channels = model.communication.channels if model.communication else None
+    buses = {bus.name: bus for bus in (channels.can_buses if channels else None) or []}
     for ecu in model.ecus:
         for owner, apps in _iter_controller_apps(ecu):
             interfaces = _index_can_interfaces(owner)
             for app in apps:
                 _warn_uncovered_can_frames(app, owner, interfaces)
-                _warn_uncovered_j1939_frames(app, owner, interfaces)
+                _warn_uncovered_j1939_frames(app, owner, interfaces, buses)
                 _warn_uncovered_pdus(app, owner, interfaces)
 
 
