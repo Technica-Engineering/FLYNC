@@ -48,6 +48,8 @@ The ``frames`` of a CAN bus may mix classical :class:`~flync.model.flync_4_signa
 :class:`~flync.model.flync_4_signal.CANFDFrame` and :class:`~flync.model.flync_4_signal.J1939Frame`
 entries. J1939 frames (CAN 2.0B extended identifiers) are identified by their PGN fields rather than a
 ``can_id``, so only the classical CAN/CAN-FD frames are considered for the duplicate ``can_id`` check.
+J1939 frame names must be unique on the bus: a node addresses a J1939 frame by name
+(``J1939FrameRef.frame_ref``), so a duplicate would shadow the frame declared earlier.
 
 
 .. _lin_bus:

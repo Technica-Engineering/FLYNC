@@ -273,3 +273,27 @@ def test_positive_can_bus_duplicate_can_id_still_detected_with_j1939_present():
     with pytest.raises(ValidationError) as exc_info:
         CANBus(name="CAN_dup_id_j1939", baud_rate=250_000, frames=[can1, can2, j1939])
     assert_single_error(exc_info, "FLYNC-BUS-MAJ-UNIQ-054", "duplicate CAN identifier")
+
+
+def test_negative_can_bus_duplicate_j1939_frame_names():
+    first = _make_j1939_frame("dup_j1939", pdu_format=240)
+    second = _make_j1939_frame("dup_j1939", pdu_format=241)
+    with pytest.raises(ValidationError) as exc_info:
+        CANBus(name="J1939_dup_names", baud_rate=250_000, frames=[first, second])
+    assert_single_error(exc_info, "FLYNC-BUS-MAJ-UNIQ-426", "duplicate J1939 frame name")
+
+
+def test_positive_can_bus_duplicate_can_frame_names_allowed():
+    shared_name = "shared_name"
+    first = _make_can_frame(shared_name, can_id=0x100)
+    second = _make_can_frame(shared_name, can_id=0x101)
+    bus = CANBus(name="CAN_shared_names", baud_rate=500_000, frames=[first, second])
+    assert len(bus.frames) == 2
+
+
+def test_positive_can_bus_j1939_name_may_match_can_frame_name():
+    shared_name = "shared_name"
+    j1939 = _make_j1939_frame(shared_name)
+    can = _make_can_frame(shared_name, can_id=0x100)
+    bus = CANBus(name="J1939_shared_name", baud_rate=250_000, frames=[j1939, can])
+    assert len(bus.frames) == 2

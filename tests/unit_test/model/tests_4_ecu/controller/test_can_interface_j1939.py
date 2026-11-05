@@ -37,21 +37,55 @@ def test_positive_plain_can_interface_is_not_j1939():
 def test_positive_j1939_interface_with_frame_refs_is_j1939():
     from flync.model.flync_4_ecu.can_interface import J1939FrameRef
 
-    sender = CANInterface(name="tx", bus_ref="J1939BusCAN", j1939_name=1, source_address=20, j1939_sender_frames=[J1939FrameRef(pgn=0xEF00)])
-    receiver = CANInterface(name="rx", bus_ref="J1939BusCAN", j1939_name=2, source_address=21, j1939_receiver_frames=[J1939FrameRef(pgn=0xEF00)])
+    sender = CANInterface(
+        name="tx", bus_ref="J1939BusCAN", j1939_name=1, source_address=20, j1939_sender_frames=[J1939FrameRef(frame_ref="Frame_EBC1")]
+    )
+    receiver = CANInterface(
+        name="rx", bus_ref="J1939BusCAN", j1939_name=2, source_address=21, j1939_receiver_frames=[J1939FrameRef(frame_ref="Frame_EBC1")]
+    )
     assert sender.is_j1939()
     assert receiver.is_j1939()
-    assert sender.j1939_sender_frames[0].pgn == 0xEF00
-    assert receiver.j1939_receiver_frames[0].pgn == 0xEF00
+    assert sender.j1939_sender_frames[0].frame_ref == "Frame_EBC1"
+    assert receiver.j1939_receiver_frames[0].frame_ref == "Frame_EBC1"
 
 
-def test_negative_j1939_frame_ref_pgn_out_of_range():
+def test_positive_j1939_interface_with_can_id_refs_is_j1939():
     from flync.model.flync_4_ecu.can_interface import J1939FrameRef
 
-    for pgn in (-1, 0x40000):
+    sender = CANInterface(
+        name="tx",
+        bus_ref="J1939BusCAN",
+        j1939_name=1,
+        source_address=0x20,
+        j1939_sender_frames=[J1939FrameRef(can_id=0x18F00120)],
+    )
+    assert sender.is_j1939()
+    assert sender.j1939_sender_frames[0].can_id == 0x18F00120
+
+
+def test_negative_j1939_frame_ref_empty_name_rejected():
+    from flync.model.flync_4_ecu.can_interface import J1939FrameRef
+
+    with pytest.raises(ValidationError) as exc_info:
+        J1939FrameRef(frame_ref="")
+    assert_single_error(exc_info, None, "frame_ref")
+
+
+def test_negative_j1939_frame_ref_requires_name_or_can_id():
+    from flync.model.flync_4_ecu.can_interface import J1939FrameRef
+
+    with pytest.raises(ValidationError) as exc_info:
+        J1939FrameRef()
+    assert_single_error(exc_info, "FLYNC-SIG-MAJ-REQ-422", "must set frame_ref and/or can_id")
+
+
+def test_negative_j1939_frame_ref_can_id_out_of_range():
+    from flync.model.flync_4_ecu.can_interface import J1939FrameRef
+
+    for can_id in (-1, 0x20000000):
         with pytest.raises(ValidationError) as exc_info:
-            J1939FrameRef(pgn=pgn)
-        assert_single_error(exc_info, None, "pgn")
+            J1939FrameRef(can_id=can_id)
+        assert_single_error(exc_info, None, "can_id")
 
 
 def test_positive_j1939_interface_with_name_only_is_j1939():
@@ -69,7 +103,7 @@ def test_negative_j1939_source_address_without_name():
 def test_negative_j1939_frame_refs_without_name_or_address():
     from flync.model.flync_4_ecu.can_interface import J1939FrameRef
 
-    sender_frames = [J1939FrameRef(pgn=1)]
+    sender_frames = [J1939FrameRef(frame_ref="Frame_EBC1")]
     with pytest.raises(ValidationError) as exc_info:
         CANInterface(name="bad", bus_ref="J1939BusCAN", j1939_sender_frames=sender_frames)
     assert_single_error(exc_info, "FLYNC-ECU-MAJ-REQ-376", "a J1939 node requires a NAME")

@@ -286,6 +286,29 @@ class J1939Frame(Frame):
     type: Literal["j1939"] = Field(default="j1939")
     timing: Optional[FrameTransmissionTiming] = Field(default=None)
 
+    @property
+    def pgn(self) -> int:
+        """Return the 18-bit J1939 Parameter Group Number (PGN) of this frame.
+
+        The PGN is formed from the Extended Data Page (EDP), Data Page (DP), PDU Format (PF) and PDU Specific
+        (PS) fields: ``(EDP << 17) | (DP << 16) | (PF << 8) | PS``. For PDU1 (``pdu_format`` < 240) the
+        ``pdu_specific`` byte is a Destination Address, not part of the PGN, so it contributes 0.
+        """
+        ps = self.pdu_specific if self.pdu_format >= 240 else 0
+        return (self.extended_data_page << 17) | (self.data_page << 16) | (self.pdu_format << 8) | ps
+
+    @property
+    def can_id(self) -> int:
+        """Return the 29-bit J1939 CAN identifier of this frame, with the Source Address bits (7-0) set to 0.
+
+        The identifier follows the J1939 CAN identifier layout:
+        ``(priority << 26) | (extended_data_page << 25) | (data_page << 24) | (pdu_format << 16) | (pdu_specific << 8)``.
+        The Source Address occupies the low 8 bits and is not part of the frame definition — the model attaches
+        the SA to the transmitting node (``CANInterface.source_address``) — so it is left at 0 here. To form the
+        full on-bus identifier, OR the transmitting node's SA into this value at reference-resolution time.
+        """
+        return (self.priority << 26) | (self.extended_data_page << 25) | (self.data_page << 24) | (self.pdu_format << 16) | (self.pdu_specific << 8)
+
     @model_validator(mode="after")
     def validate_single_packed_pdu(self) -> Self:
         if len(self.packed_pdus) > 1:

@@ -45,6 +45,8 @@ class CANBus(FLYNCBaseModel):
         4 000 000, 5 000 000, or 8 000 000.
     frames : list of :class:`CANFrame` | :class:`CANFDFrame` | :class:`J1939Frame`
         Frames transmitted on this bus.  :class:`CANFDFrame` entries are only permitted when ``fd_enabled`` is ``True``.
+        :class:`J1939Frame` names must be unique on the bus: a J1939 frame is addressed by name, so a
+        duplicate would shadow the frame declared earlier.
     state_memberships : list of \
     :class:`~flync.model.flync_4_nm.StateMembershipRef`, optional
         Assignments of this bus to a state management group.  A bus membership enrolls the whole bus as one participant — the entire bus
@@ -110,29 +112,35 @@ class CANBus(FLYNCBaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_unique_can_ids(self) -> Self:
+    def validate_unique_frame_ids(self) -> Self:
+        """Require unique ``CANFrame`` / ``CANFDFrame`` identifiers and unique ``J1939Frame`` names on the bus.
+
+        Classical frames are addressed by ``(can_id, id_format)``. A J1939 frame is addressed by name
+        (``J1939FrameRef.frame_ref``) and resolved through a ``{name: frame}`` catalog, so a duplicate name
+        would silently shadow every frame but the last.
+        """
+
         can_frames = [f for f in self.frames if isinstance(f, (CANFrame, CANFDFrame))]
-        keys = [(f.can_id, f.id_format) for f in can_frames]
-        duplicates = sorted(f"{cid:#x}/{fmt}" for (cid, fmt), c in Counter(keys).items() if c > 1)
-        if duplicates:
+        can_id_keys = [(f.can_id, f.id_format) for f in can_frames]
+        duplicate_can_ids = sorted(f"{cid:#x}/{fmt}" for (cid, fmt), count in Counter(can_id_keys).items() if count > 1)
+        if duplicate_can_ids:
             raise err_major(
                 "CANBus '{name}' has duplicate CAN identifier(s): {duplicates}",
                 name=self.name,
-                duplicates=duplicates,
+                duplicates=duplicate_can_ids,
                 category=Category.UNIQUENESS,
                 error_number="054",
             )
-        return self
 
-    @model_validator(mode="after")
-    def validate_frame_types(self) -> Self:
-        unsupported = sorted({type(f).__name__ for f in self.frames if not isinstance(f, (CANFrame, CANFDFrame, J1939Frame))})
-        if unsupported:
+        j1939_names = [f.name for f in self.frames if isinstance(f, J1939Frame)]
+        duplicate_j1939_names = sorted(name for name, count in Counter(j1939_names).items() if count > 1)
+        if duplicate_j1939_names:
             raise err_major(
-                "CANBus '{name}' declares unsupported frame type(s): {types}. Frames must be CANFrame, CANFDFrame, or J1939Frame.",
+                "CANBus '{name}' has duplicate J1939 frame name(s): {duplicates}. A J1939 frame is "
+                "addressed by name, so its name must be unique on the bus.",
                 name=self.name,
-                types=", ".join(unsupported),
-                category=Category.CONSISTENCY,
-                error_number="371",
+                duplicates=duplicate_j1939_names,
+                category=Category.UNIQUENESS,
+                error_number="426",
             )
         return self

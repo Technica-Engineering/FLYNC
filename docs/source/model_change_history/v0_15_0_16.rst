@@ -3,12 +3,37 @@
 0.15.x → 0.16.x
 ===============
 
-No model change has been recorded for 0.16 yet. Add each change under the matching section below as it lands, and
-name the migration's ``unique_id`` wherever a breaking schema change ships one (see :ref:`migrations_reference`).
-Remove the sections that stay empty before the release.
+Add each change under the matching section below as it lands, and name the migration's ``unique_id`` wherever a
+breaking schema change ships one (see :ref:`migrations_reference`). Remove the sections that stay empty before the
+release.
 
 Breaking — YAML schema
 ----------------------
+
+* ``J1939Frame`` names must be unique within a :class:`~flync.model.flync_4_bus.can_bus.CANBus`. A J1939
+  frame is addressed by name (``J1939FrameRef.frame_ref``), so a bus that declares two J1939 frames with the
+  same ``name`` no longer loads (``FLYNC-BUS-MAJ-UNIQ-426``); previously the later frame silently shadowed
+  the earlier one. Rename one of the frames. Classical ``CANFrame`` / ``CANFDFrame`` names remain free-form.
+
+* ``J1939FrameRef`` (``j1939_sender_frames`` / ``j1939_receiver_frames``) addresses its frame by
+  ``frame_ref`` (the frame name) and/or ``can_id`` (the full on-bus CAN identifier, Source Address in its low
+  byte) instead of ``pgn``. A J1939 reference resolves by name or identifier, so a bus may carry several J1939
+  frames that share a Parameter Group Number, and a bus reached by a J1939 node may also carry classical CAN
+  frames.
+
+  .. code-block:: yaml
+
+     # before
+     j1939_sender_frames:
+       - pgn: 61441
+
+     # after
+     j1939_sender_frames:
+       - frame_ref: Frame_EBC1
+
+  **Migrated** by ``v0_15_to_0_16``: ``pgn`` is replaced with the name of the J1939 frame with that PGN on the
+  interface's bus, which 0.15 kept unique. A ``pgn`` that names no frame is left unchanged and a warning is
+  logged.
 
 Additive — YAML schema
 ----------------------

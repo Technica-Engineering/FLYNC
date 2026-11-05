@@ -95,7 +95,7 @@ def _full_interfaces() -> list:
     """CAN interfaces on both buses that declare every frame the apps below use."""
     return [
         CANInterface(name="CAN_IF", bus_ref=CAN_BUS, sender_frames=[CANFrameRef(frame_ref=CAN_ID, id_format="standard_11bit")]),
-        CANInterface(name="J1939_IF", bus_ref=J1939_BUS, j1939_name=1, j1939_sender_frames=[J1939FrameRef(pgn=PGN)]),
+        CANInterface(name="J1939_IF", bus_ref=J1939_BUS, j1939_name=1, j1939_sender_frames=[J1939FrameRef(frame_ref="J1939_Frame")]),
     ]
 
 

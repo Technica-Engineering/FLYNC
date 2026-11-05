@@ -32,14 +32,13 @@ class CANInterface(ControllerInterface):
         Frames received by this controller and re-emitted on one or more
         egresses.
     j1939_sender_frames : list of :class:`~flync.model.flync_4_signal.j1939_frame_ref.J1939FrameRef`, optional
-        J1939 frames (by PGN) transmitted by this node on the bus. Declaring any J1939 reference marks
-        this interface as a J1939 node, so together with ``j1939_name``.
+        J1939 frames (by frame name or CAN id) transmitted by this node on the bus. Declaring any J1939
+        reference marks this interface as a J1939 node, so together with ``j1939_name``.
     j1939_receiver_frames : list of :class:`~flync.model.flync_4_signal.j1939_frame_ref.J1939FrameRef`, optional
-        J1939 frames (by PGN) received by this node from the bus.
+        J1939 frames (by frame name or CAN id) received by this node from the bus.
     j1939_name : int, optional
         64-bit J1939 NAME of the node this interface exposes; a node may be modeled by its NAME alone.
-        Setting it marks the interface as a J1939 participant on ``bus_ref``, which must then only carry
-        ``J1939Frame`` frames.
+        Setting it marks the interface as a J1939 participant on ``bus_ref``.
     source_address : int, optional
         Preferred J1939 Source Address (SA) of the node, in the range [0, 253]. The SA is claimed at
         runtime through address claiming and may be left unset; when provided it is the address the node
