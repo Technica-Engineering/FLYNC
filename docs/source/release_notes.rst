@@ -13,6 +13,16 @@ Release Notes
 Release 0.16
 ------------
 
+Incremental reloads rebuild the model's wiring
+''''''''''''''''''''''''''''''''''''''''''''''
+
+``FLYNCWorkspace.update_document`` now leaves a model wired exactly as a full load wires it, however often a document is
+reloaded. The links between ports, switch ports and interfaces, the sockets bound to each IP address and the derived
+IPv6 solicited-node multicast memberships are rebuilt on each revalidation instead of being added again to the
+components the reload reuses. A link removed from a topology file is gone after the reload, and the time a reload takes
+no longer grows with each save.
+
+
 Multi-gigabit BASE-T and BASE-T1 speeds
 '''''''''''''''''''''''''''''''''''''''
 

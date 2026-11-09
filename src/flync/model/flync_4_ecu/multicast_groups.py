@@ -49,6 +49,8 @@ class MulticastGroupMembership(FLYNCBaseModel):
     src_ip: Optional[IPvAnyAddress] = Field(default=None)
     solicited_node_multicast: Optional[bool] = Field(default=False)
     _interface: EthernetInterface | None = None
+    # Set on the solicited-node memberships the root model derives, so a revalidation can replace them.
+    _derived_by_model: bool = False
 
     @model_validator(mode="after")
     def validate_src_ip_set_on_tx_ip_groups(self) -> Self:

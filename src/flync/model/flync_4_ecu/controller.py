@@ -8,6 +8,7 @@ here, resolved by the wiring at the bottom of :mod:`flync.model.flync_4_ecu`.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from functools import partial
 from typing import TYPE_CHECKING, Annotated, Iterator, List, Literal, Optional, Self
 
@@ -69,6 +70,7 @@ from flync.model.flync_4_tsn import (
 if TYPE_CHECKING:
     from flync.model.flync_4_ecu.compute_node import ComputeNode
     from flync.model.flync_4_ecu.controller_topology import ControllerTopology
+    from flync.model.flync_4_ecu.internal_topology import InternalConnection
     from flync.model.flync_4_ecu.port import ECUPort
     from flync.model.flync_4_ecu.switch import Switch, SwitchPort
 
@@ -613,18 +615,26 @@ class Controller(FLYNCBaseModel):
         Bind and compatibility-check the controller's internal connections.
         """
 
-        if self.controller_topology is None:
-            return self
+        for conn in self.bind_controller_topology():
+            conn.validate_compatibility()
+        return self
 
+    def bind_controller_topology(self) -> Sequence[InternalConnection]:
+        """
+        Link the components joined by the controller's internal connections and return those connections.
+
+        The ECU calls this again after it clears the links of its components, so a controller reused by an
+        incremental reload gets its links back without being revalidated.
+        """
+
+        if self.controller_topology is None:
+            return []
         connections = [conn_union.root for conn_union in self.controller_topology.connections]
         switches = list(self.iter_subtree_switches())
         owners: list[Controller | ComputeNode] = [self, *self.iter_subtree_compute_nodes()]
-
         for conn in connections:
             conn.bind(switches, owners, [])
-        for conn in connections:
-            conn.validate_compatibility()
-        return self
+        return connections
 
     def iter_subtree_compute_nodes(self) -> Iterator[ComputeNode]:
         """Yield every compute node beneath this controller, at any nesting depth."""
