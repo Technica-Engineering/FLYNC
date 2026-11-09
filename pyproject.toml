@@ -16,7 +16,7 @@ classifiers = [
 ]
 requires-python = ">=3.12,<3.15"
 dependencies = [
-    "click==8.5.0",
+    "click==8.5.1",
     "rich",
     "typer",
     "pydantic==2.14.1",
