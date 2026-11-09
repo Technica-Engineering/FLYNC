@@ -35,6 +35,7 @@ from flync.model.flync_4_ecu.mac_multicast_endpoint import (
 )
 from flync.model.flync_4_ecu.multicast_groups import MulticastGroupMembership
 from flync.model.flync_4_ecu.port import ECUPort
+from flync.model.flync_4_ecu.port_extender import bind_port_extenders
 from flync.model.flync_4_ecu.socket_container import SocketContainer
 from flync.model.flync_4_ecu.sockets import Socket, SocketTCP, SocketUDP
 from flync.model.flync_4_ecu.switch import Switch, SwitchPort
@@ -235,6 +236,7 @@ class ECU(FLYNCBaseModel):
     def resolve_topology_connections(self) -> Self:
         connections: List[InternalConnection] = [conn_union.root for conn_union in self.topology.connections] if self.topology else []
 
+        self.__reset_internal_links()
         for conn in connections:
             conn.bind(self.switches or [], self.controllers, self.ports or [])
 
@@ -244,6 +246,29 @@ class ECU(FLYNCBaseModel):
         for conn in connections:
             conn.validate_compatibility()
         return self
+
+    def __reset_internal_links(self) -> None:
+        """
+        Clear the links of every port, switch port and interface of the ECU, then link its switches' extenders and its
+        controllers' own topologies again.
+
+        An incremental reload revalidates the ECU around the instances of its unchanged controllers and switches, which still
+        hold the links of the previous validation. The links to other ECUs are cleared too: the root model links them again.
+        """
+
+        controllers = list(self.iter_controllers_and_switch_hosts())
+        switches = [*(self.switches or []), *(switch for ctrl in controllers for switch in ctrl.iter_subtree_switches())]
+        for port in self.ports or []:
+            port._connected_components = []
+        for switch in switches:
+            for switch_port in switch.ports:
+                if switch_port is not None:
+                    switch_port._connected_component = None
+            bind_port_extenders(switch)
+        for ctrl in controllers:
+            for iface in ctrl.iter_subtree_interfaces():
+                iface._connected_component = []
+            ctrl.bind_controller_topology()
 
     def __validate_switch_port_connections(self, connections: List[InternalConnection]) -> None:
         """Validate that switch ports are not self-connected and not connected to more than one component."""
@@ -435,7 +460,8 @@ class ECU(FLYNCBaseModel):
             )
         for vi in iface_config.virtual_interfaces or []:
             for ip in vi.addresses:
-                if ip.address == socket.endpoint_address:
+                # A controller reused by an incremental reload already holds its sockets.
+                if ip.address == socket.endpoint_address and not any(bound is socket for bound in ip.sockets):
                     ip.sockets.append(socket)
 
     def __reference_ecu_in_children(self) -> Self:

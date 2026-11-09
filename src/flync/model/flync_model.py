@@ -36,6 +36,7 @@ from flync.model.flync_4_communication import FLYNCCommunicationConfig
 from flync.model.flync_4_diagnostics import DoIPServerDeployment
 from flync.model.flync_4_ecu import (
     ECU,
+    ECUPort,
     VirtualControllerInterface,
     VLANEntry,
 )
@@ -212,6 +213,7 @@ class FLYNCModel(FLYNCBaseModel, AccessorMixin, BindingMixin, MulticastMixin):
         2. Populate the solicited-node TX multicast group memberships for each ECU based on the RX entries for the same multicast group and VLAN.
         """
 
+        self._drop_derived_solicited_node_multicasts()
         self._populate_ipv6_solicited_node_multicasts_rx()
         self._populate_ipv6_solicited_node_multicasts_tx()
 
@@ -233,6 +235,7 @@ class FLYNCModel(FLYNCBaseModel, AccessorMixin, BindingMixin, MulticastMixin):
 
     @model_validator(mode="after")
     def resolve_external_connections(self) -> Self:
+        self._unlink_ecu_ports()
         if self.topology.ethernet_topology is None:
             return self
         ports_by_name = self.get_all_ecu_ports_by_name()
@@ -248,6 +251,18 @@ class FLYNCModel(FLYNCBaseModel, AccessorMixin, BindingMixin, MulticastMixin):
         # After binding, not inside it: the except above would turn this into warning 164 and lose the error's own id.
         validate_no_multidrop_in_point_to_point(self.topology.ethernet_topology.connections)
         return self
+
+    def _unlink_ecu_ports(self) -> None:
+        """
+        Clear the links between ports of different ECUs before the ethernet topology and the multidrop segments link them.
+
+        An incremental reload revalidates the root model around the unchanged ECUs, whose ports still hold the links of the
+        previous validation. A port's links inside its own ECU never join two ECU ports, so they are kept.
+        """
+
+        for ecu in self.ecus:
+            for port in ecu.ports or []:
+                port._connected_components = [c for c in port._connected_components if not isinstance(c, ECUPort)]
 
     @model_validator(mode="after")
     def wire_multidrop_ports(self) -> Self:

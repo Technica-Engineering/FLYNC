@@ -26,6 +26,7 @@ from flync.core.utils.multicast import (
     serialize_components,
 )
 from flync.model.flync_4_ecu import (
+    ECU,
     EthernetInterface,
     MulticastGroup,
     MulticastGroupMembership,
@@ -46,8 +47,24 @@ def _parse_group_address(text: str) -> IPv4Address | IPv6Address | MacAddress:
         return MacAddress(text)
 
 
+def _add_derived_multicast(ecu: ECU, group: MulticastGroupMembership) -> None:
+    """Append a membership the root model derived to ``ecu``, marked so the next revalidation replaces it."""
+    group._derived_by_model = True
+    ecu.multicast_groups.append(group)
+
+
 class MulticastMixin:
     """Solicited-node population, multicast reachability and switch multicast wiring."""
+
+    def _drop_derived_solicited_node_multicasts(self: FLYNCModelProtocol) -> None:
+        """
+        Remove the solicited-node memberships a previous validation derived, before they are derived again.
+
+        An incremental reload revalidates the root model around the unchanged ECUs, which still hold those memberships.
+        """
+
+        for ecu in self.ecus:
+            ecu.multicast_groups[:] = [group for group in ecu.multicast_groups if not group._derived_by_model]
 
     def _populate_ipv6_solicited_node_multicasts_rx(self: FLYNCModelProtocol) -> None:
         """
@@ -57,7 +74,7 @@ class MulticastMixin:
         for ecu in self.ecus:
             update_ecu_multicast = collect_ipv6_solicited_node_rx(ecu)
             if ecu.name in update_ecu_multicast:
-                ecu.multicast_groups.append(update_ecu_multicast[ecu.name])
+                _add_derived_multicast(ecu, update_ecu_multicast[ecu.name])
 
     def _populate_ipv6_solicited_node_multicasts_tx(self: FLYNCModelProtocol) -> None:
         """
@@ -70,7 +87,7 @@ class MulticastMixin:
         for ecu in self.ecus:
             update_ecu_multicast = collect_ipv6_solicited_node_tx(ecu, multicasts)
             if ecu.name in update_ecu_multicast:
-                ecu.multicast_groups.append(update_ecu_multicast[ecu.name])
+                _add_derived_multicast(ecu, update_ecu_multicast[ecu.name])
 
     def _ethernet_topology_dependent_features(self: FLYNCModelProtocol) -> List[str]:
         """Return human-readable reasons the ethernet topology is required, or an empty list if it is not."""
