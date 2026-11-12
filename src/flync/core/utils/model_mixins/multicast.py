@@ -17,6 +17,7 @@ from pydantic_extra_types.mac_address import MacAddress
 
 from flync.core.utils.base_utils import check_obj_in_list
 from flync.core.utils.exceptions import Category, warn
+from flync.core.utils.model_mixins.protocol import FLYNCModelProtocol
 from flync.core.utils.multicast import (
     backtrack_to_source,
     collect_ipv6_solicited_node_rx,
@@ -24,7 +25,6 @@ from flync.core.utils.multicast import (
     compute_path,
     serialize_components,
 )
-from flync.model._model_parts._protocol import FLYNCModelProtocol
 from flync.model.flync_4_ecu import (
     EthernetInterface,
     MulticastGroup,

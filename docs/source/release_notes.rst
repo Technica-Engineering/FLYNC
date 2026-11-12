@@ -13,6 +13,18 @@ Release Notes
 Release 0.16
 ------------
 
+Internal model parts moved; some error ids changed module code
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+The private ``flync.model._model_parts`` package is gone. The ``FLYNCModel`` mixins now live in
+``flync.core.utils.model_mixins``, the application-reference checks in ``flync.core.validators.app_references``,
+and the check that a CAN (non-J1939) frame must not pack a PDU carrying an SPN is a validator of
+:class:`~flync.model.flync_4_communication.FLYNCChannelConfig`. The public ``FLYNCModel`` API is unchanged.
+
+Because the module segment of an error id follows the package the code lives in, these ids changed from
+``FLYNC-GEN-...`` to ``FLYNC-CMN-...``: 169, 173, 174 (multicast), 367 (SPN on a CAN PDU), 409, 410, 411, 413,
+414, 416 and 417 (application references). Update any suppression or assertion that matches them by full id.
+
 ``validate --verbose`` debugs a partial node
 '''''''''''''''''''''''''''''''''''''''''''''
 
