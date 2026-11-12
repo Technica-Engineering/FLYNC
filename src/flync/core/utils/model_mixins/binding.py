@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 
-from flync.model._model_parts._protocol import FLYNCModelProtocol
+from flync.core.utils.model_mixins.protocol import FLYNCModelProtocol
 from flync.model.flync_4_app import App, ServiceConsumerReference
 from flync.model.flync_4_diagnostics import (
     DoIPDiscoveryDeployment,

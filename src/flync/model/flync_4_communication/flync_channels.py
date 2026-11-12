@@ -17,9 +17,10 @@ from flync.core.validators.bit_ranges import (
     check_bit_ranges_within,
 )
 from flync.core.validators.generic import validate_list_items_unique
+from flync.core.validators.j1939 import check_can_frame_spn
 from flync.model.flync_4_bus.can_bus import CANBus
 from flync.model.flync_4_bus.lin_bus import LINBus
-from flync.model.flync_4_signal.frame import Frame
+from flync.model.flync_4_signal.frame import Frame, J1939Frame
 from flync.model.flync_4_signal.pdu import (
     PDU,
     ContainerPDU,
@@ -138,6 +139,17 @@ class FLYNCChannelConfig(FLYNCBaseModel):
                         error_number="057",
                     )
                 _validate_frame_pdu_placements(kind, bus, pdu_registry)
+        return self
+
+    @model_validator(mode="after")
+    def validate_can_pdus_carry_no_spn(self) -> Self:
+        """A PDU packed by a CAN (non-J1939) frame must never carry SPN (SPN is only allowed on J1939 PDUs)."""
+        pdu_registry = self._pdu_registry()
+        checked: set[str] = set()
+        for bus in self.can_buses or []:
+            for frame in bus.frames:
+                if not isinstance(frame, J1939Frame):
+                    check_can_frame_spn(frame, pdu_registry, checked)
         return self
 
     @model_validator(mode="after")

@@ -11,8 +11,8 @@ from __future__ import annotations
 from collections.abc import Iterator
 from typing import Dict, List, Optional, Tuple
 
-from flync.model._model_parts._protocol import FLYNCModelProtocol
-from flync.model._model_parts._types import SocketDeployment
+from flync.core.utils.model_mixins.protocol import FLYNCModelProtocol
+from flync.core.utils.model_mixins.types import SocketDeployment
 from flync.model.flync_4_ecu import (
     ECU,
     ComputeNode,

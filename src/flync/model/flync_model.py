@@ -12,6 +12,12 @@ from pydantic_core import PydanticCustomError
 from flync.core.annotations import External, NamingStrategy, OutputStrategy
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major, warn
+from flync.core.utils.model_mixins import AccessorMixin, BindingMixin, MulticastMixin
+from flync.core.validators.app_references import (
+    validate_app_ipc_refs,
+    validate_app_signal_refs,
+    warn_app_signal_refs_without_interface,
+)
 from flync.core.validators.forwarder import (
     detect_forwarder_cycles,
     validate_forwarder_locality,
@@ -24,16 +30,6 @@ from flync.core.validators.interface import (
 )
 from flync.core.validators.state_management import (
     validate_state_management,
-)
-from flync.model._model_parts import AccessorMixin, BindingMixin, MulticastMixin
-from flync.model._model_parts._app_refs import (
-    validate_app_ipc_refs,
-    validate_app_signal_refs,
-    warn_app_signal_refs_without_interface,
-)
-from flync.model._model_parts._j1939 import (
-    check_can_frame_spn,
-    j1939_buses,
 )
 from flync.model.flync_4_app import App
 from flync.model.flync_4_communication import FLYNCCommunicationConfig
@@ -406,25 +402,13 @@ class FLYNCModel(FLYNCBaseModel, AccessorMixin, BindingMixin, MulticastMixin):
         return self
 
     @model_validator(mode="after")
-    def validate_j1939_pdu_consistency(self) -> Self:
-        """A PDU packed by a CAN (non-J1939) frame must never carry SPN (``FLYNC-GEN-MAJ-CONS-251``)."""
-
-        if self.communication and self.communication.channels and self.communication.channels.can_buses:
-            channels = self.communication.channels
-            pdu_registry = channels._pdu_registry()
-            checked: set[str] = set()
-            for bus in channels.can_buses or []:
-                for frame in bus.frames:
-                    if not isinstance(frame, J1939Frame):
-                        check_can_frame_spn(frame, pdu_registry, checked)
-        return self
-
-    @model_validator(mode="after")
     def validate_j1939_frames_on_j1939_application_buses(self) -> Self:
         """``J1939Frame`` frames may only be deployed on a bus attached through a J1939-capable CAN interface."""
 
         if self.communication and self.communication.channels and self.communication.channels.can_buses:
-            j1939_bus_set = j1939_buses(self)
+            j1939_bus_set = {
+                iface.bus_ref for controller in self.get_all_controllers() for iface in controller.can_interfaces or [] if iface.is_j1939()
+            }
             for bus in self.communication.channels.can_buses:
                 if bus.name in j1939_bus_set:
                     continue

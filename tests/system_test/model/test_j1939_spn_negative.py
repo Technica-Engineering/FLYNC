@@ -1,6 +1,6 @@
 """Workspace-level J1939 / CAN rules.
 
-* SPN is only allowed on J1939 PDUs (``FLYNC-GEN-MAJ-CONS-367``): a PDU packed by a CAN frame must never carry SPN.
+* SPN is only allowed on J1939 PDUs (``FLYNC-CMN-MAJ-CONS-367``): a PDU packed by a CAN frame must never carry SPN.
 * A bus carrying J1939 frames must be attached to a J1939-capable CANInterface (``FLYNC-GEN-MAJ-CONS-368``).
 * A J1939 bus may also carry plain CAN frames alongside its J1939 frames.
 
@@ -112,7 +112,7 @@ def test_positive_can_pdu_without_spn_on_can_bus():
 
 
 def test_negative_can_pdu_with_spn_rejected():
-    """A PDU carrying SPN that is packed by a CAN (non-J1939) frame is rejected: FLYNC-GEN-MAJ-CONS-367."""
+    """A PDU carrying SPN that is packed by a CAN (non-J1939) frame is rejected: FLYNC-CMN-MAJ-CONS-367."""
     pdu = _make_pdu("PDU_Bad", spn=521)
     bus = CANBus(
         name="PowertrainCAN",
@@ -122,7 +122,7 @@ def test_negative_can_pdu_with_spn_rejected():
     can_interfaces = [CANInterface(name="CAN_IF_1", bus_ref="PowertrainCAN")]
     with pytest.raises(ValidationError) as exc_info:
         _wrap(pdus=[pdu], buses=[bus], can_interfaces=can_interfaces)
-    assert_single_error(exc_info, "FLYNC-GEN-MAJ-CONS-367", "must not carry SPN (SPN is only allowed on J1939 PDUs)")
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-CONS-367", "must not carry SPN (SPN is only allowed on J1939 PDUs)")
 
 
 def test_positive_plain_pdu_shared_between_j1939_and_can():

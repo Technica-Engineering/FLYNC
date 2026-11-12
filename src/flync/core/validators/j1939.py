@@ -1,9 +1,7 @@
 """
-J1939 helpers for the consistency validators of :class:`~flync.model.flync_model.FLYNCModel`.
+J1939 SPN validation: a PDU packed by a CAN (non-J1939) frame must never carry an SPN.
 
-The ``model_validator`` passes themselves stay on the top-level model (Pydantic only registers validators
-declared on model classes, and their order matters); the computation and the per-bus / per-frame checks they
-delegate to live here. Error ids raised here resolve to the ``GEN`` module code through this package's ``KEY``.
+Used by :class:`~flync.model.flync_4_communication.FLYNCChannelConfig`, which owns both the CAN buses and the PDU registry.
 """
 
 from __future__ import annotations
@@ -12,41 +10,14 @@ from collections.abc import Iterable, Iterator, Mapping
 from typing import List, Tuple
 
 from flync.core.utils.exceptions import Category, err_major
-from flync.model._model_parts._protocol import FLYNCModelProtocol
 from flync.model.flync_4_signal import (
     PDU,
     ContainerPDU,
-    J1939Frame,
     MultiplexedPDU,
     SignalInstance,
     StandardPDU,
 )
 from flync.model.flync_4_signal.frame import CANFrameBase
-
-
-def compute_j1939_pgn(frame: J1939Frame) -> int:
-    """Return the 18-bit J1939 Parameter Group Number (PGN) of *frame*.
-
-    The PGN is formed from the Extended Data Page (EDP), Data Page (DP), PDU Format (PF) and PDU Specific (PS)
-    fields: ``(EDP << 17) | (DP << 16) | (PF << 8) | PS``. For PDU1 (``pdu_format`` < 240) the ``pdu_specific``
-    byte is a Destination Address, not part of the PGN, so it contributes 0. Delegates to :attr:`J1939Frame.pgn`.
-    """
-
-    return frame.pgn
-
-
-def j1939_buses(model: FLYNCModelProtocol) -> set[str]:
-    """Return the set of CAN bus names attached through a J1939-capable ``CANInterface``.
-
-    A CAN interface participates in J1939 when it declares a ``j1939_name`` or a source ``address``.
-    ``J1939Frame`` frames may only live on one of those buses, which may carry classical CAN frames as well.
-    """
-    buses: set[str] = set()
-    for controller in model.get_all_controllers():
-        for can_iface in controller.can_interfaces or []:
-            if can_iface.is_j1939():
-                buses.add(can_iface.bus_ref)
-    return buses
 
 
 def signal_spn_names(signals: Iterable[SignalInstance]) -> List[str]:
