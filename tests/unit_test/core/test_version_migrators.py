@@ -190,6 +190,19 @@ class TestEvaluate:
         status = MigrationEngine(registry=two_migrations).evaluate(V("0.10.5"), V("0.12.0"))
         assert [m.unique_id for m in status.pending] == ["test_wrap_baz"]
 
+    @pytest.mark.parametrize(
+        ("recorded", "current", "pending"),
+        [
+            pytest.param("0.10.5", "0.11.0.dev56", ["test_wrap_baz"], id="dev-build-runs-its-release"),
+            pytest.param("0.10.5", "0.11.0rc1", ["test_wrap_baz"], id="pre-release-runs-its-release"),
+            pytest.param("0.10.5", "0.11.0.dev56+demo.d82b7867", ["test_wrap_baz"], id="local-dev-build"),
+            pytest.param("0.11.0.dev3", "0.11.0.dev56", [], id="dev-stamp-not-migrated-twice"),
+        ],
+    )
+    def test_chain_counts_a_pre_release_as_its_release(self, two_migrations, recorded, current, pending):
+        status = MigrationEngine(registry=two_migrations).evaluate(V(recorded), V(current))
+        assert [m.unique_id for m in status.pending] == pending
+
 
 # ============================================================================
 # Engine transform (pure)
