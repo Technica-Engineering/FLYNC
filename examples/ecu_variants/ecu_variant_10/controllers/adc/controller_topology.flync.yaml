@@ -1,6 +1,24 @@
-# Compute-node links, internal software-switch mappings, and controller-interface mappings.
-# Hardware-switch links are in the ECU topology because hardware is an ECU-level switch.
 connections:
+- type: switch_port_to_controller_interface
+  id: conn1
+  switch_port: mac_p1
+  controller_interface: adc_eth0
+- type: switch_port_to_controller_interface
+  id: conn2
+  switch_port: mac_p2
+  controller_interface: adc_eth1
+- type: switch_port_to_controller_interface
+  id: conn3
+  switch_port: mac_p3
+  controller_interface: adc_eth2
+- type: switch_port_to_controller_interface
+  id: conn4
+  switch_port: mac_p4
+  controller_interface: adc_eth3
+- type: switch_port_to_controller_interface
+  id: conn5
+  switch_port: client_p2
+  controller_interface: linux_domain_eth1
 - type: switch_port_to_controller_interface
   id: conn6
   switch_port: ctrl_p1
@@ -33,6 +51,14 @@ connections:
   id: conn13
   switch_port: rt_p2
   controller_interface: safety_rtos_eth1
+- type: switch_port_to_controller_interface
+  id: conn14
+  switch_port: client_p0
+  controller_interface: linux_eth5
+- type: switch_port_to_controller_interface
+  id: conn15
+  switch_port: client_p1
+  controller_interface: safety_rtos_eth2
 - type: controller_interface_to_controller_interface
   id: conn16
   controller_interface: adc_eth0
