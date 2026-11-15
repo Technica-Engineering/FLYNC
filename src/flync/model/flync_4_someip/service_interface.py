@@ -25,6 +25,7 @@ from pydantic import (
 )
 
 from flync.core.annotations.external import External, OutputStrategy
+from flync.core.annotations.namespaced import Namespaced
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major, err_minor
 from flync.core.validators.address import validate_ip_multicast
@@ -914,7 +915,9 @@ class SOMEIPConfig(FLYNCBaseModel):
         Configuration of the Service-Discovery.
 
     services: list[ :class:`~SOMEIPServiceInterface` ]
-        List of SOME/IP Services.
+        List of SOME/IP Services. In a workspace they may be stored in sub-folders of ``services``;
+        a service in ``abc/def`` is then named ``abc::def::<name>``, so services of the same name
+        can live in different folders.
 
     someip_timings: :class:`~SOMEIPTimingProfile`
         Configuration of the SOME/IP timings.
@@ -926,7 +929,7 @@ class SOMEIPConfig(FLYNCBaseModel):
         SDConfig,
         External(output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT),
     ] = Field(description="configuration of the service discovery")
-    services: Annotated[List[SOMEIPServiceInterface], External()] = Field(description="list of services")
+    services: Annotated[List[SOMEIPServiceInterface], External(), Namespaced()] = Field(description="list of services")
     someip_timings: Annotated[
         SOMEIPTimingProfile,
         External(output_structure=OutputStrategy.SINGLE_FILE | OutputStrategy.OMMIT_ROOT),

@@ -26,7 +26,7 @@ frames:
     lin_id: 2
     checksum_type: enhanced
     packed_pdus:
-      - pdu_ref: PDU_MirrorRight
+      - pdu_ref: lin_specific::PDU_MirrorRight
         bit_position: 0
 
   - name: Frame_CabinLightStatus

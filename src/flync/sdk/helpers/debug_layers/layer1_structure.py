@@ -16,6 +16,7 @@ from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 
 from flync.core.annotations.external import External, OutputStrategy
+from flync.core.annotations.namespaced import Namespaced
 from flync.sdk.helpers.debug import (
     FLYNC_EXT,
     _display_name,
@@ -221,7 +222,8 @@ def _check_folder_field(
     if not _is_pydantic_model(inner):
         return
     if is_list:
-        _check_list_field_items(name, inner, target, root_path, known_names, issues)
+        namespaced = get_metadata(field_info.metadata, Namespaced) is not None
+        _check_list_field_items(name, inner, target, root_path, known_names, issues, namespaced)
     else:
         _check_dir(inner, target, root_path, known_names, issues)
 
@@ -233,11 +235,15 @@ def _check_list_field_items(
     root_path: Path,
     known_names: dict[str, list[str]],
     issues: list[StructureIssue],
+    namespaced: bool = False,
 ) -> None:
-    """Validate each item found under a List[Model] field's folder."""
+    """Validate each item found under a List[Model] field's folder; sub-folders of a namespaced list are namespaces."""
     item_has_substructure = _has_external_fields(inner)
     for child in sorted(target.iterdir()):
         if _should_skip(child):
+            continue
+        if namespaced and child.is_dir() and not item_has_substructure:
+            _check_list_field_items(name, inner, child, root_path, known_names, issues, namespaced)
             continue
         _check_list_item(name, inner, child, item_has_substructure, target, root_path, known_names, issues)
 

@@ -13,6 +13,22 @@ Release Notes
 Release 0.16
 ------------
 
+
+Namespaces for SOME/IP services and PDUs
+''''''''''''''''''''''''''''''''''''''''
+
+Services under ``communication/someip/services`` and PDUs under ``communication/channels/pdus`` may now be stored
+in sub-folders, so two people can define an object with the same name in parallel. Every sub-folder is a
+namespace segment: ``abc/def/CameraService.flync.yaml`` holding ``name: CameraService`` is loaded as
+``abc::def::CameraService``. Objects outside any sub-folder keep their plain name, so existing workspaces load
+unchanged.
+
+The qualified name is the name everywhere after loading, so a ``pdu_ref`` to a PDU in a sub-folder must be written
+``abc::PDU_Name``; the plain name only resolves a PDU stored directly in ``pdus``. Saving a workspace writes the
+objects back into the same sub-folders. The behavior is declared per field with the new ``Namespaced`` annotation
+(``flync.core.annotations``), next to ``External``; see :ref:`field_annotations`.
+
+
 Internal model parts moved; some error ids changed module code
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
@@ -25,6 +41,7 @@ Because the module segment of an error id follows the package the code lives in,
 ``FLYNC-GEN-...`` to ``FLYNC-CMN-...``: 169, 173, 174 (multicast), 367 (SPN on a CAN PDU), 409, 410, 411, 413,
 414, 416 and 417 (application references). Update any suppression or assertion that matches them by full id.
 
+
 ``validate --verbose`` debugs a partial node
 '''''''''''''''''''''''''''''''''''''''''''''
 
@@ -35,6 +52,7 @@ SOME/IP directory can be debugged layer by layer. Previously ``--verbose`` was s
 
 The example-validation gate (``scripts/ci/validate_examples.py``) runs ``--verbose``, so a failing example names
 the layer its problem came from.
+
 
 J1939 frames addressed by name or CAN id
 ''''''''''''''''''''''''''''''''''''''''
