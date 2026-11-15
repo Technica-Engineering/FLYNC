@@ -13,6 +13,7 @@ from typing import Any, Dict, Literal, Optional
 
 from pydantic_core import ErrorDetails
 
+from flync.core.annotations import Namespaced
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.model.flync_model import FLYNCModel
 from flync.sdk.context.workspace_config import (
@@ -53,12 +54,17 @@ class ParentLink(object):
             plain field (e.g. an ECU's ``ports`` file or its ``topology``); ``"list"``/``"dict"`` are
             folder-based collections whose items load from separate documents.
         key (int | str | None): List index or dict key of this value; ``None`` for scalar fields.
+        namespace (tuple[str, ...]): Folder names between the list root and this item, outermost first. Only set for items of a
+            :class:`~flync.core.annotations.Namespaced` list that sit in a sub-folder.
+        namespaced (Namespaced | None): The annotation of the list this item belongs to; ``None`` for items of any other field.
     """
 
     parent_path: Path
     field_name: str
     container: Literal["scalar", "list", "dict"]
     key: int | str | None = None
+    namespace: tuple[str, ...] = ()
+    namespaced: Optional[Namespaced] = None
 
 
 @dataclass

@@ -9,6 +9,7 @@ from flync.core.annotations.external import (
     NamingStrategy,
     OutputStrategy,
 )
+from flync.core.annotations.namespaced import Namespaced
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major
 from flync.core.validators.bit_ranges import (
@@ -37,7 +38,8 @@ class FLYNCChannelConfig(FLYNCBaseModel):
     Parameters
     ----------
     pdus : list of :class:`~flync.model.flync_4_signal.StandardPDU` | :class:`~flync.model.flync_4_signal.MultiplexedPDU`, optional
-        Shared PDU definitions that may be referenced from any channel.
+        Shared PDU definitions that may be referenced from any channel. In a workspace they may be stored in
+        sub-folders of ``pdus``; a PDU in ``abc/def`` is then named ``abc::def::<name>`` and is referenced by that name.
     can_buses : list of :class:`~flync.model.flync_4_bus.CANBus`, optional
         CAN and CAN FD bus configurations.
     lin_buses : list of :class:`~flync.model.flync_4_bus.LINBus`, optional
@@ -60,6 +62,7 @@ class FLYNCChannelConfig(FLYNCBaseModel):
             naming_strategy=NamingStrategy.FIXED_PATH,
             path="pdus",
         ),
+        Namespaced(),
     ] = Field(
         default_factory=list,
         description="Shared PDU definitions, one file per PDU.",

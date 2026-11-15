@@ -7,7 +7,7 @@ Structure & polymorphism
 How a field becomes a file
 ==========================
 
-Three annotations from ``flync.core.annotations`` (``External``, ``Implied``, ``Reference``)
+Four annotations from ``flync.core.annotations`` (``External``, ``Namespaced``, ``Implied``, ``Reference``)
 decouple the model from the repository layout: they tell the loader where a value comes from and
 the generator where it goes. The directory tree they produce is the one config authors see,
 documented at :ref:`writing_flync_config` — read the two together when you change an annotation,
@@ -22,6 +22,9 @@ because changing one changes the other.
    * - ``External``
      - value lives in a separate file or folder
      - ``List``/nested-model fields split across the config repo
+   * - ``Namespaced``
+     - sub-folders of a folder list qualify the item name (``abc::name``)
+     - SOME/IP services and PDUs can be owned by different teams in parallel
    * - ``Implied``
      - value is derived, not stored
      - an object's ``name`` taken from its folder name
@@ -56,6 +59,20 @@ Strategies combine with ``|``: ``SINGLE_FILE`` writes one ``<field>.flync.yaml``
 directory, ``OMMIT_ROOT`` suppresses the wrapper key, ``FIXED_PATH`` fixes the name instead of
 deriving it from the field. ``FIXED_ROOT`` together with ``External(root=...)`` re-bases the
 path on a directory other than the parent's. The full behavior is in :ref:`field_annotations`.
+
+``Namespaced`` — sub-folders qualify the name
+---------------------------------------------
+
+.. code-block:: python
+
+    from flync.core.annotations import External, Namespaced
+
+    pdus: Annotated[List[StandardPDU | MultiplexedPDU], External(), Namespaced()] = Field(default_factory=list)
+
+Add it to an ``External`` folder list whose items must stay unique by name.
+``pdus/abc/Nm.flync.yaml`` (``name: Nm``) is loaded as ``abc::Nm``; the rest of the load, and every
+reference to the item, uses that qualified name. Use it only where items are single files, because every
+directory under the list is read as a namespace. Details: :ref:`field_annotations`.
 
 ``Implied`` — the name is the folder
 ------------------------------------
