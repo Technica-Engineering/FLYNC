@@ -60,12 +60,12 @@
             <button type="button" class="exc show_exc button_toggle_exc" value="exc" data-shortcut="x" title="Toggle lines excluded">0<span class="text"> excluded</span></button>
         </h2>
         <p class="text">
-            <a id="prevFileLink" class="nav" href="z_85291f4a2e503fc4_address_py.html">&#xab; prev</a> &nbsp; &nbsp;
+            <a id="prevFileLink" class="nav" href="z_85291f4a2e503fc4_app_references_py.html">&#xab; prev</a> &nbsp; &nbsp;
             <a id="indexLink" class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
             <a id="nextFileLink" class="nav" href="z_85291f4a2e503fc4_connection_compatibility_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
-            <a class="nav" href="https://coverage.readthedocs.io/en/7.17.0">coverage.py v7.17.0</a>,
-            created at 2026-10-30 15:39 +0000
+            <a class="nav" href="https://coverage.readthedocs.io/en/7.17.3">coverage.py v7.17.3</a>,
+            created at 2026-11-15 20:27 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -176,13 +176,13 @@
     <p class="pln"><span class="n"><a id="t94" href="#t94">94</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t95" href="#t95">95</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t96" href="#t96">96</a></span><span class="t"><span class="key">def</span> <span class="nam">validate_value_input_format</span><span class="op">(</span><span class="nam">data</span><span class="op">:</span> <span class="nam">object</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="nam">object</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t97" href="#t97">97</a></span><span class="t">    <span class="str">&quot;&quot;&quot;Validating combinations of &#x27;value&#x27;, &#x27;from_value&#x27; and &#x27;to_value&#x27;.&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t97" href="#t97">97</a></span><span class="t">    <span class="str">&quot;&quot;&quot;Validating combinations of &#x27;value&#x27;, &#x27;from_value&#x27; and &#x27;to_value&#x27;. &#x27;value: None&#x27; next to a range counts as absent.&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t98" href="#t98">98</a></span><span class="t">    <span class="key">if</span> <span class="key">not</span> <span class="nam">isinstance</span><span class="op">(</span><span class="nam">data</span><span class="op">,</span> <span class="nam">dict</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t99" href="#t99">99</a></span><span class="t">        <span class="key">return</span> <span class="nam">data</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t100" href="#t100">100</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t101" href="#t101">101</a></span><span class="t">    <span class="nam">has_value</span> <span class="op">=</span> <span class="str">&quot;value&quot;</span> <span class="key">in</span> <span class="nam">data</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t102" href="#t102">102</a></span><span class="t">    <span class="nam">has_from_value</span> <span class="op">=</span> <span class="str">&quot;from_value&quot;</span> <span class="key">in</span> <span class="nam">data</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t103" href="#t103">103</a></span><span class="t">    <span class="nam">has_to_value</span> <span class="op">=</span> <span class="str">&quot;to_value&quot;</span> <span class="key">in</span> <span class="nam">data</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t101" href="#t101">101</a></span><span class="t">    <span class="nam">has_from_value</span> <span class="op">=</span> <span class="str">&quot;from_value&quot;</span> <span class="key">in</span> <span class="nam">data</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t102" href="#t102">102</a></span><span class="t">    <span class="nam">has_to_value</span> <span class="op">=</span> <span class="str">&quot;to_value&quot;</span> <span class="key">in</span> <span class="nam">data</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t103" href="#t103">103</a></span><span class="t">    <span class="nam">has_value</span> <span class="op">=</span> <span class="str">&quot;value&quot;</span> <span class="key">in</span> <span class="nam">data</span> <span class="key">and</span> <span class="key">not</span> <span class="op">(</span><span class="nam">data</span><span class="op">[</span><span class="str">&quot;value&quot;</span><span class="op">]</span> <span class="key">is</span> <span class="key">None</span> <span class="key">and</span> <span class="op">(</span><span class="nam">has_from_value</span> <span class="key">or</span> <span class="nam">has_to_value</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t104" href="#t104">104</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t105" href="#t105">105</a></span><span class="t">    <span class="key">if</span> <span class="key">not</span> <span class="nam">has_value</span> <span class="key">and</span> <span class="key">not</span> <span class="nam">has_to_value</span> <span class="key">and</span> <span class="key">not</span> <span class="nam">has_from_value</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t106" href="#t106">106</a></span><span class="t">        <span class="key">raise</span> <span class="nam">err_major</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
@@ -220,12 +220,12 @@
 <footer>
     <div class="content">
         <p>
-            <a class="nav" href="z_85291f4a2e503fc4_address_py.html">&#xab; prev</a> &nbsp; &nbsp;
+            <a class="nav" href="z_85291f4a2e503fc4_app_references_py.html">&#xab; prev</a> &nbsp; &nbsp;
             <a class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
             <a class="nav" href="z_85291f4a2e503fc4_connection_compatibility_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
-            <a class="nav" href="https://coverage.readthedocs.io/en/7.17.0">coverage.py v7.17.0</a>,
-            created at 2026-10-30 15:39 +0000
+            <a class="nav" href="https://coverage.readthedocs.io/en/7.17.3">coverage.py v7.17.3</a>,
+            created at 2026-11-15 20:27 +0000
         </p>
     </div>
 </footer>

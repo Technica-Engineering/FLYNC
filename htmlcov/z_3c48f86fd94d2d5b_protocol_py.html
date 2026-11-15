@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Coverage for src/flync/model/_model_parts/_protocol.py: 100%</title>
+    <title>Coverage for src/flync/core/utils/model_mixins/protocol.py: 100%</title>
     <link rel="icon" sizes="32x32" href="favicon_32_cb_c827f16f.png">
     <link rel="stylesheet" href="style_cb_4667309f.css" type="text/css">
     <script src="coverage_html_cb_54cfdca1.js" defer></script>
@@ -11,7 +11,7 @@
 <header>
     <div class="content">
         <h1>
-            <span class="text">Coverage for </span><b>src<span class="sep">/</span>flync<span class="sep">/</span>model<span class="sep">/</span>_model_parts<span class="sep">/</span>_protocol.py</b>:
+            <span class="text">Coverage for </span><b>src<span class="sep">/</span>flync<span class="sep">/</span>core<span class="sep">/</span>utils<span class="sep">/</span>model_mixins<span class="sep">/</span>protocol.py</b>:
             <span class="pc_cov">100%</span>
         </h1>
         <aside id="help_panel_wrapper">
@@ -60,12 +60,12 @@
             <button type="button" class="exc show_exc button_toggle_exc" value="exc" data-shortcut="x" title="Toggle lines excluded">102<span class="text"> excluded</span></button>
         </h2>
         <p class="text">
-            <a id="prevFileLink" class="nav" href="z_495e17853949e59c__multicast_py.html">&#xab; prev</a> &nbsp; &nbsp;
+            <a id="prevFileLink" class="nav" href="z_3c48f86fd94d2d5b_multicast_py.html">&#xab; prev</a> &nbsp; &nbsp;
             <a id="indexLink" class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
-            <a id="nextFileLink" class="nav" href="z_495e17853949e59c__types_py.html">&#xbb; next</a>
+            <a id="nextFileLink" class="nav" href="z_3c48f86fd94d2d5b_types_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
-            <a class="nav" href="https://coverage.readthedocs.io/en/7.17.0">coverage.py v7.17.0</a>,
-            created at 2026-10-30 15:39 +0000
+            <a class="nav" href="https://coverage.readthedocs.io/en/7.17.3">coverage.py v7.17.3</a>,
+            created at 2026-11-15 20:27 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -95,7 +95,7 @@
     <p class="run"><span class="n"><a id="t13" href="#t13">13</a></span><span class="t"><span class="key">from</span> <span class="nam">collections</span><span class="op">.</span><span class="nam">abc</span> <span class="key">import</span> <span class="nam">Iterator</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t14" href="#t14">14</a></span><span class="t"><span class="key">from</span> <span class="nam">typing</span> <span class="key">import</span> <span class="nam">TYPE_CHECKING</span><span class="op">,</span> <span class="nam">Dict</span><span class="op">,</span> <span class="nam">List</span><span class="op">,</span> <span class="nam">Optional</span><span class="op">,</span> <span class="nam">Protocol</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t15" href="#t15">15</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t16" href="#t16">16</a></span><span class="t"><span class="key">from</span> <span class="nam">flync</span><span class="op">.</span><span class="nam">model</span><span class="op">.</span><span class="nam">_model_parts</span><span class="op">.</span><span class="nam">_types</span> <span class="key">import</span> <span class="nam">SocketDeployment</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t16" href="#t16">16</a></span><span class="t"><span class="key">from</span> <span class="nam">flync</span><span class="op">.</span><span class="nam">core</span><span class="op">.</span><span class="nam">utils</span><span class="op">.</span><span class="nam">model_mixins</span><span class="op">.</span><span class="nam">types</span> <span class="key">import</span> <span class="nam">SocketDeployment</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t17" href="#t17">17</a></span><span class="t"><span class="key">from</span> <span class="nam">flync</span><span class="op">.</span><span class="nam">model</span><span class="op">.</span><span class="nam">flync_4_app</span> <span class="key">import</span> <span class="nam">App</span><span class="op">,</span> <span class="nam">ServiceConsumerReference</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t18" href="#t18">18</a></span><span class="t"><span class="key">from</span> <span class="nam">flync</span><span class="op">.</span><span class="nam">model</span><span class="op">.</span><span class="nam">flync_4_communication</span> <span class="key">import</span> <span class="nam">FLYNCCommunicationConfig</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t19" href="#t19">19</a></span><span class="t"><span class="key">from</span> <span class="nam">flync</span><span class="op">.</span><span class="nam">model</span><span class="op">.</span><span class="nam">flync_4_ecu</span> <span class="key">import</span> <span class="op">(</span>&nbsp;</span><span class="r"></span></p>
@@ -230,12 +230,12 @@
 <footer>
     <div class="content">
         <p>
-            <a class="nav" href="z_495e17853949e59c__multicast_py.html">&#xab; prev</a> &nbsp; &nbsp;
+            <a class="nav" href="z_3c48f86fd94d2d5b_multicast_py.html">&#xab; prev</a> &nbsp; &nbsp;
             <a class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
-            <a class="nav" href="z_495e17853949e59c__types_py.html">&#xbb; next</a>
+            <a class="nav" href="z_3c48f86fd94d2d5b_types_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
-            <a class="nav" href="https://coverage.readthedocs.io/en/7.17.0">coverage.py v7.17.0</a>,
-            created at 2026-10-30 15:39 +0000
+            <a class="nav" href="https://coverage.readthedocs.io/en/7.17.3">coverage.py v7.17.3</a>,
+            created at 2026-11-15 20:27 +0000
         </p>
     </div>
 </footer>
