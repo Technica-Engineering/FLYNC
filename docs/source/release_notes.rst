@@ -13,6 +13,11 @@ Release Notes
 Release 0.16
 ------------
 
+Multi-gigabit BASE-T and BASE-T1 speeds
+'''''''''''''''''''''''''''''''''''''''
+
+``BASET`` and ``BASET1`` MDI configs now also accept 2500, 5000, and 10000 Mbit/s.
+
 
 Namespaces for SOME/IP services and PDUs
 ''''''''''''''''''''''''''''''''''''''''

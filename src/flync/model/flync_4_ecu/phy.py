@@ -25,7 +25,7 @@ class BASET1(FLYNCBaseModel):
         Interface mode. Defaults to ``"base_t1"``.
 
     speed : int
-        Supported link speed in megabits per second. Valid values are 100 or 1000.
+        Supported link speed in megabits per second. Valid values are 100, 1000, 2500, 5000, or 10000.
 
     duplex : Literal["full"]
         Duplex mode. Defaults to ``"full"``.
@@ -38,7 +38,7 @@ class BASET1(FLYNCBaseModel):
     """
 
     mode: Literal["base_t1"] = Field(default="base_t1")
-    speed: Literal[100, 1000] = Field(default=100)
+    speed: Literal[100, 1000, 2500, 5000, 10000] = Field(default=100)
     duplex: Literal["full"] = Field(default="full")
     role: Literal["master", "slave"] = Field(default="slave")
     autonegotiation: bool = Field(default=False)
@@ -157,7 +157,7 @@ class BASET(FLYNCBaseModel):
         Interface mode. Defaults to ``"base_t"``.
 
     speed : int
-        Supported link speed in megabits per second. Valid values are 100 or 1000.
+        Supported link speed in megabits per second. Valid values are 100, 1000, 2500, 5000, or 10000.
 
     duplex : Literal["full"]
         Duplex mode. Defaults to ``"full"``.
@@ -170,7 +170,7 @@ class BASET(FLYNCBaseModel):
     """
 
     mode: Literal["base_t"] = Field(default="base_t")
-    speed: Literal[100, 1000] = Field()
+    speed: Literal[100, 1000, 2500, 5000, 10000] = Field()
     duplex: Literal["full"] = Field(default="full")
     role: Literal["master", "slave"] = Field(default="slave")
     autonegotiation: bool = Field(default=False)

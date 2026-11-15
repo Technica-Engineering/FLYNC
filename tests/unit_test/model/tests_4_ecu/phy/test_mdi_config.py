@@ -15,6 +15,7 @@ from tests.error_assertions import assert_single_error, assert_single_warning
     [
         pytest.param(100, MII(mode="phy"), id="100baset1"),
         pytest.param(1000, SGMII(mode="phy"), id="1000baset1"),
+        pytest.param(2500, SGMII(mode="phy", speed=2500), id="2500baset1"),
     ],
 )
 def test_positive_baset1_config(speed, mii_config):
@@ -154,12 +155,12 @@ def test_positive_legacy_payload_without_topology_defaults_to_point_to_point():
             "Input should be 10",
             id="t1s-rejects-speed-1000",
         ),
-        # BASE-T1 runs at 100 or 1000 Mbit/s; 10 Mbit/s belongs to BASE-T1S.
+        # BASE-T1 runs at 100 Mbit/s to 10 Gbit/s; 10 Mbit/s belongs to BASE-T1S.
         pytest.param(
             MII(mode="phy"),
             {"mode": "base_t1", "speed": 10, "autonegotiation": False, "duplex": "full", "role": "master"},
             None,
-            "Input should be 100 or 1000",
+            "Input should be 100, 1000, 2500, 5000 or 10000",
             id="baset1-rejects-speed-10",
         ),
         # BASE-T1 is full duplex only.
