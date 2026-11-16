@@ -11,7 +11,7 @@ from types import UnionType
 from typing import Annotated, Any, Optional, Union, cast, get_args, get_origin
 
 from pydantic.fields import FieldInfo
-from pydantic_core import ValidationError
+from pydantic_core import ErrorDetails, ValidationError
 
 from flync.core.annotations import (
     External,
@@ -442,6 +442,7 @@ class _WorkspaceLoading(_WorkspaceVariants):
         field_name: str,
         current_object_paths: list[str],
         link: Optional[ParentLink] = None,
+        keep_diags: bool = False,
         sole_member: bool = False,
     ):
         """
@@ -459,6 +460,11 @@ class _WorkspaceLoading(_WorkspaceVariants):
             possible_type: The union member type to attempt.
             field_name (str): Field name on the parent model.
             current_object_paths (list[str]): Dot-path contexts for object tracking.
+            link (ParentLink | None): How the loaded value attaches to its parent.
+            keep_diags (bool): Keep the diagnostics of a failed attempt. Set for a plain
+                ``Optional[SingleType]`` where there is no other member to fall back to,
+                so a failure is a real error and not a "wrong union member" signal.
+                A path that does not exist is still discarded: an absent optional file is not an error.
             link (ParentLink | None): How the loaded value attaches to its parent.
             sole_member (bool): Whether ``possible_type`` is the only type of the union besides ``None``.
 
@@ -485,12 +491,38 @@ class _WorkspaceLoading(_WorkspaceVariants):
             # the diags so the user sees them. Discard only purely structural
             # mismatches, which signal "wrong union member".
             has_semantic_error = any(is_semantic_validation_error(d) for d in new_diags)
-            if not has_semantic_error:
+            if keep_diags and attempt_path.exists() and new_diags and not has_semantic_error:
+                # Same wording/shape as ``validate_or_remove`` (minor): one summary error, raw details in ``sub_errors``.
+                self.documents_diags[doc_id] = saved_diags + [self.__summarize_failed_load(field_name, new_diags)]
+            elif not has_semantic_error:
                 if diags_existed:
                     self.documents_diags[doc_id] = saved_diags
                 elif doc_id in self.documents_diags:
                     del self.documents_diags[doc_id]
         return result
+
+    @staticmethod
+    def __summarize_failed_load(field_name: str, diags: list[ErrorDetails]) -> ErrorDetails:
+        """
+        Collapse the raw diagnostics of a failed single-type load into one ``minor`` error.
+
+        The message matches :func:`~flync.core.validators.generic.validate_or_remove` and the individual
+        errors (e.g. ``Extra inputs are not permitted``) are listed in ``ctx["sub_errors"]``.
+        """
+
+        first_ctx = (diags[0].get("ctx") or {}) if diags else {}
+        yaml_path = first_ctx.get("yaml_path")
+        location = f"in {yaml_path}" if yaml_path else "in system"
+        ctx: dict[str, Any] = {k: first_ctx[k] for k in ("yaml_path", "line", "col") if k in first_ctx}
+        ctx["sub_errors"] = "\n".join(f"{'.'.join(str(x) for x in d.get('loc', ()))}: {d.get('msg', '')}" for d in diags)
+        return ErrorDetails(
+            type="minor",
+            msg=f"1 or more errors found while validating {field_name}. Removing {field_name} {location}.",
+            loc=(field_name,),
+            input=None,
+            ctx=ctx,
+            url="",
+        )
 
     def __handle_generic_types_union(
         self,
@@ -528,7 +560,8 @@ class _WorkspaceLoading(_WorkspaceVariants):
         """
 
         success_union = False
-        sole_member = len([arg for arg in base_type_args if arg is not type(None)]) == 1
+        # Optional[X] has a single real member: nothing else to try, so its errors must surface.
+        sole_member = sum(1 for t in base_type_args if t is not type(None)) == 1
         for possible_type in base_type_args:
             try:
                 if possible_type is type(None):
@@ -543,7 +576,8 @@ class _WorkspaceLoading(_WorkspaceVariants):
                         field_name,
                         current_object_paths,
                         link,
-                        sole_member,
+                        keep_diags=sole_member,
+                        sole_member=sole_member,
                     )
                     if result is None:
                         continue
