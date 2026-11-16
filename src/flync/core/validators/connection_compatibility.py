@@ -140,6 +140,16 @@ def validate_cbs_idleslopes_fit_portspeed(traffic_classes: list[TrafficClass] | 
     return traffic_classes
 
 
+def _describe_mii(mii: XMIIConfig | None, mode: str | None = None) -> str:
+    """Render an MII config as ``type/speed/mode`` (``none`` when absent, speed omitted when unset)."""
+
+    if mii is None:
+        return "no MII config"
+    speed = getattr(mii, "speed", None)
+    parts = [str(mii.type)] + ([str(speed)] if speed is not None else []) + [mode or str(mii.mode)]
+    return "/".join(parts)
+
+
 def validate_optional_mii_config_compatibility(comp1: HasMIIConfig | None, comp2: HasMIIConfig | None, id: str) -> None:
     """
     Custom validator for optional MII configuration compatibility between two components.
@@ -173,11 +183,17 @@ def validate_optional_mii_config_compatibility(comp1: HasMIIConfig | None, comp2
 
     # Look for wrong config variants: exactly one side declares an MII config
     if mii_comp1 is None or mii_comp2 is None:
+        missing, present, present_mii = (comp1, comp2, mii_comp2) if mii_comp1 is None else (comp2, comp1, mii_comp1)
+        assert present_mii is not None
+        opposite_mode = "mac" if present_mii.mode == "phy" else "phy"
         raise err_major(
             f"Invalid MII config in connection {id}: "
             f"{comp1.name} ↔ {comp2.name} "
             f"(MII mismatch for PHY type). Both or None of "
-            f"the components should have a MII config",
+            f"the components should have a MII config. "
+            f"{comp1.name}: {_describe_mii(mii_comp1)}; {comp2.name}: {_describe_mii(mii_comp2)}. "
+            f"Either remove the MII config from {present.name}, or set the MII config of {missing.name} "
+            f"to match its partner ({_describe_mii(present_mii, mode=opposite_mode)})",
             category=Category.COMPATIBILITY,
             error_number="012",
         )
