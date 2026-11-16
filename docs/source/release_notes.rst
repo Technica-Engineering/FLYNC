@@ -17,10 +17,12 @@ Incremental reloads rebuild the model's wiring
 ''''''''''''''''''''''''''''''''''''''''''''''
 
 ``FLYNCWorkspace.update_document`` now leaves a model wired exactly as a full load wires it, however often a document is
-reloaded. The links between ports, switch ports and interfaces, the sockets bound to each IP address and the derived
-IPv6 solicited-node multicast memberships are rebuilt on each revalidation instead of being added again to the
-components the reload reuses. A link removed from a topology file is gone after the reload, and the time a reload takes
-no longer grows with each save.
+reloaded. The links between ports, switch ports and interfaces, the sockets bound to each IP address, the derived
+IPv6 solicited-node multicast memberships and the multicast groups provisioned on switch VLANs are rebuilt on each
+revalidation instead of being added again to the components the reload reuses. A link removed from a topology file is
+gone after the reload, a socket moved to another address leaves the old one, a switch stops carrying a group whose last
+sender is removed, and the time a reload takes no longer grows with each save. Multicast groups written in a switch file
+are kept.
 
 
 Multi-gigabit BASE-T and BASE-T1 speeds

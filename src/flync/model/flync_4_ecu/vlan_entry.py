@@ -41,6 +41,8 @@ class MulticastGroup(FLYNCBaseModel):
         AfterValidator(validate_any_multicast_address),
     ] = Field()
     ports: List[str] = Field()
+    _derived_by_model: bool = False
+    _derived_ports: list[str] = []
 
     @field_serializer("address")
     def serialize_address(self, address: IPvAnyAddress | FLYNCMacAddress) -> str:

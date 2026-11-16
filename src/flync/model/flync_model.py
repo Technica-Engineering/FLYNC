@@ -358,6 +358,7 @@ class FLYNCModel(FLYNCBaseModel, AccessorMixin, BindingMixin, MulticastMixin):
 
     @model_validator(mode="after")
     def validate_multicast_paths(self) -> Self:
+        self._drop_derived_switch_multicasts()
         try:
             paths: dict[str, list[list[NetworkComponent]]] = {}
             parents: dict[str, list[ParentMap]] = {}

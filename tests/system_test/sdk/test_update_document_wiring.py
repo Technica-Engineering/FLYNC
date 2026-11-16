@@ -16,6 +16,8 @@ from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 from tests.example_paths import FLYNC_EXAMPLE_EXPERIMENTAL as absolute_path
 
 ETHERNET_TOPOLOGY = "topology/ethernet_topology.flync.yaml"
+HPC_DOIP_SOCKETS = "ecus/high_performance_compute/controllers/hpc_controller1/ethernet_interfaces/hpc_c1_iface1/sockets/socket_doip.flync.yaml"
+Z1_REAR_LAMP_SOCKETS = "ecus/zonal_platform1/controllers/z1_controller1/ethernet_interfaces/z1_c1_iface1/sockets/rear_lamp_sockets.flync.yaml"
 
 
 @pytest.fixture
@@ -66,7 +68,18 @@ def _wiring(model: FLYNCModel) -> dict:
         for ip in vi.addresses
         if hasattr(ip, "sockets")
     }
-    return {"links": links, "groups": groups, "sockets": sockets}
+    switch_groups = {
+        f"{ecu.name}/{switch.name}/{v_entry.id}": sorted(f"{group.address} {sorted(group.ports)}" for group in v_entry.multicast)
+        for ecu in model.ecus
+        for switch in _switches(ecu)
+        for v_entry in switch.vlans
+    }
+    return {"links": links, "groups": groups, "sockets": sockets, "switch_groups": switch_groups}
+
+
+def _switches(ecu) -> list:
+    controllers = list(ecu.iter_controllers_and_switch_hosts())
+    return [*(ecu.switches or []), *(switch for ctrl in controllers for switch in ctrl.iter_subtree_switches())]
 
 
 def _stale_links(model: FLYNCModel) -> list[str]:
@@ -78,11 +91,10 @@ def _stale_links(model: FLYNCModel) -> list[str]:
 def _components(model: FLYNCModel):
     for ecu in model.ecus:
         yield from ecu.ports or []
-        controllers = list(ecu.iter_controllers_and_switch_hosts())
-        for switch in [*(ecu.switches or []), *(switch for ctrl in controllers for switch in ctrl.iter_subtree_switches())]:
+        for switch in _switches(ecu):
             yield from switch.ports
             yield from switch.port_extenders
-        for ctrl in controllers:
+        for ctrl in ecu.iter_controllers_and_switch_hosts():
             yield from ctrl.iter_subtree_interfaces()
 
 
@@ -99,6 +111,7 @@ def _full_load(root: Path, config: WorkspaceConfiguration) -> FLYNCModel:
         pytest.param("ecus/zonal_platform1/topology.flync.yaml", id="ecu_topology"),
         pytest.param("ecus/eth_ecu/controllers/eth_ecu_controller1/controller_metadata.flync.yaml", id="controller"),
         pytest.param(ETHERNET_TOPOLOGY, id="ethernet_topology"),
+        pytest.param(HPC_DOIP_SOCKETS, id="sockets"),
     ],
 )
 def test_repeated_reloads_keep_the_wiring_of_a_full_load(workspace, rel):
@@ -123,4 +136,33 @@ def test_removing_a_connection_unlinks_its_ports(workspace):
 
     hpc1_p1 = next(p for p in ws.flync_model.get_all_ecu_ports_by_name().values() if p.name == "hpc1_p1")
     assert not any(c.name == "z1_p1" for c in hpc1_p1._connected_components)
+    assert _wiring(ws.flync_model) == _wiring(_full_load(root, config))
+
+
+def test_moving_a_socket_unbinds_it_from_its_old_address(workspace):
+    ws, root, config = workspace
+    path = root / HPC_DOIP_SOCKETS
+    text = path.read_text()
+    moved = "- name: doip_udp_socket\n  endpoint_address: 10.0.20.5\n"
+    assert moved in text
+    path.write_text(text.replace(moved, "- name: doip_udp_socket\n  endpoint_address: 10.0.10.5\n"))
+
+    ws.update_document(HPC_DOIP_SOCKETS)
+
+    sockets = _wiring(ws.flync_model)["sockets"]
+    assert "doip_udp_socket" not in sockets["high_performance_compute/10.0.20.5"]
+    assert "doip_udp_socket" in sockets["high_performance_compute/10.0.10.5"]
+    assert _wiring(ws.flync_model) == _wiring(_full_load(root, config))
+
+
+def test_removing_the_last_sender_of_a_group_drops_it_from_the_switch(workspace):
+    ws, root, config = workspace
+    path = root / Z1_REAR_LAMP_SOCKETS
+    text = path.read_text()
+    sender = text[text.index("- name: rear_lamp_command_tx") : text.index("- name: rear_lamp_status_rx")]
+    path.write_text(text.replace(sender, ""))
+
+    ws.update_document(Z1_REAR_LAMP_SOCKETS)
+
+    assert _wiring(ws.flync_model)["switch_groups"]["zonal_platform1/z1_switch1/60"] == []
     assert _wiring(ws.flync_model) == _wiring(_full_load(root, config))
