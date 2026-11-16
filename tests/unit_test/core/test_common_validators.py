@@ -54,6 +54,20 @@ class TestValidateOptionalMIIConfigCompatibility:
 
         assert_bind_error(exc_info, "FLYNC-CMN-MAJ-COMP-012", "Both or None of the components should have a MII config")
 
+    def test_mii_one_sided_error_reports_values_and_remediation(self):
+        comp1 = _component("ecu_p", mii_config=None)
+        comp2 = _component("sw_p", mii_config=_mii("mac", speed=1000, mii_type="sgmii"))
+
+        with pytest.raises(PydanticCustomError) as exc_info:
+            validate_optional_mii_config_compatibility(comp1, comp2, "conn1")
+
+        assert_bind_error(
+            exc_info,
+            "FLYNC-CMN-MAJ-COMP-012",
+            "ecu_p: no MII config; sw_p: sgmii/1000/mac. Either remove the MII config from sw_p, "
+            "or set the MII config of ecu_p to match its partner (sgmii/1000/phy)",
+        )
+
     def test_compatible_pair_is_accepted(self):
         comp1 = _component("a", mii_config=_mii("mac"))
         comp2 = _component("b", mii_config=_mii("phy"))
