@@ -92,6 +92,29 @@ class CANInterface(ControllerInterface):
         return self
 
     @model_validator(mode="after")
+    def validate_sender_receiver_frame_uniqueness(self) -> Self:
+        """Raise ``err_major`` if the same ``(id_format, frame_ref)`` appears twice in ``sender_frames`` or ``receiver_frames``."""
+
+        for field_name, frames in (("sender_frames", self.sender_frames), ("receiver_frames", self.receiver_frames)):
+            seen: set[tuple[str, int]] = set()
+            duplicates: set[tuple[str, int]] = set()
+            for ref in frames:
+                key = (ref.id_format, ref.frame_ref)
+                if key in seen:
+                    duplicates.add(key)
+                seen.add(key)
+            if duplicates:
+                raise err_major(
+                    "CANInterface(bus_ref={bus}): duplicate frame_ref(s) in {field}: {dups}",
+                    bus=self.bus_ref,
+                    field=field_name,
+                    dups=[f"{fmt}:{fid}" for fmt, fid in sorted(duplicates)],
+                    category=Category.UNIQUENESS,
+                    error_number="434",
+                )
+        return self
+
+    @model_validator(mode="after")
     def validate_forwarder_frame_uniqueness(self) -> Self:
         """Raise ``err_major`` if the same ``(id_format, frame_ref)`` appears twice in ``forwarder_frames``."""
 

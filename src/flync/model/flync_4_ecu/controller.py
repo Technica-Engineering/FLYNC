@@ -380,8 +380,8 @@ class EthernetInterface(ControllerInterface):
         return self.interface_config.is_part_of_vlan(vlan)
 
     def get_other_interfaces(self) -> list[EthernetInterface]:
-        """Return all EthernetInterfaces of the same owner — the controller, or the compute node, that declares this one."""
-        return list(self.get_controller().ethernet_interfaces or [])
+        """Return the sibling EthernetInterfaces of the same owner — the controller, or the compute node, that declares this one — excluding self."""
+        return [iface for iface in self.get_controller().ethernet_interfaces or [] if iface is not self]
 
 
 class Controller(FLYNCBaseModel):
@@ -537,6 +537,8 @@ class Controller(FLYNCBaseModel):
             [eth.name for eth in self.ethernet_interfaces or [] if eth.interface_config],
             "Controller Interfaces (name)",
         )
+        validate_list_items_unique([can.name for can in self.can_interfaces or []], "CAN Interfaces (name)")
+        validate_list_items_unique([lin.name for lin in self.lin_interfaces or []], "LIN Interfaces (name)")
         return self
 
     @model_validator(mode="after")
@@ -698,7 +700,17 @@ class Controller(FLYNCBaseModel):
         return list(self.ethernet_interfaces or [])
 
     def find_controller_interface(self, interface_name: str) -> EthernetInterfaceConfig:
-        return next(i.interface_config for i in (self.ethernet_interfaces or []) if i.name == interface_name)
+        """Return the config of the named Ethernet interface; raise ``err_major`` if this controller has no such interface."""
+        for iface in self.ethernet_interfaces or []:
+            if iface.name == interface_name:
+                return iface.interface_config
+        raise err_major(
+            "Controller '{controller}' has no Ethernet interface named '{name}'",
+            category=Category.REFERENCE,
+            error_number="433",
+            controller=self.name,
+            name=interface_name,
+        )
 
     def model_post_init(self, __context: object) -> None:
         for interface in self.ethernet_interfaces or []:
