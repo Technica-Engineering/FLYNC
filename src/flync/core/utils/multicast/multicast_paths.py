@@ -121,7 +121,7 @@ def get_controller_interface_connected_component(
     connected_interfaces = comp.get_other_interfaces()
 
     for iface in connected_interfaces:
-        if check_vlan_conn_valid(iface, connected_components, new_connected_components, vlan) and iface.name != comp.name:
+        if check_vlan_conn_valid(iface, connected_components, new_connected_components, vlan):
             new_list.append(iface)
             record_parent(parent, iface, comp)
 

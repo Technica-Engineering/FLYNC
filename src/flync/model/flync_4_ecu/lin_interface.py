@@ -1,11 +1,12 @@
 """LIN interface configuration for ECU controllers."""
 
-from typing import Annotated, List, Literal, Optional, Union
+from typing import Annotated, List, Literal, Optional, Self, Union
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from flync.core.annotations import Implied, ImpliedStrategy
 from flync.core.base_models import FLYNCBaseModel
+from flync.core.utils.exceptions import Category, err_major
 from flync.model.flync_4_ecu.controller_interface import ControllerInterface
 
 _LINProtocol = Literal["1.3", "2.0", "2.1", "2.2A"]
@@ -25,6 +26,26 @@ class LINFrameRef(FLYNCBaseModel):
 
     bus_ref: str = Field(min_length=1)
     frame_ref: int = Field()
+
+
+def _validate_unique_lin_frames(interface: ControllerInterface, field_name: str, frames: List[LINFrameRef]) -> None:
+    """Raise ``err_major`` if the same ``(bus_ref, frame_ref)`` appears twice in ``frames``."""
+    seen: set[tuple[str, int]] = set()
+    duplicates: set[tuple[str, int]] = set()
+    for ref in frames:
+        key = (ref.bus_ref, ref.frame_ref)
+        if key in seen:
+            duplicates.add(key)
+        seen.add(key)
+    if duplicates:
+        raise err_major(
+            "LIN interface '{name}': duplicate frame_ref(s) in {field}: {dups}",
+            name=interface.name,
+            field=field_name,
+            dups=[f"{bus}:{fid}" for bus, fid in sorted(duplicates)],
+            category=Category.UNIQUENESS,
+            error_number="435",
+        )
 
 
 class LINMasterInterface(ControllerInterface):
@@ -61,6 +82,12 @@ class LINMasterInterface(ControllerInterface):
     p2_min: float = Field()
     st_min: float = Field()
     sender_frames: List[LINFrameRef] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_sender_frames_unique(self) -> Self:
+        """Reject duplicate frame references in ``sender_frames``."""
+        _validate_unique_lin_frames(self, "sender_frames", self.sender_frames)
+        return self
 
 
 class LINSlaveInterface(ControllerInterface):
@@ -105,6 +132,12 @@ class LINSlaveInterface(ControllerInterface):
     product_id: Optional[str] = Field(default=None)
     response_error: Optional[str] = Field(default=None)
     receiver_frames: List[LINFrameRef] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_receiver_frames_unique(self) -> Self:
+        """Reject duplicate frame references in ``receiver_frames``."""
+        _validate_unique_lin_frames(self, "receiver_frames", self.receiver_frames)
+        return self
 
 
 AnyLINInterface = Annotated[

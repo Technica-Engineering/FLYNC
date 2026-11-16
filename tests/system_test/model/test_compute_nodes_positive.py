@@ -84,7 +84,7 @@ def test_node_interface_is_owned_by_its_compute_node():
 
     iface = controller.compute_nodes[0].ethernet_interfaces[0]
     assert iface.get_controller().name == "NODE0"
-    assert [sibling.name for sibling in iface.get_other_interfaces()] == ["NODE0_eth0", "NODE0_eth1"]
+    assert [sibling.name for sibling in iface.get_other_interfaces()] == ["NODE0_eth1"]
     assert isinstance(iface.get_controller(), ComputeNode)
 
 
