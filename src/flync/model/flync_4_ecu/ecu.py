@@ -442,6 +442,9 @@ class ECU(FLYNCBaseModel):
         """Bind every socket defined on ``eth_iface`` to its matching IP address on that same interface."""
         iface_config = eth_iface.interface_config
         iface_ips = set(iface_config.get_all_ips())
+        for vi in iface_config.virtual_interfaces or []:
+            for ip in vi.addresses:
+                ip.sockets.clear()
         for socket_container in eth_iface.sockets or []:
             for socket in socket_container.sockets or []:
                 if socket.endpoint_type != "multicast":
@@ -460,8 +463,7 @@ class ECU(FLYNCBaseModel):
             )
         for vi in iface_config.virtual_interfaces or []:
             for ip in vi.addresses:
-                # A controller reused by an incremental reload already holds its sockets.
-                if ip.address == socket.endpoint_address and not any(bound is socket for bound in ip.sockets):
+                if ip.address == socket.endpoint_address:
                     ip.sockets.append(socket)
 
     def __reference_ecu_in_children(self) -> Self:

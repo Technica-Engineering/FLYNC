@@ -66,6 +66,23 @@ class MulticastMixin:
         for ecu in self.ecus:
             ecu.multicast_groups[:] = [group for group in ecu.multicast_groups if not group._derived_by_model]
 
+    def _drop_derived_switch_multicasts(self: FLYNCModelProtocol) -> None:
+        """
+        Put every switch VLAN entry back to its authored multicast groups before the multicast paths provision them again.
+
+        An incremental reload revalidates the root model around the unchanged switches, which still hold the groups and
+        ports a previous validation added. Groups and ports written in the switch file are kept.
+        """
+
+        for ecu in self.ecus:
+            hosts = list(ecu.iter_controllers_and_switch_hosts())
+            for switch in [*(ecu.switches or []), *(switch for host in hosts for switch in host.iter_subtree_switches())]:
+                for v_entry in switch.vlans:
+                    v_entry.multicast[:] = [group for group in v_entry.multicast if not group._derived_by_model]
+                    for group in v_entry.multicast:
+                        group.ports[:] = [port for port in group.ports if port not in group._derived_ports]
+                        group._derived_ports = []
+
     def _populate_ipv6_solicited_node_multicasts_rx(self: FLYNCModelProtocol) -> None:
         """
         Populate the solicited-node multicast group memberships for each IPv6 address configured in any ECU.
@@ -198,8 +215,11 @@ class MulticastMixin:
             found_mcast = True
             if comp.name not in addr.ports:
                 addr.ports.append(comp.name)
+                addr._derived_ports.append(comp.name)
         if not found_mcast:
-            v_entry.multicast.append(MulticastGroup(address=_parse_group_address(mcast_addr), ports=[comp.name]))
+            group = MulticastGroup(address=_parse_group_address(mcast_addr), ports=[comp.name])
+            group._derived_by_model = True
+            v_entry.multicast.append(group)
 
     def load_switch_multicast(
         self: FLYNCModelProtocol,
