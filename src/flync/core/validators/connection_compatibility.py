@@ -8,9 +8,9 @@ from __future__ import annotations
 from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Protocol
 
-from flync.core.utils.exceptions import Category, err_major, err_minor
+from flync.core.utils.exceptions import Category, err_major, err_minor, warn
 from flync.core.validators.generic import validate_list_items_unique
-from flync.model.flync_4_ecu.mii import USGMII, USXGMII, XMIIConfig, mii_carries_mdi_speed
+from flync.model.flync_4_ecu.mii import MII, MULTI_PORT_MIIS, QSGMII, USGMII, USXGMII, XMIIConfig, mii_carries_mdi_speed
 
 if TYPE_CHECKING:
     from flync.model.flync_4_ecu.controller import VirtualControllerInterface
@@ -213,6 +213,9 @@ def _check_mii_pair_compatibility(
         err_major: The *speed* values are different.
 
         err_major: The *type* values are different.
+
+    Warns:
+        warn: Both ends are ``MII`` and exactly one of them is MII-Lite.
     """
 
     if mii_comp1.mode == mii_comp2.mode:
@@ -232,6 +235,15 @@ def _check_mii_pair_compatibility(
             f"Incompatible MII Type: {comp1.name} ({mii_comp1.type}) ↔ {comp2.name}({mii_comp2.type})",
             category=Category.COMPATIBILITY,
             error_number="015",
+        )
+    if isinstance(mii_comp1, MII) and isinstance(mii_comp2, MII) and mii_comp1.lite != mii_comp2.lite:
+        lite_comp, full_comp = (comp1, comp2) if mii_comp1.lite else (comp2, comp1)
+        warn(
+            "MII-Lite on {lite_name} is paired with full MII on {full_name}.",
+            lite_name=lite_comp.name,
+            full_name=full_comp.name,
+            category=Category.COMPATIBILITY,
+            error_number="431",
         )
 
 
@@ -462,7 +474,8 @@ def validate_gptp_domains(comp1: Named | None, comp2: Named | None, ptp1: PTPCon
 def validate_mii_subports(ports: Sequence[MIIPort], label: str, uplink_ports: frozenset[str] = frozenset()) -> None:
     """
     Validate ``mii_subport_of``/``mii_subport_id`` references between ports sharing a multi-port xMII link
-    (see :class:`~flync.model.flync_4_ecu.mii.USXGMII`/:class:`~flync.model.flync_4_ecu.mii.USGMII`).
+    (see :class:`~flync.model.flync_4_ecu.mii.USXGMII`/:class:`~flync.model.flync_4_ecu.mii.USGMII`/
+    :class:`~flync.model.flync_4_ecu.mii.QSGMII`).
 
     Args:
         ports (list): Ports to check, each exposing ``name``, ``mii_config``, ``mii_subport_of``, ``mii_subport_id``.
@@ -477,7 +490,7 @@ def validate_mii_subports(ports: Sequence[MIIPort], label: str, uplink_ports: fr
 
         err_major: ``mii_subport_of`` does not name another port in ``ports``.
 
-        err_major: The referenced port's ``mii_config`` is not a multi-port USXGMII/USGMII link.
+        err_major: The referenced port's ``mii_config`` is not a multi-port USXGMII/USGMII/QSGMII link.
 
         err_major: ``mii_subport_id`` is not one of the referenced link's channel ``subport_id`` values.
 
@@ -506,7 +519,7 @@ def validate_mii_subports(ports: Sequence[MIIPort], label: str, uplink_ports: fr
 
     # The port carrying a link occupies one of its channels too: the one named by its own mii_subport_id, default 0.
     for port in ports:
-        if not isinstance(port.mii_config, (USXGMII, USGMII)) or port.name in uplink_ports:
+        if not isinstance(port.mii_config, MULTI_PORT_MIIS) or port.name in uplink_ports:
             continue
         own_channel = _own_channel(port, port.mii_config, label)
         claimed.append((port.name, own_channel))
@@ -516,7 +529,7 @@ def validate_mii_subports(ports: Sequence[MIIPort], label: str, uplink_ports: fr
 
     claimed_set = set(claimed)
     for port in ports:
-        if isinstance(port.mii_config, (USXGMII, USGMII)):
+        if isinstance(port.mii_config, MULTI_PORT_MIIS):
             _validate_channels_claimed(port, port.mii_config, claimed_set, label)
 
     for port, link in subports:
@@ -566,9 +579,9 @@ def _resolve_subport_link(port: MIIPort, subport_of: str, by_name: dict[str, MII
             error_number="384",
         )
 
-    if not isinstance(sibling.mii_config, (USXGMII, USGMII)):
+    if not isinstance(sibling.mii_config, MULTI_PORT_MIIS):
         raise err_major(
-            "{label} '{port}' has mii_subport_of '{sibling}', which does not carry a multi-port USXGMII/USGMII link.",
+            "{label} '{port}' has mii_subport_of '{sibling}', which does not carry a multi-port USXGMII/USGMII/QSGMII link.",
             label=label,
             port=port.name,
             sibling=sibling.name,
@@ -591,7 +604,7 @@ def _resolve_subport_link(port: MIIPort, subport_of: str, by_name: dict[str, MII
     return sibling
 
 
-def _own_channel(port: MIIPort, lane: USXGMII | USGMII, label: str) -> int:
+def _own_channel(port: MIIPort, lane: USXGMII | USGMII | QSGMII, label: str) -> int:
     """
     Return the channel a port carrying a multi-port link occupies, checking that it exists.
 
@@ -625,7 +638,7 @@ def _own_channel(port: MIIPort, lane: USXGMII | USGMII, label: str) -> int:
     return own_channel
 
 
-def _validate_channels_claimed(port: MIIPort, lane: USXGMII | USGMII, claimed_set: set[tuple[str, int]], label: str) -> None:
+def _validate_channels_claimed(port: MIIPort, lane: USXGMII | USGMII | QSGMII, claimed_set: set[tuple[str, int]], label: str) -> None:
     """
     Check that every channel of a port's multi-port link is claimed by some port.
 
@@ -676,7 +689,7 @@ def validate_mdi_speed_fits_channel(label: str, port: MIIPort, link: MIIPort, md
     """
 
     lane = link.mii_config
-    if not isinstance(lane, (USXGMII, USGMII)):
+    if not isinstance(lane, MULTI_PORT_MIIS):
         return
     channel = next(c for c in lane.channels if c.subport_id == (port.mii_subport_id or 0))
     if not mii_carries_mdi_speed(lane, mdi_config.speed, channel.speed):
@@ -690,6 +703,39 @@ def validate_mdi_speed_fits_channel(label: str, port: MIIPort, link: MIIPort, md
             channel_speed=channel.speed,
             category=Category.CONSISTENCY,
             error_number="388",
+        )
+
+
+def validate_mii_lite_duplex(label: str, port: HasMIIConfig, mdi_config: MDIConfig | None) -> None:
+    """
+    Check that an MII-Lite end of a link does not carry a half-duplex MDI.
+
+    Half duplex needs the CRS and COL signals, which MII-Lite does not have. Only the 10BASE-T1S PHY can be half duplex.
+    Both ends of an MII link share its signals, so the check applies to whichever end is Lite: the port holding the MDI or
+    the component across the MII from it (a switch port or a controller interface).
+
+    Args:
+        label (str): What the component is, for the error message (``ECU Ports``, ``Switch Ports`` or ``Controller Interfaces``).
+
+        port (object): The component holding the ``mii_config``.
+
+        mdi_config (object): The MDI config at the PHY end of the link. Nothing is checked while it is ``None``.
+
+    Raises:
+        err_major: The component has an MII-Lite ``mii_config`` and the MDI is half duplex.
+    """
+
+    mii_config = port.mii_config
+    if mdi_config is None or not isinstance(mii_config, MII) or not mii_config.lite:
+        return
+
+    if mdi_config.duplex == "half":
+        raise err_major(
+            "{label} '{port}' has an MII-Lite config, which cannot carry a half-duplex MDI.",
+            label=label,
+            port=port.name,
+            category=Category.CONSISTENCY,
+            error_number="432",
         )
 
 
@@ -714,12 +760,12 @@ def validate_switch_port_mdi_speed(switch_port: SwitchPort) -> None:
 
     label = "Switch Ports"
     link = None
-    if isinstance(switch_port.mii_config, (USXGMII, USGMII)):
+    if isinstance(switch_port.mii_config, MULTI_PORT_MIIS):
         link = switch_port
     elif switch_port.mii_subport_of is not None:
         link = next((p for p in switch_port.get_switch().ports if p.name == switch_port.mii_subport_of), None)
 
-    if link is not None and isinstance(link.mii_config, (USXGMII, USGMII)):
+    if link is not None and isinstance(link.mii_config, MULTI_PORT_MIIS):
         validate_mdi_speed_fits_channel(label, switch_port, link, mdi_config)
         return
 

@@ -6,12 +6,6 @@ validates each load node. Depends on :mod:`._object_mapping` to register what it
 """
 
 import logging
-import multiprocessing
-import os
-import signal
-import sys
-from concurrent.futures import ProcessPoolExecutor, as_completed
-from itertools import islice
 from pathlib import Path
 from types import UnionType
 from typing import Annotated, Optional, Union, cast, get_args, get_origin
@@ -23,10 +17,12 @@ from flync.core.annotations import (
     External,
     Implied,
     ImpliedStrategy,
+    Namespaced,
     NamingStrategy,
     OutputStrategy,
 )
 from flync.core.base_models.base_model import FLYNCBaseModel
+from flync.core.base_models.namespace import qualify_name
 from flync.core.utils.exceptions_handling import is_semantic_validation_error, locate_errors, validate_with_policy
 from flync.sdk.utils.field_utils import get_metadata
 from flync.sdk.utils.model_dependencies import model_force_rebuild
@@ -34,23 +30,11 @@ from flync.sdk.utils.sdk_types import PathType
 
 from ._base import LoadNode, ParentLink
 from ._object_mapping import _WorkspaceObjectMapping
-from .document import Document, parse_documents, read_file
+from .document import Document, read_file
 
 logger = logging.getLogger(__name__)
 
-
-def _force_exit_pool_worker_on_sigint(_signum: int, _frame: object) -> None:
-    """Exit a workspace-load pool worker immediately on Ctrl+C, without printing a traceback.
-
-    A terminal Ctrl+C reaches every process attached to the terminal, so the
-    workers stop together with the process that loads the workspace.
-    """
-    os._exit(130)
-
-
-def _configure_pool_worker() -> None:
-    """Install the Ctrl+C handler of a workspace-load pool worker (``ProcessPoolExecutor`` initializer)."""
-    signal.signal(signal.SIGINT, _force_exit_pool_worker_on_sigint)
+_UNRECOGNIZED_FILE_MSG = "Unrecognized file found in FLYNC workspace: %s"
 
 
 class _WorkspaceLoading(_WorkspaceObjectMapping):
@@ -58,53 +42,18 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
 
     def _open_documents(self):
         """
-        Open all documents in the workspace matching the configured file extension.
-        File I/O and YAML parsing happen inside the ProcessPool workers; the raw text
-        is NOT returned through IPC to reduce pickle overhead — it is re-read from the
-        OS page cache in the main process for Document construction.
+        Open and parse every document in the workspace matching the configured file extension.
+
+        Documents are read and parsed in this process, in sorted path order.
 
         Returns:
             None
         """
         if self.workspace_root is None:
             return
-        files = [p for p in self.workspace_root.rglob(f"*{self.configuration.flync_file_extension}") if p.is_file()]
-        if len(files) == 0:
-            return
-
-        def batched(iterable, size):
-            """Yield successive batches of given size from an iterable."""
-            i = iter(iterable)
-            while batch := list(islice(i, size)):
-                yield batch
-
-        workers = os.cpu_count() or 1
-        batch_size = max(32, len(files) // (workers * 4))
-        batches = list(batched(files, batch_size))
-
-        # A forking ProcessPoolExecutor is unsafe here: load_workspace is driven from
-        # asyncio.to_thread(...), so the default POSIX "fork" start method forks from a
-        # multi-threaded process and can deadlock the child. Use a non-fork context
-        # (forkserver on POSIX, spawn elsewhere); everything submitted (module-level
-        # parse_document, path/str/bool args) is picklable, so this is behavior-neutral.
-        mp_context = multiprocessing.get_context("forkserver" if sys.platform != "win32" else "spawn")
-        with ProcessPoolExecutor(mp_context=mp_context, initializer=_configure_pool_worker) as pool:
-            futures = [
-                pool.submit(
-                    parse_documents,
-                    batch,
-                    self.workspace_root,
-                    self.configuration.map_objects,
-                )
-                for batch in batches
-            ]
-
-            for future in as_completed(futures):
-                for uri, ast, compose_ast in future.result():
-                    text = read_file(self.workspace_root / uri)
-                    doc = Document(uri, text, self.configuration.map_objects)
-                    doc.assign_ast(ast, compose_ast)
-                    self.documents[doc.uri] = doc
+        for path in sorted(self.workspace_root.rglob(f"*{self.configuration.flync_file_extension}")):
+            if path.is_file():
+                self._open_document(path)
 
     def _open_document(self, uri: PathType):
         """
@@ -135,6 +84,8 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
         list_paths: list[str],
         parent_path: Path,
         position: int,
+        namespace: tuple[str, ...] = (),
+        namespaced: Optional[Namespaced] = None,
     ):
         """
         Load one item from a list-folder entry, handling Union and concrete types.
@@ -151,12 +102,14 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
             parent_path (Path): Path of the parent load-node that owns the list field.
             position (int): Index this item occupies in the built list (skipped entries excluded),
                 used to splice a reloaded value back into the parent.
+            namespace (tuple[str, ...]): Folder names between the list root and this item, outermost first.
+            namespaced (Namespaced | None): The ``Namespaced`` annotation of the list, if it has one.
 
         Returns:
             The loaded model instance, or ``None`` if loading failed.
         """
 
-        link = ParentLink(parent_path, field_name, "list", position)
+        link = ParentLink(parent_path, field_name, "list", position, namespace, namespaced)
         if base_type is Union or base_type is UnionType:
             item_info: dict = {}
             self.__handle_generic_types_union(
@@ -201,6 +154,7 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
         module_load_info: dict,
         path: Path,
         current_object_paths: list[str],
+        namespaced: Optional[Namespaced] = None,
     ) -> bool:
         """
         Load an external ``list`` field from disk into ``module_load_info``.
@@ -216,49 +170,23 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
             module_load_info (dict): Accumulator for loaded field values; updated in place.
             path (Path): Absolute path of the current directory.
             current_object_paths (str): Dot-path context for object tracking.
+            namespaced (Namespaced | None): When given, sub-folders of the list folder are namespaces and the
+                items below them are loaded with a qualified name.
 
         Returns:
             bool: ``True`` if the field was handled, ``False`` otherwise.
         """
 
-        list_item_value: list = []
-        list_element_type = base_type_args[0]
         if OutputStrategy.FOLDER in external.output_structure:
-            item_dir = path / external_path
-            effective_element_type = list_element_type
-            if get_origin(list_element_type) is Annotated:
-                effective_element_type = get_args(list_element_type)[0]
-            base_type = get_origin(effective_element_type)
-            base_type_args = get_args(effective_element_type)
-            # Sort so list indices (and therefore object ids and list order) are
-            # deterministic across loads and filesystems; iterdir() order is not.
-            for idx, sub_item_path in enumerate(sorted(item_dir.iterdir())):
-                if self.is_hidden_path(sub_item_path):
-                    continue
-                if not self.is_path_supported(sub_item_path):
-                    logger.warning(
-                        "Unrecognized file found in FLYNC workspace: %s",
-                        str(sub_item_path),
-                    )
-                    continue
-                list_name = self.name_form_file(sub_item_path)
-                list_paths = self.add_list_item_object_path(list_name, current_object_paths, idx)
-                item = self.__load_list_item(
-                    sub_item_path,
-                    base_type,
-                    base_type_args,
-                    list_element_type,
-                    field_name,
-                    item_dir,
-                    external,
-                    list_paths,
-                    path,
-                    len(list_item_value),
-                )
-                if item is None:
-                    continue
-                list_item_value.append(item)
-            module_load_info[field_name] = list_item_value
+            module_load_info[field_name] = self.__load_list_folder(
+                base_type_args[0],
+                external,
+                external_path,
+                field_name,
+                path,
+                current_object_paths,
+                namespaced,
+            )
             return True
         if OutputStrategy.SINGLE_FILE in external.output_structure:
             self.__handle_generic_types_list_single_file(
@@ -272,6 +200,119 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
             )
             return True
         return False
+
+    def __load_list_folder(
+        self,
+        list_element_type,
+        external: External,
+        external_path: str,
+        field_name: str,
+        path: Path,
+        current_object_paths: list[str],
+        namespaced: Optional[Namespaced],
+    ) -> list:
+        """
+        Load every item of a ``FOLDER``-strategy list field.
+
+        Args:
+            list_element_type: Declared element type of the list field.
+            external (External): Annotation controlling the load strategy.
+            external_path (str): Relative path segment for this field.
+            field_name (str): Field name on the parent model.
+            path (Path): Absolute path of the current directory.
+            current_object_paths (list[str]): Dot-path context for object tracking.
+            namespaced (Namespaced | None): The ``Namespaced`` annotation of the list, if it has one.
+
+        Returns:
+            list: The successfully loaded items, in deterministic order.
+        """
+
+        item_dir = path / external_path
+        effective_element_type = list_element_type
+        if get_origin(list_element_type) is Annotated:
+            effective_element_type = get_args(list_element_type)[0]
+        base_type = get_origin(effective_element_type)
+        element_args = get_args(effective_element_type)
+        # Sorted so list indices (and therefore object ids and list order) are
+        # deterministic across loads and filesystems; iterdir() order is not.
+        if namespaced is not None:
+            entries = list(self.__iter_namespaced_items(item_dir, (), namespaced))
+        else:
+            entries = [(sub_item_path, ()) for sub_item_path in self.__iter_supported_paths(item_dir)]
+
+        list_item_value: list = []
+        for idx, (sub_item_path, namespace) in enumerate(entries):
+            list_name = self.name_form_file(sub_item_path)
+            if namespaced is not None:
+                list_name = namespaced.separator.join([*namespace, list_name])
+            list_paths = self.add_list_item_object_path(list_name, current_object_paths, idx)
+            item = self.__load_list_item(
+                sub_item_path,
+                base_type,
+                element_args,
+                list_element_type,
+                field_name,
+                sub_item_path.parent,
+                external,
+                list_paths,
+                path,
+                len(list_item_value),
+                namespace,
+                namespaced,
+            )
+            if item is not None:
+                list_item_value.append(item)
+        return list_item_value
+
+    def __iter_supported_paths(self, directory: Path):
+        """
+        Yield the entries of ``directory`` in sorted order, skipping hidden ones silently.
+
+        Entries the workspace does not support are skipped with a warning.
+
+        Args:
+            directory (Path): The folder to list.
+
+        Yields:
+            Path: Each hidden-filtered, supported entry.
+        """
+
+        for sub_item_path in sorted(directory.iterdir()):
+            if self.is_hidden_path(sub_item_path):
+                continue
+            if not self.is_path_supported(sub_item_path):
+                logger.warning(_UNRECOGNIZED_FILE_MSG, str(sub_item_path))
+                continue
+            yield sub_item_path
+
+    def __iter_namespaced_items(self, directory: Path, namespace: tuple[str, ...], namespaced: Namespaced):
+        """
+        Walk a ``Namespaced`` list folder, yielding every item file with the namespace it sits in.
+
+        Every sub-folder adds one namespace segment. Entries are visited in sorted order so list positions and
+        object ids are deterministic. Hidden entries are skipped silently, unsupported files and folders whose
+        name contains the namespace separator are skipped with a warning.
+
+        Args:
+            directory (Path): The folder to walk.
+            namespace (tuple[str, ...]): Namespace segments of ``directory``, outermost first.
+            namespaced (Namespaced): The annotation of the list being loaded.
+
+        Yields:
+            tuple[Path, tuple[str, ...]]: An item file and the namespace segments it is stored under.
+        """
+
+        for sub_item_path in self.__iter_supported_paths(directory):
+            if not sub_item_path.is_dir():
+                yield sub_item_path, namespace
+            elif namespaced.separator in sub_item_path.name:
+                logger.warning(
+                    "Skipping folder %s: a namespace folder name must not contain '%s'.",
+                    str(sub_item_path),
+                    namespaced.separator,
+                )
+            else:
+                yield from self.__iter_namespaced_items(sub_item_path, (*namespace, sub_item_path.name), namespaced)
 
     def __handle_generic_types_list_single_file(
         self,
@@ -360,15 +401,7 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
         dict_element_type = base_type_args[1]
         if OutputStrategy.FOLDER in external.output_structure:
             item_dir = path / external_path
-            for sub_item_path in sorted(item_dir.iterdir()):
-                if self.is_hidden_path(sub_item_path):
-                    continue
-                if not self.is_path_supported(sub_item_path):
-                    logger.warning(
-                        "Unrecognized file found in FLYNC workspace: %s",
-                        str(sub_item_path),
-                    )
-                    continue
+            for sub_item_path in self.__iter_supported_paths(item_dir):
                 dict_item_value[sub_item_path.name] = self._load_from_path(
                     sub_item_path,
                     dict_element_type,
@@ -457,6 +490,7 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
         path: Path,
         current_object_paths: list[str],
         link: Optional[ParentLink] = None,
+        namespaced: Optional[Namespaced] = None,
     ) -> bool:
         """
         Attempt to load an external ``Union`` field by trying each member type.
@@ -473,6 +507,8 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
             module_load_info (dict): Accumulator for loaded field values; updated in place.
             path (Path): Absolute path of the current directory.
             current_object_paths (list[str]): Dot-path contexts for object tracking.
+            link (ParentLink | None): How the loaded value attaches to its parent.
+            namespaced (Namespaced | None): Forwarded to the member loaders, e.g. for ``Optional[List[...]]``.
 
         Returns:
             bool: ``True`` if at least one union member loaded successfully.
@@ -509,6 +545,7 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
                         field_name,
                         storage_key,
                         current_object_paths,
+                        namespaced,
                     )
                 success_union = True
                 break
@@ -529,6 +566,7 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
         field_name: str,
         storage_key: str,
         current_object_paths: list[str],
+        namespaced: Optional[Namespaced] = None,
     ):
         """
         Dispatch an external field to the correct type-specific loader.
@@ -547,6 +585,7 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
             module_load_info (dict): Accumulator for loaded field values; updated in place.
             field_name (str): Field name on the parent model.
             current_object_paths (str): Dot-path context(s) for object tracking.
+            namespaced (Namespaced | None): The ``Namespaced`` annotation of the field, if any; only list fields use it.
 
         Raises:
             ValueError: If the field type is not supported for external loading.
@@ -564,6 +603,7 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
                 module_load_info,
                 path,
                 current_object_paths,
+                namespaced,
             )
 
         elif base_type is dict:
@@ -588,6 +628,7 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
                 path,
                 current_object_paths,
                 scalar_link,
+                namespaced,
             )
 
         if not done and type(None) in base_type_args:
@@ -686,6 +727,8 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
 
         # then group all the fields into the same object and return it
         self._append_to_info_dict(path, module_load_info)
+        if link is not None and link.namespaced is not None and link.namespace:
+            module_load_info = qualify_name(module_load_info, link.namespace, link.namespaced)
 
         if doc_id in self.documents_diags:
             logger.error("File %s was already loaded.", doc_id)
@@ -732,6 +775,7 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
                     base_type = get_origin(attribute_type)
                     base_type_args = get_args(attribute_type)
             new_paths = self.update_objects_path(current_object_paths, field_name)
+            namespaced = get_metadata(field_info_obj.metadata, Namespaced)
             self.__handle_generic_types(
                 cast(type, attribute_type),
                 base_type,
@@ -743,6 +787,7 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
                 field_name,
                 storage_key,
                 new_paths,
+                namespaced,
             )
 
     def _append_to_info_dict(

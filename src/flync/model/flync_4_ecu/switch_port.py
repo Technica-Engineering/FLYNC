@@ -19,7 +19,7 @@ from flync.core.validators.generic import (
     none_to_empty_list,
     validate_or_remove,
 )
-from flync.model.flync_4_ecu.mii import MII, RGMII, RMII, SGMII, USGMII, USXGMII, XFI
+from flync.model.flync_4_ecu.mii import MII, QSGMII, RGMII, RMII, SGMII, USGMII, USXGMII, XFI
 from flync.model.flync_4_ecu.phy import BASET, BASET1, BASET1S
 from flync.model.flync_4_ecu.port_extender import PortExtender
 from flync.model.flync_4_security import MACsecConfig
@@ -55,13 +55,14 @@ class SwitchPort(FLYNCBaseModel):
     mii_config : :class:`~flync.model.flync_4_ecu.mii.MII` or :class:`~flync.model.flync_4_ecu.mii.RMII` or \
     :class:`~flync.model.flync_4_ecu.mii.SGMII` or :class:`~flync.model.flync_4_ecu.mii.RGMII` or \
     :class:`~flync.model.flync_4_ecu.mii.XFI` or :class:`~flync.model.flync_4_ecu.mii.USXGMII` or \
-    :class:`~flync.model.flync_4_ecu.mii.USGMII`, optional
+    :class:`~flync.model.flync_4_ecu.mii.USGMII` or :class:`~flync.model.flync_4_ecu.mii.QSGMII`, optional
         Media-independent interface configuration. ``None`` when this port is instead a channel of a
         sibling port's multi-port link; see ``mii_subport_of``.
 
     mii_subport_of : str, optional
         Name of a sibling :class:`SwitchPort` on this switch that carries a multi-port
-        :class:`~flync.model.flync_4_ecu.mii.USXGMII`/:class:`~flync.model.flync_4_ecu.mii.USGMII` link, of which
+        :class:`~flync.model.flync_4_ecu.mii.USXGMII`/:class:`~flync.model.flync_4_ecu.mii.USGMII`/
+        :class:`~flync.model.flync_4_ecu.mii.QSGMII` link, of which
         this port is one channel. Mutually exclusive with ``mii_config``. The port carrying the link occupies a channel too.
 
     mii_subport_id : int, optional
@@ -101,7 +102,7 @@ class SwitchPort(FLYNCBaseModel):
     name: str = Field(min_length=1)
     silicon_port_no: int = Field(ge=0)
     default_vlan_id: int = Field(..., ge=0, le=4095)
-    mii_config: Optional[MII | RMII | SGMII | RGMII | XFI | USXGMII | USGMII] = Field(default=None, discriminator="type")
+    mii_config: Optional[MII | RMII | SGMII | RGMII | XFI | USXGMII | USGMII | QSGMII] = Field(default=None, discriminator="type")
     mii_subport_of: Optional[str] = Field(default=None)
     mii_subport_id: Optional[int] = Field(default=None, ge=0)
     ptp_config: Annotated[

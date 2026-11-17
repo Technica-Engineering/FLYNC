@@ -412,7 +412,7 @@ class _WorkspaceIncremental(_WorkspaceLoading):
 
         Used when a partial update cannot be completed in place (e.g. a change breaks a root-resolved
         reference, or a new item lands directly under the root). Unlike :meth:`_reset_and_reload` it does
-        not re-read or re-parse files through the process pool - it reuses the in-memory document ASTs
+        not re-read or re-parse files - it reuses the in-memory document ASTs
         that ``update_document`` keeps in sync, reading from disk only files not seen before (a newly
         created document). This makes the fallback markedly cheaper than a cold load.
         """

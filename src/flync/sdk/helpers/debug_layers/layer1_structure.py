@@ -16,6 +16,7 @@ from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 
 from flync.core.annotations.external import External, OutputStrategy
+from flync.core.annotations.namespaced import Namespaced
 from flync.sdk.helpers.debug import (
     FLYNC_EXT,
     _display_name,
@@ -133,13 +134,19 @@ def check_structure(
     model_cls: type[BaseModel],
     dir_path: Path,
     root_path: Path,
+    known_names_root: Optional[type[BaseModel]] = None,
 ) -> list[StructureIssue]:
     """
     Validate the filesystem tree rooted at dir_path against the External
     annotations of model_cls.  Returns a list of StructureIssue objects.
+
+    ``known_names_root`` is the model the "this name belongs elsewhere" map is built from, and
+    defaults to ``model_cls``.  When only a partial model is checked (``model_cls`` is a node type)
+    pass the full ``FLYNCModel`` here, so an entry that belongs somewhere else in the workspace is
+    still reported as misplaced instead of merely unrecognized.
     """
     issues: list[StructureIssue] = []
-    known_names = _build_known_filenames(model_cls)
+    known_names = _build_known_filenames(known_names_root or model_cls)
     _check_dir(model_cls, dir_path, root_path, known_names, issues)
     return issues
 
@@ -215,7 +222,8 @@ def _check_folder_field(
     if not _is_pydantic_model(inner):
         return
     if is_list:
-        _check_list_field_items(name, inner, target, root_path, known_names, issues)
+        namespaced = get_metadata(field_info.metadata, Namespaced) is not None
+        _check_list_field_items(name, inner, target, root_path, known_names, issues, namespaced)
     else:
         _check_dir(inner, target, root_path, known_names, issues)
 
@@ -227,11 +235,15 @@ def _check_list_field_items(
     root_path: Path,
     known_names: dict[str, list[str]],
     issues: list[StructureIssue],
+    namespaced: bool = False,
 ) -> None:
-    """Validate each item found under a List[Model] field's folder."""
+    """Validate each item found under a List[Model] field's folder; sub-folders of a namespaced list are namespaces."""
     item_has_substructure = _has_external_fields(inner)
     for child in sorted(target.iterdir()):
         if _should_skip(child):
+            continue
+        if namespaced and child.is_dir() and not item_has_substructure:
+            _check_list_field_items(name, inner, child, root_path, known_names, issues, namespaced)
             continue
         _check_list_item(name, inner, child, item_has_substructure, target, root_path, known_names, issues)
 

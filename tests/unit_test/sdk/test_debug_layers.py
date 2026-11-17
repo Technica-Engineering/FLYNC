@@ -509,6 +509,30 @@ def test_check_structure_scenarios(tmp_path):
     assert issue.path == ""
 
 
+def test_known_names_root_reports_misplaced_entry_during_a_partial_check(tmp_path):
+    """
+    When only a sub-model is checked, ``known_names_root`` decides how a foreign entry is classified.
+
+    'leaves' belongs at the Root level, so against the full model it is a misplaced-entry error;
+    without that wider map ItemWithSub alone can only call it unrecognized.
+    """
+    item_dir = tmp_path / "item1"
+    item_dir.mkdir()
+    (item_dir / "detail.flync.yaml").write_text("id: d1\n", encoding="utf-8")
+    (item_dir / "leaves").mkdir()
+
+    # Default: the map comes from ItemWithSub itself, which has never heard of 'leaves'.
+    local_only = check_structure(ItemWithSub, item_dir, item_dir)
+    assert [i.severity for i in local_only] == ["warning"]
+    assert "Unrecognized folder: 'leaves'" in local_only[0].message
+
+    # Matched against the full model: 'leaves' is known, just not here.
+    against_root = check_structure(ItemWithSub, item_dir, item_dir, Root)
+    assert [i.severity for i in against_root] == ["error"]
+    assert "'leaves' is in the wrong location" in against_root[0].message
+    assert "<root>" in against_root[0].hint
+
+
 _VALID_YAML = "id: value\nlist:\n  - a\n  - b\n"
 _INVALID_YAML = "id: [1, 2\nother: 3\n"
 
@@ -561,14 +585,16 @@ def test_run_debug_scenarios(tmp_path, capsys, monkeypatch):
         m.setattr(
             layer1_mod,
             "check_structure",
-            lambda model_cls, dir_path, root_path: [StructureIssue(severity="error", message="Required folder missing: 'ecus'")],
+            lambda model_cls, dir_path, root_path, known_names_root=None: [
+                StructureIssue(severity="error", message="Required folder missing: 'ecus'")
+            ],
         )
         run_debug(tmp_path)
         assert "Stopped at Layer 1." in _plain(capsys.readouterr().out)
 
     # Stops at Layer 2 on a YAML syntax error.
     with monkeypatch.context() as m:
-        m.setattr(layer1_mod, "check_structure", lambda model_cls, dir_path, root_path: [])
+        m.setattr(layer1_mod, "check_structure", lambda model_cls, dir_path, root_path, known_names_root=None: [])
         m.setattr(
             layer2_mod,
             "check_yaml_syntax",
@@ -579,12 +605,12 @@ def test_run_debug_scenarios(tmp_path, capsys, monkeypatch):
 
     # Reports "Model is valid" when no issues are found at any layer.
     with monkeypatch.context() as m:
-        m.setattr(layer1_mod, "check_structure", lambda model_cls, dir_path, root_path: [])
+        m.setattr(layer1_mod, "check_structure", lambda model_cls, dir_path, root_path, known_names_root=None: [])
         m.setattr(layer2_mod, "check_yaml_syntax", lambda dir_path: [])
         m.setattr(
             layer345_mod,
             "run_workspace_validation",
-            lambda dir_path: (SimpleNamespace(model=object()), []),
+            lambda dir_path, root_model=None: (SimpleNamespace(model=object()), []),
         )
         run_debug(tmp_path)
         assert "Model is valid" in capsys.readouterr().out
@@ -593,12 +619,12 @@ def test_run_debug_scenarios(tmp_path, capsys, monkeypatch):
     from flync.sdk.helpers.debug_layers.layer3_4_5_workspace import WorkspaceIssue
 
     with monkeypatch.context() as m:
-        m.setattr(layer1_mod, "check_structure", lambda model_cls, dir_path, root_path: [])
+        m.setattr(layer1_mod, "check_structure", lambda model_cls, dir_path, root_path, known_names_root=None: [])
         m.setattr(layer2_mod, "check_yaml_syntax", lambda dir_path: [])
         m.setattr(
             layer345_mod,
             "run_workspace_validation",
-            lambda dir_path: (
+            lambda dir_path, root_model=None: (
                 SimpleNamespace(model=object()),
                 [
                     WorkspaceIssue(layer=4, severity="error", message="bad value", field="x"),
@@ -613,3 +639,35 @@ def test_run_debug_scenarios(tmp_path, capsys, monkeypatch):
         assert "Layer 5 - System-Wide Validation" in out
         assert "system warning" in out
         assert "Stopped at Layer 3." not in out
+
+
+def test_run_debug_with_node_uses_that_root_model(tmp_path, capsys, monkeypatch):
+    """``run_debug(path, "ECU")`` runs every layer against the ECU model instead of ``FLYNCModel``."""
+    from flync.model.flync_4_ecu.ecu import ECU
+
+    seen: dict[str, object] = {}
+
+    def fake_check_structure(model_cls, dir_path, root_path, known_names_root=None):
+        seen["layer1"] = model_cls
+        return []
+
+    def fake_run_workspace_validation(dir_path, root_model=None):
+        seen["layer345"] = root_model
+        return SimpleNamespace(model=object()), []
+
+    with monkeypatch.context() as m:
+        m.setattr(layer1_mod, "check_structure", fake_check_structure)
+        m.setattr(layer2_mod, "check_yaml_syntax", lambda dir_path: [])
+        m.setattr(layer345_mod, "run_workspace_validation", fake_run_workspace_validation)
+        run_debug(tmp_path, "ECU")
+
+    out = _plain(capsys.readouterr().out)
+    assert "FLYNC Node Debug (ECU)" in out
+    assert seen["layer1"] is ECU
+    assert seen["layer345"] is ECU
+
+
+def test_run_debug_with_unknown_node_reports_and_stops(tmp_path, capsys):
+    """An unknown node name is reported instead of falling back to a full-workspace run."""
+    assert run_debug(tmp_path, "NotAModel") is None
+    assert "Unknown node type" in _plain(capsys.readouterr().out)

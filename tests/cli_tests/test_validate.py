@@ -109,16 +109,17 @@ class TestValidateVerbose:
             result = runner.invoke(app, [str(tmp_path), "--verbose"])
         assert_cli_error(result, 1, "INVALID")
 
-    def test_verbose_is_ignored_together_with_node(self, tmp_path):
-        """The layered checks only cover a whole workspace, so --verbose has no effect together with --node."""
+    def test_verbose_with_node_runs_the_layers_against_that_node(self, tmp_path):
+        """``--verbose --node`` debugs a partial model: the layers run with the node type as root model."""
 
         with (
-            patch("flync_cli.commands.validate.run_debug") as mock_run_debug,
-            patch("flync_cli.commands.validate.validate_external_node", return_value=_result(WorkspaceState.VALID)),
+            patch("flync_cli.commands.validate.run_debug", return_value=_result(WorkspaceState.VALID)) as mock_run_debug,
+            patch("flync_cli.commands.validate.validate_external_node") as mock_validate_node,
         ):
             result = runner.invoke(app, [str(tmp_path), "--node", "ECU", "--verbose"])
         assert_cli_ok(result)
-        mock_run_debug.assert_not_called()
+        mock_validate_node.assert_not_called()
+        assert mock_run_debug.call_args.args[1] == "ECU"
 
 
 class TestLoadWorkspace:

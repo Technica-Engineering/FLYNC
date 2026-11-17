@@ -28,7 +28,8 @@ class EnumConfig(ConverterConfig):
 
 def _raise_converter_class(error):
     class Fake:
-        def convert(self, *a, **k):
+        @staticmethod
+        def convert_request(request):
             raise RuntimeError(error)
 
     return Fake
@@ -46,7 +47,7 @@ class TestRequiredEmpty:
             app = FlyncTUI()
             async with app.run_test() as pilot:
                 await pilot.pause()
-                source = app.query_one("#source-panel", ConverterPanel)
+                source = app.query_one("#source-panel-1", ConverterPanel)
                 with pytest.raises(ValidationError):
                     source.read_config()
 
@@ -62,7 +63,7 @@ class TestInvalidValues:
             app = FlyncTUI()
             async with app.run_test() as pilot:
                 await pilot.pause()
-                source = app.query_one("#source-panel", ConverterPanel)
+                source = app.query_one("#source-panel-1", ConverterPanel)
                 await helpers.select_format(source, "dbc", pilot)
                 _set(source, "baud_rate_default", "abc")
                 with pytest.raises(ValidationError):
@@ -75,7 +76,7 @@ class TestInvalidValues:
             app = FlyncTUI()
             async with app.run_test() as pilot:
                 await pilot.pause()
-                source = app.query_one("#source-panel", ConverterPanel)
+                source = app.query_one("#source-panel-1", ConverterPanel)
                 await helpers.select_format(source, "dbc", pilot)
                 _set(source, "baud_rate_default", "not-an-int")
                 with pytest.raises(ValidationError):
@@ -94,7 +95,7 @@ class TestOutOfRange:
                 app = FlyncTUI()
                 async with app.run_test() as pilot:
                     await pilot.pause()
-                    source = app.query_one("#source-panel", ConverterPanel)
+                    source = app.query_one("#source-panel-1", ConverterPanel)
                     await helpers.select_format(source, name, pilot)
                     _set(source, "retries", "99")
                     with pytest.raises(ValidationError):
@@ -115,7 +116,7 @@ class TestInvalidPanelConfig:
             app = FlyncTUI()
             async with app.run_test() as pilot:
                 await pilot.pause()
-                source = app.query_one("#source-panel", ConverterPanel)
+                source = app.query_one("#source-panel-1", ConverterPanel)
                 await pilot.click("#btn-convert")
                 await pilot.pause()
                 err = source.query_one("#error")
@@ -132,9 +133,9 @@ class TestInvalidPanelConfig:
             app = FlyncTUI()
             async with app.run_test() as pilot:
                 await pilot.pause()
-                source = app.query_one("#source-panel", ConverterPanel)
+                source = app.query_one("#source-panel-1", ConverterPanel)
                 helpers.set_config_path(source, "/tmp/only-source")
-                dest = app.query_one("#dest-panel", ConverterPanel)
+                dest = app.query_one("#destination-panel-1", ConverterPanel)
                 await pilot.pause()
                 await pilot.click("#btn-convert")
                 await pilot.pause()
@@ -152,7 +153,8 @@ class TestIncompatiblePair:
         calls = []
 
         class Fake:
-            def convert(self, *a, **k):
+            @staticmethod
+            def convert_request(request):
                 calls.append(1)
 
         monkeypatch = pytest.MonkeyPatch()
@@ -162,8 +164,8 @@ class TestIncompatiblePair:
             app = FlyncTUI()
             async with app.run_test() as pilot:
                 await pilot.pause()
-                helpers.set_config_path(app.query_one("#source-panel", ConverterPanel), "/tmp/a")
-                helpers.set_config_path(app.query_one("#dest-panel", ConverterPanel), "/tmp/b")
+                helpers.set_config_path(app.query_one("#source-panel-1", ConverterPanel), "/tmp/a")
+                helpers.set_config_path(app.query_one("#destination-panel-1", ConverterPanel), "/tmp/b")
                 await pilot.pause()
                 await pilot.click("#btn-convert")
                 await helpers.wait_until(lambda: len(calls) == 1, pilot)
@@ -185,8 +187,8 @@ class TestMissingFile:
             app = FlyncTUI()
             async with app.run_test() as pilot:
                 await pilot.pause()
-                helpers.set_config_path(app.query_one("#source-panel", ConverterPanel), "/nonexistent/src")
-                helpers.set_config_path(app.query_one("#dest-panel", ConverterPanel), "/nonexistent/dst")
+                helpers.set_config_path(app.query_one("#source-panel-1", ConverterPanel), "/nonexistent/src")
+                helpers.set_config_path(app.query_one("#destination-panel-1", ConverterPanel), "/nonexistent/dst")
                 await pilot.pause()
                 await pilot.click("#btn-convert")
                 await helpers.wait_until(lambda: "Conversion failed" in helpers.log_text(app.query_one("#run-log")), pilot)
@@ -202,7 +204,7 @@ class TestEmptyPath:
             app = FlyncTUI()
             async with app.run_test() as pilot:
                 await pilot.pause()
-                source = app.query_one("#source-panel", ConverterPanel)
+                source = app.query_one("#source-panel-1", ConverterPanel)
                 _set(source, "config_path", "   ")
                 with pytest.raises(ValidationError):
                     source.read_config()
@@ -218,7 +220,7 @@ class TestSpecialCharacters:
             app = FlyncTUI()
             async with app.run_test() as pilot:
                 await pilot.pause()
-                source = app.query_one("#source-panel", ConverterPanel)
+                source = app.query_one("#source-panel-1", ConverterPanel)
                 helpers.set_config_path(source, "C:/My Folder/file name(with)stuff.dbc")
                 cfg = source.read_config()
                 assert cfg.config_path == "C:/My Folder/file name(with)stuff.dbc"
@@ -234,7 +236,7 @@ class TestVeryLong:
             app = FlyncTUI()
             async with app.run_test() as pilot:
                 await pilot.pause()
-                source = app.query_one("#source-panel", ConverterPanel)
+                source = app.query_one("#source-panel-1", ConverterPanel)
                 long_path = "/tmp/" + "x" * 5000
                 helpers.set_config_path(source, long_path)
                 cfg = source.read_config()
@@ -251,7 +253,7 @@ class TestUnicode:
             app = FlyncTUI()
             async with app.run_test() as pilot:
                 await pilot.pause()
-                source = app.query_one("#source-panel", ConverterPanel)
+                source = app.query_one("#source-panel-1", ConverterPanel)
                 unicode_path = "/tmp/éàç-表-😀"
                 helpers.set_config_path(source, unicode_path)
                 cfg = source.read_config()
@@ -267,7 +269,8 @@ class TestModifyDuringConversion:
         calls = []
 
         class Slow:
-            def convert(self, *a, **k):
+            @staticmethod
+            def convert_request(request):
                 calls.append(1)
                 time.sleep(1.0)
 
@@ -278,9 +281,9 @@ class TestModifyDuringConversion:
             app = FlyncTUI()
             async with app.run_test() as pilot:
                 await pilot.pause()
-                source = app.query_one("#source-panel", ConverterPanel)
+                source = app.query_one("#source-panel-1", ConverterPanel)
                 helpers.set_config_path(source, "/tmp/src")
-                helpers.set_config_path(app.query_one("#dest-panel", ConverterPanel), "/tmp/dst")
+                helpers.set_config_path(app.query_one("#destination-panel-1", ConverterPanel), "/tmp/dst")
                 await pilot.pause()
                 await pilot.click("#btn-convert")
                 await pilot.pause()
@@ -302,10 +305,10 @@ class TestPluginMisconfigured:
                 app = FlyncTUI()
                 async with app.run_test() as pilot:
                     await pilot.pause()
-                    source = app.query_one("#source-panel", ConverterPanel)
+                    source = app.query_one("#source-panel-1", ConverterPanel)
                     await helpers.select_format(source, name, pilot)
                     assert source.converter_type == name
-                    assert app.query_one("#source-panel") is not None
+                    assert app.query_one("#source-panel-1") is not None
 
             helpers.run(_impl())
 
@@ -320,7 +323,7 @@ class TestPluginNoConfig:
                 app = FlyncTUI()
                 async with app.run_test() as pilot:
                     await pilot.pause()
-                    source = app.query_one("#source-panel", ConverterPanel)
+                    source = app.query_one("#source-panel-1", ConverterPanel)
                     await helpers.select_format(source, name, pilot)
                     helpers.set_config_path(source, "/tmp/x")
                     cfg = source.read_config()
@@ -342,8 +345,7 @@ class TestUnknownFormat:
             app = FlyncTUI()
             async with app.run_test() as pilot:
                 await pilot.pause()
-                source = app.query_one("#source-panel", ConverterPanel)
-                assert app.query_one("#source-panel") is not None
+                assert app.query_one("#source-panel-1", ConverterPanel) is not None
 
         helpers.run(_impl())
 
@@ -357,7 +359,7 @@ class TestPositiveModify:
             app = FlyncTUI()
             async with app.run_test() as pilot:
                 await pilot.pause()
-                source = app.query_one("#source-panel", ConverterPanel)
+                source = app.query_one("#source-panel-1", ConverterPanel)
                 helpers.set_config_path(source, "/tmp/edited")
                 assert source.read_config().config_path == "/tmp/edited"
 
@@ -370,10 +372,10 @@ class TestPositiveModify:
                 app = FlyncTUI()
                 async with app.run_test() as pilot:
                     await pilot.pause()
-                    source = app.query_one("#source-panel", ConverterPanel)
+                    source = app.query_one("#source-panel-1", ConverterPanel)
                     await helpers.select_format(source, name, pilot)
                     helpers.set_config_path(source, "/tmp/x")
-                    en = source.query_one("#field-source-panel-level", TextualSelect)
+                    en = source.query_one("#field-source-panel-1-level", TextualSelect)
                     en.value = Color.GREEN.value
                     assert source.read_config().level == Color.GREEN
 

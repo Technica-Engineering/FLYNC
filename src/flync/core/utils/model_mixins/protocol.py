@@ -13,7 +13,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from typing import TYPE_CHECKING, Dict, List, Optional, Protocol
 
-from flync.model._model_parts._types import SocketDeployment
+from flync.core.utils.model_mixins.types import SocketDeployment
 from flync.model.flync_4_app import App, ServiceConsumerReference
 from flync.model.flync_4_communication import FLYNCCommunicationConfig
 from flync.model.flync_4_ecu import (

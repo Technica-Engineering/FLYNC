@@ -1,11 +1,13 @@
 import pytest
 from pydantic import ValidationError
 
+from flync.core.utils.exceptions_handling import validate_with_policy
+from flync.model.flync_4_ecu import ECU
 from flync.model.flync_4_ecu.controller import EthernetInterface
-from flync.model.flync_4_ecu.mii import MII, RGMII, RMII, SGMII, USGMII, USXGMII, XFI
+from flync.model.flync_4_ecu.mii import MII, QSGMII, RGMII, RMII, SGMII, USGMII, USXGMII, XFI, xmii_channel_capacity
 from flync.model.flync_4_ecu.port import ECUPort
 from flync.model.flync_4_ecu.switch import SwitchPort
-from tests.error_assertions import assert_single_error
+from tests.error_assertions import assert_no_findings, assert_single_error, assert_single_warning
 
 MDI_10 = {"mode": "base_t1s"}
 MDI_100 = {"mode": "base_t1", "speed": 100, "role": "master"}
@@ -409,3 +411,260 @@ def test_fec_with_invalid_alignment_marker_interval_is_rejected():
         )
 
     assert_single_error(exc_info, "FLYNC-ECU-MAJ-VAL-382", "must satisfy 80 * n - 4")
+
+
+def test_positive_qsgmii_four_channels():
+    config = QSGMII.model_validate(
+        {"mode": "phy", "channels": [{"subport_id": idx, "speed": speed} for idx, speed in enumerate((10, 100, 1000, 1000))]}
+    )
+
+    assert config.type == "qsgmii"
+    assert len(config.channels) == 4
+    assert config.speed is None
+
+
+def test_qsgmii_single_channel_exposes_speed():
+    assert QSGMII.model_validate({"mode": "mac", "channels": [{"speed": 100}]}).speed == 100
+
+
+@pytest.mark.parametrize(
+    "mii_config, expected",
+    [
+        pytest.param(MII(mode="mac"), 1, id="mii"),
+        pytest.param(XFI(mode="mac"), 1, id="xfi"),
+        pytest.param(USXGMII(type="usxgmii_10g_qxgmii", mode="mac", channels=[{"speed": 1000}]), 4, id="usxgmii-quad"),
+        pytest.param(USGMII(type="o_usgmii", mode="mac", channels=[{"speed": 1000}]), 8, id="usgmii-octal"),
+        pytest.param(QSGMII(mode="mac", channels=[{"speed": 1000}]), 4, id="qsgmii"),
+    ],
+)
+def test_xmii_channel_capacity(mii_config, expected):
+    assert xmii_channel_capacity(mii_config) == expected
+
+
+def test_qsgmii_channel_count_exceeding_four_is_rejected():
+    channels = [{"subport_id": idx, "speed": 1000} for idx in range(5)]
+
+    with pytest.raises(ValidationError) as exc_info:
+        QSGMII.model_validate({"mode": "mac", "channels": channels})
+
+    assert_single_error(exc_info, "FLYNC-ECU-MAJ-VAL-428", "supports at most 4 channel")
+
+
+def test_qsgmii_subport_id_out_of_range_is_rejected():
+    with pytest.raises(ValidationError) as exc_info:
+        QSGMII.model_validate({"mode": "mac", "channels": [{"subport_id": 4, "speed": 1000}]})
+
+    assert_single_error(exc_info, "FLYNC-ECU-MAJ-VAL-429", "out of range")
+
+
+def test_qsgmii_speed_above_one_gigabit_is_rejected():
+    with pytest.raises(ValidationError) as exc_info:
+        QSGMII.model_validate({"mode": "mac", "channels": [{"speed": 2500}]})
+
+    assert_single_error(exc_info, "FLYNC-ECU-MAJ-VAL-430", "does not support speed 2500")
+
+
+def test_qsgmii_duplicate_subport_id_is_rejected():
+    with pytest.raises(ValidationError) as exc_info:
+        QSGMII.model_validate({"mode": "mac", "channels": [{"subport_id": 0, "speed": 1000}, {"subport_id": 0, "speed": 100}]})
+
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-UNIQ-009", "channel subport_id")
+
+
+MDI_T1 = {"mode": "base_t1", "speed": 100, "role": "slave"}
+MDI_T1S_HALF = {"mode": "base_t1s", "topology": "p2p", "duplex": "half"}
+MDI_T1S_FULL = {"mode": "base_t1s", "topology": "p2p", "duplex": "full"}
+LITE_DUPLEX_ID = "FLYNC-CMN-MAJ-CONS-432"
+LITE_PAIR_ID = "FLYNC-CMN-WARN-COMP-431"
+_METADATA = {"author": "t", "compatible_flync_version": {"version_schema": "semver", "version": "0.11.0"}}
+
+
+def mii_data(mode, lite=None, speed=100):
+    """An MII config as data; ``lite`` is left out when ``None`` so the default applies."""
+
+    return {"type": "mii", "mode": mode, "speed": speed, **({} if lite is None else {"lite": lite})}
+
+
+def opposite(mode):
+    return "phy" if mode == "mac" else "mac"
+
+
+def ecu_link_data(ecu_port_mii, switch_port_mii, mdi=MDI_T1):
+    """An ECU whose port ``a`` (holding ``mdi``) is connected to the port ``b`` of its switch; ``None`` leaves an MII config out."""
+
+    ecu_port = {"name": "a", "mdi_config": mdi, **({} if ecu_port_mii is None else {"mii_config": ecu_port_mii})}
+    switch_port = {"name": "b", "silicon_port_no": 1, "default_vlan_id": 0, **({} if switch_port_mii is None else {"mii_config": switch_port_mii})}
+    return {
+        "name": "test_ecu",
+        "ports": [ecu_port],
+        "controllers": [],
+        "switches": [
+            {
+                "name": "sw",
+                "switch_config": {"meta": {"type": "embedded", "target_system": "t", **_METADATA}, "ports": [switch_port], "vlans": []},
+            }
+        ],
+        "topology": {"connections": [{"type": "ecu_port_to_switch_port", "id": "1", "ecu_port": "a", "switch_port": "b"}]},
+        "ecu_metadata": _METADATA,
+    }
+
+
+@pytest.mark.parametrize(
+    "extra, expected",
+    [
+        pytest.param({}, False, id="omitted-defaults-to-false"),
+        pytest.param({"lite": False}, False, id="explicit-false"),
+        pytest.param({"lite": True}, True, id="explicit-true"),
+    ],
+)
+def test_mii_lite_flag_parsing(extra, expected):
+    assert MII.model_validate({"mode": "mac", **extra}).lite is expected
+
+
+@pytest.mark.parametrize("mii_type", ["rmii", "rgmii", "sgmii"])
+def test_lite_is_a_field_of_mii_only(mii_type):
+    mii_config = {"type": mii_type, "mode": "mac", "speed": 100, "lite": True}
+
+    with pytest.raises(ValidationError) as exc_info:
+        ECUPort.model_validate({"name": "p0", "mii_config": mii_config, "mdi_config": MDI_100})
+
+    assert_single_error(exc_info, None, "lite")
+
+
+@pytest.mark.parametrize(
+    "ecu_side_lite, switch_side_lite",
+    [
+        pytest.param(True, True, id="lite-vs-lite"),
+        pytest.param(False, False, id="full-vs-full"),
+        pytest.param(None, None, id="flag-omitted-on-both-ends"),
+    ],
+)
+@pytest.mark.parametrize("ecu_side_mode", ["mac", "phy"])
+def test_matching_mii_lite_ends_do_not_warn(ecu_side_mode, ecu_side_lite, switch_side_lite):
+    data = ecu_link_data(mii_data(ecu_side_mode, ecu_side_lite), mii_data(opposite(ecu_side_mode), switch_side_lite))
+
+    assert_no_findings(validate_with_policy(ECU, data, path=None))
+
+
+@pytest.mark.parametrize(
+    "ecu_side_lite, switch_side_lite",
+    [
+        pytest.param(True, False, id="lite-ecu-full-switch"),
+        pytest.param(False, True, id="full-ecu-lite-switch"),
+        pytest.param(None, True, id="flag-omitted-ecu-lite-switch"),
+    ],
+)
+@pytest.mark.parametrize("ecu_side_mode", ["mac", "phy"])
+def test_mii_lite_paired_with_full_mii_warns_once(ecu_side_mode, ecu_side_lite, switch_side_lite):
+    data = ecu_link_data(mii_data(ecu_side_mode, ecu_side_lite), mii_data(opposite(ecu_side_mode), switch_side_lite))
+
+    result = validate_with_policy(ECU, data, path=None)
+
+    assert_single_warning(result, LITE_PAIR_ID, "is paired with full MII on")
+
+
+@pytest.mark.parametrize(
+    "ecu_side, switch_side, error_id, fragment",
+    [
+        pytest.param(mii_data("mac", True), mii_data("mac", True), "FLYNC-CMN-MAJ-COMP-013", "Incompatible MII Mode", id="same-mode"),
+        pytest.param(mii_data("mac", True, 100), mii_data("phy", True, 10), "FLYNC-CMN-MAJ-COMP-014", "Incompatible MII Speed", id="speed"),
+        pytest.param(mii_data("mac", True), {"type": "rmii", "mode": "phy"}, "FLYNC-CMN-MAJ-COMP-015", "Incompatible MII Type", id="type"),
+    ],
+)
+def test_existing_pair_errors_still_fire_with_mii_lite(ecu_side, switch_side, error_id, fragment):
+    data = ecu_link_data(ecu_side, switch_side)
+
+    with pytest.raises(ValidationError) as exc_info:
+        ECU.model_validate(data)
+
+    assert_single_error(exc_info, error_id, fragment)
+
+
+_LITE_DUPLEX_CASES = [
+    pytest.param(True, MDI_T1, id="lite-base-t1"),
+    pytest.param(True, MDI_T1S_FULL, id="lite-base-t1s-full-p2p"),
+    pytest.param(False, MDI_T1S_HALF, id="full-mii-base-t1s-half"),
+    pytest.param(None, MDI_T1S_HALF, id="flag-omitted-base-t1s-half"),
+]
+
+
+@pytest.mark.parametrize("lite, mdi", _LITE_DUPLEX_CASES)
+def test_mii_lite_duplex_accepted_on_ecu_port(lite, mdi):
+    data = {"name": "p0", "mii_config": mii_data("mac", lite, mdi.get("speed", 10)), "mdi_config": mdi}
+
+    assert_no_findings(validate_with_policy(ECUPort, data, path=None))
+
+
+def test_mii_lite_with_half_duplex_mdi_is_rejected_on_ecu_port():
+    data = {"name": "p0", "mii_config": mii_data("mac", True, 10), "mdi_config": MDI_T1S_HALF}
+
+    with pytest.raises(ValidationError) as exc_info:
+        ECUPort.model_validate(data)
+
+    assert_single_error(exc_info, LITE_DUPLEX_ID, "ECU Ports 'p0' has an MII-Lite config, which cannot carry a half-duplex MDI")
+
+
+@pytest.mark.parametrize("lite, mdi", _LITE_DUPLEX_CASES)
+def test_mii_lite_duplex_accepted_on_switch_port(lite, mdi):
+    """Both ends carry the same ``lite`` value, so the pair raises no warning; the switch port's MDI arrives through the topology."""
+
+    speed = mdi.get("speed", 10)
+    data = ecu_link_data(mii_data("phy", lite, speed), mii_data("mac", lite, speed), mdi)
+
+    assert_no_findings(validate_with_policy(ECU, data, path=None))
+
+
+def test_mii_lite_with_half_duplex_mdi_is_rejected_on_switch_port():
+    """The ECU port is full MII, so only the switch port's check can fire (the pair merely warns, which is not an error)."""
+
+    data = ecu_link_data(mii_data("phy", False, 10), mii_data("mac", True, 10), MDI_T1S_HALF)
+
+    with pytest.raises(ValidationError) as exc_info:
+        ECU.model_validate(data)
+
+    assert_single_error(exc_info, LITE_DUPLEX_ID, "Switch Ports 'b' has an MII-Lite config")
+
+
+def ecu_iface_link_data(ecu_port_mii, iface_mii, mdi):
+    """An ECU whose port ``a`` (holding ``mdi``) is connected to the Ethernet interface ``b`` of its controller."""
+
+    iface = {"name": "b", "interface_config": {"mac_address": "10:10:10:22:22:22", "mii_config": iface_mii}}
+    return {
+        "name": "test_ecu",
+        "ports": [{"name": "a", "mii_config": ecu_port_mii, "mdi_config": mdi}],
+        "controllers": [
+            {"name": "ctrl", "controller_metadata": {"type": "embedded", "target_system": "t", **_METADATA}, "ethernet_interfaces": [iface]}
+        ],
+        "switches": [],
+        "topology": {"connections": [{"type": "ecu_port_to_controller_interface", "id": "1", "ecu_port": "a", "controller_interface": "b"}]},
+        "ecu_metadata": _METADATA,
+    }
+
+
+@pytest.mark.parametrize("lite, mdi", _LITE_DUPLEX_CASES)
+def test_mii_lite_duplex_accepted_on_controller_interface(lite, mdi):
+    """Both ends carry the same ``lite`` value, so the pair raises no warning; the MDI sits on the ECU port across the MII."""
+
+    speed = mdi.get("speed", 10)
+    data = ecu_iface_link_data(mii_data("phy", lite, speed), mii_data("mac", lite, speed), mdi)
+
+    assert_no_findings(validate_with_policy(ECU, data, path=None))
+
+
+def test_mii_lite_with_half_duplex_mdi_is_rejected_on_controller_interface():
+    """The ECU port is full MII, so only the controller interface's check can fire (the pair merely warns, which is not an error)."""
+
+    data = ecu_iface_link_data(mii_data("phy", False, 10), mii_data("mac", True, 10), MDI_T1S_HALF)
+
+    with pytest.raises(ValidationError) as exc_info:
+        ECU.model_validate(data)
+
+    assert_single_error(exc_info, LITE_DUPLEX_ID, "Controller Interfaces 'b' has an MII-Lite config")
+
+
+def test_mii_lite_controller_interface_with_full_duplex_t1s_only_warns():
+    """A full-duplex point-to-point 10BASE-T1S link needs no CRS/COL, so a Lite MAC on a full-MII PHY only gets the pair warning."""
+
+    data = ecu_iface_link_data(mii_data("phy", False, 10), mii_data("mac", True, 10), MDI_T1S_FULL)
+
+    assert_single_warning(validate_with_policy(ECU, data, path=None), LITE_PAIR_ID, "is paired with full MII on")

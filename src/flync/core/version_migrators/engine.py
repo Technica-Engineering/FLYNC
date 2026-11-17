@@ -152,7 +152,10 @@ class MigrationEngine:
 
         A migration applies when ``recorded < target_version <= current``. Sorting by
         ``target_version`` produces the deterministic chain the runner applies in order.
+
+        A development or pre-release build (``0.16.0.dev56``) counts as the release it leads to.
         """
+        recorded, current = Version(recorded.base_version), Version(current.base_version)
         chain = [m for m in self.registry.all() if recorded < Version(m.target_version) <= current]
         chain.sort(key=lambda m: Version(m.target_version))
         return chain

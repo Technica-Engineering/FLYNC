@@ -9,6 +9,7 @@ from flync.core.annotations.external import (
     NamingStrategy,
     OutputStrategy,
 )
+from flync.core.annotations.namespaced import Namespaced
 from flync.core.base_models import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major
 from flync.core.validators.bit_ranges import (
@@ -17,9 +18,10 @@ from flync.core.validators.bit_ranges import (
     check_bit_ranges_within,
 )
 from flync.core.validators.generic import validate_list_items_unique
+from flync.core.validators.j1939 import check_can_frame_spn
 from flync.model.flync_4_bus.can_bus import CANBus
 from flync.model.flync_4_bus.lin_bus import LINBus
-from flync.model.flync_4_signal.frame import Frame
+from flync.model.flync_4_signal.frame import Frame, J1939Frame
 from flync.model.flync_4_signal.pdu import (
     PDU,
     ContainerPDU,
@@ -36,7 +38,8 @@ class FLYNCChannelConfig(FLYNCBaseModel):
     Parameters
     ----------
     pdus : list of :class:`~flync.model.flync_4_signal.StandardPDU` | :class:`~flync.model.flync_4_signal.MultiplexedPDU`, optional
-        Shared PDU definitions that may be referenced from any channel.
+        Shared PDU definitions that may be referenced from any channel. In a workspace they may be stored in
+        sub-folders of ``pdus``; a PDU in ``abc/def`` is then named ``abc::def::<name>`` and is referenced by that name.
     can_buses : list of :class:`~flync.model.flync_4_bus.CANBus`, optional
         CAN and CAN FD bus configurations.
     lin_buses : list of :class:`~flync.model.flync_4_bus.LINBus`, optional
@@ -59,6 +62,7 @@ class FLYNCChannelConfig(FLYNCBaseModel):
             naming_strategy=NamingStrategy.FIXED_PATH,
             path="pdus",
         ),
+        Namespaced(),
     ] = Field(
         default_factory=list,
         description="Shared PDU definitions, one file per PDU.",
@@ -138,6 +142,17 @@ class FLYNCChannelConfig(FLYNCBaseModel):
                         error_number="057",
                     )
                 _validate_frame_pdu_placements(kind, bus, pdu_registry)
+        return self
+
+    @model_validator(mode="after")
+    def validate_can_pdus_carry_no_spn(self) -> Self:
+        """A PDU packed by a CAN (non-J1939) frame must never carry SPN (SPN is only allowed on J1939 PDUs)."""
+        pdu_registry = self._pdu_registry()
+        checked: set[str] = set()
+        for bus in self.can_buses or []:
+            for frame in bus.frames:
+                if not isinstance(frame, J1939Frame):
+                    check_can_frame_spn(frame, pdu_registry, checked)
         return self
 
     @model_validator(mode="after")

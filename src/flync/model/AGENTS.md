@@ -19,6 +19,8 @@
 | `flync_4_topology` | **Topology** | Physical/logical network topology: switch/port interconnections, ECU connections |
 | `flync_4_tsn` | **TSN** | Time-Sensitive Networking: QoS shaping (CBS, ATS, HTB), traffic classes, PTP time sync |
 
+**Where a validator lives.** A check that needs only one class's own data is a `model_validator` on that class (e.g. the CAN-PDU-carries-no-SPN check on `FLYNCChannelConfig`). A check that needs the whole assembled system stays a `model_validator` on `FLYNCModel` in `flync_model.py`; when its body grows large, move the body to a file under `src/flync/core/validators/` and keep a thin delegating validator on the model (as `app_references`, `forwarder`, `interface` and `state_management` do). `FLYNCModel`'s accessor/binding/multicast methods come from `src/flync/core/utils/model_mixins/`.
+
 When you add or change a model, update the Model Change History in `docs/source/model_change_history.rst`.
 
 When the change is breaking (an existing workspace no longer loads, or loads differently), add a schema migration under `src/flync/core/version_migrators/migrations/`. The checklist is in the Schema Migrations section of the root `AGENTS.md`.

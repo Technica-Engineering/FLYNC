@@ -20,7 +20,7 @@ from .mac_multicast_endpoint import (
     MACMulticastEndpoint,
     MACMulticastEndpoints,
 )
-from .mii import MII, RGMII, RMII, SGMII, USGMII, USXGMII, XFI
+from .mii import MII, QSGMII, RGMII, RMII, SGMII, USGMII, USXGMII, XFI
 from .multicast_groups import MulticastGroupMembership
 from .phy import BASET, BASET1, BASET1S
 from .port import ECUPort
@@ -82,6 +82,7 @@ __all__ = [
     "MulticastGroupMembership",
     "PortExtender",
     "PortExtenderTag",
+    "QSGMII",
     "RGMII",
     "RMII",
     "RouteEntry",

@@ -9,7 +9,7 @@ from typing import Dict, List, Literal, Optional, Tuple, cast
 from cantools.database.can.message import Message
 from cantools.database.can.signal import Signal
 from cantools.database.utils import start_bit
-from cantools.j1939 import frame_id_unpack, pgn_from_frame_id
+from cantools.j1939 import frame_id_unpack
 from pydantic import ValidationError
 
 from flync.model import FLYNCModel
@@ -319,11 +319,6 @@ def _j1939_frame_fields(message: Message) -> dict:
     }
 
 
-def _message_pgn(message: Message) -> int:
-    """Return the J1939 Parameter Group Number (PGN) of *message*."""
-    return pgn_from_frame_id(message.frame_id)
-
-
 def _to_flync_frame(message: Message, pdu_name: str, is_j1939: bool = False, length: Optional[int] = None):
     """Convert a cantools Message into a FLYNC CAN/CAN-FD/J1939 frame referencing ``pdu_name``.
 
@@ -428,7 +423,7 @@ def _decode_one_database(
     frame_senders: Dict[Tuple[str, str, int], set],
     frame_receivers: Dict[Tuple[str, str, int], set],
     declared_nodes: set,
-    j1939_nodes: List[Tuple[str, int]],
+    j1939_nodes: List[Tuple[str, str]],
 ) -> bool:
     """Decode a single DBC database into PDUs, a CANBus and participant metadata.
 
@@ -458,7 +453,7 @@ def _decode_one_database(
         pdus.extend(extra)
         frames.append(frame)
         if is_j1939:
-            j1939_nodes.append((bus_name, _message_pgn(message)))
+            j1939_nodes.append((bus_name, frame.name))
         else:
             _register_frame_participants(message, bus_name, frame_senders, frame_receivers)
 
@@ -506,7 +501,7 @@ def decode_dbc_files(dbc_files, config: Optional[DbcConverterConfig] = None, rep
     frame_senders: Dict[Tuple[str, str, int], set] = defaultdict(set)
     frame_receivers: Dict[Tuple[str, str, int], set] = defaultdict(set)
     declared_nodes: set = set()
-    j1939_nodes: List[Tuple[str, int]] = []
+    j1939_nodes: List[Tuple[str, str]] = []
     any_j1939 = False
 
     for db, path in dbc_files:
@@ -627,22 +622,23 @@ def _j1939_ecu(name: str, version, interface: CANInterface) -> ECU:
     return _j1939_receiver_ecu(name, version, [interface])
 
 
-def _to_j1939_ecus(bus_pgns: List[Tuple[str, int]], declared_nodes: Optional[set] = None) -> List[ECU]:
+def _to_j1939_ecus(bus_refs: List[Tuple[str, str]], declared_nodes: Optional[set] = None) -> List[ECU]:
     """Synthesize J1939 ECUs preserving the node names declared in ``BU_:``.
 
     J1939 DBCs (e.g. Vector/CANoe ``VFrameFormat=J1939PG``) usually attribute every
     message to a single placeholder sender (``Vector__XXX``) rather than to named
     per-ECU source addresses, so no per-node SA or NAME is available. One
-    synthesized sender node is created per bus that sends every PGN on it, and the
-    nodes originally declared in ``BU_:`` are retained as receivers of those PGNs so
-    the round-trip keeps the original network. The model requires a unique 64-bit
-    ``j1939_name`` for every node that references J1939 frames, so a deterministic
-    NAME is derived from each node name; no ``source_address`` is set (address
-    claiming assigns SA at runtime).
+    synthesized sender node is created per bus that sends every frame on it, and the
+    nodes originally declared in ``BU_:`` are retained as receivers of those frames so
+    the round-trip keeps the original network. J1939 frame references are declared by
+    ``frame_ref`` (frame name); the bus is inherited from each interface's ``bus_ref``.
+    The model requires a unique 64-bit ``j1939_name`` for every node that references
+    J1939 frames, so a deterministic NAME is derived from each node name; no
+    ``source_address`` is set (address claiming assigns SA at runtime).
     """
     by_bus: Dict[str, set] = defaultdict(set)
-    for bus_name, pgn in bus_pgns:
-        by_bus[bus_name].add(pgn)
+    for bus_name, frame_name in bus_refs:
+        by_bus[bus_name].add(frame_name)
 
     version = _flync_version()
     ecus = []
@@ -656,7 +652,7 @@ def _to_j1939_ecus(bus_pgns: List[Tuple[str, int]], declared_nodes: Optional[set
             name=bus_name,
             bus_ref=bus_name,
             j1939_name=_j1939_name(node_name),
-            j1939_sender_frames=[J1939FrameRef(pgn=pgn) for pgn in sorted(by_bus[bus_name])],
+            j1939_sender_frames=[J1939FrameRef(frame_ref=f) for f in sorted(by_bus[bus_name])],
         )
         ecus.append(_j1939_ecu(node_name, version, interface))
         sender_names.add(node_name)
@@ -670,9 +666,9 @@ def _to_j1939_ecus(bus_pgns: List[Tuple[str, int]], declared_nodes: Optional[set
                     name=bus_name,
                     bus_ref=bus_name,
                     j1939_name=_j1939_name(node),
-                    j1939_receiver_frames=[J1939FrameRef(pgn=pgn) for pgn in sorted(pgns)],
+                    j1939_receiver_frames=[J1939FrameRef(frame_ref=f) for f in sorted(frame_names)],
                 )
-                for bus_name, pgns in by_bus.items()
+                for bus_name, frame_names in by_bus.items()
             ]
             if interfaces:
                 ecus.append(_j1939_receiver_ecu(node, version, interfaces))

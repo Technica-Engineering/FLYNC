@@ -94,13 +94,13 @@ def check_bit_ranges_no_overlap(context: str, ranges: List[BitRange]) -> None:
 
 
 def validate_value_input_format(data: object) -> object:
-    """Validating combinations of 'value', 'from_value' and 'to_value'."""
+    """Validating combinations of 'value', 'from_value' and 'to_value'. 'value: None' next to a range counts as absent."""
     if not isinstance(data, dict):
         return data
 
-    has_value = "value" in data
     has_from_value = "from_value" in data
     has_to_value = "to_value" in data
+    has_value = "value" in data and not (data["value"] is None and (has_from_value or has_to_value))
 
     if not has_value and not has_to_value and not has_from_value:
         raise err_major(

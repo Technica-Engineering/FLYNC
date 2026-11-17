@@ -369,3 +369,22 @@ def test_validate_workspace_surfaces_unknown_pdu_ref(tmpdir):
 
     if destination_folder.exists():
         shutil.rmtree(destination_folder)
+
+
+def test_load_with_object_mapping_survives_a_rejected_list_item(tmpdir):
+    from flync.sdk.context.workspace_config import WorkspaceConfiguration
+
+    destination_folder = Path(tmpdir) / "copy"
+    shutil.copytree(absolute_path, destination_folder)
+    node_file = destination_folder / "ecus" / "j1939_brake" / "controllers" / "jb1_controller" / "can_interfaces" / "j1939_brake_node.flync.yaml"
+    with patch_yaml(node_file) as node:
+        node["j1939_receiver_frames"] = [{**node["j1939_receiver_frames"][0], "unknown_key": 1}]
+
+    config = WorkspaceConfiguration(map_objects=True, migration_mode="off")
+    workspace = FLYNCWorkspace.safe_load_workspace("flync_example", destination_folder, workspace_config=config)
+
+    doc_id = node_file.relative_to(destination_folder).as_posix()
+    assert workspace.documents_diags[doc_id], "the rejected frame reference must be reported"
+    ecu = next(e for e in workspace.flync_model.ecus if e.name == "j1939_brake")
+    iface = next(i for c in ecu.controllers for i in c.can_interfaces if i.name == "j1939_brake_node")
+    assert iface.j1939_receiver_frames == []

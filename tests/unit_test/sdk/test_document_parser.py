@@ -3,7 +3,9 @@ from typing import Any
 
 import pytest
 
-from flync.sdk.workspace.document import Document, parse_documents
+from flync.sdk.context.workspace_config import WorkspaceConfiguration
+from flync.sdk.workspace.document import Document
+from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
 
 # --- Fixtures / Helpers ---
 
@@ -48,48 +50,45 @@ def test_normalize_uri_absolute_and_relative(tmp_path):
     assert Document.normalize_uri(rel_path, ws_root) == "another.yaml"
 
 
-# --- parse_documents ---
+# --- _open_documents ---
 
 
-def _make_yaml(tmp_path: Path, name: str, content: str) -> tuple[Path, Path]:
-    """Create a YAML file under tmp_path and return (file_path, ws_root)."""
+def _make_yaml(tmp_path: Path, name: str, content: str) -> Path:
+    """Create a YAML file under tmp_path and return its path."""
     path = tmp_path / name
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content)
-    return path, tmp_path
+    return path
 
 
-@pytest.mark.parametrize("needs_compose", [True, False])
-def test_parse_documents_single_file(needs_compose, tmp_path):
-    file_path, ws_root = _make_yaml(tmp_path, "config.yaml", "foo: bar\nbaz: 42")
-    results = parse_documents([file_path], ws_root, needs_compose)
-    assert len(results) == 1
-    uri, ast, compose_ast = results[0]
-    assert uri == "config.yaml"
-    assert ast == {"foo": "bar", "baz": 42}
-    if needs_compose:
-        assert compose_ast is not None
-    else:
-        assert compose_ast is None
+@pytest.mark.parametrize("map_objects", [True, False])
+def test_open_documents_single_file(map_objects, tmp_path):
+    _make_yaml(tmp_path, "config.flync.yaml", "foo: bar\nbaz: 42")
+    workspace = FLYNCWorkspace("w", tmp_path, WorkspaceConfiguration(map_objects=map_objects))
+    workspace._open_documents()
+    assert list(workspace.documents) == ["config.flync.yaml"]
+    doc = workspace.documents["config.flync.yaml"]
+    assert doc.ast == {"foo": "bar", "baz": 42}
+    assert __assert_compose_ast(map_objects, doc.compose_ast)
 
 
-def test_parse_documents_multiple_files(tmp_path):
-    files = [
-        _make_yaml(tmp_path, "a.yaml", "x: 1"),
-        _make_yaml(tmp_path, "sub/b.yaml", "y: 2"),
-    ]
-    results = parse_documents([f for f, _ in files], tmp_path, False)
-    assert len(results) == 2
-    assert results[0] == ("a.yaml", {"x": 1}, None)
-    assert results[1] == ("sub/b.yaml", {"y": 2}, None)
+def test_open_documents_multiple_files_in_sorted_order(tmp_path):
+    _make_yaml(tmp_path, "sub/b.flync.yaml", "y: 2")
+    _make_yaml(tmp_path, "a.flync.yaml", "x: 1")
+    _make_yaml(tmp_path, "ignored.yaml", "z: 3")
+    workspace = FLYNCWorkspace("w", tmp_path)
+    workspace._open_documents()
+    assert list(workspace.documents) == ["a.flync.yaml", "sub/b.flync.yaml"]
+    assert workspace.documents["a.flync.yaml"].ast == {"x": 1}
+    assert workspace.documents["sub/b.flync.yaml"].ast == {"y": 2}
 
 
-def test_parse_documents_compose_ast_preserves_structure(tmp_path):
-    file_path, ws_root = _make_yaml(tmp_path, "data.yaml", "items:\n  - a\n  - b")
-    results = parse_documents([file_path], ws_root, True)
-    _, ast, compose_ast = results[0]
-    assert ast == {"items": ["a", "b"]}
-    assert compose_ast is not None
+def test_open_documents_compose_ast_preserves_structure(tmp_path):
+    _make_yaml(tmp_path, "data.flync.yaml", "items:\n  - a\n  - b")
+    workspace = FLYNCWorkspace("w", tmp_path, WorkspaceConfiguration(map_objects=True))
+    workspace._open_documents()
+    doc = workspace.documents["data.flync.yaml"]
+    assert doc.ast == {"items": ["a", "b"]}
     # Verify compose_ast is a YAML node tree
-    assert hasattr(compose_ast, "start_mark")
-    assert compose_ast.start_mark.line == 0
+    assert hasattr(doc.compose_ast, "start_mark")
+    assert doc.compose_ast.start_mark.line == 0

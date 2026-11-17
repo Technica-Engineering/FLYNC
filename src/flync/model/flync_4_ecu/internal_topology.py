@@ -16,6 +16,7 @@ from flync.core.validators.connection_compatibility import (
     validate_gptp,
     validate_htb,
     validate_macsec,
+    validate_mii_lite_duplex,
     validate_optional_mii_config_compatibility,
     validate_switch_port_mdi_speed,
 )
@@ -83,7 +84,8 @@ class ECUPortToXConnection(InternalConnection):
 
     @property
     def ecu_port(self) -> ECUPort:
-        assert self._ecu_port is not None
+        if self._ecu_port is None:
+            raise AttributeError(f"Connection '{self.id}' has no resolved ECU port yet. Bind the connection before accessing 'ecu_port'.")
         return self._ecu_port
 
     def resolve_ecu_port(self, ports: Sequence[ECUPort]) -> None:
@@ -129,12 +131,14 @@ class SwitchPortToXConnection(InternalConnection):
 
     @property
     def switch_port(self) -> SwitchPort:
-        assert self._switch_port is not None
+        if self._switch_port is None:
+            raise AttributeError(f"Connection '{self.id}' has no resolved switch port yet. Bind the connection before accessing 'switch_port'.")
         return self._switch_port
 
     @property
     def switch(self) -> Switch:
-        assert self._switch is not None
+        if self._switch is None:
+            raise AttributeError(f"Connection '{self.id}' has no resolved switch yet. Bind the connection before accessing 'switch'.")
         return self._switch
 
     def get_switch_port_refs(self) -> List[SwitchPort]:
@@ -217,12 +221,14 @@ class ControllerInterfaceToXConnection(InternalConnection):
 
     @property
     def iface(self) -> EthernetInterface:
-        assert self._iface is not None
+        if self._iface is None:
+            raise AttributeError(f"Connection '{self.id}' has no resolved controller interface yet. Bind the connection before accessing 'iface'.")
         return self._iface
 
     @property
     def controller(self) -> Controller | ComputeNode:
-        assert self._controller is not None
+        if self._controller is None:
+            raise AttributeError(f"Connection '{self.id}' has no resolved controller yet. Bind the connection before accessing 'controller'.")
         return self._controller
 
     @staticmethod
@@ -293,6 +299,7 @@ class ECUPortToSwitchPort(ECUPortToXConnection, SwitchPortToXConnection):
     def validate_compatibility(self) -> None:
         validate_optional_mii_config_compatibility(self.ecu_port, self.switch_port, self.id)
         validate_switch_port_mdi_speed(self.switch_port)
+        validate_mii_lite_duplex("Switch Ports", self.switch_port, self.switch_port.mdi_config)
         if self.ecu_port.mdi_config and self.switch_port.traffic_classes:
             validate_cbs_idleslopes_fit_portspeed(
                 self.switch_port.traffic_classes,
@@ -340,6 +347,7 @@ class ECUPortToControllerInterface(ECUPortToXConnection, ControllerInterfaceToXC
 
     def validate_compatibility(self) -> None:
         validate_optional_mii_config_compatibility(self.ecu_port, self.iface.interface_config, self.id)
+        validate_mii_lite_duplex("Controller Interfaces", self.iface.interface_config, self.ecu_port.mdi_config)
         validate_htb(self.iface.interface_config, self.ecu_port.mdi_config.speed if self.ecu_port.mdi_config else None)
 
 
@@ -364,8 +372,8 @@ class SwitchPortToControllerInterface(SwitchPortToXConnection, ControllerInterfa
 
     def validate_compatibility(self) -> None:
         validate_compulsory_mii_config_compatibility(self.switch_port, self.iface.interface_config, self.id)
-        assert self.iface.interface_config.mii_config is not None
-        validate_htb(self.iface.interface_config, self.iface.interface_config.mii_config.speed)
+        mii_config = self.iface.interface_config.mii_config
+        validate_htb(self.iface.interface_config, mii_config.speed if mii_config else None)
         validate_macsec(self.switch_port, self.iface.interface_config, self.id)
         validate_gptp(self.switch_port, self.iface.interface_config, self.id)
 
@@ -403,7 +411,10 @@ class SwitchPortToHostControllerInterface(SwitchPortToXConnection):
 
     @property
     def iface(self) -> EthernetInterface:
-        assert self._iface is not None
+        if self._iface is None:
+            raise AttributeError(
+                f"Connection '{self.id}' has no resolved host controller interface yet. Bind the connection before accessing 'iface'."
+            )
         return self._iface
 
     def bind(self, switches: Sequence[Switch], controllers: Sequence[Controller | ComputeNode], ports: Sequence[ECUPort]) -> None:
@@ -468,12 +479,16 @@ class SwitchPortToSwitchPort(SwitchPortToXConnection):
 
     @property
     def switch2_port(self) -> SwitchPort:
-        assert self._switch2_port is not None
+        if self._switch2_port is None:
+            raise AttributeError(
+                f"Connection '{self.id}' has no resolved second switch port yet. Bind the connection before accessing 'switch2_port'."
+            )
         return self._switch2_port
 
     @property
     def switch2(self) -> Switch:
-        assert self._switch2 is not None
+        if self._switch2 is None:
+            raise AttributeError(f"Connection '{self.id}' has no resolved second switch yet. Bind the connection before accessing 'switch2'.")
         return self._switch2
 
     def bind(self, switches: Sequence[Switch], controllers: Sequence[Controller | ComputeNode], ports: Sequence[ECUPort]) -> None:
@@ -539,12 +554,18 @@ class ControllerInterfaceToControllerInterface(ControllerInterfaceToXConnection)
 
     @property
     def iface2(self) -> EthernetInterface:
-        assert self._iface2 is not None
+        if self._iface2 is None:
+            raise AttributeError(
+                f"Connection '{self.id}' has no resolved second controller interface yet. Bind the connection before accessing 'iface2'."
+            )
         return self._iface2
 
     @property
     def controller2(self) -> Controller | ComputeNode:
-        assert self._controller2 is not None
+        if self._controller2 is None:
+            raise AttributeError(
+                f"Connection '{self.id}' has no resolved second controller yet. Bind the connection before accessing 'controller2'."
+            )
         return self._controller2
 
     def bind(self, switches: Sequence[Switch], controllers: Sequence[Controller | ComputeNode], ports: Sequence[ECUPort]) -> None:
@@ -555,10 +576,10 @@ class ControllerInterfaceToControllerInterface(ControllerInterfaceToXConnection)
 
     def validate_compatibility(self) -> None:
         validate_compulsory_mii_config_compatibility(self.iface.interface_config, self.iface2.interface_config, self.id)
-        assert self.iface.interface_config.mii_config is not None
-        assert self.iface2.interface_config.mii_config is not None
-        validate_htb(self.iface.interface_config, self.iface.interface_config.mii_config.speed)
-        validate_htb(self.iface2.interface_config, self.iface2.interface_config.mii_config.speed)
+        mii_config = self.iface.interface_config.mii_config
+        mii_config2 = self.iface2.interface_config.mii_config
+        validate_htb(self.iface.interface_config, mii_config.speed if mii_config else None)
+        validate_htb(self.iface2.interface_config, mii_config2.speed if mii_config2 else None)
         validate_macsec(self.iface.interface_config, self.iface2.interface_config, self.id)
         validate_gptp(self.iface.interface_config, self.iface2.interface_config, self.id)
 

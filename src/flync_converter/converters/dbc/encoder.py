@@ -14,7 +14,7 @@ from cantools.database.can.node import Node
 from cantools.database.can.signal import Signal
 from cantools.database.conversion import LinearConversion
 from cantools.database.namedsignalvalue import NamedSignalValue
-from cantools.j1939 import frame_id_pack, pgn_from_frame_id
+from cantools.j1939 import frame_id_pack
 
 from flync.model import FLYNCModel
 from flync.model.flync_4_signal import ContainerPDU, MultiplexedPDU, SignalInstance, StandardPDU
@@ -43,11 +43,6 @@ def _j1939_frame_id(frame: J1939Frame) -> int:
         frame.pdu_specific,
         _DEFAULT_J1939_SA,
     )
-
-
-def _pgn_from_frame(frame: J1939Frame) -> int:
-    """Return the J1939 Parameter Group Number (PGN) of ``frame``."""
-    return pgn_from_frame_id(_j1939_frame_id(frame))
 
 
 def _value_encoding_choices(signal) -> Optional[OrderedDict[int, str | NamedSignalValue]]:
@@ -290,8 +285,8 @@ def _collect_interface_frames(
     """Index the send/receive frame and J1939 references of one CAN interface."""
     _index_frame_participants(frame_senders, ecu_name, iface.sender_frames, lambda f: (iface.bus_ref, f.id_format, f.frame_ref))
     _index_frame_participants(frame_receivers, ecu_name, iface.receiver_frames, lambda f: (iface.bus_ref, f.id_format, f.frame_ref))
-    _index_frame_participants(j1939_senders, ecu_name, iface.j1939_sender_frames, lambda f: (iface.bus_ref, f.pgn))
-    _index_frame_participants(j1939_receivers, ecu_name, iface.j1939_receiver_frames, lambda f: (iface.bus_ref, f.pgn))
+    _index_frame_participants(j1939_senders, ecu_name, iface.j1939_sender_frames, lambda f: (iface.bus_ref, f.frame_ref))
+    _index_frame_participants(j1939_receivers, ecu_name, iface.j1939_receiver_frames, lambda f: (iface.bus_ref, f.frame_ref))
 
 
 def _collect_frame_participants(flync_model: FLYNCModel):
@@ -299,7 +294,7 @@ def _collect_frame_participants(flync_model: FLYNCModel):
 
     ``frame_senders``/``frame_receivers`` are keyed by ``(bus_ref, id_format, frame_ref)`` for
     classical CAN frames; ``j1939_senders``/``j1939_receivers`` are keyed by
-    ``(bus_ref, pgn)`` for J1939 nodes.
+    ``(bus_ref, frame_ref)`` for J1939 nodes.
     """
     frame_senders: dict[tuple, list] = {}
     frame_receivers: dict[tuple, list] = {}
@@ -356,9 +351,8 @@ def _build_one_message(
     is_j1939 = isinstance(frame, J1939Frame)
     if is_j1939:
         frame_id = _j1939_frame_id(frame)
-        pgn = _pgn_from_frame(frame)
-        receivers = j1939_receivers.get((can_bus.name, pgn), None)
-        senders = j1939_senders.get((can_bus.name, pgn), None)
+        receivers = j1939_receivers.get((can_bus.name, frame.name), None)
+        senders = j1939_senders.get((can_bus.name, frame.name), None)
     else:
         frame_id = frame.can_id
         receivers = frame_receivers.get((can_bus.name, frame.id_format, frame.can_id), None)

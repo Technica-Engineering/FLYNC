@@ -23,9 +23,9 @@ def _run_validate(path, node: str, config_name: str, verbose: bool) -> Diagnosti
 
     The exit code is all a CI job sees. Warnings stay at zero: they are diagnostics, not failures.
 
-    When *verbose* is set (and no *node* is given), the layered debug checks (folder structure, YAML syntax,
-    schema, field values, system-wide) are run instead of the summary tables - the layers only cover a whole
-    workspace, so *verbose* has no effect together with *node*.
+    When *verbose* is set, the layered debug checks (folder structure, YAML syntax, schema, field values,
+    system-wide) are run instead of the summary tables. Together with *node* the layers run against that node
+    type as the root model, so a partial model rooted at *path* is debugged the same way.
     """
 
     resolved_path = resolve_workspace_path(path)
@@ -33,13 +33,8 @@ def _run_validate(path, node: str, config_name: str, verbose: bool) -> Diagnosti
     console.print(f"-- Validating {config_name} ... --")
     start = time.monotonic()
 
-    run_verbose = verbose
-    if run_verbose and node:
-        console.print("[dim]--verbose has no effect together with --node: the layered checks only cover the full workspace.[/dim]")
-        run_verbose = False
-
-    if run_verbose:
-        result = run_debug(resolved_path)
+    if verbose:
+        result = run_debug(resolved_path, node)
     else:
         result = validate_external_node(node, resolved_path) if node else validate_workspace(resolved_path)
         print_validation_result(result)
@@ -79,7 +74,7 @@ def validate(
             "--verbose",
             "-v",
             help="Run the layered debug checks (folder structure, YAML syntax, schema, field values, system-wide) instead of "
-            "the summary tables. Only applies when validating the full workspace (no --node).",
+            "the summary tables. Combine with --node to debug a partial model rooted at that node type.",
         ),
     ] = False,
 ) -> DiagnosticsResult:

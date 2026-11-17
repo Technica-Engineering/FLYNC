@@ -21,7 +21,9 @@ In *FLYNC* a field can stray away from standard yaml serialization by being:
 * **Implied** - the value is not stored but calculated on the fly using a defined strategy.
 * **Reference** - the value is a key naming an object that was loaded elsewhere.
 
-All three are frozen dataclasses in ``flync.core.annotations``, together with the strategy
+A fourth annotation, **Namespaced**, refines an ``External`` folder list (see below).
+
+All of them are frozen dataclasses in ``flync.core.annotations``, together with the strategy
 enums that refine them:
 
 * ``NamingStrategy`` - how the external file / folder is named.
@@ -138,6 +140,34 @@ workspace resolution and exposed through a property.
 :func:`~flync.core.annotations.reference.resolve_reference` returns the concrete object a
 field's annotation points at, accepting either the Python name or the alias.
 
+
+Using ``Namespaced`` in a model
+-------------------------------
+
+``Namespaced`` is added to a ``List`` field that is already ``External`` and stored as a folder. The items
+of such a list may sit directly in the folder or in nested sub-folders; each sub-folder is one namespace
+segment, and the loader prefixes the item's ``name`` with the segments, joined by ``separator``:
+
+.. code-block:: python
+
+    from flync.core.annotations import External, Namespaced
+
+    services: Annotated[List[SOMEIPServiceInterface], External(), Namespaced()] = Field()
+
+.. code-block:: text
+
+    services/
+      ets.flync.yaml            name: ets            ->  ets
+      abc/ets.flync.yaml        name: ets            ->  abc::ets
+      abc/def/ets.flync.yaml    name: ets            ->  abc::def::ets
+
+The name is qualified before validation, so the model, its uniqueness checks and registries only ever see the
+qualified name, and every reference to the object must use it. Items without a sub-folder are unchanged.
+Saving splits the qualified name again, so no separator reaches a file name. The helpers live in
+``flync.core.base_models.namespace`` (``qualify_name``, ``split_qualified_name``).
+
+Rules: every directory inside a namespaced list is a namespace (an item cannot be a folder), a folder name must
+not contain the separator, and the annotation is ignored on a field stored as a single file.
 
 Combining annotations
 ---------------------

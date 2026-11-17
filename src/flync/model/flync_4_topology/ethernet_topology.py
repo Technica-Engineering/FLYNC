@@ -243,13 +243,13 @@ def warn_unconnected_ports(all_ports: List[ECUPort], claimed_multidrop_ports: Co
     for port in all_ports:
         if any(component.type == "ecu_port" for component in port.connected_components):
             continue
-        assert port.ecu is not None
+        ecu_name = port.ecu.name if port.ecu else "?"
 
         if not _is_multidrop_port(port):
-            unconnected_by_ecu_p2p.setdefault(port.ecu.name, []).append(port.name)
+            unconnected_by_ecu_p2p.setdefault(ecu_name, []).append(port.name)
 
         elif id(port) not in claimed_multidrop_ports:
-            unconnected_by_ecu_multidrop.setdefault(port.ecu.name, []).append(port.name)
+            unconnected_by_ecu_multidrop.setdefault(ecu_name, []).append(port.name)
 
     if unconnected_by_ecu_p2p:
         lines = [f"  {ecu}: {', '.join(f'{p!r}' for p in ports)}" for ecu, ports in unconnected_by_ecu_p2p.items()]

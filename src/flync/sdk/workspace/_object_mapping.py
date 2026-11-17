@@ -93,6 +93,8 @@ class _WorkspaceObjectMapping(_WorkspaceBase):
         )
 
     def _update_sequence_node_objects(self, doc_id, model, current_object_paths, node, parent_name):
+        if not isinstance(model, (list, tuple)) or len(model) != len(node.value):
+            return
         for idx, item in enumerate(node.value):
             list_paths = self.add_list_item_object_path(
                 getattr(model[idx], "name", None),

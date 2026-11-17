@@ -12,6 +12,12 @@ from pydantic_core import PydanticCustomError
 from flync.core.annotations import External, NamingStrategy, OutputStrategy
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.utils.exceptions import Category, err_major, warn
+from flync.core.utils.model_mixins import AccessorMixin, BindingMixin, MulticastMixin
+from flync.core.validators.app_references import (
+    validate_app_ipc_refs,
+    validate_app_signal_refs,
+    warn_app_signal_refs_without_interface,
+)
 from flync.core.validators.forwarder import (
     detect_forwarder_cycles,
     validate_forwarder_locality,
@@ -24,17 +30,6 @@ from flync.core.validators.interface import (
 )
 from flync.core.validators.state_management import (
     validate_state_management,
-)
-from flync.model._model_parts import AccessorMixin, BindingMixin, MulticastMixin
-from flync.model._model_parts._app_refs import (
-    validate_app_ipc_refs,
-    validate_app_signal_refs,
-    warn_app_signal_refs_without_interface,
-)
-from flync.model._model_parts._j1939 import (
-    check_can_frame_spn,
-    check_j1939_bus_pgn_uniqueness,
-    j1939_buses,
 )
 from flync.model.flync_4_app import App
 from flync.model.flync_4_communication import FLYNCCommunicationConfig
@@ -407,46 +402,13 @@ class FLYNCModel(FLYNCBaseModel, AccessorMixin, BindingMixin, MulticastMixin):
         return self
 
     @model_validator(mode="after")
-    def validate_j1939_pdu_consistency(self) -> Self:
-        """A PDU packed by a CAN (non-J1939) frame must never carry SPN (``FLYNC-GEN-MAJ-CONS-251``)."""
-
-        if self.communication and self.communication.channels and self.communication.channels.can_buses:
-            channels = self.communication.channels
-            pdu_registry = channels._pdu_registry()
-            checked: set[str] = set()
-            for bus in channels.can_buses or []:
-                for frame in bus.frames:
-                    if not isinstance(frame, J1939Frame):
-                        check_can_frame_spn(frame, pdu_registry, checked)
-        return self
-
-    @model_validator(mode="after")
-    def validate_j1939_application_buses_only_j1939_frames(self) -> Self:
-        """A bus attached through a J1939-capable CAN interface may only carry ``J1939Frame`` frames, never CAN ones."""
-
-        j1939_bus_set = j1939_buses(self)
-        if j1939_bus_set and self.communication and self.communication.channels and self.communication.channels.can_buses:
-            for bus in self.communication.channels.can_buses:
-                if bus.name not in j1939_bus_set:
-                    continue
-                offenders = [frame.name for frame in bus.frames if not isinstance(frame, J1939Frame)]
-                if offenders:
-                    raise err_major(
-                        "CANBus '{bus}' is attached through a J1939-capable CAN interface but carries non-J1939 frame(s): {frames}. "
-                        "J1939 buses may only carry J1939 frames.",
-                        bus=bus.name,
-                        frames=", ".join(offenders),
-                        category=Category.CONSISTENCY,
-                        error_number="369",
-                    )
-        return self
-
-    @model_validator(mode="after")
     def validate_j1939_frames_on_j1939_application_buses(self) -> Self:
         """``J1939Frame`` frames may only be deployed on a bus attached through a J1939-capable CAN interface."""
 
         if self.communication and self.communication.channels and self.communication.channels.can_buses:
-            j1939_bus_set = j1939_buses(self)
+            j1939_bus_set = {
+                iface.bus_ref for controller in self.get_all_controllers() for iface in controller.can_interfaces or [] if iface.is_j1939()
+            }
             for bus in self.communication.channels.can_buses:
                 if bus.name in j1939_bus_set:
                     continue
@@ -524,21 +486,6 @@ class FLYNCModel(FLYNCBaseModel, AccessorMixin, BindingMixin, MulticastMixin):
                 category=Category.CONSISTENCY,
                 error_number="361",
             )
-        return self
-
-    @model_validator(mode="after")
-    def validate_j1939_pgn_uniqueness(self) -> Self:
-        """Two ``J1939Frame`` frames on the same CAN bus must not share a Parameter Group Number (PGN).
-
-        In J1939 the PGN (built from the frame's data page / extended data page / PDU Format / PDU Specific) identifies
-        a message on the bus independently of priority and source address, so two frames declaring the same PGN on the
-        same bus are indistinguishable. The CAN ``can_id`` uniqueness check skips J1939 frames on purpose, so this pass
-        is the J1939 equivalent.
-        """
-
-        if self.communication and self.communication.channels and self.communication.channels.can_buses:
-            for bus in self.communication.channels.can_buses:
-                check_j1939_bus_pgn_uniqueness(bus)
         return self
 
     @model_validator(mode="after")

@@ -158,8 +158,10 @@ class FLYNCFactory(ModelFactory[FLYNCBaseModel]):
 
     @staticmethod
     def _get_arg_type(field_info: FieldInfo, kwargs: dict):
-        discriminator = field_info.discriminator
-        args = get_args(field_info.annotation)
+        # The discriminator may sit on an inner layer, as in Optional[Annotated[Union[...], Field(discriminator=...)]],
+        # or on each member of a union of discriminated unions (the SOME/IP datatypes).
+        discriminator, args = FLYNCFactory.__union_variants(field_info.annotation)
+        discriminator = field_info.discriminator or discriminator
         if discriminator is not None and discriminator in kwargs and args:
             for arg in args:
                 if safe_issubclass(arg, BaseModel) and discriminator in arg.model_fields:
@@ -213,6 +215,30 @@ class FLYNCFactory(ModelFactory[FLYNCBaseModel]):
                 if safe_issubclass(arg_type, cls):
                     return arg_type
         return None
+
+    @staticmethod
+    def __union_variants(annotation):
+        """
+        Flatten nested ``Annotated`` and ``Union`` layers into their member types.
+
+        Args:
+            annotation: A type annotation, possibly a union of discriminated unions.
+
+        Returns:
+            tuple[str | None, list]: The first discriminator found on an inner layer, else ``None``,
+            and the member types.
+        """
+
+        plain, meta = FLYNCFactory.__as_plain_and_meta(annotation)
+        discriminator = meta.discriminator if meta is not None and isinstance(meta.discriminator, str) else None
+        if not is_union(plain):
+            return discriminator, [plain]
+        variants = []
+        for member in get_args(plain):
+            inner, members = FLYNCFactory.__union_variants(member)
+            discriminator = discriminator or inner
+            variants.extend(members)
+        return discriminator, variants
 
     @staticmethod
     def __as_plain_and_meta(arg):

@@ -1,5 +1,5 @@
 """
-Application reference helpers for the consistency validators of :class:`~flync.model.flync_model.FLYNCModel`.
+Application reference validators for :class:`~flync.model.flync_model.FLYNCModel`.
 
 The ``model_validator`` passes stay on the top-level model; the checks they delegate to — CAN / J1939 frame and PDU
 references of apps and the ECU-internal IPC channels — live here.
@@ -8,16 +8,18 @@ references of apps and the ECU-internal IPC channels — live here.
 from __future__ import annotations
 
 from collections.abc import Iterator
+from typing import TYPE_CHECKING
 
 from flync.core.utils.exceptions import Category, err_major, warn
-from flync.model._model_parts._j1939 import compute_j1939_pgn
-from flync.model._model_parts._protocol import FLYNCModelProtocol
 from flync.model.flync_4_app import App, AppCANFrameRef, AppCANPDURef, AppJ1939FrameRef, AppJ1939PDURef
 from flync.model.flync_4_bus.can_bus import CANBus
 from flync.model.flync_4_ecu import ECU, ComputeNode, Controller
 from flync.model.flync_4_ecu.can_interface import CANInterface
 from flync.model.flync_4_signal import J1939Frame
 from flync.model.flync_4_signal.frame import CANFrameBase
+
+if TYPE_CHECKING:
+    from flync.model.flync_model import FLYNCModel
 
 
 def _iter_ecu_app_owners(ecu: ECU) -> Iterator[Controller | ComputeNode]:
@@ -51,7 +53,7 @@ def _bus_has_can_frame(bus: CANBus, ref: AppCANFrameRef) -> bool:
 
 def _bus_has_pgn(bus: CANBus, ref: AppJ1939FrameRef) -> bool:
     """Whether *bus* carries a J1939 frame with the PGN of *ref*."""
-    return any(isinstance(f, J1939Frame) and compute_j1939_pgn(f) == ref.pgn for f in bus.frames or [])
+    return any(isinstance(f, J1939Frame) and f.pgn == ref.pgn for f in bus.frames or [])
 
 
 def _resolve_bus(app: App, buses: dict[str, CANBus], bus_ref: str) -> CANBus:
@@ -112,7 +114,7 @@ def _check_pdu_refs(app: App, buses: dict[str, CANBus], pdu_names: set[str]) -> 
                 )
 
 
-def validate_app_signal_refs(model: FLYNCModelProtocol) -> None:
+def validate_app_signal_refs(model: FLYNCModel) -> None:
     """Every CAN / J1939 frame and PDU reference of every app must resolve on the referenced CAN bus."""
     channels = model.communication.channels if model.communication else None
     buses = {bus.name: bus for bus in (channels.can_buses if channels else None) or []}
@@ -144,10 +146,18 @@ def _warn_uncovered_can_frames(app: App, owner: Controller, interfaces: dict[str
             _warn_missing_interface(app, owner, f"CAN frame {can_ref.frame_ref:#x}", can_ref.bus_ref)
 
 
-def _warn_uncovered_j1939_frames(app: App, owner: Controller, interfaces: dict[str, list[CANInterface]]) -> None:
+def _warn_uncovered_j1939_frames(app: App, owner: Controller, interfaces: dict[str, list[CANInterface]], buses: dict[str, CANBus]) -> None:
+    """Warn for every J1939 frame reference of *app* that no interface of *owner* covers in its direction."""
     for j1939_ref in app.j1939_frame_refs:
         attr = "j1939_sender_frames" if j1939_ref.direction == "sender" else "j1939_receiver_frames"
-        covered = any(f.pgn == j1939_ref.pgn for iface in interfaces.get(j1939_ref.bus_ref, []) for f in getattr(iface, attr))
+        bus = buses.get(j1939_ref.bus_ref)
+        frames = [f for f in (bus.frames if bus else []) if isinstance(f, J1939Frame) and f.pgn == j1939_ref.pgn]
+        covered = any(
+            ref.frame_ref == frame.name or (ref.can_id is not None and ref.can_id & ~0xFF == frame.can_id)
+            for iface in interfaces.get(j1939_ref.bus_ref, [])
+            for ref in getattr(iface, attr)
+            for frame in frames
+        )
         if not covered:
             _warn_missing_interface(app, owner, f"J1939 PGN {j1939_ref.pgn:#x}", j1939_ref.bus_ref)
 
@@ -159,14 +169,16 @@ def _warn_uncovered_pdus(app: App, owner: Controller, interfaces: dict[str, list
             _warn_missing_interface(app, owner, f"PDU '{pdu_ref.pdu_ref}'", pdu_ref.bus_ref)
 
 
-def warn_app_signal_refs_without_interface(model: FLYNCModelProtocol) -> None:
+def warn_app_signal_refs_without_interface(model: FLYNCModel) -> None:
     """Warn when a controller binding an app has no CAN interface covering the app's frame references."""
+    channels = model.communication.channels if model.communication else None
+    buses = {bus.name: bus for bus in (channels.can_buses if channels else None) or []}
     for ecu in model.ecus:
         for owner, apps in _iter_controller_apps(ecu):
             interfaces = _index_can_interfaces(owner)
             for app in apps:
                 _warn_uncovered_can_frames(app, owner, interfaces)
-                _warn_uncovered_j1939_frames(app, owner, interfaces)
+                _warn_uncovered_j1939_frames(app, owner, interfaces, buses)
                 _warn_uncovered_pdus(app, owner, interfaces)
 
 
@@ -214,7 +226,7 @@ def _warn_unpaired_ipc_channels(ecu: ECU, roles: dict[str, set[str]]) -> None:
         )
 
 
-def validate_app_ipc_refs(model: FLYNCModelProtocol) -> None:
+def validate_app_ipc_refs(model: FLYNCModel) -> None:
     """Every IPC reference of an app bound inside an ECU must name an IPC channel of that ECU."""
     for ecu in model.ecus:
         _warn_unpaired_ipc_channels(ecu, _collect_ipc_roles(ecu))

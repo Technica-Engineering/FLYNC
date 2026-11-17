@@ -12,10 +12,12 @@ from flync.core.annotations import (
     External,
     Implied,
     ImpliedStrategy,
+    Namespaced,
     NamingStrategy,
     OutputStrategy,
 )
 from flync.core.base_models.base_model import FLYNCBaseModel
+from flync.core.base_models.namespace import split_qualified_name
 from flync.core.utils import yaml_io
 from flync.sdk.context.workspace_config import CONFIG_RELPATH, WorkspaceConfiguration
 from flync.sdk.utils.field_utils import (
@@ -129,7 +131,8 @@ class _WorkspaceSaving(_WorkspaceIncremental):
                 exclude.add(field_name)
                 # field will need to be added to to a new separate document
                 flync_attribute = getattr(flync_model, field_name)
-                self.__handle_load_external_types(file_path, flync_attribute, external, field_name)
+                namespaced: Namespaced | None = get_metadata(field_info.metadata, Namespaced)
+                self.__handle_load_external_types(file_path, flync_attribute, external, field_name, namespaced)
                 continue
             implied: Implied | None = get_metadata(field_info.metadata, Implied)
             if implied is not None and implied.strategy in (
@@ -147,6 +150,7 @@ class _WorkspaceSaving(_WorkspaceIncremental):
         flync_attribute,
         external: External,
         field_name: str,
+        namespaced: Namespaced | None = None,
     ):
         """
         Dispatch an external field value to the correct save handler.
@@ -160,6 +164,7 @@ class _WorkspaceSaving(_WorkspaceIncremental):
             flync_attribute: The field value to save externally.
             external (External): The ``External`` annotation controlling naming and output structure.
             field_name (str): The field name, used as the default path when ``FIELD_NAME`` strategy is active.
+            namespaced (Namespaced | None): The ``Namespaced`` annotation of the field, if any; only list fields use it.
 
         Raises:
             ValueError: If no valid external path can be determined or the attribute type is not supported.
@@ -176,7 +181,7 @@ class _WorkspaceSaving(_WorkspaceIncremental):
             raise ValueError("Unable to find an external path for {}", field_name)
         next_path = file_path / external_path
         if isinstance(flync_attribute, list):
-            self.__handle_load_external_types_list(flync_attribute, external, next_path, field_name)
+            self.__handle_load_external_types_list(flync_attribute, external, next_path, field_name, namespaced)
         elif isinstance(flync_attribute, dict):
             self.__handle_load_external_types_dict(flync_attribute, external, next_path)
         elif isinstance(flync_attribute, FLYNCBaseModel):
@@ -194,24 +199,34 @@ class _WorkspaceSaving(_WorkspaceIncremental):
         external: External,
         next_path: Path,
         field_name: str,
+        namespaced: Namespaced | None = None,
     ):
         """
         Save a list of external model instances to their output locations.
 
         When ``output_structure`` is ``SINGLE_FILE``, all items are serialized into a single file.
         Otherwise each item is written to its own file named after its ``name`` attribute (or the implied file-name field).
+        For a ``Namespaced`` list the qualified name is split again: the namespace segments become sub-folders and the
+        file holds only the item's own name, so the workspace loads back to the same qualified names.
 
         Args:
             flync_attribute (list): The list of model instances to persist.
             external (External): The ``External`` annotation for this field.
             next_path (Path): The resolved output directory path.
             field_name (str): The field name, used as the key when writing a combined single-file output.
+            namespaced (Namespaced | None): The ``Namespaced`` annotation of the field, if any.
         """
 
         list_content = []
         for attr in flync_attribute:
             if OutputStrategy.SINGLE_FILE in external.output_structure:
                 list_content.append(self.__get_model_content(attr, next_path))
+            elif namespaced is not None:
+                segments, own_name = split_qualified_name(get_name(attr, namespaced.name_key), namespaced)
+                self.load_flync_model(
+                    attr.model_copy(update={namespaced.name_key: own_name}),
+                    next_path.joinpath(*segments, own_name),
+                )
             else:
                 self.load_flync_model(
                     attr,
