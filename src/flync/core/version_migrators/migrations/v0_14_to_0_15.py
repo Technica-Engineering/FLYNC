@@ -41,6 +41,7 @@ def _dicts(value: Any) -> list[Node]:
 
 
 def _is_can_id(value: Any) -> TypeGuard[int]:
+    """True when ``value`` is a CAN identifier: an ``int``, but not a ``bool`` (a subclass ``int``)."""
     return isinstance(value, int) and not isinstance(value, bool)
 
 
