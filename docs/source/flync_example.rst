@@ -980,3 +980,12 @@ When present, the points are declared in ``instrumentation/measurement_points.fl
 
    .. literalinclude:: ../../examples/flync_example/instrumentation/measurement_points.flync.yaml
       :language: yaml
+
+----------
+
+Variability Examples
+--------------------
+
+``examples/flync_4_variability/`` holds one complete workspace per supported kind of variability: an optional
+ECU together with an alternative ECU (``01_optional_component``), and alternative E/E architectures on two
+hardware generations (``02_architecture_alternatives``). Each validates for every declared variant with ``flync validate``. See :ref:`variability_examples` in the variability reference.

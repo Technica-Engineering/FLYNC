@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Optional
 
 from flync.core.annotations import External, Implied
+from flync.model.flync_4_variability.resolution import is_in_variability
 from flync.sdk.utils.field_utils import get_metadata
 from flync.sdk.utils.sdk_types import PathType
 
@@ -41,6 +42,10 @@ class _WorkspaceIncremental(_WorkspaceLoading):
         reference, fall back to :meth:`_revalidate_all` (a full re-validation from the cached ASTs, no
         disk re-read). An unexpected failure falls back to a from-disk :meth:`_reset_and_reload`.
 
+        In a variant workspace a change inside ``variability/`` re-resolves the whole workspace, and a
+        document under a path qualifier that is false in the active variant only has its text refreshed,
+        since it is not part of the loaded model.
+
         Args:
             uri (PathType): Path of the affected document, absolute or workspace-relative.
 
@@ -52,8 +57,18 @@ class _WorkspaceIncremental(_WorkspaceLoading):
         target = self.workspace_root / uri if self.workspace_root else Path(uri)
         node = self._doc_index.get(uri)
         exists = target.exists()
+        had_condition = self._root_condition(uri) is not None
         try:
-            if node is not None and exists:
+            if is_in_variability(uri) or had_condition or (node is None and exists and self._refreshed_root_condition(uri, target) is not None):
+                # the feature model, a variant, or a presence condition changed: a variation point, a file, a folder,
+                # or a field may resolve differently or enter or leave the model
+                self._refresh_document(uri, target)
+                result = self._revalidate_all()
+            elif node is None and exists and uri in self.documents and self._under_absent_folder(uri):
+                # inside a folder that is not part of the active variant: keep the text current, there is no model to update
+                self._refresh_document(uri, target)
+                result = [uri]
+            elif node is not None and exists:
                 result = self._reload_document(node, uri)
             elif node is None and exists:
                 result = self._add_document(uri)
@@ -61,10 +76,38 @@ class _WorkspaceIncremental(_WorkspaceLoading):
                 result = self._remove_document(node)
             else:
                 result = self._reset_and_reload()
-            return result
         except Exception:
             logger.exception("update_document: partial update of %s failed, reloading workspace", uri)
-            return self._reset_and_reload()
+            result = self._reset_and_reload()
+        return self._finish_update(uri, result)
+
+    def _refreshed_root_condition(self, uri: str, target: Path) -> object | None:
+        """Re-read a document and return its root ``variant_condition`` (``None`` when it has none)."""
+
+        self._refresh_document(uri, target)
+        return self._root_condition(uri)
+
+    def _refresh_document(self, uri: str, target: Path) -> None:
+        """Re-read a document's text from disk, or forget the document when the file is gone."""
+
+        if not target.exists():
+            self.documents.pop(uri, None)
+            return
+        text = read_file(target)
+        if uri in self.documents:
+            self.documents[uri].update_text(text)
+        else:
+            doc = Document(uri, text, self.configuration.map_objects)
+            doc.parse()
+            self.documents[uri] = doc
+
+    def _finish_update(self, uri: str, result: list[str]) -> list[str]:
+        """Bring the variability findings and the variant stamp up to date after a partial update."""
+
+        self._lint_one_document(uri)
+        self._finalize_variability_diags()
+        self._stamp_active_variant(self.flync_model)
+        return result
 
     def _add_document(self, uri: str) -> list[str]:
         """
@@ -405,6 +448,11 @@ class _WorkspaceIncremental(_WorkspaceLoading):
         self._linked_child_ids.clear()
         self._doc_index.clear()
         self._duplicated_objects_ids.clear()
+        self._traces.clear()
+        self._projected.clear()
+        self._consumed_docs.clear()
+        self._selection_diags.clear()
+        self._lint_diags.clear()
 
     def _revalidate_all(self) -> list[str]:
         """

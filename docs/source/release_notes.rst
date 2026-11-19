@@ -80,6 +80,27 @@ J1939 frames addressed by name or CAN id
 * ``J1939Frame`` names must be unique on a CAN bus: a node addresses a J1939 frame by name, so a duplicate
   is rejected (``FLYNC-BUS-MAJ-UNIQ-426``) instead of silently shadowing the frame declared earlier.
 
+Variant Management
+'''''''''''''''''''
+
+A new optional model domain, :ref:`flync_4_variability <variability>`, lets one workspace hold every product
+variant of a system, covering optional ECUs and architecture alternatives. A ``variability/`` folder declares
+the feature model and the variants, and a ``variant_condition`` on an ECU's ``ecu_metadata`` or on a system
+topology entry marks what varies. The loader resolves one variant before validation, so existing models and
+validators are unchanged and workspaces without ``variability/`` load as before. ``flync validate`` checks
+every variant, the new ``flync variants`` commands list, trace, and diff them, and the SDK can select,
+validate and export variants. See :ref:`variability` and the examples in :ref:`variability_examples`.
+
+
+Schema errors in optional documents are reported
+''''''''''''''''''''''''''''''''''''''''''''''''
+
+A schema error inside an existing document of an optional field - for example an out-of-range ``node_id`` in
+``topology/ethernet_topology.flync.yaml``, or an unknown key in an ECU's ``topology.flync.yaml`` - was discarded
+together with the document: the field was left out without a word, and only its consequences were reported, such
+as unconnected ports or a topology "missing". The error is now reported in the document, at its line, and the
+validation fails. A workspace that passed before because such a document was silently dropped now reports it.
+
 
 Validation uses the workspace's configuration
 ''''''''''''''''''''''''''''''''''''''''''''''

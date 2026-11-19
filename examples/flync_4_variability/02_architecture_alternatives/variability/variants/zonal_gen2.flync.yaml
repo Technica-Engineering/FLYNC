@@ -1,0 +1,4 @@
+description: Zonal architecture; only possible on the second compute generation (see the constraint).
+features:
+  architecture: zonal
+  compute_generation: gen2

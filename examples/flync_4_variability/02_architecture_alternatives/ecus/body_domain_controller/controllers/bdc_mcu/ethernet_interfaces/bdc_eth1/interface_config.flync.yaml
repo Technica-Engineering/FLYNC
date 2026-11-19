@@ -1,0 +1,7 @@
+mac_address: "02:00:00:00:02:02"
+virtual_interfaces:
+  - name: bdc_eth1_v50
+    vlanid: 50
+    addresses:
+      - address: 10.0.50.1
+        ipv4netmask: 255.255.255.0

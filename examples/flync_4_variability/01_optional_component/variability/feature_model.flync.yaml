@@ -1,0 +1,11 @@
+# One feature is enough: the products differ in exactly one option.
+features:
+  - name: park_assist
+    description: Park assist with a rear camera. Adds the rear camera ECU and its link, and selects the ADAS controller
+      with the port for it.
+    type: boolean
+    attributes:
+      option_code: PA01
+
+# The variant an editor or the SDK loads when none is selected explicitly.
+default_variant: base

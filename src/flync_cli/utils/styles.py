@@ -37,6 +37,9 @@ STYLE_CONSUMERS = "blue"
 # Enumeration / index column
 STYLE_INDEX = "dim"
 
+# Variant-management columns (product variants and their feature values)
+STYLE_VARIANT = "bold cyan"
+
 # Validation-result columns
 STYLE_ERROR_ID = "red"
 STYLE_ERROR_TYPE = "red"

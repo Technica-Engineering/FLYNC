@@ -6,11 +6,12 @@ from typing import Optional
 
 import platformdirs
 import typer
+from rich.markup import escape
 from typing_extensions import Annotated
 
 from flync.sdk.helpers.validation_helpers import validate_workspace
 from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
-from flync_cli.utils.console import console
+from flync_cli.utils.console import print_error
 
 CONFIG_DIR = Path(platformdirs.user_config_dir("FLYNC"))
 CONFIG_FILE = CONFIG_DIR / "cli.json"
@@ -18,6 +19,15 @@ CONFIG_FILE = CONFIG_DIR / "cli.json"
 WorkspacePathArg = Annotated[
     Optional[str],
     typer.Argument(help="Path to the FLYNC config directory. Defaults to the path stored with `flync config set`."),
+]
+
+VariantOpt = Annotated[
+    Optional[str],
+    typer.Option(
+        "--variant",
+        "-V",
+        help="Product variant to resolve a workspace with a variability/ folder for. Defaults to the feature model's default_variant.",
+    ),
 ]
 
 
@@ -66,24 +76,28 @@ def resolve_workspace_path(path: Optional[str]) -> Path:
 
     raw = path or get_stored_workspace_path()
     if raw is None:
-        console.print("⚠️ [bold red] No path given and no workspace configured. Pass a path or run `flync config set <path>`.[/bold red]")
+        print_error("No path given and no workspace configured.", "Pass a path, or store one with `flync config set <path>`.")
         raise typer.Exit(code=1)
 
     resolved = Path(raw).resolve()
     if not resolved.exists():
-        console.print(f"⚠️ [bold red] Path does not exist: {resolved}[/bold red]")
+        print_error(f"Path does not exist: {escape(str(resolved))}")
         raise typer.Exit(code=1)
 
     return resolved
 
 
-def load_workspace(path: Optional[str]) -> FLYNCWorkspace:
-    """Resolve *path* (or the stored one), validate the workspace there, and return it - or exit 1 with a message."""
+def load_workspace(path: Optional[str], variant: Optional[str] = None) -> FLYNCWorkspace:
+    """
+    Resolve *path* (or the stored one), validate the workspace there, and return it - or exit 1 with a message.
+
+    A workspace with a ``variability/`` folder is resolved for *variant*, or for its default variant when *variant* is ``None``.
+    """
     resolved = resolve_workspace_path(path)
-    result = validate_workspace(resolved)
+    result = validate_workspace(resolved, variant=variant)
 
     if result.workspace is None:
-        console.print("⚠️ [bold red] Validate your model first with `flync validate`.[/bold red]")
+        print_error("The workspace could not be loaded.", "Run `flync validate` to see why.")
         raise typer.Exit(code=1)
 
     return result.workspace

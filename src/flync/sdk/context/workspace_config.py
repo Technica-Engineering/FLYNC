@@ -309,12 +309,8 @@ class WorkspaceConfiguration(BaseModel):
         # ``exclude_defaults`` compares serialized output, so a field with a custom
         # ``field_serializer`` (list_objects_mode) is kept even at its default. Drop those
         # by comparing the attribute against the declared default instead.
-        #
-        # Creating a list is required to delete while we iterate!
-        for name in list(data.keys()):
-            field = type(self).model_fields.get(name)
-            if field is not None and getattr(self, name) == field.default:
-                del data[name]
+        fields = type(self).model_fields
+        data = {name: value for name, value in data.items() if name not in fields or getattr(self, name) != fields[name].default}
 
         # Sets have no stable YAML representation; write a sorted sequence instead.
         if "allowed_extensions" in data:

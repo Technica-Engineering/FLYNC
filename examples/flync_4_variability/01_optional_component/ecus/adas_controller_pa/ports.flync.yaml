@@ -1,0 +1,25 @@
+# adas_p1 has the same name as on adas_controller, so the link to the front camera in the system topology fits
+# both alternatives and needs no condition. adas_p2 is the port for the rear camera.
+ports:
+  - name: adas_p1
+    mdi_config:
+      mode: base_t1
+      speed: 100
+      duplex: full
+      role: master
+      autonegotiation: false
+    mii_config:
+      type: rmii
+      speed: 100
+      mode: phy
+  - name: adas_p2
+    mdi_config:
+      mode: base_t1
+      speed: 100
+      duplex: full
+      role: master
+      autonegotiation: false
+    mii_config:
+      type: rmii
+      speed: 100
+      mode: phy

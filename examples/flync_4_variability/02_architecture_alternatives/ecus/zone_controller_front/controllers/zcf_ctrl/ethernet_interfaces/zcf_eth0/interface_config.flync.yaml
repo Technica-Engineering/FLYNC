@@ -1,0 +1,11 @@
+mac_address: "02:00:00:00:03:01"
+mii_config:
+  type: rmii
+  speed: 100
+  mode: mac
+virtual_interfaces:
+  - name: zcf_eth0_v10
+    vlanid: 10
+    addresses:
+      - address: 10.0.10.21
+        ipv4netmask: 255.255.255.0

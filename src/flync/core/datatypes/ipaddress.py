@@ -8,6 +8,9 @@ from pydantic import AfterValidator, Field, field_serializer
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.validators.address import validate_ip_multicast
 
+SOLICITED_NODE_MULTICAST_PREFIX = 0xFF02_0000_0000_0000_0000_0001_FF00_0000
+"""The solicited-node multicast prefix ``FF02::1:FF00:0/104`` (RFC 4291, section 2.7.1) as an integer."""
+
 
 class IPv4AddressEntry(FLYNCBaseModel):
     """
@@ -73,8 +76,7 @@ class IPv6AddressEntry(FLYNCBaseModel):
         """
 
         unicast_int = int(self.address)
-        multicast_prefix_int = int(IPv6Address("FF02::1:FF00:0"))
-        derived_multicast_int = multicast_prefix_int | (unicast_int & 0xFFFFFF)
+        derived_multicast_int = SOLICITED_NODE_MULTICAST_PREFIX | (unicast_int & 0xFFFFFF)
         return IPv6Address(derived_multicast_int)
 
 

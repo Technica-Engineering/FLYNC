@@ -1,0 +1,11 @@
+mac_address: "02:00:00:00:01:02"
+mii_config:
+  type: rmii
+  speed: 100
+  mode: mac
+virtual_interfaces:
+  - name: adas_eth1_v0
+    vlanid: 0
+    addresses:
+      - address: 10.0.2.1
+        ipv4netmask: 255.255.255.0

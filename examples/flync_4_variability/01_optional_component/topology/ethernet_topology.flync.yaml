@@ -1,0 +1,14 @@
+# The system topology wires the ECUs of each variant. Both ADAS controllers have the port adas_p1, so the link to
+# the front camera is part of every product.
+connections:
+  - type: ecu_port_to_ecu_port
+    id: link_front_camera
+    ecu1_port: adas_p1
+    ecu2_port: fcam_p1
+  # The link to the rear camera exists only with park assist. Without the condition the base product would be
+  # reported: the link would refer to ports that none of its ECUs has.
+  - type: ecu_port_to_ecu_port
+    id: link_rear_camera
+    variant_condition: park_assist
+    ecu1_port: adas_p2
+    ecu2_port: rcam_p1

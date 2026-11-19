@@ -108,7 +108,7 @@ Example: `FLYNC-ECU-MAJ-VAL-001`
 
 | Segment | Values |
 |---|---|
-| **Module** | Auto-resolved from the `KEY` variable in each domain package's `__init__.py`. Declared today: `ECU`, `SIG`, `SOM`, `DIA`, `TOP`, `TSN`, `SEC`, `MET`, `BUS`, `INS`. Packages without a `KEY` fall through to `CMN`; `flync.model.flync_model` and `version_migrators` resolve to `GEN` |
+| **Module** | Auto-resolved from the `KEY` variable in each domain package's `__init__.py`. Declared today: `ECU`, `SIG`, `SOM`, `DIA`, `TOP`, `TSN`, `SEC`, `MET`, `BUS`, `INS`, `VAR`. Packages without a `KEY` fall through to `CMN`; `flync.model.flync_model` and `version_migrators` resolve to `GEN` |
 | **Severity** | `WARN` (warning), `MIN` (minor), `MAJ` (major), `FAT` (fatal) |
 | **Category** | The id carries a code; you pass the enum member: `VAL` ← `Category.VALUE_RANGE`, `REQ` ← `REQUIRED`, `CONS` ← `CONSISTENCY`, `UNIQ` ← `UNIQUENESS`, `REF` ← `REFERENCE`, `FMT` ← `FORMAT`, `COMP` ← `COMPATIBILITY`, `STRUCT` ← `STRUCTURAL`, `LIFE` ← `LIFECYCLE` |
 | **Number** | Zero-padded 3-digit number, globally unique across the entire codebase (monotonically increasing, never reused). |

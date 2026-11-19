@@ -18,6 +18,7 @@ from flync_cli.commands.migrate import app as migrate_app
 from flync_cli.commands.schema import app as schema_app
 from flync_cli.commands.validate import _run_validate
 from flync_cli.commands.validate import app as validate_app
+from flync_cli.commands.variants import app as variants_app
 from flync_cli.utils.deprecation import warn_deprecated
 from flync_cli.utils.workspace import WorkspacePathArg, load_workspace
 
@@ -35,6 +36,7 @@ app.add_typer(generate_uml)
 app.add_typer(config_app, name="config")
 app.add_typer(migrate_app)
 app.add_typer(errors_app, name="errors")
+app.add_typer(variants_app, name="variants")
 
 
 @app.callback(invoke_without_command=True)

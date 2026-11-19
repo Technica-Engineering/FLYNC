@@ -1,0 +1,18 @@
+# Level 1 - one optional component.
+#
+# The driver assistance network of a vehicle line that is sold with or without a park assist option. The
+# park assist option adds one ECU, the rear camera, and the link that connects it. The ADAS controller needs a
+# port more for that link, so the park assist product uses another ADAS controller.
+#
+# This is the smallest useful variability model: one boolean feature, a variant_condition at the root of the
+# metadata of the three ECUs that are not part of every product, and a variant_condition on the one link of the
+# system topology that only park assist has. An ECU never varies inside: an ECU that differs is a separate ECU.
+release:
+  version_schema: semver
+  version: 1.0.0
+author: System_Architect
+compatible_flync_version:
+  version_schema: semver
+  version: 0.16.0
+oem: OEM_example
+platform: DriverAssistance

@@ -1,0 +1,8 @@
+# The ADAS controller of the park assist product: the same controller as adas_controller plus a second port and
+# interface for the rear camera. An ECU that differs - here by one port - is a separate ECU, and the two ADAS
+# controllers are alternatives: their conditions never hold together.
+variant_condition: park_assist
+author: Dev
+compatible_flync_version:
+  version_schema: semver
+  version: 0.16.0

@@ -1,6 +1,7 @@
 """Converter for native FLYNC workspace files."""
 
 import logging
+from typing import Optional
 
 from pydantic import ValidationError
 
@@ -11,6 +12,7 @@ from flync.sdk.workspace.flync_workspace import (  # noqa # type: ignore[import-
 )
 
 from ..base.base_converter import BaseConverter
+from ..base.converter_config import ConverterConfig
 from ..base.converter_report import INACTIVE_REPORT, ConverterReport
 from ..registry import hookimpl
 
@@ -54,16 +56,31 @@ def log_workspace_diagnostics(ws: FLYNCWorkspace, report: ConverterReport = INAC
         report.add("diagnostics", findings)
 
 
+class FLYNCConverterConfig(ConverterConfig):
+    """Configuration for the FLYNC workspace converter.
+
+    Parameters
+    ----------
+    variant : str, optional
+        Product variant a workspace with a ``variability/`` folder is resolved for when it is decoded. Defaults to
+        ``None``, which uses the feature model's ``default_variant``.
+    """
+
+    variant: Optional[str] = None
+
+
 class FLYNCConverter(BaseConverter):
     """Converter between FLYNCModel and FLYNC workspace format.
 
     Reads/writes FLYNCModel instances to/from FLYNC workspaces. The FLYNC SDK
     log records and the workspace diagnostics are part of the conversion log.
+    A variant workspace is decoded as one resolved variant (see :class:`FLYNCConverterConfig`).
     """
 
     name = "flync"
     uses_directory = True
     report_loggers = (__name__, "flync.sdk")
+    config: Optional[FLYNCConverterConfig] = None
 
     def can_decode(self):
         """Return True — the FLYNC workspace converter supports decoding."""
@@ -105,7 +122,8 @@ class FLYNCConverter(BaseConverter):
         if self.config is None:
             raise ValueError("config must be set before decoding")
         logger.info("Loading FLYNC workspace from: %s", self.config.config_path)
-        ws = FLYNCWorkspace.safe_load_workspace("converted_workspace", self.config.config_path)
+        variant = getattr(self.config, "variant", None)
+        ws = FLYNCWorkspace.safe_load_workspace("converted_workspace", self.config.config_path, variant=variant)
         self.report.add("workspace", self.config.config_path)
         log_workspace_diagnostics(ws, self.report)
         if not isinstance(ws.flync_model, FLYNCModel):

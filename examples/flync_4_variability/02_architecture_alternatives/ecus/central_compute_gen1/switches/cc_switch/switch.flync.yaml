@@ -1,0 +1,35 @@
+# A three-port switch.
+meta:
+  type: embedded
+  author: Dev
+  compatible_flync_version:
+    version_schema: semver
+    version: 0.16.0
+  target_system: flync_os
+ports:
+  - name: cc_sw_p0
+    silicon_port_no: 0
+    default_vlan_id: 10
+    mii_config:
+      type: rmii
+      speed: 100
+      mode: mac
+  - name: cc_sw_p1
+    silicon_port_no: 1
+    default_vlan_id: 10
+    mii_config:
+      type: rmii
+      speed: 100
+      mode: mac
+  - name: cc_sw_p2
+    silicon_port_no: 2
+    default_vlan_id: 10
+    mii_config:
+      type: rmii
+      speed: 100
+      mode: mac
+vlans:
+  - name: Body
+    id: 10
+    default_priority: 0
+    ports: [cc_sw_p0, cc_sw_p1, cc_sw_p2]

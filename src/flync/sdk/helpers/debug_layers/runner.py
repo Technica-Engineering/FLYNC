@@ -84,7 +84,7 @@ def _warn(message: str, path: str = "", hint: str = "", line: int | None = None,
 # ---------------------------------------------------------------------------
 
 
-def run_debug(dir_path: Path, node: str | type[FLYNCBaseModel] = "") -> DiagnosticsResult | None:
+def run_debug(dir_path: Path, node: str | type[FLYNCBaseModel] = "", variant: str | None = None) -> DiagnosticsResult | None:
     """Run all five debug layers against dir_path, print results, and return the workspace result.
 
     ``node`` names the root model the layers validate against - a node type name (or the class itself) to debug
@@ -93,6 +93,7 @@ def run_debug(dir_path: Path, node: str | type[FLYNCBaseModel] = "") -> Diagnost
     Returns ``None`` when the path does not exist, the node name is unknown, or the run stopped before the
     workspace could be loaded (layer 1 or layer 2 errors), since no :class:`DiagnosticsResult` exists yet in
     that case.
+    A workspace with a ``variability/`` folder is resolved for ``variant`` (its default variant when ``None``).
     """
     if not dir_path.exists():
         _console.print(f"[bold red]Path does not exist:[/bold red] {dir_path}")
@@ -111,7 +112,7 @@ def run_debug(dir_path: Path, node: str | type[FLYNCBaseModel] = "") -> Diagnost
         )
     )
 
-    return _run_layers(dir_path, root_model)
+    return _run_layers(dir_path, root_model, variant)
 
 
 def _resolve_root_model(node: str | type[FLYNCBaseModel]) -> type[FLYNCBaseModel] | None:
@@ -146,7 +147,7 @@ def _run_pre_workspace_layers(check_structure, check_yaml_syntax, dir_path: Path
     return l1_warnings
 
 
-def _run_layers(dir_path: Path, root_model: type[FLYNCBaseModel] = FLYNCModel) -> DiagnosticsResult | None:
+def _run_layers(dir_path: Path, root_model: type[FLYNCBaseModel] = FLYNCModel, variant: str | None = None) -> DiagnosticsResult | None:
     """Run layers 1-5 in order, stopping and printing a summary at the first hard-error layer."""
     from .layer1_structure import check_structure
     from .layer2_yaml import check_yaml_syntax
@@ -157,7 +158,7 @@ def _run_layers(dir_path: Path, root_model: type[FLYNCBaseModel] = FLYNCModel) -
         return None
 
     _console.print("\n[dim]Loading workspace...[/dim]")
-    ws_result, ws_issues = run_workspace_validation(dir_path, root_model)
+    ws_result, ws_issues = run_workspace_validation(dir_path, root_model, variant=variant)
     l3 = [i for i in ws_issues if i.layer == 3]
     l4 = [i for i in ws_issues if i.layer == 4]
     l5 = [i for i in ws_issues if i.layer == 5]

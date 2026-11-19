@@ -1,0 +1,11 @@
+# The first hardware generation of the central compute ECU. The two generations differ inside, so they are two
+# ECUs; the condition at the root of the metadata decides which variants each one is part of.
+variant_condition: gen1
+author: Dev
+compatible_flync_version:
+  version_schema: semver
+  version: 0.16.0
+hardware:
+  version_schema: semver
+  version: 1.0.0
+  product_id: CC-G1

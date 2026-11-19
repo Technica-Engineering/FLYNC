@@ -4,9 +4,10 @@ from pathlib import Path
 from typing import Optional
 
 import typer
+from rich.markup import escape
 from typing_extensions import Annotated
 
-from flync_cli.utils.console import console
+from flync_cli.utils.console import console, print_error
 from flync_cli.utils.workspace import (
     CONFIG_FILE,
     clear_stored_workspace_path,
@@ -24,7 +25,7 @@ def set_path(
     """Persist *path* as the default workspace for this user, after checking it is a directory."""
     resolved = Path(path).resolve()
     if not resolved.is_dir():
-        console.print(f"⚠️ [bold red] Not a directory: {resolved}[/bold red]")
+        print_error(f"Not a directory: {escape(str(resolved))}", "Pass the folder that holds the FLYNC workspace.")
         raise typer.Exit(code=1)
 
     set_stored_workspace_path(str(resolved))

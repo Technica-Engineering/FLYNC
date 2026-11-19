@@ -15,7 +15,8 @@ import inspect
 import json
 import re
 from pathlib import Path
-from typing import Any, Literal
+from types import UnionType
+from typing import Annotated, Any, Iterator, Literal, Union, get_args, get_origin
 
 from pydantic import BaseModel
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
@@ -221,6 +222,98 @@ def _stamp(schema: dict[str, Any], file_name: str, base_uri: str | None) -> dict
     return {**header, **schema}
 
 
+VARIANT_CONDITION_SCHEMA = "VariantCondition"
+"""Definition name of the variant condition schema added by :func:`add_variation_points`."""
+
+
+def _members(annotation: Any) -> list[Any]:
+    """The types an annotation can hold, with ``Annotated``, ``Optional``, and unions unwrapped."""
+
+    origin = get_origin(annotation)
+    if origin is Annotated:
+        return _members(get_args(annotation)[0])
+    if origin is Union or origin is UnionType:
+        return [member for arg in get_args(annotation) if arg is not type(None) for member in _members(arg)]
+    return [annotation]
+
+
+def _models_in(annotation: Any, in_list: bool = False) -> Iterator[tuple[type[BaseModel], bool]]:
+    """Yield the models an annotation can hold, each with whether it is an item of a list."""
+
+    for member in _members(annotation):
+        if get_origin(member) is list:
+            for arg in get_args(member):
+                yield from _models_in(arg, True)
+        elif isinstance(member, type) and issubclass(member, BaseModel):
+            yield member, in_list
+
+
+def _entry_models(model: type[BaseModel], seen: set[type[BaseModel]]) -> set[str]:
+    """Names of the models that are items of a list somewhere below ``model``; runtime-derived (excluded) fields are skipped."""
+
+    if model in seen:
+        return set()
+    seen.add(model)
+    found: set[str] = set()
+    annotations = [info.annotation for info in model.model_fields.values() if not info.exclude]
+    for item, in_list in (found_model for annotation in annotations for found_model in _models_in(annotation)):
+        if in_list:
+            found.add(item.__name__)
+        found |= _entry_models(item, seen)
+    return found
+
+
+def conditional_models() -> set[str]:
+    """
+    Names of the models a ``variant_condition`` may be written on.
+
+    These are the metadata of an ECU, whose condition decides which variants the ECU is part of, and the entries of the system
+    topology (its connections and the nodes of a multidrop segment).
+    """
+
+    from flync.model.flync_4_ecu.ecu import ECU
+    from flync.model.flync_4_topology import FLYNCTopology
+
+    metadata = ECU.model_fields[ECU.PRESENCE_DOCUMENT].annotation
+    assert isinstance(metadata, type)
+    return {metadata.__name__} | _entry_models(FLYNCTopology, set())
+
+
+def add_variation_points(documents: dict[str, dict[str, Any]], suffix: str = DEFAULT_SCHEMA_SUFFIX) -> dict[str, dict[str, Any]]:
+    """
+    Extend schema documents so editors accept the variation points of a 150 % (variant) workspace.
+
+    The models of :func:`conditional_models` get an optional ``variant_condition`` property: an ECU's metadata, and the
+    entries of the system topology. Every other model stays as it is, since an ECU and everything outside the system topology
+    is the same in every variant. A ``VariantCondition`` document is added.
+
+    Args:
+        documents (dict[str, dict[str, Any]]): Schema documents keyed by file name, as returned by :func:`build_model_schemas`.
+        suffix (str): File name suffix of the schema documents.
+
+    Returns:
+        dict[str, dict[str, Any]]: The documents, extended in place, with the condition document appended.
+    """
+
+    condition_file = schema_file_name(VARIANT_CONDITION_SCHEMA, suffix)
+    conditional = conditional_models()
+    for file_name, document in documents.items():
+        properties = document.get("properties")
+        if not isinstance(properties, dict) or file_name.removesuffix(suffix) not in conditional:
+            continue
+        properties.setdefault(
+            "variant_condition",
+            {"$ref": condition_file, "description": "Variant condition: the element is only part of the variants it holds in."},
+        )
+    documents[condition_file] = {
+        "$schema": JSON_SCHEMA_DIALECT,
+        "title": VARIANT_CONDITION_SCHEMA,
+        "description": "Boolean expression over the features of the feature model, e.g. 'park_assist and architecture in [domain, zonal]'.",
+        "type": ["string", "boolean"],
+    }
+    return documents
+
+
 def build_model_schemas(
     root: type[BaseModel],
     *,
@@ -228,6 +321,7 @@ def build_model_schemas(
     mode: Literal["validation", "serialization"] = "validation",
     by_alias: bool = True,
     base_uri: str | None = None,
+    variation_points: bool = False,
 ) -> dict[str, dict[str, Any]]:
     """
     Build one JSON Schema document per Pydantic model class reachable from ``root``.
@@ -243,6 +337,7 @@ def build_model_schemas(
         mode (Literal["validation", "serialization"]): Whether the schemas describe validation input or serialization output.
         by_alias (bool): Whether field aliases are used as property names.
         base_uri (str | None): URI the schema files are published under. Sets an absolute ``$id`` of ``<base_uri>/<file name>``.
+        variation_points (bool): Also accept the variation points of a variant workspace (see :func:`add_variation_points`).
 
     Returns:
         dict[str, dict[str, Any]]: Schema documents keyed by file name. The root document comes first.
@@ -270,6 +365,8 @@ def build_model_schemas(
     for name, definition in definitions.items():
         file_name = schema_file_name(name, suffix)
         documents[file_name] = _stamp(definition, file_name, base_uri)
+    if variation_points:
+        add_variation_points(documents, suffix)
     return documents
 
 
@@ -282,6 +379,7 @@ def dump_model_schemas(
     by_alias: bool = True,
     base_uri: str | None = None,
     indent: int = 2,
+    variation_points: bool = False,
 ) -> list[Path]:
     """
     Write one JSON Schema file per Pydantic model class reachable from ``root`` into ``output_dir``.
@@ -306,6 +404,7 @@ def dump_model_schemas(
         by_alias (bool): Whether field aliases are used as property names.
         base_uri (str | None): URI the schema files are published under, used for ``$id``.
         indent (int): JSON indentation.
+        variation_points (bool): Also accept the variation points of a variant workspace (see :func:`add_variation_points`).
 
     Returns:
         list[Path]: The written files, root schema first.
@@ -313,7 +412,7 @@ def dump_model_schemas(
 
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
-    documents = build_model_schemas(root, suffix=suffix, mode=mode, by_alias=by_alias, base_uri=base_uri)
+    documents = build_model_schemas(root, suffix=suffix, mode=mode, by_alias=by_alias, base_uri=base_uri, variation_points=variation_points)
 
     paths = []
     for file_name, document in documents.items():

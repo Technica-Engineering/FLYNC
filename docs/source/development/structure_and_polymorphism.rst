@@ -102,6 +102,18 @@ attribute holds the resolved object. When the field is not a plain name but a co
 ``field_serializer`` so dumps write the key back, as
 :class:`~flync.model.flync_4_someip.deployment.SOMEIPServiceDeployment` does for its ``service`` id.
 
+.. note::
+   A model's own fields and validators never know about product variants. A ``variability/`` folder
+   and its ``variant_condition`` variation points are resolved by the workspace loader on the raw YAML,
+   before any model sees the data — see :ref:`variability`. Never add a field named
+   ``variant_condition`` or ``variant_values``, and never read the active variant from inside a model or
+   validator. Variants only select ECUs and system topology entries. The ECU names the field whose
+   document decides its presence in its ``PRESENCE_DOCUMENT`` class attribute (``ecu_metadata``); no
+   other model declares one, since an ECU is the same in every variant it is part of. A model never has
+   to declare anything for the entries of the system topology: the loader accepts a ``variant_condition``
+   on any list entry in ``topology/``, removes the key before validation, and the schema generator finds
+   those entries itself.
+
 Discriminated unions
 ====================
 

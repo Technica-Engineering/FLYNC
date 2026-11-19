@@ -55,6 +55,7 @@ from flync.model.flync_4_topology.ethernet_multidrop import (
     wire_multidrop_connections,
 )
 from flync.model.flync_4_topology.ethernet_topology import validate_no_multidrop_in_point_to_point, warn_unconnected_ports
+from flync.model.flync_4_variability import Variability, VariantContext
 
 if TYPE_CHECKING:
     from flync.core.utils.base_utils import NetworkComponent
@@ -88,6 +89,17 @@ class FLYNCModel(FLYNCBaseModel, AccessorMixin, BindingMixin, MulticastMixin):
         Optional measurement and logging overlay - the measurement points recording this system.
         Absent for a system that is not being measured, which is the ordinary case for a
         production configuration.
+
+    variability : :class:`~flync.model.flync_4_variability.Variability`, optional
+        Optional product-line variability: the feature model and the product variants the workspace is
+        resolved for. Absent (the default) for a workspace that describes a single architecture. When it is
+        present, the loaded model is one resolved variant, see :attr:`active_variant`.
+
+    Private Attributes
+    ------------------
+    _active_variant : :class:`~flync.model.flync_4_variability.VariantContext`, optional
+        The variant this model was resolved for by the workspace loader; ``None`` for a workspace without
+        variability or a model built in code.
     """
 
     apps: Annotated[
@@ -134,6 +146,15 @@ class FLYNCModel(FLYNCBaseModel, AccessorMixin, BindingMixin, MulticastMixin):
             naming_strategy=NamingStrategy.FIELD_NAME,
         ),
     ] = Field(default=None, description="Optional measurement and logging overlay recording this system.")
+    variability: Annotated[
+        Optional[Variability],
+        External(
+            output_structure=OutputStrategy.FOLDER,
+            naming_strategy=NamingStrategy.FIELD_NAME,
+        ),
+    ] = Field(default=None, description="Optional feature model and product variants of a 150 % workspace.")
+
+    _active_variant: Optional[VariantContext] = None
 
     _EXCLUDED_NAME_CHECK_CLASSES: Tuple[type, ...] = (
         VirtualControllerInterface,
@@ -574,6 +595,17 @@ class FLYNCModel(FLYNCBaseModel, AccessorMixin, BindingMixin, MulticastMixin):
             self,
         )
         return self
+
+    @property
+    def active_variant(self) -> Optional[VariantContext]:
+        """
+        The product variant this model was resolved for.
+
+        Set by the workspace loader when the workspace has a ``variability/`` folder; ``None`` otherwise. Generators use it
+        to tell which variant they hold, e.g. ``model.active_variant.value("architecture")`` or
+        ``model.active_variant.is_enabled("park_assist")``.
+        """
+        return self._active_variant
 
     @model_validator(mode="after")
     def resolve_tcp_profiles(self) -> Self:

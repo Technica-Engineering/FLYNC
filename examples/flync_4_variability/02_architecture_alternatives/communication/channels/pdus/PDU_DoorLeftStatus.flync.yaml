@@ -1,0 +1,23 @@
+name: PDU_DoorLeftStatus
+type: standard
+length: 2
+description: Lock and window state of the left door. Sent by the door module over the 10BASE-T1S door
+  segment, to the body domain controller or to the front zone controller.
+signals:
+  - bit_position: 0
+    endianness: LE
+    signal:
+      name: DoorLeftLocked
+      description: 1 = locked.
+      bit_length: 8
+      data_type: uint8
+  - bit_position: 8
+    endianness: LE
+    signal:
+      name: WindowLeftPosition
+      description: Window position in percent, 0 = closed.
+      bit_length: 8
+      data_type: uint8
+      lower_limit: 0
+      upper_limit: 100
+      unit: "%"

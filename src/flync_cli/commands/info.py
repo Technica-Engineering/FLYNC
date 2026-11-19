@@ -3,10 +3,11 @@
 from typing import Optional
 
 import typer
+from rich.markup import escape
 from typing_extensions import Annotated
 
 from flync.model.flync_4_someip import SOMEIPServiceConsumer, SOMEIPServiceProvider
-from flync_cli.utils.console import console
+from flync_cli.utils.console import console, print_error
 from flync_cli.utils.deprecation import warn_deprecated
 from flync_cli.utils.model_views import (
     ecus_for,
@@ -34,7 +35,7 @@ from flync_cli.utils.styles import (
     STYLE_VLAN,
     make_table,
 )
-from flync_cli.utils.workspace import WorkspacePathArg, load_workspace
+from flync_cli.utils.workspace import VariantOpt, WorkspacePathArg, load_workspace
 
 app = typer.Typer(help="Display FLYNC workspace information in a structured, user-friendly format.")
 
@@ -58,7 +59,7 @@ def _resolve_service_by_name(model, name: str) -> tuple[int, int]:
     for service in model.get_all_someip_services():
         if service.name == name:
             return service.id, service.major_version
-    console.print(f"⚠️ [bold red] No SOME/IP service named '{name}' in this workspace.[/bold red]")
+    print_error(f"No SOME/IP service named '{escape(name)}' in this workspace.", "List the services with `flync info services`.")
     raise typer.Exit(code=1)
 
 
@@ -105,9 +106,9 @@ def _show_ecus(model) -> None:
 
 
 @app.command(name="ecus", help="List every ECU in the workspace.")
-def ecus(path: WorkspacePathArg = None):
+def ecus(path: WorkspacePathArg = None, variant: VariantOpt = None):
     """List every ECU in the workspace."""
-    ws = load_workspace(path)
+    ws = load_workspace(path, variant)
     _show_ecus(ws.flync_model)
 
 
@@ -125,9 +126,9 @@ def _show_controllers(model, ecu_name: Optional[str]) -> None:
 
 
 @app.command(name="controllers", help="List the controllers of every ECU, or of one ECU with --ecu-name.")
-def controllers(path: WorkspacePathArg = None, ecu_name: EcuNameOpt = None):
+def controllers(path: WorkspacePathArg = None, ecu_name: EcuNameOpt = None, variant: VariantOpt = None):
     """List the controllers of every ECU, or of one ECU with --ecu-name."""
-    ws = load_workspace(path)
+    ws = load_workspace(path, variant)
     _show_controllers(ws.flync_model, ecu_name)
 
 
@@ -145,9 +146,9 @@ def _show_switches(model, ecu_name: Optional[str]) -> None:
 
 
 @app.command(name="switches", help="List the switches of every ECU, or of one ECU with --ecu-name.")
-def switches(path: WorkspacePathArg = None, ecu_name: EcuNameOpt = None):
+def switches(path: WorkspacePathArg = None, ecu_name: EcuNameOpt = None, variant: VariantOpt = None):
     """List the switches of every ECU, or of one ECU with --ecu-name."""
-    ws = load_workspace(path)
+    ws = load_workspace(path, variant)
     _show_switches(ws.flync_model, ecu_name)
 
 
@@ -172,9 +173,9 @@ def _show_ports(model, ecu_name: Optional[str]) -> None:
 
 
 @app.command(name="ports", help="List the ports of every ECU, grouped by ECU, or of one ECU with --ecu-name.")
-def ports(path: WorkspacePathArg = None, ecu_name: EcuNameOpt = None):
+def ports(path: WorkspacePathArg = None, ecu_name: EcuNameOpt = None, variant: VariantOpt = None):
     """List the ports of every ECU, grouped by ECU, or of one ECU with --ecu-name."""
-    ws = load_workspace(path)
+    ws = load_workspace(path, variant)
     _show_ports(ws.flync_model, ecu_name)
 
 
@@ -210,9 +211,9 @@ def _show_ip(model, ecu_name: Optional[str]) -> None:
 
 
 @app.command(name="ip", help="List IP addresses across every ECU, with their VLAN and subnet.")
-def ip(path: WorkspacePathArg = None, ecu_name: EcuNameOpt = None):
+def ip(path: WorkspacePathArg = None, ecu_name: EcuNameOpt = None, variant: VariantOpt = None):
     """List IP addresses across every ECU, with their VLAN and subnet."""
-    ws = load_workspace(path)
+    ws = load_workspace(path, variant)
     _show_ip(ws.flync_model, ecu_name)
 
 
@@ -267,9 +268,9 @@ def _show_sockets(model, ecu_name: Optional[str]) -> None:
 
 
 @app.command(name="sockets", help="Show socket endpoints grouped by ECU and VLAN, or of one ECU with --ecu-name.")
-def sockets(path: WorkspacePathArg = None, ecu_name: EcuNameOpt = None):
+def sockets(path: WorkspacePathArg = None, ecu_name: EcuNameOpt = None, variant: VariantOpt = None):
     """Show socket endpoints grouped by ECU and VLAN, or of one ECU with --ecu-name."""
-    ws = load_workspace(path)
+    ws = load_workspace(path, variant)
     _show_sockets(ws.flync_model, ecu_name)
 
 
@@ -301,9 +302,9 @@ def _show_services(model) -> None:
 
 
 @app.command(name="services", help="List every SOME/IP service, its ID/version, and its providing/consuming ECUs.")
-def services(path: WorkspacePathArg = None):
+def services(path: WorkspacePathArg = None, variant: VariantOpt = None):
     """List every SOME/IP service, its ID/version, and its providing/consuming ECUs."""
-    ws = load_workspace(path)
+    ws = load_workspace(path, variant)
     _show_services(ws.flync_model)
 
 
@@ -313,7 +314,7 @@ def _show_instances(model, service_id: int, major_version: int) -> None:
     services_by_key = model.get_someip_services_by_identity()
     service = services_by_key.get(key)
     if service is None:
-        console.print(f"⚠️ [bold red] No SOME/IP service with id={service_id:#06x} and major_version={major_version} in this workspace.[/bold red]")
+        print_error(f"No SOME/IP service with id={service_id:#06x} and major_version={major_version} in this workspace.")
         if services_by_key:
             console.print("[dim]Available services:[/dim]")
             for (svc_id, major), svc in sorted(services_by_key.items()):
@@ -353,9 +354,10 @@ def instances(
     service_id: Annotated[str, typer.Argument(help="Service ID, decimal or hex (e.g. 0x0101).")],
     major_version: Annotated[int, typer.Argument(help="Major version of the service interface.")],
     path: WorkspacePathArg = None,
+    variant: VariantOpt = None,
 ):
     """Show the consumer/provider deployments of one SOME/IP service instance."""
-    ws = load_workspace(path)
+    ws = load_workspace(path, variant)
     _show_instances(ws.flync_model, _parse_service_id(service_id), major_version)
 
 
@@ -369,7 +371,7 @@ def _resolve_vlan_ids(grouped: dict, ecu_name: Optional[str], vlan_id: Optional[
     if vlan_id is not None:
         if vlan_id not in grouped:
             scope = f" for ECU '{ecu_name}'" if ecu_name else ""
-            console.print(f"⚠️ [bold red] VLAN {vlan_id} is not configured{scope} in this workspace.[/bold red]")
+            print_error(f"VLAN {vlan_id} is not configured{escape(scope)} in this workspace.")
             raise typer.Exit(code=1)
         return [vlan_id]
 
@@ -409,9 +411,10 @@ def vlans(
     path: WorkspacePathArg = None,
     vlan_id: Annotated[Optional[int], typer.Option("--vlan-id", help="Optional: show only this VLAN.")] = None,
     ecu_name: EcuNameOpt = None,
+    variant: VariantOpt = None,
 ):
     """Show VLAN membership grouped by VLAN, across the workspace or one ECU."""
-    ws = load_workspace(path)
+    ws = load_workspace(path, variant)
     _show_vlans(ws.flync_model, ecu_name, vlan_id)
 
 

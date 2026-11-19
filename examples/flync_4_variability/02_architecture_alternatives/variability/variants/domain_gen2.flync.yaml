@@ -1,0 +1,4 @@
+description: Domain architecture on the second compute generation (running change of the compute ECU).
+extends: domain_gen1
+features:
+  compute_generation: gen2

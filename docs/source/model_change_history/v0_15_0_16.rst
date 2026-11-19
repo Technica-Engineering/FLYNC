@@ -65,6 +65,33 @@ a Packet Control Header. It is also accepted as a port extender uplink, includin
 
 New validation: ``FLYNC-ECU-MAJ-VAL-428`` to ``FLYNC-ECU-MAJ-VAL-430``, see :doc:`../error_catalog`.
 
+New optional variability domain
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The optional ``variability/`` folder (:ref:`flync_4_variability <variability>`) turns a workspace into
+a 150 % model of a product line: ``variability/feature_model.flync.yaml`` declares the features, and
+``variability/variants/*.flync.yaml`` declares the product variants as feature assignments.
+``flync_model.variability`` is ``None`` without the folder, so a 0.15 workspace keeps its layout and
+loads exactly as before.
+
+A feature declares ``name``, ``description``, an optional ``type`` (``boolean`` or ``enumeration``,
+inferred from ``values`` when omitted), ``category`` (``product``, ``context``, ``requirement``,
+``solution`` or ``element``), ``values``, ``ordered``, ``default``, and free-form ``attributes``. The
+feature model declares ``features`` (a flat list), ``constraints`` (``expression`` / ``description``),
+``qualifiers`` and ``default_variant``.
+
+A variant declares ``description``, ``extends``, and ``features`` (its decisions; undecided features take
+their default, decisions are inherited along ``extends``).
+
+With the folder present, a new reserved key ``variant_condition`` is recognized in two places, since a
+product variant is a selection of ECUs and of the links between them: at the root of an ECU's
+``ecu_metadata`` it decides which variants the whole ECU folder is part of, and on an entry of a list in
+the system topology (``topology/``: a connection, a node of a multidrop segment) it decides which variants
+the entry is part of. An ECU is otherwise the same in every variant it is part of; an ECU that differs is a
+separate ECU. A ``variant_condition`` anywhere else, and a ``variant_values`` key anywhere, is an error
+(``FLYNC-VAR-MAJ-STRUCT-483`` to ``FLYNC-VAR-MAJ-STRUCT-486``). The conditions are resolved by the loader for
+the selected variant before validation, so no other model sees them; using one without a ``variability/``
+folder is an error.
 
 Breaking — Python API
 ---------------------

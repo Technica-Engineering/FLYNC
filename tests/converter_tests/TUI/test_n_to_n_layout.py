@@ -28,7 +28,9 @@ def test_layout_fits_standard_terminals(helpers, width, height, panels_height, l
             destination_panel = destinations.panels[0]
             source_select = source_panel.query_one("#select")
             destination_select = destination_panel.query_one("#select")
-            source_input = source_panel.query_one("Input")
+            # the required path input of a fresh panel; further config fields (the FLYNC converter's variant)
+            # may extend below the pinned add row on small terminals, the column scrolls to them
+            source_input = source_panel.query_one(f"#field-{source_panel.id}-config_path", Input)
             source_add = sources.query_one("Button.add-endpoint", Button)
             add_row = sources.query_one(".add-row")
 

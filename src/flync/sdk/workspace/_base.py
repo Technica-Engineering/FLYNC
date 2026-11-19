@@ -15,6 +15,8 @@ from pydantic_core import ErrorDetails
 
 from flync.core.annotations import Namespaced
 from flync.core.base_models.base_model import FLYNCBaseModel
+from flync.model.flync_4_variability import Variability, VariantContext
+from flync.model.flync_4_variability.resolution import ResolutionTrace
 from flync.model.flync_model import FLYNCModel
 from flync.sdk.context.workspace_config import (
     ListObjectsMode,
@@ -27,6 +29,7 @@ from .document import Document
 from .ids import ObjectId
 from .objects import SemanticObject
 from .source import SourceRef
+from .variant_view import project_node
 
 logger = logging.getLogger(__name__)
 
@@ -151,6 +154,23 @@ class _WorkspaceBase(object):
         # document id -> LoadNode, built during load so update_document can
         # partially reload a single document instead of the whole workspace.
         self._doc_index: dict[str, LoadNode] = {}
+        # Variant management. The variant to resolve is a runtime selection, never persisted in the
+        # workspace configuration; the context is rebuilt by every root load.
+        self._requested_variant: Optional[str] = None
+        self._variability: Optional[Variability] = None
+        self._variant_ctx: Optional[VariantContext] = None
+        # Root of the workspace whose variability applies (the parent of its variability/ folder): document roles are
+        # decided by the path of a document relative to it, also when a sub-node such as one ECU folder is loaded.
+        self._variability_root: Optional[Path] = None
+        # Variant-independent findings per document id (recomputed with the documents), and findings of
+        # the variant selection keyed by (document id, name) so a directory rescan replaces its own entries.
+        self._lint_diags: Dict[str, list[ErrorDetails]] = {}
+        self._selection_diags: Dict[tuple[str, str], list[ErrorDetails]] = {}
+        # What resolving each document removed, and the composed node trees projected from it.
+        self._traces: Dict[str, ResolutionTrace] = {}
+        self._projected: Dict[str, tuple[ResolutionTrace, Any]] = {}
+        # Documents whose content entered the loaded model.
+        self._consumed_docs: set[str] = set()
 
     @property
     def load_errors(self):
@@ -183,6 +203,65 @@ class _WorkspaceBase(object):
         if not isinstance(path, Path):
             path = Path(path)
         return path.name.startswith(".")
+
+    @property
+    def variability(self) -> Optional[Variability]:
+        """
+        The variability model of the workspace (``variability/``), or ``None`` when it has none or it could not be loaded.
+
+        Returns:
+            Variability | None: The feature model and the declared product variants.
+        """
+
+        return self._variability
+
+    @property
+    def active_variant(self) -> Optional[VariantContext]:
+        """
+        The product variant the loaded model was resolved for, or ``None`` for a workspace without variability.
+
+        Returns:
+            VariantContext | None: The variant with its complete feature assignment.
+        """
+
+        return self._variant_ctx
+
+    @property
+    def variants(self) -> list[str]:
+        """
+        Names of the product variants declared by the workspace; empty for a workspace without variability.
+
+        Returns:
+            list[str]: The variant names, in declaration order.
+        """
+
+        return self._variability.variant_names() if self._variability is not None else []
+
+    def _source_nodes(self, doc_id: str):
+        """
+        Return the composed YAML tree of a document as resolved for the active variant.
+
+        Error positions and the object map walk this tree alongside the validated data. When variant resolution removed or
+        replaced parts of the document, a filtered view sharing the original nodes (and so their line/column marks) is returned.
+
+        Args:
+            doc_id (str): Workspace-relative document id.
+
+        Returns:
+            The composed root node, or ``None`` when the document is unknown or cannot be composed.
+        """
+
+        document = self.documents.get(doc_id)
+        node = document.source_nodes() if document is not None else None
+        trace = self._traces.get(doc_id)
+        if not trace or node is None:
+            return node
+        cached = self._projected.get(doc_id)
+        if cached is not None and cached[0] is trace:
+            return cached[1]
+        projected = project_node(node, trace)
+        self._projected[doc_id] = (trace, projected)
+        return projected
 
     def is_path_supported(self, path: PathType):
         """
@@ -219,8 +298,7 @@ class _WorkspaceBase(object):
         Strip all recognized FLYNC file extensions from a filename.
 
         Iterates over every extension in :attr:`~flync.sdk.context.workspace_config.WorkspaceConfiguration.allowed_extensions`
-        and removes it as a suffix, leaving the bare stem.
-        If a :class:`pathlib.Path` is passed, only its ``name`` component is used.
+        and removes it as a suffix, leaving the bare stem. If a :class:`pathlib.Path` is passed, only its ``name`` component is used.
 
         Args:
             file_name (str | Path): The filename or path to strip.

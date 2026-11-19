@@ -1,7 +1,11 @@
 """Tests for flync_cli utility modules."""
 
+from rich.markup import escape
+
+from flync_cli.utils.console import print_error
 from flync_cli.utils.error_table import sanitize_error_message
 from flync_cli.utils.mapping import get_mapping
+from tests.cli_tests.rich_output import capture
 
 
 class TestGetMapping:
@@ -30,3 +34,20 @@ class TestSanitizeErrorMessage:
 
     def test_empty_string(self):
         assert sanitize_error_message("") == ""
+
+
+class TestPrintError:
+    def test_message_and_hint(self):
+        with capture() as out:
+            print_error("Unknown variant 'nobody'.", "Available variants: a, b.")
+        assert out.text.splitlines() == ["Error: Unknown variant 'nobody'.", "       Available variants: a, b."]
+
+    def test_without_hint(self):
+        with capture() as out:
+            print_error("Path does not exist: /tmp/x")
+        assert out.text.splitlines() == ["Error: Path does not exist: /tmp/x"]
+
+    def test_escaped_markup_is_printed_literally(self):
+        with capture() as out:
+            print_error(f"Invalid name {escape('[bold]x[/bold]')}.")
+        assert out.text.splitlines() == ["Error: Invalid name [bold]x[/bold]."]

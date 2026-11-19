@@ -8,7 +8,9 @@ from pydantic import ValidationError
 
 from flync.model import FLYNCModel
 from flync_converter.base import ConverterConfig
-from flync_converter.converters.flync_converter import FLYNCConverter
+from flync_converter.converters.flync_converter import FLYNCConverter, FLYNCConverterConfig
+from flync_converter.utils import get_config_model
+from tests.example_paths import FLYNC_VARIANTS_EXAMPLE
 
 MODULE = "flync_converter.converters.flync_converter"
 
@@ -77,7 +79,7 @@ class TestFLYNCConverterDecode:
         with patch(f"{MODULE}.FLYNCWorkspace.safe_load_workspace", return_value=mock_workspace) as mock_load:
             result = converter.decode()
 
-        mock_load.assert_called_once_with("converted_workspace", "/tmp/test_workspace")
+        mock_load.assert_called_once_with("converted_workspace", "/tmp/test_workspace", variant=None)
         assert result is mock_workspace.flync_model
 
     def test_decode_logs_workspace_diagnostics(self, caplog):
@@ -123,6 +125,21 @@ class TestFLYNCConverterDecode:
             converter.decode()
 
         assert "c.flync.yaml: missing at ecus.0.name: Field required" in caplog.text
+
+    def test_decode_resolves_the_configured_variant(self):
+        """A workspace with a variability/ folder is decoded as the variant set in FLYNCConverterConfig."""
+        converter = FLYNCConverter()
+        converter.config = FLYNCConverterConfig(config_path=str(FLYNC_VARIANTS_EXAMPLE), variant="zonal_gen2")
+
+        model = converter.decode()
+
+        assert model.active_variant.name == "zonal_gen2"
+        assert "zone_controller_front" in [ecu.name for ecu in model.ecus]
+
+    def test_config_model_exposes_the_variant(self):
+        """The converter CLI derives its --src-variant option from the config model."""
+        with patch("flync_converter.utils.registry", {"flync": FLYNCConverter()}):
+            assert get_config_model("flync") is FLYNCConverterConfig
 
 
 class TestFLYNCConverterBasics:

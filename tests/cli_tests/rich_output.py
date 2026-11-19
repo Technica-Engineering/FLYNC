@@ -20,6 +20,7 @@ from typing import Iterator
 
 from rich.console import Console
 
+from flync_cli.utils import console as console_module
 from flync_cli.utils.error_table import sanitize_error_message
 
 #: Wide enough that no report column in this suite truncates; matches the old COLUMNS=200 hack
@@ -70,6 +71,8 @@ def capture(*modules: ModuleType, width: int = DEFAULT_WIDTH) -> Iterator[Captur
             info._show_ip(model, None)
         assert out.rows[1] == ["ECU1", "CTRL0", "ETH0", "vi10", "10", "10.0.20.5/24"]
     """
+    # print_error() prints through the console of flync_cli.utils.console itself, so that one is always redirected too
+    modules = tuple(dict.fromkeys((*modules, console_module)))
     originals = [module.console for module in modules]
     recorder = Console(record=True, width=width, no_color=True, force_terminal=False)
     for module in modules:

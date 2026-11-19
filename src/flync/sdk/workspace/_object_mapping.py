@@ -66,9 +66,9 @@ class _WorkspaceObjectMapping(_WorkspaceBase):
         if model is not None and path_id in self.documents:
             # object is all external fields
             # should already be updated
-            document = self.documents[path_id]
             if node is None:
-                node = document.compose_ast
+                # the tree as resolved for the active variant, so it lines up with the validated model
+                node = self._source_nodes(path_id)
             if isinstance(node, MappingNode):
                 self._update_mapping_node_objects(path_id, model, current_object_paths, node)
             elif isinstance(node, SequenceNode):
@@ -580,6 +580,11 @@ class _WorkspaceObjectMapping(_WorkspaceBase):
                 # Parent might have @model_validator or @field_validator
                 self.__enqueue_parent_for_revalidation(parent_id, objects_to_revalidate, revalidated_objects)
 
+        if self._variant_ctx is not None:
+            # The models hold one resolved variant; writing them back would drop the variation points
+            # (other variants' elements, conditions, alternatives) of the 150 % documents.
+            logger.warning("Reference changes are not written back in a variant workspace: %s", sorted(affected_files))
+            return
         for affected_file in affected_files:
             self.__persist_document_changes(affected_file)
 

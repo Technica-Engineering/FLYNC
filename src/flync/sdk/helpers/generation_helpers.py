@@ -8,7 +8,6 @@ Builds example objects via polyfactory based factories - :class:`FLYNCFactory` f
 """
 
 import pathlib
-import random
 from ipaddress import IPv4Address, IPv6Address
 from os import curdir, sep
 from pathlib import Path
@@ -25,16 +24,23 @@ from flync.core.datatypes.ipaddress import IPv4AddressEntry
 from flync.model.flync_4_ecu.phy import BASET1
 from flync.model.flync_4_ecu.sockets import IPv4AddressEndpoint
 from flync.model.flync_4_topology.ethernet_topology import EthernetPointToPointConnection
+from flync.model.flync_4_variability.resolution import FEATURE_MODEL_DOCUMENT
 from flync.model.flync_model import FLYNCBaseModel, FLYNCModel
 from flync.sdk.context.workspace_config import WorkspaceConfiguration
 from flync.sdk.utils.field_utils import get_field_name_from_alias
-from flync.sdk.workspace.flync_workspace import FLYNCWorkspace
+from flync.sdk.workspace.flync_workspace import FLYNCWorkspace, VariantWorkspaceWriteError
 from flync.sdk.workspace.ids import ObjectId
 from flync.sdk.workspace.objects import SemanticObject
 
 from .nodes_helpers import available_flync_nodes, type_from_input
 
 TModel = TypeVar("TModel", bound=BaseModel)
+
+# The IPv4 multicast block 224.0.0.0/4 (RFC 5771) as integers, so no address literal is parsed per generated value.
+_IPV4_MULTICAST_FIRST = 0xE0000000
+_IPV4_MULTICAST_LAST = 0xEFFFFFFF
+# A unicast address from the IPv6 documentation prefix (RFC 3849), used as the fixed example value.
+_IPV6_EXAMPLE_UNICAST = "2001:db8::1"
 
 
 def safe_issubclass(candidate: object, base) -> bool:
@@ -138,20 +144,16 @@ class FLYNCFactory(ModelFactory[FLYNCBaseModel]):
     __use_defaults__ = True
     __use_examples__ = True
 
-    @staticmethod
-    def random_multicast_ipv4():
-        return IPv4Address(
-            random.randint(
-                int(IPv4Address("224.0.0.0")),
-                int(IPv4Address("239.255.255.255")),
-            )
-        )
+    @classmethod
+    def random_multicast_ipv4(cls):
+        # Drawn from the factory's own generator, so ``FLYNCFactory.seed_random`` makes the result reproducible.
+        return IPv4Address(cls.__random__.randint(_IPV4_MULTICAST_FIRST, _IPV4_MULTICAST_LAST))
 
     @classmethod
     def get_provider_map(cls):
         original_providers = super().get_provider_map()
         original_providers[MacAddress] = lambda: "11:22:33:44:55:66"
-        original_providers[IPv6Address] = lambda: IPv6Address("fe80::1")
+        original_providers[IPv6Address] = lambda: IPv6Address(_IPV6_EXAMPLE_UNICAST)
         original_providers[IPv4Address] = lambda: FLYNCFactory.random_multicast_ipv4()
         original_providers[IPvAnyAddress] = lambda: FLYNCFactory.random_multicast_ipv4()
         return original_providers
@@ -644,6 +646,36 @@ def dump_flync_workspace(
         workspace_config=workspace_config,
     )
     ws.generate_configs()
+
+
+def export_variant(
+    flync_model: FLYNCModel,
+    output_path: str | pathlib.Path,
+    workspace_name: str | None = None,
+    workspace_config: WorkspaceConfiguration | None = None,
+) -> None:
+    """
+    Write one resolved product variant as a plain workspace, without variability.
+
+    The output is an ordinary FLYNC workspace (no ``variability/`` folder, no variation points) that every FLYNC tool and
+    converter can consume, e.g. to hand one vehicle configuration to a code generator.
+
+    Args:
+        flync_model (:class:`~flync.model.flync_model.FLYNCModel`): A model resolved for a variant, e.g.
+        ``FLYNCWorkspace.load_workspace(name, path, variant="suv_eu").flync_model``.
+        output_path (str | pathlib.Path): Folder to write the workspace to. It must not be the 150 % workspace itself.
+        workspace_name (str | None): Optional name for the generated workspace.
+        workspace_config (WorkspaceConfiguration | None): Optional workspace configuration. Uses defaults if ``None``.
+
+    Raises:
+        VariantWorkspaceWriteError: If ``output_path`` holds a variant workspace.
+    """
+
+    plain = flync_model.model_copy(update={"variability": None})
+    if (pathlib.Path(output_path) / FEATURE_MODEL_DOCUMENT).exists():
+        raise VariantWorkspaceWriteError(f"'{output_path}' holds a variant workspace; export the variant to another folder.")
+    plain._active_variant = None
+    dump_flync_workspace(plain, output_path, workspace_name or "exported_variant", workspace_config)
 
 
 def generate_external_node(

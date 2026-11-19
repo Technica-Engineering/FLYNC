@@ -610,7 +610,7 @@ def test_run_debug_scenarios(tmp_path, capsys, monkeypatch):
         m.setattr(
             layer345_mod,
             "run_workspace_validation",
-            lambda dir_path, root_model=None: (SimpleNamespace(model=object()), []),
+            lambda dir_path, root_model=None, **kwargs: (SimpleNamespace(model=object()), []),
         )
         run_debug(tmp_path)
         assert "Model is valid" in capsys.readouterr().out
@@ -624,7 +624,7 @@ def test_run_debug_scenarios(tmp_path, capsys, monkeypatch):
         m.setattr(
             layer345_mod,
             "run_workspace_validation",
-            lambda dir_path, root_model=None: (
+            lambda dir_path, root_model=None, **kwargs: (
                 SimpleNamespace(model=object()),
                 [
                     WorkspaceIssue(layer=4, severity="error", message="bad value", field="x"),
@@ -651,7 +651,7 @@ def test_run_debug_with_node_uses_that_root_model(tmp_path, capsys, monkeypatch)
         seen["layer1"] = model_cls
         return []
 
-    def fake_run_workspace_validation(dir_path, root_model=None):
+    def fake_run_workspace_validation(dir_path, root_model=None, **kwargs):
         seen["layer345"] = root_model
         return SimpleNamespace(model=object()), []
 
