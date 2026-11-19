@@ -15,7 +15,7 @@ import typer
 from flync.model.flync_model import FLYNCModel
 from flync_cli.utils.console import console
 from flync_cli.utils.mapping import get_mapping
-from flync_cli.utils.workspace import WorkspacePathArg, load_workspace
+from flync_cli.utils.workspace import VariantOpt, WorkspacePathArg, load_workspace
 
 app = typer.Typer()
 
@@ -675,9 +675,10 @@ def generate_system_uml(
         "--target-ecu",
         help="generate the system uml for only the target ECU,default is all",
     ),
+    variant: VariantOpt = None,
 ):
     """Generate PlantUML diagram representing the system architecture with optional feature annotations."""
-    loaded_ws = load_workspace(path)
+    loaded_ws = load_workspace(path, variant)
     flync_model = cast(FLYNCModel, loaded_ws.flync_model)
     options = []
     if show_macsec:

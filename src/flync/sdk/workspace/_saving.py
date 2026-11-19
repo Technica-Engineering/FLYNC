@@ -19,6 +19,8 @@ from flync.core.annotations import (
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.base_models.namespace import split_qualified_name
 from flync.core.utils import yaml_io
+from flync.model.flync_4_variability.resolution import FEATURE_MODEL_DOCUMENT
+from flync.model.flync_model import FLYNCModel
 from flync.sdk.context.workspace_config import CONFIG_RELPATH, WorkspaceConfiguration
 from flync.sdk.utils.field_utils import (
     get_metadata,
@@ -42,6 +44,10 @@ def _migration_pending(configuration: WorkspaceConfiguration) -> bool:
     return state in (WorkspaceMigrationState.PENDING_MIGRATION, WorkspaceMigrationState.UNSUPPORTED_OLD)
 
 
+class VariantWorkspaceWriteError(ValueError):
+    """Raised when a model resolved for one product variant would be written over a 150 % (variant) workspace."""
+
+
 class _WorkspaceSaving(_WorkspaceIncremental):
     """Serializes models into workspace documents."""
 
@@ -51,12 +57,35 @@ class _WorkspaceSaving(_WorkspaceIncremental):
 
         This is a placeholder implementation that stores the model for later
         use.
+
+        Raises:
+            VariantWorkspaceWriteError: If ``flync_model`` was resolved for a product variant and the target already holds a
+                variability model, or this workspace was itself resolved for a variant. Writing would replace the 150 % documents
+                (every variant, every variation point) with one resolved variant; export the variant to another folder instead.
         """
 
         if isinstance(file_path, str):
             file_path = Path(file_path)
+        self.__refuse_variant_overwrite(flync_model, file_path)
         content = self.__get_model_content(flync_model, file_path)
         self.__save_content_to_file(file_path, content)
+
+    def __refuse_variant_overwrite(self, flync_model: FLYNCBaseModel, file_path: Path) -> None:
+        """Stop a resolved variant from being written over the 150 % workspace it was resolved from."""
+
+        if self._variant_ctx is not None:
+            raise VariantWorkspaceWriteError(
+                f"This workspace was resolved for variant '{self._variant_ctx.name}'; writing its models back would drop the other "
+                "variants and the variation points. Export the variant to another folder instead."
+            )
+        if not isinstance(flync_model, FLYNCModel) or flync_model.active_variant is None or self.workspace_root is None:
+            return
+        target = file_path if file_path.is_absolute() else self.workspace_root / file_path
+        if (target / FEATURE_MODEL_DOCUMENT).exists():
+            raise VariantWorkspaceWriteError(
+                f"The model was resolved for variant '{flync_model.active_variant.name}' and '{target}' holds a variant workspace; "
+                "writing it there would replace every variant. Export the variant to another folder instead."
+            )
 
     def save_workspace_config(self) -> None:
         """

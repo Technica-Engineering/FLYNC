@@ -17,9 +17,12 @@ from pydantic_core import (
 )
 
 from flync.model import FLYNCBaseModel, FLYNCModel
+from flync.model.flync_4_variability.resolution import VARIABILITY_FOLDER
 from flync.sdk.context.diagnostics_result import (
     DiagnosticsResult,
+    VariantSetDiagnosticsResult,
     WorkspaceState,
+    worst_state,
 )
 from flync.sdk.workspace.flync_workspace import (
     FLYNCWorkspace,
@@ -35,9 +38,24 @@ logger = logging.getLogger(__name__)
 faulthandler.enable()
 
 
+def workspace_has_variability(workspace_path: str | Path) -> bool:
+    """
+    Return whether a workspace is a 150 % workspace, i.e. has a ``variability/`` folder.
+
+    Args:
+        workspace_path (str | Path): Path to the workspace directory.
+
+    Returns:
+        bool: ``True`` when the workspace declares product variants.
+    """
+
+    return (Path(workspace_path) / VARIABILITY_FOLDER).is_dir()
+
+
 def validate_workspace(
     workspace_path: str | Path,
     workspace_config: WorkspaceConfiguration | None = None,
+    variant: str | None = None,
 ) -> DiagnosticsResult:
     """
     Validate an entire FLYNC workspace rooted at the default ``FLYNCModel``.
@@ -45,18 +63,35 @@ def validate_workspace(
     Args:
         workspace_path (str | Path): Path to the workspace directory.
         workspace_config (WorkspaceConfiguration | None): Optional workspace configuration. Uses defaults if ``None``.
+        variant (str | None): Product variant to resolve a workspace with a ``variability/`` folder for; ``None`` uses the
+        feature model's ``default_variant``. See :func:`validate_variants` to validate every variant.
 
     Returns:
         DiagnosticsResult: The validation outcome including state, errors, and the loaded model.
     """
 
-    return validate_external_node(FLYNCModel, workspace_path, workspace_config)
+    return validate_external_node(FLYNCModel, workspace_path, workspace_config, variant=variant)
+
+
+def _collect_diagnostics(ws: FLYNCWorkspace) -> tuple[WorkspaceState, dict[str, list[ErrorDetails]]]:
+    """Return the validation state of a loaded workspace and its documents that have findings."""
+
+    state = WorkspaceState.VALID
+    errors: dict[str, list[ErrorDetails]] = {}
+    for doc_url, doc_errors in ws.documents_diags.items():
+        if doc_errors:
+            errors[doc_url] = list(doc_errors)
+            state = WorkspaceState.WARNING
+    if ws.flync_model is None:
+        state = WorkspaceState.INVALID
+    return state, errors
 
 
 def validate_external_node(
     node: str | type[FLYNCBaseModel],
     node_path: Path | str,
     workspace_config: WorkspaceConfiguration | None = None,
+    variant: str | None = None,
 ) -> DiagnosticsResult:
     """
     Validate a specific FLYNC node type at a given filesystem path.
@@ -70,6 +105,8 @@ def validate_external_node(
         workspace_config (WorkspaceConfiguration | None): Optional workspace configuration. \
             If ``None``, the ``.flync/config.yaml`` of ``node_path`` is used, else the defaults. \
             The ``root_model`` field is always overwritten with ``node``.
+        variant (str | None): Product variant to resolve for. A sub-node (e.g. one ECU folder) is resolved with the
+        variability of its enclosing workspace. ``None`` uses the feature model's ``default_variant``.
 
     Returns:
         DiagnosticsResult: Validation outcome with state, per-document errors, the loaded model, and the workspace instance.
@@ -99,16 +136,11 @@ def validate_external_node(
             "validation_workspace",
             node_path,
             workspace_config=workspace_config,
+            variant=variant,
         )
         model = ws.flync_model
-        state = WorkspaceState.VALID
         # only add documents that have problems
-        for doc_url, doc_errors in ws.documents_diags.items():
-            if doc_errors:
-                errors[doc_url] = doc_errors
-                state = WorkspaceState.WARNING
-        if ws.flync_model is None:
-            state = WorkspaceState.INVALID
+        state, errors = _collect_diagnostics(ws)
     except Exception as ex:
         state = WorkspaceState.BROKEN
         logger.exception("Encountered issue while validating node %s: %s", node_path, ex)
@@ -125,7 +157,70 @@ def validate_external_node(
             raise ValidationError.from_exception_data(title="node validation", line_errors=[error])
         except ValidationError as validation_error:
             errors[str(node_path)] = validation_error.errors()
-    return DiagnosticsResult(state=state, errors=errors, model=model, workspace=ws)
+    active = ws.active_variant.name if ws is not None and ws.active_variant is not None else None
+    return DiagnosticsResult(state=state, errors=errors, model=model, workspace=ws, variant=active)
+
+
+def validate_variants(
+    workspace_path: str | Path,
+    workspace_config: WorkspaceConfiguration | None = None,
+    variants: list[str] | None = None,
+    keep_models: bool = False,
+) -> VariantSetDiagnosticsResult:
+    """
+    Validate every product variant of a 150 % workspace.
+
+    The documents are parsed once; the workspace is then resolved and fully validated for one variant after the other. Every
+    rule of the model therefore applies per variant: a finding is reported for exactly the variants it occurs in.
+
+    Args:
+        workspace_path (str | Path): Path to the workspace directory.
+        workspace_config (WorkspaceConfiguration | None): Optional workspace configuration. Object mapping is always disabled.
+        variants (list[str] | None): The variants to validate; ``None`` validates every declared variant.
+        keep_models (bool): Keep the resolved model of each variant in its result. Off by default, since a product line can
+        hold many variants.
+
+    Returns:
+        VariantSetDiagnosticsResult: The result per variant. A workspace without variability is validated once, under the
+        variant name ``""``.
+    """
+
+    workspace_path = Path(workspace_path)
+    if not workspace_has_variability(workspace_path):
+        single = validate_workspace(workspace_path, workspace_config)
+        return VariantSetDiagnosticsResult(state=single.state, variants={"": single}, errors={})
+
+    if workspace_config:
+        config = WorkspaceConfiguration.create_from_config(workspace_config, root_model=FLYNCModel, map_objects=False)
+    else:
+        config = WorkspaceConfiguration(root_model=FLYNCModel, map_objects=False)
+    try:
+        ws = FLYNCWorkspace.safe_load_workspace("variant_validation", workspace_path, workspace_config=config)
+    except Exception as ex:
+        logger.exception("Encountered issue while validating the variants of %s: %s", workspace_path, ex)
+        return VariantSetDiagnosticsResult(state=WorkspaceState.BROKEN, variants={}, errors={})
+    return _validate_loaded_variants(ws, variants if variants is not None else ws.variants, keep_models, workspace_path)
+
+
+def _validate_loaded_variants(ws: FLYNCWorkspace, names: list[str], keep_models: bool, workspace_path: Path) -> VariantSetDiagnosticsResult:
+    """Validate the variants ``names`` of a loaded workspace one after the other; a broken variability model fails them all."""
+
+    if ws.variability is None:
+        # the variability model itself is broken, so no variant can be resolved
+        _, errors = _collect_diagnostics(ws)
+        return VariantSetDiagnosticsResult(state=WorkspaceState.INVALID, variants={}, errors=errors)
+    results: dict[str, DiagnosticsResult] = {}
+    for name in names:
+        try:
+            if ws.active_variant is None or ws.active_variant.name != name or ws.flync_model is None:
+                ws.select_variant(name)
+            state, errors = _collect_diagnostics(ws)
+            model = ws.flync_model if keep_models else None
+            results[name] = DiagnosticsResult(state=state, errors=errors, model=model, workspace=None, variant=name)
+        except Exception as ex:
+            logger.exception("Encountered issue while validating variant %s of %s: %s", name, workspace_path, ex)
+            results[name] = DiagnosticsResult(state=WorkspaceState.BROKEN, errors={}, variant=name)
+    return VariantSetDiagnosticsResult(state=worst_state([result.state for result in results.values()]), variants=results, errors={})
 
 
 def validate_node(

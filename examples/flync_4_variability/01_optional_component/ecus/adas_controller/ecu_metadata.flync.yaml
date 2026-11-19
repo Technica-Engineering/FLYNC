@@ -1,0 +1,8 @@
+# The ADAS controller of the base product: one port, for the front camera. With park assist the product needs a
+# port more, so it uses another ECU, adas_controller_pa. The condition at the root of the metadata is the only
+# variation point an ECU has: it decides which variants the whole ECU is part of.
+variant_condition: not park_assist
+author: Dev
+compatible_flync_version:
+  version_schema: semver
+  version: 0.16.0

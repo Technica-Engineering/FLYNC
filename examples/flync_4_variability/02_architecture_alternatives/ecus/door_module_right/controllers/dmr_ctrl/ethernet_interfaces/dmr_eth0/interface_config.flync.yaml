@@ -1,0 +1,7 @@
+mac_address: "02:00:00:00:06:01"
+virtual_interfaces:
+  - name: dmr_eth0_v50
+    vlanid: 50
+    addresses:
+      - address: 10.0.50.12
+        ipv4netmask: 255.255.255.0

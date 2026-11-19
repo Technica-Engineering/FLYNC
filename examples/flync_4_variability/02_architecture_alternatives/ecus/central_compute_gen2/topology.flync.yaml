@@ -1,0 +1,17 @@
+connections:
+  - type: switch_port_to_controller_interface
+    id: cc_conn0
+    switch_port: cc_sw_p0
+    controller_interface: cc_main_eth0
+  - type: ecu_port_to_switch_port
+    id: cc_conn1
+    ecu_port: cc_p1
+    switch_port: cc_sw_p1
+  - type: ecu_port_to_switch_port
+    id: cc_conn2
+    ecu_port: cc_p2
+    switch_port: cc_sw_p2
+  - type: switch_port_to_controller_interface
+    id: cc_conn3
+    switch_port: cc_sw_p3
+    controller_interface: cc_safety_eth0

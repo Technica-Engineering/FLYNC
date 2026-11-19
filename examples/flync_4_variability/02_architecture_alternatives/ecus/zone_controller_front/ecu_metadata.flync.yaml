@@ -1,0 +1,6 @@
+# Only the zonal architecture has zone controllers. The front zone controller coordinates the door segment.
+variant_condition: zonal
+author: Dev
+compatible_flync_version:
+  version_schema: semver
+  version: 0.16.0

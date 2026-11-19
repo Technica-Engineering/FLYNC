@@ -8,7 +8,7 @@ validates each load node. Depends on :mod:`._object_mapping` to register what it
 import logging
 from pathlib import Path
 from types import UnionType
-from typing import Annotated, Optional, Union, cast, get_args, get_origin
+from typing import Annotated, Any, Optional, Union, cast, get_args, get_origin
 
 from pydantic.fields import FieldInfo
 from pydantic_core import ValidationError
@@ -24,12 +24,14 @@ from flync.core.annotations import (
 from flync.core.base_models.base_model import FLYNCBaseModel
 from flync.core.base_models.namespace import qualify_name
 from flync.core.utils.exceptions_handling import is_semantic_validation_error, locate_errors, validate_with_policy
+from flync.model.flync_4_variability import Variability
+from flync.model.flync_4_variability.resolution import ABSENT, VARIABILITY_FOLDER
 from flync.sdk.utils.field_utils import get_metadata
 from flync.sdk.utils.model_dependencies import model_force_rebuild
 from flync.sdk.utils.sdk_types import PathType
 
 from ._base import LoadNode, ParentLink
-from ._object_mapping import _WorkspaceObjectMapping
+from ._variants import VARIABILITY_FIELD, _WorkspaceVariants
 from .document import Document, read_file
 
 logger = logging.getLogger(__name__)
@@ -37,7 +39,7 @@ logger = logging.getLogger(__name__)
 _UNRECOGNIZED_FILE_MSG = "Unrecognized file found in FLYNC workspace: %s"
 
 
-class _WorkspaceLoading(_WorkspaceObjectMapping):
+class _WorkspaceLoading(_WorkspaceVariants):
     """Reads FLYNC documents from disk and validates them into model instances."""
 
     def _open_documents(self):
@@ -236,9 +238,9 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
         # Sorted so list indices (and therefore object ids and list order) are
         # deterministic across loads and filesystems; iterdir() order is not.
         if namespaced is not None:
-            entries = list(self.__iter_namespaced_items(item_dir, (), namespaced))
+            entries = list(self.__iter_namespaced_items(item_dir, (), namespaced, effective_element_type))
         else:
-            entries = [(sub_item_path, ()) for sub_item_path in self.__iter_supported_paths(item_dir)]
+            entries = [(sub_item_path, ()) for sub_item_path in self.__iter_supported_paths(item_dir, effective_element_type)]
 
         list_item_value: list = []
         for idx, (sub_item_path, namespace) in enumerate(entries):
@@ -264,28 +266,28 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
                 list_item_value.append(item)
         return list_item_value
 
-    def __iter_supported_paths(self, directory: Path):
+    def __iter_supported_paths(self, directory: Path, element_type: Any):
         """
-        Yield the entries of ``directory`` in sorted order, skipping hidden ones silently.
+        Yield the entries of ``directory`` that belong to the active variant, in sorted order, skipping hidden ones silently.
 
         Entries the workspace does not support are skipped with a warning.
 
         Args:
             directory (Path): The folder to list.
+            element_type (Any): Element type of the field the folder holds; decides which document of a sub-folder
+                carries its presence condition.
 
         Yields:
             Path: Each hidden-filtered, supported entry.
         """
 
-        for sub_item_path in sorted(directory.iterdir()):
-            if self.is_hidden_path(sub_item_path):
-                continue
+        for sub_item_path in self._variant_entries(directory, element_type):
             if not self.is_path_supported(sub_item_path):
                 logger.warning(_UNRECOGNIZED_FILE_MSG, str(sub_item_path))
                 continue
             yield sub_item_path
 
-    def __iter_namespaced_items(self, directory: Path, namespace: tuple[str, ...], namespaced: Namespaced):
+    def __iter_namespaced_items(self, directory: Path, namespace: tuple[str, ...], namespaced: Namespaced, element_type: Any):
         """
         Walk a ``Namespaced`` list folder, yielding every item file with the namespace it sits in.
 
@@ -297,12 +299,13 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
             directory (Path): The folder to walk.
             namespace (tuple[str, ...]): Namespace segments of ``directory``, outermost first.
             namespaced (Namespaced): The annotation of the list being loaded.
+            element_type (Any): Element type of the list, passed on to :meth:`__iter_supported_paths`.
 
         Yields:
             tuple[Path, tuple[str, ...]]: An item file and the namespace segments it is stored under.
         """
 
-        for sub_item_path in self.__iter_supported_paths(directory):
+        for sub_item_path in self.__iter_supported_paths(directory, element_type):
             if not sub_item_path.is_dir():
                 yield sub_item_path, namespace
             elif namespaced.separator in sub_item_path.name:
@@ -312,7 +315,7 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
                     namespaced.separator,
                 )
             else:
-                yield from self.__iter_namespaced_items(sub_item_path, (*namespace, sub_item_path.name), namespaced)
+                yield from self.__iter_namespaced_items(sub_item_path, (*namespace, sub_item_path.name), namespaced, element_type)
 
     def __handle_generic_types_list_single_file(
         self,
@@ -401,13 +404,14 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
         dict_element_type = base_type_args[1]
         if OutputStrategy.FOLDER in external.output_structure:
             item_dir = path / external_path
-            for sub_item_path in self.__iter_supported_paths(item_dir):
-                dict_item_value[sub_item_path.name] = self._load_from_path(
+            for sub_item_path in self.__iter_supported_paths(item_dir, dict_element_type):
+                key = sub_item_path.name
+                dict_item_value[key] = self._load_from_path(
                     sub_item_path,
                     dict_element_type,
                     field_name,
-                    self.update_objects_path(current_object_paths, sub_item_path.name),
-                    ParentLink(path, field_name, "dict", sub_item_path.name),
+                    self.update_objects_path(current_object_paths, key),
+                    ParentLink(path, field_name, "dict", key),
                 )
             module_load_info[field_name] = dict_item_value
             return True
@@ -438,9 +442,16 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
         field_name: str,
         current_object_paths: list[str],
         link: Optional[ParentLink] = None,
+        sole_member: bool = False,
     ):
         """
         Attempt to load one union member type, restoring diagnostics on failure.
+
+        A failed attempt usually means "wrong union member", so its purely structural diagnostics are discarded and the
+        caller tries the next member; the same goes for an optional file or folder that does not exist. When the member is
+        the only type the field can hold (an ``Optional[Model]`` field) and its file or folder exists, no other member can
+        match: the document was meant to be that model, so every diagnostic of the failed attempt is kept instead of the
+        field silently becoming ``None``.
 
         Args:
             path (Path): Absolute path of the current directory.
@@ -448,6 +459,8 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
             possible_type: The union member type to attempt.
             field_name (str): Field name on the parent model.
             current_object_paths (list[str]): Dot-path contexts for object tracking.
+            link (ParentLink | None): How the loaded value attaches to its parent.
+            sole_member (bool): Whether ``possible_type`` is the only type of the union besides ``None``.
 
         Returns:
             The loaded model instance, or ``None`` if the type did not match.
@@ -465,7 +478,7 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
             current_object_paths,
             link,
         )
-        if result is None:
+        if result is None and not (sole_member and attempt_path.exists()):
             new_diags = self.documents_diags.get(doc_id, [])[saved_count:]
             # If the failed attempt produced a user-raised semantic error
             # (err_major / err_minor / err_fatal on the matched type), keep
@@ -515,6 +528,7 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
         """
 
         success_union = False
+        sole_member = len([arg for arg in base_type_args if arg is not type(None)]) == 1
         for possible_type in base_type_args:
             try:
                 if possible_type is type(None):
@@ -529,6 +543,7 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
                         field_name,
                         current_object_paths,
                         link,
+                        sole_member,
                     )
                     if result is None:
                         continue
@@ -695,6 +710,9 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
             current_object_paths = [""]
         path = path.absolute()
         doc_id = self.document_id_from_path(path)
+        if link is not None and not self._entry_present(path, current_type):
+            # a file whose root variant_condition is false, or a folder whose presence document removes it
+            return None
         self._doc_index[doc_id] = LoadNode(
             path=path,
             doc_id=doc_id,
@@ -704,26 +722,16 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
             link=link,
         )
         module_load_info: dict = {}
-        # start by loading each field
+        # a root load first loads the variability model and selects the variant everything else is resolved for
+        is_root = link is None
+        if is_root and not self._load_variability(path, current_type, current_object_paths, module_load_info):
+            self._finalize_variability_diags()
+            return None
+        # start by loading each field; a root load has already loaded the variability model
+        skipped = VARIABILITY_FIELD if is_root else None
         for field_name, field_info in current_type.model_fields.items():
-            external: External | None = get_metadata(field_info.metadata, External)
-            self.__handle_external_field_load(
-                path,
-                current_object_paths,
-                module_load_info,
-                field_name,
-                field_info,
-                external,
-            )
-            if implied := get_metadata(field_info.metadata, Implied):
-                self._handle_implied_field_load(path, module_load_info, field_name, implied)
-                # Implied fields carry no YAML node and no model value of their
-                # own, so the AST walk never registers them. Register a marker
-                # object (model=None) under the linked path; without it
-                # get_child_ids would drop the field, since it filters children
-                # by has_object().
-                paths = self.update_objects_path(current_object_paths, field_name)
-                self._add_object_to_path("", None, paths, 0, 0, 0, 0)
+            if field_name != skipped:
+                self.__load_field(path, current_object_paths, module_load_info, field_name, field_info)
 
         # then group all the fields into the same object and return it
         self._append_to_info_dict(path, module_load_info)
@@ -732,7 +740,94 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
 
         if doc_id in self.documents_diags:
             logger.error("File %s was already loaded.", doc_id)
-        return self._validate_node(self._doc_index[doc_id], module_load_info, map_paths=current_object_paths)
+        model = self._validate_node(self._doc_index[doc_id], module_load_info, map_paths=current_object_paths)
+        if is_root:
+            self._stamp_active_variant(model)
+            self._finalize_variability_diags()
+        return model
+
+    def __load_field(self, path: Path, current_object_paths: list[str], module_load_info: dict, field_name: str, field_info: FieldInfo) -> None:
+        """Load one field of the model at ``path`` into ``module_load_info``: from its own document(s), or implied by the path."""
+
+        external: External | None = get_metadata(field_info.metadata, External)
+        self.__handle_external_field_load(
+            path,
+            current_object_paths,
+            module_load_info,
+            field_name,
+            field_info,
+            external,
+        )
+        if implied := get_metadata(field_info.metadata, Implied):
+            self._handle_implied_field_load(path, module_load_info, field_name, implied)
+            # Implied fields carry no YAML node and no model value of their
+            # own, so the AST walk never registers them. Register a marker
+            # object (model=None) under the linked path; without it
+            # get_child_ids would drop the field, since it filters children
+            # by has_object().
+            paths = self.update_objects_path(current_object_paths, field_name)
+            self._add_object_to_path("", None, paths, 0, 0, 0, 0)
+
+    def _load_variability(
+        self,
+        path: Path,
+        current_type: type[FLYNCBaseModel],
+        current_object_paths: list[str],
+        module_load_info: dict,
+    ) -> bool:
+        """
+        Load the variability model of a root load and select the variant to resolve.
+
+        For the FLYNC root model the ``variability/`` folder is loaded into ``module_load_info`` before any other field. A
+        validated sub-node (e.g. one ECU folder) is resolved with the variability of its enclosing workspace.
+
+        Returns:
+            bool: ``False`` when the workspace declares variants but none can be resolved; the load stops.
+        """
+
+        self._begin_variant_load()
+        if issubclass(current_type, Variability):
+            # the variability model itself is never resolved
+            return True
+        present, variability = self._locate_variability(path, current_type, current_object_paths, module_load_info)
+        return self._activate_variability(present, variability)
+
+    def _locate_variability(
+        self,
+        path: Path,
+        current_type: type[FLYNCBaseModel],
+        current_object_paths: list[str],
+        module_load_info: dict,
+    ) -> tuple[bool, Optional[Variability]]:
+        """
+        Find and load the variability model that applies to ``path``; returns whether there is one, and the model.
+
+        Also records the root of the workspace it belongs to, which decides the role of every document (see
+        :meth:`_document_role`).
+        """
+
+        field_info = current_type.model_fields.get(VARIABILITY_FIELD)
+        external = get_metadata(field_info.metadata, External) if field_info is not None else None
+        if field_info is not None and external is not None:
+            present = (path / VARIABILITY_FOLDER).is_dir()
+            if present:
+                self._variability_root = path
+                self.__handle_external_field_load(path, current_object_paths, module_load_info, VARIABILITY_FIELD, field_info, external)
+            return present, module_load_info.get(VARIABILITY_FIELD) if present else None
+        folder = self._find_variability_folder(path)
+        if folder is None:
+            return False, None
+        self._variability_root = folder.parent
+        return True, self._load_enclosing_variability(folder)
+
+    def _load_enclosing_variability(self, folder: Path) -> Optional[Variability]:
+        """Load the ``variability/`` folder of the workspace enclosing a validated sub-node."""
+
+        from flync.sdk.context.workspace_config import WorkspaceConfiguration
+
+        config = WorkspaceConfiguration.create_from_config(self.configuration, root_model=Variability, map_objects=False)
+        workspace = cast(Any, type(self)).safe_load_workspace("variability", folder, workspace_config=config)
+        return workspace.flync_model if isinstance(workspace.flync_model, Variability) else None
 
     def _handle_implied_field_load(
         self,
@@ -741,6 +836,8 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
         field_name: str,
         implied: Implied,
     ):
+        """Fill ``field_name`` from the name of the folder or file being loaded, as the ``Implied`` strategy says."""
+
         if implied.strategy == ImpliedStrategy.FOLDER_NAME:
             module_load_info[field_name] = path.name
         elif implied.strategy == ImpliedStrategy.FILE_NAME:
@@ -755,6 +852,8 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
         field_info_obj: FieldInfo,
         external: External | None,
     ) -> None:
+        """Load the field stored in a separate document (an ``External`` field) into ``module_load_info``."""
+
         if external is not None:
             # field will need to be added to to a new separate document
             attribute_type = field_info_obj.annotation
@@ -828,8 +927,9 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
         uri: str = self.document_id_from_path(path)
         if uri not in self.documents:
             self._open_document(path)
-        content = self.documents[uri].ast
-        if content is None:
+        # a copy resolved for the active variant: validation prunes it, the parsed document stays intact
+        content = self._document_content(uri)
+        if content is None or content is ABSENT:
             return
 
         if output_strategy and OutputStrategy.OMMIT_ROOT in output_strategy:
@@ -916,4 +1016,4 @@ class _WorkspaceLoading(_WorkspaceObjectMapping):
         document = self.documents.get(node.doc_id)
         if document is None:
             return
-        locate_errors(errors, model_type, document.source_nodes())
+        locate_errors(errors, model_type, self._source_nodes(node.doc_id))

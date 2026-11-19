@@ -17,11 +17,11 @@ from flync.sdk.context.workspace_config import WorkspaceConfiguration
 from flync.sdk.utils.sdk_types import PathType
 
 from ._base import LoadNode, ParentLink
-from ._saving import _WorkspaceSaving
+from ._saving import VariantWorkspaceWriteError, _WorkspaceSaving
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["FLYNCWorkspace", "LoadNode", "ParentLink", "WorkspaceConfiguration"]
+__all__ = ["FLYNCWorkspace", "LoadNode", "ParentLink", "VariantWorkspaceWriteError", "WorkspaceConfiguration"]
 
 
 def _resolve_workspace_config(
@@ -87,6 +87,10 @@ class FLYNCWorkspace(_WorkspaceSaving):
         flync_model (FLYNCModel | FLYNCBaseModel | None): The root FLYNC model instance, if loaded.
 
         workspace_root (Path | None): Absolute path to the workspace root directory.
+
+        variability (Variability | None): The variability model (``variability/``) of a 150 % workspace, if any.
+
+        active_variant (VariantContext | None): The product variant the loaded model was resolved for, if any.
     """
 
     # region creator
@@ -135,6 +139,7 @@ class FLYNCWorkspace(_WorkspaceSaving):
         workspace_name: str,
         workspace_path: PathType,
         workspace_config: PathType | WorkspaceConfiguration | None = None,
+        variant: str | None = None,
     ) -> Self:
         """
         loads a workspace object from a location of the Yaml Configuration.
@@ -151,6 +156,9 @@ class FLYNCWorkspace(_WorkspaceSaving):
                 - str | Path: Path to config file (e.g., ".flync/config.yaml")
                 - None: Auto-discover .flync/config.yaml in workspace_path or use defaults
 
+            variant (str | None): Product variant to resolve a workspace with a ``variability/`` folder for. ``None`` uses the
+                feature model's ``default_variant``. Selecting a variant for a workspace without variability is an error.
+
         Returns: FLYNCWorkspace
         """
 
@@ -160,6 +168,7 @@ class FLYNCWorkspace(_WorkspaceSaving):
             workspace_path=workspace_path,
             configuration=resolved_config,
         )
+        output._requested_variant = variant
         output._open_documents()
         if resolved_config.migration_mode != "off":
             # Warn about (or, in "auto" mode, perform) schema migrations on the freshly opened
@@ -180,6 +189,7 @@ class FLYNCWorkspace(_WorkspaceSaving):
         workspace_name: str,
         workspace_path: PathType,
         workspace_config: PathType | WorkspaceConfiguration | None = None,
+        variant: str | None = None,
     ) -> Self:
         """
         loads a workspace object from a location of the Yaml Configuration.
@@ -194,15 +204,37 @@ class FLYNCWorkspace(_WorkspaceSaving):
                 - str | Path: Path to config file (e.g., ".flync/config.yaml")
                 - None: Auto-discover .flync/config.yaml in workspace_path or use defaults
 
+            variant (str | None): Product variant to resolve a workspace with a ``variability/`` folder for. ``None`` uses the
+                feature model's ``default_variant``.
+
         Returns: FLYNCWorkspace
         """
 
-        output = cls.safe_load_workspace(workspace_name, workspace_path, workspace_config=workspace_config)
+        output = cls.safe_load_workspace(workspace_name, workspace_path, workspace_config=workspace_config, variant=variant)
         if not isinstance(output.flync_model, FLYNCBaseModel):
             raise ValidationError.from_exception_data(
                 title=f"Model ({workspace_name}) Creation Error",
                 line_errors=errors_to_init_errors(output.load_errors),
             )
         return output
+
+    # endregion
+
+    # region variants
+    def select_variant(self, variant: str | None) -> list[str]:
+        """
+        Re-resolve the loaded workspace for another product variant.
+
+        Reuses the parsed documents, so switching between variants does not read the files again.
+
+        Args:
+            variant (str | None): The variant to resolve; ``None`` uses the feature model's ``default_variant``.
+
+        Returns:
+            list[str]: The ids of every document whose model or diagnostics were recomputed.
+        """
+
+        self._requested_variant = variant
+        return self._revalidate_all()
 
     # endregion

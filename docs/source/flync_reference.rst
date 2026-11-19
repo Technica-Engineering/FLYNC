@@ -301,6 +301,41 @@ Omit the corresponding sub-folder entirely when the system does not use that cha
    - :ref:`Signals & PDU<signal>`
 
 
+Variability
+************
+
+This directory turns the configuration into a 150 % model of a product line: a feature model plus one
+file per product variant. This is a **non-mandatory** directory for the FLYNC configuration; without
+it the configuration describes a single architecture.
+
+.. code-block::
+
+   📂 variability
+   │
+   ├── 📄❗ feature_model.flync.yaml
+   └── 📂 variants
+       ├── 📄 park_assist.flync.yaml
+       └── 📄 ...
+
+.. important::
+
+   ✔ The directory name must be respected: ``variability/``
+
+   ✔ The feature model file name **feature_model** must be respected.
+
+   ✔ The name of a variant is derived by the filename.
+
+When this directory is present, a product variant is a selection of ECUs and of the links between them.
+A ``variant_condition`` at the root of an ECU's ``ecu_metadata`` decides which variants the ECU is part
+of, and one on an entry of the system topology which variants the connection is part of; an ECU is
+otherwise the same in every variant. ``flync validate`` validates every declared variant. Two kinds of
+variability are supported: optional components and architecture alternatives.
+
+.. seealso::
+
+   Explore the whole variability model further: :ref:`Variant Management <variability>`.
+
+
 Apps
 *****
 

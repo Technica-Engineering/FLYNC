@@ -1,0 +1,5 @@
+connections:
+  - type: ecu_port_to_controller_interface
+    id: dml_conn1
+    ecu_port: dml_p1
+    controller_interface: dml_eth0

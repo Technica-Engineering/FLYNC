@@ -1,0 +1,44 @@
+# The system topology wires the ECUs of each architecture: every connection that only one architecture has carries
+# its condition. The compute generation needs no condition here, since both central compute ECUs have the ports
+# cc_p1 and cc_p2.
+connections:
+  # domain architecture: one link per domain controller
+  - type: ecu_port_to_ecu_port
+    id: link_body_domain
+    variant_condition: domain
+    ecu1_port: cc_p1
+    ecu2_port: bdc_p1
+  - type: ecu_port_to_ecu_port
+    id: link_chassis_domain
+    variant_condition: domain
+    ecu1_port: cc_p2
+    ecu2_port: chc_p1
+  # zonal architecture: one link per zone controller
+  - type: ecu_port_to_ecu_port
+    id: link_zone_front
+    variant_condition: zonal
+    ecu1_port: cc_p1
+    ecu2_port: zcf_p1
+  - type: ecu_port_to_ecu_port
+    id: link_zone_rear
+    variant_condition: zonal
+    ecu1_port: cc_p2
+    ecu2_port: zcr_p1
+  # The door modules are on the same 10BASE-T1S segment in both architectures. Only its coordinator (node 0)
+  # changes: the body domain controller in the domain architecture, the front zone controller in the zonal one.
+  - type: ethernet_multidrop
+    id: DoorSegment
+    plca:
+      transmit_opportunity_count: 3
+      to_timer: 32
+    nodes:
+      - ecu_port: bdc_p2
+        node_id: 0
+        variant_condition: domain
+      - ecu_port: zcf_p2
+        node_id: 0
+        variant_condition: zonal
+      - ecu_port: dml_p1
+        node_id: 1
+      - ecu_port: dmr_p1
+        node_id: 2

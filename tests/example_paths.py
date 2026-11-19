@@ -8,3 +8,6 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 FLYNC_EXAMPLE = _REPO_ROOT / "examples" / "flync_example"
 
 FLYNC_EXAMPLE_EXPERIMENTAL = _REPO_ROOT / "examples" / "flync_example_experimental"
+
+FLYNC_VARIABILITY_EXAMPLES = _REPO_ROOT / "examples" / "flync_4_variability"
+FLYNC_VARIANTS_EXAMPLE = FLYNC_VARIABILITY_EXAMPLES / "02_architecture_alternatives"

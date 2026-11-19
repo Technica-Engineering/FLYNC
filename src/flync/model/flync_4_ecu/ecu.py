@@ -1,6 +1,6 @@
 """Defines the ECU model for FLYNC."""
 
-from typing import Annotated, Iterator, List, Literal, Optional, Self, TypeVar
+from typing import Annotated, ClassVar, Iterator, List, Literal, Optional, Self, TypeVar
 
 from pydantic import BeforeValidator, Field, model_validator
 
@@ -93,6 +93,13 @@ class ECU(FLYNCBaseModel):
     ipc_channels : list of :class:`~flync.model.flync_4_app.ipc.IPCChannel`, optional
         ECU-internal IPC channels between the applications bound to this ECU. Stored in
         ``ipc_channels.flync.yaml`` inside the ECU folder.
+    """
+
+    PRESENCE_DOCUMENT: ClassVar[str] = "ecu_metadata"
+    """
+    Document whose root ``variant_condition`` decides which product variants the ECU is part of.
+
+    It is the only variation point an ECU may have: an ECU is the same in every variant it is part of.
     """
 
     name: Annotated[

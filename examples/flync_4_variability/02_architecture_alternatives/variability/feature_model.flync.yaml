@@ -1,0 +1,27 @@
+features:
+  - name: architecture
+    description: E/E architecture of the body network - two domain controllers, or two zone controllers.
+    type: enumeration
+    category: solution
+    values: [domain, zonal]
+  - name: compute_generation
+    description: Hardware generation of the central compute ECU. Ordered, so a rule can say "gen2 or later".
+    type: enumeration
+    category: element
+    values: [gen1, gen2]
+    ordered: true
+    default: gen1
+
+constraints:
+  - expression: architecture != zonal or compute_generation >= gen2
+    description: The zonal architecture needs the second compute generation, whose safety controller supervises the zones.
+
+# Qualifiers over one enumerated feature are mutually exclusive by construction, which is what the alternatives
+# need: the domain and the zone controllers, central_compute_gen1, and central_compute_gen2.
+qualifiers:
+  domain: architecture == domain
+  zonal: architecture == zonal
+  gen1: compute_generation == gen1
+  gen2: compute_generation == gen2
+
+default_variant: domain_gen1

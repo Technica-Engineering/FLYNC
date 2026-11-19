@@ -33,7 +33,17 @@ def schema(
         typer.Option("--base-uri", help="URI the schema files are published under. Sets an absolute $id on every file."),
     ] = None,
     suffix: Annotated[str, typer.Option("--suffix", help="File name suffix of every schema file.")] = DEFAULT_SCHEMA_SUFFIX,
+    variants: Annotated[
+        bool,
+        typer.Option(
+            "--variants",
+            help=(
+                "Also accept the variation points of a workspace with a variability/ folder: "
+                "variant_condition in an ECU's metadata and on the entries of the system topology."
+            ),
+        ),
+    ] = False,
 ):
     """Write one JSON Schema file per Pydantic model class reachable from ``FLYNCModel`` into ``output_dir``."""
-    paths = dump_model_schemas(FLYNCModel, output_dir, suffix=suffix, mode=mode.value, base_uri=base_uri)
+    paths = dump_model_schemas(FLYNCModel, output_dir, suffix=suffix, mode=mode.value, base_uri=base_uri, variation_points=variants)
     console.print(f"Exported {len(paths)} schema files to {output_dir}, root schema: {paths[0].name}")

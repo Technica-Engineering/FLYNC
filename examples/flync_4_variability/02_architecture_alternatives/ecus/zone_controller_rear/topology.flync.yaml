@@ -1,0 +1,5 @@
+connections:
+  - type: ecu_port_to_controller_interface
+    id: zcr_conn1
+    ecu_port: zcr_p1
+    controller_interface: zcr_eth0

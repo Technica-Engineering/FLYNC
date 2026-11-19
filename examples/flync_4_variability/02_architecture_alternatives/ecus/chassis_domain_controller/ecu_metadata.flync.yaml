@@ -1,0 +1,6 @@
+# Only the domain architecture has domain controllers.
+variant_condition: domain
+author: Dev
+compatible_flync_version:
+  version_schema: semver
+  version: 0.16.0

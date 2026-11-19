@@ -1,0 +1,26 @@
+# Level 2 - architecture alternatives.
+#
+# One repository holds two E/E architectures of a body network - a domain architecture with a body and a chassis
+# domain controller, and a zonal architecture with a front and a rear zone controller - and two hardware
+# generations of the central compute ECU. The products are the combinations that are built.
+#
+# What this level adds to level 1: the products are not just the same network with or without an option, they
+# are *built differently*. Each variant is still only a selection of ECUs and of the links between them:
+#   * ECUs that exist in one architecture only (the domain and the zone controllers): a variant_condition at the
+#     root of their ecu_metadata decides which variants they are part of;
+#   * two generations of the central compute ECU, central_compute_gen1 and central_compute_gen2, with mutually
+#     exclusive conditions, so every product has exactly one of them. They differ inside (a safety controller, a
+#     bigger switch) and are the same outside (the ports cc_p1 and cc_p2), so the links to them are written once;
+#   * ECUs that are part of every product (the door modules), with no condition at all;
+#   * one system topology whose connections each carry the architecture they belong to, and a multidrop segment
+#     that both architectures share, with a coordinator node per architecture;
+#   * a constraint that ties the two features together.
+release:
+  version_schema: semver
+  version: 3.0.0
+author: System_Architect
+compatible_flync_version:
+  version_schema: semver
+  version: 0.16.0
+oem: OEM_example
+platform: BodyNetwork

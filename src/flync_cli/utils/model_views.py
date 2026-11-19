@@ -11,10 +11,11 @@ from ipaddress import IPv4Network, IPv6Network
 from typing import Iterator, Optional
 
 import typer
+from rich.markup import escape
 
 from flync.core.datatypes.ipaddress import IPv4AddressEntry
 from flync.model.flync_4_someip import SOMEIPServiceConsumer, SOMEIPServiceProvider
-from flync_cli.utils.console import console
+from flync_cli.utils.console import print_error
 
 SocketEndpoint = namedtuple("SocketEndpoint", "ecu controller eth_iface container socket vci mac")
 IPAssignment = namedtuple("IPAssignment", "ecu controller eth_iface vci address")
@@ -25,7 +26,7 @@ def require_ecu(model, ecu_name: str):
     """Return the named ECU, or exit 1 with a clear message if it does not exist in the model."""
     ecu = model.get_ecu_by_name(ecu_name)
     if ecu is None:
-        console.print(f"⚠️ [bold red] ECU '{ecu_name}' does not exist in this FLYNC model.[/bold red]")
+        print_error(f"ECU '{escape(ecu_name)}' does not exist in this FLYNC model.", "List the ECUs with `flync info ecus`.")
         raise typer.Exit(code=1)
     return ecu
 

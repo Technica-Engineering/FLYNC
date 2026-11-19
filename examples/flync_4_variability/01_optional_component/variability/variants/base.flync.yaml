@@ -1,0 +1,2 @@
+description: Base product without park assist. States no decision, so park_assist is false by default.
+features: {}

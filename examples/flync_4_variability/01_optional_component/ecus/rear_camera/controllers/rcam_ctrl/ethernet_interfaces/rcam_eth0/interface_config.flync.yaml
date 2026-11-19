@@ -1,0 +1,11 @@
+mac_address: "02:00:00:00:03:01"
+mii_config:
+  type: rmii
+  speed: 100
+  mode: mac
+virtual_interfaces:
+  - name: rcam_eth0_v0
+    vlanid: 0
+    addresses:
+      - address: 10.0.2.2
+        ipv4netmask: 255.255.255.0

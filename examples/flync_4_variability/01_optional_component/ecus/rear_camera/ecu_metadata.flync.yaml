@@ -1,0 +1,7 @@
+# The rear camera exists only with park assist: the condition at the root of the ECU's metadata decides which
+# variants the whole ECU is part of.
+variant_condition: park_assist
+author: Dev
+compatible_flync_version:
+  version_schema: semver
+  version: 0.16.0

@@ -1,0 +1,5 @@
+# The door modules are the same in both architectures: they have no condition and are part of every product.
+author: Dev
+compatible_flync_version:
+  version_schema: semver
+  version: 0.16.0

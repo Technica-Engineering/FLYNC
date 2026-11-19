@@ -1,0 +1,12 @@
+vlan_id: 50
+sockets:
+  - name: door_status_rx
+    endpoint_address: 10.0.50.1
+    endpoint_type: unicast
+    port_no: 1500
+    protocol: udp
+    deployments:
+      - deployment_type: pdu_receiver
+        pdu_ref: PDU_DoorLeftStatus
+      - deployment_type: pdu_receiver
+        pdu_ref: PDU_DoorRightStatus

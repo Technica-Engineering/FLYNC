@@ -1,0 +1,5 @@
+connections:
+  - type: ecu_port_to_controller_interface
+    id: rcam_conn1
+    ecu_port: rcam_p1
+    controller_interface: rcam_eth0

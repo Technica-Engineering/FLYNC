@@ -1,0 +1,11 @@
+# The second hardware generation of the central compute ECU: a safety controller and a bigger switch.
+# Both generations have the external ports cc_p1 and cc_p2, so either one fits the links of the system topology.
+variant_condition: gen2
+author: Dev
+compatible_flync_version:
+  version_schema: semver
+  version: 0.16.0
+hardware:
+  version_schema: semver
+  version: 2.0.0
+  product_id: CC-G2

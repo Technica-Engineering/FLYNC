@@ -69,6 +69,7 @@ class WorkspaceIssue(object):
 def run_workspace_validation(
     dir_path: Path,
     root_model: Optional[type] = None,
+    variant: str | None = None,
 ) -> tuple[Any, list[WorkspaceIssue]]:
     """
     Load the workspace rooted at root_model and return (DiagnosticsResult, [WorkspaceIssue]).
@@ -77,7 +78,7 @@ def run_workspace_validation(
     only that partial model at ``dir_path``.
 
     Issues are classified into layers 3 / 4 / 5 by error type.
-    Layer 3 errors are enriched with typo hints where possible.
+    Layer 3 errors are enriched with typo hints where possible. A variant workspace is resolved for ``variant``.
     """
     from flync.model.flync_model import FLYNCModel
     from flync.sdk.helpers.validation_helpers import validate_external_node
@@ -85,7 +86,7 @@ def run_workspace_validation(
     if root_model is None:
         root_model = FLYNCModel
 
-    result = validate_external_node(root_model, dir_path)
+    result = validate_external_node(root_model, dir_path, variant=variant)
     issues: list[WorkspaceIssue] = []
 
     for doc_uri, doc_errors in result.errors.items():

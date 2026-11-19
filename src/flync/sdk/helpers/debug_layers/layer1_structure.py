@@ -179,6 +179,11 @@ def _build_expected_entries(
     return expected
 
 
+def _candidates(dir_path: Path, name: str) -> list[Path]:
+    """The expected entry, when it exists."""
+    return [dir_path / name] if (dir_path / name).exists() else []
+
+
 def _check_expected_entries(
     expected: dict[str, tuple[bool, bool, FieldInfo, External]],
     dir_path: Path,
@@ -186,16 +191,17 @@ def _check_expected_entries(
     known_names: dict[str, list[str]],
     issues: list[StructureIssue],
 ) -> None:
-    """Report missing required entries and recurse into every folder that is present."""
+    """Report missing required entries and recurse into every folder that is present (each variant alternative included)."""
     for name, (is_req, is_file, field_info, ext) in expected.items():
-        target = dir_path / name
-        if not target.exists():
+        targets = _candidates(dir_path, name)
+        if not targets:
             if is_req:
                 issues.append(_missing_entry_issue(name, is_file, dir_path, root_path))
             continue
 
         if not is_file:
-            _check_folder_field(name, field_info, target, root_path, known_names, issues)
+            for target in targets:
+                _check_folder_field(name, field_info, target, root_path, known_names, issues)
 
 
 def _missing_entry_issue(name: str, is_file: bool, dir_path: Path, root_path: Path) -> StructureIssue:

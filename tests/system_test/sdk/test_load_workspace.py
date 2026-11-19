@@ -371,6 +371,43 @@ def test_validate_workspace_surfaces_unknown_pdu_ref(tmpdir):
         shutil.rmtree(destination_folder)
 
 
+def _set_last_multidrop_node_id(topology):
+    segment = next(c for c in topology["connections"] if c.get("type") == "ethernet_multidrop")
+    segment["nodes"][-1]["node_id"] = 300
+
+
+def _add_unknown_key(topology):
+    topology["connections"][0]["unknown_key"] = 1
+
+
+# Regression for the Optional[Model] diagnostics swallow: a schema mismatch inside an existing document of an
+# Optional[Model] field made __try_load_union_type treat the document as "the wrong union member", although the
+# union has no other member. The field silently became None, and only the consequences (unconnected ports, a missing
+# topology) were reported, never the mistake itself.
+@pytest.mark.parametrize(
+    "document, patch, written",
+    [
+        pytest.param("topology/ethernet_topology.flync.yaml", _set_last_multidrop_node_id, "node_id: 300", id="system-topology"),
+        pytest.param("ecus/eth_ecu/topology.flync.yaml", _add_unknown_key, "unknown_key: 1", id="internal-topology"),
+    ],
+)
+def test_validate_workspace_surfaces_a_schema_error_in_an_optional_document(tmpdir, document, patch, written):
+    from flync.sdk.helpers.validation_helpers import validate_workspace
+
+    destination_folder = Path(tmpdir) / "copy"
+    shutil.copytree(absolute_path, destination_folder)
+    with patch_yaml(destination_folder / document) as data:
+        patch(data)
+    line = next(number for number, text in enumerate((destination_folder / document).read_text().splitlines(), 1) if written in text)
+
+    result = validate_workspace(destination_folder)
+
+    assert not result.passed
+    reported = [err for err in result.errors.get(document, []) if err.get("type") != "warning"]
+    assert reported, f"expected the schema error of {document}, got: {dict(result.errors)}"
+    assert line in [(err.get("ctx") or {}).get("line") for err in reported]
+
+
 def test_load_with_object_mapping_survives_a_rejected_list_item(tmpdir):
     from flync.sdk.context.workspace_config import WorkspaceConfiguration
 

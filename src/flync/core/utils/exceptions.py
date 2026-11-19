@@ -2,9 +2,10 @@
 
 import importlib
 import sys
+from contextlib import contextmanager
 from contextvars import ContextVar
 from enum import IntEnum, StrEnum
-from typing import List, Optional
+from typing import Iterator, List, Optional
 
 from pydantic_core import ErrorDetails, PydanticCustomError
 
@@ -159,6 +160,56 @@ def warn_from_error(error: PydanticCustomError) -> None:
             "url": "",
         }
     )
+
+
+@contextmanager
+def collect_warnings() -> Iterator[List[ErrorDetails]]:
+    """
+    Collect the warnings recorded with :func:`warn` outside of ``validate_with_policy``.
+
+    For checks that run before or around model validation (e.g. the workspace loader's variant checks): the
+    ``warn`` calls inside the ``with`` block append to the yielded list instead of being dropped.
+
+    Yields
+    ------
+    list of ErrorDetails
+        The warnings recorded inside the block.
+    """
+
+    collected: List[ErrorDetails] = []
+    token = _validation_warnings.set(collected)
+    try:
+        yield collected
+    finally:
+        _validation_warnings.reset(token)
+
+
+def error_details_from(error: PydanticCustomError, loc: tuple[int | str, ...] = (), yaml_path: str | None = None) -> ErrorDetails:
+    """
+    Turn an error built by a factory into the ``ErrorDetails`` form stored in the workspace diagnostics.
+
+    For findings that are not raised from a validator (and so never pass through pydantic), e.g. checks the
+    workspace loader runs on raw documents. The result has the same shape as an error collected by
+    ``validate_with_policy``, so it is rendered and classified the same way.
+
+    Parameters
+    ----------
+    error : PydanticCustomError
+        The error returned by ``err_minor`` / ``err_major`` / ``err_fatal``.
+    loc : tuple, optional
+        Location of the finding inside its document.
+    yaml_path : str, optional
+        Workspace-relative path of the document, stored as ``ctx["yaml_path"]``.
+
+    Returns
+    -------
+    ErrorDetails
+    """
+
+    ctx = dict(error.context or {})
+    if yaml_path is not None:
+        ctx.setdefault("yaml_path", yaml_path)
+    return {"type": error.type, "msg": error.message(), "loc": loc, "ctx": ctx, "input": None, "url": ""}
 
 
 def err_minor(msg: str, *, category: Category | None = None, error_number: str | None = None, **ctx: object) -> PydanticCustomError:
