@@ -25,6 +25,15 @@ sender is removed, and the time a reload takes no longer grows with each save. M
 are kept.
 
 
+Saved switch files keep only the authored multicast groups
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+Saving a model writes the ``multicast`` groups of a switch VLAN as they were authored. The groups and ports the model
+provisions from the multicast paths are rebuilt on each load and are no longer written next to the authored ones. A
+switch file saved by an earlier release may already hold such groups; they load as authored, so remove them by hand
+where the multicast paths provide them.
+
+
 Multi-gigabit BASE-T and BASE-T1 speeds
 '''''''''''''''''''''''''''''''''''''''
 
