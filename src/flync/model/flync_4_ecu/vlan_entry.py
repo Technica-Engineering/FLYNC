@@ -11,6 +11,7 @@ from pydantic import (
     AfterValidator,
     BeforeValidator,
     Field,
+    SerializerFunctionWrapHandler,
     field_serializer,
 )
 from pydantic.networks import IPvAnyAddress
@@ -83,3 +84,13 @@ class VLANEntry(FLYNCBaseModel):
         List[MulticastGroup],
         BeforeValidator(none_to_empty_list),
     ] = Field(default=[])
+
+    @field_serializer("multicast", mode="wrap")
+    def _serialize_authored_multicast(self, multicast: List[MulticastGroup], handler: SerializerFunctionWrapHandler) -> object:
+        """Write the multicast groups as authored, without the groups and ports the root model provisions from the multicast paths."""
+        authored = [group for group in multicast if not group._derived_by_model]
+        dumped = handler(authored)
+        for group, group_dump in zip(authored, dumped):
+            if group._derived_ports:
+                group_dump["ports"] = [port for port in group.ports if port not in group._derived_ports]
+        return dumped
