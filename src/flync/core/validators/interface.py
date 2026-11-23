@@ -138,10 +138,7 @@ def _iter_bus_interfaces(model: FLYNCModel) -> Iterator[Tuple[Controller, AnyBus
 
 
 def _iter_frame_refs(iface: AnyBusInterface) -> Iterator[Tuple[str, AnyFrameRef]]:
-    """Yield ``(field_name, frame_ref)`` for the sender / receiver declarations present on *iface*.
-
-    The LIN interfaces are asymmetric on purpose: a master only sends, a slave only receives.
-    """
+    """Yield ``(field_name, frame_ref)`` for the sender / receiver declarations present on *iface*."""
 
     for field_name in ("sender_frames", "receiver_frames"):
         for ref in getattr(iface, field_name, None) or []:
@@ -495,6 +492,34 @@ def _validate_j1939_unique_can_ids_on_bus(model: FLYNCModel, j1939_frames_by_bus
                 _register_j1939_full_id(controller, iface, field_name, ref, j1939_frames_by_bus, emitter_sas, bus_full_ids)
 
 
+def _validate_lin_single_publisher(model: FLYNCModel) -> None:
+    """Require at most one publisher per LIN frame: a frame is in the ``sender_frames`` of one interface only.
+
+    The master issues the header of every frame in the schedule tables; the node that lists the frame in its
+    ``sender_frames``, the master or a slave, fills in the response.
+    """
+
+    publishers: Dict[Tuple[str, int], str] = {}
+    for controller, iface, kind in _iter_bus_interfaces(model):
+        if not isinstance(iface, (LINMasterInterface, LINSlaveInterface)):
+            continue
+        owner = f"{type(iface).__name__}(name={iface.name})"
+        for ref in iface.sender_frames or []:
+            prior = publishers.setdefault((ref.bus_ref, ref.frame_ref), owner)
+            if prior != owner:
+                err = err_major(
+                    "{owner}: sender_frames: LIN frame id={frame} on bus '{bus}' is already published by {prior}. "
+                    "A LIN frame has exactly one publisher.",
+                    owner=owner,
+                    frame=ref.frame_ref,
+                    bus=ref.bus_ref,
+                    prior=prior,
+                    category=Category.UNIQUENESS,
+                    error_number="489",
+                )
+                raise _with_source(err, _interface_locator(controller, iface, kind)) from None
+
+
 def validate_interface_frame_refs(model: FLYNCModel) -> None:
     """Workspace pass: every CAN / LIN interface must name a declared bus of its own kind and resolve its frame refs.
 
@@ -517,6 +542,8 @@ def validate_interface_frame_refs(model: FLYNCModel) -> None:
     A bus kind whose catalog is empty is skipped: FLYNC supports partial models (an ECU or controller may be
     modeled without the bus catalog it will later be wired into), and there is nothing to resolve against.
     Once a workspace declares buses of a kind, every interface of that kind must resolve.
+
+    A LIN frame has at most one sender: only one interface lists it in its ``sender_frames``.
     """
 
     can_frames_by_bus = _build_can_frames_by_bus(model)
@@ -538,3 +565,4 @@ def validate_interface_frame_refs(model: FLYNCModel) -> None:
                 raise _with_source(err, _interface_locator(controller, iface, "can")) from None
 
     _validate_j1939_unique_can_ids_on_bus(model, j1939_frames_by_bus)
+    _validate_lin_single_publisher(model)

@@ -93,6 +93,24 @@ separate ECU. A ``variant_condition`` anywhere else, and a ``variant_values`` ke
 the selected variant before validation, so no other model sees them; using one without a ``variability/``
 folder is an error.
 
+New fields: ``sender_frames`` on LIN slaves, ``receiver_frames`` on the LIN master
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:class:`~flync.model.flync_4_ecu.lin_interface.LINSlaveInterface` gains ``sender_frames`` and
+:class:`~flync.model.flync_4_ecu.lin_interface.LINMasterInterface` gains ``receiver_frames``, both lists of
+``LINFrameRef`` that default to empty. Master and slave interfaces now read the same way, as CAN
+interfaces do: ``sender_frames`` lists the frames whose payload the interface transmits, and
+``receiver_frames`` the frame it wants to receive. The master transmits the headers of all frames in the bus
+schedule tables. A frame sent by the master goes to slaves, one published by a slave goes to the
+master and/or to other slaves.
+
+The master's ``sender_frames`` used to list every frame it schedules. Existing documents load unchanged
+and read as the master publishing all of them, which is what they described while slaves had no
+``sender_frames``.
+
+New validation: ``FLYNC-CMN-MAJ-UNIQ-489``, a LIN frame listed in the ``sender_frames`` of more than one
+interface; a frame has exactly one sender. See :doc:`../error_catalog`.
+
 Breaking — Python API
 ---------------------
 

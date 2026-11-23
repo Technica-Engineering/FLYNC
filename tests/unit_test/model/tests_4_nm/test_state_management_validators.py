@@ -397,12 +397,11 @@ def test_positive_bus_with_binding_and_sender():
 
 
 def _lin_master(bus_ref, sender_ids=()):
-    # Mirrors the real LINMasterInterface shape: sender_frames only — a LIN
-    # master has no receiver_frames field (receiving is the slave side).
     return SimpleNamespace(
         bus_ref=bus_ref,
         node_type="master",
         sender_frames=[SimpleNamespace(frame_ref=frame_id) for frame_id in sender_ids],
+        receiver_frames=[],
     )
 
 

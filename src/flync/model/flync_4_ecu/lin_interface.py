@@ -52,7 +52,10 @@ class LINMasterInterface(ControllerInterface):
     """
     LIN interface for a controller acting as LIN master on a bus.
 
-    The master controls the schedule and initiates all frame transmissions.
+    The master issues the header of every frame in the bus schedule tables
+    (:attr:`~flync.model.flync_4_bus.lin_bus.LINBus.schedule_tables`).  Like every LIN interface, it
+    publishes the response of the frames listed in ``sender_frames`` and receives the frames listed in
+    ``receiver_frames``.
 
     Parameters
     ----------
@@ -67,12 +70,12 @@ class LINMasterInterface(ControllerInterface):
         LIN protocol version supported by this node.
     p2_min : float
         Minimum time (ms) between the end of a slave response and the start of the next frame header.
-        Maps to ``P2_min`` in the LDF ``Nodes.Master`` block.
     st_min : float
         Minimum separation time (ms) between consecutive frame headers transmitted by the master.
-        Maps to ``ST_min`` in the LDF ``Nodes.Master`` block.
     sender_frames : list of :class:`LINFrameRef`
-        Frames transmitted (scheduled) by this master controller.
+        Frames whose response this master controller publishes.
+    receiver_frames : list of :class:`LINFrameRef`
+        Frames whose response, published by a slave, this master controller receives.
     """
 
     name: Annotated[str, Implied(strategy=ImpliedStrategy.FILE_NAME)] = Field()
@@ -82,6 +85,7 @@ class LINMasterInterface(ControllerInterface):
     p2_min: float = Field()
     st_min: float = Field()
     sender_frames: List[LINFrameRef] = Field(default_factory=list)
+    receiver_frames: List[LINFrameRef] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def validate_sender_frames_unique(self) -> Self:
@@ -94,7 +98,8 @@ class LINSlaveInterface(ControllerInterface):
     """
     LIN interface for a controller acting as LIN slave on a bus.
 
-    The slave responds to frame headers issued by the master.
+    The slave responds to frame headers issued by the master.  It publishes the response of the frames
+    listed in ``sender_frames`` and receives the frames listed in ``receiver_frames``.
 
     Parameters
     ----------
@@ -119,6 +124,8 @@ class LINSlaveInterface(ControllerInterface):
     response_error : str, optional
         Name of the signal used to report response errors.
         Written as ``response_error`` in the LDF ``Node_attributes`` block.
+    sender_frames : list of :class:`LINFrameRef`
+        Frames whose response this slave controller publishes when the master issues their header.
     receiver_frames : list of :class:`LINFrameRef`
         Frames received by this slave controller from the bus.
     """
@@ -131,6 +138,7 @@ class LINSlaveInterface(ControllerInterface):
     initial_nad: Annotated[int, Field(ge=0, le=0xFF)] = Field()
     product_id: Optional[str] = Field(default=None)
     response_error: Optional[str] = Field(default=None)
+    sender_frames: List[LINFrameRef] = Field(default_factory=list)
     receiver_frames: List[LINFrameRef] = Field(default_factory=list)
 
     @model_validator(mode="after")
