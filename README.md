@@ -82,11 +82,19 @@ my_project/
     │   ├── ecu_metadata.flync.yaml
     │   ├── ports.flync.yaml
     │   └── topology.flync.yaml
-    └── zonal_gateway/
+    ├── zonal_gateway/
+    │   ├── ecu_metadata.flync.yaml
+    │   ├── ports.flync.yaml
+    │   └── topology.flync.yaml
+    └── can_node/
         ├── ecu_metadata.flync.yaml
-        ├── ports.flync.yaml
-        └── topology.flync.yaml
+        └── state_memberships.flync.yaml
 ```
+
+Only `ecu_metadata.flync.yaml` is required in an ECU folder. `ports.flync.yaml` is present only when
+the ECU has physical Ethernet ports or a switch, and `topology.flync.yaml` only when it has internal
+connections. A CAN/LIN/J1939-only ECU, such as `can_node` above, has neither; `state_memberships.flync.yaml`
+is optional and present only when the ECU joins a state-management group.
 
 **System metadata** (`system_metadata.flync.yaml`):
 
@@ -102,7 +110,7 @@ oem: OEM_example
 platform: Arch1
 ```
 
-**ECU port definition** (`ecus/hpc/ports.flync.yaml`):
+**ECU port definition** (for an ECU with Ethernet ports, `ecus/hpc/ports.flync.yaml`):
 
 ```yaml
 ports:

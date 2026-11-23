@@ -33,7 +33,8 @@ ECU Ports Config
 
    .. note::
       The external physical ports (and PHYs) of the ECUs of the system are configured in one dedicated file.
-      For an ECU config, this file is **mandatory** since all ECUs need to define (at least) one port.
+      The file is required for an ECU that declares Ethernet ports or a switch. A CAN/LIN/J1939-only ECU
+      needs no ECU ports and has no ``ports.flync.yaml``.
 
    .. literalinclude:: ../../_static/flync_example/ecus/high_performance_compute/ports.flync.yaml
       :language: yaml
@@ -366,7 +367,8 @@ ECU Internal Topology
 
    .. note::
       This file contains all the different internal connections between entities of an ECU (ports, switch ports, controller interfaces, ...) to resolve the internal topology of the component and run validation checks on the model.
-      This is a **mandatory** file for the ECU configuration, since all ECUs present (at least) one ECU port and one Controller Interface.
+      It is required only when the ECU has internal connections. When the file is absent, the internal topology
+      defaults to one without connections. A CAN/LIN/J1939-only ECU needs no ``topology.flync.yaml``.
 
    .. literalinclude:: ../../_static/flync_example/ecus/high_performance_compute/topology.flync.yaml
 

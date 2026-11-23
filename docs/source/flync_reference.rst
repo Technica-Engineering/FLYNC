@@ -92,7 +92,7 @@ ECUs
 
 The ecus directory contains several sub-directories describing all the ECUs in the system and their configuration.
 This includes controllers of the ECU, port configuration, switches, and internal topology.
-All components inside the ECU are described in an internal topology where the structure inside an ECU is defined.
+When an ECU has internal connections, they are described in its internal topology.
 
 .. code-block::
 
@@ -100,9 +100,10 @@ All components inside the ECU are described in an internal topology where the st
    │
    ├── 📂 ecu_1_name
    │   |
-   │   ├── 📄❗ ports.flync.yaml
-   │   ├── 📄❗ topology.flync.yaml
+   │   ├── 📄   ports.flync.yaml
+   │   ├── 📄   topology.flync.yaml
    │   ├── 📄❗ ecu_metadata.flync.yaml
+   │   ├── 📄   state_memberships.flync.yaml
    │   ├── 📄   mac_multicast_endpoints.flync.yaml
    │   |
    │   ├── 📂❗ controllers
@@ -119,8 +120,13 @@ All components inside the ECU are described in an internal topology where the st
 
    ✔ The directory names must be respected: ``ecus/``, ``controllers/``, and ``switches/``
 
-   ✔ The file names must be respected:  ``ports``, ``topology``, ``ecu_metadata`` and ``mac_multicast_endpoints``
-      All others are suggested.
+   ✔ The reserved file names ``ecu_metadata``, ``ports``, ``topology``, ``state_memberships`` and
+      ``mac_multicast_endpoints`` must be respected when the file is present. All others are suggested.
+
+   ✔ Only ``ecu_metadata.flync.yaml`` and ``controllers/`` are required for every ECU. ``ports.flync.yaml``
+      is required when the ECU has Ethernet ports or a switch, and ``topology.flync.yaml`` when the ECU has
+      internal connections. A CAN/LIN/J1939-only ECU has neither; see
+      ``examples/flync_example/ecus/can_node_1``.
 
 
 .. seealso::

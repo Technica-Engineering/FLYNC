@@ -68,6 +68,14 @@ Because the module segment of an error id follows the package the code lives in,
 414, 416 and 417 (application references). Update any suppression or assertion that matches them by full id.
 
 
+Conditional ECU ports and topology
+''''''''''''''''''''''''''''''''''
+
+The reference documentation now states that only ``ecu_metadata.flync.yaml`` and ``controllers/`` are
+required for every ECU. ``ports.flync.yaml`` is required only when the ECU has Ethernet ports or a switch,
+and ``topology.flync.yaml`` only when it has internal connections. This matches the model defaults and
+``examples/flync_example``, where CAN/LIN/J1939-only ECUs have neither file.
+
 ``validate --verbose`` debugs a partial node
 '''''''''''''''''''''''''''''''''''''''''''''
 
