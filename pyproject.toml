@@ -22,7 +22,7 @@ dependencies = [
     "pydantic==2.14.4",
     "pyyaml==6.0.3",
     "pydantic-extra-types>=2.11.0,!=2.11.2,<3.0.0",
-    "cantools>=45.1.0,<45.2.0",
+    "cantools>=45.2.0,<45.3.0",
     "semver>=3.0,<4.0",
     "packaging>=24.0",
     "platformdirs (>=4.9.4,<5.0.0)",

@@ -283,7 +283,7 @@ wheels = [
 
 [[package]]
 name = "cantools"
-version = "45.1.0"
+version = "45.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "argparse-addons" },
@@ -292,9 +292,9 @@ dependencies = [
     { name = "python-can" },
     { name = "textparser" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/8a/ff/f26ef390e718936311472847925eb4afaaf9525504013bbd6e857c08ea14/cantools-45.1.0.tar.gz", hash = "sha256:ea1619f3d6108a1c3ecd0f81c952ff2dffd023b244704f6f7a17c4f4dca75f73", size = 1059821, upload-time = "2026-10-20T15:55:20.895Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/61/e5/501cdd6730ceea964b7feb570303729a53f26b4808fb66f79cd74547fd15/cantools-45.2.0.tar.gz", hash = "sha256:55d380f608c4cce0b45522b05ee2a32205ffff6cbc4c4cc9a3de85ac20ed55e9", size = 1078830, upload-time = "2026-11-17T09:21:52.667Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/08/34/8ba8757437cefde5338d6ff183fcc1632bbe9c85777c264b2e7596cf1be2/cantools-45.1.0-py3-none-any.whl", hash = "sha256:d8f878c6a18c9b48d15a19597fd65ee3301ead484480215337f8937f7a6f44d1", size = 169740, upload-time = "2026-10-20T15:55:18.915Z" },
+    { url = "https://files.pythonhosted.org/packages/6e/7a/baac7b7698df65c3362315a3e92a525a9496e7a88ea0dc0617cb0622cdcf/cantools-45.2.0-py3-none-any.whl", hash = "sha256:6696219fc778da1b7377484fb7469e9908ec714294f88c1966017b80e72690fc", size = 175171, upload-time = "2026-11-17T09:21:51.115Z" },
 ]
 
 [[package]]
@@ -733,7 +733,7 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "cantools", specifier = ">=45.1.0,<45.2.0" },
+    { name = "cantools", specifier = ">=45.2.0,<45.3.0" },
     { name = "click", specifier = "==8.5.1" },
     { name = "filelock", specifier = ">=4,<4.3" },
     { name = "packaging", specifier = ">=24.0" },
