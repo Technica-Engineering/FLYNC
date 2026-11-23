@@ -306,7 +306,7 @@ Find this example on github: `ecu_variant_11 <https://github.com/Technica-Engine
 Internal Topology (Configuration and Types)
 """"""""""""""""""""""""""""""""""""""""""""""
 
-The internal topology file of each configured ECU must contain the description of all the internal connections within the device. The FLYNC model supports the connection types present in the following picture:
+An ECU with internal connections describes them in its internal topology file. An ECU without internal connections may omit the file, in which case the internal topology defaults to one without connections. The example's ``can_node_1`` has neither ``ports.flync.yaml`` nor ``topology.flync.yaml`` because it only attaches to a CAN bus. The FLYNC model supports the connection types present in the following picture:
 
 .. important:: Be aware of the kind of connection that is added to the file, since the name of the components shall adjust to it accordingly.
 
