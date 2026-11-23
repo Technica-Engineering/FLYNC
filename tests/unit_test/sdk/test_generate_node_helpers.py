@@ -125,7 +125,7 @@ def test_generate_node_add_to_list(
             {
                 "name": "new",
                 "ports": [{"name": "d", "mode": {"autonegotiation": True, "mode": "base_t1s"}}],
-                # bus_ref / sender_frames must resolve against communication.channels: generate_node otherwise
+                # bus_ref and the frame refs must resolve against communication.channels: generate_node otherwise
                 # scaffolds placeholder refs, which are dangling by construction.
                 "controllers": [
                     {
@@ -135,6 +135,7 @@ def test_generate_node_add_to_list(
                                 "name": "lin_inter",
                                 "node_type": "slave",
                                 "bus_ref": "BodyLIN",
+                                "sender_frames": [],
                                 "receiver_frames": [{"bus_ref": "BodyLIN", "frame_ref": 1}],
                             }
                         ],
@@ -365,6 +366,7 @@ def test_generate_node_add_lin_interface_to_any_lin_union(get_flync_example_path
         "lin_protocol": "2.2A",
         "configured_nad": 1,
         "initial_nad": 1,
+        "sender_frames": [],
         "receiver_frames": [],
     }
     assert generate_node(ws, [str(controller_id)], lin_interfaces=[new_interface]), "Node not generated"

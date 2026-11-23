@@ -18,7 +18,7 @@ from flync.model.flync_4_ecu.can_interface import CANFrameRef, CANInterface
 from flync.model.flync_4_ecu.controller import Controller
 from flync.model.flync_4_ecu.ecu import ECU
 from flync.model.flync_4_ecu.internal_topology import InternalTopology
-from flync.model.flync_4_ecu.lin_interface import LINFrameRef, LINMasterInterface
+from flync.model.flync_4_ecu.lin_interface import LINFrameRef, LINMasterInterface, LINSlaveInterface
 from flync.model.flync_4_metadata.metadata import BaseVersion, ECUMetadata, EmbeddedMetadata, SystemMetadata
 from flync.model.flync_4_signal.frame import CANFrame, LINFrame
 from flync.model.flync_4_topology import EthernetTopology, FLYNCTopology
@@ -117,6 +117,79 @@ def test_lin_interface_dangling_frame_ref_rejected():
     with pytest.raises(ValidationError) as exc_info:
         _make_model(channels, lin_interfaces=[lin_interface])
     assert_single_error(exc_info, "FLYNC-CMN-MAJ-REF-217", "does not name any frame declared on bus 'LIN0'")
+
+
+def _lin_master(**frames) -> LINMasterInterface:
+    """Return a master interface on ``LIN0`` with the given frame references."""
+    return LINMasterInterface(name="LIN_IF_M", bus_ref="LIN0", lin_protocol="2.0", p2_min=0.001, st_min=0.001, **frames)
+
+
+def _lin_slave(name: str = "LIN_IF_S", **frames) -> LINSlaveInterface:
+    """Return a slave interface named ``name`` on ``LIN0`` with the given frame references."""
+    return LINSlaveInterface(name=name, bus_ref="LIN0", lin_protocol="2.0", configured_nad=1, initial_nad=1, **frames)
+
+
+@pytest.mark.parametrize(
+    "lin_interfaces, field",
+    [
+        ([_lin_master(receiver_frames=[LINFrameRef(bus_ref="LIN0", frame_ref=0x33)])], "receiver_frames"),
+        ([_lin_master(), _lin_slave(sender_frames=[LINFrameRef(bus_ref="LIN0", frame_ref=0x33)])], "sender_frames"),
+    ],
+    ids=["master_receiver", "slave_sender"],
+)
+def test_lin_slave_sender_and_master_receiver_refs_rejected_when_dangling(lin_interfaces, field):
+    """A master's receiver_frames and a slave's sender_frames resolve against the bus like the other directions."""
+    channels = FLYNCChannelConfig(lin_buses=[_make_lin_bus("LIN0")])
+
+    with pytest.raises(ValidationError) as exc_info:
+        _make_model(channels, lin_interfaces=lin_interfaces)
+    assert_single_error(exc_info, "FLYNC-CMN-MAJ-REF-217", f"{field}: frame_ref id=51 does not name any frame declared on bus 'LIN0'")
+
+
+BODY_FRAME = [LINFrameRef(bus_ref="LIN0", frame_ref=LIN_ID)]
+
+
+@pytest.mark.parametrize(
+    "lin_interfaces",
+    [
+        [_lin_master(sender_frames=BODY_FRAME), _lin_slave(receiver_frames=BODY_FRAME)],
+        [_lin_master(receiver_frames=BODY_FRAME), _lin_slave(sender_frames=BODY_FRAME)],
+        [_lin_master(), _lin_slave("LIN_IF_A", sender_frames=BODY_FRAME), _lin_slave("LIN_IF_B", receiver_frames=BODY_FRAME)],
+    ],
+    ids=["master_to_slave", "slave_to_master", "slave_to_slave"],
+)
+def test_lin_frame_directions_accepted(lin_interfaces):
+    """A LIN frame is published by the master or by one slave, and received by any other node."""
+    model = _make_model(FLYNCChannelConfig(lin_buses=[_make_lin_bus("LIN0")]), lin_interfaces=lin_interfaces)
+
+    assert len(model.ecus[0].controllers[0].lin_interfaces) == len(lin_interfaces)
+
+
+@pytest.mark.parametrize(
+    "lin_interfaces, owner, prior",
+    [
+        (
+            [_lin_master(sender_frames=BODY_FRAME), _lin_slave(sender_frames=BODY_FRAME)],
+            "LINSlaveInterface(name=LIN_IF_S)",
+            "LINMasterInterface(name=LIN_IF_M)",
+        ),
+        (
+            [_lin_master(), _lin_slave("LIN_IF_A", sender_frames=BODY_FRAME), _lin_slave("LIN_IF_B", sender_frames=BODY_FRAME)],
+            "LINSlaveInterface(name=LIN_IF_B)",
+            "LINSlaveInterface(name=LIN_IF_A)",
+        ),
+    ],
+    ids=["master_and_slave", "two_slaves"],
+)
+def test_lin_frame_with_two_publishers_rejected(lin_interfaces, owner, prior):
+    """Only one interface may list a LIN frame in its sender_frames."""
+    channels = FLYNCChannelConfig(lin_buses=[_make_lin_bus("LIN0")])
+
+    with pytest.raises(ValidationError) as exc_info:
+        _make_model(channels, lin_interfaces=lin_interfaces)
+    assert_single_error(
+        exc_info, "FLYNC-CMN-MAJ-UNIQ-489", f"{owner}: sender_frames: LIN frame id={LIN_ID} on bus 'LIN0' is already published by {prior}"
+    )
 
 
 def test_bus_interface_refs_accepted_when_declared():
