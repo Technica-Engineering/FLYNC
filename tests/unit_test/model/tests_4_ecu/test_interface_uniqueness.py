@@ -31,14 +31,14 @@ def test_can_same_id_different_format_is_allowed():
 
 
 def test_lin_master_duplicate_sender_frames():
-    ref = {"bus_ref": "lin", "frame_ref": 3}
+    ref = {"frame_ref": 3}
     with pytest.raises(ValidationError) as exc:
         LINMasterInterface(name="m", bus_ref="lin", lin_protocol="2.1", p2_min=1.0, st_min=1.0, sender_frames=[ref, ref])
     assert_single_error(exc, "FLYNC-ECU-MAJ-UNIQ-435", "sender_frames")
 
 
 def test_lin_slave_duplicate_receiver_frames():
-    ref = {"bus_ref": "lin", "frame_ref": 3}
+    ref = {"frame_ref": 3}
     with pytest.raises(ValidationError) as exc:
         LINSlaveInterface(name="s", bus_ref="lin", lin_protocol="2.1", configured_nad=1, initial_nad=1, receiver_frames=[ref, ref])
     assert_single_error(exc, "FLYNC-ECU-MAJ-UNIQ-435", "receiver_frames")

@@ -130,7 +130,7 @@ def test_lin_interface_dangling_frame_ref_rejected():
         lin_protocol="2.0",
         p2_min=0.001,
         st_min=0.001,
-        sender_frames=[LINFrameRef(bus_ref="LIN0", frame_ref=0x33)],
+        sender_frames=[LINFrameRef(frame_ref=0x33)],
     )
 
     with pytest.raises(ValidationError) as exc_info:
@@ -151,8 +151,8 @@ def _lin_slave(name: str = "LIN_IF_S", **frames) -> LINSlaveInterface:
 @pytest.mark.parametrize(
     "lin_interfaces, field",
     [
-        ([_lin_master(receiver_frames=[LINFrameRef(bus_ref="LIN0", frame_ref=0x33)])], "receiver_frames"),
-        ([_lin_master(), _lin_slave(sender_frames=[LINFrameRef(bus_ref="LIN0", frame_ref=0x33)])], "sender_frames"),
+        ([_lin_master(receiver_frames=[LINFrameRef(frame_ref=0x33)])], "receiver_frames"),
+        ([_lin_master(), _lin_slave(sender_frames=[LINFrameRef(frame_ref=0x33)])], "sender_frames"),
     ],
     ids=["master_receiver", "slave_sender"],
 )
@@ -165,7 +165,7 @@ def test_lin_slave_sender_and_master_receiver_refs_rejected_when_dangling(lin_in
     assert_single_error(exc_info, "FLYNC-CMN-MAJ-REF-217", f"{field}: frame_ref id=51 does not name any frame declared on bus 'LIN0'")
 
 
-BODY_FRAME = [LINFrameRef(bus_ref="LIN0", frame_ref=LIN_ID)]
+BODY_FRAME = [LINFrameRef(frame_ref=LIN_ID)]
 
 
 @pytest.mark.parametrize(
@@ -211,7 +211,7 @@ def test_lin_frame_with_two_publishers_rejected(lin_interfaces, owner, prior):
     )
 
 
-UNSCHEDULED_FRAME_REF = [LINFrameRef(bus_ref="LIN0", frame_ref=UNSCHEDULED_LIN_ID)]
+UNSCHEDULED_FRAME_REF = [LINFrameRef(frame_ref=UNSCHEDULED_LIN_ID)]
 
 
 @pytest.mark.parametrize(
@@ -264,7 +264,7 @@ def test_bus_interface_refs_accepted_when_declared():
         lin_protocol="2.0",
         p2_min=0.001,
         st_min=0.001,
-        sender_frames=[LINFrameRef(bus_ref="LIN0", frame_ref=LIN_ID)],
+        sender_frames=[LINFrameRef(frame_ref=LIN_ID)],
     )
 
     model = _make_model(channels, can_interfaces=[can_interface], lin_interfaces=[lin_interface])

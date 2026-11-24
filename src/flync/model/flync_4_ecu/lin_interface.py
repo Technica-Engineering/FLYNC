@@ -14,35 +14,34 @@ _LINProtocol = Literal["1.3", "2.0", "2.1", "2.2A"]
 
 class LINFrameRef(FLYNCBaseModel):
     """
-    Reference to a LIN frame by bus and LIN ID.
+    Reference to a LIN frame by LIN ID.
+
+    The bus is not part of the reference: it is the ``bus_ref`` of the owning
+    :class:`LINMasterInterface` or :class:`LINSlaveInterface`.
 
     Parameters
     ----------
-    bus_ref : str
-        Name of the :class:`~flync.model.flync_4_bus.lin_bus.LINBus` that owns the frame.
     frame_ref : int
-        LIN ID of the :class:`~flync.model.flync_4_signal.frame.LINFrame` on the referenced bus.
+        LIN ID of the :class:`~flync.model.flync_4_signal.frame.LINFrame` on the interface's bus.
     """
 
-    bus_ref: str = Field(min_length=1)
     frame_ref: int = Field()
 
 
 def _validate_unique_lin_frames(interface: ControllerInterface, field_name: str, frames: List[LINFrameRef]) -> None:
-    """Raise ``err_major`` if the same ``(bus_ref, frame_ref)`` appears twice in ``frames``."""
-    seen: set[tuple[str, int]] = set()
-    duplicates: set[tuple[str, int]] = set()
+    """Raise ``err_major`` if the same ``frame_ref`` appears twice in ``frames``."""
+    seen: set[int] = set()
+    duplicates: set[int] = set()
     for ref in frames:
-        key = (ref.bus_ref, ref.frame_ref)
-        if key in seen:
-            duplicates.add(key)
-        seen.add(key)
+        if ref.frame_ref in seen:
+            duplicates.add(ref.frame_ref)
+        seen.add(ref.frame_ref)
     if duplicates:
         raise err_major(
             "LIN interface '{name}': duplicate frame_ref(s) in {field}: {dups}",
             name=interface.name,
             field=field_name,
-            dups=[f"{bus}:{fid}" for bus, fid in sorted(duplicates)],
+            dups=sorted(duplicates),
             category=Category.UNIQUENESS,
             error_number="435",
         )

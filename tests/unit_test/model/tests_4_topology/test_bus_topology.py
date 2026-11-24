@@ -78,8 +78,8 @@ def _lin_slave(name, bus_ref, nad=0x20, **frames):
     return LINSlaveInterface(name=name, bus_ref=bus_ref, lin_protocol="2.1", configured_nad=nad, initial_nad=nad, **frames)
 
 
-def _lin_ref(frame_id, bus_ref="BodyLIN"):
-    return LINFrameRef(bus_ref=bus_ref, frame_ref=frame_id)
+def _lin_ref(frame_id):
+    return LINFrameRef(frame_ref=frame_id)
 
 
 SCHEDULED_FRAME = ("Frame_Scheduled", 0x01)

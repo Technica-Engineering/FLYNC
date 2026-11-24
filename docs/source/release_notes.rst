@@ -121,6 +121,13 @@ J1939 frames addressed by name or CAN id
 * ``J1939Frame`` names must be unique on a CAN bus: a node addresses a J1939 frame by name, so a duplicate
   is rejected (``FLYNC-BUS-MAJ-UNIQ-426``) instead of silently shadowing the frame declared earlier.
 
+LIN frame references drop ``bus_ref``
+'''''''''''''''''''''''''''''''''''''
+
+A :class:`~flync.model.flync_4_ecu.lin_interface.LINFrameRef` in the ``sender_frames`` / ``receiver_frames`` of a
+LIN interface now holds only ``frame_ref``. The bus is the ``bus_ref`` of the owning interface; the reference's own
+``bus_ref`` was never used. ``flync migrate`` (``v0_15_to_0_16``) removes it from existing workspaces.
+
 Variant Management
 '''''''''''''''''''
 

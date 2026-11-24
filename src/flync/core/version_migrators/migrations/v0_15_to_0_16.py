@@ -84,13 +84,37 @@ def _pgn_ref_to_name(ref: Node, names: dict[int, str | None]) -> str | None:
     return None
 
 
+def _lin_interfaces(documents: Documents) -> Iterator[Node]:
+    """
+    Yield every LIN interface in the workspace.
+
+    An interface is normally its own document under a ``lin_interfaces`` folder; one written inline
+    in a ``lin_interfaces`` list of its controller is found as well.
+    """
+    for uri, content in documents.items():
+        folders = uri.replace("\\", "/").split("/")[:-1]
+        if isinstance(content, dict) and "lin_interfaces" in folders:
+            yield content
+        for node in _walk(content):
+            yield from _dicts(node.get("lin_interfaces"))
+
+
+def _drop_lin_frame_ref_bus(documents: Documents) -> None:
+    """``LINFrameRef`` drops ``bus_ref``; the bus is the ``bus_ref`` of the owning interface."""
+    for interface in _lin_interfaces(documents):
+        for field in ("sender_frames", "receiver_frames"):
+            for ref in _dicts(interface.get(field)):
+                ref.pop("bus_ref", None)
+
+
 @migration
 class Migration016(FLYNCMigration):
     """Brings a 0.15 workspace to the 0.16 schema, one step per breaking change."""
 
     unique_id = "v0_15_to_0_16"
     target_version = "0.16.0"
-    description = "J1939 frame references address their frame by name instead of PGN."
+    description = "J1939 frame references address their frame by name instead of PGN; LIN frame references drop bus_ref."
 
     def apply(self, documents: Documents) -> None:
         _migrate_j1939_frame_refs_to_names(documents)
+        _drop_lin_frame_ref_bus(documents)

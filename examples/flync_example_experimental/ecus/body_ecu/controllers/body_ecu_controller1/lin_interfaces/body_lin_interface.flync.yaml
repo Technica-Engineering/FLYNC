@@ -4,9 +4,6 @@ lin_protocol: "2.2A"
 configured_nad: 0x02
 initial_nad: 0x02
 receiver_frames:
-  - bus_ref: BodyLIN
-    frame_ref: 1   # Frame_MirrorLeftStatus
-  - bus_ref: BodyLIN
-    frame_ref: 2   # Frame_MirrorRightStatus
-  - bus_ref: BodyLIN
-    frame_ref: 5   # Frame_CabinLightStatus
+  - frame_ref: 1   # Frame_MirrorLeftStatus
+  - frame_ref: 2   # Frame_MirrorRightStatus
+  - frame_ref: 5   # Frame_CabinLightStatus

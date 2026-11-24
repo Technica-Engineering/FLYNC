@@ -9,6 +9,7 @@ from flync.core.version_migrators._base import MigrationRegistry, migration_regi
 from flync.core.version_migrators.engine import MigrationEngine
 from flync.core.version_migrators.migrations.v0_15_to_0_16 import Migration016
 from flync.model.flync_4_ecu.can_interface import CANInterface
+from flync.model.flync_4_ecu.lin_interface import LINMasterInterface
 from flync.model.flync_4_metadata.metadata import BaseVersion
 
 V = lambda v: BaseVersion(version_schema="pep440", version=v)  # noqa: E731
@@ -103,3 +104,39 @@ def test_pgn_is_resolved_on_the_interface_bus():
     }
 
     assert migrate(documents)[IFACE_URI]["j1939_sender_frames"] == [{"frame_ref": "Frame_EBC1"}]
+
+
+LIN_URI = "ecus/ecu1/controllers/c1/lin_interfaces/body_lin_interface.flync.yaml"
+
+
+def lin_master(*refs: dict) -> dict:
+    return {
+        "node_type": "master",
+        "bus_ref": "BodyLIN",
+        "lin_protocol": "2.2A",
+        "p2_min": 0.5,
+        "st_min": 0.0,
+        "sender_frames": [dict(r) for r in refs],
+    }
+
+
+@pytest.mark.parametrize(
+    "ref",
+    [
+        pytest.param({"bus_ref": "BodyLIN", "frame_ref": 0x10}, id="with-bus-ref"),
+        pytest.param({"frame_ref": 0x10}, id="already-migrated"),
+    ],
+)
+def test_lin_frame_ref_drops_bus_ref(ref):
+    migrated = migrate({LIN_URI: lin_master(ref)})[LIN_URI]
+
+    assert migrated["sender_frames"] == [{"frame_ref": 0x10}]
+    assert migrated["bus_ref"] == "BodyLIN"
+    LINMasterInterface.model_validate({"name": "body_lin_interface", **migrated})
+
+
+def test_inline_lin_interface_frame_ref_drops_bus_ref():
+    controller_uri = "ecus/ecu1/controllers/c1.flync.yaml"
+    documents = {controller_uri: {"name": "c1", "lin_interfaces": [lin_master({"bus_ref": "BodyLIN", "frame_ref": 0x10})]}}
+
+    assert migrate(documents)[controller_uri]["lin_interfaces"][0]["sender_frames"] == [{"frame_ref": 0x10}]

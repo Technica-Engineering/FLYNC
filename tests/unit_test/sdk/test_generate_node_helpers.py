@@ -136,7 +136,7 @@ def test_generate_node_add_to_list(
                                 "node_type": "slave",
                                 "bus_ref": "BodyLIN",
                                 "sender_frames": [],
-                                "receiver_frames": [{"bus_ref": "BodyLIN", "frame_ref": 1}],
+                                "receiver_frames": [{"frame_ref": 1}],
                             }
                         ],
                     }
