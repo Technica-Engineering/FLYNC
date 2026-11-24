@@ -6,8 +6,10 @@ import pytest
 from pydantic_core import PydanticCustomError
 
 from flync.core.utils.exceptions import _validation_warnings
+from flync.model.flync_4_bus.lin_bus import LINBus, LINScheduleEntry, LINScheduleTable
 from flync.model.flync_4_ecu.can_interface import CANInterface
-from flync.model.flync_4_ecu.lin_interface import LINMasterInterface, LINSlaveInterface
+from flync.model.flync_4_ecu.lin_interface import LINFrameRef, LINMasterInterface, LINSlaveInterface
+from flync.model.flync_4_signal.frame import LINFrame
 from flync.model.flync_4_topology.bus_topology import (
     BusAttachmentPoint,
     CANBusTopology,
@@ -15,6 +17,7 @@ from flync.model.flync_4_topology.bus_topology import (
     build_bus_topologies,
     validate_bus_topologies,
 )
+from tests.error_assertions import assert_bind_error
 
 # ---------------------------------------------------------------------------
 # Helpers — lightweight stand-ins for the FLYNCModel container hierarchy.
@@ -67,12 +70,45 @@ def _j1939_can_iface(name, bus_ref):
     return CANInterface(name=name, bus_ref=bus_ref, j1939_name=1, source_address=0)
 
 
-def _lin_master(name, bus_ref):
-    return LINMasterInterface(name=name, bus_ref=bus_ref, lin_protocol="2.1", p2_min=50.0, st_min=10.0)
+def _lin_master(name, bus_ref, **frames):
+    return LINMasterInterface(name=name, bus_ref=bus_ref, lin_protocol="2.1", p2_min=50.0, st_min=10.0, **frames)
 
 
-def _lin_slave(name, bus_ref, nad=0x20):
-    return LINSlaveInterface(name=name, bus_ref=bus_ref, lin_protocol="2.1", configured_nad=nad, initial_nad=nad)
+def _lin_slave(name, bus_ref, nad=0x20, **frames):
+    return LINSlaveInterface(name=name, bus_ref=bus_ref, lin_protocol="2.1", configured_nad=nad, initial_nad=nad, **frames)
+
+
+def _lin_ref(frame_id, bus_ref="BodyLIN"):
+    return LINFrameRef(bus_ref=bus_ref, frame_ref=frame_id)
+
+
+SCHEDULED_FRAME = ("Frame_Scheduled", 0x01)
+UNSCHEDULED_FRAME = ("Frame_Unscheduled", 0x02)
+
+
+def _lin_bus(frames, scheduled):
+    """Return a ``BodyLIN`` bus declaring *frames* as ``(name, lin_id)``, one table covering the *scheduled* names."""
+    table = LINScheduleTable(name="Main", entries=[LINScheduleEntry(frame_name=name, period=10.0) for name in scheduled])
+    return LINBus(
+        name="BodyLIN",
+        lin_protocol_version="2.1",
+        lin_language_version="2.1",
+        baud_rate=19200,
+        frames=[LINFrame(name=name, lin_id=lin_id, length=2) for name, lin_id in frames],
+        schedule_tables=[table],
+    )
+
+
+def _body_lin():
+    """``BodyLIN`` declaring one scheduled and one unscheduled frame."""
+    return _lin_bus([SCHEDULED_FRAME, UNSCHEDULED_FRAME], scheduled=[SCHEDULED_FRAME[0]])
+
+
+def _validate_lin(interfaces, bus):
+    """Build the CAN/LIN topologies from a single ECU carrying *interfaces* and validate them."""
+    ecu = _ecu("E1", [_controller("C1", lin_ifaces=interfaces)])
+    _can_topos, lin_topos, _can_defs, lin_defs, _j1939 = build_bus_topologies(_model([ecu], lin_buses=[bus]))
+    validate_bus_topologies([], lin_topos, {}, lin_defs)
 
 
 def _can_attachment(bus_name="DiagCAN"):
@@ -222,3 +258,81 @@ def test_validate_no_attachment_226_emitted_for_plain_can_bus():
     warnings = _capture_warnings(lambda: validate_bus_topologies([topo], [], {"UnusedCAN": _bus("UnusedCAN")}, {}, set()))
     assert len(_no_attachment_warnings(warnings)) == 1
     assert "FLYNC-TOP-WARN-CONS-226" in warnings[0]["ctx"]["error_id"]
+
+
+# ---------------------------------------------------------------------------
+# validate_bus_topologies — every frame a LIN node sends or receives must be
+# covered by a schedule table of its bus (error 490).
+# ---------------------------------------------------------------------------
+
+_UNSCHEDULED_REF = [_lin_ref(UNSCHEDULED_FRAME[1])]
+_SCHEDULED_REF = [_lin_ref(SCHEDULED_FRAME[1])]
+
+
+@pytest.mark.parametrize(
+    "interfaces",
+    [
+        pytest.param([_lin_master("m", "BodyLIN", sender_frames=_UNSCHEDULED_REF)], id="master_sender"),
+        pytest.param([_lin_master("m", "BodyLIN"), _lin_slave("s", "BodyLIN", sender_frames=_UNSCHEDULED_REF)], id="slave_sender"),
+        pytest.param([_lin_master("m", "BodyLIN", receiver_frames=_UNSCHEDULED_REF)], id="master_receiver"),
+        pytest.param([_lin_master("m", "BodyLIN"), _lin_slave("s", "BodyLIN", receiver_frames=_UNSCHEDULED_REF)], id="slave_receiver"),
+    ],
+)
+def test_validate_raises_on_lin_frame_missing_from_schedule(interfaces):
+    """A frame a node sends or receives in either direction must appear in a schedule table of its bus."""
+    bus = _body_lin()
+    with pytest.raises(PydanticCustomError) as exc_info:
+        _validate_lin(interfaces, bus)
+    assert_bind_error(exc_info, "FLYNC-TOP-MAJ-CONS-490", "appears in none of the bus's schedule tables")
+
+
+@pytest.mark.parametrize(
+    "interfaces",
+    [
+        pytest.param([_lin_master("m", "BodyLIN", sender_frames=_SCHEDULED_REF)], id="master_sender"),
+        pytest.param([_lin_master("m", "BodyLIN"), _lin_slave("s", "BodyLIN", sender_frames=_SCHEDULED_REF)], id="slave_sender"),
+        pytest.param([_lin_master("m", "BodyLIN", receiver_frames=_SCHEDULED_REF)], id="master_receiver"),
+        pytest.param([_lin_master("m", "BodyLIN"), _lin_slave("s", "BodyLIN", receiver_frames=_SCHEDULED_REF)], id="slave_receiver"),
+    ],
+)
+def test_validate_accepts_lin_frame_covered_by_schedule(interfaces):
+    """The positive counterpart: a scheduled frame is accepted in all four directions."""
+    _validate_lin(interfaces, _body_lin())
+
+
+def test_validate_accepts_lin_frame_scheduled_by_any_table():
+    """A frame may be covered by any schedule table of the bus, not just the first."""
+    bus = _lin_bus([SCHEDULED_FRAME], scheduled=[])
+    bus.schedule_tables.append(LINScheduleTable(name="Main", entries=[LINScheduleEntry(frame_name=SCHEDULED_FRAME[0], period=10.0)]))
+
+    _validate_lin([_lin_master("m", "BodyLIN", receiver_frames=_SCHEDULED_REF)], bus)
+
+
+def test_validate_lin_master_without_schedule_table_reports_315_not_frame_coverage():
+    """Without any schedule table the bus reports 315; the frame-coverage rule stays quiet behind it."""
+    bus = _lin_bus([UNSCHEDULED_FRAME], scheduled=[])
+    bus.schedule_tables = []
+    interfaces = [_lin_master("m", "BodyLIN", sender_frames=_UNSCHEDULED_REF)]
+
+    with pytest.raises(PydanticCustomError) as exc_info:
+        _validate_lin(interfaces, bus)
+    assert_bind_error(exc_info, "FLYNC-TOP-MAJ-CONS-315", "declares no schedule table")
+
+
+def test_validate_masterless_lin_bus_reports_316_not_frame_coverage():
+    """A schedule table without a master reports 316; the frame-coverage rule stays quiet behind it."""
+    bus = _body_lin()
+    interfaces = [_lin_slave("s", "BodyLIN", sender_frames=_UNSCHEDULED_REF)]
+
+    with pytest.raises(PydanticCustomError) as exc_info:
+        _validate_lin(interfaces, bus)
+    assert_bind_error(exc_info, "FLYNC-TOP-MAJ-CONS-316", "no master interface attached")
+
+
+def test_validate_skips_frame_coverage_when_bus_definition_unknown():
+    """A partial model without bus definitions has nothing to check the references against."""
+    ecu = _ecu("E1", [_controller("C1", lin_ifaces=[_lin_master("m", "BodyLIN", sender_frames=_UNSCHEDULED_REF)])])
+    _can_topos, lin_topos, _can_defs, lin_defs, _j1939 = build_bus_topologies(_model([ecu]))
+
+    assert lin_defs is None
+    validate_bus_topologies([], lin_topos, {}, lin_defs)
