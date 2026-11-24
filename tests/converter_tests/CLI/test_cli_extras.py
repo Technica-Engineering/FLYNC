@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 import click
 import pytest
 from click.testing import CliRunner
+from pydantic import Field
 
 from flync_converter.base import ConverterConfig
 from flync_converter.cli.dynamic import DynamicConverterCommand
@@ -305,6 +306,55 @@ class TestSelectConverter:
 
 
 class TestInteractiveConfigureConverter:
+    def test_annotation_scalar_type_keeps_containers(self):
+        from flync_converter.cli.interactive import _annotation_scalar_type
+
+        assert _annotation_scalar_type(list[str]) == list[str]
+        assert _annotation_scalar_type(dict[str, str]) == dict[str, str]
+        assert _annotation_scalar_type(Optional[list[str]]) == list[str]
+        assert _annotation_scalar_type(Optional[bool]) is bool
+
+    def test_structured_list_field_is_parsed_as_json(self):
+        from flync_converter.cli.interactive import interactive_configure_converter
+
+        class MyCfg(ConverterConfig):
+            sender_ecus: list[str] = Field(default_factory=list)
+
+        def _fake_ask(label, default=None):
+            if "sender_ecus" in label:
+                return '["ECU1"]'
+            return default if default is not None else "/tmp/path"
+
+        with (
+            patch("flync_converter.cli.interactive.get_config_model", return_value=MyCfg),
+            patch("flync_converter.cli.interactive.Prompt.ask", side_effect=_fake_ask),
+            patch("flync_converter.cli.interactive.console"),
+        ):
+            result = interactive_configure_converter("myconv", "source")
+
+        assert result.sender_ecus == ["ECU1"]
+
+    def test_structured_field_invalid_json_is_reported_and_skipped(self):
+        from flync_converter.cli.interactive import interactive_configure_converter
+
+        class MyCfg(ConverterConfig):
+            sender_ecus: list[str] = Field(default_factory=list)
+
+        def _fake_ask(label, default=None):
+            if "sender_ecus" in label:
+                return "{not json"
+            return default if default is not None else "/tmp/path"
+
+        with (
+            patch("flync_converter.cli.interactive.get_config_model", return_value=MyCfg),
+            patch("flync_converter.cli.interactive.Prompt.ask", side_effect=_fake_ask),
+            patch("flync_converter.cli.interactive.console") as mock_console,
+        ):
+            result = interactive_configure_converter("myconv", "source")
+
+        assert result.sender_ecus == []
+        assert any("invalid JSON" in str(call) for call in mock_console.print.call_args_list)
+
     def test_pydantic_path_returns_config(self):
         from flync_converter.cli.interactive import interactive_configure_converter
 

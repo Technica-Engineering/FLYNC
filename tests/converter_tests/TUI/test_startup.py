@@ -3,6 +3,7 @@
 import enum
 
 import pytest
+from pydantic import BaseModel, Field
 from textual.widgets import Button, Input, Select
 
 from flync_converter.base import ConverterConfig
@@ -37,6 +38,17 @@ class ColorConfig(ConverterConfig):
 
 class NoExtraConfig(ConverterConfig):
     """Only inherits the required config_path field."""
+
+
+class SenderEcu(BaseModel):
+    name: str
+
+
+class StructuredConfig(ConverterConfig):
+    """A config holding a mapping and a sequence of models."""
+
+    package_paths: dict[str, str] = Field(default_factory=dict)
+    sender_ecus: list[SenderEcu] = Field(default_factory=list)
 
 
 def _field_stats(panel):
@@ -226,6 +238,56 @@ class TestDynamicFields:
                     enum_sel.value = Color.GREEN.value
                     cfg = source.read_config()
                     assert cfg.level == Color.GREEN
+
+            helpers.run(_impl())
+
+    def test_structured_fields_default_to_json_text(self, helpers):
+        with helpers.register("p13struct", StructuredConfig) as name:
+
+            async def _impl():
+                app = FlyncTUI()
+                async with app.run_test() as pilot:
+                    await pilot.pause()
+                    source = app.query_one("#source-panel-1", ConverterPanel)
+                    await helpers.select_format(source, name, pilot)
+                    paths = source.query_one("#field-source-panel-1-package_paths", Input)
+                    ecus = source.query_one("#field-source-panel-1-sender_ecus", Input)
+                    assert paths.value == "{}"
+                    assert ecus.value == "[]"
+
+            helpers.run(_impl())
+
+    def test_structured_fields_parse_json(self, helpers):
+        with helpers.register("p14struct", StructuredConfig) as name:
+
+            async def _impl():
+                app = FlyncTUI()
+                async with app.run_test() as pilot:
+                    await pilot.pause()
+                    source = app.query_one("#source-panel-1", ConverterPanel)
+                    await helpers.select_format(source, name, pilot)
+                    helpers.set_config_path(source, "/tmp/x")
+                    source.query_one("#field-source-panel-1-package_paths", Input).value = '{"Frame": "Frames"}'
+                    source.query_one("#field-source-panel-1-sender_ecus", Input).value = '[{"name": "ECU1"}]'
+                    cfg = source.read_config()
+                    assert cfg.package_paths == {"Frame": "Frames"}
+                    assert [ecu.name for ecu in cfg.sender_ecus] == ["ECU1"]
+
+            helpers.run(_impl())
+
+    def test_structured_fields_reject_invalid_json(self, helpers):
+        with helpers.register("p15struct", StructuredConfig) as name:
+
+            async def _impl():
+                app = FlyncTUI()
+                async with app.run_test() as pilot:
+                    await pilot.pause()
+                    source = app.query_one("#source-panel-1", ConverterPanel)
+                    await helpers.select_format(source, name, pilot)
+                    helpers.set_config_path(source, "/tmp/x")
+                    source.query_one("#field-source-panel-1-package_paths", Input).value = "{not json"
+                    with pytest.raises(ValueError, match="package_paths: invalid JSON"):
+                        source.read_config()
 
             helpers.run(_impl())
 

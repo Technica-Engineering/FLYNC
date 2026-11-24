@@ -142,7 +142,9 @@ Before running, the CLI prints a preview: each source and destination with the c
 
 The scripted ``convert`` command, ``convert-interactive``, the Textual TUI and the GUI all print the same preview.
 The command line is quoted for the shell of the running platform (POSIX quoting, or Windows quoting on Windows).
-Option values that cannot be given on the command line, such as lists, are listed in the preview but left out of the command.
+Option values that are mappings or lists are passed as JSON text, for example
+``--package-paths '{"Frame": "Communication/Frames"}'``. Nested model fields are listed in the preview but
+have no command-line option.
 
 .. list-table::
    :header-rows: 1

@@ -149,3 +149,12 @@ New xMII type: QSGMII
 '''''''''''''''''''''
 
 :class:`~flync.model.flync_4_ecu.mii.QSGMII` is a new ``mii_config`` type: four 10/100/1000 Mbps channels over one serial link.
+
+Structured converter options as JSON
+''''''''''''''''''''''''''''''''''''
+
+Converter configuration fields that are mappings or lists — for example ``package_paths`` and ``sender_ecus``
+of the ARXML converter — are prompted, previewed and passed as JSON text in the CLI, the interactive prompt,
+the TUI and the GUI. An empty value leaves the field unset so its default applies, and invalid JSON is reported
+against the offending field. Nested model fields are shown in the preview but are not offered as command-line
+options.

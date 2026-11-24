@@ -115,10 +115,10 @@ def test_config_endpoint_serializes_enum_by_name():
     assert endpoint.arguments == ["--output-type", "COMPACT", "--indent", "4"]
 
 
-def test_config_endpoint_shows_but_does_not_pass_non_scalar_values():
+def test_config_endpoint_passes_non_scalar_values_as_json():
     endpoint = config_endpoint("yaml", _SampleConfig(config_path="out", tags=["a"]), DST_PREFIX)
     assert endpoint.options == {"tags": ["a"]}
-    assert endpoint.arguments == []
+    assert endpoint.arguments == ["--tags", '["a"]']
 
 
 # ---------------------------------------------------------------------------

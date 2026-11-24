@@ -22,6 +22,7 @@ from typing import Any, Sequence
 from flync_converter.base import ConverterConfig
 
 from .dynamic import NO_PREFIX, config_option_flag, is_config_option, serialize_option_value
+from .types import field_default
 
 _CONVERTER_CMD = "flync-converter"
 
@@ -29,7 +30,7 @@ _CONVERTER_CMD = "flync-converter"
 LABEL_WIDTH = 20
 
 #: Value types an option accepts on the command line (see ``_annotation_to_click_type``).
-_CLI_SCALARS = (str, int, float, bool, enum.Enum, PurePath)
+_CLI_VALUE_TYPES = (str, int, float, bool, enum.Enum, PurePath, dict, list, tuple)
 
 
 @dataclass(frozen=True)
@@ -54,9 +55,9 @@ def config_endpoint(converter_type: str, config: ConverterConfig, prefix: str) -
     """Describe a configured converter as a conversion endpoint.
 
     Only fields offered as command-line options and set to a value other than
-    their default are included. Values an option cannot take (lists,
-    mappings, nested models) are shown in the preview but left out of the
-    command line.
+    their default are included. Mappings and sequences are emitted as JSON
+    (see ``_JsonParamType``); nested models are shown in the preview but left
+    out of the command line.
 
     Args:
         converter_type: Converter key/name as registered.
@@ -72,10 +73,10 @@ def config_endpoint(converter_type: str, config: ConverterConfig, prefix: str) -
         if not is_config_option(name, prefix):
             continue
         value = getattr(config, name)
-        if value is None or (not fld.is_required() and value == fld.get_default(call_default_factory=True)):
+        if value is None or (not fld.is_required() and value == field_default(fld)):
             continue
         options[name] = value
-        if isinstance(value, _CLI_SCALARS):
+        if isinstance(value, _CLI_VALUE_TYPES):
             arguments += [config_option_flag(NO_PREFIX, name), serialize_option_value(value)]
     return ConversionEndpoint(converter_type, str(config.config_path), options, arguments)
 
