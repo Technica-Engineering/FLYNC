@@ -234,7 +234,7 @@ def validate_bus_topologies(
     j1939_buses: Optional[set[str]] = None,
 ) -> None:
     """Run the system-wide CAN/LIN bus consistency checks: unknown ``bus_ref``, LIN master cardinality, LIN schedule table
-    presence, unused/singly-attached buses."""
+    presence and frame coverage, unused/singly-attached buses."""
 
     for can_topo in can_topos:
         _validate_bus_ref_known(can_topo, can_defs)
@@ -243,6 +243,7 @@ def validate_bus_topologies(
         _validate_bus_ref_known(lin_topo, lin_defs)
         _validate_lin_masters(lin_topo)
         _validate_lin_schedule_tables(lin_topo)
+        _validate_lin_scheduled_frames(lin_topo)
         _validate_attachment_count(lin_topo, "LIN", lin_defs)
 
 
@@ -356,6 +357,57 @@ def _validate_lin_schedule_tables(topo: LINBusTopology) -> None:
             category=Category.CONSISTENCY,
             error_number="316",
         )
+
+
+def _validate_lin_scheduled_frames(topo: LINBusTopology) -> None:
+    """
+    Validate that every frame a LIN node sends or receives appears in at least one schedule table of its bus.
+
+    The master issues the header of every transmission, so a frame that no schedule table contains is never
+    transmitted: the node listing it in its ``sender_frames`` or ``receiver_frames`` would publish or wait for a
+    response that never happens. The frame must be in *any* table of the bus; which table runs when is not checked
+    here. Frames no node references are out of scope. Skipped when the bus definition could not be resolved (already
+    reported by :func:`_validate_bus_ref_known`), when the bus declares no schedule table (reported by
+    :func:`_validate_lin_schedule_tables`), and when a frame reference does not resolve (reported by the interface
+    reference pass).
+
+    Parameters
+    ----------
+    topo : LINBusTopology
+        The LIN bus topology entry to validate.
+
+    Raises
+    ------
+    err_major
+        If a node sends or receives a frame that appears in none of the bus's schedule tables (error 490).
+    """
+    if topo._bus is None:
+        return
+    scheduled: set[str] = {entry.frame_name for table in topo._bus.schedule_tables for entry in table.entries}
+    if not scheduled:
+        return
+    names_by_id = {frame.lin_id: frame.name for frame in topo._bus.frames}
+    for attachment in topo.attachments:
+        iface = attachment._interface
+        if not isinstance(iface, (LINMasterInterface, LINSlaveInterface)):
+            continue
+        node = f"{attachment.ecu_name}/{attachment.controller_name}/{attachment.interface_name}"
+        for field_name, refs in (("sender_frames", iface.sender_frames), ("receiver_frames", iface.receiver_frames)):
+            for ref in refs:
+                frame_name = names_by_id.get(ref.frame_ref)
+                if frame_name is None or frame_name in scheduled:
+                    continue
+                raise err_major(
+                    "LIN bus '{bus}': {field} of {node} references frame '{frame}' (id={id}), which appears in none of "
+                    "the bus's schedule tables. The LIN master issues a header only for scheduled frames.",
+                    bus=topo.bus_name,
+                    field=field_name,
+                    node=node,
+                    frame=frame_name,
+                    id=ref.frame_ref,
+                    category=Category.CONSISTENCY,
+                    error_number="490",
+                )
 
 
 def _validate_attachment_count(

@@ -111,6 +111,11 @@ and read as the master publishing all of them, which is what they described whil
 New validation: ``FLYNC-CMN-MAJ-UNIQ-489``, a LIN frame listed in the ``sender_frames`` of more than one
 interface; a frame has exactly one sender. See :doc:`../error_catalog`.
 
+New validation: ``FLYNC-TOP-MAJ-CONS-490``, a frame listed in a LIN interface's ``sender_frames`` or
+``receiver_frames`` that appears in none of the bus's ``schedule_tables``. The master issues a header only for
+scheduled frames, so such a frame would never be transmitted. Add the frame to a schedule table with a fitting
+period; the period is an authoring decision, so no migration is provided. See :doc:`../error_catalog`.
+
 Breaking — Python API
 ---------------------
 

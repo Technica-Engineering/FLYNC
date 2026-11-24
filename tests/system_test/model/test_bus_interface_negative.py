@@ -1,10 +1,11 @@
 """Workspace-level negatives for CAN / LIN interface bus and frame references.
 
-Covers the two reference rules a bus interface is subject to once the workspace declares buses of its kind:
+Covers the three reference rules a bus interface is subject to once the workspace declares buses of its kind:
 
 * the interface's own ``bus_ref`` must name a declared bus of that kind (``FLYNC-CMN-MAJ-REF-215``),
-* a frame reference's ``bus_ref`` must do the same (``FLYNC-CMN-MAJ-REF-216``), and
-* every ``sender_frames`` / ``receiver_frames`` frame id must resolve on that bus (``FLYNC-CMN-MAJ-REF-217``).
+* every ``sender_frames`` / ``receiver_frames`` frame id must resolve on that bus (``FLYNC-CMN-MAJ-REF-217``), and
+* a frame a node sends or receives must be covered by a schedule table of its bus
+  (``FLYNC-TOP-MAJ-CONS-490``).
 """
 
 import pytest
@@ -47,6 +48,24 @@ def _make_lin_bus(name: str = "LIN0") -> LINBus:
     schedule_table = LINScheduleTable(name="Schedule", entries=[LINScheduleEntry(frame_name="LIN_BodyFrame", period=20.0)])
     return LINBus(
         name=name, lin_protocol_version="2.0", lin_language_version="2.0", baud_rate=19200, frames=[frame], schedule_tables=[schedule_table]
+    )
+
+
+UNSCHEDULED_LIN_ID = 0x13
+
+
+def _make_lin_bus_with_unscheduled_frame(name: str = "LIN0") -> LINBus:
+    """Return a LIN bus whose schedule table covers :data:`LIN_ID` but not :data:`UNSCHEDULED_LIN_ID`."""
+    scheduled = LINFrame(name="LIN_BodyFrame", length=8, lin_id=LIN_ID)
+    unscheduled = LINFrame(name="LIN_UnscheduledFrame", length=8, lin_id=UNSCHEDULED_LIN_ID)
+    schedule_table = LINScheduleTable(name="Schedule", entries=[LINScheduleEntry(frame_name="LIN_BodyFrame", period=20.0)])
+    return LINBus(
+        name=name,
+        lin_protocol_version="2.0",
+        lin_language_version="2.0",
+        baud_rate=19200,
+        frames=[scheduled, unscheduled],
+        schedule_tables=[schedule_table],
     )
 
 
@@ -190,6 +209,49 @@ def test_lin_frame_with_two_publishers_rejected(lin_interfaces, owner, prior):
     assert_single_error(
         exc_info, "FLYNC-CMN-MAJ-UNIQ-489", f"{owner}: sender_frames: LIN frame id={LIN_ID} on bus 'LIN0' is already published by {prior}"
     )
+
+
+UNSCHEDULED_FRAME_REF = [LINFrameRef(bus_ref="LIN0", frame_ref=UNSCHEDULED_LIN_ID)]
+
+
+@pytest.mark.parametrize(
+    "lin_interfaces",
+    [
+        [_lin_master(sender_frames=UNSCHEDULED_FRAME_REF)],
+        [_lin_master(), _lin_slave(sender_frames=UNSCHEDULED_FRAME_REF)],
+        [_lin_master(receiver_frames=UNSCHEDULED_FRAME_REF)],
+        [_lin_master(), _lin_slave(receiver_frames=UNSCHEDULED_FRAME_REF)],
+    ],
+    ids=["master_sender", "slave_sender", "master_receiver", "slave_receiver"],
+)
+def test_lin_frame_missing_from_schedule_rejected(lin_interfaces):
+    """A frame a node sends or receives in either direction must appear in a schedule table of its bus."""
+    channels = FLYNCChannelConfig(lin_buses=[_make_lin_bus_with_unscheduled_frame("LIN0")])
+
+    with pytest.raises(ValidationError) as exc_info:
+        _make_model(channels, lin_interfaces=lin_interfaces)
+    assert_single_error(
+        exc_info,
+        "FLYNC-TOP-MAJ-CONS-490",
+        f"references frame 'LIN_UnscheduledFrame' (id={UNSCHEDULED_LIN_ID}), which appears in none of the bus's schedule tables",
+    )
+
+
+@pytest.mark.parametrize(
+    "lin_interfaces",
+    [
+        [_lin_master(sender_frames=BODY_FRAME)],
+        [_lin_master(), _lin_slave(sender_frames=BODY_FRAME)],
+        [_lin_master(receiver_frames=BODY_FRAME)],
+        [_lin_master(), _lin_slave(receiver_frames=BODY_FRAME)],
+    ],
+    ids=["master_sender", "slave_sender", "master_receiver", "slave_receiver"],
+)
+def test_lin_scheduled_frame_accepted_while_other_frames_unscheduled(lin_interfaces):
+    """Only frames a node references must be scheduled; the rest of the bus may stay out of every table."""
+    model = _make_model(FLYNCChannelConfig(lin_buses=[_make_lin_bus_with_unscheduled_frame("LIN0")]), lin_interfaces=lin_interfaces)
+
+    assert len(model.ecus[0].controllers[0].lin_interfaces) == len(lin_interfaces)
 
 
 def test_bus_interface_refs_accepted_when_declared():

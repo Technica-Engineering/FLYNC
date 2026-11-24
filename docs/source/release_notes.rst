@@ -40,6 +40,18 @@ Multi-gigabit BASE-T and BASE-T1 speeds
 ``BASET`` and ``BASET1`` MDI configs now also accept 2500, 5000, and 10000 Mbit/s.
 
 
+LIN frames can be published by slaves and received by the master
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+``LINSlaveInterface`` gained ``sender_frames`` and ``LINMasterInterface`` gained ``receiver_frames``, so both roles
+read like a CAN interface: ``sender_frames`` is what the node transmits, ``receiver_frames`` what it receives. A
+frame published by a slave is listed in that slave's ``sender_frames`` and in the master's (and/or another slave's)
+``receiver_frames``. A frame still has exactly one publisher (``FLYNC-CMN-MAJ-UNIQ-489``). A frame that a node sends
+or receives must now also appear in one of the bus's ``schedule_tables`` (``FLYNC-TOP-MAJ-CONS-490``): the master
+issues a header only for frames it schedules, so an unscheduled frame would never be transmitted. Workspaces that
+already scheduled every frame they referenced load unchanged.
+
+
 Namespaces for SOME/IP services and PDUs
 ''''''''''''''''''''''''''''''''''''''''
 
