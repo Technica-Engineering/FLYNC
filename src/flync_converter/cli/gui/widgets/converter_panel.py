@@ -22,8 +22,9 @@ from PySide6.QtWidgets import (
 )
 
 from flync_converter.base import ConverterConfig
+from flync_converter.cli.types import field_default, format_default, parse_field_input
 from flync_converter.registry import registry
-from flync_converter.utils import cast_value, get_config_model
+from flync_converter.utils import get_config_model
 
 
 def _resolve_field_type(annotation):
@@ -194,12 +195,12 @@ class ConverterPanel(QWidget):
                 continue
 
             required = fld.is_required()
-            default = None if required else fld.get_default()
+            default = field_default(fld)
             field_type = _resolve_field_type(fld.annotation)
 
             label_text = f"{'* ' if required else ''}{name}"
             if not required and default is not None:
-                label_text += f"  (default: {default})"
+                label_text += f"  (default: {format_default(default)})"
             label = QLabel(label_text)
             if required:
                 label.setStyleSheet("color: #cc3333; font-weight: bold;")
@@ -220,7 +221,7 @@ class ConverterPanel(QWidget):
             else:
                 line = QLineEdit()
                 if default is not None:
-                    line.setText(str(default))
+                    line.setText(format_default(default) or "")
                 if required:
                     line.setPlaceholderText("required")
                 if name == "config_path":
@@ -339,6 +340,7 @@ class ConverterPanel(QWidget):
 
         Raises:
             RuntimeError: if no converter type is selected.
+            ValueError: if a structured field contains invalid JSON.
             ValidationError: if required fields are missing or invalid.
         """
         if self._converter_type is None:
@@ -357,10 +359,7 @@ class ConverterPanel(QWidget):
             else:
                 raw = widget.text().strip()  # type: ignore[attr-defined]
                 if raw:
-                    target_type = (
-                        fld.annotation.__origin__ if fld.annotation is not None and hasattr(fld.annotation, "__origin__") else fld.annotation
-                    )
-                    config_dict[name] = cast_value(raw, target_type)
+                    config_dict[name] = parse_field_input(name, raw, field_type)
         return model(**config_dict)
 
     def show_error(self, msg: str) -> None:

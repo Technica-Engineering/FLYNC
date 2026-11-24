@@ -14,9 +14,10 @@ from textual.message import Message
 from textual.widgets import Button, Input, Label, Select, Static
 
 from flync_converter.base import ConverterConfig
+from flync_converter.cli.types import field_default, format_default, parse_field_input
 from flync_converter.registry import registry
 
-from ..utils import cast_value, get_config_model
+from ..utils import get_config_model
 from .path_picker import PathPicker, PickMode
 
 
@@ -304,12 +305,12 @@ class ConverterPanel(Vertical):
             if name in _NON_EDITABLE_FIELDS:
                 continue
             required = fld.is_required()
-            default = None if required else fld.get_default()
+            default = field_default(fld)
             field_type = _resolve_field_type(fld.annotation)
             prefix = "[red]*[/red] " if required else ""
             label_text = f"{prefix}{name}"
             if not required and default is not None:
-                label_text += f" [dim](default: {default})[/dim]"
+                label_text += f" [dim](default: {format_default(default)})[/dim]"
             widgets.append(Label(label_text, classes="field-label", markup=True))
             if isinstance(field_type, type) and issubclass(field_type, enum.Enum):
                 options = [(m.name, m.value) for m in field_type]
@@ -329,7 +330,7 @@ class ConverterPanel(Vertical):
                 )
             else:
                 field_input = Input(
-                    value="" if default is None else str(default),
+                    value="" if default is None else (format_default(default) or ""),
                     placeholder="required" if required else "",
                     id=f"field-{self.id}-{name}",
                 )
@@ -369,6 +370,8 @@ class ConverterPanel(Vertical):
         """Read current field values and return a validated config instance.
 
         Raises:
+            RuntimeError: if no converter type is selected.
+            ValueError: if a structured field contains invalid JSON.
             ValidationError: if required fields are missing or invalid.
         """
         if self._converter_type is None:
@@ -387,10 +390,7 @@ class ConverterPanel(Vertical):
             else:
                 raw = self.query_one(widget_id, Input).value.strip()
                 if raw:
-                    target_type = (
-                        fld.annotation.__origin__ if fld.annotation is not None and hasattr(fld.annotation, "__origin__") else fld.annotation
-                    )
-                    config_dict[name] = cast_value(raw, target_type)
+                    config_dict[name] = parse_field_input(name, raw, field_type)
         return model(**config_dict)
 
     def show_error(self, msg: str) -> None:

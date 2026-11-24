@@ -1,7 +1,8 @@
 """Rich-based interactive prompt helpers for converter selection and config."""
 
 import logging
-from typing import get_args, get_origin
+import types
+from typing import Union, get_args, get_origin
 
 from pydantic import BaseModel
 from rich.console import Console
@@ -12,7 +13,9 @@ from rich.table import Table
 from flync_converter.base import ConverterConfig
 from flync_converter.base.converter_config import DESTINATION_ONLY_FIELDS
 from flync_converter.registry import registry
-from flync_converter.utils import cast_value, get_config_model
+from flync_converter.utils import get_config_model
+
+from .types import field_default, format_default, parse_field_input
 
 logger = logging.getLogger(__name__)
 console = Console()
@@ -83,18 +86,21 @@ def interactive_configure_converter(converter_type: str, step: str) -> Converter
             if step == "source" and name in DESTINATION_ONLY_FIELDS:
                 continue
             required = fld.is_required()
-            default = None if fld.is_required() else fld.get_default()
+            default = field_default(fld)
+            default_str = format_default(default)
             prompt_label = f"[{'red' if required else 'yellow'}]{name}[/]"
-            if not required and default is not None:
-                prompt_label += f" [dim]({default})[/dim]"
+            if not required and default_str is not None:
+                prompt_label += f" [dim]({default_str})[/dim]"
 
-            default_str = str(default) if default is not None else None
             raw = Prompt.ask(prompt_label, default=default_str)
 
             if raw is not None and raw != "":
-                ann = fld.annotation
-                target_type = _annotation_scalar_type(ann)
-                casted = cast_value(raw, target_type)
+                target_type = _annotation_scalar_type(fld.annotation)
+                try:
+                    casted = parse_field_input(name, raw, target_type)
+                except ValueError as exc:
+                    console.print(f"[red]{exc}[/red]")
+                    continue
                 config_dict[name] = casted
                 table.add_row(name, str(casted))
     else:
@@ -118,14 +124,16 @@ def _annotation_scalar_type(annotation):
     """Resolve a pydantic field annotation to a concrete scalar type.
 
     Unwraps ``Optional``/``Union`` so that ``Optional[bool]`` resolves to
-    ``bool`` for :func:`cast_value`, mirroring the dynamic CLI's
-    ``_annotation_to_click_type``.  Annotations that resolve to more than one
-    non-``None`` member (e.g. ``Optional[Union[str, int]]``) are returned as-is
-    so Pydantic can coerce the raw string.
+    ``bool`` for the value cast, mirroring the dynamic CLI's
+    ``_annotation_to_click_type``.  Container annotations such as ``list[str]``
+    or ``dict[str, str]`` are returned as-is so :func:`parse_field_input` can
+    recognise them as structured JSON.  Annotations that resolve to more than
+    one non-``None`` member (e.g. ``Optional[Union[str, int]]``) are returned
+    as-is so Pydantic can coerce the raw string.
     """
-    inner_args = get_args(annotation)
-    if inner_args and get_origin(annotation) is not None:
-        non_none = [a for a in inner_args if a is not type(None)]
+    origin = get_origin(annotation)
+    if origin is Union or origin is types.UnionType:
+        non_none = [a for a in get_args(annotation) if a is not type(None)]
         if len(non_none) == 1:
             return non_none[0]
     return annotation

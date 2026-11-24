@@ -317,8 +317,8 @@ def _convert_flat(
         click.echo("Source and output formats are the same. No conversion needed.")
         return
 
-    src_fields = {k[len(SRC_PREFIX) :]: v for k, v in kwargs.items() if k.startswith(SRC_PREFIX) and v is not None}
-    dst_fields = {k[len(DST_PREFIX) :]: v for k, v in kwargs.items() if k.startswith(DST_PREFIX) and v is not None}
+    src_fields = {k[len(SRC_PREFIX) :]: v for k, v in kwargs.items() if k.startswith(SRC_PREFIX) and v not in (None, "")}
+    dst_fields = {k[len(DST_PREFIX) :]: v for k, v in kwargs.items() if k.startswith(DST_PREFIX) and v not in (None, "")}
 
     command = cast(ConvertGroup, ctx.command)
     sources = [_cli_endpoint(ctx, command, SRC_PREFIX, source_format, source, source_config_file, src_fields)]
@@ -437,7 +437,7 @@ def _cli_endpoint(
         fields = {
             option.name[len(prefix) :]: ctx.params[option.name]
             for option in command._config_options(prefix)
-            if option.name is not None and ctx.params.get(option.name) is not None
+            if option.name is not None and ctx.params.get(option.name) not in (None, "")
         }
     arguments = command.build_config_arguments(ctx, prefix)
     if config_file is not None:

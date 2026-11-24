@@ -2,6 +2,7 @@
 
 import copy
 import enum
+import json
 import logging
 from typing import Any, Self
 
@@ -10,7 +11,7 @@ import click
 from flync_converter.base.converter_config import DESTINATION_ONLY_FIELDS
 from flync_converter.utils import get_config_model
 
-from .types import _annotation_to_click_type
+from .types import _annotation_to_click_type, field_default, format_default
 
 logger = logging.getLogger(__name__)
 
@@ -63,8 +64,9 @@ def config_option_flag(prefix: str, name: str) -> str:
 def serialize_option_value(value: Any) -> str:
     """Serialize a config value back to the form its option accepts.
 
-    Enum members are given by name (see ``_EnumNameType``); everything else
-    by its string form.
+    Enum members are given by name (see ``_EnumNameType``), mappings and
+    sequences as JSON (see ``_JsonParamType``), and everything else by its
+    string form.
 
     Args:
         value: Parsed option or config field value.
@@ -74,6 +76,8 @@ def serialize_option_value(value: Any) -> str:
     """
     if isinstance(value, enum.Enum):
         return value.name
+    if isinstance(value, (dict, list, tuple)):
+        return json.dumps(value)
     return str(value)
 
 
@@ -154,7 +158,9 @@ class DynamicConverterCommand(click.Command):
         """Build the Click option for one config field.
 
         The option defaults to ``None`` so that only values given on the command
-        line are passed on; the field default is shown in ``--help``.
+        line are passed on; the field default is shown in ``--help``. A
+        ``default_factory`` is evaluated, so its value (e.g. ``{}``) is shown
+        rather than the ``PydanticUndefined`` sentinel.
 
         Args:
             converter_type: Converter key/name as registered.
@@ -166,7 +172,8 @@ class DynamicConverterCommand(click.Command):
             The Click option.
         """
         required = fld.is_required()
-        default = None if required else fld.get_default()
+        default = field_default(fld)
+        formatted = format_default(default)
         side = prefix.rstrip("_")
         return click.Option(
             [config_option_flag(prefix, name)],
@@ -174,7 +181,7 @@ class DynamicConverterCommand(click.Command):
             default=None,
             required=False,
             help=f"{'[required] ' if required else ''}{name} for {converter_type}" + (f" ({side} config)" if side else ""),
-            show_default=str(default) if default is not None else False,
+            show_default=formatted if formatted is not None else False,
         )
 
     def _config_options(self, prefix: str) -> list[click.Option]:

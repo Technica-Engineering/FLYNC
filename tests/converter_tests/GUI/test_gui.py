@@ -11,6 +11,7 @@ import os
 from unittest.mock import MagicMock, patch
 
 import pytest
+from pydantic import BaseModel, Field
 
 # Must be set before any Qt import so tests run headless in CI.
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -274,6 +275,59 @@ def test_panel_read_config_returns_instance(qapp_instance, fake_registry):
     panel._field_widgets["config_path"].setText("/some/path")
     cfg = panel.read_config()
     assert isinstance(cfg, ConverterConfig)
+
+
+def _structured_registry():
+    """A converter whose config holds a mapping and a sequence of models."""
+
+    class SenderEcu(BaseModel):
+        name: str
+
+    class StructuredConfig(ConverterConfig):
+        package_paths: dict[str, str] = Field(default_factory=dict)
+        sender_ecus: list[SenderEcu] = Field(default_factory=list)
+
+    class StructuredConverter(MagicMock):
+        def __init__(self, config: StructuredConfig = None):
+            pass
+
+    return {"structured": StructuredConverter()}
+
+
+def test_panel_structured_fields_default_to_json_text(qapp_instance):
+    """Mapping and sequence defaults are shown as JSON text."""
+    reg = _structured_registry()
+    with patch(_PANEL_REGISTRY, reg), patch(_UTILS_REGISTRY, reg):
+        panel = ConverterPanel("Source", default="structured")
+
+    assert panel._field_widgets["package_paths"].text() == "{}"
+    assert panel._field_widgets["sender_ecus"].text() == "[]"
+
+
+def test_panel_read_config_parses_structured_json(qapp_instance):
+    """JSON text entered in a structured field reaches the config as containers."""
+    reg = _structured_registry()
+    with patch(_PANEL_REGISTRY, reg), patch(_UTILS_REGISTRY, reg):
+        panel = ConverterPanel("Source", default="structured")
+        panel._field_widgets["config_path"].setText("/some/path")
+        panel._field_widgets["package_paths"].setText('{"Frame": "Communication/Frames"}')
+        panel._field_widgets["sender_ecus"].setText('[{"name": "ECU1"}]')
+        cfg = panel.read_config()
+
+    assert cfg.package_paths == {"Frame": "Communication/Frames"}
+    assert [ecu.name for ecu in cfg.sender_ecus] == ["ECU1"]
+
+
+def test_panel_read_config_rejects_invalid_structured_json(qapp_instance):
+    """Invalid JSON is reported against the offending field."""
+    reg = _structured_registry()
+    with patch(_PANEL_REGISTRY, reg), patch(_UTILS_REGISTRY, reg):
+        panel = ConverterPanel("Source", default="structured")
+        panel._field_widgets["config_path"].setText("/some/path")
+        panel._field_widgets["package_paths"].setText("{not json")
+
+        with pytest.raises(ValueError, match="package_paths: invalid JSON"):
+            panel.read_config()
 
 
 def test_panel_read_config_raises_without_selection(qapp_instance, fake_registry):
