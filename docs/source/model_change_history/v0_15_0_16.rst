@@ -36,6 +36,23 @@ Breaking — YAML schema
   interface's bus, which 0.15 kept unique. A ``pgn`` that names no frame is left unchanged and a warning is
   logged.
 
+* :class:`~flync.model.flync_4_ecu.lin_interface.LINFrameRef` (``sender_frames`` / ``receiver_frames`` of a
+  LIN master or slave) drops ``bus_ref``. It was never read: a LIN frame reference always resolved on the
+  ``bus_ref`` of the owning interface, as CAN and J1939 references do.
+
+  .. code-block:: yaml
+
+     # before
+     receiver_frames:
+       - bus_ref: BodyLIN
+         frame_ref: 1
+
+     # after
+     receiver_frames:
+       - frame_ref: 1
+
+  **Migrated** by ``v0_15_to_0_16``: ``bus_ref`` is removed from every LIN frame reference.
+
 
 Additive — YAML schema
 ----------------------

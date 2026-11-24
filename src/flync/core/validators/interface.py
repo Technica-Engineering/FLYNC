@@ -505,14 +505,14 @@ def _validate_lin_single_publisher(model: FLYNCModel) -> None:
             continue
         owner = f"{type(iface).__name__}(name={iface.name})"
         for ref in iface.sender_frames or []:
-            prior = publishers.setdefault((ref.bus_ref, ref.frame_ref), owner)
+            prior = publishers.setdefault((iface.bus_ref, ref.frame_ref), owner)
             if prior != owner:
                 err = err_major(
                     "{owner}: sender_frames: LIN frame id={frame} on bus '{bus}' is already published by {prior}. "
                     "A LIN frame has exactly one publisher.",
                     owner=owner,
                     frame=ref.frame_ref,
-                    bus=ref.bus_ref,
+                    bus=iface.bus_ref,
                     prior=prior,
                     category=Category.UNIQUENESS,
                     error_number="489",

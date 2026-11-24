@@ -114,8 +114,7 @@ def test_positive_lin_slave_minimal():
 
 
 def test_positive_lin_frame_ref_fields():
-    ref = LINFrameRef(bus_ref="BodyLIN", frame_ref=0x1A)
-    assert ref.bus_ref == "BodyLIN"
+    ref = LINFrameRef(frame_ref=0x1A)
     assert ref.frame_ref == 0x1A
     assert isinstance(ref, LINFrameRef)
 
