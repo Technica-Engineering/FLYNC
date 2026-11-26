@@ -308,6 +308,33 @@ class FLYNCFactory(ModelFactory[FLYNCBaseModel]):
         return None
 
     @staticmethod
+    def _empty_collection_for_annotation(annotation):
+        """
+        Return a fresh empty ``list`` or ``set`` matching a (possibly optional) collection annotation.
+
+        Handles bare ``List[X]``/``Set[X]``, ``Optional[...]`` and ``Annotated[...]`` wrapping, so a
+        collection field whose declared default is ``None`` can still be initialized before a
+        generated child is appended.
+
+        Args:
+            annotation: The field type annotation.
+
+        Returns:
+            list | set | None: The matching empty collection, or ``None`` when the annotation is not
+            a list/set collection.
+        """
+
+        annotation = FLYNCFactory._strip_annotated(annotation)
+        candidates = [a for a in get_args(annotation) if a is not type(None)] if is_union(annotation) else [annotation]
+        for candidate in candidates:
+            origin = get_origin(candidate) or candidate
+            if origin is list:
+                return []
+            if origin is set:
+                return set()
+        return None
+
+    @staticmethod
     def __is_union_list_element(elem_annotation) -> bool:
         """
         Determine whether a list element is a union of FLYNC models or a RootModel wrapping one.
@@ -890,6 +917,121 @@ def __patch_existing(ws, owner_model, fname, gen_value, value, field_path) -> bo
     return False
 
 
+def __patch_same_type_owner(ws, owner_model, generated_node, override_values) -> None:
+    """
+    Patch an owner in place when the generated node shares its type.
+
+    Args:
+        ws (FLYNCWorkspace): The workspace object.
+        owner_model: The model to patch.
+        generated_node: The generated node providing replacement/derived values.
+        override_values (dict): The override values used to build the generated node.
+
+    Returns:
+        None
+    """
+    owner_path = str(objs[0].id) if (objs := ws.get_semantic_objects_from_model(owner_model)) else ""
+    __patch_owner(ws, owner_model, generated_node, override_values, owner_path)
+
+
+def __convert_root_list_element(owner_model, node_field_name, generated_node):
+    """
+    Wrap the generated node in its RootModel element type when the owner field is a list of RootModels.
+
+    Args:
+        owner_model: The parent model that owns the field.
+        node_field_name (str): The name of the field on the owner model.
+        generated_node: The node to convert.
+
+    Returns:
+        The converted node, or the original node when no RootModel element type applies.
+    """
+    annotation = type(owner_model).model_fields[node_field_name].annotation
+    root_model = FLYNCFactory._list_element_flync_type(annotation, RootModel)
+    if root_model is None:
+        return generated_node
+    return __get_generated_node(root_model.__name__, "", "", root=generated_node)
+
+
+def __empty_collection_for_field(field_info):
+    """
+    Return a fresh empty collection for a field, preferring its annotation over a list/set default.
+
+    Args:
+        field_info: The pydantic field info of the target field.
+
+    Returns:
+        A new empty ``list``/``set``, or ``None`` when the field is not a collection.
+    """
+    empty_collection = FLYNCFactory._empty_collection_for_annotation(field_info.annotation)
+    if empty_collection is not None:
+        return empty_collection
+    field_default = field_info.get_default(call_default_factory=True)
+    return field_default if isinstance(field_default, (list, set)) else None
+
+
+def __ensure_owner_collection(owner_model, node_field_name):
+    """
+    Return the owner's collection for a field, initializing an unset one first.
+
+    A collection field left unset (e.g. ``Optional[List[X]] = None``) must be initialized before
+    appending, otherwise the node would be assigned as a bare element. Validation on assignment may
+    store a rebuilt collection, so the value actually held by the owner is re-read afterwards.
+
+    Args:
+        owner_model: The parent model that owns the field.
+        node_field_name (str): The name of the field on the owner model.
+
+    Returns:
+        The owner's collection, or ``None`` when the field is not an initializeable collection.
+    """
+    current_collection = getattr(owner_model, node_field_name, None)
+    if current_collection is not None:
+        return current_collection
+    field_info = type(owner_model).model_fields.get(node_field_name)
+    empty_collection = __empty_collection_for_field(field_info) if field_info is not None else None
+    if empty_collection is None:
+        return None
+    setattr(owner_model, node_field_name, empty_collection)
+    return getattr(owner_model, node_field_name, None)
+
+
+def __attach_child_field(owner_model, node_field_name, generated_node) -> None:
+    """
+    Attach the generated child to the owner's collection, or assign it when the field is not one.
+
+    Args:
+        owner_model: The parent model that owns the field.
+        node_field_name (str): The name of the field on the owner model.
+        generated_node: The node to attach.
+
+    Returns:
+        None
+    """
+    generated_node = __convert_root_list_element(owner_model, node_field_name, generated_node)
+    collection = __ensure_owner_collection(owner_model, node_field_name)
+    if not __try_append_to(collection, generated_node):
+        setattr(owner_model, node_field_name, generated_node)
+
+
+def __serialization_path_for_owner(ws, owner_model) -> Path | None:
+    """
+    Resolve the serialization path of the owner's first semantic object, if any.
+
+    Args:
+        ws (FLYNCWorkspace): The workspace object.
+        owner_model: The model whose semantic object provides the path.
+
+    Returns:
+        Path | None: The resolved serialization path, or ``None`` when the owner has no source.
+    """
+    objs = ws.get_semantic_objects_from_model(owner_model)
+    if not objs:
+        return None
+    uri = ws.get_source(objs[0].id).uri
+    return ws.workspace_root / uri.removesuffix(ws.configuration.flync_file_extension)
+
+
 def __attach_to_owner(
     ws: FLYNCWorkspace,
     owner_model,
@@ -924,28 +1066,15 @@ def __attach_to_owner(
 
     # Case B - the generated node is the same type as the owner: patch the owner in place.
     if type(owner_model) is type(generated_node):
-        owner_path = str(objs[0].id) if (objs := ws.get_semantic_objects_from_model(owner_model)) else ""
-        __patch_owner(ws, owner_model, generated_node, override_values, owner_path)
+        __patch_same_type_owner(ws, owner_model, generated_node, override_values)
 
     # Case A - attach the generated child node to the owner's field.
+    elif not hasattr(owner_model, node_field_name):
+        return False, None, None
     else:
-        if not hasattr(owner_model, node_field_name):
-            return False, None, None
-        # Handle list element type conversion if needed
-        if root_model := FLYNCFactory._list_element_flync_type(type(owner_model).model_fields[node_field_name].annotation, RootModel):
-            generated_node = __get_generated_node(root_model.__name__, "", "", root=generated_node)
+        __attach_child_field(owner_model, node_field_name, generated_node)
 
-        if not __try_append_to(getattr(owner_model, node_field_name, None), generated_node):
-            setattr(owner_model, node_field_name, generated_node)
-
-    # Resolve path for serialization
-    path: Path | None = None
-    model = owner_model
-    if objs := ws.get_semantic_objects_from_model(owner_model):
-        uri = ws.get_source(objs[0].id).uri
-        path = ws.workspace_root / uri.removesuffix(ws.configuration.flync_file_extension)
-
-    return True, path, model
+    return True, __serialization_path_for_owner(ws, owner_model), owner_model
 
 
 def generate_node(
