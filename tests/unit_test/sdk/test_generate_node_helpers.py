@@ -559,3 +559,84 @@ def test_patch_existing_recurses_into_existing_object():
     assert handled is True
     # The existing object's matching field was updated in place (via the recursive __patch_owner).
     assert nested.name == "generated"
+
+
+@pytest.mark.no_xdist
+def test_generate_node_first_port_on_portless_ecu(get_flync_example_path, tmp_path):
+    """
+    Generating the first ECUPort on an ECU without a ``ports.flync.yaml`` must
+    initialize the unset optional ``ports`` collection before appending, so the
+    port is persisted as a list element instead of being assigned as a bare model
+    (FLYNC-1917).
+    """
+    workspace_path = tmp_path / "test_generate_portless"
+    shutil.copytree(get_flync_example_path, workspace_path)
+    config = WorkspaceConfiguration(map_objects=True)
+    ws = FLYNCWorkspace.load_workspace("test_generate_portless", workspace_path, config)
+
+    parent_obj_id = ObjectId("ecus.body_ecu")
+    parent_obj = ws.get_object(parent_obj_id)
+    # Precondition: body_ecu declares no ports, so the optional list is unset (None).
+    assert parent_obj.model.ports is None
+
+    generated_name = "new_port"
+    assert generate_node(ws, ["ecus.body_ecu.ports"], name=generated_name), "Node not generated"
+
+    new_ws = FLYNCWorkspace.load_workspace("reload_test_generate_portless", workspace_path, config)
+
+    new_obj_id = ObjectId(f"{parent_obj_id}.ports.ports.{generated_name}")
+    assert new_ws.has_object(new_obj_id), f"Expected {new_obj_id} to exist in workspace"
+    assert isinstance(new_ws.get_object(new_obj_id).model, ECUPort)
+
+    new_parent = new_ws.get_object(parent_obj_id)
+    assert new_parent.model.ports is not None
+    assert len(new_parent.model.ports) == 1
+    assert new_parent.model.ports[0].name == generated_name
+
+
+def test_factory_empty_collection_for_annotation():
+    """
+    ``_empty_collection_for_annotation`` must return a fresh ``list``/``set`` for bare,
+    ``Optional`` and ``Annotated``-wrapped collection annotations, and ``None`` for
+    non-collection annotations (so scalar fields keep their assignment fallback).
+    """
+
+    class Child(FLYNCBaseModel):
+        name: str
+
+    assert FLYNCFactory._empty_collection_for_annotation(list[Child]) == []
+    assert FLYNCFactory._empty_collection_for_annotation(Optional[list[Child]]) == []
+    assert FLYNCFactory._empty_collection_for_annotation(Annotated[Optional[list[Child]], External()]) == []
+    assert FLYNCFactory._empty_collection_for_annotation(Optional[set[str]]) == set()
+    assert FLYNCFactory._empty_collection_for_annotation(Optional[Child]) is None
+    assert FLYNCFactory._empty_collection_for_annotation(Child) is None
+
+
+def test_attach_to_owner_initializes_optional_list_default_none(tmp_path):
+    """
+    A child must be appended to an ``Optional[List[X]] = None`` field by initializing it
+    first, rather than assigning the bare child (which fails list validation).
+    """
+
+    class Child(FLYNCBaseModel):
+        name: str
+
+    class Owner(FLYNCBaseModel):
+        children: Optional[list[Child]] = Field(default=None)
+
+    class _WorkspaceStub:
+        def __init__(self, root):
+            self.workspace_root = root
+
+        def get_semantic_objects_from_model(self, model):
+            return []
+
+    owner = Owner()
+    assert owner.children is None
+
+    child = Child(name="child")
+    success, _path, model = generation_helpers_util.__attach_to_owner(_WorkspaceStub(tmp_path), owner, "children", child)
+
+    assert success is True
+    assert model is owner
+    assert owner.children == [child]
