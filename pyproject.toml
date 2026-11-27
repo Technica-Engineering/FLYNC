@@ -20,7 +20,7 @@ dependencies = [
     "rich",
     "typer",
     "pydantic==2.14.4",
-    "pyyaml==6.0.3",
+    "pyyaml==6.0.4",
     "pydantic-extra-types>=2.11.0,!=2.11.2,<3.0.0",
     "cantools>=45.2.0,<45.3.0",
     "semver>=3.0,<4.0",
