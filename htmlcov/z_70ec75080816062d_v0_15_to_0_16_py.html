@@ -54,8 +54,8 @@
             </div>
         </aside>
         <h2>
-            <span class="text">52 statements &nbsp;</span>
-            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">51<span class="text"> run</span></button>
+            <span class="text">65 statements &nbsp;</span>
+            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">64<span class="text"> run</span></button>
             <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">1<span class="text"> missing</span></button>
             <button type="button" class="exc show_exc button_toggle_exc" value="exc" data-shortcut="x" title="Toggle lines excluded">0<span class="text"> excluded</span></button>
         </h2>
@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_534f8239027be7d3___init___py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.17.5">coverage.py v7.17.5</a>,
-            created at 2026-11-27 15:23 +0000
+            created at 2026-11-27 15:37 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -166,16 +166,40 @@
     <p class="run"><span class="n"><a id="t84" href="#t84">84</a></span><span class="t">    <span class="key">return</span> <span class="key">None</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t85" href="#t85">85</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t86" href="#t86">86</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t87" href="#t87">87</a></span><span class="t"><span class="op">@</span><span class="nam">migration</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t88" href="#t88">88</a></span><span class="t"><span class="key">class</span> <span class="nam">Migration016</span><span class="op">(</span><span class="nam">FLYNCMigration</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t89" href="#t89">89</a></span><span class="t">    <span class="str">&quot;&quot;&quot;Brings a 0.15 workspace to the 0.16 schema, one step per breaking change.&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t87" href="#t87">87</a></span><span class="t"><span class="key">def</span> <span class="nam">_lin_interfaces</span><span class="op">(</span><span class="nam">documents</span><span class="op">:</span> <span class="nam">Documents</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="nam">Iterator</span><span class="op">[</span><span class="nam">Node</span><span class="op">]</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t88" href="#t88">88</a></span><span class="t">    <span class="str">&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t89" href="#t89">89</a></span><span class="t"><span class="str">    Yield every LIN interface in the workspace.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t90" href="#t90">90</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t91" href="#t91">91</a></span><span class="t">    <span class="nam">unique_id</span> <span class="op">=</span> <span class="str">&quot;v0_15_to_0_16&quot;</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t92" href="#t92">92</a></span><span class="t">    <span class="nam">target_version</span> <span class="op">=</span> <span class="str">&quot;0.16.0&quot;</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t93" href="#t93">93</a></span><span class="t">    <span class="nam">description</span> <span class="op">=</span> <span class="str">&quot;J1939 frame references address their frame by name instead of PGN.&quot;</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t94" href="#t94">94</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t95" href="#t95">95</a></span><span class="t">    <span class="key">def</span> <span class="nam">apply</span><span class="op">(</span><span class="nam">self</span><span class="op">,</span> <span class="nam">documents</span><span class="op">:</span> <span class="nam">Documents</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t96" href="#t96">96</a></span><span class="t">        <span class="nam">_migrate_j1939_frame_refs_to_names</span><span class="op">(</span><span class="nam">documents</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t91" href="#t91">91</a></span><span class="t"><span class="str">    An interface is normally its own document under a ``lin_interfaces`` folder; one written inline</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t92" href="#t92">92</a></span><span class="t"><span class="str">    in a ``lin_interfaces`` list of its controller is found as well.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t93" href="#t93">93</a></span><span class="t"><span class="str">    &quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t94" href="#t94">94</a></span><span class="t">    <span class="key">for</span> <span class="nam">uri</span><span class="op">,</span> <span class="nam">content</span> <span class="key">in</span> <span class="nam">documents</span><span class="op">.</span><span class="nam">items</span><span class="op">(</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t95" href="#t95">95</a></span><span class="t">        <span class="nam">folders</span> <span class="op">=</span> <span class="nam">uri</span><span class="op">.</span><span class="nam">replace</span><span class="op">(</span><span class="str">&quot;\\&quot;</span><span class="op">,</span> <span class="str">&quot;/&quot;</span><span class="op">)</span><span class="op">.</span><span class="nam">split</span><span class="op">(</span><span class="str">&quot;/&quot;</span><span class="op">)</span><span class="op">[</span><span class="op">:</span><span class="op">-</span><span class="num">1</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t96" href="#t96">96</a></span><span class="t">        <span class="key">if</span> <span class="nam">isinstance</span><span class="op">(</span><span class="nam">content</span><span class="op">,</span> <span class="nam">dict</span><span class="op">)</span> <span class="key">and</span> <span class="str">&quot;lin_interfaces&quot;</span> <span class="key">in</span> <span class="nam">folders</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t97" href="#t97">97</a></span><span class="t">            <span class="key">yield</span> <span class="nam">content</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t98" href="#t98">98</a></span><span class="t">        <span class="key">for</span> <span class="nam">node</span> <span class="key">in</span> <span class="nam">_walk</span><span class="op">(</span><span class="nam">content</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t99" href="#t99">99</a></span><span class="t">            <span class="key">yield</span> <span class="key">from</span> <span class="nam">_dicts</span><span class="op">(</span><span class="nam">node</span><span class="op">.</span><span class="nam">get</span><span class="op">(</span><span class="str">&quot;lin_interfaces&quot;</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t100" href="#t100">100</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t101" href="#t101">101</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t102" href="#t102">102</a></span><span class="t"><span class="key">def</span> <span class="nam">_drop_lin_frame_ref_bus</span><span class="op">(</span><span class="nam">documents</span><span class="op">:</span> <span class="nam">Documents</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t103" href="#t103">103</a></span><span class="t">    <span class="str">&quot;&quot;&quot;``LINFrameRef`` drops ``bus_ref``; the bus is the ``bus_ref`` of the owning interface.&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t104" href="#t104">104</a></span><span class="t">    <span class="key">for</span> <span class="nam">interface</span> <span class="key">in</span> <span class="nam">_lin_interfaces</span><span class="op">(</span><span class="nam">documents</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t105" href="#t105">105</a></span><span class="t">        <span class="key">for</span> <span class="nam">field</span> <span class="key">in</span> <span class="op">(</span><span class="str">&quot;sender_frames&quot;</span><span class="op">,</span> <span class="str">&quot;receiver_frames&quot;</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t106" href="#t106">106</a></span><span class="t">            <span class="key">for</span> <span class="nam">ref</span> <span class="key">in</span> <span class="nam">_dicts</span><span class="op">(</span><span class="nam">interface</span><span class="op">.</span><span class="nam">get</span><span class="op">(</span><span class="nam">field</span><span class="op">)</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t107" href="#t107">107</a></span><span class="t">                <span class="nam">ref</span><span class="op">.</span><span class="nam">pop</span><span class="op">(</span><span class="str">&quot;bus_ref&quot;</span><span class="op">,</span> <span class="key">None</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t108" href="#t108">108</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t109" href="#t109">109</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t110" href="#t110">110</a></span><span class="t"><span class="op">@</span><span class="nam">migration</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t111" href="#t111">111</a></span><span class="t"><span class="key">class</span> <span class="nam">Migration016</span><span class="op">(</span><span class="nam">FLYNCMigration</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t112" href="#t112">112</a></span><span class="t">    <span class="str">&quot;&quot;&quot;Brings a 0.15 workspace to the 0.16 schema, one step per breaking change.&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t113" href="#t113">113</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t114" href="#t114">114</a></span><span class="t">    <span class="nam">unique_id</span> <span class="op">=</span> <span class="str">&quot;v0_15_to_0_16&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t115" href="#t115">115</a></span><span class="t">    <span class="nam">target_version</span> <span class="op">=</span> <span class="str">&quot;0.16.0&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t116" href="#t116">116</a></span><span class="t">    <span class="nam">description</span> <span class="op">=</span> <span class="str">&quot;J1939 frame references address their frame by name instead of PGN; LIN frame references drop bus_ref.&quot;</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t117" href="#t117">117</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t118" href="#t118">118</a></span><span class="t">    <span class="key">def</span> <span class="nam">apply</span><span class="op">(</span><span class="nam">self</span><span class="op">,</span> <span class="nam">documents</span><span class="op">:</span> <span class="nam">Documents</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t119" href="#t119">119</a></span><span class="t">        <span class="nam">_migrate_j1939_frame_refs_to_names</span><span class="op">(</span><span class="nam">documents</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t120" href="#t120">120</a></span><span class="t">        <span class="nam">_drop_lin_frame_ref_bus</span><span class="op">(</span><span class="nam">documents</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
 </main>
 <footer>
     <div class="content">
@@ -185,7 +209,7 @@
             <a class="nav" href="z_534f8239027be7d3___init___py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.17.5">coverage.py v7.17.5</a>,
-            created at 2026-11-27 15:23 +0000
+            created at 2026-11-27 15:37 +0000
         </p>
     </div>
 </footer>

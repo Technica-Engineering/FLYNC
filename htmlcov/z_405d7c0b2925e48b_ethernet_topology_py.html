@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Coverage for src/flync/model/flync_4_topology/ethernet_topology.py: 92%</title>
+    <title>Coverage for src/flync/model/flync_4_topology/ethernet_topology.py: 96%</title>
     <link rel="icon" sizes="32x32" href="favicon_32_cb_c827f16f.png">
     <link rel="stylesheet" href="style_cb_4667309f.css" type="text/css">
     <script src="coverage_html_cb_54cfdca1.js" defer></script>
@@ -12,7 +12,7 @@
     <div class="content">
         <h1>
             <span class="text">Coverage for </span><b>src<span class="sep">/</span>flync<span class="sep">/</span>model<span class="sep">/</span>flync_4_topology<span class="sep">/</span>ethernet_topology.py</b>:
-            <span class="pc_cov">92%</span>
+            <span class="pc_cov">96%</span>
         </h1>
         <aside id="help_panel_wrapper">
             <input id="help_panel_state" type="checkbox">
@@ -55,8 +55,8 @@
         </aside>
         <h2>
             <span class="text">106 statements &nbsp;</span>
-            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">98<span class="text"> run</span></button>
-            <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">8<span class="text"> missing</span></button>
+            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">102<span class="text"> run</span></button>
+            <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">4<span class="text"> missing</span></button>
             <button type="button" class="exc show_exc button_toggle_exc" value="exc" data-shortcut="x" title="Toggle lines excluded">0<span class="text"> excluded</span></button>
         </h2>
         <p class="text">
@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_8cff0f5ea1afa3c6___init___py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.17.5">coverage.py v7.17.5</a>,
-            created at 2026-11-27 15:23 +0000
+            created at 2026-11-27 15:37 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -330,8 +330,8 @@
     <p class="run"><span class="n"><a id="t248" href="#t248">248</a></span><span class="t">        <span class="key">if</span> <span class="key">not</span> <span class="nam">_is_multidrop_port</span><span class="op">(</span><span class="nam">port</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t249" href="#t249">249</a></span><span class="t">            <span class="nam">unconnected_by_ecu_p2p</span><span class="op">.</span><span class="nam">setdefault</span><span class="op">(</span><span class="nam">ecu_name</span><span class="op">,</span> <span class="op">[</span><span class="op">]</span><span class="op">)</span><span class="op">.</span><span class="nam">append</span><span class="op">(</span><span class="nam">port</span><span class="op">.</span><span class="nam">name</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t250" href="#t250">250</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t251" href="#t251">251</a></span><span class="t">        <span class="key">elif</span> <span class="nam">id</span><span class="op">(</span><span class="nam">port</span><span class="op">)</span> <span class="key">not</span> <span class="key">in</span> <span class="nam">claimed_multidrop_ports</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t252" href="#t252">252</a></span><span class="t">            <span class="nam">unconnected_by_ecu_multidrop</span><span class="op">.</span><span class="nam">setdefault</span><span class="op">(</span><span class="nam">ecu_name</span><span class="op">,</span> <span class="op">[</span><span class="op">]</span><span class="op">)</span><span class="op">.</span><span class="nam">append</span><span class="op">(</span><span class="nam">port</span><span class="op">.</span><span class="nam">name</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t251" href="#t251">251</a></span><span class="t">        <span class="key">elif</span> <span class="nam">id</span><span class="op">(</span><span class="nam">port</span><span class="op">)</span> <span class="key">not</span> <span class="key">in</span> <span class="nam">claimed_multidrop_ports</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t252" href="#t252">252</a></span><span class="t">            <span class="nam">unconnected_by_ecu_multidrop</span><span class="op">.</span><span class="nam">setdefault</span><span class="op">(</span><span class="nam">ecu_name</span><span class="op">,</span> <span class="op">[</span><span class="op">]</span><span class="op">)</span><span class="op">.</span><span class="nam">append</span><span class="op">(</span><span class="nam">port</span><span class="op">.</span><span class="nam">name</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t253" href="#t253">253</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t254" href="#t254">254</a></span><span class="t">    <span class="key">if</span> <span class="nam">unconnected_by_ecu_p2p</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t255" href="#t255">255</a></span><span class="t">        <span class="nam">lines</span> <span class="op">=</span> <span class="op">[</span><span class="fst">f&quot;</span><span class="fst">  </span><span class="op">{</span><span class="nam">ecu</span><span class="op">}</span><span class="fst">: </span><span class="op">{</span><span class="str">&#x27;, &#x27;</span><span class="op">.</span><span class="nam">join</span><span class="op">(</span><span class="fst">f&#x27;</span><span class="op">{</span><span class="nam">p</span><span class="op">!</span><span class="nam">r</span><span class="op">}</span><span class="fst">&#x27;</span> <span class="key">for</span> <span class="nam">p</span> <span class="key">in</span> <span class="nam">ports</span><span class="op">)</span><span class="op">}</span><span class="fst">&quot;</span> <span class="key">for</span> <span class="nam">ecu</span><span class="op">,</span> <span class="nam">ports</span> <span class="key">in</span> <span class="nam">unconnected_by_ecu_p2p</span><span class="op">.</span><span class="nam">items</span><span class="op">(</span><span class="op">)</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
@@ -342,12 +342,12 @@
     <p class="run run2"><span class="n"><a id="t260" href="#t260">260</a></span><span class="t">        <span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t261" href="#t261">261</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t262" href="#t262">262</a></span><span class="t">    <span class="key">if</span> <span class="nam">unconnected_by_ecu_multidrop</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t263" href="#t263">263</a></span><span class="t">        <span class="nam">lines</span> <span class="op">=</span> <span class="op">[</span><span class="fst">f&quot;</span><span class="fst">  </span><span class="op">{</span><span class="nam">ecu</span><span class="op">}</span><span class="fst">: </span><span class="op">{</span><span class="str">&#x27;, &#x27;</span><span class="op">.</span><span class="nam">join</span><span class="op">(</span><span class="fst">f&#x27;</span><span class="op">{</span><span class="nam">p</span><span class="op">!</span><span class="nam">r</span><span class="op">}</span><span class="fst">&#x27;</span> <span class="key">for</span> <span class="nam">p</span> <span class="key">in</span> <span class="nam">ports</span><span class="op">)</span><span class="op">}</span><span class="fst">&quot;</span> <span class="key">for</span> <span class="nam">ecu</span><span class="op">,</span> <span class="nam">ports</span> <span class="key">in</span> <span class="nam">unconnected_by_ecu_multidrop</span><span class="op">.</span><span class="nam">items</span><span class="op">(</span><span class="op">)</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t264" href="#t264">264</a></span><span class="t">        <span class="nam">warn</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis mis2 show_mis"><span class="n"><a id="t265" href="#t265">265</a></span><span class="t">            <span class="str">&quot;The following ECU multidrop ports are not connected in the system topology:\n&quot;</span> <span class="op">+</span> <span class="str">&quot;\n&quot;</span><span class="op">.</span><span class="nam">join</span><span class="op">(</span><span class="nam">lines</span><span class="op">)</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis mis2 show_mis"><span class="n"><a id="t266" href="#t266">266</a></span><span class="t">            <span class="nam">category</span><span class="op">=</span><span class="nam">Category</span><span class="op">.</span><span class="nam">STRUCTURAL</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis mis2 show_mis"><span class="n"><a id="t267" href="#t267">267</a></span><span class="t">            <span class="nam">error_number</span><span class="op">=</span><span class="str">&quot;262&quot;</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis mis2 show_mis"><span class="n"><a id="t268" href="#t268">268</a></span><span class="t">        <span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t263" href="#t263">263</a></span><span class="t">        <span class="nam">lines</span> <span class="op">=</span> <span class="op">[</span><span class="fst">f&quot;</span><span class="fst">  </span><span class="op">{</span><span class="nam">ecu</span><span class="op">}</span><span class="fst">: </span><span class="op">{</span><span class="str">&#x27;, &#x27;</span><span class="op">.</span><span class="nam">join</span><span class="op">(</span><span class="fst">f&#x27;</span><span class="op">{</span><span class="nam">p</span><span class="op">!</span><span class="nam">r</span><span class="op">}</span><span class="fst">&#x27;</span> <span class="key">for</span> <span class="nam">p</span> <span class="key">in</span> <span class="nam">ports</span><span class="op">)</span><span class="op">}</span><span class="fst">&quot;</span> <span class="key">for</span> <span class="nam">ecu</span><span class="op">,</span> <span class="nam">ports</span> <span class="key">in</span> <span class="nam">unconnected_by_ecu_multidrop</span><span class="op">.</span><span class="nam">items</span><span class="op">(</span><span class="op">)</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t264" href="#t264">264</a></span><span class="t">        <span class="nam">warn</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t265" href="#t265">265</a></span><span class="t">            <span class="str">&quot;The following ECU multidrop ports are not connected in the system topology:\n&quot;</span> <span class="op">+</span> <span class="str">&quot;\n&quot;</span><span class="op">.</span><span class="nam">join</span><span class="op">(</span><span class="nam">lines</span><span class="op">)</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t266" href="#t266">266</a></span><span class="t">            <span class="nam">category</span><span class="op">=</span><span class="nam">Category</span><span class="op">.</span><span class="nam">STRUCTURAL</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t267" href="#t267">267</a></span><span class="t">            <span class="nam">error_number</span><span class="op">=</span><span class="str">&quot;262&quot;</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t268" href="#t268">268</a></span><span class="t">        <span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t269" href="#t269">269</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t270" href="#t270">270</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t271" href="#t271">271</a></span><span class="t"><span class="key">class</span> <span class="nam">FLYNCTopology</span><span class="op">(</span><span class="nam">FLYNCBaseModel</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
@@ -398,7 +398,7 @@
             <a class="nav" href="z_8cff0f5ea1afa3c6___init___py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.17.5">coverage.py v7.17.5</a>,
-            created at 2026-11-27 15:23 +0000
+            created at 2026-11-27 15:37 +0000
         </p>
     </div>
 </footer>
