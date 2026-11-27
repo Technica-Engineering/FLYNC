@@ -1,150 +1,191 @@
 .. _flync_example:
 
 FLYNC Examples
-===============
-
+==============
 Welcome to the configuration examples and tutorials! This section walks you through practical usage of the ``FLYNC`` configuration system with real examples.
+The ``examples/`` folder of the FLYNC repository contains complete, validating workspaces you can read, copy and
+adapt.
 
-----------
+Choosing an example
+-------------------
 
-Base Example
---------------
+.. list-table::
+   :header-rows: 1
+   :widths: 22 46 32
 
-This example provides a fully functional reference configuration that can be used as a baseline when developing your own system setup.
-It demonstrates how multiple networking features can be integrated into a cohesive design, helping you understand both structure and implementation details.
+   * - Example
+     - Use it when you need
+     - Validate with
+   * - :ref:`flync_example <example_base>`
+     - A complete, realistic reference vehicle network (ECU modeling, Commuincation Protocols, Topologies, ...).
+     - ``flync validate examples/flync_example``
+   * - :ref:`flync_example_experimental <example_experimental>`
+     - The base example plus features that are currently marked experimental . Subject to change.
+     - ``flync validate examples/flync_example_experimental``
+   * - :ref:`can_lin_example <example_can_lin>`
+     - A minimal workspace with one CAN FD bus, one LIN bus and their PDUs.
+     - ``flync validate examples/can_lin_example``
+   * - :ref:`ecu_variants <example_ecu_variants>`
+     - Various ECU examples with different internal structures, e.g. one/multiple controllers, external/integrated PHYs, and several more complex structures using Switches, VMs, or compute nodes.
+     - ``flync validate --node ECU examples/ecu_variants/<variant>``
+   * - :ref:`flync_4_variability <example_variability>`
+     - Product variants: optional ECUs and alternative architectures in one workspace.
+     - ``flync validate examples/flync_4_variability/<case>``
 
-The configuration includes the following key components:
+Example workspaces
+------------------
 
-- **Ethernet Network Topology** - Illustrates how devices are interconnected, including port roles, link relationships, and overall network structure. This serves as a guide for designing scalable and deterministic Ethernet architectures.
+.. _example_base:
 
-- **Time Synchronization** - Shows how gPTP configuration is defined and maintained across the network.
+flync_example (Base Example)
+""""""""""""""""""""""""""""
 
-- **MACsec** - Shows the configuration of MACsec-aware nodes of the system for link protection.
+**Path:** `examples/flync_example <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/flync_example>`_
 
-- **Quality of Service (QoS), Layer 2 TSN, and TCAM Usage** - Provides sample configurations for traffic prioritization and deterministic networking using Time-Sensitive Networking (TSN) features. It also illustrates how TCAM rules can be allocated and used for traffic classification and filtering. You can use this configuration as a starting point, adapting interface mappings, policies, and feature parameters to match the specific requirements of your hardware platform and application.
+The reference configuration for a vehicle network. Start here if you want to see how the pieces fit together.
+It contains 16 ECUs, Ethernet, CAN, LIN and J1939 buses, SOME/IP services, PDU containers, network management,
+time synchronization, MACsec and TSN settings, and measurement points.
 
-- **Network Management (NM)** - Shows how an NM message is modeled vendor-neutral as an ordinary PDU with ordinary signals, tagged via the ``pdu_usage`` / ``frame_usage`` fields, and bound to both Ethernet and CAN transports.
+**Validate:** ``flync validate examples/flync_example`` (result: ``VALID``)
 
-- **Signals, PDUs and CAN Communication** - Shows how bus-agnostic signals are grouped into PDUs and carried by CAN and CAN FD frames, and how the same PDUs are packed into Ethernet container PDUs.
+The following sections show selected parts of this workspace.
 
-- **10BASE-T1S Multidrop** - Shows a shared single-pair segment carrying three rear lamp modules and the zone controller that coordinates them. It covers the PLCA parameters every node agrees on, the per-node node id on each port's PHY, and how the whole segment enrolls in network management as a single participant.
+Ethernet network topology
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-
-
-Example Configuration
-"""""""""""""""""""""""
-
-Find an example configuration directly in `github <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/flync_example>`_.
-
-------
-
-Ethernet Network Topology
-""""""""""""""""""""""""""
-
-The **Ethernet Network Topology** diagram provides a comprehensive visual representation of all components included in the configuration.
-
-The diagram identifies the VLANs, IP addresses, and multicast groups assigned to each controller and switch, giving a complete view of the logical network segmentation and addressing scheme.
-
-
-Each ECU is shown as an individual block. The diagram also illustrates the internal connectivity between components within each ECU, as well as the external connections between ECUs, making both intra-ECU and inter-ECU communication paths easy to understand.
+The diagram lists every ECU, the VLANs, IP addresses and multicast groups of each controller and switch, and the
+links between them.
 
 .. image:: _static/images/examples/ethernet_topology.svg
    :align: center
    :width: 1300px
 
--------
+QoS, Layer 2 TSN and TCAM
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-QoS/L2 TSN and TCAM Configuration
-"""""""""""""""""""""""""""""""""""
-
-The **QoS / Layer 2 TSN and TCAM** Configuration diagram provides a comprehensive visual overview of the Time-Sensitive Networking (TSN) mechanisms and TCAM rules implemented in this configuration.
-
-The diagram highlights the HTB (Hierarchical Token Bucket) shaper configured on the Linux-based controllers (eth_ecu), as well as the Credit-Based Shapers (CBS) applied on the egress ports of the switches to manage time-sensitive traffic.
-
-It also shows the ingress stream filters deployed on the ingress ports of the switches, which are used for traffic policing and stream identification in accordance with TSN requirements.
-
-In addition, the diagram includes the TCAM rules configured on the switch (z2_switch1), illustrating how hardware-based classification and filtering are used to enforce traffic handling policies.
-
+The diagram shows the HTB shaper on the Linux controllers (``eth_ecu``), the Credit-Based Shapers on switch egress
+ports, the ingress stream filters, and the TCAM rules of ``z2_switch1``. Adapt the interface mappings, policies and
+parameters to your hardware.
 
 .. image:: _static/images/examples/qos.svg
    :align: center
    :width: 1300px
 
--------
+Time synchronization
+^^^^^^^^^^^^^^^^^^^^
 
-Time Synchronization Configuration
-"""""""""""""""""""""""""""""""""""""
-
-The **Timesync Configuration** diagram provides a clear visual overview of the time-synchronization roles assigned to all time-aware devices in the system.
-
-It illustrates how time is distributed across the network, identifying which devices act as time-transmitters or time_receivers.
-
-This helps clarify the synchronization hierarchy and the timing relationships between system components.
+The diagram shows which devices are time transmitters and which are time receivers.
 
 .. image:: _static/images/examples/ptp.svg
    :align: center
    :width: 1300px
 
--------
+MACsec
+^^^^^^
 
-MACsec Configuration
-"""""""""""""""""""""""
-
-The **MACsec Configuration** diagram provides a clear visual overview of the roles and relationships of all MACsec participants within the system.
-
-It identifies which devices function as MACsec peers, showing where secure channels are established and how link-layer protection is applied across the network.
-
-This helps clarify the security topology and illustrates how data integrity (and confidentiality) is maintained between connected nodes.
+The diagram shows which devices are MACsec peers and where secure channels protect the links.
 
 .. image:: _static/images/examples/macsec.svg
    :align: center
    :width: 1300px
 
--------
-
-Ethernet Multidrop Segment
-""""""""""""""""""""""""""
+Ethernet multidrop segment (10BASE-T1S)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The rear lamps sit on a **shared single-pair segment** rather than on a link of their own. Three lamp modules and one
 port of ``zonal_platform1`` share one twisted pair, and PLCA (IEEE 802.3-2022 Clause 148) gives each of them a
 transmit opportunity in turn, so the medium carries no collisions.
 
-The segment as the model derives it — the medium, and every node ordered by the transmit opportunity it holds:
+The segment as the model derives it, with every node ordered by the transmit opportunity it holds:
 
 .. mermaid:: _static/mermaid/multidrop_segment_rearlampsegment.mmd
 
 The segment is a connection in the system topology, holding the cycle all four nodes must agree on and one entry
 per node:
 
-.. literalinclude:: ../../examples/flync_example/topology/ethernet_topology.flync.yaml
-   :language: yaml
+.. code-block:: yaml
+
+   # File: examples/flync_example/topology/ethernet_topology.flync.yaml
+   connections:
+     - type: ethernet_multidrop
+       id: RearLampSegment
+       plca:
+         transmit_opportunity_count: 4
+         to_timer: 32
+       nodes:
+         - ecu_port: z1_p2
+           node_id: 0
+         - ecu_port: rear_lamp_left_p1
+           node_id: 1
+         - ecu_port: rear_lamp_center_p1
+           node_id: 2
+         - ecu_port: rear_lamp_right_p1
+           node_id: 3
+
 
 ``zonal_platform1`` holds transmit opportunity 0, which makes it the **coordinator** that emits the BEACON opening
-each cycle; the three lamps hold 1 to 3 as **followers**. What differs per node beyond that - the PHY, and the
-burst parameters - stays on the port.
+each cycle; the three lamps hold 1 to 3 as **followers**. What differs per node beyond that, the PHY and the burst
+parameters, stays on the port.
 
-Three things are worth noticing when reading the example:
+Three things to notice:
 
-- **The segment declares no frames.** Payload takes the ordinary Ethernet path — the lamp command and status PDUs
-  travel over UDP sockets on each node's ``ethernet_interfaces``, exactly as they would on a point-to-point link.
-- **The lamp command goes out as multicast.** Every node on a shared medium hears every frame anyway, so one
-  command addressed to the group lights the whole tail; sending it three times over would put three transmit
-  opportunities on the wire for the same payload.
-- **Network management is node-level here**, as on any other Ethernet. Each node is an IP host running its own NM
-  stack, so it holds its own membership; the segment itself holds none.
+    - **The segment declares no frames.** Payload takes the ordinary Ethernet path: the lamp command and status PDUs
+      travel over UDP sockets on each node's ``ethernet_interfaces``, as they would on a point-to-point link.
+    - **The lamp command goes out as multicast.** Every node on a shared medium hears every frame anyway, so one command
+      addressed to the group lights the whole tail.
+    - **Network management is node-level here.** Each node is an IP host running its own NM stack, so it holds its own
+      membership; the segment itself holds none.
 
--------
 
-Further Examples
---------------------
+.. _example_experimental:
 
-ECU Variants
-""""""""""""""
+flync_example_experimental
+""""""""""""""""""""""""""
 
-Variant 1: Single controller, single (virtual) interface, external PHY
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+**Path:** `examples/flync_example_experimental <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/flync_example_experimental>`_
 
-Find this example on github: `ecu_variant_1 <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_1_single_controller_single_iface_ext_PHY>`_.
+A superset of ``flync_example``: every file of the base example is present, plus the parts that are still being
+developed and are marked as **experimental**.
+
+**Validate:** ``flync validate examples/flync_example_experimental`` (result: ``WARNING``,
+because of experimental features; this warning is expected)
+
+.. _example_can_lin:
+
+can_lin_example
+"""""""""""""""
+
+**Path:** `examples/can_lin_example <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/can_lin_example>`_
+
+A small workspace with no Ethernet. Use it when you need only CAN and LIN, or as a minimal starting point.
+
+What it contains:
+
+- ``communication/channels/can/diag_can.flync.yaml``: ``DiagCAN``, a CAN FD diagnostics bus.
+- ``communication/channels/lin/body_lin.flync.yaml``: ``BodyLIN``, a LIN 2.2A body bus at 19.2 kbit/s with mirror
+  frames.
+- ``communication/channels/pdus/``: the PDUs packed into those frames, including the ``lin_specific`` variants.
+- ``ecus/can_node``: one ECU with one controller and a CAN interface on ``DiagCAN``.
+
+**Validate:** ``flync validate examples/can_lin_example`` (result: ``WARNING``).
+
+.. _example_ecu_variants:
+
+ECU variants
+""""""""""""
+
+**Path:** `examples/ecu_variants <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants>`_
+
+Isolated examples of different ECU structures. Each folder is a single ECU, not a full system.
+
+**Validate:** ``flync validate --node ECU examples/ecu_variants/<variant>`` (result: ``VALID``)
+
+ecu_variant_1_single_controller_single_iface_ext_PHY
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This ECU has one controller with a single (virtual) interface, reaching its ECU port through an external PHY.
+
+Path: `examples/ecu_variants/ecu_variant_1_single_controller_single_iface_ext_PHY <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_1_single_controller_single_iface_ext_PHY>`_.
 
 .. image:: ./_static/images/ecu_variants/ecu_variant_1_single_controller_single_iface_ext_PHY.svg
    :align: center
@@ -154,13 +195,13 @@ Find this example on github: `ecu_variant_1 <https://github.com/Technica-Enginee
 
 .. note:: The MII configuration must be compliant with that of the ECU controller configuration. In this case, ``type`` and ``speed`` must match; while ``mode`` must oppose the controller interface config (i.e., if mac in the controller interface, phy shall be configured).
 
---------------
 
+ecu_variant_2_single_controller_single_iface_int_PHY
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Variant 2: Single controller, single (virtual) interface, integrated PHY
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Similar to variant 1, but with an integrated PHY.
 
-Find this example on github: `ecu_variant_2 <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_2_single_controller_single_iface_int_PHY>`_.
+Path: `examples/ecu_variants/ecu_variant_2_single_controller_single_iface_int_PHY <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_2_single_controller_single_iface_int_PHY>`_.
 
 .. image:: ./_static/images/ecu_variants/ecu_variant_2_single_controller_single_iface_int_PHY.svg
    :align: center
@@ -168,36 +209,36 @@ Find this example on github: `ecu_variant_2 <https://github.com/Technica-Enginee
 
 .. note:: Since PHY is integrated into the host controller, no MII configuration is needed neither on the port side, nor on the controller side.
 
---------------
 
+ecu_variant_3_single_controller_multiple_iface_ext_PHY
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Variant 3: Single controller, multiple (virtual) interfaces, external PHY
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+This ECU has one controller with one interface carrying two virtual interfaces (VLAN 10 and VLAN 20), reaching its ECU port through an external PHY.
 
-Find this example on github: `ecu_variant_3 <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_3_single_controller_multiple_iface_ext_PHY>`_.
+Path: `examples/ecu_variants/ecu_variant_3_single_controller_multiple_iface_ext_PHY <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_3_single_controller_multiple_iface_ext_PHY>`_.
 
 .. image:: ./_static/images/ecu_variants/ecu_variant_3_single_controller_multiple_iface_ext_PHY.svg
    :align: center
    :width: 700px
 
---------------
 
+ecu_variant_4_single_controller_multiple_iface_int_PHY
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Variant 4: Single controller, multiple (virtual) interfaces, integrated PHY
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Similar to variant 3, but with an integrated PHY.
 
-Find this example on github: `ecu_variant_4 <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_4_single_controller_multiple_iface_int_PHY>`_.
+Path: `examples/ecu_variants/ecu_variant_4_single_controller_multiple_iface_int_PHY <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_4_single_controller_multiple_iface_int_PHY>`_.
 
 .. image:: ./_static/images/ecu_variants/ecu_variant_4_single_controller_multiple_iface_int_PHY.svg
    :align: center
    :width: 700px
 
---------------
+ecu_variant_5_single_controller_single_iface_multiple_vms
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Variant 5: Single controller, single (physical) interface, external PHY, Multiple VMs
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+This ECU has one controller with a single (physical) interface, shared through the virtual bridge ``br0`` by two compute nodes (VMs), with an external PHY on its ECU port.
 
-Find this example on github: `ecu_variant_5 <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_5_single_controller_single_iface_multiple_vms>`_.
+Path: `examples/ecu_variants/ecu_variant_5_single_controller_single_iface_multiple_vms <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_5_single_controller_single_iface_multiple_vms>`_.
 
 .. image:: ./_static/images/ecu_variants/ecu_variant_5_single_controller_single_iface_multiple_vms.svg
    :align: center
@@ -205,27 +246,27 @@ Find this example on github: `ecu_variant_5 <https://github.com/Technica-Enginee
 
 .. note:: If there is a VM, it needs to tie to a Controller Interface through a Virtual Switch.
 
---------------
 
+ecu_variant_6_single_controller_multiple_iface_physical_ext_phy
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Variant 6: Single controller, multiple (physical) interface, external PHY no VMs, Virtual Switch
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+This ECU has one controller with two physical interfaces, bridged at Layer 2 by the virtual switch ``br0``, and two ECU ports, each with its own external PHY.
 
-Find this example on github: `ecu_variant_6 <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_6_single_controller_multiple_iface_physical_ext_phy>`_.
+Path: `examples/ecu_variants/ecu_variant_6_single_controller_multiple_iface_physical_ext_phy <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_6_single_controller_multiple_iface_physical_ext_phy>`_.
 
 .. image:: ./_static/images/ecu_variants/ecu_variant_6_single_controller_multiple_iface_physical_ext_phy.svg
    :align: center
    :width: 500px
 
-.. note:: Two controller interfaces might be connected through an Virtual Switch.
-
---------------
+.. note:: The two controller interfaces are bridged by ``br0``, which is declared in the controller topology, not in the ECU topology.
 
 
-Variant 7: Switch ECU, multiple (virtual) interfaces, external PHY
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ecu_variant_7_switch_ecu_ext_PHY
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Find this example on github: `ecu_variant_7 <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_7_switch_ecu_ext_PHY>`_.
+This ECU contains an Ethernet switch with no host controller, which uplinks to a controller interface carrying two virtual interfaces (VLAN 10 and VLAN 20) and exposes two ECU ports, each with an external PHY.
+
+Path: `examples/ecu_variants/ecu_variant_7_switch_ecu_ext_PHY <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_7_switch_ecu_ext_PHY>`_.
 
 .. image:: ./_static/images/ecu_variants/ecu_variant_7_switch_ecu_ext_PHY.svg
    :align: center
@@ -234,13 +275,13 @@ Find this example on github: `ecu_variant_7 <https://github.com/Technica-Enginee
 
 .. note:: The MII ``mode`` of the ``switch1_port0`` must oppose the one of the ``ecu1_controller1_iface1``.
 
---------------
 
+ecu_variant_8_switch_ecu_with_host_ext_PHY
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Variant 8: Switch ECU with Host controller, multiple (virtual) interfaces, external PHY
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+This ECU contains an Ethernet switch with a host controller on its CPU port, which uplinks to a controller interface carrying three virtual interfaces (VLAN 10, 20 and 30) and exposes two ECU ports, each with an external PHY.
 
-Find this example on github: `ecu_variant_8 <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_8_switch_ecu_with_host_ext_PHY>`_.
+Path: `examples/ecu_variants/ecu_variant_8_switch_ecu_with_host_ext_PHY <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_8_switch_ecu_with_host_ext_PHY>`_.
 
 .. image:: ./_static/images/ecu_variants/ecu_variant_8_switch_ecu_with_host_ext_PHY.svg
    :align: center
@@ -252,13 +293,13 @@ Find this example on github: `ecu_variant_8 <https://github.com/Technica-Enginee
 .. note:: The Host controller of the switch will have the same configuration as any Controller Interface.
 
 
---------------
 
+ecu_variant_9_single_controller_eth_iface_can_iface
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Variant 9: Single controller, single Ethernet interface and a CAN interface
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+This ECU contains a single controller with an Ethernet interface, reaching its ECU port through an external PHY, and a CAN interface on the ``BodyCAN`` bus.
 
-Find this example on github: `ecu_variant_9 <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_9_single_controller_eth_iface_can_iface>`_.
+Path: `examples/ecu_variants/ecu_variant_9_single_controller_eth_iface_can_iface <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_9_single_controller_eth_iface_can_iface>`_.
 
 .. image:: ./_static/images/ecu_variants/ecu_variant_9_single_controller_eth_iface_can_iface.svg
    :align: center
@@ -268,13 +309,13 @@ Find this example on github: `ecu_variant_9 <https://github.com/Technica-Enginee
 
 .. note:: Several CAN frames share the single ``BodyCAN`` bus. The frames are defined once on the bus under ``communication/channels/can/``, and the CAN interface references them by their ``frame_ref`` (the CAN identifier) together with ``id_format``.
 
---------------
 
+ecu_variant_10
+^^^^^^^^^^^^^^^^
 
-Variant 10: Single controller, switch inside controller, several nested compute nodes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+This ECU contains a single controller (``adc``) with a hardware switch, five ECU ports, and five compute nodes, of which ``adaptive`` and ``diagnostic`` are nested inside ``linux_domain``.
 
-Find this example on github: `ecu_variant_10 <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_10>`_.
+Path: `examples/ecu_variants/ecu_variant_10 <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_10>`_.
 
 .. image:: ./_static/images/ecu_variants_static/ecu_variant_10.png
    :align: center
@@ -282,17 +323,18 @@ Find this example on github: `ecu_variant_10 <https://github.com/Technica-Engine
 
 .. note:: A single controller (``adc``) hosts a hardware switch, giving the controller and its compute nodes a shared internal switching fabric alongside their Ethernet interfaces.
 
-.. note:: Compute nodes can nest arbitrarily: the ``linux_domain`` compute node itself hosts the ``adaptive`` and ``diagnostic`` compute nodes, each with its own Ethernet interfaces. Other compute nodes of the controller (``linux``, ``safety_mcu``, ``safety_rtos``) sit alongside it at the same level.
+.. note:: Compute nodes can nest arbitrarily: the ``linux_domain`` compute node itself hosts the ``adaptive`` and ``diagnostic`` compute nodes, each with its own Ethernet interfaces. Other compute nodes of the controller (``infotainment``, ``linux``, ``safety_mcu``, ``safety_rtos``) sit alongside it at the same level.
 
 .. note:: Compute nodes such as ``linux``, ``linux_domain`` and ``safety_rtos`` each define their own virtual switch, connecting their Ethernet interfaces independently from the controller's hardware switch.
 
---------------
 
 
-Variant 11: Switch ECU with a port extender, multiple (virtual) interfaces
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ecu_variant_11_switch_ecu_with_port_extender
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Find this example on github: `ecu_variant_11 <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_11_switch_ecu_with_port_extender>`_.
+This ECU contains an Ethernet switch with a port extender attached to its 10G uplink, which exposes four ECU ports, and a controller interface with one virtual interface (VLAN 10).
+
+Path: `examples/ecu_variants/ecu_variant_11_switch_ecu_with_port_extender <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/ecu_variants/ecu_variant_11_switch_ecu_with_port_extender>`_.
 
 .. image:: ./_static/images/ecu_variants/ecu_variant_11_switch_ecu_with_port_extender.svg
    :align: center
@@ -300,65 +342,75 @@ Find this example on github: `ecu_variant_11 <https://github.com/Technica-Engine
 
 .. note:: The extender hangs off the uplink port ``switch1_uplink``. Its four ports are ports of ``ecu1_switch1``, each wired to an ECU port.
 
---------------
 
+
+.. _example_variability:
+
+flync_4_variability
+"""""""""""""""""""
+
+**Path:** `examples/flync_4_variability <https://github.com/Technica-Engineering/FLYNC/tree/main/examples/flync_4_variability>`_
+
+Two complete workspaces that model product variants in one model. Each validates for every declared variant. The ``README.md`` inside explains the examples in more detail.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 34 66
+
+   * - Workspace
+     - What it shows
+   * - ``01_optional_component``
+     - One optional ECU (a rear camera) and a link that exist only in the ``park_assist`` variant. The ADAS controller
+       differs between the two products.
+   * - ``02_architecture_alternatives``
+     - A domain and a zonal architecture, with two hardware generations of the central compute ECU. Three variants are
+       declared: ``domain_gen1``, ``domain_gen2`` and ``zonal_gen2``.
+
+**Validate and inspect:**
+
+.. code-block:: bash
+
+   flync validate examples/flync_4_variability/02_architecture_alternatives                  # all declared variants
+   flync validate examples/flync_4_variability/02_architecture_alternatives --variant zonal_gen2
+   flync variants list examples/flync_4_variability/02_architecture_alternatives            # one row per variant
+
+The reference of the variability model is in :ref:`variability_examples`.
+
+----------
+
+Concepts
+--------
+
+The following sections explain FLYNC concepts with snippets. They are not separate example workspaces; where a snippet
+names a real file, the file is in one of the example folders above.
 
 Internal Topology (Configuration and Types)
 """"""""""""""""""""""""""""""""""""""""""""""
 
-An ECU with internal connections describes them in its internal topology file. An ECU without internal connections may omit the file, in which case the internal topology defaults to one without connections. The example's ``can_node_1`` has neither ``ports.flync.yaml`` nor ``topology.flync.yaml`` because it only attaches to a CAN bus. The FLYNC model supports the connection types present in the following picture:
+An ECU with internal connections describes them in its internal topology file. An ECU without internal connections may omit the file, in which case the internal topology defaults to one without connections. In ``flync_example``, ``can_node_1`` has neither ``ports.flync.yaml`` nor ``topology.flync.yaml`` because it only attaches to a CAN bus. The following picture shows the connection types the FLYNC model supports. The snippet below uses three of them, taken from ``zonal_platform1``:
 
 .. important:: Be aware of the kind of connection that is added to the file, since the name of the components shall adjust to it accordingly.
-
-**Example file (dummy example)**
 
 .. image:: ./_static/images/internal_topology/internal_topology.png
    :align: center
    :width: 1000px
 
-.. dropdown:: 📄 ``ecu1_internal_topology.flync.yaml``
+.. code-block:: yaml
 
-   .. code-block:: yaml
-
-      connections:
-         -  type: ecu_port_to_switch_port
-            id: conn1
-            ecu_port: ecu1_port2
-            switch_port: switch1_port1
-         -  type: ecu_port_to_switch_port
-            id: conn2
-            ecu_port: ecu1_port3
-            switch_port: switch1_port2
-         -  type: ecu_port_to_switch_port
-            id: conn3
-            ecu_port: ecu1_port4
-            switch_port: switch2_port1
-         -  type: ecu_port_to_switch_port
-            id: conn4
-            ecu_port: ecu1_port5
-            switch_port: switch2_port2
-         -  type: ecu_port_to_controller_interface
-            id: conn5
-            ecu_port: ecu1_port1
-            controller_interface: ecu1_controller1_iface1
-         -  type: switch_port_to_controller_interface
-            id: conn6
-            switch_port: switch1_port0
-            controller_interface: ecu1_controller1_iface2
-         -  type: switch_port_to_controller_interface
-            id: conn7
-            switch_port: switch2_port0
-            controller_interface: ecu1_controller2_iface1
-         -  type: controller_interface_to_controller_interface
-            id: conn8
-            controller_interface: ecu1_controller1_iface2
-            controller_interface2: ecu1_controller2_iface1
-         -  type: switch_port_to_switch_port
-            id: conn9
-            switch_port: switch1_port3
-            switch2_port: switch2_port3
-
---------------
+   # File: examples/flync_example/ecus/zonal_platform1/topology.flync.yaml
+   connections:
+     - type: ecu_port_to_switch_port
+       id: conn1
+       ecu_port: z1_p1
+       switch_port: z1_s1_p0
+     - type: switch_port_to_controller_interface
+       id: conn2
+       switch_port: z1_s1_p1
+       controller_interface: z1_c1_iface1
+     - type: switch_port_to_host_controller_interface
+       id: conn4
+       switch_port: z1_s1_cpu_port
+       host_controller_interface: z1_switch1_host_iface1
 
 Additional Security Features Configuration
 """"""""""""""""""""""""""""""""""""""""""""
@@ -367,65 +419,44 @@ Firewall Configuration
 ^^^^^^^^^^^^^^^^^^^^^^
 
 The Firewall model consists of a default action and three lists defining rules for input, output and forward traffic, respectively.
-Each of these rules contains a pattern the packets are matched against, and an action executed when this check is positive:
+Each of these rules contains a pattern the packets are matched against, and an action executed when this check is positive.
+The firewall belongs to an Ethernet interface, next to its ``virtual_interfaces``.
 
-.. dropdown:: 📄 ``ecu1_controller1.flync.yaml``
+.. code-block:: yaml
 
-   .. code-block:: yaml
-
-      meta:
-         author: Developer1
-         compatible_flync_version:
-            version_schema: semver
-            version: 0.11.0
-      name: ecu1_controller1
-      interfaces:
-         -  name: ecu1_controller1_iface1
-            mac_address: 00:11:22:33:44:88
-            mii_config:
-            type: rmii
-            speed: 100
-            mode: mac
-            virtual_interfaces:
-            -  name: ecu1_controller1_iface1_viface1
-               vlanid: 0
-               addresses:
-                  -  address: 10.0.10.3
-                     ipv4_netmask: 255.255.255.0
-            firewall:
-               default_action: drop
-               input_rules:
-                  -  name: allow_ssh
-                     action: accept
-                     pattern:
-                     src_ipv4: 10.0.0.2
-                     protocol: tcp
-                     dst_port: 22
-                     vlan_tagged: true
-               output_rules:
-                  -  name: drop_output_vlan_33
-                     action: drop
-                     pattern:
-                     dst_ipv4:
-                        address: 10.0.0.1
-                        ipv4netmask : 255.255.255.0
-                     vlanid: 33
-               forward_rules:
-                  -  name: allow_forwarded_udp
-                     action: accept
-                     pattern:
-                     src_ipv4:
-                        address: 10.0.0.2
-                        ipv4netmask : 255.255.255.0
-                     dst_ipv4:
-                        address: 10.0.0.3
-                        ipv4netmask : 255.255.255.0
-                     protocol: udp
-                     dst_port:
-                           from_value: 30490
-                           to_value: 30509
-
---------------
+   # File (illustrative): ecus/<ecu>/controllers/<controller>/ethernet_interfaces/<interface>/interface_config.flync.yaml
+   firewall:
+     default_action: drop
+     input_rules:
+       - name: allow_ssh
+         action: accept
+         pattern:
+           src_ipv4: 10.0.0.2
+           protocol: tcp
+           dst_port: 22
+           vlan_tagged: true
+     output_rules:
+       - name: drop_output_vlan_33
+         action: drop
+         pattern:
+           dst_ipv4:
+             address: 10.0.0.1
+             ipv4netmask: 255.255.255.0
+           vlanid: 33
+     forward_rules:
+       - name: allow_forwarded_udp
+         action: accept
+         pattern:
+           src_ipv4:
+             address: 10.0.0.2
+             ipv4netmask: 255.255.255.0
+           dst_ipv4:
+             address: 10.0.0.3
+             ipv4netmask: 255.255.255.0
+           protocol: udp
+           dst_port:
+             from_value: 30490
+             to_value: 30509
 
 Switch TCAM Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -434,96 +465,37 @@ Switch TCAM Configuration
    :align: center
    :width: 1000px
 
+TCAM rules are part of the switch configuration, for example:
 
-.. dropdown:: 📄 ``ecu1_switch1.flync.yaml``
+.. code-block:: yaml
 
-   .. code-block:: yaml
-
-         meta:
-            author: Developer1
-            compatible_flync_version:
-               version_schema: semver
-               version: 0.11.0
-         name: ecu_switch1
-         ports:
-         -  name: switch_port0
-            silicon_port_no: 1
-            default_vlan_id: 1
-            mii_config:
-               type: rmii
-               speed: 100
-               mode: mac
-
-         -  name: switch_port1
-            silicon_port_no: 2
-            default_vlan_id: 1
-            mii_config:
-               type: rmii
-               speed: 100
-               mode: mac
-
-         -  name: switch_port2
-            silicon_port_no: 3
-            default_vlan_id: 1
-            mii_config:
-               type: rmii
-               speed: 100
-               mode: mac
-
-         tcam_rules:
-            -  name: Rule_1
-               match_filter:
-               src_mac:
-                  address: "10:10:10:22:22:22"
-                  macmask: "FF:FF:FF:FF:FF:FF"
-               vlanid: 20
-               pcp: 2
-               protocol: udp
-               dst_port:
-                  from_value: 32000
-                  to_value: 33000
-               match_ports: [switch_port1]
-               action:
-               -  type: drop
-                  ports: [switch_port2]
-
-            -  name: Rule_2
-               match_filter:
-               src_mac:
-                  address: "10:10:10:20:20:20"
-                  macmask: "FF:FF:FF:FF:FF:EE"
-               vlanid: 20
-               pcp: 5
-               protocol: udp
-               dst_port:
-                  from_value: 32000
-                  to_value: 33000
-               match_ports: [switch_port0, switch_port1]
-               action:
-                  -  type: vlan_overwrite
-                     overwrite_vlan_id: 10
-                     overwrite_vlan_pcp: 1
-                     ports: [switch_port2]
-
-         vlans:
-         -  name: VLAN10
-            id: 10
-            default_priority: 1
-            ports:
-               - switch_port0
-               - switch_port1
-               - switch_port2
-
-         -  name: VLAN20
-            id: 20
-            default_priority: 1
-            ports:
-               - switch_port0
-               - switch_port1
-               - switch_port2
-
---------------
-
+   # File: examples/flync_example/ecus/zonal_platform2/switches/z2_switch1/switch.flync.yaml
+   tcam_rules:
+     - name: rule_1
+       id: 1
+       match_filter:
+         pcp: [3, 4]
+       match_ports:
+         - z2_s1_p0
+       action:
+         - type: drop
+           ports:
+             - z2_s1_p2
+     - name: rule_2
+       id: 2
+       match_filter:
+         vlanid: 20
+         pcp: [3, 4]
+       match_ports:
+         - z2_s1_p0
+       vehicle_state:
+         data: "0x02"
+         mask: "0x0F"
+       action:
+         - type: vlan_overwrite
+           ports:
+             - z2_s1_p1
+           overwrite_vlan_pcp: 1
 
 Sockets Configuration
 """"""""""""""""""""""""
@@ -535,9 +507,9 @@ A socket in FLYNC represents a logical endpoint on a virtual network interface o
    :width: 1000px
 
 .. note:: Sockets must be defined in a separate folder for each ECU for better readability.
+
 .. note:: Multiple sockets may be defined in a single file for different address endpoints, but they must belong to the same VLAN.
 
--------
 
 Signals
 """""""
@@ -548,95 +520,35 @@ A **Signal** is the smallest data element in the ``FLYNC`` model: a single value
    :align: center
    :width: 1100px
 
-.. dropdown:: 📄 ``communication/channels/pdus/PDU_EngineStatus.flync.yaml``
+.. code-block:: yaml
 
-   .. code-block:: yaml
+   # File: examples/flync_example/communication/channels/pdus/PDU_EngineStatus.flync.yaml
+   name: PDU_EngineStatus
+   type: standard
+   length: 8
 
-      name: PDU_EngineStatus
-      type: standard
-      length: 8
-      description: >-
-        Engine speed, torque, coolant temperature and operating state.
-        Transmitted cyclically at 10 ms by EngineECU on PowertrainCAN.
+   signals:
+     - bit_position: 0
+       endianness: LE
 
-      signals:
-        - bit_position: 0
-          endianness: LE
-
-          signal:
-            name: EngineSpeed
-            description: Crankshaft rotational speed.
-            bit_length: 16
-            data_type: uint16
-            factor: 0.25
-            offset: 0.0
-            lower_limit: 0.0
-            upper_limit: 16383.75
-            unit: rpm
-            value_encoding:
-              type: text_table
-              entries:
-                - value: 65535
-                  label: Signal_Not_Available
-
-        - bit_position: 16
-          endianness: LE
-
-          signal:
-            name: EngineTorque
-            description: Indicated engine torque at crankshaft.
-            bit_length: 16
-            data_type: int16
-            factor: 0.1
-            offset: 0.0
-            lower_limit: -3276.8
-            upper_limit: 3276.7
-            unit: Nm
-        - bit_position: 32
-          endianness: LE
-
-          signal:
-            name: EngineCoolantTemp
-            description: Engine coolant temperature.
-            bit_length: 8
-            data_type: uint8
-            factor: 1.0
-            offset: -40.0
-            lower_limit: -40.0
-            upper_limit: 215.0
-            unit: degC
-            value_encoding:
-              type: text_table
-              entries:
-                - value: 254
-                  label: Sensor_Error
-                - value: 255
-                  label: Signal_Not_Available
-        - bit_position: 40
-          endianness: LE
-
-          signal:
-            name: EngineStatus
-            description: Engine operating state.
-            bit_length: 4
-            data_type: uint8
-            value_encoding:
-              type: text_table
-              entries:
-                - value: 0
-                  label: Stopped
-                - value: 1
-                  label: Cranking
-                - value: 2
-                  label: Running
-                - value: 3
-                  label: Stall
-                - value: 15
-                  label: Error
+       signal:
+         name: EngineSpeed
+         description: Crankshaft rotational speed.
+         bit_length: 16
+         data_type: uint16
+         factor: 0.25
+         offset: 0.0
+         lower_limit: 0.0
+         upper_limit: 16383.75
+         unit: rpm
+         value_encoding:
+           type: text_table
+           entries:
+             - value: 65535
+               label: Signal_Not_Available
 
 .. note:: Signals are defined inline inside the PDU that carries them, under ``communication/channels/pdus/``.
 
--------
 
 PDUs
 """"
@@ -657,143 +569,59 @@ Three PDU types are distinguished by the ``type`` discriminator:
 
 ``PDU_TransmissionStatus`` multiplexes on the 4-bit ``GearInfoMux`` selector: selector value ``0`` activates the gear-position signals, value ``1`` the torque-converter signals.
 
-.. dropdown:: 📄 ``communication/channels/pdus/PDU_TransmissionStatus.flync.yaml``
+.. code-block:: yaml
 
-   .. code-block:: yaml
+   # File: examples/flync_example/communication/channels/pdus/PDU_TransmissionStatus.flync.yaml
+   name: PDU_TransmissionStatus
+   type: multiplexed
+   length: 8
+   description: Transmission status, multiplexed on GearInfoMux selector.
 
-      name: PDU_TransmissionStatus
-      type: multiplexed
-      length: 8
-      description: Transmission status, multiplexed on GearInfoMux selector.
+   selector_signal:
+     bit_position: 0
+     endianness: LE
+     signal:
+       name: GearInfoMux
+       description: Multiplexer selector for TransmissionStatus PDU.
+       bit_length: 4
+       data_type: uint8
 
-      selector_signal:
-        bit_position: 0
-        endianness: LE
-        signal:
-          name: GearInfoMux
-          description: Multiplexer selector for TransmissionStatus PDU.
-          bit_length: 4
-          data_type: uint8
-
-      mux_groups:
-        - selector_value: 0
-          pdu:
-            name: PDU_TransmissionStatus_Gear
-            type: standard
-            length: 8
-            signals:
-              - bit_position: 8
-                endianness: LE
-
-                signal:
-                  name: CurrentGear
-                  description: Currently engaged gear.
-                  bit_length: 8
-                  data_type: uint8
-                  value_encoding:
-                    type: text_table
-                    entries:
-                      - value: 0
-                        label: Park
-                      - value: 1
-                        label: Reverse
-                      - value: 2
-                        label: Neutral
-                      - value: 3
-                        label: Drive_D1
-                      - value: 4
-                        label: Drive_D2
-                      - value: 5
-                        label: Drive_D3
-                      - value: 6
-                        label: Drive_D4
-              - bit_position: 16
-                endianness: LE
-
-                signal:
-                  name: GearShiftMode
-                  description: Automatic / manual / sport shift mode.
-                  bit_length: 4
-                  data_type: uint8
-                  value_encoding:
-                    type: text_table
-                    entries:
-                      - value: 0
-                        label: Automatic
-                      - value: 1
-                        label: Manual
-                      - value: 2
-                        label: Sport
-        - selector_value: 1
-          pdu:
-            name: PDU_TransmissionStatus_Torque
-            type: standard
-            length: 8
-            signals:
-              - bit_position: 8
-                endianness: LE
-
-                signal:
-                  name: TorqueConverterSlipSpeed
-                  description: Slip speed of the torque converter.
-                  bit_length: 16
-                  data_type: uint16
-                  factor: 0.1
-                  offset: 0.0
-                  unit: rpm
-              - bit_position: 24
-                endianness: LE
-
-                signal:
-                  name: TorqueConverterLockup
-                  description: Torque converter lock-up clutch state.
-                  bit_length: 2
-                  data_type: uint8
-                  value_encoding:
-                    type: text_table
-                    entries:
-                      - value: 0
-                        label: Open
-                      - value: 1
-                        label: Slipping
-                      - value: 2
-                        label: Locked
-                      - value: 3
-                        label: Error
+   mux_groups:
+     - selector_value: 0
+       pdu:
+         pdu_ref: PDU_TransmissionStatus_Gear
+     - selector_value: 1
+       pdu:
+         pdu_ref: PDU_TransmissionStatus_Torque
 
 **Container PDU**
 
 ``EthPowertrainContainer`` bundles three application PDUs - ``PDU_EngineStatus``, ``PDU_VehicleDynamics`` and ``PDU_TransmissionStatus`` - into one Ethernet payload. The per-slot ``header`` gives the bit widths of the PDU-ID and length fields, and each contained PDU declares its ``pdu_id`` and byte ``offset`` inside the container.
 
-.. dropdown:: 📄 ``communication/channels/ethernet_pdu_containers/eth_powertrain_container.flync.yaml``
+.. code-block:: yaml
 
-   .. code-block:: yaml
+   # File: examples/flync_example/communication/channels/ethernet_pdu_containers/eth_powertrain_container.flync.yaml
+   name: EthPowertrainContainer
+   type: container
+   pdu_id: 1
+   length: 31
+   header:
+     id_length_bits: 16
+     length_field_bits: 8
 
-      name: EthPowertrainContainer
-      type: container
-      pdu_id: 1
-      length: 31
-      header:
-        id_length_bits: 16
-        length_field_bits: 8
-      description: >-
-        Container PDU bundling powertrain PDUs (engine status, vehicle dynamics,
-        transmission state) into a single Ethernet payload.
-
-      contained_pdus:
-        - pdu_id: 257
-          pdu_ref: PDU_EngineStatus
-          offset: 0
-        - pdu_id: 513
-          pdu_ref: PDU_VehicleDynamics
-          offset: 11
-        - pdu_id: 769
-          pdu_ref: PDU_TransmissionStatus
-          offset: 20
+   contained_pdus:
+     - header_id: 257
+       pdu_ref: PDU_EngineStatus
+       offset: 0
+     - header_id: 513
+       pdu_ref: PDU_VehicleDynamics
+       offset: 11
+     - header_id: 769
+       pdu_ref: PDU_TransmissionStatus
+       offset: 20
 
 .. note:: The ``communication/channels/pdus/`` directory is optional and may be omitted when no PDUs are defined.
 
--------
 
 CAN Buses
 """""""""
@@ -804,88 +632,47 @@ Each frame references its payload PDU by name via ``packed_pdus`` and may carry 
 
 ``DiagCAN`` is a CAN FD bus (500 kbit/s nominal, 2 Mbit/s data phase). Its ``can_fd`` frames set ``bit_rate_switch`` and carry 64-byte diagnostic payloads. It also carries the Network Management frame documented in the NM example.
 
-.. dropdown:: 📄 ``communication/channels/can/diag_can.flync.yaml``
+.. code-block:: yaml
 
-   .. code-block:: yaml
+   # File: examples/flync_example/communication/channels/can/diag_can.flync.yaml
+   name: DiagCAN
+   description: Diagnostics bus at 500 kbit/s nominal / 2 Mbit/s data phase (CAN FD).
+   version: "1.0"
+   baud_rate: 500000
+   fd_enabled: true
+   fd_baud_rate: 2000000
 
-      name: DiagCAN
-      description: Diagnostics bus at 500 kbit/s nominal / 2 Mbit/s data phase (CAN FD).
-      version: "1.0"
-      baud_rate: 500000
-      fd_enabled: true
-      fd_baud_rate: 2000000
+   frames:
 
-      frames:
-
-        - name: Frame_LightDiagRequest
-          type: can_fd
-          description: Functional diagnostic request, CAN FD 64-byte payload.
-          length: 64
-          can_id: 2015         # 0x7DF
-          id_format: standard_11bit
-          bit_rate_switch: true
-          error_state_indicator: false
-          packed_pdus:
-            - pdu_ref: PDU_CabinLight
-              bit_position: 0
-
-        - name: Frame_EngineDiagResponse
-          type: can_fd
-          description: Diagnostic response from HPC, CAN FD 64-byte payload.
-          length: 64
-          can_id: 2024         # 0x7E8
-          id_format: standard_11bit
-          bit_rate_switch: true
-          error_state_indicator: false
-          packed_pdus:
-            - pdu_ref: PDU_EngineStatus
-              bit_position: 0
-
-        # --------------------------------------------------------------------------
-        # Frame: NmMessage (0x500, 8 bytes, sent cyclically by HPC, the sole modeled
-        # NM-sending ECU on this bus). Tagged frame_usage: network_management;
-        # carries PDU_NmMessage. Receivers are implicit external NM peers because HPC
-        # is the only DiagCAN-connected ECU in this workspace; in a multi-ECU CAN
-        # setup, peer ECUs would add Frame_NmMessage under receiver_frames on their
-        # own DiagCAN interface.
-        # --------------------------------------------------------------------------
-        - name: Frame_NmMessage
-          type: can
-          frame_usage: network_management
-          description: >-
-            Network Management frame on DiagCAN. Sent cyclically by HPC, the sole
-            NM-sending ECU modeled in this workspace. Carries the ordinary NM PDU
-            (PDU_NmMessage) as its payload.
-          length: 8
-          can_id: 1280         # 0x500
-          id_format: standard_11bit
-          packed_pdus:
-            - pdu_ref: PDU_NmMessage
-              bit_position: 0
-          timing:
-            cyclic_timings:
-              - cycle: 0.5
-            event_timings: []
+     - name: Frame_LightDiagRequest
+       type: can_fd
+       description: Functional diagnostic request, CAN FD 64-byte payload.
+       length: 64
+       can_id: 2015         # 0x7DF
+       id_format: standard_11bit
+       bit_rate_switch: true
+       error_state_indicator: false
+       packed_pdus:
+         - pdu_ref: PDU_CabinLight
+           bit_position: 0
 
 Which frames a controller sends and receives is declared on its **CAN interface**, one file per bus, where frames are referenced by their numeric ``frame_ref`` (the CAN ID) and ``id_format``, on the bus named by the interface's own ``bus_ref``. On ``DiagCAN``, ``high_performance_compute`` sends the diagnostic-response and Network-Management frames and receives the diagnostic request:
 
-.. dropdown:: 📄 ``ecus/high_performance_compute/controllers/hpc_controller1/can_interfaces/diag_can_interface.flync.yaml``
+.. code-block:: yaml
 
-   .. code-block:: yaml
-
-      bus_ref: DiagCAN
-      sender_frames:
-        - frame_ref: 2024  # Frame_EngineDiagResponse (0x7E8)
-          id_format: standard_11bit
-        - frame_ref: 1280  # Frame_NmMessage (0x500)
-          id_format: standard_11bit
-      receiver_frames:
-        - frame_ref: 2015  # Frame_LightDiagRequest (0x7DF)
-          id_format: standard_11bit
+   # File: examples/flync_example/ecus/high_performance_compute/controllers/hpc_controller1/can_interfaces/diag_can_interface.flync.yaml
+   bus_ref: DiagCAN
+   sender_frames:
+     - frame_ref: 2024  # Frame_EngineDiagResponse (0x7E8)
+       id_format: standard_11bit
+     - frame_ref: 1280  # Frame_NmMessage (0x500)
+       id_format: standard_11bit
+   receiver_frames:
+     - frame_ref: 2015  # Frame_LightDiagRequest (0x7DF)
+       id_format: standard_11bit
 
 .. note:: The ``communication/channels/can/`` directory is optional and may be omitted when no CAN buses are defined.
 
--------
 
 .. _flync_example_nm:
 
@@ -960,7 +747,6 @@ On ``BodyCAN``, the ``VEHICLE`` group follows the classic CAN pattern: ``zonal_g
 
 ``BodyLIN`` (the body bus - exterior mirrors and cabin ambient lighting) takes part through a **bus-level membership**: the whole bus joins the ``VEHICLE`` group as one participant on the ``Comfort`` function, without a LIN frame of its own. Its master (``zonal_platform1``) receives the group state on Ethernet (``pdu_receiver``) and drives the LIN bus to sleep with it; validation resolves the master as the bus's representative automatically.
 
--------
 
 .. _flync_example_instrumentation:
 
@@ -976,16 +762,20 @@ When present, the points are declared in ``instrumentation/measurement_points.fl
 - **CAN bus (``can_bus``)** - ``body_can`` taps ``BodyCAN`` (classical ``can`` payloads) and ``diagnostics_can_fd`` taps ``DiagCAN`` (``can`` and ``can_fd`` payloads).
 - **LIN bus (``lin_bus``)** - ``body_lin`` taps the ``BodyLIN`` bus.
 
-.. dropdown:: 📄 ``instrumentation/measurement_points.flync.yaml``
+.. code-block:: yaml
 
-   .. literalinclude:: ../../examples/flync_example/instrumentation/measurement_points.flync.yaml
-      :language: yaml
+   # File: examples/flync_example/instrumentation/measurement_points.flync.yaml
+   - name: gateway_to_hpc_link
+     type: ethernet_ports
+     description: Inline tap of both ends of the link to the HPC, one interface id per direction.
+     ports:
+       - ecu_port: zgw_p1
+         interface_id: 0x00010001
+       - ecu_port: hpc1_p5
+         interface_id: 0x00010002
 
-----------
-
-Variability Examples
---------------------
-
-``examples/flync_4_variability/`` holds one complete workspace per supported kind of variability: an optional
-ECU together with an alternative ECU (``01_optional_component``), and alternative E/E architectures on two
-hardware generations (``02_architecture_alternatives``). Each validates for every declared variant with ``flync validate``. See :ref:`variability_examples` in the variability reference.
+   - name: body_lin
+     type: lin_bus
+     description: Tap of the body LIN bus.
+     bus: BodyLIN
+     interface_id: 0x00020003
